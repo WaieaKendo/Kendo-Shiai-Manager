@@ -1,12 +1,12 @@
 {
   "name": "kendo-shiai-manager",
-  "version": "3.10.2",
+  "version": "3.10.3",
   "private": true,
-  "description": "Kendo Shiai Manager mobile navigation reliability",
+  "description": "Kendo Shiai Manager mobile Court portrait foundation",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "check": "node tests/verify-package.mjs && python tests/mobile-dropdown-test.py"
+    "check": "node tests/verify-package.mjs && python tests/mobile-dropdown-test.py && python tests/mobile-court-portrait-test.py"
   },
   "devDependencies": {
     "wrangler": "^4.11.0"
