@@ -2,13 +2,12 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1] / "public"
-
-HTML = (ROOT / 'index.html').read_text(encoding='utf-8')
+HTML = (ROOT / "index.html").read_text(encoding="utf-8")
 
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True, executable_path="/usr/bin/chromium", args=["--no-sandbox"])
     page = browser.new_page(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True)
-    errors=[]
+    errors = []
     page.on("pageerror", lambda exc: errors.append(str(exc)))
     page.set_content(HTML, wait_until="domcontentloaded")
     page.wait_for_timeout(300)
@@ -17,29 +16,32 @@ with sync_playwright() as p:
         ("Courts", "#courtsMenu", "Court A"),
         ("Live Scores", "#liveScoresMenu", "Court A"),
         ("Export", "#exportMenu", "Tournament Brackets"),
-        ("Save / Load", "#saveLoadMenu", "Save Tournament"),
+        ("Save or Load", "#saveLoadMenu", "Save Tournament"),
     ]
-    checks=0
-    for label, menu, item in contracts:
-        trigger=page.get_by_title(label if label != "Save / Load" else "Save or Load")
+    checks = 0
+    for title, menu, item in contracts:
+        trigger = page.get_by_title(title)
         trigger.tap()
-        page.locator(menu).wait_for(state="visible")
+        locator = page.locator(menu)
+        locator.wait_for(state="visible")
         assert trigger.get_attribute("aria-expanded") == "true"
-        assert page.locator(menu).get_by_role("button", name=item).is_visible()
-        checks += 3
-        # Opening a different menu must close the current one.
+        assert locator.get_by_role("button", name=item).is_visible()
+        box = locator.bounding_box()
+        assert box is not None
+        viewport = page.evaluate("({w:innerWidth,h:innerHeight})")
+        assert box["x"] >= 0 and box["x"] + box["width"] <= viewport["w"]
+        assert box["y"] >= 0 and box["y"] + min(box["height"], 1) <= viewport["h"]
+        checks += 6
         page.get_by_title("Setup").tap()
-        assert page.locator(menu).is_hidden()
+        assert locator.is_hidden()
         assert trigger.get_attribute("aria-expanded") == "false"
         checks += 2
 
-    # Toggle same trigger closed.
-    trigger=page.get_by_title("Courts")
+    trigger = page.get_by_title("Courts")
     trigger.tap(); assert page.locator("#courtsMenu").is_visible()
     trigger.tap(); assert page.locator("#courtsMenu").is_hidden()
     checks += 2
 
-    # Outside tap closes.
     trigger.tap(); assert page.locator("#courtsMenu").is_visible()
     page.locator("main").tap(position={"x": 10, "y": 10})
     assert page.locator("#courtsMenu").is_hidden()
@@ -47,5 +49,5 @@ with sync_playwright() as p:
 
     assert not errors, errors
     checks += 1
-    print(f"PASS: mobile dropdown reliability {checks}/{checks} assertions")
+    print(f"PASS: mobile dropdown viewport reliability {checks}/{checks} assertions")
     browser.close()

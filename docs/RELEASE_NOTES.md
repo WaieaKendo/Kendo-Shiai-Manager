@@ -1,4 +1,4 @@
-# KSM v3.10.1 — Mobile Navigation Reliability
+# KSM v3.10.2 — Mobile Navigation Reliability
 
 This release corrects the remaining hosted-mobile navigation issue observed after v3.10.0 deployment: dropdown navigation buttons did not reliably open or remain usable on phones.
 
