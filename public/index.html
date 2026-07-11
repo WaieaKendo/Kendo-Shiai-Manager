@@ -2552,9 +2552,17 @@ main,.view{position:relative;z-index:1;}
   border-top:0;
 }
 .team-live-row.current{
-  background:rgba(224,164,60,.12);
-  box-shadow:inset 0 0 0 2px rgba(224,164,60,.72);
+  background:transparent;
+  box-shadow:inset 0 0 0 2px rgba(224,164,60,.78);
+  border-radius:16px;
+  min-height:92px;
+  margin:4px;
+  padding-top:12px;
+  padding-bottom:12px;
 }
+.team-live-row.current .team-live-player{font-size:30px;}
+.team-live-row.current .team-point-slot{width:44px;height:44px;font-size:25px;}
+.team-live-row.current .team-row-vs{font-size:11px;color:#e0a43c;}
 .team-live-player{
   min-width:0;
   color:#fffdf8;
@@ -3681,20 +3689,12 @@ main,.view{position:relative;z-index:1;}
 
 
 <style>
-/* KSM v3.10.7 — spectator Live Scores and progressive pool context */
+/* KSM v3.10.8 — spectator Live Scores and progressive pool context */
 .mobile-name-break{display:none}
 .pool-result-card.completed-pool-card{opacity:.72;background:#f8f5ef}
 .pool-result-card.completed-pool-card h3{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .pool-complete-mark{color:#8b6500;font-weight:950}
 .pool-context-section-label{font-size:11px;font-weight:950;letter-spacing:.1em;text-transform:uppercase;color:#8b6500;margin:0 0 8px}
-.team-current-bout{margin:10px 0 16px;padding:14px 16px;border:1px solid rgba(255,255,255,.16);border-radius:16px;background:rgba(255,255,255,.045)}
-.team-current-label{text-align:center;color:#e0a43c;font-size:11px;font-weight:950;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px}
-.team-current-grid{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:12px;align-items:center}
-.team-current-player{min-width:0;color:#fffdf8;font-size:24px;line-height:1.08;font-weight:950}
-.team-current-player.red{text-align:right}
-.team-current-position{text-align:center;color:rgba(255,253,248,.72);font-size:12px;font-weight:900}
-.team-current-score{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:8px;font-size:32px;font-weight:950}
-.team-current-score .red{color:#ef5a57}
 
 @media(max-width:600px) and (orientation:portrait){
   #public{padding:10px 8px calc(28px + env(safe-area-inset-bottom))!important}
@@ -3736,13 +3736,7 @@ main,.view{position:relative;z-index:1;}
   .team-audience-hero{padding-bottom:14px!important}
   .team-audience-head{gap:8px!important;margin:7px 0 9px!important}
   .team-name-block{gap:5px!important;font-size:15px!important;line-height:1.08!important;overflow-wrap:anywhere!important}
-  .team-current-bout{padding:10px 8px!important;margin:7px 0 10px!important}
-  .team-current-label{font-size:9px!important;margin-bottom:7px!important}
-  .team-current-grid{gap:5px!important}
-  .team-current-player{font-size:14px!important;overflow-wrap:anywhere!important}
-  .team-current-position{font-size:9px!important}
-  .team-current-score{font-size:22px!important;gap:6px!important;margin-top:5px!important}
-  .team-lineup{border-radius:14px!important}
+    .team-lineup{border-radius:14px!important}
   .team-live-row{grid-template-columns:minmax(0,1fr) 34px minmax(0,1fr)!important;grid-template-rows:auto 24px!important;gap:3px 5px!important;min-height:58px!important;padding:7px 6px!important}
   .team-live-player{font-size:12px!important;line-height:1.08!important;overflow-wrap:anywhere!important;grid-row:1}
   .team-live-player:first-child{grid-column:1;text-align:left!important}
@@ -3753,6 +3747,10 @@ main,.view{position:relative;z-index:1;}
   .team-live-row>.team-point-slot:nth-child(3){grid-column:1;justify-self:center;transform:translateX(12px)}
   .team-live-row>.team-point-slot:nth-child(5){grid-column:3;justify-self:center;transform:translateX(-12px)}
   .team-live-row>.team-point-slot:nth-child(6){grid-column:3;justify-self:center;transform:translateX(12px)}
+  .team-live-row.current{min-height:76px!important;padding:10px 7px!important;margin:4px 3px!important;border-radius:14px!important;background:transparent!important}
+  .team-live-row.current .team-live-player{font-size:14px!important}
+  .team-live-row.current .team-point-slot{width:30px!important;height:30px!important;font-size:18px!important}
+  .team-live-row.current .team-row-vs{font-size:9px!important;color:#e0a43c!important}
   .team-total-summary{grid-template-columns:1fr 72px 1fr!important;margin-top:10px!important;padding:9px 8px!important;row-gap:3px!important}
   .team-total-number{font-size:28px!important}
   .team-total-label{font-size:9px!important}
@@ -3773,8 +3771,10 @@ main,.view{position:relative;z-index:1;}
   .audience-side-dot{width:16px!important;height:16px!important;margin-top:4px!important}.audience-white-dot{border-width:2px!important}
   .audience-score-stack{grid-template-rows:46px 14px!important}.audience-points{height:46px!important;min-width:54px!important;font-size:43px!important}.audience-vs{font-size:12px!important;padding-top:17px!important}.audience-triangles{height:14px!important;font-size:11px!important}
   .audience-next-card{margin-top:6px!important;padding:8px 16px!important;border-radius:14px!important}.audience-next-label{margin-bottom:5px!important;font-size:9px!important}.audience-next-name{font-size:15px!important}.audience-next-dojo{font-size:9px!important}.audience-next-side .audience-side-dot{width:11px!important;height:11px!important}
-  .team-audience-head{margin:2px 0 5px!important}.team-name-block{font-size:17px!important}.team-current-bout{margin:4px 0 7px!important;padding:7px 10px!important}.team-current-label{margin-bottom:4px!important}.team-current-player{font-size:15px!important}.team-current-score{font-size:22px!important}
-  .team-live-row{min-height:34px!important;padding:3px 8px!important}.team-live-player{font-size:11px!important}.team-point-slot{height:25px!important;font-size:14px!important}.team-total-summary{margin-top:6px!important;padding:5px 12px!important}.team-total-number{font-size:26px!important}.team-total-label{font-size:9px!important}
+    .team-live-row{min-height:34px!important;padding:3px 8px!important}.team-live-player{font-size:11px!important}.team-point-slot{height:25px!important;font-size:14px!important}.team-total-summary{margin-top:6px!important;padding:5px 12px!important}.team-total-number{font-size:26px!important}.team-total-label{font-size:9px!important}
+  .team-live-row.current{min-height:52px!important;padding:7px 8px!important;margin:3px!important;background:transparent!important}
+  .team-live-row.current .team-live-player{font-size:15px!important}
+  .team-live-row.current .team-point-slot{width:32px!important;height:32px!important;font-size:18px!important}
 }
 </style>
 
@@ -3786,7 +3786,7 @@ main,.view{position:relative;z-index:1;}
     <div class="nav-brand-copy">
       <span class="nav-brand-name">KSM</span>
       <span class="nav-brand-subtitle">Kendo Shiai Manager</span>
-      <span class="version-badge">v3.10.7</span>
+      <span class="version-badge">v3.10.8</span>
     </div>
   </div>
 
@@ -7397,7 +7397,7 @@ renderAll=function(){originalRenderAllForDirector();if(!document.getElementById(
 
 
 // ==========================================================
-// KSM v3.10.7 — spectator presentation refinements
+// KSM v3.10.8 — spectator presentation refinements
 // ==========================================================
 function audienceNameHtml(name){
   const value=String(name||'TBD').trim();
@@ -7432,20 +7432,6 @@ function audienceIndividualHero(court,m,extraClass=''){
     </div>
   </div>`;
 }
-function teamCurrentBoutHtml(m){
-  const pts=activeScoreArrays(m);
-  return `<div class="team-current-bout">
-    <div class="team-current-label">Current Bout${m.position?` • ${esc(m.position)}`:''}</div>
-    <div class="team-current-grid">
-      <div class="team-current-player">${audienceNameHtml(m.white||'TBD')}</div>
-      <div class="team-current-position">vs</div>
-      <div class="team-current-player red">${audienceNameHtml(m.red||'TBD')}</div>
-    </div>
-    <div class="team-current-score">
-      <span>${(pts.W||[]).map(esc).join(' ')||'—'}</span><small>vs</small><span class="red">${(pts.R||[]).map(esc).join(' ')||'—'}</span>
-    </div>
-  </div>`;
-}
 function standardTeamAudienceHtml(court,data){
   const m=data.match;
   const matches=(state.allMatches[m.division]||[]).filter(x=>
@@ -7470,7 +7456,6 @@ function standardTeamAudienceHtml(court,data){
       <div class="team-name-block"><span class="audience-side-dot audience-white-dot"></span><span>${esc(first.teamWhite||m.teamWhite||'White Team')}</span></div>
       <div class="team-name-block red"><span>${esc(first.teamRed||m.teamRed||'Red Team')}</span><span class="audience-side-dot audience-red-dot"></span></div>
     </div>
-    ${teamCurrentBoutHtml(m)}
     <div class="team-lineup">${rows}</div>
     <div class="team-total-summary">
       <div class="team-total-number white">${summary.wWins}</div><div class="team-total-label">Wins</div><div class="team-total-number red">${summary.rWins}</div>

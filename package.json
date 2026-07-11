@@ -1,8 +1,8 @@
 {
   "name": "kendo-shiai-manager",
-  "version": "3.10.7",
+  "version": "3.10.8",
   "private": true,
-  "description": "Kendo Shiai Manager spectator experience refinement",
+  "description": "Kendo Shiai Manager team live score lineup emphasis",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",

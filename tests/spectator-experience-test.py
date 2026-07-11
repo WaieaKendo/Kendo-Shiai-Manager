@@ -1,11 +1,14 @@
 from pathlib import Path
 html=Path('public/index.html').read_text()
 checks={
- 'version marker':'v3.10.7' in html,
+ 'version marker':'v3.10.8' in html,
  'portrait live scores media':'@media(max-width:600px) and (orientation:portrait)' in html,
  'compact audience court':'.audience-court{font-size:24px!important' in html,
  'mobile split names':'function audienceNameHtml(name)' in html and 'mobile-name-break' in html,
- 'team current bout':'function teamCurrentBoutHtml(m)' in html and 'team-current-bout' in html,
+ 'no duplicate team current panel':'function teamCurrentBoutHtml(m)' not in html and 'team-current-bout' not in html,
+ 'current bout stays in lineup':'<div class="team-lineup">${rows}</div>' in html and '${teamCurrentBoutHtml(m)}' not in html,
+ 'active lineup row enlarged':'.team-live-row.current .team-live-player{font-size:14px!important}' in html and '.team-live-row.current .team-point-slot{width:30px!important;height:30px!important;font-size:18px!important}' in html,
+ 'active lineup gold outline no tint':'.team-live-row.current{' in html and 'background:transparent;' in html and 'box-shadow:inset 0 0 0 2px rgba(224,164,60,.78)' in html,
  'team lineup retained':'<div class="team-lineup">${rows}</div>' in html,
  'next match retained':'audience-next-label">Next Match' in html,
  'pool completion helper':'function poolDisplayComplete(div,label)' in html,

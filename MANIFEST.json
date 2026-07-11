@@ -1,5 +1,5 @@
 {
-  "release": "KSM v3.10.7",
+  "release": "KSM v3.10.8",
   "file_count": 37,
   "files": [
     {
@@ -9,18 +9,18 @@
     },
     {
       "path": "CHANGELOG.md",
-      "size": 879,
-      "sha256": "d46f8ece5c03f4f13017386cb2aae5c7f80c11d11f750faf257e808b9a7c606b"
+      "size": 816,
+      "sha256": "15ce80c9701ff723e3fe2511396dc54b4d533bbc1521c82b4631adf38079a77c"
     },
     {
       "path": "README.md",
-      "size": 272,
-      "sha256": "5e236554afcc645516b15d254639d9bc3fdc47086938bccfe3ae97f8e4bbdc35"
+      "size": 133,
+      "sha256": "b4aa8a6a3c56fbf57715af70f4c5b6f464d0b8f05eb04e909706a4482ca5b17a"
     },
     {
       "path": "RELEASE_SUMMARY.md",
-      "size": 683,
-      "sha256": "bb30343865160deddef61fe74639fd4c41829503c802867e06bf02749e2433f9"
+      "size": 772,
+      "sha256": "b2e1c97b3f03c8834b6009f01068dd95dce3c3b56621282706d6f4f646b2c876"
     },
     {
       "path": "docs/DEPLOYMENT.md",
@@ -44,18 +44,18 @@
     },
     {
       "path": "docs/RELEASE_NOTES.md",
-      "size": 678,
-      "sha256": "ebe423cfa367a802b4a8d4d1d156604b54956a6a2b2da4f3626efc998491ae18"
+      "size": 357,
+      "sha256": "b583e7310f4b1cf1f8fa666acb05f927847fb667f158091032ffd64cab72f7a4"
     },
     {
       "path": "docs/SPECTATOR_EXPERIENCE_REPORT.md",
-      "size": 617,
-      "sha256": "6e36f0a01ee1580cdcc95d21e8ae131a3b83585709b37cd2138826be60cd1f99"
+      "size": 436,
+      "sha256": "5fb76d937390f43412ec056adb8cb5be890f5c274ff167cff71c15939ac7f266"
     },
     {
       "path": "package.json",
       "size": 561,
-      "sha256": "3fcde579bb439bb2f5a7d22f1861a8181f13d1425521884208ab7623c22ecad0"
+      "sha256": "9efa4cb46bece085286956e0404009b9df156f71d3c02dd04d649a25c65fec75"
     },
     {
       "path": "public/assets/KSM-Background-watermark.svg",
@@ -139,8 +139,8 @@
     },
     {
       "path": "public/index.html",
-      "size": 352426,
-      "sha256": "92bd1be208cf5d3ba7006032e684efc7e1baf1a7061296be6b5466a15ab93613"
+      "size": 351226,
+      "sha256": "c8555536e16fbd21950b24a7a20294b98ac32aa6d8a922880c1a25cbeff2fb84"
     },
     {
       "path": "public/manifest.webmanifest",
@@ -150,7 +150,7 @@
     {
       "path": "public/service-worker.js",
       "size": 1725,
-      "sha256": "3c27261c6e47e7f0d955579361c6bc06883ae3e739b64429ea031be1f0f7d87b"
+      "sha256": "fc80d1698fbde893609ff31010784c4169ca6a01343f73a01403ee9146b2775a"
     },
     {
       "path": "tests/director-overview-test.py",
@@ -174,13 +174,13 @@
     },
     {
       "path": "tests/spectator-experience-test.py",
-      "size": 1598,
-      "sha256": "56ea1a6a222c61f6a090b472f602a2119c389d69d69f5f303310593049aa2ff3"
+      "size": 2150,
+      "sha256": "5d752518179d60e409b38c22d5011ab467c4e8eddebdf2b39176706fc2a332ef"
     },
     {
       "path": "tests/verify-package.mjs",
       "size": 2065,
-      "sha256": "dfb6352d2b4faca183272edf51f10c9e9010a7c31c480e070f718fe1100265fc"
+      "sha256": "017d84a040dedc78409fec9e8d0b8e8254cd1527b6cd6064b6407f739767a521"
     },
     {
       "path": "wrangler.jsonc",
