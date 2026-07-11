@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="100%" height="100%" viewBox="0 0 256 256" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+    <g id="Live-Scores" serif:id="Live Scores">
+        <g transform="matrix(0.94875,0,0,0.8975,14.4933,0.471316)">
+            <path d="M204.283,99.771L204.283,184.416C204.283,207.774 186.344,226.738 164.247,226.738L75.029,226.738C52.933,226.738 34.993,207.774 34.993,184.416L34.993,99.771C34.993,76.412 52.933,57.448 75.029,57.448L164.247,57.448C186.344,57.448 204.283,76.412 204.283,99.771Z" style="fill:none;stroke:rgb(255,255,255);stroke-width:6.93px;"/>
+        </g>
+        <g transform="matrix(-0.753779,0,0,0.753779,223.421,34.4925)">
+            <path d="M116.443,113.904L136.737,134.199" style="fill:none;stroke:rgb(255,255,255);stroke-width:8.49px;"/>
+        </g>
+        <g transform="matrix(0.753779,0,0,0.753779,32.5792,34.4925)">
+            <path d="M116.443,113.904L136.737,134.199" style="fill:none;stroke:rgb(255,255,255);stroke-width:8.49px;"/>
+        </g>
+        <g transform="matrix(1.97935,0.000105643,-0.000105643,1.97935,-80.8044,-125.974)">
+            <path d="M83.542,118.102L83.543,138.511" style="fill:none;stroke:rgb(255,255,255);stroke-width:3.23px;"/>
+        </g>
+        <g transform="matrix(1.97935,0.000105643,-0.000105643,1.97935,6.19556,-125.974)">
+            <path d="M83.542,118.102L83.543,138.511" style="fill:none;stroke:rgb(255,255,255);stroke-width:3.23px;"/>
+        </g>
+    </g>
+</svg>

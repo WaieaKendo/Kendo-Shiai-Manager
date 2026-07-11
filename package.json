@@ -1,0 +1,14 @@
+{
+  "name": "kendo-shiai-manager",
+  "version": "3.10.0",
+  "private": true,
+  "description": "Kendo Shiai Manager hosted mobile foundation",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "check": "node tests/verify-package.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.11.0"
+  }
+}
