@@ -1,19 +1,13 @@
-# KSM v3.10.0 — Hosted Mobile Foundation
+# Changelog
 
-## Added
-- Cloudflare Workers Static Assets project scaffold.
-- Hosted HTTPS-compatible asset paths.
-- PWA web app manifest and KSM PNG application icons.
-- Service-worker app-shell caching for hosted use.
-- iPhone safe-area metadata and mobile navigation shell refinements.
-- Package integrity test for all required icons and hosted files.
-- Clear warning when KSM is opened through an unsupported `file://` preview.
+## v3.10.1 — Mobile Navigation Reliability
 
-## Changed
-- Version markers updated from v3.9.10 to v3.10.0.
-- Removed the legacy mobile `touchend`-to-`click` shim. Normal hosted browser click behavior is authoritative.
-- Asset references are root-relative so future hosted deep links do not break icons.
+- Corrected touch interaction for Courts, Live Scores, Export, and Save/Load dropdown menus.
+- Added explicit open/closed state through `aria-expanded` and `aria-controls`.
+- Keeps one dropdown open until an option, outside area, another dropdown, or Escape closes it.
+- Positions mobile dropdowns beneath their trigger and constrains them to the visible viewport.
+- Increased submenu touch targets and enabled touch-manipulation behavior.
+- Bumped the service-worker cache from `ksm-shell-v3.10.0` to `ksm-shell-v3.10.1`.
+- Added automated 390 × 844 touch-viewport dropdown verification.
 
-## Unchanged
-- Tournament rules, templates, machine data, Match Object schema, scoring, advancement, queue behavior, Results, printing, and White-left/Red-right orientation.
-- Cloud Match Object authority and multi-device synchronization are not part of this release.
+No tournament engine, Match Object, scoring, advancement, template, Results, or asset artwork changes.

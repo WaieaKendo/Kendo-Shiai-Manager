@@ -1,24 +1,10 @@
-# Cloudflare deployment steps
+# Deployment
 
-## GitHub upload
+1. Extract `KSM_v3.10.1_GitHub_Repository_Upload.zip`.
+2. Upload all extracted files and folders to the root of the private GitHub repository.
+3. Commit to `main`.
+4. Confirm the Cloudflare deployment becomes active.
+5. Open the Workers.dev URL on the phone.
+6. Verify Courts, Live Scores, Export, and Save/Load each open with one tap.
 
-Upload all repository-scaffold files and folders to the repository root. The root must visibly contain:
-
-- `public/`
-- `tests/`
-- `wrangler.jsonc`
-- `package.json`
-- `README.md`
-- `.gitignore`
-
-Do not upload the enclosing `Kendo-Shiai-Manager` folder as one nested folder.
-
-## Cloudflare build settings
-
-- Repository: `WaieaKendo/Kendo-Shiai-Manager`
-- Production branch: `main`
-- Build command: none required
-- Deploy command: `npx wrangler deploy`
-- Root directory: `/`
-
-After committing, use **Deployments** in Cloudflare to watch the automatic build. A successful deployment should provide a `workers.dev` URL.
+The repository root must contain `wrangler.jsonc`, `package.json`, and `public/`.

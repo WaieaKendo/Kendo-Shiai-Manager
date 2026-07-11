@@ -1693,10 +1693,19 @@ button,.status,.search-item,.tab,.seg,.x{touch-action:manipulation}
   .nav-dropdown{
     position:fixed;
     top:auto;
-    left:18px;
-    right:18px;
+    left:12px;
+    right:12px;
     width:auto;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+    touch-action:manipulation;
   }
+  .nav-dropdown button{
+    min-height:48px;
+    touch-action:manipulation;
+  }
+  .nav-menu-trigger{touch-action:manipulation;}
 }
 
 
@@ -3576,7 +3585,7 @@ main,.view{position:relative;z-index:1;}
     <div class="nav-brand-copy">
       <span class="nav-brand-name">KSM</span>
       <span class="nav-brand-subtitle">Kendo Shiai Manager</span>
-      <span class="version-badge">v3.10.0</span>
+      <span class="version-badge">v3.10.1</span>
     </div>
   </div>
 
@@ -3592,22 +3601,22 @@ main,.view{position:relative;z-index:1;}
     </button>
 
     <div class="nav-menu nav-tile-wrap">
-      <button class="nav-tile nav-menu-trigger" onclick="toggleNavMenu('courtsMenu',event)" title="Courts">
+      <button class="nav-tile nav-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="courtsMenu" onclick="toggleNavMenu('courtsMenu',event)" title="Courts">
         <img src="/assets/nav-icons/courts.svg" alt="">
         <span>Courts <b aria-hidden="true">▾</b></span>
       </button>
-      <div id="courtsMenu" class="nav-dropdown hidden">
+      <div id="courtsMenu" role="menu" class="nav-dropdown hidden">
         <button onclick="chooseCourt('A')">Court A</button>
         <button onclick="chooseCourt('B')">Court B</button>
       </div>
     </div>
 
     <div class="nav-menu nav-tile-wrap">
-      <button class="nav-tile nav-menu-trigger" onclick="toggleNavMenu('liveScoresMenu',event)" title="Live Scores">
+      <button class="nav-tile nav-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="liveScoresMenu" onclick="toggleNavMenu('liveScoresMenu',event)" title="Live Scores">
         <img src="/assets/nav-icons/live-scores.svg" alt="">
         <span>Live Scores <b aria-hidden="true">▾</b></span>
       </button>
-      <div id="liveScoresMenu" class="nav-dropdown hidden">
+      <div id="liveScoresMenu" role="menu" class="nav-dropdown hidden">
         <button onclick="chooseLiveCourt('A')">Court A</button>
         <button onclick="chooseLiveCourt('B')">Court B</button>
       </div>
@@ -3624,11 +3633,11 @@ main,.view{position:relative;z-index:1;}
     </button>
 
     <div class="nav-menu nav-tile-wrap">
-      <button class="nav-tile nav-menu-trigger" onclick="toggleNavMenu('exportMenu',event)" title="Export">
+      <button class="nav-tile nav-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="exportMenu" onclick="toggleNavMenu('exportMenu',event)" title="Export">
         <img src="/assets/nav-icons/export.svg" alt="">
         <span>Export <b aria-hidden="true">▾</b></span>
       </button>
-      <div id="exportMenu" class="nav-dropdown nav-dropdown-wide hidden">
+      <div id="exportMenu" role="menu" class="nav-dropdown nav-dropdown-wide hidden">
         <button onclick="exportTournamentBrackets()">Tournament Brackets</button>
         <button onclick="exportResultsAwards()">Results &amp; Awards</button>
         <button onclick="closeNavMenus();alert('Referee assignment export will be added with the Referee Assignment module.')">Referee Assignments</button>
@@ -3637,11 +3646,11 @@ main,.view{position:relative;z-index:1;}
     </div>
 
     <div class="nav-menu nav-tile-wrap">
-      <button class="nav-tile nav-menu-trigger" onclick="toggleNavMenu('saveLoadMenu',event)" title="Save or Load">
+      <button class="nav-tile nav-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="saveLoadMenu" onclick="toggleNavMenu('saveLoadMenu',event)" title="Save or Load">
         <img src="/assets/nav-icons/save-load.svg" alt="">
         <span>Save / Load <b aria-hidden="true">▾</b></span>
       </button>
-      <div id="saveLoadMenu" class="nav-dropdown hidden">
+      <div id="saveLoadMenu" role="menu" class="nav-dropdown hidden">
         <button onclick="closeNavMenus();manualSaveTournament()">Save Tournament</button>
         <button onclick="closeNavMenus();triggerLoadTournament()">Load Tournament</button>
       </div>
@@ -5583,16 +5592,44 @@ function updateUndoButton(){
 
 
 // ---------- KSM v3.9.1 Minimal navigation ----------
-function closeNavMenus(){
-  document.querySelectorAll('.nav-dropdown').forEach(menu=>menu.classList.add('hidden'));
+function setNavMenuState(menu,open){
+  if(!menu)return;
+  menu.classList.toggle('hidden',!open);
+  menu.classList.toggle('is-open',open);
+  const trigger=document.querySelector(`[aria-controls="${menu.id}"]`);
+  if(trigger)trigger.setAttribute('aria-expanded',open?'true':'false');
+  if(!open){
+    menu.style.removeProperty('top');
+    menu.style.removeProperty('left');
+    menu.style.removeProperty('right');
+    menu.style.removeProperty('max-height');
+  }
+}
+function positionMobileNavMenu(menu,trigger){
+  if(!menu||!trigger||!window.matchMedia('(max-width:900px)').matches)return;
+  const rect=trigger.getBoundingClientRect();
+  const margin=12;
+  const top=Math.min(window.innerHeight-80,Math.max(margin,rect.bottom+8));
+  menu.style.top=`${top}px`;
+  menu.style.left=`${margin}px`;
+  menu.style.right=`${margin}px`;
+  menu.style.maxHeight=`${Math.max(120,window.innerHeight-top-margin)}px`;
+}
+function closeNavMenus(exceptId){
+  document.querySelectorAll('.nav-dropdown').forEach(menu=>{
+    if(menu.id!==exceptId)setNavMenuState(menu,false);
+  });
 }
 function toggleNavMenu(id,event){
-  if(event)event.stopPropagation();
+  if(event){event.preventDefault();event.stopPropagation();}
   const menu=document.getElementById(id);
-  if(!menu)return;
+  if(!menu)return false;
+  const trigger=(event&&event.currentTarget)||document.querySelector(`[aria-controls="${id}"]`);
   const opening=menu.classList.contains('hidden');
-  closeNavMenus();
-  if(opening)menu.classList.remove('hidden');
+  closeNavMenus(id);
+  setNavMenuState(menu,opening);
+  if(opening)positionMobileNavMenu(menu,trigger);
+  return false;
 }
 function navigateTo(id){
   closeNavMenus();
@@ -5639,6 +5676,18 @@ document.addEventListener('click',function(event){
 });
 document.addEventListener('keydown',function(event){
   if(event.key==='Escape')closeNavMenus();
+});
+window.addEventListener('resize',function(){
+  const openMenu=document.querySelector('.nav-dropdown:not(.hidden)');
+  if(!openMenu)return;
+  const trigger=document.querySelector(`[aria-controls="${openMenu.id}"]`);
+  if(window.matchMedia('(max-width:900px)').matches)positionMobileNavMenu(openMenu,trigger);
+  else {
+    openMenu.style.removeProperty('top');
+    openMenu.style.removeProperty('left');
+    openMenu.style.removeProperty('right');
+    openMenu.style.removeProperty('max-height');
+  }
 });
 
 

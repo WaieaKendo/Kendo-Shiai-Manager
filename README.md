@@ -1,24 +1,14 @@
-# Kendo Shiai Manager v3.10.0
+# Kendo Shiai Manager
 
-Hosted Mobile Foundation for Cloudflare Workers Static Assets.
+KSM v3.10.1 Hosted Mobile Foundation with mobile dropdown navigation reliability.
 
-## Deploy through the connected Cloudflare Git integration
+## Commands
 
-1. Upload the **contents of this folder** to the root of the private GitHub repository `Kendo-Shiai-Manager`.
-2. Commit to the `main` branch.
-3. Cloudflare will run the configured deploy command: `npx wrangler deploy`.
-4. Open the successful deployment URL ending in `.workers.dev`.
+- `npm run dev` — local Cloudflare development server
+- `npm run deploy` — deploy through Wrangler
+- `npm run check` — verify hosted assets and mobile dropdown interaction
 
-Cloudflare project name and `wrangler.jsonc` name must both be `kendoshiaimanager`.
+## Cloudflare project
 
-## Local verification
-
-```bash
-npm install
-npm run check
-npm run dev
-```
-
-## Scope
-
-This release hosts the existing v3.9.10 tournament runtime over HTTPS and adds the mobile/PWA shell. It does not yet move Match Object authority to the cloud or synchronize devices.
+- Worker: `kendoshiaimanager`
+- Static assets: `./public`

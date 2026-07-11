@@ -21,7 +21,18 @@ for (const rel of required.filter(x=>x.startsWith('assets/'))) {
     console.error(`UNREFERENCED: ${rel}`); failed = true;
   }
 }
-if (!html.includes('v3.10.0')) { console.error('Version marker missing'); failed = true; }
+if (!html.includes('v3.10.1')) { console.error('Version marker missing'); failed = true; }
 if (html.includes("document.addEventListener('touchend'")) { console.error('Legacy touchend click shim still present'); failed = true; }
+
+for (const id of ['courtsMenu','liveScoresMenu','exportMenu','saveLoadMenu']) {
+  if (!html.includes(`aria-controls="${id}"`) || !html.includes(`id="${id}" role="menu"`)) {
+    console.error(`ACCESSIBILITY CONTRACT MISSING: ${id}`); failed = true;
+  }
+}
+if (!html.includes('function positionMobileNavMenu')) { console.error('Mobile menu positioning function missing'); failed = true; }
+if (!html.includes("ksm-shell-v3.10.1")) { /* marker is in service worker, checked below */ }
+const sw = fs.readFileSync(path.join(root,'service-worker.js'),'utf8');
+if (!sw.includes('ksm-shell-v3.10.1')) { console.error('Service worker cache version not bumped'); failed = true; }
+
 if (failed) process.exit(1);
 console.log(`PASS: ${required.length} required hosted/PWA files verified.`);

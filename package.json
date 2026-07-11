@@ -1,12 +1,12 @@
 {
   "name": "kendo-shiai-manager",
-  "version": "3.10.0",
+  "version": "3.10.1",
   "private": true,
-  "description": "Kendo Shiai Manager hosted mobile foundation",
+  "description": "Kendo Shiai Manager mobile navigation reliability",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "check": "node tests/verify-package.mjs"
+    "check": "node tests/verify-package.mjs && python tests/mobile-dropdown-test.py"
   },
   "devDependencies": {
     "wrangler": "^4.11.0"

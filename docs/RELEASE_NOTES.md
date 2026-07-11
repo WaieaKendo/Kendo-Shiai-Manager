@@ -1,11 +1,18 @@
-# Release notes
+# KSM v3.10.1 — Mobile Navigation Reliability
 
-KSM v3.10.0 is the first GitHub/Cloudflare-ready package. It resolves the mobile launch class of failures by serving the application as a normal HTTPS site rather than through a phone file preview.
+This release corrects the remaining hosted-mobile navigation issue observed after v3.10.0 deployment: dropdown navigation buttons did not reliably open or remain usable on phones.
 
-Success criteria after deployment:
+## Mobile behavior
 
-1. The `.workers.dev` URL opens on desktop and mobile.
-2. All KSM logos and navigation icons load.
-3. One tap activates navigation controls on Safari/Chrome mobile.
-4. The app can be added to the phone home screen.
-5. Existing tournament behavior remains unchanged.
+- One tap opens Courts, Live Scores, Export, or Save/Load.
+- Tapping the same trigger closes it.
+- Opening another dropdown closes the prior dropdown.
+- Tapping outside or pressing Escape closes all dropdowns.
+- Menus remain inside the mobile viewport and support vertical scrolling when necessary.
+- Submenu controls use 48-pixel minimum touch targets.
+
+## Deployment
+
+Upload the repository package contents to the root of `WaieaKendo/Kendo-Shiai-Manager` and commit to `main`. Cloudflare should deploy automatically.
+
+After deployment, close and reopen KSM on the phone. If an older cached screen remains, refresh once in Safari; the service-worker cache name changed for this release.
