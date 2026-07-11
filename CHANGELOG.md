@@ -1,18 +1,15 @@
 # Changelog
 
-## v3.10.6 — Live Scores Responsive Redesign
-- Reworked phone portrait Live Scores into a compact White-left / Red-right matchup.
-- Reduced mobile competitor, score, header, and spacing sizes so the full matchup remains visible.
-- Reworked short landscape viewports into a side-by-side scoreboard.
-- Preserved the desktop/projector Live Scores layout.
-- Added responsive viewport regression tests.
-- Bumped the service-worker cache to v3.10.6.
-- No tournament engine, Match Object, scoring, template, queue, or Results behavior changed.
+## v3.10.7 — Spectator Experience Refinement
+
+- Refined phone portrait and landscape Live Scores typography and spacing.
+- Preserved White-left and Red-right while fitting the current and next matchup on phones.
+- Added mobile first-name/remaining-name line breaking for competitor names.
+- Added a read-only current-bout panel to standard team Live Scores while retaining the complete team lineup, individual points, team wins, and team points.
+- Kept scorekeeper controls out of Live Scores.
+- Added progressive pool ordering to shared Court Context: incomplete pools above the Championship Bracket; completed pools below it with a checkmark, always in alphabetical order.
+- No Match Object, engine, template, scoring, advancement, or save-schema changes.
 
 ## v3.10.5 — Director Overview Dashboard
-- Added a read-only Director overview for Court A and Court B.
-- Added overall and per-division match progress.
-- Added Current, On Deck, and Following match rows.
-- Added five-second refresh only while the Director view is visible.
-- Centered wrapped portrait division titles.
-- No tournament engine, Match Object, scoring, or template changes.
+
+- Added read-only Director overview and five-second refresh.

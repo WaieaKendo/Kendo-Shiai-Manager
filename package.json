@@ -1,12 +1,12 @@
 {
   "name": "kendo-shiai-manager",
-  "version": "3.10.6",
+  "version": "3.10.7",
   "private": true,
-  "description": "Kendo Shiai Manager Live Scores responsive redesign",
+  "description": "Kendo Shiai Manager spectator experience refinement",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "check": "node tests/verify-package.mjs && python tests/mobile-dropdown-test.py && python tests/mobile-court-portrait-test.py && python tests/mobile-court-responsive-refinement-test.py && python tests/director-overview-test.py && python tests/live-scores-responsive-test.py"
+    "check": "node tests/verify-package.mjs && python tests/mobile-dropdown-test.py && python tests/mobile-court-portrait-test.py && python tests/mobile-court-responsive-refinement-test.py && python tests/director-overview-test.py && python tests/spectator-experience-test.py"
   },
   "devDependencies": {
     "wrangler": "^4.11.0"

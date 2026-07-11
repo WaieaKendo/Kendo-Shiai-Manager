@@ -1,15 +1,13 @@
 # Kendo Shiai Manager
 
-KSM v3.10.6 hosted mobile application.
+KSM v3.10.7 refines the hosted spectator experience while preserving the verified tournament engine baseline.
 
-This release adds responsive Live Scores layouts for phone portrait and short landscape screens while preserving the existing desktop/projector presentation.
-
-## Local verification
+## Deploy
 
 ```bash
+npm install
 npm run check
+npm run deploy
 ```
 
-## Deployment
-
-Cloudflare deploys automatically from the connected GitHub `main` branch. The Worker name is `kendoshiaimanager` and static assets are served from `public/`.
+Cloudflare serves the application from `public/` using `wrangler.jsonc`.

@@ -1,190 +1,191 @@
 {
-  "release": "KSM v3.10.6",
+  "release": "KSM v3.10.7",
+  "file_count": 37,
   "files": [
     {
       "path": ".gitignore",
-      "sha256": "8250dbfea8d7785d3785a36bf79b9449c28338035fd14da43ed3de1c760d17a1",
-      "size": 312
+      "size": 312,
+      "sha256": "8250dbfea8d7785d3785a36bf79b9449c28338035fd14da43ed3de1c760d17a1"
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "c831f3ac306d2e7d813051d120d1d6b951f77965942d202ea6a9a96d99001610",
-      "size": 942
+      "size": 879,
+      "sha256": "d46f8ece5c03f4f13017386cb2aae5c7f80c11d11f750faf257e808b9a7c606b"
     },
     {
       "path": "README.md",
-      "sha256": "88b269f591caec79c090d6a105ef40948bb12e0c2a9030c49c47b70c1296c06b",
-      "size": 445
+      "size": 272,
+      "sha256": "5e236554afcc645516b15d254639d9bc3fdc47086938bccfe3ae97f8e4bbdc35"
     },
     {
       "path": "RELEASE_SUMMARY.md",
-      "sha256": "e59486a6eef5183838655f2ed0f1435791652333c22432bbcf810bb0a1b54a60",
-      "size": 806
+      "size": 683,
+      "sha256": "bb30343865160deddef61fe74639fd4c41829503c802867e06bf02749e2433f9"
     },
     {
       "path": "docs/DEPLOYMENT.md",
-      "sha256": "efef9fe4d149f7376060200cdf43e2b09484078c0c1eb8b8d2191bc95f50f896",
-      "size": 433
+      "size": 433,
+      "sha256": "efef9fe4d149f7376060200cdf43e2b09484078c0c1eb8b8d2191bc95f50f896"
     },
     {
       "path": "docs/DIRECTOR_OVERVIEW_REPORT.md",
-      "sha256": "9fedabf6579bf36537872a5a53b8651f0f481db06b6f65738ffeba3802ed6293",
-      "size": 385
-    },
-    {
-      "path": "docs/LIVE_SCORES_RESPONSIVE_REPORT.md",
-      "sha256": "4234a708800f9ef27c14b7904e3dc7731f6c3f8cb0e49a3024c6b200a03b3d3a",
-      "size": 587
+      "size": 385,
+      "sha256": "9fedabf6579bf36537872a5a53b8651f0f481db06b6f65738ffeba3802ed6293"
     },
     {
       "path": "docs/MOBILE_COURT_PORTRAIT_REPORT.md",
-      "sha256": "5c0c38ea0d448bbea29f9a57eed82a94d05b0f6d9108323887112228e80c7a1e",
-      "size": 892
+      "size": 892,
+      "sha256": "5c0c38ea0d448bbea29f9a57eed82a94d05b0f6d9108323887112228e80c7a1e"
     },
     {
       "path": "docs/MOBILE_COURT_RESPONSIVE_REFINEMENT_REPORT.md",
-      "sha256": "d59686b499560ac5bb25e644678e58fafef363b82edbbdd743a0b0f182a98669",
-      "size": 423
+      "size": 423,
+      "sha256": "d59686b499560ac5bb25e644678e58fafef363b82edbbdd743a0b0f182a98669"
     },
     {
       "path": "docs/RELEASE_NOTES.md",
-      "sha256": "03b98bb059149773cf7811e50f073243d02ad473382e6f5b360737a57bb45572",
-      "size": 278
+      "size": 678,
+      "sha256": "ebe423cfa367a802b4a8d4d1d156604b54956a6a2b2da4f3626efc998491ae18"
+    },
+    {
+      "path": "docs/SPECTATOR_EXPERIENCE_REPORT.md",
+      "size": 617,
+      "sha256": "6e36f0a01ee1580cdcc95d21e8ae131a3b83585709b37cd2138826be60cd1f99"
     },
     {
       "path": "package.json",
-      "sha256": "b85d785a1b552a73dcc1576eece177e03a310c3d8a11e9c110cc02e4438ed5d0",
-      "size": 563
+      "size": 561,
+      "sha256": "3fcde579bb439bb2f5a7d22f1861a8181f13d1425521884208ab7623c22ecad0"
     },
     {
       "path": "public/assets/KSM-Background-watermark.svg",
-      "sha256": "ae8a55e2275dabab0093568727c7ee326c5617185538204e01c17b68cc0a9469",
-      "size": 75493
+      "size": 75493,
+      "sha256": "ae8a55e2275dabab0093568727c7ee326c5617185538204e01c17b68cc0a9469"
     },
     {
       "path": "public/assets/ksm-fuji-logo-nav.svg",
-      "sha256": "b7b7f722d4c1a4f5887fde1ab6def8465dbf39fcfb1c7899dcc09d60af7bc1b0",
-      "size": 2573
+      "size": 2573,
+      "sha256": "b7b7f722d4c1a4f5887fde1ab6def8465dbf39fcfb1c7899dcc09d60af7bc1b0"
     },
     {
       "path": "public/assets/ksm-fuji-logo.svg",
-      "sha256": "f6348b4b6bed7ca02fcf7f3ebdab3f7a8366c483c65706ad917d62ff3ab957e7",
-      "size": 2663
+      "size": 2663,
+      "sha256": "f6348b4b6bed7ca02fcf7f3ebdab3f7a8366c483c65706ad917d62ff3ab957e7"
     },
     {
       "path": "public/assets/ksm-seigaiha-dark.svg",
-      "sha256": "933477028dc5e408d6326bf0825d53b3926a04bf1c5358ef6443e619bb06ba06",
-      "size": 359537
+      "size": 359537,
+      "sha256": "933477028dc5e408d6326bf0825d53b3926a04bf1c5358ef6443e619bb06ba06"
     },
     {
       "path": "public/assets/ksm-seigaiha-light.svg",
-      "sha256": "f0b91d2c2f5fd5c9a62df6241c30feb4ee4a047ca3a78e69f73333ec208de9ac",
-      "size": 359537
+      "size": 359537,
+      "sha256": "f0b91d2c2f5fd5c9a62df6241c30feb4ee4a047ca3a78e69f73333ec208de9ac"
     },
     {
       "path": "public/assets/nav-icons/courts.svg",
-      "sha256": "b5aeec8e94947606c957ad6421ddcf6e54467e8b7306fb73b39ee9bee4a013cc",
-      "size": 2814
+      "size": 2814,
+      "sha256": "b5aeec8e94947606c957ad6421ddcf6e54467e8b7306fb73b39ee9bee4a013cc"
     },
     {
       "path": "public/assets/nav-icons/export.svg",
-      "sha256": "8332cb5792d0896e37af786b3b11bc18cd231ad37b8f3bf06952b5cdccc0f26c",
-      "size": 4231
+      "size": 4231,
+      "sha256": "8332cb5792d0896e37af786b3b11bc18cd231ad37b8f3bf06952b5cdccc0f26c"
     },
     {
       "path": "public/assets/nav-icons/live-scores.svg",
-      "sha256": "9c311145644547c1c6b4be79bef6ad08e0b3b6ddad262e5da07a6853e82f51a8",
-      "size": 1708
+      "size": 1708,
+      "sha256": "9c311145644547c1c6b4be79bef6ad08e0b3b6ddad262e5da07a6853e82f51a8"
     },
     {
       "path": "public/assets/nav-icons/registration.svg",
-      "sha256": "3a6b6072ca3d012eaf3d876fbeeaaa80f5bfb8a56ead937033dfcbbfeb82b91f",
-      "size": 5384
+      "size": 5384,
+      "sha256": "3a6b6072ca3d012eaf3d876fbeeaaa80f5bfb8a56ead937033dfcbbfeb82b91f"
     },
     {
       "path": "public/assets/nav-icons/results.svg",
-      "sha256": "60063852db7da8349255f0850ff4d67bc3221f927bd01f2ca932bbebde763773",
-      "size": 2492
+      "size": 2492,
+      "sha256": "60063852db7da8349255f0850ff4d67bc3221f927bd01f2ca932bbebde763773"
     },
     {
       "path": "public/assets/nav-icons/save-load.svg",
-      "sha256": "2dff15b1b79fe3d6b319141128f06cbff50009d5cbd0cd4ef68c8fdd66671f1a",
-      "size": 1299
+      "size": 1299,
+      "sha256": "2dff15b1b79fe3d6b319141128f06cbff50009d5cbd0cd4ef68c8fdd66671f1a"
     },
     {
       "path": "public/assets/nav-icons/search.svg",
-      "sha256": "e42f32f13b0e0cfd909c45abb0b061f4b11e743e59e90418c14077bd0ffac8bc",
-      "size": 248
+      "size": 248,
+      "sha256": "e42f32f13b0e0cfd909c45abb0b061f4b11e743e59e90418c14077bd0ffac8bc"
     },
     {
       "path": "public/assets/nav-icons/setup.svg",
-      "sha256": "c8eaa92f28abfc8fbf5e40abdce31a032fa4bd30af305c929e04df02aff87646",
-      "size": 1733
+      "size": 1733,
+      "sha256": "c8eaa92f28abfc8fbf5e40abdce31a032fa4bd30af305c929e04df02aff87646"
     },
     {
       "path": "public/icons/apple-touch-icon.png",
-      "sha256": "c14faa1b2561bdb82560989c8b5438def39bb08824dea9cda55ee8bc59cb2f96",
-      "size": 8024
+      "size": 8024,
+      "sha256": "c14faa1b2561bdb82560989c8b5438def39bb08824dea9cda55ee8bc59cb2f96"
     },
     {
       "path": "public/icons/icon-192.png",
-      "sha256": "95f0d26238a51e63f0ccdb56ff63fcd5979c9f3dbca317b6c47bad19b1cf7d75",
-      "size": 8583
+      "size": 8583,
+      "sha256": "95f0d26238a51e63f0ccdb56ff63fcd5979c9f3dbca317b6c47bad19b1cf7d75"
     },
     {
       "path": "public/icons/icon-512.png",
-      "sha256": "f362ee13531921f1777e1548c0d8b54fa3b64b4ddea799c812dbff3a3463d862",
-      "size": 24700
+      "size": 24700,
+      "sha256": "f362ee13531921f1777e1548c0d8b54fa3b64b4ddea799c812dbff3a3463d862"
     },
     {
       "path": "public/index.html",
-      "sha256": "e8bf73abbb024f7810958dabadc76617f7921a993cd276923f13854578251a5a",
-      "size": 340605
+      "size": 352426,
+      "sha256": "92bd1be208cf5d3ba7006032e684efc7e1baf1a7061296be6b5466a15ab93613"
     },
     {
       "path": "public/manifest.webmanifest",
-      "sha256": "611dafd22718357295eac84978aa5eca0f8ca4b03067dc38ee12ae9e50d2d714",
-      "size": 477
+      "size": 477,
+      "sha256": "611dafd22718357295eac84978aa5eca0f8ca4b03067dc38ee12ae9e50d2d714"
     },
     {
       "path": "public/service-worker.js",
-      "sha256": "4ca3d87dd96fd02068b1b6d00a6dad946a2c891d707dcac4f6fa96cf0c28251e",
-      "size": 1725
+      "size": 1725,
+      "sha256": "3c27261c6e47e7f0d955579361c6bc06883ae3e739b64429ea031be1f0f7d87b"
     },
     {
       "path": "tests/director-overview-test.py",
-      "sha256": "57af492c08715ae3e32434f93bdd7c4da526e1fcb946707a059adc96afc2d128",
-      "size": 1655
-    },
-    {
-      "path": "tests/live-scores-responsive-test.py",
-      "sha256": "d1ae1328e91198d6eb5b7e7771e4ef61a364c348550896698e07b543bcac8161",
-      "size": 4034
+      "size": 1655,
+      "sha256": "57af492c08715ae3e32434f93bdd7c4da526e1fcb946707a059adc96afc2d128"
     },
     {
       "path": "tests/mobile-court-portrait-test.py",
-      "sha256": "318b49a9c3a8cf60244ab6b58bb9d298030af293522949ccb74e76ebd7f22aab",
-      "size": 2948
+      "size": 2948,
+      "sha256": "318b49a9c3a8cf60244ab6b58bb9d298030af293522949ccb74e76ebd7f22aab"
     },
     {
       "path": "tests/mobile-court-responsive-refinement-test.py",
-      "sha256": "0b60e28f9544847d4bcf4137585fe861e76332edd791c51ef229e612d95711f2",
-      "size": 2343
+      "size": 2343,
+      "sha256": "0b60e28f9544847d4bcf4137585fe861e76332edd791c51ef229e612d95711f2"
     },
     {
       "path": "tests/mobile-dropdown-test.py",
-      "sha256": "14358f5517f2e92cd325a715c5387982052ae56cdaca4f5e05b58788364bbee9",
-      "size": 2178
+      "size": 2178,
+      "sha256": "14358f5517f2e92cd325a715c5387982052ae56cdaca4f5e05b58788364bbee9"
+    },
+    {
+      "path": "tests/spectator-experience-test.py",
+      "size": 1598,
+      "sha256": "56ea1a6a222c61f6a090b472f602a2119c389d69d69f5f303310593049aa2ff3"
     },
     {
       "path": "tests/verify-package.mjs",
-      "sha256": "69bde42b81d6277f62988b68d5af3838dde0f533ec7a83e8fdb098263c707d63",
-      "size": 2065
+      "size": 2065,
+      "sha256": "dfb6352d2b4faca183272edf51f10c9e9010a7c31c480e070f718fe1100265fc"
     },
     {
       "path": "wrangler.jsonc",
-      "sha256": "93c7679c8e0b6570183b03875d9b94cf4b940e44c42e349aa3f61fbb217c56fb",
-      "size": 231
+      "size": 231,
+      "sha256": "93c7679c8e0b6570183b03875d9b94cf4b940e44c42e349aa3f61fbb217c56fb"
     }
   ]
 }

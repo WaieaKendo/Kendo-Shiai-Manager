@@ -1,22 +1,24 @@
-# KSM v3.10.6 — Live Scores Responsive Redesign
+# KSM v3.10.7 Release Summary
 
-## Objective
-Make the spectator Live Scores view readable and complete on phones without changing tournament behavior.
+**Objective:** Refine the spectator experience and clarify pool-to-bracket progression.
 
-## Changes
-- Phone portrait: White competitor remains left, Red competitor remains right, with the score centered between them.
-- Phone landscape: competitors and score use one side-by-side scoreboard row.
-- Mobile names, score letters, header, and vertical gaps are reduced.
-- Desktop/projector styling is unchanged.
+**Owning layer:** Presentation / Court Context rendering.
 
-## Architecture impact
-Presentation layer only. Match Objects remain the source of truth.
+**Files changed:**
+- `public/index.html`
+- `public/service-worker.js`
+- `package.json`
+- `tests/verify-package.mjs`
+- `tests/spectator-experience-test.py`
+- release documentation
 
-## Verification
-- Hosted/PWA files: 19/19
+**Engine impact:** None. Match Objects, tournament templates, advancement, scoring, and save schema are unchanged.
+
+**Verification:**
+- Hosted/PWA: 19/19
 - Mobile dropdown: 37/37
 - Mobile Court portrait: 16/16
-- Mobile Court responsive refinements: 7/7
+- Mobile Court responsive: 7/7
 - Director overview: 6/6
-- Live Scores responsive layout: 18/18
-- Browser errors: 0
+- Spectator experience: 14/14
+- JavaScript syntax: passed
