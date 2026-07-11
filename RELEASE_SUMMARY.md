@@ -1,3 +1,15 @@
-# KSM v3.10.3 — Mobile Court Portrait Foundation
+# KSM v3.10.4 — Mobile Court Responsive Refinements
 
-This release applies only to phone portrait Court Mode. It preserves the approved competitor and score presentation while correcting viewport width, action-button overflow, and Court Context match-row overflow.
+This release contains two responsive Court Mode refinements:
+
+1. Long portrait division names remain within the mobile Scorekeeper header.
+2. Phone landscape uses a shorter vertical reserve for scored points and penalties.
+
+No tournament-engine, Match Object, scoring, advancement, template, Results, save/load, or desktop workflow behavior changed.
+
+## Verification
+- Hosted/PWA package: 19/19
+- Mobile dropdown regression: 37/37
+- Mobile Court portrait regression: 16/16
+- Responsive refinement suite: 7/7
+- Browser errors: 0

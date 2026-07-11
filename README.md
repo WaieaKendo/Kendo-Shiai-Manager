@@ -1,6 +1,6 @@
 # Kendo Shiai Manager
 
-KSM v3.10.3 Hosted Mobile Foundation with mobile dropdown navigation reliability.
+KSM v3.10.4 Hosted Mobile Foundation with mobile dropdown navigation reliability.
 
 ## Commands
 

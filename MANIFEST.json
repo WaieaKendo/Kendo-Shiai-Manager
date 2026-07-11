@@ -1,0 +1,170 @@
+{
+  "release": "KSM v3.10.4",
+  "files": [
+    {
+      "path": ".gitignore",
+      "sha256": "d105be227c81127e18d645231340f65a8f8f0c333da145888a04534af0098f7d",
+      "size": 131
+    },
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "86d8802e2486bf6762b8f880c0bd5b995833a66535cf4f06f6c5a81ccd95ae8d",
+      "size": 546
+    },
+    {
+      "path": "README.md",
+      "sha256": "6307aa7be7060b9b815b3577f68a04ead84a0f444aacbab2444f708f1996aaa4",
+      "size": 379
+    },
+    {
+      "path": "RELEASE_SUMMARY.md",
+      "sha256": "5718f2cb7e9b6792f764722c8ac739cb8e1555ce74d1ab3cf1c5636be23f920b",
+      "size": 583
+    },
+    {
+      "path": "docs/DEPLOYMENT.md",
+      "sha256": "efef9fe4d149f7376060200cdf43e2b09484078c0c1eb8b8d2191bc95f50f896",
+      "size": 433
+    },
+    {
+      "path": "docs/MOBILE_COURT_PORTRAIT_REPORT.md",
+      "sha256": "5c0c38ea0d448bbea29f9a57eed82a94d05b0f6d9108323887112228e80c7a1e",
+      "size": 892
+    },
+    {
+      "path": "docs/MOBILE_COURT_RESPONSIVE_REFINEMENT_REPORT.md",
+      "sha256": "d59686b499560ac5bb25e644678e58fafef363b82edbbdd743a0b0f182a98669",
+      "size": 423
+    },
+    {
+      "path": "docs/RELEASE_NOTES.md",
+      "sha256": "ea9695eb554be2d119b4c2013428b9f6368b729ae470202fd4e504d55ff1d4b9",
+      "size": 605
+    },
+    {
+      "path": "package.json",
+      "sha256": "8ba18bca43750f3bc4ef893e7efa406f5ac2f31f37fba1f5b96d8f5f6d869c25",
+      "size": 504
+    },
+    {
+      "path": "public/assets/KSM-Background-watermark.svg",
+      "sha256": "ae8a55e2275dabab0093568727c7ee326c5617185538204e01c17b68cc0a9469",
+      "size": 75493
+    },
+    {
+      "path": "public/assets/ksm-fuji-logo-nav.svg",
+      "sha256": "b7b7f722d4c1a4f5887fde1ab6def8465dbf39fcfb1c7899dcc09d60af7bc1b0",
+      "size": 2573
+    },
+    {
+      "path": "public/assets/ksm-fuji-logo.svg",
+      "sha256": "f6348b4b6bed7ca02fcf7f3ebdab3f7a8366c483c65706ad917d62ff3ab957e7",
+      "size": 2663
+    },
+    {
+      "path": "public/assets/ksm-seigaiha-dark.svg",
+      "sha256": "933477028dc5e408d6326bf0825d53b3926a04bf1c5358ef6443e619bb06ba06",
+      "size": 359537
+    },
+    {
+      "path": "public/assets/ksm-seigaiha-light.svg",
+      "sha256": "f0b91d2c2f5fd5c9a62df6241c30feb4ee4a047ca3a78e69f73333ec208de9ac",
+      "size": 359537
+    },
+    {
+      "path": "public/assets/nav-icons/courts.svg",
+      "sha256": "b5aeec8e94947606c957ad6421ddcf6e54467e8b7306fb73b39ee9bee4a013cc",
+      "size": 2814
+    },
+    {
+      "path": "public/assets/nav-icons/export.svg",
+      "sha256": "8332cb5792d0896e37af786b3b11bc18cd231ad37b8f3bf06952b5cdccc0f26c",
+      "size": 4231
+    },
+    {
+      "path": "public/assets/nav-icons/live-scores.svg",
+      "sha256": "9c311145644547c1c6b4be79bef6ad08e0b3b6ddad262e5da07a6853e82f51a8",
+      "size": 1708
+    },
+    {
+      "path": "public/assets/nav-icons/registration.svg",
+      "sha256": "3a6b6072ca3d012eaf3d876fbeeaaa80f5bfb8a56ead937033dfcbbfeb82b91f",
+      "size": 5384
+    },
+    {
+      "path": "public/assets/nav-icons/results.svg",
+      "sha256": "60063852db7da8349255f0850ff4d67bc3221f927bd01f2ca932bbebde763773",
+      "size": 2492
+    },
+    {
+      "path": "public/assets/nav-icons/save-load.svg",
+      "sha256": "2dff15b1b79fe3d6b319141128f06cbff50009d5cbd0cd4ef68c8fdd66671f1a",
+      "size": 1299
+    },
+    {
+      "path": "public/assets/nav-icons/search.svg",
+      "sha256": "e42f32f13b0e0cfd909c45abb0b061f4b11e743e59e90418c14077bd0ffac8bc",
+      "size": 248
+    },
+    {
+      "path": "public/assets/nav-icons/setup.svg",
+      "sha256": "c8eaa92f28abfc8fbf5e40abdce31a032fa4bd30af305c929e04df02aff87646",
+      "size": 1733
+    },
+    {
+      "path": "public/icons/apple-touch-icon.png",
+      "sha256": "c14faa1b2561bdb82560989c8b5438def39bb08824dea9cda55ee8bc59cb2f96",
+      "size": 8024
+    },
+    {
+      "path": "public/icons/icon-192.png",
+      "sha256": "95f0d26238a51e63f0ccdb56ff63fcd5979c9f3dbca317b6c47bad19b1cf7d75",
+      "size": 8583
+    },
+    {
+      "path": "public/icons/icon-512.png",
+      "sha256": "f362ee13531921f1777e1548c0d8b54fa3b64b4ddea799c812dbff3a3463d862",
+      "size": 24700
+    },
+    {
+      "path": "public/index.html",
+      "sha256": "45e5c51ef6a52a9deef378505739c37f7d87c29f0ffe8c8469b4c2f096a89336",
+      "size": 327648
+    },
+    {
+      "path": "public/manifest.webmanifest",
+      "sha256": "611dafd22718357295eac84978aa5eca0f8ca4b03067dc38ee12ae9e50d2d714",
+      "size": 477
+    },
+    {
+      "path": "public/service-worker.js",
+      "sha256": "bc3d517d200d4900f60cfdf93f315445a716aae61ebece1278d6db4330987516",
+      "size": 1725
+    },
+    {
+      "path": "tests/mobile-court-portrait-test.py",
+      "sha256": "318b49a9c3a8cf60244ab6b58bb9d298030af293522949ccb74e76ebd7f22aab",
+      "size": 2948
+    },
+    {
+      "path": "tests/mobile-court-responsive-refinement-test.py",
+      "sha256": "0b60e28f9544847d4bcf4137585fe861e76332edd791c51ef229e612d95711f2",
+      "size": 2343
+    },
+    {
+      "path": "tests/mobile-dropdown-test.py",
+      "sha256": "14358f5517f2e92cd325a715c5387982052ae56cdaca4f5e05b58788364bbee9",
+      "size": 2178
+    },
+    {
+      "path": "tests/verify-package.mjs",
+      "sha256": "cb50acbcecc7f86019c4731dd1be1c26ee00d6798401c18b2391a4cfb7c68902",
+      "size": 2065
+    },
+    {
+      "path": "wrangler.jsonc",
+      "sha256": "93c7679c8e0b6570183b03875d9b94cf4b940e44c42e349aa3f61fbb217c56fb",
+      "size": 231
+    }
+  ]
+}

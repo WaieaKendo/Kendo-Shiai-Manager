@@ -1,12 +1,12 @@
 {
   "name": "kendo-shiai-manager",
-  "version": "3.10.3",
+  "version": "3.10.4",
   "private": true,
-  "description": "Kendo Shiai Manager mobile Court portrait foundation",
+  "description": "Kendo Shiai Manager responsive division title and compact landscape score reserve",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "check": "node tests/verify-package.mjs && python tests/mobile-dropdown-test.py && python tests/mobile-court-portrait-test.py"
+    "check": "node tests/verify-package.mjs && python tests/mobile-dropdown-test.py && python tests/mobile-court-portrait-test.py && python tests/mobile-court-responsive-refinement-test.py"
   },
   "devDependencies": {
     "wrangler": "^4.11.0"
