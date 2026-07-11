@@ -1,11 +1,3 @@
-# KSM v3.10.4 Release Notes
+# KSM v3.10.5 Release Notes
 
-This responsive-layout release addresses two narrow Court Mode issues reported during real iPhone testing.
-
-## Portrait
-Long division names remain constrained to the Scorekeeper header instead of extending beyond the viewport. The control uses responsive sizing and safe overflow handling while retaining direct division switching.
-
-## Landscape
-The score reserve is shorter on phone-sized landscape screens, removing unnecessary empty vertical space while preserving score readability and White-left/Red-right orientation.
-
-No tournament behavior or data structures changed.
+This release adds a read-only Director Overview with tournament progress, Court A/B division progress, and Current/On Deck/Following match visibility. It refreshes every five seconds while visible.

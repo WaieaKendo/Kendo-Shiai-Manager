@@ -1,6 +1,6 @@
 # Kendo Shiai Manager
 
-KSM v3.10.4 Hosted Mobile Foundation with mobile dropdown navigation reliability.
+KSM v3.10.5 Hosted Mobile Foundation with mobile dropdown navigation reliability.
 
 ## Commands
 
@@ -12,3 +12,6 @@ KSM v3.10.4 Hosted Mobile Foundation with mobile dropdown navigation reliability
 
 - Worker: `kendoshiaimanager`
 - Static assets: `./public`
+
+
+Director Overview is available from the primary navigation and is read-only.

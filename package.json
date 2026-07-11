@@ -1,12 +1,12 @@
 {
   "name": "kendo-shiai-manager",
-  "version": "3.10.4",
+  "version": "3.10.5",
   "private": true,
-  "description": "Kendo Shiai Manager responsive division title and compact landscape score reserve",
+  "description": "Kendo Shiai Manager read-only Director overview dashboard",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "check": "node tests/verify-package.mjs && python tests/mobile-dropdown-test.py && python tests/mobile-court-portrait-test.py && python tests/mobile-court-responsive-refinement-test.py"
+    "check": "node tests/verify-package.mjs && python tests/mobile-dropdown-test.py && python tests/mobile-court-portrait-test.py && python tests/mobile-court-responsive-refinement-test.py && python tests/director-overview-test.py"
   },
   "devDependencies": {
     "wrangler": "^4.11.0"
