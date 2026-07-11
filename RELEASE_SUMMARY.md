@@ -1,15 +1,22 @@
-# KSM v3.10.4 — Mobile Court Responsive Refinements
+# KSM v3.10.6 — Live Scores Responsive Redesign
 
-This release contains two responsive Court Mode refinements:
+## Objective
+Make the spectator Live Scores view readable and complete on phones without changing tournament behavior.
 
-1. Long portrait division names remain within the mobile Scorekeeper header.
-2. Phone landscape uses a shorter vertical reserve for scored points and penalties.
+## Changes
+- Phone portrait: White competitor remains left, Red competitor remains right, with the score centered between them.
+- Phone landscape: competitors and score use one side-by-side scoreboard row.
+- Mobile names, score letters, header, and vertical gaps are reduced.
+- Desktop/projector styling is unchanged.
 
-No tournament-engine, Match Object, scoring, advancement, template, Results, save/load, or desktop workflow behavior changed.
+## Architecture impact
+Presentation layer only. Match Objects remain the source of truth.
 
 ## Verification
-- Hosted/PWA package: 19/19
-- Mobile dropdown regression: 37/37
-- Mobile Court portrait regression: 16/16
-- Responsive refinement suite: 7/7
+- Hosted/PWA files: 19/19
+- Mobile dropdown: 37/37
+- Mobile Court portrait: 16/16
+- Mobile Court responsive refinements: 7/7
+- Director overview: 6/6
+- Live Scores responsive layout: 18/18
 - Browser errors: 0

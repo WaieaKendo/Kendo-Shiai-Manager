@@ -1,17 +1,15 @@
 # Kendo Shiai Manager
 
-KSM v3.10.5 Hosted Mobile Foundation with mobile dropdown navigation reliability.
+KSM v3.10.6 hosted mobile application.
 
-## Commands
+This release adds responsive Live Scores layouts for phone portrait and short landscape screens while preserving the existing desktop/projector presentation.
 
-- `npm run dev` — local Cloudflare development server
-- `npm run deploy` — deploy through Wrangler
-- `npm run check` — verify hosted assets and mobile dropdown interaction
+## Local verification
 
-## Cloudflare project
+```bash
+npm run check
+```
 
-- Worker: `kendoshiaimanager`
-- Static assets: `./public`
+## Deployment
 
-
-Director Overview is available from the primary navigation and is read-only.
+Cloudflare deploys automatically from the connected GitHub `main` branch. The Worker name is `kendoshiaimanager` and static assets are served from `public/`.

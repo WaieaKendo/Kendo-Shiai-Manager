@@ -1,3 +1,3 @@
-# KSM v3.10.5 Release Notes
+# KSM v3.10.6 Release Notes
 
-This release adds a read-only Director Overview with tournament progress, Court A/B division progress, and Current/On Deck/Following match visibility. It refreshes every five seconds while visible.
+Live Scores now uses responsive phone-specific layouts. Portrait keeps White on the left and Red on the right with a compact centered score. Short landscape screens use a single side-by-side matchup row. Desktop/projector presentation is preserved.

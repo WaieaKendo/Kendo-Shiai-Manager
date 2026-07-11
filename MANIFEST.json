@@ -1,30 +1,40 @@
 {
-  "release": "KSM v3.10.4",
+  "release": "KSM v3.10.6",
   "files": [
     {
       "path": ".gitignore",
-      "sha256": "d105be227c81127e18d645231340f65a8f8f0c333da145888a04534af0098f7d",
-      "size": 131
+      "sha256": "8250dbfea8d7785d3785a36bf79b9449c28338035fd14da43ed3de1c760d17a1",
+      "size": 312
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "86d8802e2486bf6762b8f880c0bd5b995833a66535cf4f06f6c5a81ccd95ae8d",
-      "size": 546
+      "sha256": "c831f3ac306d2e7d813051d120d1d6b951f77965942d202ea6a9a96d99001610",
+      "size": 942
     },
     {
       "path": "README.md",
-      "sha256": "6307aa7be7060b9b815b3577f68a04ead84a0f444aacbab2444f708f1996aaa4",
-      "size": 379
+      "sha256": "88b269f591caec79c090d6a105ef40948bb12e0c2a9030c49c47b70c1296c06b",
+      "size": 445
     },
     {
       "path": "RELEASE_SUMMARY.md",
-      "sha256": "5718f2cb7e9b6792f764722c8ac739cb8e1555ce74d1ab3cf1c5636be23f920b",
-      "size": 583
+      "sha256": "e59486a6eef5183838655f2ed0f1435791652333c22432bbcf810bb0a1b54a60",
+      "size": 806
     },
     {
       "path": "docs/DEPLOYMENT.md",
       "sha256": "efef9fe4d149f7376060200cdf43e2b09484078c0c1eb8b8d2191bc95f50f896",
       "size": 433
+    },
+    {
+      "path": "docs/DIRECTOR_OVERVIEW_REPORT.md",
+      "sha256": "9fedabf6579bf36537872a5a53b8651f0f481db06b6f65738ffeba3802ed6293",
+      "size": 385
+    },
+    {
+      "path": "docs/LIVE_SCORES_RESPONSIVE_REPORT.md",
+      "sha256": "4234a708800f9ef27c14b7904e3dc7731f6c3f8cb0e49a3024c6b200a03b3d3a",
+      "size": 587
     },
     {
       "path": "docs/MOBILE_COURT_PORTRAIT_REPORT.md",
@@ -38,13 +48,13 @@
     },
     {
       "path": "docs/RELEASE_NOTES.md",
-      "sha256": "ea9695eb554be2d119b4c2013428b9f6368b729ae470202fd4e504d55ff1d4b9",
-      "size": 605
+      "sha256": "03b98bb059149773cf7811e50f073243d02ad473382e6f5b360737a57bb45572",
+      "size": 278
     },
     {
       "path": "package.json",
-      "sha256": "8ba18bca43750f3bc4ef893e7efa406f5ac2f31f37fba1f5b96d8f5f6d869c25",
-      "size": 504
+      "sha256": "b85d785a1b552a73dcc1576eece177e03a310c3d8a11e9c110cc02e4438ed5d0",
+      "size": 563
     },
     {
       "path": "public/assets/KSM-Background-watermark.svg",
@@ -128,8 +138,8 @@
     },
     {
       "path": "public/index.html",
-      "sha256": "45e5c51ef6a52a9deef378505739c37f7d87c29f0ffe8c8469b4c2f096a89336",
-      "size": 327648
+      "sha256": "e8bf73abbb024f7810958dabadc76617f7921a993cd276923f13854578251a5a",
+      "size": 340605
     },
     {
       "path": "public/manifest.webmanifest",
@@ -138,8 +148,18 @@
     },
     {
       "path": "public/service-worker.js",
-      "sha256": "bc3d517d200d4900f60cfdf93f315445a716aae61ebece1278d6db4330987516",
+      "sha256": "4ca3d87dd96fd02068b1b6d00a6dad946a2c891d707dcac4f6fa96cf0c28251e",
       "size": 1725
+    },
+    {
+      "path": "tests/director-overview-test.py",
+      "sha256": "57af492c08715ae3e32434f93bdd7c4da526e1fcb946707a059adc96afc2d128",
+      "size": 1655
+    },
+    {
+      "path": "tests/live-scores-responsive-test.py",
+      "sha256": "d1ae1328e91198d6eb5b7e7771e4ef61a364c348550896698e07b543bcac8161",
+      "size": 4034
     },
     {
       "path": "tests/mobile-court-portrait-test.py",
@@ -158,7 +178,7 @@
     },
     {
       "path": "tests/verify-package.mjs",
-      "sha256": "cb50acbcecc7f86019c4731dd1be1c26ee00d6798401c18b2391a4cfb7c68902",
+      "sha256": "69bde42b81d6277f62988b68d5af3838dde0f533ec7a83e8fdb098263c707d63",
       "size": 2065
     },
     {
