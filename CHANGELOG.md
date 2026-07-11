@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.10.9 — Mobile Team Score Alignment and View Spacing
+
+- Centered Red team point-placeholder letters by overriding the shared Red-side padding and border utility.
+- Prevented active team-row point boxes from overlapping when enlarged on phone portrait layouts.
+- Added consistent spacing below the mobile navigation for Registration, Courts, Director, Search, and export/print views.
+- Preserved all v3.10.8 team lineup behavior and presentation.
+- No Match Object, engine, template, scoring, advancement, or save-schema changes.
+
 ## v3.10.8 — Team Live Score Lineup Emphasis
 
 - Removed the duplicate current-bout panel above the standard team lineup in Live Scores.

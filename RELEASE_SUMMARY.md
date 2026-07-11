@@ -1,10 +1,13 @@
-# KSM v3.10.8 Release Summary
+# KSM v3.10.9 Release Summary
 
-**Objective:** Remove redundant team-current-match presentation and emphasize the active bout within the complete lineup.
+**Objective:** Repair mobile team point alignment, prevent enlarged active-row score-box collisions, and restore breathing room below the mobile navigation.
 
-**Root cause:** Standard team Live Scores rendered the authoritative active bout twice: once in a dedicated panel and again in its lineup row.
+**Root causes:**
+- The shared `.red` utility added right padding and a border to Red team point placeholders.
+- The active mobile row enlarged point boxes without increasing the spacing between their translated positions.
+- Several application views began at the exact top edge of the content area below the sticky navigation.
 
-**Owning layer:** Live Scores presentation.
+**Owning layer:** Responsive presentation and layout CSS.
 
 **Files changed:**
 - `public/index.html`
@@ -13,10 +16,4 @@
 - `tests/spectator-experience-test.py`
 - release documentation
 
-**Engine impact:** None. Match Objects, tournament templates, advancement, scoring, and save schema are unchanged.
-
-**Expected presentation:**
-- One lineup only.
-- Active row remains in lineup order.
-- Active row is larger and outlined in gold.
-- No active-row background tint.
+**Engine impact:** None. Match Objects, templates, scoring, advancement, queues, and save schema are unchanged.

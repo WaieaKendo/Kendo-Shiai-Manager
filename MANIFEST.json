@@ -1,5 +1,5 @@
 {
-  "release": "KSM v3.10.8",
+  "release": "KSM v3.10.9",
   "file_count": 37,
   "files": [
     {
@@ -9,18 +9,18 @@
     },
     {
       "path": "CHANGELOG.md",
-      "size": 816,
-      "sha256": "15ce80c9701ff723e3fe2511396dc54b4d533bbc1521c82b4631adf38079a77c"
+      "size": 1353,
+      "sha256": "317e6793a0620de5180186137a56bbf9fc83d4270da894557e0260c807fcaa5f"
     },
     {
       "path": "README.md",
-      "size": 133,
-      "sha256": "b4aa8a6a3c56fbf57715af70f4c5b6f464d0b8f05eb04e909706a4482ca5b17a"
+      "size": 153,
+      "sha256": "dbbb43738cb9544c8d79d33638d090d2d6e77940db3591b6e44ba06335f295fa"
     },
     {
       "path": "RELEASE_SUMMARY.md",
-      "size": 772,
-      "sha256": "b2e1c97b3f03c8834b6009f01068dd95dce3c3b56621282706d6f4f646b2c876"
+      "size": 839,
+      "sha256": "4d39d65daedbd7269bf53c0a23a6e34a66a53c379272398e1b4e4a4337292ebe"
     },
     {
       "path": "docs/DEPLOYMENT.md",
@@ -44,8 +44,8 @@
     },
     {
       "path": "docs/RELEASE_NOTES.md",
-      "size": 357,
-      "sha256": "b583e7310f4b1cf1f8fa666acb05f927847fb667f158091032ffd64cab72f7a4"
+      "size": 401,
+      "sha256": "ad5e932ed6561e7d4d425a89b8f204492c8e61f69fae3230bb00dd5c96991143"
     },
     {
       "path": "docs/SPECTATOR_EXPERIENCE_REPORT.md",
@@ -54,8 +54,8 @@
     },
     {
       "path": "package.json",
-      "size": 561,
-      "sha256": "9efa4cb46bece085286956e0404009b9df156f71d3c02dd04d649a25c65fec75"
+      "size": 581,
+      "sha256": "62c63619abb247ecd0bcc6bed04d81d99c39650cfd485a3ef5ace4999874c6a5"
     },
     {
       "path": "public/assets/KSM-Background-watermark.svg",
@@ -139,8 +139,8 @@
     },
     {
       "path": "public/index.html",
-      "size": 351226,
-      "sha256": "c8555536e16fbd21950b24a7a20294b98ac32aa6d8a922880c1a25cbeff2fb84"
+      "size": 351748,
+      "sha256": "03110e32e6c1fadc60438219b178b479c3dbe88520de82e987e1bd76bf07bf9d"
     },
     {
       "path": "public/manifest.webmanifest",
@@ -150,7 +150,7 @@
     {
       "path": "public/service-worker.js",
       "size": 1725,
-      "sha256": "fc80d1698fbde893609ff31010784c4169ca6a01343f73a01403ee9146b2775a"
+      "sha256": "6acc104fd3fdf3667427cbc978b9bc59536dda65394cc35b12b7ad6e29679dc8"
     },
     {
       "path": "tests/director-overview-test.py",
@@ -174,13 +174,13 @@
     },
     {
       "path": "tests/spectator-experience-test.py",
-      "size": 2150,
-      "sha256": "5d752518179d60e409b38c22d5011ab467c4e8eddebdf2b39176706fc2a332ef"
+      "size": 2843,
+      "sha256": "e415d76827ce10fead9ff7df14197c5f3af3f9676e204215fa7cfe577d4a1182"
     },
     {
       "path": "tests/verify-package.mjs",
       "size": 2065,
-      "sha256": "017d84a040dedc78409fec9e8d0b8e8254cd1527b6cd6064b6407f739767a521"
+      "sha256": "4e9c232802cd716642596adf931c996dacf7ea4f304d65bae30469d1005c6d5f"
     },
     {
       "path": "wrangler.jsonc",

@@ -1,8 +1,8 @@
 {
   "name": "kendo-shiai-manager",
-  "version": "3.10.8",
+  "version": "3.10.9",
   "private": true,
-  "description": "Kendo Shiai Manager team live score lineup emphasis",
+  "description": "Kendo Shiai Manager mobile team score alignment and view spacing repair",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
