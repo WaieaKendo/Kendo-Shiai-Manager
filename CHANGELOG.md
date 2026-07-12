@@ -1,6 +1,14 @@
 # Changelog
 
-## v3.11.8 — Responsive Tournament Header Refinement
+## v3.11.9 — Final Mobile Navigation Polish
+
+- Added consistent portrait safe-area spacing above the KSM navigation brand.
+- Aligned every mobile navigation icon to one fixed icon row, including Live Scores and Save / Load.
+- Reserved a protected branding column in phone landscape so Setup cannot overlap the KSM logo.
+- Shifted the first landscape navigation item slightly right while preserving horizontal scrolling on narrow devices.
+- No tournament-engine, Match Object, scoring, queue, advancement, template, or save-format changes.
+
+## v3.11.9 — Responsive Tournament Header Refinement
 
 - Reduced tournament-name typography in Court and Live Scores headers.
 - Kept the KSM logo and tournament name on one row whenever space permits.
