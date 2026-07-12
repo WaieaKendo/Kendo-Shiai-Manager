@@ -1,8 +1,8 @@
 {
   "name": "kendo-shiai-manager",
-  "version": "3.11.5",
+  "version": "3.11.7",
   "private": true,
-  "description": "Kendo Shiai Manager Court landscape density and context cleanup",
+  "description": "Kendo Shiai Manager hosted mobile/PWA application",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
