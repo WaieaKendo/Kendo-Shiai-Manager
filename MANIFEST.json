@@ -1,220 +1,235 @@
 {
-  "version": "3.11.2",
+  "version": "3.11.3",
   "files": [
     {
       "path": ".gitignore",
-      "size": 312,
-      "sha256": "8250dbfea8d7785d3785a36bf79b9449c28338035fd14da43ed3de1c760d17a1"
+      "sha256": "8250dbfea8d7785d3785a36bf79b9449c28338035fd14da43ed3de1c760d17a1",
+      "bytes": 312
     },
     {
       "path": "CHANGELOG.md",
-      "size": 2125,
-      "sha256": "0f2b92a57c9ffe8e3586e5b01d9fd434d49971b96233af9bcd05f3b95a64dc12"
+      "sha256": "718fda263ded7546ecf5cb13bb7091d3d602dcb069c5239590a0ff46d152f1ea",
+      "bytes": 2577
     },
     {
       "path": "README.md",
-      "size": 365,
-      "sha256": "c0becd0bcf36dd9da2aba580fa810dbbd61cf7c0ae5e17a5d4a921adc97b06f6"
+      "sha256": "64f1dd086a83ca4baef087e1d1fb2633981cbcdd0191d53eb390bc8bb97d4df0",
+      "bytes": 232
     },
     {
       "path": "RELEASE_SUMMARY.md",
-      "size": 709,
-      "sha256": "b098dfb829a5caa32a8851cf5c8b8e31d31a602f4c3838b4f4af08f3fa6f9c2d"
+      "sha256": "2bf7b164081d6b9b0d9c5e06d63d6ccb46e127d775f184e67c303a55d8e095ed",
+      "bytes": 416
     },
     {
       "path": "docs/DEPLOYMENT.md",
-      "size": 433,
-      "sha256": "efef9fe4d149f7376060200cdf43e2b09484078c0c1eb8b8d2191bc95f50f896"
+      "sha256": "efef9fe4d149f7376060200cdf43e2b09484078c0c1eb8b8d2191bc95f50f896",
+      "bytes": 433
     },
     {
       "path": "docs/DIRECTOR_MOBILE_RELIABILITY_REPORT.md",
-      "size": 694,
-      "sha256": "9350edd9758970dd2740d9c3e75dada60ac3dc4d18d3db4c25163b728969b7aa"
+      "sha256": "9350edd9758970dd2740d9c3e75dada60ac3dc4d18d3db4c25163b728969b7aa",
+      "bytes": 694
     },
     {
       "path": "docs/DIRECTOR_OVERVIEW_REPORT.md",
-      "size": 385,
-      "sha256": "9fedabf6579bf36537872a5a53b8651f0f481db06b6f65738ffeba3802ed6293"
+      "sha256": "9fedabf6579bf36537872a5a53b8651f0f481db06b6f65738ffeba3802ed6293",
+      "bytes": 385
     },
     {
       "path": "docs/DIRECTOR_PROGRESS_ACCURACY_REPORT.md",
-      "size": 259,
-      "sha256": "30f023ac240822cb8a3ab13447808da58022fe4b7d2b1faee3f681c418219d8c"
+      "sha256": "30f023ac240822cb8a3ab13447808da58022fe4b7d2b1faee3f681c418219d8c",
+      "bytes": 259
     },
     {
       "path": "docs/LAYOUT_SETUP_STANDARDIZATION_REPORT.md",
-      "size": 624,
-      "sha256": "3d3f7d1a772c793a6f821bbc0f023169271e850c25a04f5872230d482474ea2d"
+      "sha256": "3d3f7d1a772c793a6f821bbc0f023169271e850c25a04f5872230d482474ea2d",
+      "bytes": 624
     },
     {
       "path": "docs/MOBILE_COURT_PORTRAIT_REPORT.md",
-      "size": 892,
-      "sha256": "5c0c38ea0d448bbea29f9a57eed82a94d05b0f6d9108323887112228e80c7a1e"
+      "sha256": "5c0c38ea0d448bbea29f9a57eed82a94d05b0f6d9108323887112228e80c7a1e",
+      "bytes": 892
     },
     {
       "path": "docs/MOBILE_COURT_RESPONSIVE_REFINEMENT_REPORT.md",
-      "size": 423,
-      "sha256": "d59686b499560ac5bb25e644678e58fafef363b82edbbdd743a0b0f182a98669"
+      "sha256": "d59686b499560ac5bb25e644678e58fafef363b82edbbdd743a0b0f182a98669",
+      "bytes": 423
+    },
+    {
+      "path": "docs/MOBILE_LANDSCAPE_RESULTS_LIVE_REPORT.md",
+      "sha256": "08267377d483afd59193a39938a53b27064fa478f6d7fd66de82cb30b02d3814",
+      "bytes": 356
     },
     {
       "path": "docs/RELEASE_NOTES.md",
-      "size": 627,
-      "sha256": "3e0540783b9fdc9e981876e94ef2d3482b2c91a16bda8c32f77b467e4823f992"
+      "sha256": "e4deb3a21ce91ffa2319598165cf797332a6b79d0ab273b71177f26ed6c3882a",
+      "bytes": 255
     },
     {
       "path": "docs/SPECTATOR_EXPERIENCE_REPORT.md",
-      "size": 436,
-      "sha256": "5fb76d937390f43412ec056adb8cb5be890f5c274ff167cff71c15939ac7f266"
+      "sha256": "5fb76d937390f43412ec056adb8cb5be890f5c274ff167cff71c15939ac7f266",
+      "bytes": 436
     },
     {
       "path": "package.json",
-      "size": 723,
-      "sha256": "4f5d71589f83544b167f71cddf5d5dc18b1ef74bb59c2e99cbd8e32ab386cdbe"
+      "sha256": "d37b01b1276fd9b7a56302199ec007fb585ac1c331cdbeda5eeacee0a09821d6",
+      "bytes": 792
     },
     {
       "path": "public/assets/KSM-Background-watermark.svg",
-      "size": 75493,
-      "sha256": "ae8a55e2275dabab0093568727c7ee326c5617185538204e01c17b68cc0a9469"
+      "sha256": "ae8a55e2275dabab0093568727c7ee326c5617185538204e01c17b68cc0a9469",
+      "bytes": 75493
     },
     {
       "path": "public/assets/ksm-fuji-logo-nav.svg",
-      "size": 2573,
-      "sha256": "b7b7f722d4c1a4f5887fde1ab6def8465dbf39fcfb1c7899dcc09d60af7bc1b0"
+      "sha256": "b7b7f722d4c1a4f5887fde1ab6def8465dbf39fcfb1c7899dcc09d60af7bc1b0",
+      "bytes": 2573
     },
     {
       "path": "public/assets/ksm-fuji-logo.svg",
-      "size": 2663,
-      "sha256": "f6348b4b6bed7ca02fcf7f3ebdab3f7a8366c483c65706ad917d62ff3ab957e7"
+      "sha256": "f6348b4b6bed7ca02fcf7f3ebdab3f7a8366c483c65706ad917d62ff3ab957e7",
+      "bytes": 2663
     },
     {
       "path": "public/assets/ksm-seigaiha-dark.svg",
-      "size": 359537,
-      "sha256": "933477028dc5e408d6326bf0825d53b3926a04bf1c5358ef6443e619bb06ba06"
+      "sha256": "933477028dc5e408d6326bf0825d53b3926a04bf1c5358ef6443e619bb06ba06",
+      "bytes": 359537
     },
     {
       "path": "public/assets/ksm-seigaiha-light.svg",
-      "size": 359537,
-      "sha256": "f0b91d2c2f5fd5c9a62df6241c30feb4ee4a047ca3a78e69f73333ec208de9ac"
+      "sha256": "f0b91d2c2f5fd5c9a62df6241c30feb4ee4a047ca3a78e69f73333ec208de9ac",
+      "bytes": 359537
     },
     {
       "path": "public/assets/nav-icons/courts.svg",
-      "size": 2814,
-      "sha256": "b5aeec8e94947606c957ad6421ddcf6e54467e8b7306fb73b39ee9bee4a013cc"
+      "sha256": "b5aeec8e94947606c957ad6421ddcf6e54467e8b7306fb73b39ee9bee4a013cc",
+      "bytes": 2814
     },
     {
       "path": "public/assets/nav-icons/export.svg",
-      "size": 4231,
-      "sha256": "8332cb5792d0896e37af786b3b11bc18cd231ad37b8f3bf06952b5cdccc0f26c"
+      "sha256": "8332cb5792d0896e37af786b3b11bc18cd231ad37b8f3bf06952b5cdccc0f26c",
+      "bytes": 4231
     },
     {
       "path": "public/assets/nav-icons/live-scores.svg",
-      "size": 1708,
-      "sha256": "9c311145644547c1c6b4be79bef6ad08e0b3b6ddad262e5da07a6853e82f51a8"
+      "sha256": "9c311145644547c1c6b4be79bef6ad08e0b3b6ddad262e5da07a6853e82f51a8",
+      "bytes": 1708
     },
     {
       "path": "public/assets/nav-icons/registration.svg",
-      "size": 5384,
-      "sha256": "3a6b6072ca3d012eaf3d876fbeeaaa80f5bfb8a56ead937033dfcbbfeb82b91f"
+      "sha256": "3a6b6072ca3d012eaf3d876fbeeaaa80f5bfb8a56ead937033dfcbbfeb82b91f",
+      "bytes": 5384
     },
     {
       "path": "public/assets/nav-icons/results.svg",
-      "size": 2492,
-      "sha256": "60063852db7da8349255f0850ff4d67bc3221f927bd01f2ca932bbebde763773"
+      "sha256": "60063852db7da8349255f0850ff4d67bc3221f927bd01f2ca932bbebde763773",
+      "bytes": 2492
     },
     {
       "path": "public/assets/nav-icons/save-load.svg",
-      "size": 1299,
-      "sha256": "2dff15b1b79fe3d6b319141128f06cbff50009d5cbd0cd4ef68c8fdd66671f1a"
+      "sha256": "2dff15b1b79fe3d6b319141128f06cbff50009d5cbd0cd4ef68c8fdd66671f1a",
+      "bytes": 1299
     },
     {
       "path": "public/assets/nav-icons/search.svg",
-      "size": 248,
-      "sha256": "e42f32f13b0e0cfd909c45abb0b061f4b11e743e59e90418c14077bd0ffac8bc"
+      "sha256": "e42f32f13b0e0cfd909c45abb0b061f4b11e743e59e90418c14077bd0ffac8bc",
+      "bytes": 248
     },
     {
       "path": "public/assets/nav-icons/setup.svg",
-      "size": 1733,
-      "sha256": "c8eaa92f28abfc8fbf5e40abdce31a032fa4bd30af305c929e04df02aff87646"
+      "sha256": "c8eaa92f28abfc8fbf5e40abdce31a032fa4bd30af305c929e04df02aff87646",
+      "bytes": 1733
     },
     {
       "path": "public/icons/apple-touch-icon.png",
-      "size": 8024,
-      "sha256": "c14faa1b2561bdb82560989c8b5438def39bb08824dea9cda55ee8bc59cb2f96"
+      "sha256": "c14faa1b2561bdb82560989c8b5438def39bb08824dea9cda55ee8bc59cb2f96",
+      "bytes": 8024
     },
     {
       "path": "public/icons/icon-192.png",
-      "size": 8583,
-      "sha256": "95f0d26238a51e63f0ccdb56ff63fcd5979c9f3dbca317b6c47bad19b1cf7d75"
+      "sha256": "95f0d26238a51e63f0ccdb56ff63fcd5979c9f3dbca317b6c47bad19b1cf7d75",
+      "bytes": 8583
     },
     {
       "path": "public/icons/icon-512.png",
-      "size": 24700,
-      "sha256": "f362ee13531921f1777e1548c0d8b54fa3b64b4ddea799c812dbff3a3463d862"
+      "sha256": "f362ee13531921f1777e1548c0d8b54fa3b64b4ddea799c812dbff3a3463d862",
+      "bytes": 24700
     },
     {
       "path": "public/index.html",
-      "size": 363455,
-      "sha256": "cd5adf8eb81795933f5eddda2397cbac04e0a0bf9c622adaca7a4ba7f407ca0b"
+      "sha256": "130a09fe6d4cf381c5697b69b122fdcb66178610856f66b1c8fa5228f2fe2a42",
+      "bytes": 368202
     },
     {
       "path": "public/manifest.webmanifest",
-      "size": 477,
-      "sha256": "611dafd22718357295eac84978aa5eca0f8ca4b03067dc38ee12ae9e50d2d714"
+      "sha256": "611dafd22718357295eac84978aa5eca0f8ca4b03067dc38ee12ae9e50d2d714",
+      "bytes": 477
     },
     {
       "path": "public/service-worker.js",
-      "size": 1725,
-      "sha256": "263deb1f15808c837bf8125a50e6b3f128000b3f9fd745be2af77e9c59101d99"
+      "sha256": "dce227c51268a069ec5a5916655cf66f22d11b40d7a80431c9ff8815d50809a6",
+      "bytes": 1725
+    },
+    {
+      "path": "tests/__pycache__/mobile-landscape-results-live-test.cpython-313.pyc",
+      "sha256": "5a31ec603e582f4cb587afed92cb4b486f221acff3e3a1ffff2cc9c6b316b015",
+      "bytes": 2060
     },
     {
       "path": "tests/director-mobile-reliability-test.py",
-      "size": 3322,
-      "sha256": "dd2cbcbed2c72a8d1bb47a78b139115e732cc354d3554d5eaaecdbda8f7978ee"
+      "sha256": "dd2cbcbed2c72a8d1bb47a78b139115e732cc354d3554d5eaaecdbda8f7978ee",
+      "bytes": 3322
     },
     {
       "path": "tests/director-overview-test.py",
-      "size": 1655,
-      "sha256": "57af492c08715ae3e32434f93bdd7c4da526e1fcb946707a059adc96afc2d128"
+      "sha256": "57af492c08715ae3e32434f93bdd7c4da526e1fcb946707a059adc96afc2d128",
+      "bytes": 1655
     },
     {
       "path": "tests/director-progress-accuracy-test.py",
-      "size": 4906,
-      "sha256": "f24a676a3ab8cf1733bf3d62586963222c841955084f582b4d304ff8b7d9db4f"
+      "sha256": "f24a676a3ab8cf1733bf3d62586963222c841955084f582b4d304ff8b7d9db4f",
+      "bytes": 4906
     },
     {
       "path": "tests/layout-setup-standardization-test.py",
-      "size": 2806,
-      "sha256": "377a0ecd154e035f52be0aec30614a3888474330008f9bf7ea81acce94c26f0a"
+      "sha256": "377a0ecd154e035f52be0aec30614a3888474330008f9bf7ea81acce94c26f0a",
+      "bytes": 2806
     },
     {
       "path": "tests/mobile-court-portrait-test.py",
-      "size": 2948,
-      "sha256": "318b49a9c3a8cf60244ab6b58bb9d298030af293522949ccb74e76ebd7f22aab"
+      "sha256": "318b49a9c3a8cf60244ab6b58bb9d298030af293522949ccb74e76ebd7f22aab",
+      "bytes": 2948
     },
     {
       "path": "tests/mobile-court-responsive-refinement-test.py",
-      "size": 2343,
-      "sha256": "0b60e28f9544847d4bcf4137585fe861e76332edd791c51ef229e612d95711f2"
+      "sha256": "0b60e28f9544847d4bcf4137585fe861e76332edd791c51ef229e612d95711f2",
+      "bytes": 2343
     },
     {
       "path": "tests/mobile-dropdown-test.py",
-      "size": 2178,
-      "sha256": "14358f5517f2e92cd325a715c5387982052ae56cdaca4f5e05b58788364bbee9"
+      "sha256": "14358f5517f2e92cd325a715c5387982052ae56cdaca4f5e05b58788364bbee9",
+      "bytes": 2178
+    },
+    {
+      "path": "tests/mobile-landscape-results-live-test.py",
+      "sha256": "2ff9ed727f5154f3d36cf547a490cc9d16e5d06ec612b45dcd05c39b38cf31af",
+      "bytes": 1318
     },
     {
       "path": "tests/spectator-experience-test.py",
-      "size": 2843,
-      "sha256": "e415d76827ce10fead9ff7df14197c5f3af3f9676e204215fa7cfe577d4a1182"
+      "sha256": "e415d76827ce10fead9ff7df14197c5f3af3f9676e204215fa7cfe577d4a1182",
+      "bytes": 2843
     },
     {
       "path": "tests/verify-package.mjs",
-      "size": 2065,
-      "sha256": "7c061e8e888988c2f71d501282d3f0aeb78aaaa060b40541672784726168817a"
+      "sha256": "ac671a7d7c8dc4500055c2ad54903dcad11763b22edd0ae1f3dfbea6498d0e91",
+      "bytes": 2065
     },
     {
       "path": "wrangler.jsonc",
-      "size": 231,
-      "sha256": "93c7679c8e0b6570183b03875d9b94cf4b940e44c42e349aa3f61fbb217c56fb"
+      "sha256": "93c7679c8e0b6570183b03875d9b94cf4b940e44c42e349aa3f61fbb217c56fb",
+      "bytes": 231
     }
   ]
 }

@@ -1,5 +1,14 @@
 # Changelog
 
+## v3.11.3 — Mobile Landscape Results and Live Scores Refinement
+
+- Added a two-column Results layout for phone landscape.
+- Recentered the Live Scores canvas in mobile landscape.
+- Reduced active-match card height, typography, score size, and spacing in mobile landscape.
+- Kept portrait and desktop layouts unchanged.
+- Bumped the PWA cache to v3.11.3.
+- No tournament engine, Match Object, template, scoring, advancement, or save-format changes.
+
 ## v3.11.2 — Director and Mobile Reliability Fixes
 
 - Corrected direct individual elimination totals so an eight-person bracket reports seven scoreable matches.
