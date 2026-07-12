@@ -21,3 +21,5 @@ Current suites cover:
 - header/navigation alignment
 
 Generated reports, manifests, screenshots, ZIP archives, and temporary build folders should not be committed to the repository.
+
+- `tests/split-court-stabilization-test.py` verifies split-pool tiebreak routing and generation, the winner-required stop rule, court-specific queues, and duplicate-match prevention.

@@ -1,5 +1,15 @@
 # Changelog
 
+## v3.12.1 — Split-Court Stabilization
+
+- Reused the existing single-court pool tiebreak algorithm for split divisions; tiebreak Match Objects now inherit the owning pool court.
+- Added the shared winner-required stop rule for two-person individual tiebreaks.
+- Restored Court Queue for split direct-elimination divisions while preserving the no-queue single-court presentation.
+- Filtered split pool championship queue matches and placeholders to the active court only.
+- Enforced one Match Object per logical individual tiebreak or bracket node and prevented repeated semifinal/final creation.
+- Kept Court Context unchanged so staff can still see the complete division structure.
+- Added a focused split-court stabilization regression suite.
+
 ## v3.12.0 — Tournament Management Engine
 
 - Added Court A, Court B, and Split Between Courts assignment for individual divisions.

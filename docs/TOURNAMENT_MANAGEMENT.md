@@ -86,3 +86,14 @@ The operation replaces only the selected division's pools/bracket, Match Objects
 ## Persistence
 
 Save schema is `1.1`; engine version is `3.12.0`. New state includes frozen team-elimination entries and a management revision counter. Older saves default to existing single-court assignments and initialize missing management state safely.
+
+## v3.12.1 Split-Court Stabilization
+
+Split Between Courts is a routing layer only. Pool standings, tiebreak detection, qualifier resolution, and bracket advancement continue to use the same engines as single-court divisions.
+
+- Tiebreaks inherit the court assigned to their source pool.
+- A two-person tiebreak requiring advancement must have a winner before Next Match can proceed.
+- Split direct-elimination divisions show Court Queue; each court sees only its own matches. Single-court direct elimination continues to rely on Court Context without Court Queue.
+- Split pool championship queues show only matches and future placeholders assigned to the active court.
+- Court Context continues to show the complete bracket/division context.
+- Every logical individual match has exactly one Match Object.

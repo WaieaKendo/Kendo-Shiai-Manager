@@ -4,7 +4,7 @@ Kendo Shiai Manager (KSM) is a hosted web/PWA application for running individual
 
 ## Current release
 
-**v3.12.0 — Tournament Management Engine**
+**v3.12.1 — Split-Court Stabilization**
 
 This release reorganizes repository documentation and prevents generated release artifacts from accumulating in source control. Tournament behavior is unchanged from v3.11.6.
 
@@ -29,4 +29,4 @@ npm run deploy
 See `docs/DEPLOYMENT.md`, `docs/TESTING.md`, and `docs/REPOSITORY_STRUCTURE.md` for details.
 
 
-See `docs/TOURNAMENT_MANAGEMENT.md` for v3.12.0 behavior.
+See `docs/TOURNAMENT_MANAGEMENT.md` for tournament-management behavior and the v3.12.1 stabilization notes.
