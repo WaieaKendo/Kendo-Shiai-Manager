@@ -1,5 +1,14 @@
 # Changelog
 
+## v3.11.2 — Director and Mobile Reliability Fixes
+
+- Corrected direct individual elimination totals so an eight-person bracket reports seven scoreable matches.
+- Scoped Kachinuki variable-total behavior to Kachinuki divisions only; fixed-format individual and standard-team estimates remain available.
+- Reduced portrait mobile spacing inside the active Scorekeeper match card.
+- Constrained the Setup date field to exactly the same width as the other Tournament Details fields on iOS.
+- No tournament generation, scoring, advancement, template, or save-format behavior changed.
+- Bumped the PWA cache to v3.11.2.
+
 ## v3.11.1 — Director Progress Accuracy
 
 - Pool-based individual divisions now calculate totals from all pool bouts plus the complete championship bracket.

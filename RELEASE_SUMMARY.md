@@ -1,13 +1,13 @@
-# KSM v3.11.1 Release Summary
+# KSM v3.11.2 Release Summary
 
 ## Objective
-Correct Director court and tournament progress totals without changing tournament behavior.
+Correct Director totals and two mobile layout regressions without changing tournament behavior.
 
-## Counting rules
-- Pool-based individual divisions: all pool bouts plus the complete championship bracket.
-- Direct individual elimination: all scoreable matches represented in Court Context.
-- 3-person and 5-person team tournaments: scoreable team pairings multiplied by team size; generated representative playoffs are added.
-- Kachinuki: completed bouts are shown without a fixed denominator because the number of bouts varies with wins and ties.
+## Corrections
+- Direct individual elimination totals use the complete scoreable bracket (`entrants - 1`) on the division's assigned court.
+- Kachinuki removes a fixed denominator only for Kachinuki divisions. Other individual and standard-team estimates continue to calculate normally.
+- Portrait Scorekeeper active-match spacing is reduced.
+- The Setup date field matches the width of every other Tournament Details field.
 
 ## Architecture impact
-Presentation/read-only Director projection only. Match Objects remain authoritative.
+Read-only Director projection and responsive CSS only. Match Objects, engines, templates, and save data are unchanged.

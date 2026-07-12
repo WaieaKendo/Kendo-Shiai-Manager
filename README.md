@@ -1,17 +1,18 @@
 # Kendo Shiai Manager
 
-KSM v3.11.1 — Director Progress Accuracy.
+KSM v3.11.2 — Director and Mobile Reliability Fixes.
 
-## Highlights
-- Shared page width, gutters, top spacing, and bottom spacing across every application view.
-- Consistent desktop canvas and mobile safe-area geometry.
-- Phone-first Setup hero, cards, fields, division controls, and full-width primary action.
-- Individual-division matrix becomes stacked touch-friendly cards on phones.
-- No tournament-engine, Match Object, scoring, template, or save-format changes.
+This repository is ready for Cloudflare Workers Static Assets deployment. Match Objects remain authoritative; this release changes only read-only Director calculations and responsive presentation.
 
-## Development
+## Deploy
+
 ```bash
 npm install
+npm run deploy
+```
+
+## Verify
+
+```bash
 npm run check
-npm run dev
 ```

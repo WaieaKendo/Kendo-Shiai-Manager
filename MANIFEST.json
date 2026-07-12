@@ -1,5 +1,5 @@
 {
-  "version": "3.11.1",
+  "version": "3.11.2",
   "files": [
     {
       "path": ".gitignore",
@@ -8,23 +8,28 @@
     },
     {
       "path": "CHANGELOG.md",
-      "size": 1507,
-      "sha256": "683a379e4a71f9e9afdf8cd67d55da15c50ab9c104152a4d8961716f0d836f35"
+      "size": 2125,
+      "sha256": "0f2b92a57c9ffe8e3586e5b01d9fd434d49971b96233af9bcd05f3b95a64dc12"
     },
     {
       "path": "README.md",
-      "size": 549,
-      "sha256": "9a12a833309f73017f30982b9d06e65600a4681a4fe584ed5bc1f70a746bd719"
+      "size": 365,
+      "sha256": "c0becd0bcf36dd9da2aba580fa810dbbd61cf7c0ae5e17a5d4a921adc97b06f6"
     },
     {
       "path": "RELEASE_SUMMARY.md",
-      "size": 697,
-      "sha256": "47dad8fc8f4dab5c5f0fd30a7356343b252db2de044cb0028bc806dca62ec802"
+      "size": 709,
+      "sha256": "b098dfb829a5caa32a8851cf5c8b8e31d31a602f4c3838b4f4af08f3fa6f9c2d"
     },
     {
       "path": "docs/DEPLOYMENT.md",
       "size": 433,
       "sha256": "efef9fe4d149f7376060200cdf43e2b09484078c0c1eb8b8d2191bc95f50f896"
+    },
+    {
+      "path": "docs/DIRECTOR_MOBILE_RELIABILITY_REPORT.md",
+      "size": 694,
+      "sha256": "9350edd9758970dd2740d9c3e75dada60ac3dc4d18d3db4c25163b728969b7aa"
     },
     {
       "path": "docs/DIRECTOR_OVERVIEW_REPORT.md",
@@ -53,8 +58,8 @@
     },
     {
       "path": "docs/RELEASE_NOTES.md",
-      "size": 401,
-      "sha256": "ad5e932ed6561e7d4d425a89b8f204492c8e61f69fae3230bb00dd5c96991143"
+      "size": 627,
+      "sha256": "3e0540783b9fdc9e981876e94ef2d3482b2c91a16bda8c32f77b467e4823f992"
     },
     {
       "path": "docs/SPECTATOR_EXPERIENCE_REPORT.md",
@@ -63,8 +68,8 @@
     },
     {
       "path": "package.json",
-      "size": 660,
-      "sha256": "b5f4c83010463825e56a9f799ce2247ba7021ff4ba40c9b94d91cf0fcb5d0023"
+      "size": 723,
+      "sha256": "4f5d71589f83544b167f71cddf5d5dc18b1ef74bb59c2e99cbd8e32ab386cdbe"
     },
     {
       "path": "public/assets/KSM-Background-watermark.svg",
@@ -148,8 +153,8 @@
     },
     {
       "path": "public/index.html",
-      "size": 361884,
-      "sha256": "e113b6dfe0cd5bf9279f468b4c8539f340d3e2fb568e3a896668b0de3c6794b5"
+      "size": 363455,
+      "sha256": "cd5adf8eb81795933f5eddda2397cbac04e0a0bf9c622adaca7a4ba7f407ca0b"
     },
     {
       "path": "public/manifest.webmanifest",
@@ -159,7 +164,12 @@
     {
       "path": "public/service-worker.js",
       "size": 1725,
-      "sha256": "2e0fa225f1cc1cae20687a18236b132c606d28d933195fcdf4587d2718d1fffa"
+      "sha256": "263deb1f15808c837bf8125a50e6b3f128000b3f9fd745be2af77e9c59101d99"
+    },
+    {
+      "path": "tests/director-mobile-reliability-test.py",
+      "size": 3322,
+      "sha256": "dd2cbcbed2c72a8d1bb47a78b139115e732cc354d3554d5eaaecdbda8f7978ee"
     },
     {
       "path": "tests/director-overview-test.py",
@@ -199,7 +209,7 @@
     {
       "path": "tests/verify-package.mjs",
       "size": 2065,
-      "sha256": "184d643eb952e3ded3cbf0a9b917a5236cb7c40e23a0a62f426d327be8358a6d"
+      "sha256": "7c061e8e888988c2f71d501282d3f0aeb78aaaa060b40541672784726168817a"
     },
     {
       "path": "wrangler.jsonc",
