@@ -1,6 +1,5 @@
 {
-  "release": "KSM v3.10.9",
-  "file_count": 37,
+  "version": "3.11.0",
   "files": [
     {
       "path": ".gitignore",
@@ -9,18 +8,18 @@
     },
     {
       "path": "CHANGELOG.md",
-      "size": 1353,
-      "sha256": "317e6793a0620de5180186137a56bbf9fc83d4270da894557e0260c807fcaa5f"
+      "size": 798,
+      "sha256": "5f7c76239abe596192b0cd4cc577624ade810fc080efc04572e8d62f9a328f63"
     },
     {
       "path": "README.md",
-      "size": 153,
-      "sha256": "dbbb43738cb9544c8d79d33638d090d2d6e77940db3591b6e44ba06335f295fa"
+      "size": 582,
+      "sha256": "0f1c36047dd6391b8fdd780091fc84f4ae77ccd7b959cf0c92f0e0d705e8a6aa"
     },
     {
       "path": "RELEASE_SUMMARY.md",
-      "size": 839,
-      "sha256": "4d39d65daedbd7269bf53c0a23a6e34a66a53c379272398e1b4e4a4337292ebe"
+      "size": 458,
+      "sha256": "7fcba780a57cf1c17da6b5b2342058591ac14bf2b1999f7f082cf830010f47f7"
     },
     {
       "path": "docs/DEPLOYMENT.md",
@@ -31,6 +30,11 @@
       "path": "docs/DIRECTOR_OVERVIEW_REPORT.md",
       "size": 385,
       "sha256": "9fedabf6579bf36537872a5a53b8651f0f481db06b6f65738ffeba3802ed6293"
+    },
+    {
+      "path": "docs/LAYOUT_SETUP_STANDARDIZATION_REPORT.md",
+      "size": 624,
+      "sha256": "3d3f7d1a772c793a6f821bbc0f023169271e850c25a04f5872230d482474ea2d"
     },
     {
       "path": "docs/MOBILE_COURT_PORTRAIT_REPORT.md",
@@ -54,8 +58,8 @@
     },
     {
       "path": "package.json",
-      "size": 581,
-      "sha256": "62c63619abb247ecd0bcc6bed04d81d99c39650cfd485a3ef5ace4999874c6a5"
+      "size": 642,
+      "sha256": "a5c1ea394a21fb2e344efb68bb93e605a489886249f0de1d03baf5095d883f5c"
     },
     {
       "path": "public/assets/KSM-Background-watermark.svg",
@@ -139,8 +143,8 @@
     },
     {
       "path": "public/index.html",
-      "size": 351748,
-      "sha256": "03110e32e6c1fadc60438219b178b479c3dbe88520de82e987e1bd76bf07bf9d"
+      "size": 357586,
+      "sha256": "9038973b8062969eedc48fb6e72b4747973f60ba314b0104c1ba9b1687ed1865"
     },
     {
       "path": "public/manifest.webmanifest",
@@ -150,12 +154,17 @@
     {
       "path": "public/service-worker.js",
       "size": 1725,
-      "sha256": "6acc104fd3fdf3667427cbc978b9bc59536dda65394cc35b12b7ad6e29679dc8"
+      "sha256": "61383fa7e52786b6ae0841b147aca01d821a750fe01db5e0d5fe77b72e7ec73a"
     },
     {
       "path": "tests/director-overview-test.py",
       "size": 1655,
       "sha256": "57af492c08715ae3e32434f93bdd7c4da526e1fcb946707a059adc96afc2d128"
+    },
+    {
+      "path": "tests/layout-setup-standardization-test.py",
+      "size": 2806,
+      "sha256": "377a0ecd154e035f52be0aec30614a3888474330008f9bf7ea81acce94c26f0a"
     },
     {
       "path": "tests/mobile-court-portrait-test.py",
@@ -180,7 +189,7 @@
     {
       "path": "tests/verify-package.mjs",
       "size": 2065,
-      "sha256": "4e9c232802cd716642596adf931c996dacf7ea4f304d65bae30469d1005c6d5f"
+      "sha256": "89d23d7ee8cc392aba449aa08902bb1eed9be7c974c202688ca991f432ad0d89"
     },
     {
       "path": "wrangler.jsonc",
