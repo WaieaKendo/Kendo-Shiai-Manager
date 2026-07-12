@@ -1,3 +1,3 @@
-# Kendo Shiai Manager v3.11.4
+# Kendo Shiai Manager v3.11.5
 
-Hosted mobile/PWA build with final phone-landscape alignment for Live Scores and Results, plus a compact one-line Court Scorekeeper layout.
+Hosted mobile/PWA build with centered Court headings, compact landscape scoring-control cards, and simplified team Court Context.

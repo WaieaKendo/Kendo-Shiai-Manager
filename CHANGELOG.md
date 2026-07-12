@@ -1,5 +1,17 @@
 # KSM Change Log
 
+## v3.11.5 — Court Landscape Density and Context Cleanup
+
+### Changed
+- Centered the Court division selector with the Court name and match metadata in phone landscape.
+- Removed the unused vertical area beneath landscape scoring buttons so each control card hugs its button row.
+- Removed the generic Court Context description.
+- Removed redundant team-pair and explanatory text above team and Kachinuki context sheets.
+
+### Unchanged
+- Portrait and desktop scoring layouts.
+- Match Objects, scoring, queue, advancement, templates, and save format.
+
 ## v3.11.4 — Mobile Landscape Alignment and Court Compaction
 
 ### Changed

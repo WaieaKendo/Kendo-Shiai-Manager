@@ -1,7 +1,16 @@
-# KSM v3.11.4 — Mobile Landscape Alignment and Court Compaction
+# KSM v3.11.5 Release Summary
 
-- Live Scores center header and score content now remain geometrically centered in phone landscape.
-- Results cards use a true aligned two-column landscape grid.
-- Court Scorekeeper uses a compact one-line competitor/score band in landscape.
-- White and Red scoring controls remain in one horizontal band.
-- Portrait, desktop, tournament logic, and state ownership are unchanged.
+## Objective
+Tighten the phone-landscape Court scorekeeper and remove redundant Court Context headings.
+
+## Files changed
+- `public/index.html`
+- `public/service-worker.js`
+- `tests/mobile-court-density-context-test.py`
+- release metadata and manifest
+
+## Architecture impact
+None. Presentation layer only.
+
+## Verification
+All existing package, mobile, Court, Director, spectator, layout, and landscape tests plus the new v3.11.5 checks.
