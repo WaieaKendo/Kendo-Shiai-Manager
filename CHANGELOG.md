@@ -1,5 +1,14 @@
 # Changelog
 
+## v3.11.8 — Responsive Tournament Header Refinement
+
+- Reduced tournament-name typography in Court and Live Scores headers.
+- Kept the KSM logo and tournament name on one row whenever space permits.
+- Added strict two-line word-boundary wrapping for long tournament names.
+- Prevented tournament branding from colliding with Court titles and gold divider lines.
+- Applied the same header rules to Court and Live Scores across desktop, portrait, and landscape.
+- No tournament-engine, Match Object, scoring, queue, advancement, template, or save-format changes.
+
 ## v3.11.7 — Repository Cleanup and Release Hygiene
 
 - Removed generated `MANIFEST.json` and per-release `RELEASE_SUMMARY.md` files from the GitHub source package.

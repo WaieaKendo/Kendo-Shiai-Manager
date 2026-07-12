@@ -4,7 +4,7 @@ Kendo Shiai Manager (KSM) is a hosted web/PWA application for running individual
 
 ## Current release
 
-**v3.11.7 — Repository Cleanup and Release Hygiene**
+**v3.11.8 — Repository Cleanup and Release Hygiene**
 
 This release reorganizes repository documentation and prevents generated release artifacts from accumulating in source control. Tournament behavior is unchanged from v3.11.6.
 
