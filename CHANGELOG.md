@@ -1,5 +1,14 @@
 # Changelog
 
+## v3.11.1 — Director Progress Accuracy
+
+- Pool-based individual divisions now calculate totals from all pool bouts plus the complete championship bracket.
+- Direct individual elimination totals now use all scoreable Court Context bracket nodes, including later rounds not yet instantiated as Match Objects.
+- 3-person and 5-person team totals now use scoreable team pairings multiplied by roster size, with generated representative playoffs added when present.
+- Kachinuki displays completed bouts only and intentionally omits a fixed total, remaining count, and progress bar.
+- No tournament generation, scoring, advancement, template, or save-format behavior changed.
+- Bumped the PWA cache to v3.11.1.
+
 ## v3.11.0 — Global Layout Standardization and Mobile Setup Optimization
 
 ### Changed

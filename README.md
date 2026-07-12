@@ -1,6 +1,6 @@
 # Kendo Shiai Manager
 
-KSM v3.11.0 — Global Layout Standardization and Mobile Setup Optimization.
+KSM v3.11.1 — Director Progress Accuracy.
 
 ## Highlights
 - Shared page width, gutters, top spacing, and bottom spacing across every application view.

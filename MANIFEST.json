@@ -1,5 +1,5 @@
 {
-  "version": "3.11.0",
+  "version": "3.11.1",
   "files": [
     {
       "path": ".gitignore",
@@ -8,18 +8,18 @@
     },
     {
       "path": "CHANGELOG.md",
-      "size": 798,
-      "sha256": "5f7c76239abe596192b0cd4cc577624ade810fc080efc04572e8d62f9a328f63"
+      "size": 1507,
+      "sha256": "683a379e4a71f9e9afdf8cd67d55da15c50ab9c104152a4d8961716f0d836f35"
     },
     {
       "path": "README.md",
-      "size": 582,
-      "sha256": "0f1c36047dd6391b8fdd780091fc84f4ae77ccd7b959cf0c92f0e0d705e8a6aa"
+      "size": 549,
+      "sha256": "9a12a833309f73017f30982b9d06e65600a4681a4fe584ed5bc1f70a746bd719"
     },
     {
       "path": "RELEASE_SUMMARY.md",
-      "size": 458,
-      "sha256": "7fcba780a57cf1c17da6b5b2342058591ac14bf2b1999f7f082cf830010f47f7"
+      "size": 697,
+      "sha256": "47dad8fc8f4dab5c5f0fd30a7356343b252db2de044cb0028bc806dca62ec802"
     },
     {
       "path": "docs/DEPLOYMENT.md",
@@ -30,6 +30,11 @@
       "path": "docs/DIRECTOR_OVERVIEW_REPORT.md",
       "size": 385,
       "sha256": "9fedabf6579bf36537872a5a53b8651f0f481db06b6f65738ffeba3802ed6293"
+    },
+    {
+      "path": "docs/DIRECTOR_PROGRESS_ACCURACY_REPORT.md",
+      "size": 259,
+      "sha256": "30f023ac240822cb8a3ab13447808da58022fe4b7d2b1faee3f681c418219d8c"
     },
     {
       "path": "docs/LAYOUT_SETUP_STANDARDIZATION_REPORT.md",
@@ -58,8 +63,8 @@
     },
     {
       "path": "package.json",
-      "size": 642,
-      "sha256": "a5c1ea394a21fb2e344efb68bb93e605a489886249f0de1d03baf5095d883f5c"
+      "size": 660,
+      "sha256": "b5f4c83010463825e56a9f799ce2247ba7021ff4ba40c9b94d91cf0fcb5d0023"
     },
     {
       "path": "public/assets/KSM-Background-watermark.svg",
@@ -143,8 +148,8 @@
     },
     {
       "path": "public/index.html",
-      "size": 357586,
-      "sha256": "9038973b8062969eedc48fb6e72b4747973f60ba314b0104c1ba9b1687ed1865"
+      "size": 361884,
+      "sha256": "e113b6dfe0cd5bf9279f468b4c8539f340d3e2fb568e3a896668b0de3c6794b5"
     },
     {
       "path": "public/manifest.webmanifest",
@@ -154,12 +159,17 @@
     {
       "path": "public/service-worker.js",
       "size": 1725,
-      "sha256": "61383fa7e52786b6ae0841b147aca01d821a750fe01db5e0d5fe77b72e7ec73a"
+      "sha256": "2e0fa225f1cc1cae20687a18236b132c606d28d933195fcdf4587d2718d1fffa"
     },
     {
       "path": "tests/director-overview-test.py",
       "size": 1655,
       "sha256": "57af492c08715ae3e32434f93bdd7c4da526e1fcb946707a059adc96afc2d128"
+    },
+    {
+      "path": "tests/director-progress-accuracy-test.py",
+      "size": 4906,
+      "sha256": "f24a676a3ab8cf1733bf3d62586963222c841955084f582b4d304ff8b7d9db4f"
     },
     {
       "path": "tests/layout-setup-standardization-test.py",
@@ -189,7 +199,7 @@
     {
       "path": "tests/verify-package.mjs",
       "size": 2065,
-      "sha256": "89d23d7ee8cc392aba449aa08902bb1eed9be7c974c202688ca991f432ad0d89"
+      "sha256": "184d643eb952e3ded3cbf0a9b917a5236cb7c40e23a0a62f426d327be8358a6d"
     },
     {
       "path": "wrangler.jsonc",

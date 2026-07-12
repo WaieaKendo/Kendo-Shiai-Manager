@@ -1,11 +1,13 @@
-# KSM v3.11.0 Release Summary
+# KSM v3.11.1 Release Summary
 
-**Objective:** Give every KSM screen consistent outer geometry and optimize Setup for mobile use.
+## Objective
+Correct Director court and tournament progress totals without changing tournament behavior.
 
-**Owning layer:** Global presentation system and Setup responsive styles.
+## Counting rules
+- Pool-based individual divisions: all pool bouts plus the complete championship bracket.
+- Direct individual elimination: all scoreable matches represented in Court Context.
+- 3-person and 5-person team tournaments: scoreable team pairings multiplied by team size; generated representative playoffs are added.
+- Kachinuki: completed bouts are shown without a fixed denominator because the number of bouts varies with wins and ties.
 
-**Files changed:** `public/index.html`, `public/service-worker.js`, package metadata, documentation, manifest, and tests.
-
-**Engine impact:** None.
-
-**Verification:** Existing mobile and spectator regressions plus a new 30-assertion layout/Setup suite.
+## Architecture impact
+Presentation/read-only Director projection only. Match Objects remain authoritative.
