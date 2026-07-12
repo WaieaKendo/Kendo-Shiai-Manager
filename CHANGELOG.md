@@ -1,5 +1,17 @@
 # Changelog
 
+## v3.12.0 — Tournament Management Engine
+
+- Added Court A, Court B, and Split Between Courts assignment for individual divisions.
+- Split pool play keeps pools intact; Court B receives the extra pool when pool count is odd.
+- Split direct-elimination and championship brackets preserve canonical halves; Finals remain on Court A.
+- Championship matches may unlock when their required pool placements are finalized.
+- Added pre-generation validation and a live Tournament Status card in Registration.
+- Added transactional Regenerate Single Division workflow with Ready / Matches Started / Not Generated status.
+- Added fixed-position structural no-show handling before a division's first completed match.
+- Updated save schema to 1.1 and engine version to 3.12.0.
+- No generation report was added.
+
 ## v3.11.9 — Final Mobile Navigation Polish
 
 - Added consistent portrait safe-area spacing above the KSM navigation brand.
