@@ -1,12 +1,27 @@
+# KSM Change Log
+
+## v3.11.4 — Mobile Landscape Alignment and Court Compaction
+
+### Changed
+- Centered the Live Scores Court, division, pool/round, and score composition in phone landscape independently of asymmetric competitor-name widths.
+- Replaced mobile-landscape Results masonry columns with a true aligned two-column grid.
+- Reworked phone-landscape Court Scorekeeper into a compact one-line competitor and score band modeled after Live Scores.
+- Placed all ten White/Red scoring controls in one horizontal band, with five controls per side.
+- Reduced landscape scoring-control, action-control, header, and active-match vertical height so the full active-match control area fits on common iPhone landscape viewports.
+
+### Unchanged
+- Portrait and desktop layouts.
+- Match Objects, scoring, queue, advancement, templates, and save format.
+
 # Changelog
 
-## v3.11.3 — Mobile Landscape Results and Live Scores Refinement
+## v3.11.4 — Mobile Landscape Results and Live Scores Refinement
 
 - Added a two-column Results layout for phone landscape.
 - Recentered the Live Scores canvas in mobile landscape.
 - Reduced active-match card height, typography, score size, and spacing in mobile landscape.
 - Kept portrait and desktop layouts unchanged.
-- Bumped the PWA cache to v3.11.3.
+- Bumped the PWA cache to v3.11.4.
 - No tournament engine, Match Object, template, scoring, advancement, or save-format changes.
 
 ## v3.11.2 — Director and Mobile Reliability Fixes

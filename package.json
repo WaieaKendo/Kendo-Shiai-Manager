@@ -1,12 +1,12 @@
 {
   "name": "kendo-shiai-manager",
-  "version": "3.11.3",
+  "version": "3.11.4",
   "private": true,
-  "description": "Kendo Shiai Manager mobile landscape Results and Live Scores refinements",
+  "description": "Kendo Shiai Manager final mobile landscape alignment and Court compaction",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "check": "node tests/verify-package.mjs && python tests/mobile-dropdown-test.py && python tests/mobile-court-portrait-test.py && python tests/mobile-court-responsive-refinement-test.py && python tests/director-overview-test.py && python tests/director-progress-accuracy-test.py && python tests/spectator-experience-test.py && python tests/layout-setup-standardization-test.py && python tests/director-mobile-reliability-test.py && python tests/mobile-landscape-results-live-test.py"
+    "check": "node tests/verify-package.mjs && python tests/mobile-dropdown-test.py && python tests/mobile-court-portrait-test.py && python tests/mobile-court-responsive-refinement-test.py && python tests/director-overview-test.py && python tests/director-progress-accuracy-test.py && python tests/spectator-experience-test.py && python tests/layout-setup-standardization-test.py && python tests/director-mobile-reliability-test.py && python tests/mobile-landscape-results-live-test.py && python tests/mobile-landscape-final-refinement-test.py"
   },
   "devDependencies": {
     "wrangler": "^4.11.0"

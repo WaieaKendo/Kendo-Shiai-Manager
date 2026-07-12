@@ -1,5 +1,5 @@
 {
-  "version": "3.11.3",
+  "version": "3.11.4",
   "files": [
     {
       "path": ".gitignore",
@@ -8,18 +8,18 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "718fda263ded7546ecf5cb13bb7091d3d602dcb069c5239590a0ff46d152f1ea",
-      "bytes": 2577
+      "sha256": "54d4d55aa5af08b706c9210ff95ce3bc7b07ff726425600751ad6b88cf0df616",
+      "bytes": 3425
     },
     {
       "path": "README.md",
-      "sha256": "64f1dd086a83ca4baef087e1d1fb2633981cbcdd0191d53eb390bc8bb97d4df0",
-      "bytes": 232
+      "sha256": "f6218e42b4e1e5790c6f03218ac18534301bbc32bd6f0b038a5ea4c6a44b8458",
+      "bytes": 171
     },
     {
       "path": "RELEASE_SUMMARY.md",
-      "sha256": "2bf7b164081d6b9b0d9c5e06d63d6ccb46e127d775f184e67c303a55d8e095ed",
-      "bytes": 416
+      "sha256": "cf118bf5129e903b67e202e4b3dcf514351fcf48a21beca89e97efb35b6299d5",
+      "bytes": 447
     },
     {
       "path": "docs/DEPLOYMENT.md",
@@ -57,13 +57,18 @@
       "bytes": 423
     },
     {
+      "path": "docs/MOBILE_LANDSCAPE_FINAL_REFINEMENT_REPORT.md",
+      "sha256": "4939c6d4bcdc172fefff022548c89e9d06f592214889030960eb8dd97846a332",
+      "bytes": 528
+    },
+    {
       "path": "docs/MOBILE_LANDSCAPE_RESULTS_LIVE_REPORT.md",
       "sha256": "08267377d483afd59193a39938a53b27064fa478f6d7fd66de82cb30b02d3814",
       "bytes": 356
     },
     {
       "path": "docs/RELEASE_NOTES.md",
-      "sha256": "e4deb3a21ce91ffa2319598165cf797332a6b79d0ab273b71177f26ed6c3882a",
+      "sha256": "50c98697e793904b94f2734ec1cf38b0a730e3ad70f0a069fe66568486ebef1d",
       "bytes": 255
     },
     {
@@ -73,8 +78,8 @@
     },
     {
       "path": "package.json",
-      "sha256": "d37b01b1276fd9b7a56302199ec007fb585ac1c331cdbeda5eeacee0a09821d6",
-      "bytes": 792
+      "sha256": "384fe4b3dc6c3ac26cb114dc13ae8cb601d2a560606a1d375d17e2d4843cfcb4",
+      "bytes": 851
     },
     {
       "path": "public/assets/KSM-Background-watermark.svg",
@@ -158,8 +163,8 @@
     },
     {
       "path": "public/index.html",
-      "sha256": "130a09fe6d4cf381c5697b69b122fdcb66178610856f66b1c8fa5228f2fe2a42",
-      "bytes": 368202
+      "sha256": "1eaf02e612964111bfb7b333ce25e6a83c04838d42e0428a0fb90922f043ad60",
+      "bytes": 374417
     },
     {
       "path": "public/manifest.webmanifest",
@@ -168,13 +173,8 @@
     },
     {
       "path": "public/service-worker.js",
-      "sha256": "dce227c51268a069ec5a5916655cf66f22d11b40d7a80431c9ff8815d50809a6",
+      "sha256": "f6fbdc1b1fa174fb26d5b27dde8a5c9c01d9d08db2996047bbe6ae8d1a457291",
       "bytes": 1725
-    },
-    {
-      "path": "tests/__pycache__/mobile-landscape-results-live-test.cpython-313.pyc",
-      "sha256": "5a31ec603e582f4cb587afed92cb4b486f221acff3e3a1ffff2cc9c6b316b015",
-      "bytes": 2060
     },
     {
       "path": "tests/director-mobile-reliability-test.py",
@@ -212,8 +212,13 @@
       "bytes": 2178
     },
     {
+      "path": "tests/mobile-landscape-final-refinement-test.py",
+      "sha256": "b7454304c8d04b5cf859a6ec7aeac77377c21deced092e6aebd2be7b46b7f9db",
+      "bytes": 1189
+    },
+    {
       "path": "tests/mobile-landscape-results-live-test.py",
-      "sha256": "2ff9ed727f5154f3d36cf547a490cc9d16e5d06ec612b45dcd05c39b38cf31af",
+      "sha256": "374b58116d5b8e1d53cc61b7db8ee813ba9e3fcefe0052c2db11055a5109bd4d",
       "bytes": 1318
     },
     {
@@ -223,7 +228,7 @@
     },
     {
       "path": "tests/verify-package.mjs",
-      "sha256": "ac671a7d7c8dc4500055c2ad54903dcad11763b22edd0ae1f3dfbea6498d0e91",
+      "sha256": "d359454ddc118b479ee15429a3839bdf3e83980be75cef32f2aa8ba184a0ef88",
       "bytes": 2065
     },
     {

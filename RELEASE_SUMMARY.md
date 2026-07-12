@@ -1,12 +1,7 @@
-# KSM v3.11.3 Release Summary
+# KSM v3.11.4 — Mobile Landscape Alignment and Court Compaction
 
-## Objective
-Improve Results and Live Scores specifically for phone landscape.
-
-## Changes
-- Results cards use two columns in mobile landscape.
-- Live Scores is centered in the viewport.
-- The active-match card and all text inside it are more compact and closer to the desktop side-by-side composition.
-
-## Architecture impact
-Presentation only. No tournament-state or engine changes.
+- Live Scores center header and score content now remain geometrically centered in phone landscape.
+- Results cards use a true aligned two-column landscape grid.
+- Court Scorekeeper uses a compact one-line competitor/score band in landscape.
+- White and Red scoring controls remain in one horizontal band.
+- Portrait, desktop, tournament logic, and state ownership are unchanged.
