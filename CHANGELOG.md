@@ -1,3 +1,9 @@
+# KSM v3.12.5 — Specific Placeholder Labels and Medalist Polish
+
+- Court Queue and Court Context now use specific unresolved-source labels instead of generic TBD wherever template metadata identifies a seed, pool placement, or feeder match.
+- Completed-division medalists use a larger open layout without white boxes.
+- Tournament logic and Match Objects are unchanged.
+
 # KSM v3.12.4 — Match Object Origin Invariant
 
 - Standard elimination and championship Match Objects are instantiated from templates during generation.

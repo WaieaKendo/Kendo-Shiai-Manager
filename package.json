@@ -1,12 +1,12 @@
 {
   "name": "kendo-shiai-manager",
-  "version": "3.12.4",
+  "version": "3.12.5",
   "private": true,
   "description": "Kendo Shiai Manager hosted mobile/PWA application",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "check": "node tests/verify-package.mjs && python tests/mobile-dropdown-test.py && python tests/mobile-court-portrait-test.py && python tests/mobile-court-responsive-refinement-test.py && python tests/director-overview-test.py && python tests/director-progress-accuracy-test.py && python tests/spectator-experience-test.py && python tests/layout-setup-standardization-test.py && python tests/director-mobile-reliability-test.py && python tests/mobile-landscape-results-live-test.py && python tests/mobile-landscape-final-refinement-test.py && python tests/mobile-court-density-context-test.py && python tests/responsive-header-test.py && python tests/final-mobile-navigation-polish-test.py && python tests/tournament-management-engine-test.py && python tests/tournament-management-sweep-test.py && python tests/split-court-stabilization-test.py && python tests/split-court-template-consolidation-test.py && python tests/bracket-lifecycle-tiebreak-simulation-test.py && python tests/match-object-origin-invariant-test.py && python tests/seed-locked-tiebreak-test.py"
+    "check": "node tests/verify-package.mjs && python tests/mobile-dropdown-test.py && python tests/mobile-court-portrait-test.py && python tests/mobile-court-responsive-refinement-test.py && python tests/director-overview-test.py && python tests/director-progress-accuracy-test.py && python tests/spectator-experience-test.py && python tests/layout-setup-standardization-test.py && python tests/director-mobile-reliability-test.py && python tests/mobile-landscape-results-live-test.py && python tests/mobile-landscape-final-refinement-test.py && python tests/mobile-court-density-context-test.py && python tests/responsive-header-test.py && python tests/final-mobile-navigation-polish-test.py && python tests/tournament-management-engine-test.py && python tests/tournament-management-sweep-test.py && python tests/split-court-stabilization-test.py && python tests/split-court-template-consolidation-test.py && python tests/bracket-lifecycle-tiebreak-simulation-test.py && python tests/match-object-origin-invariant-test.py && python tests/seed-locked-tiebreak-test.py && python tests/specific-placeholder-medalist-test.py"
   },
   "devDependencies": {
     "wrangler": "^4.11.0"
