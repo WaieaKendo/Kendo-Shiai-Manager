@@ -1,7 +1,7 @@
 from pathlib import Path
 html=Path('public/index.html').read_text()
 checks={
- 'version title':'Kendo Shiai Manager v3.12.1' in html,
+ 'version title':'Kendo Shiai Manager v3.12.2' in html,
  'landscape query':'@media (orientation:landscape) and (max-height:560px) and (max-width:980px)' in html,
  'results two columns':'#results .results-card-grid' in html and 'columns:2 280px !important' in html,
  'public centered width':'width:calc(100% - 20px) !important' in html and 'margin:10px auto 0 !important' in html,

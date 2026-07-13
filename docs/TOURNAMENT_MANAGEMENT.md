@@ -87,7 +87,7 @@ The operation replaces only the selected division's pools/bracket, Match Objects
 
 Save schema is `1.1`; engine version is `3.12.0`. New state includes frozen team-elimination entries and a management revision counter. Older saves default to existing single-court assignments and initialize missing management state safely.
 
-## v3.12.1 Split-Court Stabilization
+## v3.12.2 Split-Court Stabilization
 
 Split Between Courts is a routing layer only. Pool standings, tiebreak detection, qualifier resolution, and bracket advancement continue to use the same engines as single-court divisions.
 

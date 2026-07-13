@@ -1,6 +1,6 @@
 # Changelog
 
-## v3.12.1 — Split-Court Stabilization
+## v3.12.2 — Split-Court Stabilization
 
 - Reused the existing single-court pool tiebreak algorithm for split divisions; tiebreak Match Objects now inherit the owning pool court.
 - Added the shared winner-required stop rule for two-person individual tiebreaks.
