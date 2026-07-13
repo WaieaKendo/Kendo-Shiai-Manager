@@ -1,6 +1,15 @@
+# KSM v3.12.4 — Match Object Origin Invariant
+
+- Standard elimination and championship Match Objects are instantiated from templates during generation.
+- Championship advancement now populates existing template nodes and never appends quarterfinal, semifinal, or Final matches.
+- Added an explicit dynamic Match Object allowlist for individual pool tiebreaks, 3-person and 5-person representative matches, Kachinuki representative matches, and team round-robin tiebreak pairings.
+- Approved dynamic matches receive `origin: TIEBREAK` and an explicit `dynamicType`.
+- Unauthorized dynamic Match Object creation is rejected.
+- Added automated Match Object origin and template-immutability tests.
+
 # Changelog
 
-## v3.12.3 — Bracket Lifecycle and Tiebreak Resolution
+## v3.12.4 — Bracket Lifecycle and Tiebreak Resolution
 
 - Removed the legacy dynamic direct-elimination semifinal/final creation path.
 - All canonical single-elimination template nodes now receive exactly one Match Object at generation.
@@ -13,7 +22,7 @@
 - Enlarged the completed-division medalist presentation and removed box-like styling around names.
 - Added automated lifecycle simulations covering single- and split-court direct elimination from 4–32 competitors plus forced 2-, 3-, and 4-person tiebreak scenarios.
 
-## v3.12.3 — Split-Court Stabilization
+## v3.12.4 — Split-Court Stabilization
 
 - Reused the existing single-court pool tiebreak algorithm for split divisions; tiebreak Match Objects now inherit the owning pool court.
 - Added the shared winner-required stop rule for two-person individual tiebreaks.
@@ -69,3 +78,8 @@
 - Kept tournament names beside the KSM logo when space permits and allowed clean two-line wrapping when needed.
 - Standardized Court title divider lengths to match Live Scores.
 - No tournament-engine, Match Object, scoring, advancement, template, or save-format changes.
+
+
+## Seed-locked tiebreak resolution
+
+Once a tiebreak series uniquely secures an advancing seed, that seed is frozen. Later tiebreak series may resolve only the remaining unresolved seed range and may not displace already secured players or teams.

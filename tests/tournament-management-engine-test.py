@@ -49,7 +49,7 @@ with sync_playwright() as p:
         {label:'A',size:4,players:[{name:'A1',dojo:'D'},{name:'A2',dojo:'D'},{name:'A3',dojo:'D'},{name:'A4',dojo:'D'}]},
         {label:'B',size:3,players:[{name:'B1',dojo:'D'},{name:'B2',dojo:'D'},{name:'B3',dojo:'D'}]},
         {label:'C',size:3,players:[{name:'C1',dojo:'D'},{name:'C2',dojo:'D'},{name:'C3',dojo:'D'}]}
-      ]};state.brackets={Test:championshipTemplateForTotal(10)};state.byeWinners={};state.allMatches={Test:buildPoolMatches('Test',state.pools.Test)};
+      ]};state.brackets={Test:championshipTemplateForTotal(10)};state.championshipNodes={};state.byeWinners={};state.allMatches={Test:buildPoolMatches('Test',state.pools.Test).concat(buildChampionshipTemplateMatches('Test',state.brackets.Test))};
       state.allMatches.Test.filter(m=>m.pool==='A'||m.pool==='B').forEach((m,i)=>{m.done=true;m.wp=['M'];m.rp=[]});
       poolPositionsResolved=(label,div)=>label!=='C';
       poolStandings=(label,div)=>[{name:label+'1',dojo:'D',wins:2,pts:2},{name:label+'2',dojo:'D',wins:1,pts:1},{name:label+'3',dojo:'D',wins:0,pts:0}];
@@ -101,7 +101,7 @@ with sync_playwright() as p:
 
     # Save schema/version and required management UI.
     payload=page.evaluate("tournamentPayload()")
-    assert payload['schemaVersion']=='1.1' and payload['engineVersion']=='3.12.3'
+    assert payload['schemaVersion']=='1.1' and payload['engineVersion']=='3.12.4'
     assert page.locator('#tournamentStatusCard').count()==1
     assert page.locator('#regenerateDivisionBtn').count()==1
 

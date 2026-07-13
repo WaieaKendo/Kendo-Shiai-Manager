@@ -20,8 +20,8 @@ with sync_playwright() as p:
         {label:'B',size:3,players:[{name:'B1',dojo:'D'},{name:'B2',dojo:'D'},{name:'B3',dojo:'D'}]},
         {label:'C',size:3,players:[{name:'C1',dojo:'D'},{name:'C2',dojo:'D'},{name:'C3',dojo:'D'}]}
       ]};
-      state.brackets={Test:championshipTemplateForTotal(9)};state.byeWinners={};
-      state.allMatches={Test:buildPoolMatches('Test',state.pools.Test)};
+      state.brackets={Test:championshipTemplateForTotal(9)};state.championshipNodes={};state.byeWinners={};
+      state.allMatches={Test:buildPoolMatches('Test',state.pools.Test).concat(buildChampionshipTemplateMatches('Test',state.brackets.Test))};
       const b=state.allMatches.Test.filter(m=>m.pool==='B');
       b[0].done=true;b[0].wp=['M'];b[0].rp=[];
       b[1].done=true;b[1].wp=['M'];b[1].rp=[];
@@ -76,7 +76,7 @@ with sync_playwright() as p:
       state.pools={Test:[
         {label:'A',size:4,players:[{name:'A1',dojo:'D'},{name:'A2',dojo:'D'},{name:'A3',dojo:'D'},{name:'A4',dojo:'D'}]},
         {label:'B',size:4,players:[{name:'B1',dojo:'D'},{name:'B2',dojo:'D'},{name:'B3',dojo:'D'},{name:'B4',dojo:'D'}]}
-      ]};state.brackets={Test:championshipTemplateForTotal(8)};state.allMatches={Test:[]};state.byeWinners={Test:[]};
+      ]};state.brackets={Test:championshipTemplateForTotal(8)};state.championshipNodes={};state.allMatches={Test:buildChampionshipTemplateMatches('Test',state.brackets.Test)};state.byeWinners={Test:[]};
       poolPositionsResolved=()=>false;
     """)
     groups_a=page.evaluate("poolChampionshipQueueGroups('Test','A').map(g=>[g.label,g.rows.length])")
@@ -86,15 +86,17 @@ with sync_playwright() as p:
 
     # Repeated advancement resolution creates exactly one logical Final.
     page.evaluate("""
-      state.divisionCourts.Test='split';state.brackets={Test:[['A1','B2'],['B1','A2']]};state.byeWinners={Test:[]};
-      state.allMatches={Test:[
-        {division:'Test',pool:'Championship',white:'W1',red:'R1',wdojo:'D',rdojo:'D',position:'Semifinal',done:true,wp:['M'],rp:[],type:'individual',championship:true,court:'A',bracketSlot:0},
-        {division:'Test',pool:'Championship',white:'W2',red:'R2',wdojo:'D',rdojo:'D',position:'Semifinal',done:true,wp:[],rp:['M'],type:'individual',championship:true,court:'B',bracketSlot:1}
-      ]};
+      state.divisionCourts.Test='split';state.brackets={Test:[['A1','B2'],['B1','A2']]};state.championshipNodes={};state.byeWinners={Test:[]};
+      state.allMatches={Test:buildChampionshipTemplateMatches('Test',state.brackets.Test)};
+      const semis=state.allMatches.Test.filter(m=>m.position==='Semifinal');
+      semis[0].white='W1';semis[0].red='R1';semis[0].wdojo='D';semis[0].rdojo='D';semis[0].done=true;semis[0].wp=['M'];semis[0].rp=[];
+      semis[1].white='W2';semis[1].red='R2';semis[1].wdojo='D';semis[1].rdojo='D';semis[1].done=true;semis[1].wp=[];semis[1].rp=['M'];
+      window.__beforeCount=state.allMatches.Test.length;
       recomputeChampionshipAdvancement('Test');recomputeChampionshipAdvancement('Test');recomputeChampionshipAdvancement('Test');
     """)
     assert page.evaluate("state.allMatches.Test.filter(m=>m.championship&&m.position==='Final'&&m.bracketSlot===0).length")==1
     assert page.evaluate("state.allMatches.Test.find(m=>m.position==='Final').court")=='A'
+    assert page.evaluate("state.allMatches.Test.length===window.__beforeCount")
 
     assert not errors,errors
     print('PASS: Split-court stabilization 12/12 assertions')

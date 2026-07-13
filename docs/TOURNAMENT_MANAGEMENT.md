@@ -87,7 +87,7 @@ The operation replaces only the selected division's pools/bracket, Match Objects
 
 Save schema is `1.1`; engine version is `3.12.0`. New state includes frozen team-elimination entries and a management revision counter. Older saves default to existing single-court assignments and initialize missing management state safely.
 
-## v3.12.3 Split-Court Stabilization
+## v3.12.4 Split-Court Stabilization
 
 Split Between Courts is a routing layer only. Pool standings, tiebreak detection, qualifier resolution, and bracket advancement continue to use the same engines as single-court divisions.
 
@@ -99,7 +99,7 @@ Split Between Courts is a routing layer only. Pool standings, tiebreak detection
 - Every logical individual match has exactly one Match Object.
 
 
-## v3.12.3 Bracket lifecycle and tiebreak invariants
+## v3.12.4 Bracket lifecycle and tiebreak invariants
 
 - Standard direct-elimination Match Objects are instantiated once from the canonical template at generation.
 - Advancement populates existing template nodes; it never creates quarterfinal, semifinal, or Final nodes.
@@ -107,3 +107,25 @@ Split Between Courts is a routing layer only. Pool standings, tiebreak detection
 - Two-person tiebreaks require a winner. Three- and four-person tiebreak matches may end in ties.
 - After a multi-person tiebreak series, KSM resolves any determinable seeds and creates another tiebreak only for unresolved seed groups.
 - Court filtering occurs after canonical match ordering.
+
+
+## Match Object creation invariant (v3.12.4)
+
+Every Match Object must originate from either the Tournament Template Library or the approved Dynamic Tiebreak Generator. No queue, view, advancement, court-assignment, or results subsystem may create a Match Object.
+
+Approved dynamic types are limited to:
+
+- `INDIVIDUAL_POOL_TIEBREAK`
+- `TEAM_3_PERSON_REPRESENTATIVE`
+- `TEAM_5_PERSON_REPRESENTATIVE`
+- `KACHINUKI_REPRESENTATIVE`
+- `TEAM_3_PERSON_ROUND_ROBIN_TIEBREAK`
+- `TEAM_5_PERSON_ROUND_ROBIN_TIEBREAK`
+- `KACHINUKI_ROUND_ROBIN_TIEBREAK`
+
+Standard quarterfinals, semifinals, Finals, pool schedules, and elimination team pairings are template-owned and must exist before play begins.
+
+
+## Seed-locked tiebreak resolution
+
+Once a tiebreak series uniquely secures an advancing seed, that seed is frozen. Later tiebreak series may resolve only the remaining unresolved seed range and may not displace already secured players or teams.
