@@ -1,6 +1,19 @@
 # Changelog
 
-## v3.12.2 — Split-Court Stabilization
+## v3.12.3 — Bracket Lifecycle and Tiebreak Resolution
+
+- Removed the legacy dynamic direct-elimination semifinal/final creation path.
+- All canonical single-elimination template nodes now receive exactly one Match Object at generation.
+- Advancement now fills those existing template Match Objects and never creates replacement standard bracket matches.
+- Added readiness gating so unresolved template nodes cannot enter the active court queue.
+- Corrected court-specific championship ordering by preserving canonical round and bracket-slot order before filtering by court.
+- Limited winner-required hard stops to explicitly marked two-person tiebreaks.
+- Three- and four-person tiebreak matches may end in ties; unresolved seed groups generate another appropriately sized tiebreak series.
+- Added tiebreak series/index identity so repeated approved tiebreak series remain distinct and are not deduplicated.
+- Enlarged the completed-division medalist presentation and removed box-like styling around names.
+- Added automated lifecycle simulations covering single- and split-court direct elimination from 4–32 competitors plus forced 2-, 3-, and 4-person tiebreak scenarios.
+
+## v3.12.3 — Split-Court Stabilization
 
 - Reused the existing single-court pool tiebreak algorithm for split divisions; tiebreak Match Objects now inherit the owning pool court.
 - Added the shared winner-required stop rule for two-person individual tiebreaks.

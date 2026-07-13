@@ -6,7 +6,7 @@ checks={
 'tournament wraps':'overflow-wrap:break-word' in s and 'white-space:normal' in s,
 'left aligned brand':'text-align:left !important' in s,
 'balanced court rules':'grid-template-columns:minmax(36px,1fr) auto minmax(36px,1fr)' in s,
-'version':'v3.12.2' in s,
+'version':'v3.12.3' in s,
 }
 for k,v in checks.items(): print(('PASS' if v else 'FAIL'),k)
 assert all(checks.values())

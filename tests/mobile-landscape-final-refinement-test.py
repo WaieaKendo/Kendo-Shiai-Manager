@@ -4,7 +4,7 @@ import re
 html=Path(__file__).resolve().parents[1]/'public'/'index.html'
 s=html.read_text()
 checks={
- 'version':'v3.12.2' in s,
+ 'version':'v3.12.3' in s,
  'landscape media':'@media (orientation:landscape) and (max-height:560px) and (max-width:980px)' in s,
  'live title center':'#public .audience-title' in s and 'grid-column:2 !important' in s,
  'court center':'#public .audience-court{justify-content:center !important;}' in s,

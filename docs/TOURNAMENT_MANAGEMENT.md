@@ -87,7 +87,7 @@ The operation replaces only the selected division's pools/bracket, Match Objects
 
 Save schema is `1.1`; engine version is `3.12.0`. New state includes frozen team-elimination entries and a management revision counter. Older saves default to existing single-court assignments and initialize missing management state safely.
 
-## v3.12.2 Split-Court Stabilization
+## v3.12.3 Split-Court Stabilization
 
 Split Between Courts is a routing layer only. Pool standings, tiebreak detection, qualifier resolution, and bracket advancement continue to use the same engines as single-court divisions.
 
@@ -97,3 +97,13 @@ Split Between Courts is a routing layer only. Pool standings, tiebreak detection
 - Split pool championship queues show only matches and future placeholders assigned to the active court.
 - Court Context continues to show the complete bracket/division context.
 - Every logical individual match has exactly one Match Object.
+
+
+## v3.12.3 Bracket lifecycle and tiebreak invariants
+
+- Standard direct-elimination Match Objects are instantiated once from the canonical template at generation.
+- Advancement populates existing template nodes; it never creates quarterfinal, semifinal, or Final nodes.
+- Only approved pool tiebreaks may be created dynamically.
+- Two-person tiebreaks require a winner. Three- and four-person tiebreak matches may end in ties.
+- After a multi-person tiebreak series, KSM resolves any determinable seeds and creates another tiebreak only for unresolved seed groups.
+- Court filtering occurs after canonical match ordering.
