@@ -1,0 +1,4 @@
+KSM v3.12.8 Final Tournament UI Polish
+- Removed 'Division Complete' heading.
+- Medal labels match Results colors.
+- Team Court Context uses single-column summaries.
