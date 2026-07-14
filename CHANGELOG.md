@@ -1,3 +1,11 @@
+## v3.12.8 — Final Tournament UI Polish
+
+- Removed the redundant “Division Complete” heading from Court and Live Scores medalist presentations.
+- Matched first-, second-, and third-place label colors to the Results tab.
+- Removed residual box styling around completed-division medalist names.
+- Rendered completed team-match summaries in Court Context as one vertical column.
+- No tournament-engine, Match Object, template, advancement, or save-schema changes.
+
 # KSM Changelog
 
 ## v3.12.7 — TestLab Foundation
