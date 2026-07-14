@@ -1,3 +1,10 @@
+## v3.12.9 — Medal Badge and Team Context Labels
+
+- Removed the residual background from the first-place medal label in completed Court and Live Scores presentations.
+- Added compact Wins and Points headers above both team-total columns in team Court Context round summaries.
+- Preserved White-left and Red-right alignment without redundant side labels.
+- No tournament-engine, Match Object, template, advancement, or save-schema changes.
+
 ## v3.12.8 — Final Tournament UI Polish
 
 - Removed the redundant “Division Complete” heading from Court and Live Scores medalist presentations.
