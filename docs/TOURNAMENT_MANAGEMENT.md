@@ -129,3 +129,10 @@ Standard quarterfinals, semifinals, Finals, pool schedules, and elimination team
 ## Seed-locked tiebreak resolution
 
 Once a tiebreak series uniquely secures an advancing seed, that seed is frozen. Later tiebreak series may resolve only the remaining unresolved seed range and may not displace already secured players or teams.
+
+## v3.12.6 template-consistency clarifications
+
+- A two-person tiebreak for first place owns and resolves both advancing placements: winner to Seed 1 and loser to Seed 2.
+- A tiebreak at the second-place boundary owns only Seed 2 and cannot alter an already secured Seed 1.
+- Structural no-show handling removes only matches involving the absent entrant. Surviving pool Match Objects retain their original template order, pool identity, and court assignment.
+- Championship seed-pair mappings are frozen at generation. A no-show does not select a different championship template, including the native six-competitor 3+3 configuration.

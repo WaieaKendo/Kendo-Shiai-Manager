@@ -4,9 +4,9 @@ Kendo Shiai Manager (KSM) is a hosted web/PWA application for running individual
 
 ## Current release
 
-**v3.12.5 — Bracket Lifecycle and Tiebreak Resolution**
+**v3.12.6 — Template Consistency and Seed Resolution**
 
-This release reorganizes repository documentation and prevents generated release artifacts from accumulating in source control. Tournament behavior is unchanged from v3.11.6.
+This release fixes three pool-play edge cases while preserving the template-first engine architecture: first-place tiebreaks populate both advancing seeds, no-show removal preserves the original pool/match order, and the native six-competitor championship mapping remains available after a no-show reduces one pool to two competitors.
 
 ## Repository layout
 
@@ -31,6 +31,6 @@ See `docs/DEPLOYMENT.md`, `docs/TESTING.md`, and `docs/REPOSITORY_STRUCTURE.md` 
 
 See `docs/TOURNAMENT_MANAGEMENT.md` for tournament-management behavior, template authority, and tiebreak-resolution rules.
 
-## v3.12.5 engine invariant
+## v3.12.6 engine invariant
 
 All standard elimination and championship matches originate from the Tournament Template Library. Only the explicit tiebreak allowlist may create Match Objects after generation.

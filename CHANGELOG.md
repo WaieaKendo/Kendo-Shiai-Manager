@@ -1,8 +1,11 @@
-# KSM v3.12.5 — Specific Placeholder Labels and Medalist Polish
+# KSM v3.12.6 — Template Consistency and Seed Resolution
 
-- Court Queue and Court Context now use specific unresolved-source labels instead of generic TBD wherever template metadata identifies a seed, pool placement, or feeder match.
-- Completed-division medalists use a larger open layout without white boxes.
-- Tournament logic and Match Objects are unchanged.
+- Two-person tiebreaks for first place now resolve both Seed 1 and Seed 2 explicitly; ties at the second-place boundary resolve only Seed 2.
+- Championship seed placeholders now read from the resolved seed ownership map, so first-place tiebreak winners and losers populate the correct bracket positions immediately.
+- Pool no-show handling now removes only matches involving the absent competitor and preserves every surviving template Match Object in its original global order.
+- Generated championship seed mappings remain frozen after a no-show, fixing the native six-competitor 3+3 template when one pool becomes a two-person pool.
+- Added a focused executable regression test for frozen championship mappings, first-place seed resolution, and immutable no-show ordering.
+- No new tournament formats, bracket templates, or Match Object types were added.
 
 # KSM v3.12.4 — Match Object Origin Invariant
 
