@@ -4,7 +4,7 @@ Kendo Shiai Manager (KSM) is a hosted web/PWA application for running individual
 
 ## Current release
 
-**v3.12.6 — Template Consistency and Seed Resolution**
+**v3.12.7 — Template Consistency and Seed Resolution**
 
 This release fixes three pool-play edge cases while preserving the template-first engine architecture: first-place tiebreaks populate both advancing seeds, no-show removal preserves the original pool/match order, and the native six-competitor championship mapping remains available after a no-show reduces one pool to two competitors.
 
@@ -31,6 +31,11 @@ See `docs/DEPLOYMENT.md`, `docs/TESTING.md`, and `docs/REPOSITORY_STRUCTURE.md` 
 
 See `docs/TOURNAMENT_MANAGEMENT.md` for tournament-management behavior, template authority, and tiebreak-resolution rules.
 
-## v3.12.6 engine invariant
+## v3.12.7 engine invariant
 
 All standard elimination and championship matches originate from the Tournament Template Library. Only the explicit tiebreak allowlist may create Match Objects after generation.
+
+
+## KSM TestLab
+
+Run deterministic engine simulations with `npm run testlab:smoke`, `npm run testlab`, or `npm run testlab:exhaustive`. Reports are written to `testlab-reports/`. See `docs/TESTLAB.md`.

@@ -101,7 +101,7 @@ with sync_playwright() as p:
 
     # Save schema/version and required management UI.
     payload=page.evaluate("tournamentPayload()")
-    assert payload['schemaVersion']=='1.1' and payload['engineVersion']=='3.12.6'
+    assert payload['schemaVersion']=='1.1' and payload['engineVersion']=='3.12.7'
     assert page.locator('#tournamentStatusCard').count()==1
     assert page.locator('#regenerateDivisionBtn').count()==1
 

@@ -1,3 +1,15 @@
+# KSM Changelog
+
+## v3.12.7 — TestLab Foundation
+
+- Added an internal deterministic simulation harness that runs the real KSM browser engine in headless Chromium.
+- Added smoke, standard, and exhaustive TestLab profiles.
+- Added automated individual elimination exhaustion for single and split courts from 4–32 competitors.
+- Added pool-to-championship exhaustion, split queue-order verification, no-show position matrices, seed-resolution contracts, and save/load round-trip coverage.
+- Added Markdown and JSON failure reports under an ignored `testlab-reports/` directory.
+- Added `docs/TESTLAB.md` and npm commands for repeatable pre-release verification.
+- No tournament behavior, Match Object schema, templates, or production UI changed.
+
 # KSM v3.12.6 — Template Consistency and Seed Resolution
 
 - Two-person tiebreaks for first place now resolve both Seed 1 and Seed 2 explicitly; ties at the second-place boundary resolve only Seed 2.
