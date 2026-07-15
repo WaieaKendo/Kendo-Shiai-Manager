@@ -1,5 +1,16 @@
 # Changelog
 
+## v3.15.1 — Tournament Day Experience Polish
+
+- Removed the card background, border, and shadow from the persistent cloud status.
+- Stacked Online/Offline and last-save information vertically in the upper-right header.
+- Changed save-age display to minute-level updates; after one hour it shows the saved clock time.
+- Added automatic Save Now progress and success/failure toasts.
+- Removed raw URLs from Tournament Access.
+- Added copy confirmation and automatic modal close after link copying.
+- Kept QR panels open for scanning and added a Back control.
+- No Tournament Engine or cloud architecture changes.
+
 ## v3.15.0 — Tournament Day Experience
 
 - Added an always-visible upper-right Online/Offline and Last Saved status.
