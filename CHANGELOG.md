@@ -1,6 +1,16 @@
 # Changelog
 
-## v3.15.1 — Tournament Day Experience Polish
+## v3.15.2 — Interface Polish Bundle
+
+- Removed the Generate Tournament validation modal header and redundant close control.
+- Improved modal content and action-button spacing.
+- Reduced Results division-title size consistently and kept titles to one line.
+- Kept the scorekeeper Next Match action permanently gold.
+- Limited Spectator and Scorekeeper navigation to Courts, Live Scores, Director, and Results.
+- Preserved Spectator read-only behavior and Scorekeeper scoring privileges.
+- Registration icon intentionally unchanged pending replacement SVG.
+
+## v3.15.2 — Tournament Day Experience Polish
 
 - Removed the card background, border, and shadow from the persistent cloud status.
 - Stacked Online/Offline and last-save information vertically in the upper-right header.
