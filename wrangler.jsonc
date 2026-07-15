@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "kendoshiaimanager",
+  "name": "kendoshiaimanager-cloud-staging",
   "main": "src-worker.js",
   "compatibility_date": "2026-07-11",
   "assets": {
