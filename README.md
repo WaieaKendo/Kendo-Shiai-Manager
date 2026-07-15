@@ -1,54 +1,41 @@
 # Kendo Shiai Manager
 
-Kendo Shiai Manager (KSM) is a hosted, installable tournament-management application for kendo events.
+Kendo Shiai Manager (KSM) is a hosted web/PWA application for running individual and team kendo tournaments.
 
-**Current release: v3.14.0 — Cloud Release Candidate**  
-**Frozen Tournament Management Engine: v3.12.9**
+## Current release
 
-## Cloud capabilities
+**v3.12.9 — Template Consistency and Seed Resolution**
 
-- Permanent Tournament IDs backed by Cloudflare Durable Objects
-- Authoritative cloud snapshots with revision conflict protection
-- Real-time WebSocket synchronization
-- Spectator, Scorekeeper, Director, and Admin sessions
-- Court-specific scorekeeper links for Courts A and B
-- Public read-only spectator links
-- Connected-device presence
-- Local-first autosave and an offline cloud outbox
-- Conflict-safe recovery copies rather than silent last-write-wins
-- Cloud diagnostics and manual `.ksm` backup/export
+This release fixes three pool-play edge cases while preserving the template-first engine architecture: first-place tiebreaks populate both advancing seeds, no-show removal preserves the original pool/match order, and the native six-competitor championship mapping remains available after a no-show reduces one pool to two competitors.
 
-The cloud layer stores the existing KSM tournament payload as an opaque snapshot. It does not generate pools, create Match Objects, reorder matches, advance brackets, or regenerate tournament templates.
+## Repository layout
 
-## Local development
+- `public/` — deployed application and static assets
+- `tests/` — automated regression and package checks
+- `docs/` — maintained project documentation
+- `wrangler.jsonc` — Cloudflare Workers configuration
+- `package.json` — project metadata and test/deploy commands
+- `CHANGELOG.md` — consolidated release history
+
+## Common commands
 
 ```bash
 npm install
-npm run dev
-```
-
-Open the local URL printed by Wrangler. Verify the Worker at `/api/health`.
-
-## Tests
-
-```bash
-npm run check:cloud
 npm run check
-```
-
-For the full TestLab profiles:
-
-```bash
-npm run testlab:smoke
-npm run testlab
-npm run testlab:exhaustive
-```
-
-## Deployment
-
-```bash
-npx wrangler login
+npm run dev
 npm run deploy
 ```
 
-See `docs/DEPLOYMENT.md` and `docs/CLOUD_OPERATIONS.md` before production use.
+See `docs/DEPLOYMENT.md`, `docs/TESTING.md`, and `docs/REPOSITORY_STRUCTURE.md` for details.
+
+
+See `docs/TOURNAMENT_MANAGEMENT.md` for tournament-management behavior, template authority, and tiebreak-resolution rules.
+
+## v3.12.9 engine invariant
+
+All standard elimination and championship matches originate from the Tournament Template Library. Only the explicit tiebreak allowlist may create Match Objects after generation.
+
+
+## KSM TestLab
+
+Run deterministic engine simulations with `npm run testlab:smoke`, `npm run testlab`, or `npm run testlab:exhaustive`. Reports are written to `testlab-reports/`. See `docs/TESTLAB.md`.

@@ -1,19 +1,9 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "kendoshiaimanager",
-  "main": "src-worker.js",
   "compatibility_date": "2026-07-11",
   "assets": {
     "directory": "./public",
-    "binding": "ASSETS",
     "not_found_handling": "single-page-application"
-  },
-  "durable_objects": {
-    "bindings": [
-      { "name": "TOURNAMENTS", "class_name": "TournamentState" }
-    ]
-  },
-  "migrations": [
-    { "tag": "v1", "new_sqlite_classes": ["TournamentState"] }
-  ]
+  }
 }
