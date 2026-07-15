@@ -1,8 +1,8 @@
 from pathlib import Path
 html=Path('public/index.html').read_text()
 checks={
-  'version title':'Kendo Shiai Manager v3.15.2' in html,
-  'version badge':'<span class="version-badge">v3.15.2</span>' in html,
+  'version title':'Kendo Shiai Manager v3.15.4' in html,
+  'version badge':'<span class="version-badge">v3.15.4</span>' in html,
   'portrait safe area':'padding-top:calc(12px + env(safe-area-inset-top)) !important' in html,
   'fixed icon rows':'grid-template-rows:36px 26px !important' in html,
   'icon row assignment':'grid-row:1 !important' in html,

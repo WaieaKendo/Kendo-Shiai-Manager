@@ -1,5 +1,27 @@
 # Changelog
 
+## v3.15.4 — Court TV Display Refinement
+
+- Rebuilt the dedicated one-court TV display for 16:9 screens.
+- Removed tournament-name and numeric-score presentation from TV mode.
+- Made Court the largest white heading and Division the secondary gold heading.
+- Added automatic name shrinking to prevent competitor-name wrapping.
+- Positioned point letters medially beside each competitor.
+- Strengthened white/red court-side indicators.
+- Enlarged the Next Match section for distance readability.
+- Added a team TV layout derived from Court Context: sequential lineups, medial point letters, and gold outlines around the current player pair.
+- Tournament Engine remains frozen at v3.12.9.
+
+## v3.15.4 — Shared Views & TV Display
+
+- Renamed the Director navigation destination to Tournament Overview and made the same read-only overview available to Admin, Scorekeeper, and Spectator sessions.
+- Made the Courts view structurally identical across roles; spectators see current match, Court Context, and Court Queue without scoring, Undo, Fusen-gachi, or Next Match controls.
+- Rebuilt Live Scores as a dual-court glance view showing the active match, score, and next match for both courts.
+- Live Scores stacks Court A and Court B vertically in phone portrait and uses two columns at wider sizes.
+- Added dedicated one-court TV Display links for Court A and Court B with large, high-contrast text and no normal navigation.
+- Kept TV Display read-only by using spectator authorization and court-specific URLs.
+- Preserved the frozen v3.12.9 Tournament Management Engine.
+
 ## v3.15.2 — Interface Polish Bundle
 
 - Removed the Generate Tournament validation modal header and redundant close control.
@@ -10,7 +32,7 @@
 - Preserved Spectator read-only behavior and Scorekeeper scoring privileges.
 - Registration icon intentionally unchanged pending replacement SVG.
 
-## v3.15.2 — Tournament Day Experience Polish
+## v3.15.1 — Tournament Day Experience Polish
 
 - Removed the card background, border, and shadow from the persistent cloud status.
 - Stacked Online/Offline and last-save information vertically in the upper-right header.

@@ -2,7 +2,7 @@
 
 Kendo Shiai Manager (KSM) is a hosted, installable tournament-management application for kendo events.
 
-**Current release: v3.15.2 — Tournament Day Experience Polish**  
+**Current release: v3.15.4 — Court TV Display Refinement**  
 **Frozen Tournament Management Engine: v3.12.9**
 
 ## Cloud capabilities
@@ -13,6 +13,9 @@ Kendo Shiai Manager (KSM) is a hosted, installable tournament-management applica
 - Spectator, Scorekeeper, Director, and Admin sessions
 - Court-specific scorekeeper links for Courts A and B
 - Public read-only spectator links
+- Shared read-only Tournament Overview for Admin, Scorekeeper, and Spectator sessions
+- Shared Courts presentation with spectator controls removed
+- Responsive dual-court Live Scores and dedicated Court A / Court B TV display links
 - Connected-device presence
 - Local-first autosave and an offline cloud outbox
 - Conflict-safe recovery copies rather than silent last-write-wins

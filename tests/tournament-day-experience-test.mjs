@@ -2,7 +2,7 @@ import fs from 'node:fs';
 const html=fs.readFileSync('public/index.html','utf8');
 const worker=fs.readFileSync('src-worker.js','utf8');
 const checks=[
- ['v3.15 visible',html.includes('v3.15.2')],
+ ['v3.15 visible',html.includes('v3.15.4')],
  ['persistent online status',html.includes('🟢 Online')&&html.includes('humanSaveAge')],
  ['manual Save Now retained',html.includes('saveNow()')&&html.includes('>Save Now<')],
  ['completed match critical autosave',html.includes('criticalAutoSave(`Completed match:')],
