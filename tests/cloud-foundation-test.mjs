@@ -1,0 +1,3 @@
+import fs from 'node:fs';import assert from 'node:assert/strict';
+const html=fs.readFileSync('public/index.html','utf8'),worker=fs.readFileSync('src-worker.js','utf8'),wrangler=fs.readFileSync('wrangler.jsonc','utf8');
+assert.match(html,/function cloudEnvelope\(payload=tournamentPayload\(\)\)/);assert.match(html,/function cloudEnvelope\(payload=tournamentPayload\(\)\)/);assert.match(html,/function saveTournamentToCloud\(\)/);assert.match(worker,/class TournamentState/);assert.match(worker,/env\.ASSETS\.fetch\(request\)/);assert.match(wrangler,/"TOURNAMENTS"/);assert.doesNotMatch(worker,/generatePools|generateTournament|createMatch|allMatches\s*=/);console.log('Cloud foundation invariants: 7/7 passed');

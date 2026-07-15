@@ -8,7 +8,7 @@ checks={
  'single context uses helper':"specificMatchSideLabel(m,'white')" in s and "specificMatchSideLabel(m,'red')" in s,
  'medalist box removed':'.division-complete-row{display:grid;grid-template-columns:82px minmax(0,1fr);gap:16px;align-items:baseline;padding:8px 0;border:0' in s,
  'medalist name larger':'.division-complete-row span{font-size:26px' in s,
- 'version':'v3.12.9' in s,
+ 'version':'v3.14.0' in s,
 }
 failed=[k for k,v in checks.items() if not v]
 for k,v in checks.items(): print(('PASS' if v else 'FAIL'),k)
