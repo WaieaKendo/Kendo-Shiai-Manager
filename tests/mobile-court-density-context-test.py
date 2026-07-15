@@ -4,8 +4,8 @@ import re
 root=Path(__file__).resolve().parents[1]
 html=(root/'public/index.html').read_text()
 checks={
- 'version title': 'Kendo Shiai Manager v3.12.9' in html,
- 'version badge': '<span class="version-badge">v3.12.9</span>' in html,
+ 'version title': 'Kendo Shiai Manager v3.14.0' in html,
+ 'version badge': '<span class="version-badge">v3.14.0</span>' in html,
  'landscape heading absolute center': '#score .scoreboard-heading-center{' in html and 'left:50% !important' in html and 'transform:translateX(-50%) !important' in html,
  'division centered': '#score .scoreboard-heading-center #scoreDiv{' in html and 'text-align-last:center !important' in html,
  'controls no reserved height': '#score .score-controls-grid{' in html and 'min-height:0 !important' in html and 'height:auto !important' in html,
