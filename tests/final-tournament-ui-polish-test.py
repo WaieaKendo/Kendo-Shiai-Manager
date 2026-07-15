@@ -2,7 +2,7 @@ from pathlib import Path
 
 html = Path("public/index.html").read_text(encoding="utf-8")
 checks = {
-    "version bumped": "v3.14.0" in html,
+    "version bumped": "v3.15.0" in html,
     "complete heading removed from renderer": '<h2>Division Complete</h2>' not in html,
     "tier class applied": "p.tier||''" in html and "division-complete-row" in html,
     "gold label rule": '.division-complete-row b.gold{color:#c99b38}' in html,

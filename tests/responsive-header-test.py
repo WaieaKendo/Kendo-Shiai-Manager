@@ -4,8 +4,8 @@ import re
 root=Path(__file__).resolve().parents[1]
 html=(root/'public/index.html').read_text()
 checks={
-  'version title':'Kendo Shiai Manager v3.14.0' in html,
-  'version badge':'v3.14.0</span>' in html,
+  'version title':'Kendo Shiai Manager v3.15.0' in html,
+  'version badge':'v3.15.0</span>' in html,
   'shared brand selectors':'.scoreboard-tournament,\n.audience-tournament' in html,
   'smaller header font':'font-size:12px !important' in html,
   'two line clamp':'-webkit-line-clamp:2 !important' in html,

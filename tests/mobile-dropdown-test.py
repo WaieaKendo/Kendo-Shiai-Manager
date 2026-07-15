@@ -16,7 +16,7 @@ with sync_playwright() as p:
         ("Courts", "#courtsMenu", "Court A"),
         ("Live Scores", "#liveScoresMenu", "Court A"),
         ("Export", "#exportMenu", "Tournament Brackets"),
-        ("Save or Load", "#saveLoadMenu", "Save Tournament"),
+        ("Save or Load", "#saveLoadMenu", "Save Now"),
     ]
     checks = 0
     for title, menu, item in contracts:

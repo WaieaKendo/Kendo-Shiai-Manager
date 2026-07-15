@@ -1,5 +1,17 @@
 # Changelog
 
+## v3.15.0 — Tournament Day Experience
+
+- Added an always-visible upper-right Online/Offline and Last Saved status.
+- Added immediate local and cloud saving when a match is completed while preserving the manual Next Match workflow.
+- Added two-second debounced autosave for setup and registration edits plus a ten-minute safety autosave.
+- Retained a manual Save Now action with visible saving confirmation.
+- Added downloadable and reloadable KSM recovery packages containing the local snapshot, tournament identity, cloud revision, court assignment, and queued offline state.
+- Added Tournament Access for spectator, Court A, Court B, and Admin links with copy and QR-code actions.
+- Added in-app Cloud Diagnostics and reorganized the Save / Load menu.
+- Preserved the frozen v3.12.9 Tournament Management Engine and manual match advancement.
+
+
 ## v3.14.0 — Complete Cloud Release Candidate
 
 - Completes the v3.13.x Cloud Foundation roadmap in one self-contained repository.

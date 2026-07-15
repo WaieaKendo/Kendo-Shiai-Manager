@@ -142,7 +142,7 @@ export class TournamentState {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (url.pathname === '/api/health') return json({ ok: true, service: 'ksm-cloud', version: '3.14.0', realtime: true, roles: ['spectator', 'scorekeeper', 'director', 'admin'], offlineOutbox: true });
+    if (url.pathname === '/api/health') return json({ ok: true, service: 'ksm-cloud', version: '3.15.0', realtime: true, roles: ['spectator', 'scorekeeper', 'director', 'admin'], offlineOutbox: true });
 
     if (url.pathname === '/api/tournaments' && request.method === 'POST') {
       const id = crypto.randomUUID();
