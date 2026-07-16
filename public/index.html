@@ -4708,7 +4708,7 @@ body.ksm-tv #tv{display:block !important}
 #sessionRole[data-role="director"],#sessionRole[data-role="admin"],#sessionRole[data-role="scorekeeper"]{font-weight:800}
 .spectator-readonly-banner{position:sticky;top:0;z-index:1200;text-align:center;padding:7px 12px;background:#f3eee3;border-bottom:1px solid #d9cba9;color:#55472f;font:700 12px/1.2 system-ui;letter-spacing:.04em}
 
-/* KSM v3.15.4 — shared views, responsive dual-court Live Scores, and single-court TV display */
+/* KSM v3.15.5 — refined court TV display and shared team live scores */
 .live-scores-overview{max-width:1320px;margin:0 auto;padding:12px 0 22px}
 .live-scores-heading{text-align:center;margin:0 0 12px}.live-scores-heading h1{margin:2px 0 0}
 .live-courts-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
@@ -4721,17 +4721,17 @@ body.ksm-tv #tv{display:block !important}
 .live-next{border-top:1px solid var(--line);padding-top:10px;display:grid;grid-template-columns:auto minmax(0,1fr) auto minmax(0,1fr);gap:7px;align-items:center;text-align:center;font-size:12px}.live-next>span{text-transform:uppercase;letter-spacing:.08em;color:#8b6500;font-weight:900}.live-next b{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.live-next i{font-style:normal;color:var(--muted)}.live-next em{grid-column:2/5;color:var(--muted);font-style:normal}
 .live-empty{text-align:center;color:var(--muted);padding:45px 12px}
 @media(max-width:560px) and (orientation:portrait){.live-scores-overview{padding-top:4px}.live-scores-heading{margin-bottom:8px}.live-courts-grid{grid-template-columns:1fr;gap:9px}.live-court-card{padding:11px 12px;border-radius:16px;gap:8px}.live-court-head{padding-bottom:7px}.live-court-head h2{font-size:20px}.live-match-row{min-height:68px;gap:6px}.live-player strong{font-size:16px}.live-player small{font-size:10px}.live-score-pair b{font-size:24px}.live-next{padding-top:7px}.live-scores-heading h1{font-size:24px}}
+.live-team-card .team-sheet{margin:0;box-shadow:none;border-radius:14px}.live-team-card .team-sheet-row{min-height:34px;padding:5px 8px}.live-team-card .team-sheet-head{font-size:clamp(13px,1.7vw,18px)}.live-team-card .team-score-footer{padding:7px 9px}.live-team-card .live-points{font-size:13px}
 .tv-court-display{width:100%;min-height:100vh;background:#061b2c;color:#fff;display:flex;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-.tv-shell,.tv-empty{width:100%;min-height:100vh;box-sizing:border-box;padding:clamp(20px,2.6vw,46px);display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:clamp(14px,2vh,30px)}
-.tv-shell header{text-align:center;min-width:0}.tv-court-label{font-size:clamp(62px,10vw,156px);font-weight:900;letter-spacing:.025em;line-height:.86;color:#fff;text-transform:uppercase}.tv-context{margin-top:clamp(12px,1.6vh,24px);font-size:clamp(28px,3.4vw,58px);line-height:1.05;color:#e3bd5b;font-weight:800;white-space:nowrap;overflow:hidden}.tv-context-meta{margin-top:8px;font-size:clamp(17px,1.8vw,30px);font-weight:700;color:#fff;opacity:.88}
-.tv-individual-match{display:grid;grid-template-columns:minmax(0,1fr) clamp(52px,6vw,110px) minmax(0,1fr);align-items:stretch;gap:clamp(14px,2.4vw,42px);min-height:0}
-.tv-individual-player{min-width:0;display:grid;align-items:center;border-top:clamp(9px,1vw,17px) solid #fff;padding:clamp(22px,3vh,48px) clamp(18px,2.4vw,42px);position:relative}
-.tv-individual-player.white{border-left:clamp(9px,1vw,17px) solid #fff;grid-template-columns:minmax(0,1fr) auto}.tv-individual-player.red{border-top-color:#d92f38;border-right:clamp(9px,1vw,17px) solid #d92f38;grid-template-columns:auto minmax(0,1fr);text-align:right}
-.tv-name-block{min-width:0}.tv-player-name{font-size:clamp(42px,6vw,102px);font-weight:850;line-height:.98;color:#fff;white-space:nowrap;display:block;max-width:100%}.tv-player-dojo{font-size:clamp(20px,2.2vw,38px);font-weight:650;opacity:.72;margin-top:clamp(10px,1.4vh,20px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tv-point-string{font-size:clamp(48px,6.4vw,108px);font-weight:850;letter-spacing:.12em;line-height:1;color:#fff;white-space:nowrap;padding:0 clamp(10px,1.6vw,28px)}.tv-individual-player.red .tv-point-string{color:#fff}.tv-vs{display:grid;place-items:center;font-size:clamp(22px,2.4vw,40px);font-weight:800;color:#e3bd5b;text-transform:uppercase}
-.tv-next{border-top:2px solid rgba(255,255,255,.25);padding-top:clamp(14px,1.8vh,26px);text-align:center;min-width:0}.tv-next-label{color:#e3bd5b;text-transform:uppercase;font-size:clamp(22px,2.4vw,40px);font-weight:850;letter-spacing:.08em}.tv-next-pair{margin-top:8px;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:clamp(16px,2.6vw,44px);align-items:center}.tv-next-player{min-width:0}.tv-next-player strong{display:block;color:#fff;font-size:clamp(30px,4vw,68px);font-weight:800;white-space:nowrap}.tv-next-player small{display:block;font-size:clamp(16px,1.6vw,28px);opacity:.7;margin-top:5px}.tv-next-pair>span{font-size:clamp(28px,3vw,50px);font-weight:850;color:#e3bd5b}
-.tv-team-main{display:grid;grid-template-rows:auto minmax(0,1fr);gap:clamp(12px,1.8vh,24px);min-height:0}.tv-team-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(38px,5vw,90px)}.tv-team-name{border-top:clamp(9px,1vw,17px) solid #fff;padding-top:clamp(12px,1.4vh,22px);font-size:clamp(32px,4.4vw,74px);font-weight:850;color:#fff;white-space:nowrap;overflow:hidden}.tv-team-name.red{border-top-color:#d92f38;text-align:right}.tv-team-roster{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(38px,5vw,90px);min-height:0}.tv-team-column{display:grid;grid-template-rows:repeat(5,minmax(0,1fr));gap:clamp(5px,.7vh,12px);min-width:0}.tv-team-cell{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:clamp(10px,1.4vw,24px);padding:clamp(8px,1vh,14px) clamp(12px,1.4vw,24px);border:2px solid rgba(255,255,255,.14);border-radius:12px;min-width:0}.tv-team-column.red .tv-team-cell{grid-template-columns:auto minmax(0,1fr);text-align:right}.tv-team-cell.current{border:clamp(4px,.35vw,7px) solid #e3bd5b;box-shadow:0 0 0 2px rgba(227,189,91,.1) inset}.tv-team-cell .position{font-size:clamp(14px,1.3vw,22px);font-weight:800;color:#e3bd5b;margin-right:8px}.tv-team-cell-name{font-size:clamp(24px,3vw,50px);font-weight:780;color:#fff;white-space:nowrap;min-width:0}.tv-team-cell-points{font-size:clamp(24px,3.2vw,52px);font-weight:850;letter-spacing:.1em;color:#fff;white-space:nowrap}.tv-team-name-wrap{min-width:0;display:flex;align-items:center}.tv-team-column.red .tv-team-name-wrap{justify-content:flex-end}.tv-team-empty{opacity:.34}
+.tv-shell,.tv-empty{width:100%;min-height:100vh;box-sizing:border-box;padding:clamp(12px,1.7vw,30px) clamp(22px,2.6vw,50px) clamp(10px,1.3vw,24px);display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:clamp(5px,.8vh,12px)}
+.tv-shell header{all:unset;display:block;text-align:center;min-width:0;background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;margin:0!important}.tv-court-label{font-size:clamp(68px,9.2vw,150px);font-weight:900;letter-spacing:.02em;line-height:.82;color:#fff;text-transform:uppercase}.tv-context{margin-top:clamp(4px,.6vh,9px);font-size:clamp(34px,3.8vw,62px);line-height:1;color:#e3bd5b;font-weight:850;white-space:nowrap;overflow:hidden}.tv-context-meta{margin-top:clamp(4px,.5vh,8px);font-size:clamp(21px,2vw,34px);line-height:1;font-weight:750;color:#fff;opacity:.9}
+.tv-individual-match{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto minmax(0,1fr);align-items:center;gap:clamp(8px,1vw,18px);min-height:0;padding:clamp(2px,.6vh,8px) 0}
+.tv-individual-name-side{min-width:0;align-self:stretch;display:flex;align-items:center;position:relative;border-top:clamp(11px,1vw,18px) solid #fff;padding:clamp(10px,1.2vh,20px) clamp(12px,1.5vw,26px)}.tv-individual-name-side.white{border-left:clamp(11px,1vw,18px) solid #fff}.tv-individual-name-side.red{border-top-color:#d92f38;border-right:clamp(11px,1vw,18px) solid #d92f38;text-align:right;justify-content:flex-end}
+.tv-name-block{min-width:0;width:100%}.tv-player-name{font-size:clamp(52px,6vw,100px);font-weight:820;line-height:.88;color:#fff;display:flex;flex-direction:column;max-width:100%;letter-spacing:-.02em}.tv-player-name span{display:block;white-space:nowrap;overflow:hidden}.tv-player-dojo{font-size:clamp(20px,2vw,36px);font-weight:650;opacity:.74;margin-top:clamp(8px,1vh,15px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tv-point-string{font-size:clamp(52px,6.1vw,104px);font-weight:850;letter-spacing:.08em;line-height:1;color:#fff;white-space:nowrap;min-width:clamp(70px,8vw,150px);text-align:center}.tv-vs{display:grid;place-items:center;font-size:clamp(25px,2.5vw,42px);font-weight:850;color:#e3bd5b;text-transform:uppercase;padding:0 clamp(2px,.4vw,8px)}
+.tv-next{border-top:2px solid rgba(255,255,255,.25);padding-top:clamp(8px,1vh,14px);padding-bottom:0;text-align:center;min-width:0;align-self:end}.tv-next-label{color:#e3bd5b;text-transform:uppercase;font-size:clamp(26px,2.6vw,44px);font-weight:850;letter-spacing:.08em;line-height:1}.tv-next-pair{margin-top:clamp(5px,.6vh,9px);display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:clamp(14px,2vw,34px);align-items:center}.tv-next-player{min-width:0}.tv-next-player strong{display:block;color:#fff;font-size:clamp(40px,4.5vw,76px);font-weight:800;white-space:nowrap;line-height:.95}.tv-next-player small{display:block;font-size:clamp(18px,1.7vw,29px);opacity:.72;margin-top:4px}.tv-next-pair>span{font-size:clamp(34px,3.4vw,56px);font-weight:850;color:#e3bd5b}
+.tv-team-main{display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:clamp(5px,.7vh,11px);min-height:0}.tv-team-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(32px,4vw,70px)}.tv-team-name{border-top:clamp(11px,1vw,18px) solid #fff;padding-top:clamp(7px,.8vh,13px);font-size:clamp(34px,4vw,68px);font-weight:850;color:#fff;white-space:nowrap;overflow:hidden;line-height:1}.tv-team-name.red{border-top-color:#d92f38;text-align:right}.tv-team-roster{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(32px,4vw,70px);min-height:0}.tv-team-column{display:grid;grid-template-rows:repeat(5,minmax(0,1fr));gap:clamp(3px,.45vh,7px);min-width:0}.tv-team-cell{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:clamp(8px,1vw,17px);padding:clamp(5px,.65vh,10px) clamp(10px,1vw,18px);border:2px solid rgba(255,255,255,.13);border-radius:10px;min-width:0}.tv-team-column.red .tv-team-cell{grid-template-columns:auto minmax(0,1fr);text-align:right}.tv-team-cell.current{border:clamp(4px,.35vw,7px) solid #e3bd5b;box-shadow:0 0 0 2px rgba(227,189,91,.1) inset}.tv-team-cell .position{font-size:clamp(14px,1.2vw,21px);font-weight:800;color:#e3bd5b;margin-right:8px}.tv-team-cell-name{font-size:clamp(23px,2.65vw,46px);font-weight:780;color:#fff;white-space:nowrap;min-width:0}.tv-team-cell-points{font-size:clamp(23px,2.8vw,48px);font-weight:850;letter-spacing:.08em;color:#fff;white-space:nowrap}.tv-team-name-wrap{min-width:0;display:flex;align-items:center}.tv-team-column.red .tv-team-name-wrap{justify-content:flex-end}.tv-team-summary{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;text-align:center;border-top:1px solid rgba(255,255,255,.22);padding-top:clamp(5px,.7vh,10px);font-size:clamp(20px,2vw,34px);font-weight:800}.tv-team-summary .white{text-align:left}.tv-team-summary .red{text-align:right}.tv-team-summary .label{color:#e3bd5b;font-size:.72em;text-transform:uppercase;letter-spacing:.08em}.tv-team-summary b{font-size:1.25em}.tv-team-empty{opacity:.34}
 .tv-empty{place-items:center;text-align:center;grid-template-rows:1fr}.tv-empty .tv-court-label{margin-bottom:24px}.tv-empty h1{font-size:clamp(42px,7vw,100px);font-weight:800}
-@media(max-width:780px){.tv-shell{padding:18px}.tv-court-label{font-size:clamp(52px,15vw,96px)}.tv-context{font-size:clamp(22px,6.5vw,38px)}.tv-individual-match{grid-template-columns:minmax(0,1fr) 40px minmax(0,1fr);gap:8px}.tv-player-name{font-size:clamp(30px,7vw,52px)}.tv-point-string{font-size:clamp(30px,7vw,52px);padding:0 5px}.tv-team-head,.tv-team-roster{gap:12px}.tv-team-cell{padding:7px 8px;border-radius:8px}.tv-team-cell-name{font-size:clamp(18px,4.2vw,30px)}.tv-team-cell-points{font-size:clamp(18px,4.2vw,30px)}}
+@media(max-width:780px){.tv-shell{padding:12px 16px 9px}.tv-court-label{font-size:clamp(52px,14vw,90px)}.tv-context{font-size:clamp(25px,6.4vw,38px)}.tv-context-meta{font-size:clamp(17px,4vw,24px)}.tv-individual-match{grid-template-columns:minmax(0,1fr) auto auto auto minmax(0,1fr);gap:4px}.tv-player-name{font-size:clamp(32px,7vw,50px)}.tv-point-string{font-size:clamp(31px,7vw,50px);min-width:45px}.tv-team-head,.tv-team-roster{gap:10px}.tv-team-cell{padding:5px 7px;border-radius:7px}.tv-team-cell-name{font-size:clamp(17px,4vw,28px)}.tv-team-cell-points{font-size:clamp(17px,4vw,28px)}}
 </style>
 </head>
 <body>
@@ -4741,7 +4741,7 @@ body.ksm-tv #tv{display:block !important}
     <div class="nav-brand-copy">
       <span class="nav-brand-name">KSM</span>
       <span class="nav-brand-subtitle">Kendo Shiai Manager</span>
-      <span class="version-badge">v3.15.4</span>
+      <span class="version-badge">v3.15.5</span>
     </div>
   </div>
 
@@ -4771,6 +4771,17 @@ body.ksm-tv #tv{display:block !important}
       <img src="/assets/nav-icons/live-scores.svg" alt="">
       <span>Live Scores</span>
     </button>
+
+    <div class="nav-menu nav-tile-wrap role-court-access">
+      <button class="nav-tile nav-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="tvMenu" onclick="toggleNavMenu('tvMenu',event)" title="TV Display">
+        <img src="/assets/nav-icons/live-scores.svg" alt="">
+        <span>TV <b aria-hidden="true">▾</b></span>
+      </button>
+      <div id="tvMenu" role="menu" class="nav-dropdown hidden">
+        <button onclick="launchTvDisplay('A')">Court A TV</button>
+        <button onclick="launchTvDisplay('B')">Court B TV</button>
+      </div>
+    </div>
 
     <button class="nav-tile role-court-access" onclick="navigateTo('director')" title="Tournament Overview">
       <img src="/assets/nav-icons/live-scores.svg" alt="">
@@ -8011,17 +8022,11 @@ function liveScoresCourtCard(court){
   const data=courtCurrentMatch(court);
   if(!data)return `<section class="live-court-card"><div class="live-court-head"><h2>Court ${esc(court)}</h2><span>No active match</span></div><div class="live-empty">Waiting for the next division</div></section>`;
   const m=data.match, next=data.next, meta=audienceMeta(m), pts=liveScorePoints(m);
-  const teamLine=(m.type==='teamPosition'||m.type==='teamPlayoff'||m.type==='kachinuki')?`<div class="live-team-line">${esc(m.teamWhite||'White Team')} vs ${esc(m.teamRed||'Red Team')}</div>`:'';
-  return `<section class="live-court-card">
-    <div class="live-court-head"><h2>Court ${esc(court)}</h2><span>${esc(meta.division)} • ${esc(meta.line)}</span></div>
-    ${teamLine}
-    <div class="live-match-row">
-      <div class="live-player white"><span class="live-side-label">White</span><strong>${esc(m.white||'TBD')}</strong><small>${esc(m.wdojo||'')}</small></div>
-      <div class="live-score-pair"><b>${esc(pts.white)}</b><span>vs</span><b>${esc(pts.red)}</b></div>
-      <div class="live-player red"><span class="live-side-label">Red</span><strong>${esc(m.red||'TBD')}</strong><small>${esc(m.rdojo||'')}</small></div>
-    </div>
-    <div class="live-next"><span>Next</span>${next?`<b>${esc(next.white||'TBD')}</b><i>vs</i><b>${esc(next.red||'TBD')}</b>`:'<em>No match queued</em>'}</div>
-  </section>`;
+  if(m.type==='teamPosition'||m.type==='teamPlayoff'||m.type==='kachinuki'){
+    const sheet=m.type==='kachinuki'?kachinukiSheetHtml(m):teamSheetHtml(m.division,m.teamPair,m);
+    return `<section class="live-court-card live-team-card"><div class="live-court-head"><h2>Court ${esc(court)}</h2><span>${esc(meta.division)} • ${esc(meta.line)}</span></div>${sheet}<div class="live-next"><span>Next</span>${next?`<b>${esc(next.teamWhite||next.white||'TBD')}</b><i>vs</i><b>${esc(next.teamRed||next.red||'TBD')}</b>`:'<em>No match queued</em>'}</div></section>`;
+  }
+  return `<section class="live-court-card"><div class="live-court-head"><h2>Court ${esc(court)}</h2><span>${esc(meta.division)} • ${esc(meta.line)}</span></div><div class="live-match-row"><div class="live-player white"><span class="live-side-label">White</span><strong>${esc(m.white||'TBD')}</strong><small>${esc(m.wdojo||'')}</small></div><div class="live-score-pair"><b>${esc(pts.white)}</b><span>vs</span><b>${esc(pts.red)}</b></div><div class="live-player red"><span class="live-side-label">Red</span><strong>${esc(m.red||'TBD')}</strong><small>${esc(m.rdojo||'')}</small></div></div><div class="live-next"><span>Next</span>${next?`<b>${esc(next.white||'TBD')}</b><i>vs</i><b>${esc(next.red||'TBD')}</b>`:'<em>No match queued</em>'}</div></section>`;
 }
 function renderPublic(){
   if(!window.publicLive)return;
@@ -8038,6 +8043,12 @@ function fitTvText(root=tvLive){
   }));
 }
 function tvPointText(points){return (points||[]).join(' ')||'—'}
+function tvNameLines(name){const parts=String(name||'TBD').trim().split(/\s+/).filter(Boolean);if(parts.length<2)return [parts[0]||'TBD',''];return [parts[0],parts.slice(1).join(' ')]}
+function tvNameHtml(name){const [first,last]=tvNameLines(name);return `<span>${esc(first)}</span>${last?`<span>${esc(last)}</span>`:''}`}
+function nextTeamMatch(div,court,current){const all=sortTeamMatches(div);const idx=all.indexOf(current);const pair=current?.teamPair;return all.slice(Math.max(0,idx+1)).find(x=>isTeamMatch(x)&&!x.done&&matchBelongsToCourt(x,court)&&x.teamPair!==pair)||null}
+function tvTeamNextHtml(court,m){const next=nextTeamMatch(m.division,court,m);if(!next)return `<div class="tv-next"><div class="tv-next-label">Next Match</div><div class="tv-next-pair"><div class="tv-next-player"><strong>Queue complete</strong></div></div></div>`;return `<div class="tv-next"><div class="tv-next-label">Next Match</div><div class="tv-next-pair"><div class="tv-next-player"><strong data-tv-fit data-min="24">${esc(next.teamWhite||next.wdojo||'TBD')}</strong></div><span>vs</span><div class="tv-next-player"><strong data-tv-fit data-min="24">${esc(next.teamRed||next.rdojo||'TBD')}</strong></div></div></div>`}
+async function launchTvDisplay(court){closeNavMenus();if(!cloudSession.tournamentId)await saveNow();if(!cloudSession.tournamentId){alert('Save the tournament to cloud before opening TV Display.');return}window.open(tvLink(court),'_blank','noopener')}
+
 function tvNextHtml(next){
   if(!next)return `<div class="tv-next"><div class="tv-next-label">Next Match</div><div class="tv-next-pair"><div class="tv-next-player"><strong>Queue complete</strong></div></div></div>`;
   return `<div class="tv-next"><div class="tv-next-label">Next Match</div><div class="tv-next-pair"><div class="tv-next-player"><strong data-tv-fit data-min="20">${esc(next.white||'TBD')}</strong><small>${esc(next.wdojo||next.teamWhite||'')}</small></div><span>vs</span><div class="tv-next-player"><strong data-tv-fit data-min="20">${esc(next.red||'TBD')}</strong><small>${esc(next.rdojo||next.teamRed||'')}</small></div></div></div>`;
@@ -8045,11 +8056,13 @@ function tvNextHtml(next){
 function tvIndividualHtml(court,data){
   const m=data.match,meta=audienceMeta(m),pts=activeScoreArrays(m);
   return `<div class="tv-shell">
-    <header><div class="tv-court-label">Court ${esc(court)}</div><div class="tv-context" data-tv-fit data-min="22">${esc(meta.division)}</div><div class="tv-context-meta">${esc(meta.line)}</div></header>
+    <header><div class="tv-court-label">Court ${esc(court)}</div><div class="tv-context" data-tv-fit data-min="26">${esc(meta.division)}</div><div class="tv-context-meta">${esc(meta.line)}</div></header>
     <main class="tv-individual-match">
-      <section class="tv-individual-player white"><div class="tv-name-block"><strong class="tv-player-name" data-tv-fit data-min="30">${esc(m.white||'TBD')}</strong><div class="tv-player-dojo">${esc(m.wdojo||'')}</div></div><div class="tv-point-string">${esc(tvPointText(pts.W))}</div></section>
+      <section class="tv-individual-name-side white"><div class="tv-name-block"><strong class="tv-player-name" data-tv-fit data-min="38">${tvNameHtml(m.white)}</strong><div class="tv-player-dojo">${esc(m.wdojo||'')}</div></div></section>
+      <div class="tv-point-string">${esc(tvPointText(pts.W))}</div>
       <div class="tv-vs">vs</div>
-      <section class="tv-individual-player red"><div class="tv-point-string">${esc(tvPointText(pts.R))}</div><div class="tv-name-block"><strong class="tv-player-name" data-tv-fit data-min="30">${esc(m.red||'TBD')}</strong><div class="tv-player-dojo">${esc(m.rdojo||'')}</div></div></section>
+      <div class="tv-point-string">${esc(tvPointText(pts.R))}</div>
+      <section class="tv-individual-name-side red"><div class="tv-name-block"><strong class="tv-player-name" data-tv-fit data-min="38">${tvNameHtml(m.red)}</strong><div class="tv-player-dojo">${esc(m.rdojo||'')}</div></div></section>
     </main>
     ${tvNextHtml(data.next)}
   </div>`;
@@ -8058,13 +8071,13 @@ function tvTeamHtml(court,data){
   const m=data.match,meta=audienceMeta(m);
   if(m.type==='kachinuki')return tvIndividualHtml(court,data);
   const matches=(state.allMatches[m.division]||[]).filter(x=>x.teamPair===m.teamPair&&(x.type==='teamPosition'||x.type==='teamPlayoff'));
-  const first=matches[0]||m;
+  const first=matches[0]||m,summary=teamPairSummary(m.division,m.teamPair);
   const whiteRows=matches.map((x,i)=>{const pts=activeScoreArrays(x);return `<div class="tv-team-cell ${x===m?'current':''}"><div class="tv-team-name-wrap"><span class="position">${i+1}</span><strong class="tv-team-cell-name" data-tv-fit data-min="16">${esc(x.white||'TBD')}</strong></div><div class="tv-team-cell-points">${esc(tvPointText(pts.W))}</div></div>`}).join('');
   const redRows=matches.map((x,i)=>{const pts=activeScoreArrays(x);return `<div class="tv-team-cell ${x===m?'current':''}"><div class="tv-team-cell-points">${esc(tvPointText(pts.R))}</div><div class="tv-team-name-wrap"><strong class="tv-team-cell-name" data-tv-fit data-min="16">${esc(x.red||'TBD')}</strong><span class="position">${i+1}</span></div></div>`}).join('');
   return `<div class="tv-shell">
-    <header><div class="tv-court-label">Court ${esc(court)}</div><div class="tv-context" data-tv-fit data-min="22">${esc(meta.division)}</div><div class="tv-context-meta">${esc(meta.line)}</div></header>
-    <main class="tv-team-main"><div class="tv-team-head"><div class="tv-team-name" data-tv-fit data-min="24">${esc(first.teamWhite||m.teamWhite||'White Team')}</div><div class="tv-team-name red" data-tv-fit data-min="24">${esc(first.teamRed||m.teamRed||'Red Team')}</div></div><div class="tv-team-roster"><div class="tv-team-column">${whiteRows}</div><div class="tv-team-column red">${redRows}</div></div></main>
-    ${tvNextHtml(data.next)}
+    <header><div class="tv-court-label">Court ${esc(court)}</div><div class="tv-context" data-tv-fit data-min="26">${esc(meta.division)}</div><div class="tv-context-meta">${esc(meta.line)}</div></header>
+    <main class="tv-team-main"><div class="tv-team-head"><div class="tv-team-name" data-tv-fit data-min="24">${esc(first.teamWhite||m.teamWhite||'White Team')}</div><div class="tv-team-name red" data-tv-fit data-min="24">${esc(first.teamRed||m.teamRed||'Red Team')}</div></div><div class="tv-team-roster"><div class="tv-team-column">${whiteRows}</div><div class="tv-team-column red">${redRows}</div></div><div class="tv-team-summary"><div class="white"><span class="label">Wins</span> <b>${summary.wWins}</b> &nbsp; <span class="label">Points</span> <b>${summary.wPts}</b></div><div></div><div class="red"><span class="label">Wins</span> <b>${summary.rWins}</b> &nbsp; <span class="label">Points</span> <b>${summary.rPts}</b></div></div></main>
+    ${tvTeamNextHtml(court,m)}
   </div>`;
 }
 function renderTvDisplay(){

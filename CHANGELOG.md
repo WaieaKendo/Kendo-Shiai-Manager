@@ -1,6 +1,18 @@
 # Changelog
 
-## v3.15.4 — Court TV Display Refinement
+## v3.15.5 — TV & Team Live Scores Refinement
+
+- Removed residual header chrome from the dedicated TV display.
+- Enlarged and tightened the Court / Division / Pool hierarchy.
+- Split individual competitor names over first-name and remaining-name lines.
+- Moved point letters medially beside the VS marker and preserved large name text.
+- Reduced unused vertical space and enlarged the Next Match area.
+- Added auto-fitting team names, current-player outlines, and team Wins/Points totals.
+- Team TV next-match information now uses the next team pairing.
+- Team Live Scores now reuse the full Court Context match sheet.
+- Added Court A and Court B TV launch access to the main navigation.
+
+## v3.15.5 — Court TV Display Refinement
 
 - Rebuilt the dedicated one-court TV display for 16:9 screens.
 - Removed tournament-name and numeric-score presentation from TV mode.
@@ -12,7 +24,7 @@
 - Added a team TV layout derived from Court Context: sequential lineups, medial point letters, and gold outlines around the current player pair.
 - Tournament Engine remains frozen at v3.12.9.
 
-## v3.15.4 — Shared Views & TV Display
+## v3.15.5 — Shared Views & TV Display
 
 - Renamed the Director navigation destination to Tournament Overview and made the same read-only overview available to Admin, Scorekeeper, and Spectator sessions.
 - Made the Courts view structurally identical across roles; spectators see current match, Court Context, and Court Queue without scoring, Undo, Fusen-gachi, or Next Match controls.
