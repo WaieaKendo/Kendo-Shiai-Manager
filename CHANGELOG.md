@@ -1,5 +1,17 @@
 # Changelog
 
+## v3.15.6 — Full-Screen Court TV Display
+
+- Locked each TV session to the court specified by its Court A or Court B link.
+- Prevented synchronized tournament state from reverting Court B displays to Court A.
+- Made TV mode landscape-only with a rotate-device prompt in portrait orientation.
+- Bound TV mode to the full dynamic viewport with hidden overflow and no scrolling.
+- Renamed the footer to Upcoming Matches and displayed the next two court matches in chronological order.
+- Enlarged Upcoming Matches headings, names, and VS labels for distance viewing.
+- Kept individual TV matches free of redundant White and Red text labels.
+- Updated the Live Scores heading to use the same framed page-heading language as other KSM views.
+- Tournament Engine remains frozen at v3.12.9.
+
 ## v3.15.5 — TV & Team Live Scores Refinement
 
 - Removed residual header chrome from the dedicated TV display.
