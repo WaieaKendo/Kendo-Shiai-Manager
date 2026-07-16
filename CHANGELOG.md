@@ -1,5 +1,15 @@
 # Changelog
 
+## v3.15.7 — TV Display Stabilization & Navigation Freeze
+
+- Replaced the fluid TV layout with a fixed 1920×1080 (16:9) presentation canvas that scales as one unit.
+- Locked Court A and Court B TV sessions to the court encoded in their URL.
+- Removed the portrait-only rotation gate; non-16:9 devices may scroll while preserving the canvas.
+- Kept Upcoming Matches as two chronological rows.
+- Removed Search from navigation and the application interface.
+- Limited TV navigation to Admin/Director and Scorekeeper roles; Spectator navigation excludes TV.
+- Standardized the shared read-only page label as Tournament Overview.
+
 ## v3.15.6 — Full-Screen Court TV Display
 
 - Locked each TV session to the court specified by its Court A or Court B link.

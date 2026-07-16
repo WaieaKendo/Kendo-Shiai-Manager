@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 const html=fs.readFileSync('public/index.html','utf8');
 const checks=[
- ['version 3.15.6',html.includes('v3.15.6')],
+ ['version 3.15.7',html.includes('v3.15.7')],
  ['tournament name removed from TV renderer',!html.includes('<div class="tv-tournament">${esc(audienceTournamentName())}</div>')],
  ['court is primary heading',html.includes('tv-court-label')&&html.includes('Court ${esc(court)}')],
  ['division is gold context',html.includes('.tv-context')&&html.includes('color:#e3bd5b')],

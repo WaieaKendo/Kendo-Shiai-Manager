@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 const html=fs.readFileSync('public/index.html','utf8');
 const checks=[
- ['v3.15.6 visible',html.includes('v3.15.6')],
+ ['v3.15.7 visible',html.includes('v3.15.7')],
  ['TV navigation available',html.includes('id="tvMenu"')&&html.includes("launchTvDisplay('A')")&&html.includes("launchTvDisplay('B')")],
  ['TV opens separate court link',html.includes("window.open(tvLink(court),'_blank','noopener')")],
  ['TV header has no generic header chrome',html.includes('.tv-shell header{all:unset')],

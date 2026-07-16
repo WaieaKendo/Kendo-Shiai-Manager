@@ -4709,7 +4709,7 @@ body.ksm-tv #tv{display:block !important;width:100dvw;height:100dvh;overflow:hid
 #sessionRole[data-role="director"],#sessionRole[data-role="admin"],#sessionRole[data-role="scorekeeper"]{font-weight:800}
 .spectator-readonly-banner{position:sticky;top:0;z-index:1200;text-align:center;padding:7px 12px;background:#f3eee3;border-bottom:1px solid #d9cba9;color:#55472f;font:700 12px/1.2 system-ui;letter-spacing:.04em}
 
-/* KSM v3.15.6 — landscape full-screen TV display and upcoming matches */
+/* KSM v3.15.7 — landscape full-screen TV display and upcoming matches */
 .live-scores-overview{max-width:1320px;margin:0 auto;padding:12px 0 22px}
 .live-scores-heading{max-width:1320px;margin:0 auto 14px;padding:14px 18px;text-align:left;background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:0 8px 22px rgba(29,35,42,.06)}.live-scores-heading h1{margin:2px 0 0;font-size:clamp(24px,3vw,34px)}
 .live-courts-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
@@ -4738,6 +4738,30 @@ body.ksm-tv #tv{display:block !important;width:100dvw;height:100dvh;overflow:hid
 .tv-empty{place-items:center;text-align:center;grid-template-rows:1fr}.tv-empty .tv-court-label{margin-bottom:24px}.tv-empty h1{font-size:clamp(42px,7vw,100px);font-weight:800}
 @media(max-width:780px) and (orientation:landscape){.tv-shell{padding:12px 16px 9px}.tv-court-label{font-size:clamp(52px,14vw,90px)}.tv-context{font-size:clamp(25px,6.4vw,38px)}.tv-context-meta{font-size:clamp(17px,4vw,24px)}.tv-individual-match{grid-template-columns:minmax(0,1fr) auto auto auto minmax(0,1fr);gap:4px}.tv-player-name{font-size:clamp(32px,7vw,50px)}.tv-point-string{font-size:clamp(31px,7vw,50px);min-width:45px}.tv-team-head,.tv-team-roster{gap:10px}.tv-team-cell{padding:5px 7px;border-radius:7px}.tv-team-cell-name{font-size:clamp(17px,4vw,28px)}.tv-team-cell-points{font-size:clamp(17px,4vw,28px)}}
 </style>
+
+<style>
+/* KSM v3.15.7 — fixed 16:9 TV canvas and simplified role navigation */
+body.ksm-spectator .tv-role-access{display:none!important}
+body.ksm-tv,body.ksm-tv html{min-height:100%;height:auto;overflow:auto!important;background:#061b2c}
+body.ksm-tv main{width:100%;height:auto;min-height:100vh;overflow:visible!important;padding:0!important;display:flex;justify-content:center;align-items:flex-start;background:#061b2c}
+body.ksm-tv #tv{width:100%;height:auto;min-height:100vh;overflow:visible!important;display:flex!important;justify-content:center;align-items:flex-start;background:#061b2c}
+body.ksm-tv .tv-rotate-message{display:none!important}
+.tv-court-display{--tv-scale:1;position:relative;flex:0 0 auto;overflow:hidden;background:#061b2c;color:#fff;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.tv-canvas{width:1920px;height:1080px;transform:scale(var(--tv-scale));transform-origin:top left;background:#061b2c;overflow:hidden}
+.tv-shell,.tv-empty{width:1920px;height:1080px;box-sizing:border-box;padding:28px 54px 24px;display:grid;grid-template-rows:190px 600px 238px;gap:0;overflow:hidden}
+.tv-shell header{all:unset;display:block;text-align:center;padding:0!important;margin:0!important;background:transparent!important;border:0!important;box-shadow:none!important}
+.tv-court-label{font-size:132px;line-height:.82;font-weight:900;letter-spacing:.02em;color:#fff;text-transform:uppercase}
+.tv-context{margin-top:18px;font-size:58px;line-height:1;font-weight:850;color:#e3bd5b;white-space:nowrap;overflow:hidden}
+.tv-context-meta{margin-top:10px;font-size:31px;line-height:1;font-weight:750;color:#fff;opacity:.9}
+.tv-individual-match{display:grid;grid-template-columns:minmax(0,1fr) 170px 74px 170px minmax(0,1fr);align-items:center;gap:18px;min-height:0;padding:28px 0 18px}
+.tv-individual-name-side{min-width:0;height:420px;box-sizing:border-box;display:flex;align-items:center;border-top:17px solid #fff;padding:28px 34px}.tv-individual-name-side.white{border-left:17px solid #fff}.tv-individual-name-side.red{border-top-color:#d92f38;border-right:17px solid #d92f38;text-align:right;justify-content:flex-end}
+.tv-name-block{width:100%;min-width:0}.tv-player-name{font-size:92px;line-height:.9;font-weight:820;color:#fff;display:flex;flex-direction:column;letter-spacing:-.02em}.tv-player-name span{display:block;white-space:nowrap;overflow:hidden}.tv-player-dojo{font-size:31px;font-weight:650;opacity:.74;margin-top:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tv-point-string{font-size:94px;font-weight:850;letter-spacing:.08em;line-height:1;color:#fff;white-space:nowrap;text-align:center}.tv-vs{font-size:38px;font-weight:850;color:#e3bd5b;text-transform:uppercase;text-align:center}
+.tv-next{border-top:2px solid rgba(255,255,255,.25);padding-top:16px;text-align:center;overflow:hidden}.tv-next-label{font-size:44px;line-height:1;font-weight:850;letter-spacing:.08em;color:#e3bd5b;text-transform:uppercase}.tv-upcoming-list{margin-top:12px;display:grid;grid-template-rows:repeat(2,1fr);gap:8px}.tv-next-pair{display:grid;grid-template-columns:minmax(0,1fr) 90px minmax(0,1fr);align-items:center;gap:28px}.tv-next-player strong{display:block;font-size:52px;line-height:.95;font-weight:800;color:#fff;white-space:nowrap}.tv-next-player small{display:block;font-size:22px;opacity:.72;margin-top:5px}.tv-next-pair>span{font-size:40px;font-weight:850;color:#e3bd5b}
+.tv-team-main{display:grid;grid-template-rows:84px 438px 62px;gap:8px;min-height:0}.tv-team-head{display:grid;grid-template-columns:1fr 1fr;gap:64px}.tv-team-name{border-top:17px solid #fff;padding-top:12px;font-size:58px;line-height:1;font-weight:850;color:#fff;white-space:nowrap;overflow:hidden}.tv-team-name.red{border-top-color:#d92f38;text-align:right}.tv-team-roster{display:grid;grid-template-columns:1fr 1fr;gap:64px;min-height:0}.tv-team-column{display:grid;grid-template-rows:repeat(5,1fr);gap:7px}.tv-team-cell{display:grid;grid-template-columns:minmax(0,1fr) 126px;align-items:center;gap:16px;padding:8px 16px;border:2px solid rgba(255,255,255,.13);border-radius:10px;min-width:0}.tv-team-column.red .tv-team-cell{grid-template-columns:126px minmax(0,1fr);text-align:right}.tv-team-cell.current{border:6px solid #e3bd5b}.tv-team-cell .position{font-size:20px;font-weight:800;color:#e3bd5b;margin-right:10px}.tv-team-cell-name{font-size:39px;font-weight:780;color:#fff;white-space:nowrap;min-width:0}.tv-team-cell-points{font-size:39px;font-weight:850;letter-spacing:.08em;color:#fff;white-space:nowrap}.tv-team-summary{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;border-top:1px solid rgba(255,255,255,.22);padding-top:8px;font-size:29px;font-weight:800}.tv-team-summary .white{text-align:left}.tv-team-summary .red{text-align:right}.tv-team-summary .label{color:#e3bd5b;font-size:.72em;text-transform:uppercase;letter-spacing:.08em}.tv-team-summary b{font-size:1.25em}
+.tv-empty{place-items:center;text-align:center;grid-template-rows:1fr}.tv-empty h1{font-size:86px;font-weight:800}
+@media print{body.ksm-tv{overflow:visible!important}}
+</style>
 </head>
 <body>
 <header class="ksm-topbar">
@@ -4746,7 +4770,7 @@ body.ksm-tv #tv{display:block !important;width:100dvw;height:100dvh;overflow:hid
     <div class="nav-brand-copy">
       <span class="nav-brand-name">KSM</span>
       <span class="nav-brand-subtitle">Kendo Shiai Manager</span>
-      <span class="version-badge">v3.15.6</span>
+      <span class="version-badge">v3.15.7</span>
     </div>
   </div>
 
@@ -4777,7 +4801,7 @@ body.ksm-tv #tv{display:block !important;width:100dvw;height:100dvh;overflow:hid
       <span>Live Scores</span>
     </button>
 
-    <div class="nav-menu nav-tile-wrap role-court-access">
+    <div class="nav-menu nav-tile-wrap role-court-access tv-role-access">
       <button class="nav-tile nav-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="tvMenu" onclick="toggleNavMenu('tvMenu',event)" title="TV Display">
         <img src="/assets/nav-icons/live-scores.svg" alt="">
         <span>TV <b aria-hidden="true">▾</b></span>
@@ -4793,10 +4817,6 @@ body.ksm-tv #tv{display:block !important;width:100dvw;height:100dvh;overflow:hid
       <span>Overview</span>
     </button>
 
-    <button class="nav-tile restricted-nav-extra" onclick="navigateTo('search')" title="Search">
-      <img src="/assets/nav-icons/search.svg" alt="">
-      <span>Search</span>
-    </button>
 
     <button class="nav-tile" onclick="navigateTo('results')" title="Results">
       <img src="/assets/nav-icons/results.svg" alt="">
@@ -5166,10 +5186,8 @@ body.ksm-tv #tv{display:block !important;width:100dvw;height:100dvh;overflow:hid
   <div id="publicLive" class="live-scores-overview"></div>
 </section>
 <section id="tv" class="view hidden" aria-label="TV Court Display">
-  <div id="tvRotate" class="tv-rotate-message"><div><h1>Rotate device</h1><p>TV Display is designed for landscape viewing.</p></div></div>
   <div id="tvLive" class="tv-court-display"></div>
 </section>
-<section id="search" class="view hidden"><div class="grid"><div class="card"><h1>Search</h1><div class="field"><label>Competitor</label><input id="searchName" oninput="renderSearch()" placeholder="Start typing a name"><div id="nameResults" class="search-results hidden"></div></div><div class="field"><label>Dojo / Team</label><input id="searchDojo" oninput="renderSearch()" placeholder="Start typing a dojo"><div id="dojoResults" class="search-results hidden"></div></div></div><div id="profile" class="card"><h1>Profile</h1><p class="sub">Select a competitor or dojo.</p></div></div></section>
 <section id="results" class="view hidden">
   <div class="results-page">
     <div class="results-hero">
@@ -6198,7 +6216,7 @@ function activeScoreArrays(m){let arr=state.allMatches[m.division]||[],idx=arr.i
 function teamSheetHtml(div,pair,currentMatch){let matches=(state.allMatches[div]||[]).filter(m=>m.teamPair===pair && (m.type==='teamPosition'||m.type==='teamPlayoff'));let first=matches[0]||{};let s=teamPairSummary(div,pair);let rows=matches.map(x=>{let pts=activeScoreArrays(x);let mid=x===currentMatch?'NOW':(x.done?'DONE':esc(x.position||''));return `<div class="team-sheet-row ${x===currentMatch?'gold':''}"><div class="white"><b>${esc(x.white)}</b><div class="live-points">${pts.W.join(' ')}</div></div><div class="vs">${mid}</div><div class="red"><b>${esc(x.red)}</b><div class="live-points">${pts.R.join(' ')}</div></div></div>`}).join('');return `<div class="team-sheet"><div class="team-sheet-head"><div>${esc(first.teamWhite||'White Team')}</div><div class="redHead">${esc(first.teamRed||'Red Team')}</div></div>${rows}<div class="team-score-footer"><div class="white">Wins ${s.wWins}<br><span class="small">Points ${s.wPts}</span></div><div></div><div class="red">Wins ${s.rWins}<br><span class="small">Points ${s.rPts}</span></div></div></div>`}
 function renderPublic(){let data=courtCurrentMatch(state.publicCourt||'A');function panel(label,data){if(!data)return `<div class="fighter"><div class="court-chip">Court ${label}</div><h2>No active match</h2></div>`;let m=data.match,n=data.next,pts=activeScoreArrays(m);if(m.type==='teamPosition'||m.type==='teamPlayoff'||m.type==='kachinuki'){return `<div class="fighter"><div class="court-chip">Court ${label} • ${esc(data.division)}</div><h2>${esc(m.teamWhite)} vs ${esc(m.teamRed)}</h2>${m.type==='kachinuki'?kachinukiSheetHtml(m):teamSheetHtml(m.division,m.teamPair,m)}</div>`}return `<div class="fighter"><div class="court-chip">Court ${label} • ${esc(data.division)}${m.position?' • '+esc(m.position):''}</div><div class="scorebox"><div><div class="small">White</div><h2>${esc(m.white)}</h2><div class="points">${pts.W.join(' ')}</div></div><div class="redside"><div class="small">Red</div><h2>${esc(m.red)}</h2><div class="points">${pts.R.join(' ')}</div></div></div><h3>On Deck</h3>${n?`<div class="queue-row"><div class="white">${esc(n.white)}<div class="small">${esc(n.wdojo||'')}</div></div><div class="vs">vs<div class="small">${n.position?esc(n.position):''}</div></div><div class="red">${esc(n.red)}<div class="small">${esc(n.rdojo||'')}</div></div></div>`:'<div class="small">None</div>'}</div>`}if(window.publicTitle)publicTitle.textContent='Live Scores • Court '+(state.publicCourt||'A');publicLive.innerHTML=panel(state.publicCourt||'A',data)}
 function renderProgress(){progActive.innerHTML=`<b>${esc(state.currentDivision)}</b><br><span class="small">${state.matches[state.current]?`Pool ${state.matches[state.current].pool}`:'Not started'}</span>`;progUpcoming.innerHTML=state.divisions.filter(d=>d!==state.currentDivision).slice(0,4).map(d=>`<div class="competitor-line">${esc(d)}</div>`).join('')}
-function renderSearch(){let q=searchName.value.toLowerCase(),d=searchDojo.value.toLowerCase();let names=state.competitors.filter(c=>q&&c.name.toLowerCase().includes(q)).slice(0,8);nameResults.classList.toggle('hidden',!names.length);nameResults.innerHTML=names.map((c,i)=>`<div class="search-item" onclick="showCompProfile(${state.competitors.indexOf(c)})">${esc(c.name)}<div class="small">${esc(c.dojo)} • ${esc(c.division)}</div></div>`).join('');let dojos=[...new Set([...state.competitors.map(c=>c.dojo),...state.teams.map(t=>t.dojo)].filter(Boolean))].filter(x=>d&&x.toLowerCase().includes(d)).slice(0,8);dojoResults.classList.toggle('hidden',!dojos.length);dojoResults.innerHTML=dojos.map(x=>`<div class="search-item" onclick="showDojoProfile('${esc(x)}')">${esc(x)}</div>`).join('')}
+function renderSearch(){if(!window.searchName||!window.searchDojo)return;let q=searchName.value.toLowerCase(),d=searchDojo.value.toLowerCase();let names=state.competitors.filter(c=>q&&c.name.toLowerCase().includes(q)).slice(0,8);nameResults.classList.toggle('hidden',!names.length);nameResults.innerHTML=names.map((c,i)=>`<div class="search-item" onclick="showCompProfile(${state.competitors.indexOf(c)})">${esc(c.name)}<div class="small">${esc(c.dojo)} • ${esc(c.division)}</div></div>`).join('');let dojos=[...new Set([...state.competitors.map(c=>c.dojo),...state.teams.map(t=>t.dojo)].filter(Boolean))].filter(x=>d&&x.toLowerCase().includes(d)).slice(0,8);dojoResults.classList.toggle('hidden',!dojos.length);dojoResults.innerHTML=dojos.map(x=>`<div class="search-item" onclick="showDojoProfile('${esc(x)}')">${esc(x)}</div>`).join('')}
 function showCompProfile(i){let c=state.competitors[i];profile.innerHTML=`<h1>${esc(c.name)}</h1><p>${esc(c.dojo)} • ${esc(c.division)}</p><p>Status: ${esc(c.status)}</p>`}
 function showDojoProfile(x){let n=state.competitors.filter(c=>c.dojo===x).length,t=state.teams.filter(c=>c.dojo===x).length;profile.innerHTML=`<h1>${esc(x)}</h1><p>${n} individual entries • ${t} teams</p>`}
 function pointsFor(m,side){return (side==='W'?m.wp:m.rp)||[]}
@@ -6721,7 +6739,7 @@ function dropPoolPlayer(ev,toLabel){ev.preventDefault();let div=poolDiv?.value||
 function toggleEditPools(){let div=poolDiv?.value||state.currentDivision;let pools=state.pools[div]||[];if(!pools.length)return;poolOutput.className='pools-layout';poolOutput.innerHTML='<div><div class="toolbar"><button class="primary" onclick="saveEditedPools()">Save Pool Changes</button><button onclick="renderPools()">Cancel</button></div><p class="sub">Drag players between pools or drop between names to insert into that position.</p><div class="pool-list">'+pools.map((p,pi)=>`<div class="pool" ondragover="event.preventDefault();this.classList.add('drop-target')" ondragleave="this.classList.remove('drop-target')" ondrop="if(event.target===this)dropPoolPlayer(event,'${esc(p.label)}');this.classList.remove('drop-target')"><h3>Pool ${esc(p.label)}</h3><div class="drop-zone" ondragover="event.preventDefault()" ondrop="insertPoolPlayer(event,'${esc(p.label)}',0)"></div>${p.players.map((x,idx)=>`<div class="drag-player" draggable="true" ondragstart="dragPoolPlayer(event,'${esc(p.label)}',${idx})"><b>${esc(x.name)}</b><span class="small" style="float:right">${esc(x.dojo||'')}</span></div><div class="drop-zone" ondragover="event.preventDefault()" ondrop="insertPoolPlayer(event,'${esc(p.label)}',${idx+1})"></div>`).join('')}</div>`).join('')+'</div></div><div><h2>Championship Preview</h2>'+bracketHtml(div)+'</div>';}
 function movePoolPlayer(fromPool,idx,toPool){let div=poolDiv?.value||state.currentDivision;let pools=state.pools[div]||[];toPool=parseInt(toPool,10);if(fromPool===toPool)return;let player=pools[fromPool].players.splice(idx,1)[0];if(player)pools[toPool].players.push(player);toggleEditPools();}
 function saveEditedPools(){let div=poolDiv?.value||state.currentDivision;state.allMatches[div]=buildPoolMatches(div,state.pools[div]||[]);state.currentByDivision[div]=0;if(div===state.currentDivision)setActiveDivision(div);renderPools();}
-function renderAll(){renderDivisions();renderReg();renderTeams();renderExhibitions();renderPools();renderScore();renderProgress();renderSearch();renderContext();saveSetup();renderTournamentStatus();updateUndoButton()}
+function renderAll(){renderDivisions();renderReg();renderTeams();renderExhibitions();renderPools();renderScore();renderProgress();renderContext();saveSetup();renderTournamentStatus();updateUndoButton()}
 function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 document.addEventListener('paste',e=>{if(!registration.classList.contains('hidden')&&state.regMode==='individual'){let text=e.clipboardData.getData('text');if(text&&text.includes('\t')){e.preventDefault();text.trim().split(/\n/).forEach(line=>{let[name,dojo,division,seed,status]=line.split('\t');if(name){if(division&&!state.divisions.includes(division))state.divisions.push(division);state.competitors.push({name,dojo:dojo||'',division:division||state.divisions[0],seed:seed||'',status:(status||'Registered').replace('Checked In','Checked')})}});renderDivisions();renderReg()}}});
 
@@ -7786,7 +7804,6 @@ function setActiveNavForView(viewId){
     public:"Live Scores",
     director:"Overview",
     tv:"TV Display",
-    search:"Search",
     results:"Results",
     print:"Export"
   };
@@ -8051,14 +8068,15 @@ function fitTvText(root=tvLive){
 function tvPointText(points){return (points||[]).join(' ')||'—'}
 function tvNameLines(name){const parts=String(name||'TBD').trim().split(/\s+/).filter(Boolean);if(parts.length<2)return [parts[0]||'TBD',''];return [parts[0],parts.slice(1).join(' ')]}
 function tvNameHtml(name){const [first,last]=tvNameLines(name);return `<span>${esc(first)}</span>${last?`<span>${esc(last)}</span>`:''}`}
-function tvAssignedCourt(){const value=(new URLSearchParams(location.search).get('court')||cloudSession.court||'A').toUpperCase();return value==='B'?'B':'A'}
+const KSM_TV_ASSIGNED_COURT=(()=>{const value=(new URLSearchParams(location.search).get('court')||'A').toUpperCase();return value==='B'?'B':'A'})();
+function tvAssignedCourt(){return KSM_TV_ASSIGNED_COURT}
 function tvUpcomingMatches(court,current,teamMode=false){let all=state.allMatches[current.division]||[];if(all.some(isTeamMatch))all=sortTeamMatches(current.division);const idx=all.indexOf(current);let candidates=all.slice(Math.max(0,idx+1)).filter(x=>!x.done&&matchBelongsToCourt(x,court));if(teamMode){const seen=new Set();candidates=candidates.filter(x=>{const key=x.teamPair||`${x.teamWhite}|${x.teamRed}`;if(!isTeamMatch(x)||key===current.teamPair||seen.has(key))return false;seen.add(key);return true})}return candidates.slice(0,2)}
 function tvUpcomingHtml(court,m,teamMode=false){const upcoming=tvUpcomingMatches(court,m,teamMode);const rows=upcoming.map(next=>{const left=teamMode?(next.teamWhite||next.wdojo||'TBD'):(next.white||'TBD');const right=teamMode?(next.teamRed||next.rdojo||'TBD'):(next.red||'TBD');const leftSub=teamMode?'':(next.wdojo||'');const rightSub=teamMode?'':(next.rdojo||'');return `<div class="tv-next-pair"><div class="tv-next-player"><strong data-tv-fit data-min="22">${esc(left)}</strong>${leftSub?`<small>${esc(leftSub)}</small>`:''}</div><span>vs</span><div class="tv-next-player"><strong data-tv-fit data-min="22">${esc(right)}</strong>${rightSub?`<small>${esc(rightSub)}</small>`:''}</div></div>`}).join('');return `<div class="tv-next"><div class="tv-next-label">Upcoming Matches</div><div class="tv-upcoming-list">${rows||'<div class="tv-next-pair"><div class="tv-next-player"><strong>Queue complete</strong></div></div>'}</div></div>`}
 async function launchTvDisplay(court){closeNavMenus();if(!cloudSession.tournamentId)await saveNow();if(!cloudSession.tournamentId){alert('Save the tournament to cloud before opening TV Display.');return}window.open(tvLink(court),'_blank','noopener')}
 
 function tvIndividualHtml(court,data){
   const m=data.match,meta=audienceMeta(m),pts=activeScoreArrays(m);
-  return `<div class="tv-shell">
+  return `<div class="tv-canvas"><div class="tv-shell">
     <header><div class="tv-court-label">Court ${esc(court)}</div><div class="tv-context" data-tv-fit data-min="26">${esc(meta.division)}</div><div class="tv-context-meta">${esc(meta.line)}</div></header>
     <main class="tv-individual-match">
       <section class="tv-individual-name-side white"><div class="tv-name-block"><strong class="tv-player-name" data-tv-fit data-min="38">${tvNameHtml(m.white)}</strong><div class="tv-player-dojo">${esc(m.wdojo||'')}</div></div></section>
@@ -8068,7 +8086,7 @@ function tvIndividualHtml(court,data){
       <section class="tv-individual-name-side red"><div class="tv-name-block"><strong class="tv-player-name" data-tv-fit data-min="38">${tvNameHtml(m.red)}</strong><div class="tv-player-dojo">${esc(m.rdojo||'')}</div></div></section>
     </main>
     ${tvUpcomingHtml(court,m,false)}
-  </div>`;
+  </div></div>`;
 }
 function tvTeamHtml(court,data){
   const m=data.match,meta=audienceMeta(m);
@@ -8077,20 +8095,31 @@ function tvTeamHtml(court,data){
   const first=matches[0]||m,summary=teamPairSummary(m.division,m.teamPair);
   const whiteRows=matches.map((x,i)=>{const pts=activeScoreArrays(x);return `<div class="tv-team-cell ${x===m?'current':''}"><div class="tv-team-name-wrap"><span class="position">${i+1}</span><strong class="tv-team-cell-name" data-tv-fit data-min="16">${esc(x.white||'TBD')}</strong></div><div class="tv-team-cell-points">${esc(tvPointText(pts.W))}</div></div>`}).join('');
   const redRows=matches.map((x,i)=>{const pts=activeScoreArrays(x);return `<div class="tv-team-cell ${x===m?'current':''}"><div class="tv-team-cell-points">${esc(tvPointText(pts.R))}</div><div class="tv-team-name-wrap"><strong class="tv-team-cell-name" data-tv-fit data-min="16">${esc(x.red||'TBD')}</strong><span class="position">${i+1}</span></div></div>`}).join('');
-  return `<div class="tv-shell">
+  return `<div class="tv-canvas"><div class="tv-shell">
     <header><div class="tv-court-label">Court ${esc(court)}</div><div class="tv-context" data-tv-fit data-min="26">${esc(meta.division)}</div><div class="tv-context-meta">${esc(meta.line)}</div></header>
     <main class="tv-team-main"><div class="tv-team-head"><div class="tv-team-name" data-tv-fit data-min="24">${esc(first.teamWhite||m.teamWhite||'White Team')}</div><div class="tv-team-name red" data-tv-fit data-min="24">${esc(first.teamRed||m.teamRed||'Red Team')}</div></div><div class="tv-team-roster"><div class="tv-team-column">${whiteRows}</div><div class="tv-team-column red">${redRows}</div></div><div class="tv-team-summary"><div class="white"><span class="label">Wins</span> <b>${summary.wWins}</b> &nbsp; <span class="label">Points</span> <b>${summary.wPts}</b></div><div></div><div class="red"><span class="label">Wins</span> <b>${summary.rWins}</b> &nbsp; <span class="label">Points</span> <b>${summary.rPts}</b></div></div></main>
     ${tvUpcomingHtml(court,m,true)}
-  </div>`;
+  </div></div>`;
+}
+function fitTvCanvas(){
+  if(!window.tvLive)return;
+  const portrait=window.innerHeight>window.innerWidth;
+  const scale=portrait?(window.innerWidth/1920):Math.min(window.innerWidth/1920,window.innerHeight/1080);
+  const safe=Math.max(.1,scale);
+  tvLive.style.setProperty('--tv-scale',String(safe));
+  tvLive.style.width=(1920*safe)+'px';
+  tvLive.style.height=(1080*safe)+'px';
 }
 function renderTvDisplay(){
   if(!window.tvLive)return;
   const court=tvAssignedCourt(),data=courtCurrentMatch(court);
-  if(!data){tvLive.innerHTML=`<div class="tv-empty"><div><div class="tv-court-label">Court ${esc(court)}</div><h1>No active match</h1></div></div>`;return;}
+  if(!data){tvLive.innerHTML=`<div class="tv-canvas"><div class="tv-empty"><div><div class="tv-court-label">Court ${esc(court)}</div><h1>No active match</h1></div></div></div>`;fitTvCanvas();return;}
   const m=data.match;
   tvLive.innerHTML=(m.type==='teamPosition'||m.type==='teamPlayoff')?tvTeamHtml(court,data):tvIndividualHtml(court,data);
   fitTvText(tvLive);
+  fitTvCanvas();
 }
+window.addEventListener('resize',()=>{if(document.body.classList.contains('ksm-tv'))fitTvCanvas()});
 
 
 // ==========================================================
