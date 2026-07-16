@@ -1,3 +1,13 @@
+## v3.15.10 — TV Layout & Undo/Redo Stabilization
+
+- Corrected individual TV point placement into fixed medial score zones.
+- Centered and widened the team TV composition with equal team columns.
+- Restored pool/round context beneath the division heading.
+- Restored Upcoming Matches as two separate outlined match cards.
+- Included unresolved individual and team bracket placeholders, including team Semifinals and Finals.
+- Preserved independent, persistent, sequential Undo/Redo histories for Court A and Court B.
+- Tournament Engine remains frozen at v3.12.9.
+
 # Changelog
 
 ## v3.15.9 — TV Fixed Canvas & Court Action History

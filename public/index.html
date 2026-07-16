@@ -4863,6 +4863,59 @@ body.ksm-tv .tv-individual-match>.tv-point-string:nth-of-type(2){left:932px!impo
 body.ksm-tv .tv-shell>header,body.ksm-tv .tv-next,body.ksm-tv .tv-team-main{position:absolute!important}
 @media(max-width:1919px){html:has(body.ksm-tv),body.ksm-tv{overflow:auto!important}body.ksm-tv main{margin:0!important}}
 </style>
+
+<style>
+/* KSM v3.15.10 — deterministic TV zones and stacked upcoming-match cards */
+body.ksm-tv .tv-shell>header{
+  left:80px!important;right:80px!important;top:28px!important;height:205px!important;
+}
+body.ksm-tv .tv-court-label{font-size:126px!important;line-height:.84!important}
+body.ksm-tv .tv-context{font-size:55px!important;margin-top:14px!important}
+body.ksm-tv .tv-context-meta{display:block!important;font-size:30px!important;margin-top:10px!important;color:#fff!important;opacity:.92!important}
+
+/* Individual layout: five fixed horizontal zones. */
+body.ksm-tv .tv-individual-match{
+  display:block!important;position:absolute!important;left:64px!important;top:244px!important;
+  width:1792px!important;height:480px!important;margin:0!important;padding:0!important;overflow:hidden!important;
+}
+body.ksm-tv .tv-individual-name-side{position:absolute!important;top:30px!important;width:650px!important;height:410px!important;margin:0!important}
+body.ksm-tv .tv-individual-name-side.white{left:0!important}
+body.ksm-tv .tv-individual-name-side.red{left:1142px!important;right:auto!important}
+body.ksm-tv .tv-individual-match>.tv-point-string{position:absolute!important;top:184px!important;width:160px!important;margin:0!important;min-width:0!important;text-align:center!important}
+body.ksm-tv .tv-individual-match>.tv-white-points{left:676px!important}
+body.ksm-tv .tv-individual-match>.tv-vs{position:absolute!important;left:866px!important;top:205px!important;width:60px!important;margin:0!important;text-align:center!important}
+body.ksm-tv .tv-individual-match>.tv-red-points{left:956px!important}
+
+/* Team composition centered and expanded across the canvas. */
+body.ksm-tv .tv-team-main{
+  position:absolute!important;left:80px!important;top:238px!important;width:1760px!important;height:500px!important;
+  display:grid!important;grid-template-rows:82px 410px 62px!important;gap:8px!important;margin:0!important;padding:0!important;overflow:hidden!important;
+}
+body.ksm-tv .tv-team-head,body.ksm-tv .tv-team-roster{
+  width:1760px!important;grid-template-columns:830px 830px!important;column-gap:100px!important;margin:0!important;
+}
+body.ksm-tv .tv-team-column{width:830px!important}
+body.ksm-tv .tv-team-name{width:830px!important;box-sizing:border-box!important}
+body.ksm-tv .tv-team-cell{width:830px!important;box-sizing:border-box!important}
+body.ksm-tv .tv-team-summary{width:1760px!important;grid-template-columns:830px 100px 830px!important}
+
+/* Upcoming Matches always occupies the footer and each match has its own box. */
+body.ksm-tv .tv-next{
+  position:absolute!important;left:96px!important;top:770px!important;width:1728px!important;height:286px!important;
+  margin:0!important;padding:0!important;border-top:0!important;box-sizing:border-box!important;overflow:hidden!important;text-align:center!important;
+}
+body.ksm-tv .tv-next-label{height:56px!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:44px!important}
+body.ksm-tv .tv-upcoming-list{height:218px!important;margin-top:8px!important;display:grid!important;grid-template-rows:105px 105px!important;gap:8px!important}
+body.ksm-tv .tv-next-pair{
+  width:100%!important;height:105px!important;box-sizing:border-box!important;padding:9px 34px!important;
+  display:grid!important;grid-template-columns:minmax(0,1fr) 90px minmax(0,1fr)!important;gap:28px!important;align-items:center!important;
+  border:2px solid rgba(255,255,255,.32)!important;border-radius:12px!important;background:rgba(255,255,255,.025)!important;
+}
+body.ksm-tv .tv-next-empty{grid-template-columns:1fr!important}
+body.ksm-tv .tv-next-player strong{font-size:48px!important;line-height:.95!important}
+body.ksm-tv .tv-next-player small{font-size:21px!important;margin-top:4px!important}
+body.ksm-tv .tv-next-pair>span{font-size:38px!important}
+</style>
 </head>
 <body>
 <header class="ksm-topbar">
@@ -4871,7 +4924,7 @@ body.ksm-tv .tv-shell>header,body.ksm-tv .tv-next,body.ksm-tv .tv-team-main{posi
     <div class="nav-brand-copy">
       <span class="nav-brand-name">KSM</span>
       <span class="nav-brand-subtitle">Kendo Shiai Manager</span>
-      <span class="version-badge">v3.15.9</span>
+      <span class="version-badge">v3.15.10</span>
     </div>
   </div>
 
@@ -8230,22 +8283,58 @@ function tvIndividualSideLabel(match,side){
 }
 function tvTeamNodeEntries(court,current){
   const div=current.division,nodes=state.teamBracketNodes?.[div]||[],all=state.allMatches?.[div]||[],entries=[],seen=new Set();
-  const currentNode=current.teamNodeId;let started=!currentNode;
-  nodes.forEach(node=>{
-    if(node.id===currentNode){started=true;return}if(!started||node.winner||node.court!==court)return;
-    const matches=all.filter(m=>isTeamMatch(m)&&m.teamNodeId===node.id&&!m.done);const m=matches[0];
-    if(m){const key=m.teamPair||node.id;if(seen.has(key))return;seen.add(key);entries.push({teamWhite:m.teamWhite||m.wdojo||teamSideLabel(node.right,div),teamRed:m.teamRed||m.rdojo||teamSideLabel(node.left,div),position:node.round});}
-    else entries.push({teamWhite:teamSideLabel(node.right,div),teamRed:teamSideLabel(node.left,div),position:node.round,placeholder:true});
+  let currentNodeIndex=nodes.findIndex(n=>n.id===current.teamNodeId);
+  if(currentNodeIndex<0&&current.teamPair){
+    const sibling=all.find(x=>x.teamPair===current.teamPair&&x.teamNodeId);
+    if(sibling)currentNodeIndex=nodes.findIndex(n=>n.id===sibling.teamNodeId);
+  }
+  nodes.forEach((node,nodeIndex)=>{
+    if(nodeIndex<=currentNodeIndex||node.winner)return;
+    const nodeCourt=String(node.court||'').toUpperCase();
+    if(nodeCourt&&nodeCourt!=='BOTH'&&nodeCourt!==court)return;
+    const matches=all.filter(m=>isTeamMatch(m)&&m.teamNodeId===node.id&&!m.done);
+    const m=matches[0];
+    const white=m?(m.teamWhite||m.wdojo||teamSideLabel(node.right,div)):teamSideLabel(node.right,div);
+    const red=m?(m.teamRed||m.rdojo||teamSideLabel(node.left,div)):teamSideLabel(node.left,div);
+    const key=m?.teamPair||node.id;
+    if(seen.has(key))return;
+    seen.add(key);
+    entries.push({teamWhite:white||'TBD',teamRed:red||'TBD',position:node.round||m?.position||'',teamNodeId:node.id,teamPair:m?.teamPair||'',placeholder:!m});
   });
   return entries;
 }
 function tvUpcomingMatches(court,current,teamMode=false){
-  let all=state.allMatches[current.division]||[];if(all.some(isTeamMatch))all=sortTeamMatches(current.division);else all=sortIndividualDivisionMatches(current.division,all);
-  const idx=all.indexOf(current);let candidates=all.slice(Math.max(0,idx+1)).filter(x=>!x.done&&matchBelongsToCourt(x,court));
-  if(teamMode){const seen=new Set(),actual=[];candidates.forEach(x=>{const key=x.teamPair||x.teamNodeId||`${x.teamWhite}|${x.teamRed}`;if(!isTeamMatch(x)||key===current.teamPair||seen.has(key))return;seen.add(key);actual.push(x)});return [...actual,...tvTeamNodeEntries(court,current).filter(x=>!seen.has(x.teamPair||x.teamNodeId||`${x.teamWhite}|${x.teamRed}`))].slice(0,2)}
+  let all=state.allMatches[current.division]||[];
+  if(all.some(isTeamMatch))all=sortTeamMatches(current.division);else all=sortIndividualDivisionMatches(current.division,all);
+  const idx=all.indexOf(current);
+  let candidates=all.slice(Math.max(0,idx+1)).filter(x=>!x.done&&matchBelongsToCourt(x,court));
+  if(teamMode){
+    const seen=new Set(),actual=[];
+    candidates.forEach(x=>{
+      const key=x.teamPair||x.teamNodeId||`${x.teamWhite}|${x.teamRed}`;
+      if(!isTeamMatch(x)||key===current.teamPair||seen.has(key))return;
+      seen.add(key);actual.push(x);
+    });
+    tvTeamNodeEntries(court,current).forEach(x=>{
+      const key=x.teamPair||x.teamNodeId||`${x.teamWhite}|${x.teamRed}`;
+      if(!seen.has(key)){seen.add(key);actual.push(x)}
+    });
+    return actual.slice(0,2);
+  }
   return candidates.slice(0,2);
 }
-function tvUpcomingHtml(court,m,teamMode=false){const upcoming=tvUpcomingMatches(court,m,teamMode);const rows=upcoming.map(next=>{const left=teamMode?(next.teamWhite||next.wdojo||'TBD'):tvIndividualSideLabel(next,'white');const right=teamMode?(next.teamRed||next.rdojo||'TBD'):tvIndividualSideLabel(next,'red');const leftSub=teamMode?(next.position||''):(next.wdojo||'');const rightSub=teamMode?'':(next.rdojo||'');return `<div class="tv-next-pair"><div class="tv-next-player"><strong data-tv-fit data-min="22">${esc(left)}</strong>${leftSub?`<small>${esc(leftSub)}</small>`:''}</div><span>vs</span><div class="tv-next-player"><strong data-tv-fit data-min="22">${esc(right)}</strong>${rightSub?`<small>${esc(rightSub)}</small>`:''}</div></div>`}).join('');return `<div class="tv-next"><div class="tv-next-label">Upcoming Matches</div><div class="tv-upcoming-list">${rows||'<div class="tv-next-pair"><div class="tv-next-player"><strong>Queue complete</strong></div></div>'}</div></div>`}
+function tvUpcomingHtml(court,m,teamMode=false){
+  const upcoming=tvUpcomingMatches(court,m,teamMode);
+  const rows=upcoming.map(next=>{
+    const left=teamMode?(next.teamWhite||next.wdojo||'TBD'):tvIndividualSideLabel(next,'white');
+    const right=teamMode?(next.teamRed||next.rdojo||'TBD'):tvIndividualSideLabel(next,'red');
+    const leftSub=teamMode?(next.position||''):(next.wdojo||next.position||'');
+    const rightSub=teamMode?'':(next.rdojo||'');
+    return `<div class="tv-next-pair"><div class="tv-next-player"><strong data-tv-fit data-min="22">${esc(left)}</strong>${leftSub?`<small>${esc(leftSub)}</small>`:''}</div><span>vs</span><div class="tv-next-player"><strong data-tv-fit data-min="22">${esc(right)}</strong>${rightSub?`<small>${esc(rightSub)}</small>`:''}</div></div>`;
+  }).join('');
+  const body=rows||'<div class="tv-next-pair tv-next-empty"><div class="tv-next-player"><strong>Queue complete</strong></div></div>';
+  return `<div class="tv-next"><div class="tv-next-label">Upcoming Matches</div><div class="tv-upcoming-list">${body}</div></div>`;
+}
 async function launchTvDisplay(court){closeNavMenus();if(!cloudSession.tournamentId)await saveNow();if(!cloudSession.tournamentId){alert('Save the tournament to cloud before opening TV Display.');return}window.open(tvLink(court),'_blank','noopener')}
 
 function tvIndividualHtml(court,data){
@@ -8254,9 +8343,9 @@ function tvIndividualHtml(court,data){
     <header><div class="tv-court-label">Court ${esc(court)}</div><div class="tv-context" data-tv-fit data-min="26">${esc(meta.division)}</div><div class="tv-context-meta">${esc(meta.line)}</div></header>
     <main class="tv-individual-match">
       <section class="tv-individual-name-side white"><div class="tv-name-block"><strong class="tv-player-name" data-tv-fit data-min="38">${tvNameHtml(tvIndividualSideLabel(m,'white'))}</strong><div class="tv-player-dojo">${esc(m.wdojo||'')}</div></div></section>
-      <div class="tv-point-string">${esc(tvPointText(pts.W))}</div>
+      <div class="tv-point-string tv-white-points">${esc(tvPointText(pts.W))}</div>
       <div class="tv-vs">vs</div>
-      <div class="tv-point-string">${esc(tvPointText(pts.R))}</div>
+      <div class="tv-point-string tv-red-points">${esc(tvPointText(pts.R))}</div>
       <section class="tv-individual-name-side red"><div class="tv-name-block"><strong class="tv-player-name" data-tv-fit data-min="38">${tvNameHtml(tvIndividualSideLabel(m,'red'))}</strong><div class="tv-player-dojo">${esc(m.rdojo||'')}</div></div></section>
     </main>
     ${tvUpcomingHtml(court,m,false)}
