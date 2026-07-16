@@ -6,6 +6,7 @@
 - Fixed the individual red-side region to explicit canvas coordinates.
 - Added unresolved Semifinal/Final team placeholders to TV Upcoming Matches.
 - Replaced generic individual championship TBD labels with generated bracket source placeholders when available.
+- Added persistent, court-isolated, sequential Undo and Redo histories for scorekeeper actions, including Next Match.
 - Kept the Tournament Engine frozen at v3.12.9.
 
 ## v3.15.9 — TV Canvas Isolation
