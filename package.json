@@ -1,0 +1,20 @@
+{
+  "name": "kendo-shiai-manager",
+  "version": "3.15.9",
+  "private": true,
+  "description": "Kendo Shiai Manager hosted mobile/PWA application",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "check:cloud": "node tests/cloud-foundation-test.mjs && node tests/realtime-sync-test.mjs && node tests/role-aware-sync-test.mjs && node tests/cloud-release-test.mjs && node tests/tournament-day-experience-test.mjs && node tests/tournament-day-polish-test.mjs && node tests/shared-views-tv-display-test.mjs && node tests/tv-display-refinement-test.mjs && node tests/tv-live-refinement-test.mjs && node tests/tv-fullscreen-upcoming-test.mjs && node tests/tv-stabilization-navigation-test.mjs && node tests/tv-canvas-isolation-test.mjs",
+    "check": "node tests/verify-package.mjs && python tests/mobile-dropdown-test.py && python tests/mobile-court-portrait-test.py && python tests/mobile-court-responsive-refinement-test.py && python tests/director-overview-test.py && python tests/director-progress-accuracy-test.py && python tests/spectator-experience-test.py && python tests/layout-setup-standardization-test.py && python tests/director-mobile-reliability-test.py && python tests/mobile-landscape-results-live-test.py && python tests/mobile-landscape-final-refinement-test.py && python tests/mobile-court-density-context-test.py && python tests/responsive-header-test.py && python tests/final-mobile-navigation-polish-test.py && python tests/tournament-management-engine-test.py && python tests/tournament-management-sweep-test.py && python tests/split-court-stabilization-test.py && python tests/split-court-template-consolidation-test.py && python tests/bracket-lifecycle-tiebreak-simulation-test.py && python tests/match-object-origin-invariant-test.py && python tests/seed-locked-tiebreak-test.py && python tests/specific-placeholder-medalist-test.py && node tests/template-consistency-seed-resolution-test.mjs && python tests/final-tournament-ui-polish-test.py && python tests/final-medal-team-context-polish-test.py",
+    "testlab:smoke": "python tests/ksm-testlab.py --profile smoke",
+    "testlab": "python tests/ksm-testlab.py --profile standard",
+    "testlab:exhaustive": "python tests/ksm-testlab.py --profile exhaustive",
+    "check:sync": "node tests/realtime-sync-test.mjs",
+    "check:v3159": "node tests/v3159-fixed-canvas-history-test.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.11.0"
+  }
+}
