@@ -1,3 +1,11 @@
+## v3.15.11 — TV Context Stabilization
+
+- Added shared non-overlapping TV header, current-match, and Upcoming Matches zones.
+- Centered and widened standard three- and five-person team Court Context layouts.
+- Added a dedicated Kachinuki TV presentation that mirrors Kachinuki Court Context: current match above the complete three-fighter lineup, with active/eliminated/waiting states only.
+- Restored persistent two-card Upcoming Matches across individual, team, and Kachinuki TV modes.
+- Preserved fixed 1920×1080 canvas behavior and sequential court Undo/Redo.
+
 ## v3.15.10 — TV Layout & Undo/Redo Stabilization
 
 - Corrected individual TV point placement into fixed medial score zones.
