@@ -1,3 +1,11 @@
+## v3.15.15 — UI & Permissions Lock
+
+- Simplified the court action controls so the buttons always read **Undo** and **Redo** while preserving the complete per-court action history.
+- Made team representative selection read-only for Spectator sessions.
+- Added an action-layer permission check so unauthorized sessions cannot change representative players even if an interface control is exposed.
+- Restricted Scorekeeper representative changes to the assigned court; Director, Admin, and Local sessions retain authorized access.
+- Preserved the v3.15.14 TV display baseline and the frozen v3.12.9 Tournament Management Engine.
+
 ## v3.15.14 — TV Zone Rebalance
 
 - Reduced the fixed Upcoming Matches region from 390px to 260px.
