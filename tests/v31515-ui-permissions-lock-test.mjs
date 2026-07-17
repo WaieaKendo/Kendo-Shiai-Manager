@@ -2,8 +2,8 @@ import fs from 'node:fs';
 const html=fs.readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
 const sw=fs.readFileSync(new URL('../public/service-worker.js',import.meta.url),'utf8');
 const checks=[
-  ['version',html.includes('v3.15.15')],
-  ['cache',sw.includes('ksm-shell-v3.15.15')],
+  ['version',html.includes('v3.15.16')],
+  ['cache',sw.includes('ksm-shell-v3.15.16')],
   ['static undo',html.includes('<span class="action-label">Undo</span>')],
   ['static redo',html.includes('<span class="action-label">Redo</span>')],
   ['no dynamic undo label',!html.includes('`Undo ${undoStack[undoStack.length-1].label}`')],

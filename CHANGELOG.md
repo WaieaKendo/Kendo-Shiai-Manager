@@ -1,3 +1,9 @@
+## v3.15.16 — Final TV Display Polish
+
+- Increased player-name line height and descender clearance so letters such as g, y, p, q, and j render fully.
+- Compacted the Upcoming Matches footer while reserving a 40px bottom safe area inside the fixed 1920×1080 canvas.
+- Preserved the v3.15.15 permissions lock, court action history, cloud synchronization, and frozen v3.12.9 Tournament Management Engine.
+
 ## v3.15.15 — UI & Permissions Lock
 
 - Simplified the court action controls so the buttons always read **Undo** and **Redo** while preserving the complete per-court action history.

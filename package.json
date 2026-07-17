@@ -1,6 +1,6 @@
 {
   "name": "kendo-shiai-manager",
-  "version": "3.15.15",
+  "version": "3.15.16",
   "private": true,
   "description": "Kendo Shiai Manager hosted mobile/PWA application",
   "scripts": {
@@ -17,7 +17,8 @@
     "test:v31511": "node tests/v31511-tv-context-stabilization-test.mjs",
     "test:v31512": "node tests/v31512-tv-renderer-replacement-test.mjs",
     "test:v31514": "node tests/v31514-tv-zone-rebalance-test.mjs",
-    "test:v31515": "node tests/v31515-ui-permissions-lock-test.mjs"
+    "test:v31515": "node tests/v31515-ui-permissions-lock-test.mjs",
+    "test:v31516": "node tests/v31516-final-tv-polish-test.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.11.0"
