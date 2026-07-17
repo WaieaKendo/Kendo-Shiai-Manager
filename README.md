@@ -2,7 +2,7 @@
 
 Kendo Shiai Manager (KSM) is a hosted, installable tournament-management application for kendo events.
 
-**Current release: v3.15.16 — Final TV Display Polish**  
+**Current release: v3.16.0 — Final TV Display Polish**  
 **Frozen Tournament Management Engine: v3.12.9**
 
 ## Cloud capabilities

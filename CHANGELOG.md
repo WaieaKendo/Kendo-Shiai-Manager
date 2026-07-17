@@ -1,3 +1,13 @@
+# Changelog
+
+## 3.16.0
+- Replaced role-specific access with Spectator and Staff.
+- Added Staff Login and Logout.
+- Added square-card Tournament Library under Save / Load.
+- Preserved Save Now, autosave, cloud status, tournament files, and recovery files.
+- Simplified Tournament Access to one public link and QR code.
+- Recovery restore asks for a new Staff password.
+
 ## v3.15.16 — Final TV Display Polish
 
 - Increased player-name line height and descender clearance so letters such as g, y, p, q, and j render fully.

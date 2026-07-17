@@ -1,10 +1,10 @@
 const JSON_HEADERS = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' };
-const VALID_ROLES = new Set(['spectator', 'scorekeeper', 'director', 'admin']);
+const VALID_ROLES = new Set(['spectator', 'staff']);
 
 function json(body, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(body), { status, headers: { ...JSON_HEADERS, ...extraHeaders } });
 }
-function token() { return `${crypto.randomUUID()}${crypto.randomUUID()}`.replace(/-/g, ''); }
+async function passwordHash(value) { const data = new TextEncoder().encode(String(value || '')); const digest = await crypto.subtle.digest('SHA-256', data); return [...new Uint8Array(digest)].map(v => v.toString(16).padStart(2, '0')).join(''); }
 function safeRole(value) { return VALID_ROLES.has(value) ? value : 'spectator'; }
 function publicRecord(record) {
   if (!record) return null;
@@ -15,12 +15,8 @@ function publicRecord(record) {
 export class TournamentState {
   constructor(state, env) { this.state = state; this.env = env; }
 
-  async credentials() { return (await this.state.storage.get('credentials')) || {}; }
-  async authorize(role, suppliedKey) {
-    if (role === 'spectator') return true;
-    const credentials = await this.credentials();
-    return Boolean(suppliedKey && credentials[role] && suppliedKey === credentials[role]);
-  }
+  async staffPasswordHash() { return (await this.state.storage.get('staffPasswordHash')) || ''; }
+  async authorize(role, suppliedKey) { if (role === 'spectator') return true; const stored = await this.staffPasswordHash(); return Boolean(suppliedKey && stored && await passwordHash(suppliedKey) === stored); }
   presence() {
     const rows = [];
     for (const socket of this.state.getWebSockets()) {
@@ -77,7 +73,7 @@ export class TournamentState {
       const existing = await this.state.storage.get('record');
       const role = safeRole(request.headers.get('x-ksm-role') || 'director');
       const suppliedKey = request.headers.get('x-ksm-session-key') || request.headers.get('x-ksm-director-key') || '';
-      if (!['scorekeeper', 'director', 'admin'].includes(role) || !(await this.authorize(role, suppliedKey))) return json({ error: 'Write authorization required' }, 403);
+      if (role !== 'staff' || !(await this.authorize(role, suppliedKey))) return json({ error: 'Write authorization required' }, 403);
       const expectedRevision = Number(incoming.revision || 0);
       const currentRevision = Number(existing?.revision || 0);
       if (existing && expectedRevision !== currentRevision) return json({ error: 'Revision conflict', record: publicRecord(existing) }, 409);
@@ -100,30 +96,22 @@ export class TournamentState {
     if (request.method === 'POST' && url.pathname === '/bootstrap') {
       if (await this.state.storage.get('record')) return json({ error: 'Tournament already exists' }, 409);
       const incoming = await request.json();
-      const credentials = { scorekeeper: token(), director: token(), admin: token() };
-      await this.state.storage.put('credentials', credentials);
+      if (!incoming.staffPassword || String(incoming.staffPassword).length < 4) return json({ error: 'Staff password required' }, 400);
+      await this.state.storage.put('staffPasswordHash', await passwordHash(incoming.staffPassword));
       const now = new Date().toISOString();
-      const record = { schemaVersion: '1.2', tournamentId: incoming.tournamentId, engineVersion: incoming.engineVersion || 'unknown', revision: 1, createdAt: now, updatedAt: now, updatedBy: { role: 'admin', clientId: '', name: 'Tournament creator', court: '' }, payload: incoming.payload };
+      const record = { schemaVersion: '1.2', tournamentId: incoming.tournamentId, engineVersion: incoming.engineVersion || 'unknown', revision: 1, createdAt: now, updatedAt: now, updatedBy: { role: 'staff', clientId: '', name: 'Tournament creator', court: '' }, payload: incoming.payload };
       await this.state.storage.put('record', record);
-      return json({ ...publicRecord(record), credentials });
+      return json(publicRecord(record));
     }
 
-    if (request.method === 'POST' && url.pathname === '/rotate-key') {
-      const suppliedKey = request.headers.get('x-ksm-session-key') || '';
-      if (!(await this.authorize('admin', suppliedKey))) return json({ error: 'Admin authorization required' }, 403);
+    if (request.method === 'POST' && url.pathname === '/auth') {
       const body = await request.json();
-      const role = safeRole(body.role);
-      if (!['scorekeeper', 'director', 'admin'].includes(role)) return json({ error: 'Invalid role' }, 400);
-      const credentials = await this.credentials();
-      credentials[role] = token();
-      await this.state.storage.put('credentials', credentials);
-      this.broadcast({ type: 'credential-rotated', role });
-      return json({ role, key: credentials[role] });
+      return (await this.authorize('staff', body.password || '')) ? json({ ok: true }) : json({ error: 'Incorrect password' }, 403);
     }
 
     if (request.method === 'DELETE' && url.pathname === '/snapshot') {
       const suppliedKey = request.headers.get('x-ksm-session-key') || '';
-      if (!(await this.authorize('admin', suppliedKey))) return json({ error: 'Admin authorization required' }, 403);
+      if (!(await this.authorize('staff', suppliedKey))) return json({ error: 'Staff authorization required' }, 403);
       await this.state.storage.deleteAll();
       this.broadcast({ type: 'deleted' });
       for (const socket of this.state.getWebSockets()) try { socket.close(1000, 'Tournament deleted'); } catch (_) {}
@@ -142,7 +130,7 @@ export class TournamentState {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (url.pathname === '/api/health') return json({ ok: true, service: 'ksm-cloud', version: '3.15.4', realtime: true, roles: ['spectator', 'scorekeeper', 'director', 'admin'], offlineOutbox: true });
+    if (url.pathname === '/api/health') return json({ ok: true, service: 'ksm-cloud', version: '3.16.0', realtime: true, roles: ['spectator', 'staff'], offlineOutbox: true });
 
     if (url.pathname === '/api/tournaments' && request.method === 'POST') {
       const id = crypto.randomUUID();
@@ -152,7 +140,7 @@ export default {
       return new Response(response.body, response);
     }
 
-    const route = url.pathname.match(/^\/api\/tournaments\/([0-9a-f-]+)(?:\/(live|status|rotate-key))?$/i);
+    const route = url.pathname.match(/^\/api\/tournaments\/([0-9a-f-]+)(?:\/(live|status|auth))?$/i);
     if (route) {
       const [, id, action] = route;
       const stub = env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName(id));
@@ -161,7 +149,7 @@ export default {
         return stub.fetch(new Request(target, { method: 'GET', headers: request.headers }));
       }
       if (action === 'status' && request.method === 'GET') return stub.fetch('https://durable-object/status');
-      if (action === 'rotate-key' && request.method === 'POST') return stub.fetch(new Request('https://durable-object/rotate-key', { method: 'POST', headers: request.headers, body: request.body }));
+      if (action === 'auth' && request.method === 'POST') return stub.fetch(new Request('https://durable-object/auth', { method: 'POST', headers: request.headers, body: request.body }));
       if (!action && request.method === 'GET') return stub.fetch('https://durable-object/snapshot');
       if (!action && request.method === 'PUT') {
         const body = await request.json();
