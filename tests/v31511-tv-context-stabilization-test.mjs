@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 const html=fs.readFileSync(new URL('../public/index.html', import.meta.url),'utf8');
 const checks=[
- ['version marker',html.includes('v3.15.11</span>')],
+ ['version marker',html.includes('v3.15.12</span>')],
  ['shared current zone',html.includes('.tv-kachinuki-main')&&html.includes('top:226px!important')],
  ['persistent upcoming footer',html.includes('top:748px!important')&&html.includes('grid-template-rows:114px 114px')],
  ['kachinuki renderer',html.includes('function tvKachinukiHtml(court,data)')],
@@ -14,4 +14,4 @@ const checks=[
  ['centered standard teams',html.includes('grid-template-columns:820px 820px!important')&&html.includes('column-gap:100px!important')],
 ];
 for(const [name,ok] of checks){if(!ok){console.error('FAIL',name);process.exitCode=1}else console.log('PASS',name)}
-if(!process.exitCode)console.log(`v3.15.11 checks passed: ${checks.length}/${checks.length}`);
+if(!process.exitCode)console.log(`v3.15.12 checks passed: ${checks.length}/${checks.length}`);

@@ -4918,7 +4918,7 @@ body.ksm-tv .tv-next-pair>span{font-size:38px!important}
 </style>
 
 <style>
-/* KSM v3.15.11 — shared TV zones, centered team context, persistent upcoming cards */
+/* KSM v3.15.12 — shared TV zones, centered team context, persistent upcoming cards */
 body.ksm-tv .tv-shell{
   position:relative!important;
   width:1920px!important;
@@ -5091,6 +5091,45 @@ body.ksm-tv .tv-next-player strong{font-size:46px!important}
 body.ksm-tv .tv-next-player small{font-size:20px!important}
 </style>
 
+
+<style>
+/* KSM v3.15.12 — single-source TV renderer. Deliberately isolated from all legacy TV classes. */
+body.ksm-tv .tv2-canvas{position:relative;width:1920px;height:1080px;overflow:hidden;background:#061b2c;color:#fff;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body.ksm-tv .tv2-header{position:absolute;left:100px;top:18px;width:1720px;height:180px;text-align:center;overflow:hidden}
+body.ksm-tv .tv2-court{font-size:112px;line-height:.86;font-weight:900;letter-spacing:.02em;text-transform:uppercase}
+body.ksm-tv .tv2-division{margin-top:14px;color:#e3bd5b;font-size:52px;line-height:1;font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.ksm-tv .tv2-meta{margin-top:9px;font-size:28px;line-height:1;font-weight:760;color:#fff}
+body.ksm-tv .tv2-current{position:absolute;left:100px;top:210px;width:1720px;height:480px;overflow:hidden}
+body.ksm-tv .tv2-side-rule{border-top:14px solid #fff;padding-top:22px;box-sizing:border-box}.tv2-side-rule.red{border-color:#d92f38;text-align:right}
+body.ksm-tv .tv2-name{font-size:78px;line-height:.88;font-weight:840;letter-spacing:-.02em;color:#fff}.tv2-name span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.ksm-tv .tv2-dojo{margin-top:18px;font-size:30px;line-height:1;font-weight:650;color:rgba(255,255,255,.72);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.ksm-tv .tv2-individual{display:grid;grid-template-columns:540px 250px 100px 250px 540px;column-gap:10px;align-items:center;height:100%}
+body.ksm-tv .tv2-individual .tv2-side-rule{height:390px;display:flex;align-items:center;padding-left:34px;padding-right:34px}.tv2-individual .tv2-side-rule.red{justify-content:flex-end}
+body.ksm-tv .tv2-points{font-size:82px;line-height:1;font-weight:860;letter-spacing:.09em;white-space:nowrap;color:#fff}.tv2-points.white{text-align:right;padding-right:34px}.tv2-points.red{text-align:left;padding-left:34px}
+body.ksm-tv .tv2-vs{text-align:center;color:#e3bd5b;font-size:36px;line-height:1;font-weight:900;text-transform:lowercase}
+body.ksm-tv .tv2-team{height:100%;display:grid;grid-template-columns:810px 100px 810px;align-items:start}
+body.ksm-tv .tv2-team-col{min-width:0}.tv2-team-col.red{text-align:right}
+body.ksm-tv .tv2-team-title{height:66px;border-top:14px solid #fff;padding-top:12px;box-sizing:border-box;font-size:48px;line-height:1;font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tv2-team-col.red .tv2-team-title{border-color:#d92f38}
+body.ksm-tv .tv2-roster{display:grid;gap:7px;margin-top:8px}.tv2-roster.rows-3{grid-template-rows:repeat(3,72px)}.tv2-roster.rows-5{grid-template-rows:repeat(5,58px)}
+body.ksm-tv .tv2-team-row{display:grid;grid-template-columns:minmax(0,1fr) 180px;align-items:center;gap:12px;padding:0 18px;border:2px solid rgba(255,255,255,.14);border-radius:9px;box-sizing:border-box}.tv2-team-col.red .tv2-team-row{grid-template-columns:180px minmax(0,1fr)}
+body.ksm-tv .tv2-team-row.active{border:5px solid #e3bd5b;background:rgba(227,189,91,.08)}
+body.ksm-tv .tv2-team-person{font-size:34px;line-height:1;font-weight:780;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tv2-pos{color:#e3bd5b;font-size:19px;margin-right:9px}.tv2-team-col.red .tv2-pos{margin-left:9px;margin-right:0}
+body.ksm-tv .tv2-row-points{font-size:36px;line-height:1;font-weight:850;letter-spacing:.08em;white-space:nowrap}.tv2-team-col:not(.red) .tv2-row-points{text-align:right}.tv2-team-col.red .tv2-row-points{text-align:left}
+body.ksm-tv .tv2-team-summary{margin-top:10px;border-top:2px solid rgba(255,255,255,.18);padding-top:10px;font-size:26px;font-weight:800}.tv2-team-summary .label{color:#e3bd5b;font-size:20px;text-transform:uppercase;letter-spacing:.05em}
+body.ksm-tv .tv2-k-current{height:176px;display:grid;grid-template-columns:540px 250px 100px 250px 540px;column-gap:10px;align-items:center}
+body.ksm-tv .tv2-k-current .tv2-side-rule{height:164px;display:flex;align-items:center;padding-left:28px;padding-right:28px}.tv2-k-current .tv2-side-rule.red{justify-content:flex-end}
+body.ksm-tv .tv2-k-current .tv2-name{font-size:58px}
+body.ksm-tv .tv2-k-lineups{margin-top:14px;display:grid;grid-template-columns:810px 100px 810px}
+body.ksm-tv .tv2-k-team-title{border-top:14px solid #fff;padding-top:10px;font-size:40px;line-height:1;font-weight:850;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tv2-k-team.red .tv2-k-team-title{border-color:#d92f38;text-align:right}
+body.ksm-tv .tv2-k-roster{margin-top:10px;display:grid;grid-template-rows:repeat(3,66px);gap:7px}
+body.ksm-tv .tv2-k-row{display:flex;align-items:center;justify-content:space-between;padding:0 18px;border:2px solid rgba(255,255,255,.14);border-radius:9px;font-size:32px;font-weight:780;box-sizing:border-box}.tv2-k-row.active{background:#e3bd5b;color:#071f33;border-color:#e3bd5b}.tv2-k-row.eliminated{opacity:.35;text-decoration:line-through}.tv2-k-status{font-size:17px;font-weight:850;text-transform:uppercase;letter-spacing:.06em;text-decoration:none}
+body.ksm-tv .tv2-upcoming{position:absolute;left:100px;top:720px;width:1720px;height:330px;overflow:hidden}
+body.ksm-tv .tv2-upcoming-title{text-align:center;color:#e3bd5b;font-size:42px;line-height:1;font-weight:880;letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px}
+body.ksm-tv .tv2-upcoming-list{display:grid;grid-template-rows:118px 118px;gap:10px}
+body.ksm-tv .tv2-upcoming-card{display:grid;grid-template-columns:minmax(0,1fr) 100px minmax(0,1fr);align-items:center;gap:20px;padding:10px 34px;border:3px solid rgba(227,189,91,.72);border-radius:12px;box-sizing:border-box;background:rgba(255,255,255,.025);text-align:center}
+body.ksm-tv .tv2-upcoming-card.empty{grid-template-columns:1fr}.tv2-upcoming-name{font-size:43px;line-height:.95;font-weight:820;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tv2-upcoming-sub{margin-top:5px;font-size:20px;line-height:1;color:rgba(255,255,255,.72);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tv2-upcoming-vs{color:#e3bd5b;font-size:36px;font-weight:900}
+</style>
+
 </head>
 <body>
 <header class="ksm-topbar">
@@ -5099,7 +5138,7 @@ body.ksm-tv .tv-next-player small{font-size:20px!important}
     <div class="nav-brand-copy">
       <span class="nav-brand-name">KSM</span>
       <span class="nav-brand-subtitle">Kendo Shiai Manager</span>
-      <span class="version-badge">v3.15.11</span>
+      <span class="version-badge">v3.15.12</span>
     </div>
   </div>
 
@@ -8577,6 +8616,57 @@ function renderTvDisplay(){
   fitTvCanvas();
 }
 
+
+
+
+// ==========================================================
+// KSM v3.15.12 — one isolated TV renderer and one view model
+// ==========================================================
+function tv2NameHtml(name){const parts=String(name||'—').trim().split(/\s+/).filter(Boolean);if(parts.length<=1)return `<span>${esc(parts[0]||'—')}</span>`;return `<span>${esc(parts[0])}</span><span>${esc(parts.slice(1).join(' '))}</span>`}
+function tv2LabelForSide(match,side,teamMode){
+  if(teamMode)return side==='white'?(match.teamWhite||match.wdojo||teamSideLabel(match.right,match.division)||'TBD'):(match.teamRed||match.rdojo||teamSideLabel(match.left,match.division)||'TBD');
+  return tvIndividualSideLabel(match,side);
+}
+function tv2UpcomingViewModel(court,current,teamMode){
+  const raw=tvUpcomingMatches(court,current,teamMode)||[];
+  const result=raw.slice(0,2).map(m=>({
+    left:tv2LabelForSide(m,'white',teamMode),right:tv2LabelForSide(m,'red',teamMode),
+    leftSub:teamMode?(m.position||m.round||''):(m.wdojo||m.position||''),
+    rightSub:teamMode?'':(m.rdojo||''),
+    round:teamMode?(m.position||m.round||''):''
+  }));
+  while(result.length<2)result.push(null);
+  return result;
+}
+function buildTVViewModel(court){
+  const data=courtCurrentMatch(court);if(!data)return {court,empty:true,upcoming:[null,null]};
+  const m=data.match,meta=audienceMeta(m),teamMode=isTeamMatch(m),format=m.type==='kachinuki'?'kachinuki':(teamMode?'team':'individual');
+  return {court,empty:false,data,match:m,meta,format,upcoming:tv2UpcomingViewModel(court,m,teamMode)};
+}
+function tv2UpcomingHtml(vm){
+  const cards=vm.upcoming.map(x=>x?`<div class="tv2-upcoming-card"><div><div class="tv2-upcoming-name">${esc(x.left)}</div>${x.leftSub?`<div class="tv2-upcoming-sub">${esc(x.leftSub)}</div>`:''}</div><div class="tv2-upcoming-vs">vs</div><div><div class="tv2-upcoming-name">${esc(x.right)}</div>${x.rightSub?`<div class="tv2-upcoming-sub">${esc(x.rightSub)}</div>`:''}</div></div>`:`<div class="tv2-upcoming-card empty"><div><div class="tv2-upcoming-name">No additional match scheduled</div></div></div>`).join('');
+  return `<section class="tv2-upcoming"><div class="tv2-upcoming-title">Upcoming Matches</div><div class="tv2-upcoming-list">${cards}</div></section>`;
+}
+function tv2HeaderHtml(vm){return `<header class="tv2-header"><div class="tv2-court">Court ${esc(vm.court)}</div><div class="tv2-division">${esc(vm.meta.division)}</div><div class="tv2-meta">${esc(vm.meta.line)}</div></header>`}
+function tv2IndividualCurrent(vm){const m=vm.match,pts=activeScoreArrays(m);return `<main class="tv2-current tv2-individual"><section class="tv2-side-rule"><div><div class="tv2-name">${tv2NameHtml(tvIndividualSideLabel(m,'white'))}</div><div class="tv2-dojo">${esc(m.wdojo||'')}</div></div></section><div class="tv2-points white">${esc(tvPointText(pts.W))}</div><div class="tv2-vs">vs</div><div class="tv2-points red">${esc(tvPointText(pts.R))}</div><section class="tv2-side-rule red"><div><div class="tv2-name">${tv2NameHtml(tvIndividualSideLabel(m,'red'))}</div><div class="tv2-dojo">${esc(m.rdojo||'')}</div></div></section></main>`}
+function tv2TeamCurrent(vm){
+  const m=vm.match,matches=(state.allMatches[m.division]||[]).filter(x=>x.teamPair===m.teamPair&&(x.type==='teamPosition'||x.type==='teamPlayoff'));
+  const rows=matches.length?matches:[m],count=rows.length<=3?3:5,summary=teamPairSummary(m.division,m.teamPair),first=rows[0]||m;
+  const left=rows.map((x,i)=>{const p=activeScoreArrays(x);return `<div class="tv2-team-row ${x===m?'active':''}"><div class="tv2-team-person"><span class="tv2-pos">${i+1}</span>${esc(x.white||'TBD')}</div><div class="tv2-row-points">${esc(tvPointText(p.W))}</div></div>`}).join('');
+  const right=rows.map((x,i)=>{const p=activeScoreArrays(x);return `<div class="tv2-team-row ${x===m?'active':''}"><div class="tv2-row-points">${esc(tvPointText(p.R))}</div><div class="tv2-team-person">${esc(x.red||'TBD')}<span class="tv2-pos">${i+1}</span></div></div>`}).join('');
+  return `<main class="tv2-current tv2-team"><section class="tv2-team-col"><div class="tv2-team-title">${esc(first.teamWhite||m.teamWhite||'White Team')}</div><div class="tv2-roster rows-${count}">${left}</div><div class="tv2-team-summary"><span class="label">Wins</span> ${summary.wWins} &nbsp; <span class="label">Points</span> ${summary.wPts}</div></section><div></div><section class="tv2-team-col red"><div class="tv2-team-title">${esc(first.teamRed||m.teamRed||'Red Team')}</div><div class="tv2-roster rows-${count}">${right}</div><div class="tv2-team-summary"><span class="label">Wins</span> ${summary.rWins} &nbsp; <span class="label">Points</span> ${summary.rPts}</div></section></main>`;
+}
+function tv2KRow(name,index,activeIndex){const st=index<activeIndex?'eliminated':index===activeIndex?'active':'waiting';return `<div class="tv2-k-row ${st}"><span>${esc(name||'—')}</span><span class="tv2-k-status">${st}</span></div>`}
+function tv2KachinukiCurrent(vm){
+  const m=vm.match,pts=activeScoreArrays(m),wl=(m.lineupW||[]).slice(0,3),rl=(m.lineupR||[]).slice(0,3);while(wl.length<3)wl.push('—');while(rl.length<3)rl.push('—');
+  return `<main class="tv2-current"><section class="tv2-k-current"><div class="tv2-side-rule"><div class="tv2-name">${tv2NameHtml(m.white||'—')}</div></div><div class="tv2-points white">${esc(tvPointText(pts.W))}</div><div class="tv2-vs">vs</div><div class="tv2-points red">${esc(tvPointText(pts.R))}</div><div class="tv2-side-rule red"><div class="tv2-name">${tv2NameHtml(m.red||'—')}</div></div></section><section class="tv2-k-lineups"><div class="tv2-k-team"><div class="tv2-k-team-title">${esc(m.teamWhite||'White Team')}</div><div class="tv2-k-roster">${wl.map((n,i)=>tv2KRow(n,i,m.wIndex||0)).join('')}</div></div><div></div><div class="tv2-k-team red"><div class="tv2-k-team-title">${esc(m.teamRed||'Red Team')}</div><div class="tv2-k-roster">${rl.map((n,i)=>tv2KRow(n,i,m.rIndex||0)).join('')}</div></div></section></main>`;
+}
+function renderTvDisplay(){
+  if(!window.tvLive)return;const vm=buildTVViewModel(tvAssignedCourt());
+  if(vm.empty){tvLive.innerHTML=`<div class="tv2-canvas"><header class="tv2-header"><div class="tv2-court">Court ${esc(vm.court)}</div><div class="tv2-division">No active match</div></header>${tv2UpcomingHtml(vm)}</div>`;return;}
+  const current=vm.format==='individual'?tv2IndividualCurrent(vm):vm.format==='kachinuki'?tv2KachinukiCurrent(vm):tv2TeamCurrent(vm);
+  tvLive.innerHTML=`<div class="tv2-canvas">${tv2HeaderHtml(vm)}${current}${tv2UpcomingHtml(vm)}</div>`;
+}
 
 
 // ==========================================================

@@ -1,4 +1,14 @@
-## v3.15.11 — TV Context Stabilization
+# v3.15.12 — TV Renderer Replacement
+
+- Replaced all emitted TV markup with one isolated renderer and one TV view model.
+- Added hard non-overlapping header, current-context, and Upcoming Matches zones.
+- Added one unconditional two-card Upcoming Matches component for every format.
+- Centered 3/5-person team and Kachinuki content in a shared 1720 px composition.
+- Preserved Court Context-derived team summaries and Kachinuki active/eliminated/waiting states.
+- Removed vertical frame lines from the new renderer; only white/red top rules remain.
+- Preserved sequential per-court Undo/Redo and the frozen v3.12.9 Tournament Engine.
+
+## v3.15.12 — TV Context Stabilization
 
 - Added shared non-overlapping TV header, current-match, and Upcoming Matches zones.
 - Centered and widened standard three- and five-person team Court Context layouts.
