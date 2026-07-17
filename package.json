@@ -1,6 +1,6 @@
 {
   "name": "kendo-shiai-manager",
-  "version": "3.15.12",
+  "version": "3.15.13",
   "private": true,
   "description": "Kendo Shiai Manager hosted mobile/PWA application",
   "scripts": {
@@ -15,7 +15,8 @@
     "check:v3159": "node tests/v3159-fixed-canvas-history-test.mjs",
     "check:v31510": "node tests/v31510-tv-layout-undo-stabilization-test.mjs",
     "test:v31511": "node tests/v31511-tv-context-stabilization-test.mjs",
-    "test:v31512": "node tests/v31512-tv-renderer-replacement-test.mjs"
+    "test:v31512": "node tests/v31512-tv-renderer-replacement-test.mjs",
+    "test:v31513": "node tests/v31513-tv-clean-room-test.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.11.0"

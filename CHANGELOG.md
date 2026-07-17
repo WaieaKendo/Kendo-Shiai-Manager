@@ -1,3 +1,10 @@
+## v3.15.13 — TV Clean-Room Rebuild
+
+- Replaced TV markup and CSS with a clean-room fixed-grid renderer.
+- Eliminated inherited app layout styles and major absolute positioning.
+- Kept Upcoming Matches in a permanent independent grid row.
+- Preserved Court Context-derived team/Kachinuki data and sequential Undo/Redo.
+
 # v3.15.12 — TV Renderer Replacement
 
 - Replaced all emitted TV markup with one isolated renderer and one TV view model.

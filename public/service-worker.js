@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ksm-shell-v3.15.12';
+const CACHE_NAME = 'ksm-shell-v3.15.13';
 const APP_SHELL = [
   '/', '/index.html', '/manifest.webmanifest',
   '/icons/icon-192.png', '/icons/icon-512.png', '/icons/apple-touch-icon.png',

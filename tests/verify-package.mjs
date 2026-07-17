@@ -21,7 +21,7 @@ for (const rel of required.filter(x=>x.startsWith('assets/'))) {
     console.error(`UNREFERENCED: ${rel}`); failed = true;
   }
 }
-if (!html.includes('v3.15.12') || !html.includes("engineVersion:'3.12.9'")) { console.error('Version marker missing'); failed = true; }
+if (!html.includes('v3.15.13') || !html.includes("engineVersion:'3.12.9'")) { console.error('Version marker missing'); failed = true; }
 if (html.includes("document.addEventListener('touchend'")) { console.error('Legacy touchend click shim still present'); failed = true; }
 
 for (const id of ['courtsMenu','exportMenu','saveLoadMenu']) {
@@ -30,9 +30,9 @@ for (const id of ['courtsMenu','exportMenu','saveLoadMenu']) {
   }
 }
 if (!html.includes('function positionMobileNavMenu')) { console.error('Mobile menu positioning function missing'); failed = true; }
-if (!html.includes("ksm-shell-v3.15.12")) { /* marker is in service worker, checked below */ }
+if (!html.includes("ksm-shell-v3.15.13")) { /* marker is in service worker, checked below */ }
 const sw = fs.readFileSync(path.join(root,'service-worker.js'),'utf8');
-if (!sw.includes('ksm-shell-v3.15.12')) { console.error('Service worker cache version not bumped'); failed = true; }
+if (!sw.includes('ksm-shell-v3.15.13')) { console.error('Service worker cache version not bumped'); failed = true; }
 
 if (failed) process.exit(1);
 console.log(`PASS: ${required.length} required hosted/PWA files verified.`);
