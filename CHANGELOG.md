@@ -1,3 +1,12 @@
+## v3.15.14 — TV Zone Rebalance
+
+- Reduced the fixed Upcoming Matches region from 390px to 260px.
+- Reallocated space to the header and current-context regions.
+- Prevented pool/round labels from clipping in the header.
+- Removed inherited vertical white/red side borders from the clean-room TV renderer.
+- Increased Kachinuki lineup clearance so the third fighter remains fully visible.
+- Preserved the fixed 1920×1080 canvas and all tournament, cloud, and Undo/Redo logic.
+
 ## v3.15.13 — TV Clean-Room Rebuild
 
 - Replaced TV markup and CSS with a clean-room fixed-grid renderer.
