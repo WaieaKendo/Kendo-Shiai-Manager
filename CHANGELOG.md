@@ -1,3 +1,10 @@
+## 3.16.1
+
+- Added a dedicated Home page with the Tournament Library.
+- New Tournament is available before authentication and opens the created tournament in Staff mode.
+- Existing tournament cards open directly in Spectator mode.
+- KSM brand and Save / Load menu return to the Tournament Library.
+
 # Changelog
 
 ## 3.16.0

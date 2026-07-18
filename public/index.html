@@ -3730,6 +3730,30 @@ body.ksm-scorekeeper #search{display:none !important;}
   #validationModal .validation-modal-actions button{min-width:0;width:100%;}
   #results .summary-like > b{font-size:15px;}
 }
+
+/* KSM v3.16.1 — Home Tournament Library */
+body.ksm-home .ksm-topbar,body.ksm-home>.spectator-readonly-banner{display:none!important}
+body.ksm-home main{max-width:none;margin:0;padding:0;min-height:100vh}
+#home{min-height:100vh;padding:clamp(28px,6vw,72px) clamp(18px,5vw,64px);background:linear-gradient(180deg,#fbfaf7 0%,#f3eee5 100%)}
+.home-shell{max-width:1120px;margin:0 auto}
+.home-brand{display:flex;align-items:center;gap:18px;margin-bottom:clamp(34px,7vw,72px)}
+.home-brand img{width:74px;height:74px}
+.home-brand h1{margin:0;font-size:clamp(30px,5vw,52px);line-height:1}
+.home-brand p{margin:8px 0 0;color:var(--muted);font-weight:700}
+.home-head{display:flex;justify-content:space-between;align-items:end;gap:18px;flex-wrap:wrap;margin-bottom:22px}
+.home-head h2{font-size:clamp(24px,3vw,34px);margin:0}
+.home-head p{margin:6px 0 0;color:var(--muted)}
+.home-new-button{padding:14px 20px;min-height:52px;background:var(--ink);color:#fff;border-color:var(--ink)}
+.home-library-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:18px}
+.home-tournament-card{min-height:168px;padding:22px;text-align:left;display:flex;flex-direction:column;justify-content:space-between;background:#fff;border:1px solid var(--line);box-shadow:var(--shadow);border-radius:18px}
+.home-tournament-card:hover{transform:translateY(-2px);border-color:#cdbd9f}
+.home-tournament-card .home-card-name{font-size:20px;line-height:1.25;font-weight:900}
+.home-tournament-card .home-card-meta{font-size:12px;color:var(--muted);font-weight:700}
+.home-empty{padding:44px 24px;text-align:center;background:rgba(255,255,255,.72);border:1px dashed #d8cdbb;border-radius:18px;color:var(--muted)}
+.nav-brand{cursor:pointer}
+@media(max-width:640px){.home-brand{margin-bottom:42px}.home-library-grid{grid-template-columns:1fr 1fr}.home-tournament-card{min-height:140px;padding:16px}.home-tournament-card .home-card-name{font-size:17px}}
+@media(max-width:420px){.home-library-grid{grid-template-columns:1fr}}
+
 </style>
 
 <style>
@@ -5199,12 +5223,12 @@ body.ksm-staff .director-only{display:flex!important}
 </head>
 <body>
 <header class="ksm-topbar">
-  <div class="brand nav-brand">
+  <div class="brand nav-brand" role="button" tabindex="0" title="Tournament Library" onclick="showHomePage()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showHomePage()}">
     <img class="nav-brand-logo" src="/assets/ksm-fuji-logo-nav.svg" alt="">
     <div class="nav-brand-copy">
       <span class="nav-brand-name">KSM</span>
       <span class="nav-brand-subtitle">Kendo Shiai Manager</span>
-      <span class="version-badge">v3.16.0</span>
+      <span class="version-badge">v3.16.1</span>
     </div>
   </div>
 
@@ -5279,7 +5303,7 @@ body.ksm-staff .director-only{display:flex!important}
         <div class="menu-heading">Tournament</div>
         <button onclick="closeNavMenus();createNewTournament()">New Tournament</button>
         <button onclick="closeNavMenus();saveNow()">Save Now</button>
-        <button onclick="closeNavMenus();openTournamentLibrary()">Load Tournament</button>
+        <button onclick="closeNavMenus();showHomePage()">Tournament Library</button>
         <button onclick="closeNavMenus();manualSaveTournament()">Download Tournament File</button>
         <button onclick="closeNavMenus();triggerLoadTournament()">Load Tournament File</button>
         <div class="menu-divider"></div><div class="menu-heading">Recovery</div>
@@ -5300,6 +5324,21 @@ body.ksm-staff .director-only{display:flex!important}
   <div class="row cloud-status-wrap"><button id="staffAuthButton" class="secondary" type="button" onclick="toggleStaffSession()">Staff Login</button><div onclick="cloudDiagnostics()" role="button" tabindex="0" title="Open Cloud Diagnostics"><span id="sessionRole" hidden>Spectator</span><span id="connectionStatus" class="small nav-save-status">Local</span><span id="cloudPresence" hidden></span><span id="saveStatus" class="small nav-save-status">Not saved yet</span></div></div>
 </header>
 <main>
+
+<section id="home" class="view hidden" aria-labelledby="homeTitle">
+  <div class="home-shell">
+    <div class="home-brand">
+      <img src="/assets/ksm-fuji-logo.svg" alt="">
+      <div><h1 id="homeTitle">Kendo Shiai Manager</h1><p>Tournament Library</p></div>
+    </div>
+    <div class="home-head">
+      <div><h2>Your Tournaments</h2><p>Create a new tournament or open an existing tournament in Spectator mode.</p></div>
+      <button class="home-new-button" type="button" onclick="createNewTournament()">＋ New Tournament</button>
+    </div>
+    <div id="homeTournamentLibrary" class="home-library-grid"></div>
+  </div>
+</section>
+
 <section id="setup" class="view">
   <div class="setup-page">
     <div class="setup-hero">
@@ -9953,7 +9992,7 @@ renderPublic=function(){
 if(!restoreAutoSaveIfWanted()) renderAll();
 setConnectionStatus(cloudSession.tournamentId?'Sync connecting…':'Local only',cloudSession.tournamentId?'connecting':'local');
 
-// ---------- KSM v3.16.0 Spectator / Staff and Tournament Library ----------
+// ---------- KSM v3.16.1 Spectator / Staff and Tournament Library ----------
 const KSM_V316_STAFF_SESSION='ksm.staff.session.v3_16';
 const KSM_V316_LIBRARY='ksm.tournament.library.v3_16';
 function v316StaffPassword(){return sessionStorage.getItem(KSM_V316_STAFF_SESSION)||''}
@@ -9965,19 +10004,22 @@ function sessionKey(){return v316StaffPassword()}
 function cloudHeaders(){return {'content-type':'application/json','x-ksm-role':ksmSessionRole==='staff'?'staff':'spectator','x-ksm-session-key':sessionKey(),'x-ksm-client-id':cloudSession.clientId||'','x-ksm-client-name':cloudSession.clientName||'KSM Device','x-ksm-court':cloudSession.court||''}}
 function cloudSocketUrl(id){const protocol=location.protocol==='https:'?'wss:':'ws:';const url=new URL(`${protocol}//${location.host}/api/tournaments/${encodeURIComponent(id)}/live`);url.searchParams.set('role',ksmSessionRole==='staff'?'staff':'spectator');if(sessionKey())url.searchParams.set('key',sessionKey());url.searchParams.set('clientId',cloudSession.clientId||'');url.searchParams.set('name',cloudSession.clientName||'KSM Device');if(cloudSession.court)url.searchParams.set('court',cloudSession.court);return url.toString()}
 function promptNewStaffPassword(){const a=prompt('Create Staff password');if(!a)return '';if(a.length<4){alert('Staff password must be at least 4 characters.');return ''}const b=prompt('Confirm Staff password');if(a!==b){alert('Passwords do not match.');return ''}return a}
-function createNewTournament(){const name=prompt('Tournament Name',(window.tName&&tName.value)||'Kendo Tournament');if(!name)return;const password=promptNewStaffPassword();if(!password)return;disconnectCloudSocket();cloudSession.tournamentId=null;cloudSession.revision=0;cloudSession.updatedAt=null;cloudSession.court='';persistCloudSession();sessionStorage.setItem(KSM_V316_STAFF_SESSION,password);if(window.tName)tName.value=name;setSessionRole('staff');installRoleBanner('staff');scheduleAutoSave('New tournament');navigateTo('setup');showKsmToast('New tournament ready · Save Now to create its public link',3000)}
+function createNewTournament(){const name=prompt('Tournament Name','Kendo Tournament');if(!name)return;const password=promptNewStaffPassword();if(!password)return;document.body.classList.remove('ksm-home');disconnectCloudSocket();cloudSession.tournamentId=null;cloudSession.revision=0;cloudSession.updatedAt=null;cloudSession.court='';persistCloudSession();sessionStorage.setItem(KSM_V316_STAFF_SESSION,password);if(window.tName)tName.value=name;setSessionRole('staff');installRoleBanner('staff');scheduleAutoSave('New tournament');navigateTo('setup');showKsmToast('New tournament ready · Save Now to create its public link',3000)}
 async function toggleStaffSession(){if(ksmSessionRole==='staff'){sessionStorage.removeItem(KSM_V316_STAFF_SESSION);setSessionRole('spectator');installRoleBanner('spectator');disconnectCloudSocket();connectCloudSocket();navigateTo('public');return}if(!cloudSession.tournamentId){alert('Create or load a tournament before Staff Login.');return}const password=prompt('Enter Staff password');if(!password)return;try{const response=await fetch(`/api/tournaments/${encodeURIComponent(cloudSession.tournamentId)}/auth`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password})});if(!response.ok)throw new Error();sessionStorage.setItem(KSM_V316_STAFF_SESSION,password);setSessionRole('staff');installRoleBanner('staff');disconnectCloudSocket();connectCloudSocket();showKsmToast('✓ Staff access enabled',1500)}catch(_){alert('Incorrect Staff password.')}}
 function installRoleBanner(role){document.querySelector('.spectator-readonly-banner')?.remove();if(role!=='spectator')return;const banner=document.createElement('div');banner.className='spectator-readonly-banner';banner.textContent='LIVE SPECTATOR VIEW • READ ONLY';document.body.prepend(banner)}
 function readTournamentLibrary(){try{return JSON.parse(localStorage.getItem(KSM_V316_LIBRARY)||'[]')}catch(_){return []}}
 function rememberTournament(record){if(!record?.tournamentId)return;const list=readTournamentLibrary().filter(x=>x.id!==record.tournamentId);list.unshift({id:record.tournamentId,name:record.payload?.setup?.tName||'Kendo Tournament',updatedAt:record.updatedAt||new Date().toISOString()});localStorage.setItem(KSM_V316_LIBRARY,JSON.stringify(list.slice(0,40)))}
-async function openTournamentLibrary(){const list=readTournamentLibrary();const content=list.length?`<div class="tournament-library-grid">${list.map(x=>`<button class="tournament-card ${x.id===cloudSession.tournamentId?'active':''}" onclick='closeCloudModal();loadTournamentFromCloud(${JSON.stringify(x.id)},{spectator:true})'>${esc(x.name)}</button>`).join('')}</div>`:'<p class="small">No saved cloud tournaments on this device.</p>';openCloudModal('Tournament Library',content)}
+function renderHomeTournamentLibrary(){const host=document.getElementById('homeTournamentLibrary');if(!host)return;const list=readTournamentLibrary();host.innerHTML=list.length?list.map(x=>`<button class="home-tournament-card" type="button" onclick='openTournamentFromHome(${JSON.stringify(x.id)})'><span class="home-card-name">${esc(x.name)}</span><span class="home-card-meta">Open tournament</span></button>`).join(''):`<div class="home-empty"><b>No tournaments saved on this device yet.</b><br><span>Create your first tournament to get started.</span></div>`}
+function showHomePage(){closeNavMenus();disconnectCloudSocket();sessionStorage.removeItem(KSM_V316_STAFF_SESSION);setSessionRole('spectator');installRoleBanner('home');document.body.classList.add('ksm-home');renderHomeTournamentLibrary();show('home')}
+async function openTournamentFromHome(id){sessionStorage.removeItem(KSM_V316_STAFF_SESSION);setSessionRole('spectator');document.body.classList.remove('ksm-home');try{await loadTournamentFromCloud(id,{spectator:true});setSessionRole('spectator');installRoleBanner('spectator');navigateTo('public')}catch(err){console.error(err);document.body.classList.add('ksm-home');renderHomeTournamentLibrary();alert('Unable to open that tournament. Check your internet connection and try again.')}}
+async function openTournamentLibrary(){showHomePage()}
 function spectatorLink(){if(!cloudSession.tournamentId)return '';const url=new URL(location.href);url.search='';url.hash='';url.searchParams.set('tournament',cloudSession.tournamentId);return url.toString()}
 async function openTournamentAccess(){if(!cloudSession.tournamentId)await saveNow();if(!cloudSession.tournamentId){alert('Connect to the internet and save the tournament first.');return}const link=spectatorLink();const qr=`https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(link)}`;openCloudModal('Tournament Access',`<div class="access-link-box">${esc(link)}</div><div class="row" style="margin-top:12px"><button onclick='copyTextValue(${JSON.stringify(link)},"Tournament link copied")'>Copy Link</button></div><div class="access-qr"><img src="${qr}" alt="Tournament access QR code"><p class="small">Scan to open the tournament in Spectator mode.</p></div>`)}
 async function performCloudSave(payload=tournamentPayload(),baseRevision=cloudSession.revision||0){const existing=cloudSession.tournamentId;let envelope={...cloudEnvelope(payload),revision:baseRevision};if(!existing){const password=v316StaffPassword()||promptNewStaffPassword();if(!password)throw new Error('Staff password required');sessionStorage.setItem(KSM_V316_STAFF_SESSION,password);setSessionRole('staff');envelope={...envelope,staffPassword:password}}const response=await fetch(existing?`/api/tournaments/${encodeURIComponent(existing)}`:'/api/tournaments',{method:existing?'PUT':'POST',headers:cloudHeaders(),body:JSON.stringify(envelope)});if(response.status===403)throw new Error('Session authorization required');if(response.status===409){const conflict=await response.json();const outbox={tournamentId:existing,baseRevision,payload,queuedAt:new Date().toISOString()};preserveRecovery(outbox,conflict.record);clearOutbox();if(conflict.record)applyRemoteCloudRecord(conflict.record);throw new Error('Cloud revision conflict')}if(!response.ok)throw new Error(`Cloud save failed (${response.status})`);const record=await response.json();const idChanged=cloudSession.tournamentId!==record.tournamentId;cloudSession.tournamentId=record.tournamentId;cloudSession.revision=record.revision;cloudSession.updatedAt=record.updatedAt;persistCloudSession();rememberTournament(record);setSessionRole(v316StaffPassword()?'staff':'spectator');clearOutbox();ksmLastSuccessfulSaveAt=Date.parse(record.updatedAt)||Date.now();ksmSaveStatusMode='saved';setConnectionStatus('Connected','online');renderPersistentSaveStatus();if(idChanged||!ksmCloudSocket)connectCloudSocket();return record}
 async function loadTournamentFromCloud(tournamentId,options={}){const id=(tournamentId||cloudSession.tournamentId||'').trim();if(!id)throw new Error('Tournament ID required');setConnectionStatus('Loading cloud…','connecting');const response=await fetch(`/api/tournaments/${encodeURIComponent(id)}`);if(!response.ok)throw new Error(`Cloud load failed (${response.status})`);const record=await response.json();disconnectCloudSocket();ksmApplyingRemoteSnapshot=true;try{applyTournamentPayload(record.payload,false);localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(record.payload))}finally{ksmApplyingRemoteSnapshot=false}cloudSession.tournamentId=record.tournamentId;cloudSession.revision=record.revision;cloudSession.updatedAt=record.updatedAt;cloudSession.court='';persistCloudSession();rememberTournament(record);ksmLastSuccessfulSaveAt=Date.parse(record.updatedAt)||Date.now();ksmSaveStatusMode='saved';setSessionRole(v316StaffPassword()?'staff':'spectator');installRoleBanner(ksmSessionRole);connectCloudSocket();setConnectionStatus('Connected','online');renderPersistentSaveStatus();return record}
-async function initializeCloudRoleFromUrl(){ensureClientIdentity();const params=new URLSearchParams(location.search);const id=params.get('tournament')||params.get('spectator')||'';if(id){await loadTournamentFromCloud(id,{spectator:true});setSessionRole(v316StaffPassword()?'staff':'spectator');installRoleBanner(ksmSessionRole);navigateTo(ksmSessionRole==='staff'?'director':'public');return true}setSessionRole(cloudSession.tournamentId&&v316StaffPassword()?'staff':'spectator');installRoleBanner(ksmSessionRole);return false}
+async function initializeCloudRoleFromUrl(){ensureClientIdentity();const params=new URLSearchParams(location.search);const id=params.get('tournament')||params.get('spectator')||'';if(id){sessionStorage.removeItem(KSM_V316_STAFF_SESSION);await loadTournamentFromCloud(id,{spectator:true});setSessionRole('spectator');installRoleBanner('spectator');document.body.classList.remove('ksm-home');navigateTo('public');return true}showHomePage();return true}
 
-initializeCloudRoleFromUrl().catch(err=>{console.error('Unable to initialize cloud session',err);setConnectionStatus('Cloud load failed','offline')}).then(handled=>{if(!handled&&cloudSession.tournamentId)connectCloudSocket()});
+initializeCloudRoleFromUrl().catch(err=>{console.error('Unable to initialize cloud session',err);setConnectionStatus('Cloud load failed','offline');showHomePage()});
 syncSetupHeader();
 
 // Hosted mobile foundation: normal click events are authoritative.
