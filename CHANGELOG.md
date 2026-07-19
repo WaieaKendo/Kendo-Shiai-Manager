@@ -1,3 +1,13 @@
+# Changelog
+
+## v3.16.3 — Stability Release
+
+- Updated the Registration navigation icon with the supplied SVG.
+- Fixed mobile Setup icon/text alignment.
+- Enabled Staff users to select team representatives for tiebreak playoffs.
+- Improved synchronization responsiveness and preserved edits made while a cloud save is already in progress.
+- Fixed TV Display routing so TV links open the dedicated TV screen.
+
 ## 3.16.2 — Cloud-First Tournament Library and Branding
 
 - Made the Tournament Library cloud-backed so tournaments appear across devices.
