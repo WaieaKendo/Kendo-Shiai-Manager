@@ -4,13 +4,13 @@ const html = fs.readFileSync('public/index.html', 'utf8');
 const icon = fs.readFileSync('public/assets/nav-icons/registration.svg', 'utf8');
 
 const checks = [
-  ['version badge', html.includes('v3.16.3')],
+  ['version badge', html.includes('v3.17.0')],
   ['supplied registration icon', icon.includes('id="Registration"') && icon.includes('rgb(202,53,53)')],
   ['setup mobile alignment', html.includes('.icon-nav .setup-nav-tile') && html.includes('setup-nav-tile"')],
   ['staff representative selection', html.includes("['local','admin','director','staff'].includes(ksmSessionRole)")],
   ['faster local autosave', html.includes('setTimeout(()=>autoSaveTournament(reason),300)')],
   ['faster cloud debounce', html.includes("scheduleCloudSave(reason='Autosave',delay=250)")],
-  ['queued in-flight save', html.includes('ksmCloudSaveQueued=true') && html.includes("scheduleCloudSave('Queued edit',50)")],
+  ['deterministic pending save', html.includes('queuePendingCloudSave') && html.includes('runPendingCloudSave') && !html.includes('ksmCloudSaveQueued=true')],
   ['TV route honors view parameter', html.includes("requestedView==='tv'") && html.includes("renderTvDisplay();show('tv')")]
 ];
 

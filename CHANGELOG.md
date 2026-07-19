@@ -1,5 +1,12 @@
 # Changelog
 
+## v3.17.0 — Deterministic Save Queue
+
+- Replaced the boolean cloud-save queue with a single pending save request.
+- Save Now now waits for an in-progress autosave and reports the actual queued-save result.
+- Rapid edits continue to collapse into one latest-state cloud write.
+- Preserved the existing authorization, outbox, worker, TV, and tournament-engine behavior.
+
 ## v3.16.3 — Stability Release
 
 - Updated the Registration navigation icon with the supplied SVG.

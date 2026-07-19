@@ -5232,7 +5232,7 @@ body.ksm-staff .director-only{display:flex!important}
 .branding-preview img{width:100%;height:100%;object-fit:contain;padding:10px;box-sizing:border-box}
 .branding-placeholder{font-size:58px}
 @media(max-width:560px){.home-library-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.branding-panel-body{grid-template-columns:1fr}.branding-preview{width:min(180px,100%)}}
-/* KSM v3.16.3 — mobile alignment and stability */
+/* KSM v3.17.0 — deterministic cloud save queue */
 @media(max-width:980px){
   .icon-nav .setup-nav-tile{grid-template-rows:36px 26px!important;align-content:center!important}
   .icon-nav .setup-nav-tile img{display:block!important;align-self:center!important;margin:0!important}
@@ -5247,7 +5247,7 @@ body.ksm-staff .director-only{display:flex!important}
     <div class="nav-brand-copy">
       <span class="nav-brand-name">KSM</span>
       <span class="nav-brand-subtitle">Kendo Shiai Manager</span>
-      <span class="version-badge">v3.16.3</span>
+      <span class="version-badge">v3.17.0</span>
     </div>
   </div>
 
@@ -7369,7 +7369,7 @@ let ksmCloudSocket=null;
 let ksmCloudReconnectTimer=null;
 let ksmApplyingRemoteSnapshot=false;
 let ksmCloudSaveInFlight=false;
-let ksmCloudSaveQueued=false;
+let ksmCloudSavePending=null;
 let ksmLastSuccessfulSaveAt=null;
 let ksmSaveStatusMode='idle';
 const cloudSession=loadCloudSession();
@@ -7392,7 +7392,7 @@ function writeOutbox(payload,reason='Local change'){const queued={schemaVersion:
 function clearOutbox(){localStorage.removeItem(KSM_CLOUD_OUTBOX_KEY)}
 function preserveRecovery(outbox,serverRecord){localStorage.setItem(KSM_CLOUD_RECOVERY_KEY,JSON.stringify({savedAt:new Date().toISOString(),outbox,serverRevision:serverRecord?.revision||0}));ksmSaveStatusMode='error';renderPersistentSaveStatus()}
 function downloadJson(value,name){const blob=new Blob([JSON.stringify(value,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
-function recoveryPackage(){const outbox=readOutbox();let stored=null;try{stored=JSON.parse(localStorage.getItem(KSM_CLOUD_RECOVERY_KEY)||'null')}catch(_){}return {fileType:'KSM_RECOVERY',schemaVersion:'1.0',appVersion:'3.16.3',engineVersion:'3.12.9',createdAt:new Date().toISOString(),tournamentId:cloudSession.tournamentId||outbox?.tournamentId||null,assignedCourt:cloudSession.court||state.currentCourt||'',role:ksmSessionRole,lastConfirmedCloudRevision:cloudSession.revision||0,latestLocalSnapshot:tournamentPayload(),queuedActions:outbox?.actions||[],outbox:outbox||null,conflictRecovery:stored||null}}
+function recoveryPackage(){const outbox=readOutbox();let stored=null;try{stored=JSON.parse(localStorage.getItem(KSM_CLOUD_RECOVERY_KEY)||'null')}catch(_){}return {fileType:'KSM_RECOVERY',schemaVersion:'1.0',appVersion:'3.17.0',engineVersion:'3.12.9',createdAt:new Date().toISOString(),tournamentId:cloudSession.tournamentId||outbox?.tournamentId||null,assignedCourt:cloudSession.court||state.currentCourt||'',role:ksmSessionRole,lastConfirmedCloudRevision:cloudSession.revision||0,latestLocalSnapshot:tournamentPayload(),queuedActions:outbox?.actions||[],outbox:outbox||null,conflictRecovery:stored||null}}
 function downloadRecoveryFile(){try{const pack=recoveryPackage();const court=pack.assignedCourt?`_Court-${pack.assignedCourt}`:'';const stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);downloadJson(pack,`KSM_Recovery${court}_${stamp}.ksm`);updateSaveStatus('Recovery file downloaded')}catch(err){console.error(err);alert('Unable to create recovery file.')}}
 function downloadCloudRecovery(){downloadRecoveryFile()}
 function getSetupSnapshot(){
@@ -7463,12 +7463,26 @@ async function performCloudSave(payload=tournamentPayload(),baseRevision=cloudSe
   if(record.credentials){cloudSession.credentials=record.credentials;ksmSessionRole='admin'}persistCloudSession();setSessionRole(ksmSessionRole==='local'?(record.credentials?'admin':'director'):ksmSessionRole);clearOutbox();ksmLastSuccessfulSaveAt=Date.parse(record.updatedAt)||Date.now();ksmSaveStatusMode='saved';setConnectionStatus('Connected','online');renderPersistentSaveStatus();if(idChanged||!ksmCloudSocket)connectCloudSocket();return record;
 }
 function saveTournamentToCloud(){return saveTournamentToCloudWithReason('Manual cloud save',true)}
+function queuePendingCloudSave(reason='Autosave',force=false){
+  return new Promise(resolve=>{
+    if(!ksmCloudSavePending)ksmCloudSavePending={reason,force:Boolean(force),resolvers:[]};
+    else{ksmCloudSavePending.reason=reason||ksmCloudSavePending.reason;ksmCloudSavePending.force=ksmCloudSavePending.force||Boolean(force)}
+    ksmCloudSavePending.resolvers.push(resolve);
+    if(force){ksmSaveStatusMode='syncing';renderPersistentSaveStatus()}
+  })
+}
+async function runPendingCloudSave(){
+  const pending=ksmCloudSavePending;if(!pending)return;
+  ksmCloudSavePending=null;
+  const saved=await saveTournamentToCloudWithReason(pending.reason,pending.force);
+  pending.resolvers.forEach(resolve=>resolve(saved));
+}
 async function saveTournamentToCloudWithReason(reason='Autosave',force=false){
   if(location.protocol==='file:'||ksmApplyingRemoteSnapshot||isReadOnlySession()||!canCloudWrite())return false;
-  if(ksmCloudSaveInFlight){ksmCloudSaveQueued=true;return false}
+  if(ksmCloudSaveInFlight)return queuePendingCloudSave(reason,force);
   const payload=tournamentPayload();if(!navigator.onLine){writeOutbox(payload,reason);setConnectionStatus('Offline','offline');return false}
   ksmCloudSaveInFlight=true;ksmSaveStatusMode=readOutbox()?'syncing':'saving';setConnectionStatus('Connected','online');renderPersistentSaveStatus();
-  try{await performCloudSave(payload,cloudSession.revision||0);return true}catch(err){console.warn('Cloud save failed',err);if(!String(err.message).includes('conflict'))writeOutbox(payload,reason);ksmSaveStatusMode=String(err.message).includes('conflict')?'error':'offline';setConnectionStatus(String(err.message).includes('conflict')?'Conflict':'Offline',String(err.message).includes('conflict')?'error':'offline');renderPersistentSaveStatus();scheduleCloudReconnect();return false}finally{ksmCloudSaveInFlight=false;if(ksmCloudSaveQueued){ksmCloudSaveQueued=false;scheduleCloudSave('Queued edit',50)}}
+  try{await performCloudSave(payload,cloudSession.revision||0);return true}catch(err){console.warn('Cloud save failed',err);if(!String(err.message).includes('conflict'))writeOutbox(payload,reason);ksmSaveStatusMode=String(err.message).includes('conflict')?'error':'offline';setConnectionStatus(String(err.message).includes('conflict')?'Conflict':'Offline',String(err.message).includes('conflict')?'error':'offline');renderPersistentSaveStatus();scheduleCloudReconnect();return false}finally{ksmCloudSaveInFlight=false;await runPendingCloudSave()}
 }
 async function flushCloudOutbox(){const outbox=readOutbox();if(!outbox||ksmCloudSaveInFlight||isReadOnlySession()||!navigator.onLine)return;if(outbox.tournamentId&&outbox.tournamentId!==cloudSession.tournamentId)return;ksmCloudSaveInFlight=true;ksmSaveStatusMode='syncing';renderPersistentSaveStatus();try{await performCloudSave(outbox.payload,outbox.baseRevision)}catch(err){console.warn('Queued cloud save failed',err);ksmSaveStatusMode='error';renderPersistentSaveStatus()}finally{ksmCloudSaveInFlight=false}}
 function scheduleCloudSave(reason='Autosave',delay=250){if(ksmApplyingRemoteSnapshot||isReadOnlySession())return;clearTimeout(ksmCloudTimer);ksmCloudTimer=setTimeout(()=>saveTournamentToCloudWithReason(reason),delay)}
