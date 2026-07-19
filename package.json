@@ -1,6 +1,6 @@
 {
   "name": "kendo-shiai-manager",
-  "version": "3.17.0",
+  "version": "3.17.1-test",
   "private": true,
   "description": "Kendo Shiai Manager hosted mobile/PWA application",
   "scripts": {

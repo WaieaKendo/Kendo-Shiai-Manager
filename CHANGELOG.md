@@ -1,5 +1,11 @@
 # Changelog
 
+## v3.17.1-test — Cloud Save Diagnostics
+
+- Added persistent cloud-save diagnostics showing the last save stage, HTTP status, server response, retry count, queued revision, queue age, and snapshot size.
+- Added a Staff-only **Retry queued save** control in Cloud Diagnostics.
+- Preserved the v3.17.0 save behavior so this build can identify the exact failure without introducing another save-logic change.
+
 ## v3.17.0 — Deterministic Save Queue
 
 - Replaced the boolean cloud-save queue with a single pending save request.
