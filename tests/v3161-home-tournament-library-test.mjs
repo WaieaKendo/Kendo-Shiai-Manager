@@ -3,7 +3,7 @@ const html = fs.readFileSync('public/index.html','utf8');
 const sw = fs.readFileSync('public/service-worker.js','utf8');
 const worker = fs.readFileSync('src-worker.js','utf8');
 const checks = [
-  ['version', html.includes('v3.16.1') && sw.includes('ksm-shell-v3.16.1') && worker.includes("version: '3.16.1'")],
+  ['version', html.includes('v3.16.2') && sw.includes('ksm-shell-v3.16.2') && worker.includes("version: '3.16.2'")],
   ['dedicated home view', html.includes('id="home"') && html.includes('id="homeTournamentLibrary"')],
   ['new tournament available on home', html.includes('onclick="createNewTournament()">＋ New Tournament')],
   ['existing tournaments open spectator', html.includes('openTournamentFromHome') && html.includes("setSessionRole('spectator')")],

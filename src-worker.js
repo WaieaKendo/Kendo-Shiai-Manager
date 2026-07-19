@@ -117,6 +117,27 @@ export class TournamentState {
       for (const socket of this.state.getWebSockets()) try { socket.close(1000, 'Tournament deleted'); } catch (_) {}
       return json({ ok: true });
     }
+
+    // The singleton __ksm_library__ Durable Object stores only card metadata.
+    if (request.method === 'GET' && url.pathname === '/library') {
+      const rows = (await this.state.storage.get('library')) || {};
+      return json(Object.values(rows).sort((a,b) => String(b.updatedAt||'').localeCompare(String(a.updatedAt||''))));
+    }
+    if (request.method === 'PUT' && url.pathname === '/library') {
+      const item = await request.json();
+      if (!item?.id) return json({ error: 'Tournament ID required' }, 400);
+      const rows = (await this.state.storage.get('library')) || {};
+      rows[item.id] = { id:item.id, name:String(item.name||'Kendo Tournament').slice(0,160), logo:typeof item.logo==='string'?item.logo:'', updatedAt:item.updatedAt||new Date().toISOString() };
+      await this.state.storage.put('library', rows);
+      return json(rows[item.id]);
+    }
+    if (request.method === 'DELETE' && url.pathname.startsWith('/library/')) {
+      const id = decodeURIComponent(url.pathname.slice('/library/'.length));
+      const rows = (await this.state.storage.get('library')) || {};
+      delete rows[id];
+      await this.state.storage.put('library', rows);
+      return json({ ok:true });
+    }
     return json({ error: 'Not found' }, 404);
   }
 
@@ -130,13 +151,34 @@ export class TournamentState {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (url.pathname === '/api/health') return json({ ok: true, service: 'ksm-cloud', version: '3.16.1', realtime: true, roles: ['spectator', 'staff'], offlineOutbox: true });
+    if (url.pathname === '/api/health') return json({ ok: true, service: 'ksm-cloud', version: '3.16.2', realtime: true, roles: ['spectator', 'staff'], offlineOutbox: true });
 
+    const libraryStub = () => env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName('__ksm_library__'));
+    const updateLibrary = async (record) => {
+      if (!record?.tournamentId) return;
+      const setup = record.payload?.setup || {};
+      await libraryStub().fetch(new Request('https://durable-object/library', { method:'PUT', headers:{'content-type':'application/json'}, body:JSON.stringify({ id:record.tournamentId, name:setup.tName||'Kendo Tournament', logo:setup.tournamentLogo||'', updatedAt:record.updatedAt }) }));
+    };
+
+    if (url.pathname === '/api/tournaments' && request.method === 'GET') {
+      return libraryStub().fetch('https://durable-object/library');
+    }
+    if (url.pathname === '/api/tournaments/discover' && request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const ids = Array.isArray(body.ids) ? body.ids.filter(id => /^[0-9a-f-]+$/i.test(id)).slice(0,100) : [];
+      for (const id of ids) {
+        const stub = env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName(id));
+        const response = await stub.fetch('https://durable-object/snapshot');
+        if (response.ok) await updateLibrary(await response.json());
+      }
+      return libraryStub().fetch('https://durable-object/library');
+    }
     if (url.pathname === '/api/tournaments' && request.method === 'POST') {
       const id = crypto.randomUUID();
       const stub = env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName(id));
       const body = await request.json();
       const response = await stub.fetch(new Request('https://durable-object/bootstrap', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...body, tournamentId: id, revision: 0 }) }));
+      if (response.ok) await updateLibrary(await response.clone().json());
       return new Response(response.body, response);
     }
 
@@ -154,9 +196,15 @@ export default {
       if (!action && request.method === 'PUT') {
         const body = await request.json();
         if (body.tournamentId && body.tournamentId !== id) return json({ error: 'Tournament ID mismatch' }, 409);
-        return stub.fetch(new Request('https://durable-object/snapshot', { method: 'PUT', headers: request.headers, body: JSON.stringify({ ...body, tournamentId: id }) }));
+        const response = await stub.fetch(new Request('https://durable-object/snapshot', { method: 'PUT', headers: request.headers, body: JSON.stringify({ ...body, tournamentId: id }) }));
+        if (response.ok) await updateLibrary(await response.clone().json());
+        return new Response(response.body, response);
       }
-      if (!action && request.method === 'DELETE') return stub.fetch(new Request('https://durable-object/snapshot', { method: 'DELETE', headers: request.headers }));
+      if (!action && request.method === 'DELETE') {
+        const response = await stub.fetch(new Request('https://durable-object/snapshot', { method: 'DELETE', headers: request.headers }));
+        if (response.ok) await libraryStub().fetch(new Request(`https://durable-object/library/${encodeURIComponent(id)}`, { method:'DELETE' }));
+        return new Response(response.body, response);
+      }
       return json({ error: 'Method not allowed' }, 405);
     }
     return env.ASSETS.fetch(request);

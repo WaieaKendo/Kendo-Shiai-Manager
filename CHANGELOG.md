@@ -1,3 +1,14 @@
+## 3.16.2 — Cloud-First Tournament Library and Branding
+
+- Made the Tournament Library cloud-backed so tournaments appear across devices.
+- New tournaments are created in the cloud immediately and cached locally for offline use.
+- Added automatic discovery of existing locally remembered cloud tournaments.
+- Moved tournament names below square library cards.
+- Added Tournament Branding in Setup with upload, replace, and remove logo controls.
+- Stored tournament logos in cloud snapshots and backup files.
+- Retained the Pools division-selection stability fix so the selector no longer resets to Women’s Open.
+- Preserved Staff/Spectator authentication, Save Now, autosave, recovery, scoring, results, and TV workflows.
+
 ## 3.16.1
 
 - Added a dedicated Home page with the Tournament Library.
