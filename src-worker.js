@@ -6,6 +6,12 @@ function json(body, status = 200, extraHeaders = {}) {
 }
 async function passwordHash(value) { const data = new TextEncoder().encode(String(value || '')); const digest = await crypto.subtle.digest('SHA-256', data); return [...new Uint8Array(digest)].map(v => v.toString(16).padStart(2, '0')).join(''); }
 function safeRole(value) { return VALID_ROLES.has(value) ? value : 'spectator'; }
+function sanitizePayload(payload) {
+  if (!payload || typeof payload !== 'object') return payload;
+  const clean = structuredClone(payload);
+  if (clean.setup && typeof clean.setup === 'object') delete clean.setup.tournamentLogo;
+  return clean;
+}
 function publicRecord(record) {
   if (!record) return null;
   const { credentials, ...safe } = record;
@@ -85,7 +91,7 @@ export class TournamentState {
         engineVersion: incoming.engineVersion || incoming.payload?.engineVersion || 'unknown',
         revision: currentRevision + 1, createdAt: existing?.createdAt || now, updatedAt: now,
         updatedBy: { role, clientId: request.headers.get('x-ksm-client-id') || '', name: (request.headers.get('x-ksm-client-name') || '').slice(0, 80), court: (request.headers.get('x-ksm-court') || '').slice(0, 8) },
-        payload: incoming.payload
+        payload: sanitizePayload(incoming.payload)
       };
       await this.state.storage.put('record', record);
       const safe = publicRecord(record);
@@ -99,7 +105,7 @@ export class TournamentState {
       if (!incoming.staffPassword || String(incoming.staffPassword).length < 4) return json({ error: 'Staff password required' }, 400);
       await this.state.storage.put('staffPasswordHash', await passwordHash(incoming.staffPassword));
       const now = new Date().toISOString();
-      const record = { schemaVersion: '1.2', tournamentId: incoming.tournamentId, engineVersion: incoming.engineVersion || 'unknown', revision: 1, createdAt: now, updatedAt: now, updatedBy: { role: 'staff', clientId: '', name: 'Tournament creator', court: '' }, payload: incoming.payload };
+      const record = { schemaVersion: '1.2', tournamentId: incoming.tournamentId, engineVersion: incoming.engineVersion || 'unknown', revision: 1, createdAt: now, updatedAt: now, updatedBy: { role: 'staff', clientId: '', name: 'Tournament creator', court: '' }, payload: sanitizePayload(incoming.payload) };
       await this.state.storage.put('record', record);
       return json(publicRecord(record));
     }
@@ -118,6 +124,12 @@ export class TournamentState {
       return json({ ok: true });
     }
 
+    if (request.method === 'DELETE' && url.pathname === '/reset-all') {
+      await this.state.storage.deleteAll();
+      for (const socket of this.state.getWebSockets()) try { socket.close(1000, 'Cloud test data reset'); } catch (_) {}
+      return json({ ok: true });
+    }
+
     // The singleton __ksm_library__ Durable Object stores only card metadata.
     if (request.method === 'GET' && url.pathname === '/library') {
       const rows = (await this.state.storage.get('library')) || {};
@@ -127,7 +139,7 @@ export class TournamentState {
       const item = await request.json();
       if (!item?.id) return json({ error: 'Tournament ID required' }, 400);
       const rows = (await this.state.storage.get('library')) || {};
-      rows[item.id] = { id:item.id, name:String(item.name||'Kendo Tournament').slice(0,160), logo:typeof item.logo==='string'?item.logo:'', updatedAt:item.updatedAt||new Date().toISOString() };
+      rows[item.id] = { id:item.id, name:String(item.name||'Kendo Tournament').slice(0,160), updatedAt:item.updatedAt||new Date().toISOString() };
       await this.state.storage.put('library', rows);
       return json(rows[item.id]);
     }
@@ -151,14 +163,40 @@ export class TournamentState {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (url.pathname === '/api/health') return json({ ok: true, service: 'ksm-cloud', version: '3.16.2', realtime: true, roles: ['spectator', 'staff'], offlineOutbox: true });
+    try {
+    if (url.pathname === '/api/health') return json({ ok: true, service: 'ksm-cloud', version: '3.17.3-test', realtime: true, roles: ['spectator', 'staff'], offlineOutbox: true });
 
     const libraryStub = () => env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName('__ksm_library__'));
     const updateLibrary = async (record) => {
       if (!record?.tournamentId) return;
       const setup = record.payload?.setup || {};
-      await libraryStub().fetch(new Request('https://durable-object/library', { method:'PUT', headers:{'content-type':'application/json'}, body:JSON.stringify({ id:record.tournamentId, name:setup.tName||'Kendo Tournament', logo:setup.tournamentLogo||'', updatedAt:record.updatedAt }) }));
+      try {
+        const response = await libraryStub().fetch(new Request('https://durable-object/library', { method:'PUT', headers:{'content-type':'application/json'}, body:JSON.stringify({ id:record.tournamentId, name:setup.tName||'Kendo Tournament', updatedAt:record.updatedAt }) }));
+        if (!response.ok) console.error('Tournament library update rejected', response.status, await response.text());
+      } catch (error) {
+        console.error('Tournament library update failed', error);
+      }
     };
+
+    if (url.pathname === '/api/admin/reset' && request.method === 'DELETE') {
+      const supplied = request.headers.get('x-ksm-reset-key') || '';
+      if (!env.KSM_RESET_KEY || supplied !== env.KSM_RESET_KEY) return json({ error: 'Reset authorization required' }, 403);
+      const libraryResponse = await libraryStub().fetch('https://durable-object/library');
+      const rows = libraryResponse.ok ? await libraryResponse.json() : [];
+      const ids = Array.isArray(rows) ? rows.map(row => row?.id).filter(Boolean) : [];
+      const results = [];
+      for (const id of ids) {
+        try {
+          const stub = env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName(id));
+          const response = await stub.fetch(new Request('https://durable-object/reset-all', { method:'DELETE' }));
+          results.push({ id, ok: response.ok, status: response.status });
+        } catch (error) {
+          results.push({ id, ok:false, error:String(error?.message||error) });
+        }
+      }
+      await libraryStub().fetch(new Request('https://durable-object/reset-all', { method:'DELETE' }));
+      return json({ ok:true, deleted:results.filter(item=>item.ok).length, attempted:ids.length, results });
+    }
 
     if (url.pathname === '/api/tournaments' && request.method === 'GET') {
       return libraryStub().fetch('https://durable-object/library');
@@ -208,5 +246,9 @@ export default {
       return json({ error: 'Method not allowed' }, 405);
     }
     return env.ASSETS.fetch(request);
+    } catch (error) {
+      console.error('KSM Worker request failed', { path:url.pathname, method:request.method, error });
+      return json({ error:'Worker operation failed', stage:'request', message:String(error?.message||error) }, 500);
+    }
   }
 };

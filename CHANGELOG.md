@@ -1,5 +1,16 @@
 # Changelog
 
+## v3.17.3-test — Logo Removal and Cloud Reset
+
+- Removed the optional tournament-logo upload, preview, storage, library-card rendering, and snapshot field.
+- Added server-side payload sanitization so legacy `tournamentLogo` data is discarded.
+- Reduced Tournament Library records to tournament ID, name, and update time.
+- Made Tournament Library metadata updates nonfatal to tournament saves.
+- Added structured JSON handling for uncaught Worker request errors.
+- Added a reset-key-protected endpoint and utility script for deleting all cloud test tournaments listed in the Tournament Library.
+- Clears prior local tournament autosaves, cloud sessions, queued snapshots, recovery state, diagnostics, and cached Tournament Library data once on first launch.
+- Strengthened editing protection by deferring remote snapshots during active or very recent text entry.
+
 ## v3.17.2-test — Input Focus and Autosave Stabilization
 
 - Restored the calmer v3.16.2 autosave cadence: 2 seconds before local autosave and 1.2 seconds before cloud synchronization.

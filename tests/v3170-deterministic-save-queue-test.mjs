@@ -4,8 +4,8 @@ const html = fs.readFileSync('public/index.html', 'utf8');
 const sw = fs.readFileSync('public/service-worker.js', 'utf8');
 
 const checks = [
-  ['version badge', html.includes('v3.17.2-test')],
-  ['service worker cache', sw.includes('ksm-shell-v3.17.2-test')],
+  ['version badge', html.includes('v3.17.3-test')],
+  ['service worker cache', sw.includes('ksm-shell-v3.17.3-test')],
   ['pending request state', html.includes('let ksmCloudSavePending=null;')],
   ['queued callers receive promises', html.includes('return new Promise(resolve=>') && html.includes('ksmCloudSavePending.resolvers.push(resolve)')],
   ['manual force is retained', html.includes('ksmCloudSavePending.force=ksmCloudSavePending.force||Boolean(force)')],
