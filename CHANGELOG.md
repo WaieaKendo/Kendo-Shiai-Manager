@@ -1,5 +1,12 @@
 # Changelog
 
+## v3.17.2-test — Input Focus and Autosave Stabilization
+
+- Restored the calmer v3.16.2 autosave cadence: 2 seconds before local autosave and 1.2 seconds before cloud synchronization.
+- Ignores self-originated realtime snapshot echoes so a successful save cannot rebuild the active editor.
+- Defers snapshots from other devices while a Staff user is actively editing an input, textarea, select, or contenteditable field, then applies the newest deferred revision after focus leaves the editor.
+- Preserves the existing deterministic save queue, cloud diagnostics, TV synchronization, and spectator behavior.
+
 ## v3.17.1-test — Cloud Save Diagnostics
 
 - Added persistent cloud-save diagnostics showing the last save stage, HTTP status, server response, retry count, queued revision, queue age, and snapshot size.
