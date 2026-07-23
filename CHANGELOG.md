@@ -1,3 +1,11 @@
+## v3.17.5-test — Snapshot Growth Analysis
+
+- Adds per-save snapshot size analysis without changing save timing or tournament behavior.
+- Reports total payload size, top-level state sections, and largest nested paths.
+- Adds a downloadable JSON analysis report in Cloud Diagnostics.
+- Makes diagnostic-state storage nonfatal if browser storage is full.
+- Retains TV realtime diagnostics and v3.17.4 service-worker fixes.
+
 ## v3.17.4-test — TV Realtime and Service Worker Reliability
 
 - Fixed service-worker response cloning and cache writes.
