@@ -1,3 +1,11 @@
+## v3.17.4-test — TV Realtime and Service Worker Reliability
+
+- Fixed service-worker response cloning and cache writes.
+- Bumped the app-shell cache to force installation of the corrected service worker.
+- Fixed same-browser Staff/TV synchronization by allowing read-only TV sessions to apply Staff-originated broadcasts.
+- Added temporary TV realtime diagnostics and a reconnect button.
+- Left cloud saving, autosave timing, tournament logic, and scoring unchanged.
+
 # Changelog
 
 ## v3.17.3-test — Logo Removal and Cloud Reset
