@@ -4,10 +4,10 @@ const sw=fs.readFileSync(new URL('../public/service-worker.js',import.meta.url),
 const worker=fs.readFileSync(new URL('../src-worker.js',import.meta.url),'utf8');
 const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));
 const checks=[
-  [pkg.version==='3.17.8-test','package version'],
-  [html.includes('v3.17.8-test'),'HTML version'],
-  [sw.includes('ksm-shell-v3.17.8-test'),'service-worker cache'],
-  [worker.includes("version: '3.17.8-test'"),'worker health version'],
+  [pkg.version==='3.17.9-test','package version'],
+  [html.includes('v3.17.9-test'),'HTML version'],
+  [sw.includes('ksm-shell-v3.17.9-test'),'service-worker cache'],
+  [worker.includes("version: '3.17.9-test'"),'worker health version'],
   [html.includes("refreshTvFromCloud('Connection handshake')"),'connection handshake refresh'],
   [html.includes("refreshTvFromCloud('Initial sync fallback')"),'initial fallback'],
   [html.includes("setInterval(()=>refreshTvFromCloud('Periodic verification',false),15000)"),'periodic verification'],

@@ -5209,6 +5209,15 @@ body.ksm-tv .tv3-up-card.empty{grid-template-columns:1fr!important}
 body.ksm-tv .tv3-up-name{font-size:38px!important;line-height:.96!important;font-weight:830!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
 body.ksm-tv .tv3-up-sub{margin-top:4px!important;font-size:18px!important;line-height:1!important;color:rgba(255,255,255,.72)!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
 body.ksm-tv .tv3-up-vs{color:#e3bd5b!important;font-size:32px!important;font-weight:900!important}
+body.ksm-tv .tv3-results-body{display:flex!important;align-items:center!important;justify-content:center!important;padding:12px 120px 22px!important}
+body.ksm-tv .tv3-results-body .division-complete-panel{width:100%!important;max-width:1320px!important;margin:0!important;padding:0!important;text-align:left!important}
+body.ksm-tv .tv3-results-body .division-complete-list{display:grid!important;gap:18px!important;max-width:none!important;margin:0!important}
+body.ksm-tv .tv3-results-body .division-complete-row{display:grid!important;grid-template-columns:190px minmax(0,1fr)!important;align-items:center!important;min-height:94px!important;padding:0 34px!important;border:3px solid rgba(255,255,255,.2)!important;border-radius:14px!important;background:rgba(255,255,255,.035)!important;overflow:hidden!important}
+body.ksm-tv .tv3-results-body .division-complete-row b{font-size:36px!important;line-height:1!important;font-weight:900!important;text-transform:uppercase!important;letter-spacing:.05em!important;color:#e3bd5b!important;white-space:nowrap!important}
+body.ksm-tv .tv3-results-body .division-complete-row b.silver{color:#d8dde4!important}
+body.ksm-tv .tv3-results-body .division-complete-row b.bronze{color:#d79a65!important}
+body.ksm-tv .tv3-results-body .division-complete-row span{min-width:0!important;font-size:52px!important;line-height:1!important;font-weight:850!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+body.ksm-tv .tv3-results-footer{display:flex!important;align-items:flex-start!important;justify-content:center!important;padding-top:28px!important;color:#e3bd5b!important;font-size:42px!important;line-height:1!important;font-weight:900!important;letter-spacing:.1em!important;text-transform:uppercase!important}
 </style>
 
 <style id="v316-styles">
@@ -5253,7 +5262,7 @@ body.ksm-tv .tv-realtime-diagnostics button{margin-top:7px;padding:5px 9px;borde
     <div class="nav-brand-copy">
       <span class="nav-brand-name">KSM</span>
       <span class="nav-brand-subtitle">Kendo Shiai Manager</span>
-      <span class="version-badge">v3.17.8-test</span>
+      <span class="version-badge">v3.17.9-test</span>
     </div>
   </div>
 
@@ -7423,7 +7432,7 @@ function analyzeTournamentSnapshot(payload=tournamentPayload()){
   return {analyzedAt:new Date().toISOString(),totalBytes,largest,stateBreakdown,setupBreakdown};
 }
 function snapshotAnalysisHtml(analysis){if(!analysis)return '<p class="small">No snapshot analysis has been recorded yet. Make a change or press Save Now.</p>';const top=(analysis.stateBreakdown||[]).slice(0,16),deep=(analysis.largest||[]).slice(0,16);return `<div class="cloud-detail-grid"><div class="cloud-detail"><div class="small">Total snapshot</div><b>${esc(formatSnapshotBytes(analysis.totalBytes))}</b></div><div class="cloud-detail"><div class="small">Analyzed</div><b>${esc(formatDiagnosticTime(analysis.analyzedAt))}</b></div></div><h3 style="margin-top:18px">State breakdown</h3><div class="cloud-detail-grid">${top.map(x=>`<div class="cloud-detail"><div class="small">state.${esc(x.key)}</div><b>${esc(formatSnapshotBytes(x.bytes))}</b><div class="small">${esc(x.summary)}</div></div>`).join('')}</div><h3 style="margin-top:18px">Largest nested paths</h3><div class="cloud-detail-grid">${deep.map(x=>`<div class="cloud-detail"><div class="small" style="overflow-wrap:anywhere">${esc(x.path)}</div><b>${esc(formatSnapshotBytes(x.bytes))}</b><div class="small">${esc(x.summary)}</div></div>`).join('')}</div>`}
-function downloadSnapshotAnalysis(){const analysis=analyzeTournamentSnapshot();downloadJson({appVersion:'3.17.8-test',tournamentId:cloudSession.tournamentId||null,cloudRevision:cloudSession.revision||0,...analysis},`KSM_Snapshot_Analysis_${new Date().toISOString().replace(/[:.]/g,'-')}.json`)}
+function downloadSnapshotAnalysis(){const analysis=analyzeTournamentSnapshot();downloadJson({appVersion:'3.17.9-test',tournamentId:cloudSession.tournamentId||null,cloudRevision:cloudSession.revision||0,...analysis},`KSM_Snapshot_Analysis_${new Date().toISOString().replace(/[:.]/g,'-')}.json`)}
 function analyzeHistoryEntry(entry,index){
   const properties=Object.entries(entry||{}).map(([key,value])=>({key,bytes:payloadByteSize(value),summary:snapshotValueSummary(value)})).sort((a,b)=>b.bytes-a.bytes);
   const changes=Object.entries(entry?.changes||{}).map(([key,value])=>({key,bytes:payloadByteSize(value),beforeBytes:payloadByteSize(value?.before),afterBytes:payloadByteSize(value?.after),summary:snapshotValueSummary(value)})).sort((a,b)=>b.bytes-a.bytes);
@@ -7453,7 +7462,7 @@ function historySampleEntry(entry,index){if(!entry)return null;return {analysis:
 function downloadActionHistorySample(){
   ensureCourtHistory();const courts={};
   ['A','B'].forEach(court=>{const entries=state.courtActionHistory?.[court]||[],sizes=entries.map((entry,index)=>({entry,index,bytes:payloadByteSize(entry)})),largest=sizes.sort((a,b)=>b.bytes-a.bytes)[0]||null;courts[court]={entryCount:entries.length,first:historySampleEntry(entries[0],0),latest:historySampleEntry(entries[entries.length-1],entries.length-1),largest:largest?historySampleEntry(largest.entry,largest.index):null}});
-  downloadJson({appVersion:'3.17.8-test',tournamentId:cloudSession.tournamentId||null,cloudRevision:cloudSession.revision||0,analyzedAt:new Date().toISOString(),courts},`KSM_Action_History_Sample_${new Date().toISOString().replace(/[:.]/g,'-')}.json`)
+  downloadJson({appVersion:'3.17.9-test',tournamentId:cloudSession.tournamentId||null,cloudRevision:cloudSession.revision||0,analyzedAt:new Date().toISOString(),courts},`KSM_Action_History_Sample_${new Date().toISOString().replace(/[:.]/g,'-')}.json`)
 }
 
 const KSM_V3173_RESET_MARKER='ksm.local.reset.v3_17_3';
@@ -9018,11 +9027,17 @@ function tv3UpcomingModel(court,current,teamMode){
 }
 function buildTV3ViewModel(court){
   const data=courtCurrentMatch(court);
-  if(!data)return {court,empty:true,upcoming:[null,null]};
+  const division=state.courtActiveDivision?.[court]||state.courtState?.[court]?.division||null;
+  if(!data){
+    if(division&&divisionComplete(division)&&resultPlacements(division).length){
+      return {court,empty:false,division,format:'results',meta:{division,line:'Final Results'},upcoming:[null,null]};
+    }
+    return {court,empty:true,division,upcoming:[null,null]};
+  }
   const m=data.match,meta=audienceMeta(m),teamMode=isTeamMatch(m);
-  return {court,empty:false,data,match:m,meta,teamMode,format:m.type==='kachinuki'?'kachinuki':(teamMode?'team':'individual'),upcoming:tv3UpcomingModel(court,m,teamMode)};
+  return {court,empty:false,division:m.division,data,match:m,meta,teamMode,format:m.type==='kachinuki'?'kachinuki':(teamMode?'team':'individual'),upcoming:tv3UpcomingModel(court,m,teamMode)};
 }
-function tv3Header(vm){return `<div class="tv3-head"><div class="tv3-court">Court ${esc(vm.court)}</div><div class="tv3-division">${esc(vm.meta?.division||'No active match')}</div><div class="tv3-meta">${esc(vm.meta?.line||'')}</div></div>`}
+function tv3Header(vm){return `<div class="tv3-head"><div class="tv3-court">Court ${esc(vm.court)}</div><div class="tv3-division">${esc(vm.meta?.division||vm.division||'No active match')}</div><div class="tv3-meta">${esc(vm.meta?.line||'')}</div></div>`}
 function tv3Upcoming(vm){
   const cards=vm.upcoming.map(x=>x?`<div class="tv3-up-card"><div><div class="tv3-up-name">${esc(x.left)}</div>${x.leftSub?`<div class="tv3-up-sub">${esc(x.leftSub)}</div>`:''}</div><div class="tv3-up-vs">vs</div><div><div class="tv3-up-name">${esc(x.right)}</div>${x.rightSub?`<div class="tv3-up-sub">${esc(x.rightSub)}</div>`:''}</div></div>`:`<div class="tv3-up-card empty"><div class="tv3-up-name">No additional match scheduled</div></div>`).join('');
   return `<div class="tv3-upcoming"><div class="tv3-upcoming-title">Upcoming Matches</div>${cards}</div>`;
@@ -9044,11 +9059,18 @@ function tv3Kachinuki(vm){
   const m=vm.match,p=activeScoreArrays(m),wl=(m.lineupW||[]).slice(0,3),rl=(m.lineupR||[]).slice(0,3);while(wl.length<3)wl.push('—');while(rl.length<3)rl.push('—');
   return `<div class="tv3-body"><div class="tv3-k-wrap"><div class="tv3-k-current">${tv3Player(m.white||'—','',false)}<div class="tv3-score white">${esc(tvPointText(p.W))}</div><div class="tv3-versus">vs</div><div class="tv3-score red">${esc(tvPointText(p.R))}</div>${tv3Player(m.red||'—','',true)}</div><div class="tv3-k-lineups"><div class="tv3-k-team"><div class="tv3-top-rule"></div><div class="tv3-k-title">${esc(m.teamWhite||'White Team')}</div><div class="tv3-k-rows">${wl.map((n,i)=>tv3KRow(n,i,m.wIndex||0)).join('')}</div></div><div></div><div class="tv3-k-team red"><div class="tv3-top-rule red"></div><div class="tv3-k-title">${esc(m.teamRed||'Red Team')}</div><div class="tv3-k-rows">${rl.map((n,i)=>tv3KRow(n,i,m.rIndex||0)).join('')}</div></div></div></div></div>`;
 }
+function tv3Results(vm){
+  return `<div class="tv3-body tv3-results-body">${divisionCompletePanelHtml(vm.division)}</div>`;
+}
+function tv3ResultsFooter(){
+  return `<div class="tv3-results-footer"><div>Division Complete</div></div>`;
+}
 function renderTvDisplay(){
   if(!window.tvLive)return;
   const vm=buildTV3ViewModel(tvAssignedCourt());
-  const body=vm.empty?`<div class="tv3-body"></div>`:(vm.format==='individual'?tv3Individual(vm):vm.format==='kachinuki'?tv3Kachinuki(vm):tv3Team(vm));
-  tvLive.innerHTML=`<div class="tv3-root">${tv3Header(vm)}${body}${tv3Upcoming(vm)}</div>`;
+  const body=vm.empty?`<div class="tv3-body"></div>`:(vm.format==='results'?tv3Results(vm):vm.format==='individual'?tv3Individual(vm):vm.format==='kachinuki'?tv3Kachinuki(vm):tv3Team(vm));
+  const footer=vm.format==='results'?tv3ResultsFooter():tv3Upcoming(vm);
+  tvLive.innerHTML=`<div class="tv3-root">${tv3Header(vm)}${body}${footer}</div>`;
 }
 
 // ==========================================================

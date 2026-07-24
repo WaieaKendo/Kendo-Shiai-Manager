@@ -1,3 +1,10 @@
+## v3.17.9-test — TV Final Results
+
+- Shows the completed division results on the assigned Court TV after the final match instead of an empty display.
+- Reuses the existing read-only Court division-completion results markup and existing placement calculations.
+- Keeps results visible until a different division is assigned, then automatically returns to the live TV presentation.
+- Makes no changes to scoring, tournament progression, undo/redo, cloud saves, or realtime synchronization.
+
 ## v3.17.8-test — Self-Healing TV Synchronization
 
 - Requests and force-applies a fresh cloud snapshot when a TV realtime socket connects.
