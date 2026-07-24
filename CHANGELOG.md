@@ -1,3 +1,10 @@
+## v3.17.6-test — Action History Analysis
+
+- Added a read-only Action History Analysis section under Developer Tools.
+- Reports Court A/B entry counts, total and average sizes, and first/latest/largest records.
+- Added a compact action-history sample export containing first, latest, and largest entries per court.
+- No changes to scoring, undo/redo behavior, autosave, cloud synchronization, or TV behavior.
+
 ## v3.17.5-test — Snapshot Growth Analysis
 
 - Adds per-save snapshot size analysis without changing save timing or tournament behavior.
