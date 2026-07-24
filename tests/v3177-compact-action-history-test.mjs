@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 const html=fs.readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
-assert.match(html,/v3\.17\.7-test/);
+assert.match(html,/v3\.17\.8-test/);
 assert.match(html,/format:'patch-v1'/);
 assert.match(html,/function buildHistoryPatches\(/);
 assert.match(html,/function applyHistoryPatch\(/);

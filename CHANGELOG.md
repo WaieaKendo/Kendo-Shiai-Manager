@@ -1,3 +1,14 @@
+## v3.17.8-test — Self-Healing TV Synchronization
+
+- Requests and force-applies a fresh cloud snapshot when a TV realtime socket connects.
+- Adds a three-second initial synchronization fallback plus periodic 15-second cloud verification.
+- Detects websocket revision gaps and automatically recovers with a full state refresh.
+- Preserves the selected Court A/B assignment before opening realtime so the correct court context is used in the initial handshake.
+- Forces the TV display to rerender after a refreshed snapshot, including active-division changes.
+- Reconnects and verifies automatically when network connectivity returns or the TV tab becomes visible again.
+- Expands temporary TV diagnostics with verified revision, verification time, and full-refresh count.
+- Leaves scoring, compact undo/redo history, tournament progression, and cloud-save behavior unchanged.
+
 ## v3.17.7-test — Compact Action History
 
 - Replaced newly recorded court undo/redo snapshots with compact path-level patches.

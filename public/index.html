@@ -5232,13 +5232,13 @@ body.ksm-staff .director-only{display:flex!important}
 .branding-preview img{width:100%;height:100%;object-fit:contain;padding:10px;box-sizing:border-box}
 .branding-placeholder{font-size:58px}
 @media(max-width:560px){.home-library-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.branding-panel-body{grid-template-columns:1fr}.branding-preview{width:min(180px,100%)}}
-/* KSM v3.17.7-test — logo removal and cloud reset */
+/* KSM v3.17.8-test — logo removal and cloud reset */
 @media(max-width:980px){
   .icon-nav .setup-nav-tile{grid-template-rows:36px 26px!important;align-content:center!important}
   .icon-nav .setup-nav-tile img{display:block!important;align-self:center!important;margin:0!important}
   .icon-nav .setup-nav-tile span{display:flex!important;align-items:flex-start!important;justify-content:center!important;min-height:22px!important;margin:0!important}
 }
-/* KSM v3.17.7-test — temporary TV realtime diagnostics */
+/* KSM v3.17.8-test — temporary TV realtime diagnostics */
 body.ksm-tv .tv-realtime-diagnostics{position:fixed;right:14px;bottom:14px;z-index:99999;width:300px;padding:10px 12px;border:1px solid rgba(255,255,255,.28);border-radius:10px;background:rgba(0,0,0,.78);color:#fff;font:600 12px/1.35 system-ui,sans-serif;box-shadow:0 5px 20px rgba(0,0,0,.35)}
 body.ksm-tv .tv-realtime-diagnostics strong{color:#e3bd5b;font-size:13px}
 body.ksm-tv .tv-realtime-diagnostics .tvdiag-grid{display:grid;grid-template-columns:112px 1fr;gap:3px 8px;margin-top:5px}
@@ -5253,7 +5253,7 @@ body.ksm-tv .tv-realtime-diagnostics button{margin-top:7px;padding:5px 9px;borde
     <div class="nav-brand-copy">
       <span class="nav-brand-name">KSM</span>
       <span class="nav-brand-subtitle">Kendo Shiai Manager</span>
-      <span class="version-badge">v3.17.7-test</span>
+      <span class="version-badge">v3.17.8-test</span>
     </div>
   </div>
 
@@ -6556,7 +6556,7 @@ function syncActiveScoreToMatch(){
 }
 function renderScore(){updateScoreTournamentName();let m=state.matches[state.current];if(m && !matchBelongsToCourt(m,state.currentCourt||'A'))m=null;if(!m){whiteName.textContent='—';redName.textContent='—';matchMeta.textContent='No active match';whitePts.textContent='';redPts.textContent='';whiteTri.textContent='';redTri.textContent='';renderQueue();renderPublic();renderContext();return}if(m.type==='teamPlayoff'){whiteName.innerHTML=repSelect('W',m.teamWhite,m.white);redName.innerHTML=repSelect('R',m.teamRed,m.red)}else{whiteName.textContent=m.white;redName.textContent=m.red}matchMeta.textContent=m.type==='teamPosition'?`${m.division} • ${m.teamWhite} vs ${m.teamRed} • ${m.position}`:(m.type==='teamPlayoff'?`${m.division} • ${m.teamWhite} vs ${m.teamRed} • ${m.position}`:`${m.division} • ${m.pool==='Championship'?(m.position||'Championship'):'Pool '+m.pool}`);whitePts.textContent=state.score.W.join(' ');redPts.textContent=state.score.R.join(' ');whiteTri.textContent='△ '.repeat(state.score.WT);redTri.textContent='△ '.repeat(state.score.RT);renderQueue();renderPublic();renderContext()}
 
-// ---------- KSM v3.17.7-test Compact action-patch court Undo / Redo ----------
+// ---------- KSM v3.17.8-test Compact action-patch court Undo / Redo ----------
 const KSM_HISTORY_LIMIT=100;
 const KSM_HISTORY_KEYS=new Set(['courtActionHistory','courtRedoHistory']);
 const KSM_HISTORY_MISSING={__ksmMissing:true};
@@ -7396,6 +7396,10 @@ let ksmSaveTimer=null;
 let ksmCloudTimer=null;
 let ksmCloudSocket=null;
 let ksmCloudReconnectTimer=null;
+let ksmTvInitialSyncTimer=null;
+let ksmTvVerificationTimer=null;
+let ksmTvRefreshInFlight=null;
+let ksmTvLastVerifiedAt=0;
 let ksmApplyingRemoteSnapshot=false;
 let ksmCloudSaveInFlight=false;
 let ksmCloudSavePending=null;
@@ -7419,7 +7423,7 @@ function analyzeTournamentSnapshot(payload=tournamentPayload()){
   return {analyzedAt:new Date().toISOString(),totalBytes,largest,stateBreakdown,setupBreakdown};
 }
 function snapshotAnalysisHtml(analysis){if(!analysis)return '<p class="small">No snapshot analysis has been recorded yet. Make a change or press Save Now.</p>';const top=(analysis.stateBreakdown||[]).slice(0,16),deep=(analysis.largest||[]).slice(0,16);return `<div class="cloud-detail-grid"><div class="cloud-detail"><div class="small">Total snapshot</div><b>${esc(formatSnapshotBytes(analysis.totalBytes))}</b></div><div class="cloud-detail"><div class="small">Analyzed</div><b>${esc(formatDiagnosticTime(analysis.analyzedAt))}</b></div></div><h3 style="margin-top:18px">State breakdown</h3><div class="cloud-detail-grid">${top.map(x=>`<div class="cloud-detail"><div class="small">state.${esc(x.key)}</div><b>${esc(formatSnapshotBytes(x.bytes))}</b><div class="small">${esc(x.summary)}</div></div>`).join('')}</div><h3 style="margin-top:18px">Largest nested paths</h3><div class="cloud-detail-grid">${deep.map(x=>`<div class="cloud-detail"><div class="small" style="overflow-wrap:anywhere">${esc(x.path)}</div><b>${esc(formatSnapshotBytes(x.bytes))}</b><div class="small">${esc(x.summary)}</div></div>`).join('')}</div>`}
-function downloadSnapshotAnalysis(){const analysis=analyzeTournamentSnapshot();downloadJson({appVersion:'3.17.7-test',tournamentId:cloudSession.tournamentId||null,cloudRevision:cloudSession.revision||0,...analysis},`KSM_Snapshot_Analysis_${new Date().toISOString().replace(/[:.]/g,'-')}.json`)}
+function downloadSnapshotAnalysis(){const analysis=analyzeTournamentSnapshot();downloadJson({appVersion:'3.17.8-test',tournamentId:cloudSession.tournamentId||null,cloudRevision:cloudSession.revision||0,...analysis},`KSM_Snapshot_Analysis_${new Date().toISOString().replace(/[:.]/g,'-')}.json`)}
 function analyzeHistoryEntry(entry,index){
   const properties=Object.entries(entry||{}).map(([key,value])=>({key,bytes:payloadByteSize(value),summary:snapshotValueSummary(value)})).sort((a,b)=>b.bytes-a.bytes);
   const changes=Object.entries(entry?.changes||{}).map(([key,value])=>({key,bytes:payloadByteSize(value),beforeBytes:payloadByteSize(value?.before),afterBytes:payloadByteSize(value?.after),summary:snapshotValueSummary(value)})).sort((a,b)=>b.bytes-a.bytes);
@@ -7449,7 +7453,7 @@ function historySampleEntry(entry,index){if(!entry)return null;return {analysis:
 function downloadActionHistorySample(){
   ensureCourtHistory();const courts={};
   ['A','B'].forEach(court=>{const entries=state.courtActionHistory?.[court]||[],sizes=entries.map((entry,index)=>({entry,index,bytes:payloadByteSize(entry)})),largest=sizes.sort((a,b)=>b.bytes-a.bytes)[0]||null;courts[court]={entryCount:entries.length,first:historySampleEntry(entries[0],0),latest:historySampleEntry(entries[entries.length-1],entries.length-1),largest:largest?historySampleEntry(largest.entry,largest.index):null}});
-  downloadJson({appVersion:'3.17.7-test',tournamentId:cloudSession.tournamentId||null,cloudRevision:cloudSession.revision||0,analyzedAt:new Date().toISOString(),courts},`KSM_Action_History_Sample_${new Date().toISOString().replace(/[:.]/g,'-')}.json`)
+  downloadJson({appVersion:'3.17.8-test',tournamentId:cloudSession.tournamentId||null,cloudRevision:cloudSession.revision||0,analyzedAt:new Date().toISOString(),courts},`KSM_Action_History_Sample_${new Date().toISOString().replace(/[:.]/g,'-')}.json`)
 }
 
 const KSM_V3173_RESET_MARKER='ksm.local.reset.v3_17_3';
@@ -7521,17 +7525,55 @@ function cloudSocketUrl(id){
   if(cloudSession.court)url.searchParams.set('court',cloudSession.court);
   return url.toString();
 }
-const ksmTvRealtimeDiagnostics={status:'Not connected',messages:0,ignored:0,lastMessageAt:null,lastReceivedRevision:0,lastAppliedRevision:0,lastReason:'Waiting'};
+const ksmTvRealtimeDiagnostics={status:'Not connected',messages:0,ignored:0,lastMessageAt:null,lastReceivedRevision:0,lastAppliedRevision:0,lastVerifiedRevision:0,lastVerifiedAt:null,refreshes:0,lastReason:'Waiting'};
+function isTvSession(){return document.body.classList.contains('ksm-tv')||new URLSearchParams(location.search).get('view')==='tv'}
 function formatTvDiagTime(value){return value?new Date(value).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}):'—'}
 function renderTvRealtimeDiagnostics(){
   const el=document.getElementById('tvRealtimeDiagnostics');
   if(!el||!document.body.classList.contains('ksm-tv'))return;
   const d=ksmTvRealtimeDiagnostics;
-  el.innerHTML=`<strong>TV Realtime Diagnostics</strong><div class="tvdiag-grid"><span class="tvdiag-label">Status</span><span>${esc(d.status)}</span><span class="tvdiag-label">Messages</span><span>${d.messages}</span><span class="tvdiag-label">Last message</span><span>${esc(formatTvDiagTime(d.lastMessageAt))}</span><span class="tvdiag-label">Received revision</span><span>${d.lastReceivedRevision||'—'}</span><span class="tvdiag-label">Applied revision</span><span>${d.lastAppliedRevision||'—'}</span><span class="tvdiag-label">Ignored</span><span>${d.ignored}</span><span class="tvdiag-label">Last action</span><span>${esc(d.lastReason)}</span></div><button type="button" onclick="reconnectTvRealtime()">Reconnect Realtime</button>`;
+  el.innerHTML=`<strong>TV Realtime Diagnostics</strong><div class="tvdiag-grid"><span class="tvdiag-label">Status</span><span>${esc(d.status)}</span><span class="tvdiag-label">Messages</span><span>${d.messages}</span><span class="tvdiag-label">Last message</span><span>${esc(formatTvDiagTime(d.lastMessageAt))}</span><span class="tvdiag-label">Received revision</span><span>${d.lastReceivedRevision||'—'}</span><span class="tvdiag-label">Applied revision</span><span>${d.lastAppliedRevision||'—'}</span><span class="tvdiag-label">Verified revision</span><span>${d.lastVerifiedRevision||'—'}</span><span class="tvdiag-label">Last verified</span><span>${esc(formatTvDiagTime(d.lastVerifiedAt))}</span><span class="tvdiag-label">Full refreshes</span><span>${d.refreshes}</span><span class="tvdiag-label">Ignored</span><span>${d.ignored}</span><span class="tvdiag-label">Last action</span><span>${esc(d.lastReason)}</span></div><button type="button" onclick="reconnectTvRealtime()">Reconnect Realtime</button>`;
 }
 function updateTvRealtimeDiagnostics(patch){Object.assign(ksmTvRealtimeDiagnostics,patch);renderTvRealtimeDiagnostics()}
+function clearTvSyncTimers(){clearTimeout(ksmTvInitialSyncTimer);ksmTvInitialSyncTimer=null;clearInterval(ksmTvVerificationTimer);ksmTvVerificationTimer=null}
+function scheduleTvVerification(){
+  if(!isTvSession())return;
+  clearInterval(ksmTvVerificationTimer);
+  ksmTvVerificationTimer=setInterval(()=>refreshTvFromCloud('Periodic verification',false),15000);
+}
+async function refreshTvFromCloud(reason='TV full refresh',forceApply=true){
+  if(!isTvSession()||!cloudSession.tournamentId||location.protocol==='file:'||!navigator.onLine)return false;
+  if(ksmTvRefreshInFlight)return ksmTvRefreshInFlight;
+  updateTvRealtimeDiagnostics({status:'Verifying',lastReason:reason});
+  ksmTvRefreshInFlight=(async()=>{
+    try{
+      const response=await fetch(`/api/tournaments/${encodeURIComponent(cloudSession.tournamentId)}?tvRefresh=${Date.now()}`,{cache:'no-store',headers:{'cache-control':'no-cache'}});
+      if(!response.ok)throw new Error(`Refresh failed (${response.status})`);
+      const record=await response.json();
+      const applied=applyRemoteCloudRecord(record,false,forceApply);
+      ksmTvLastVerifiedAt=Date.now();
+      updateTvRealtimeDiagnostics({status:'Connected',lastVerifiedRevision:Number(record.revision||0),lastVerifiedAt:ksmTvLastVerifiedAt,refreshes:ksmTvRealtimeDiagnostics.refreshes+1,lastReason:applied?`${reason}: applied ${record.revision}`:`${reason}: verified ${record.revision}`});
+      return true;
+    }catch(err){
+      console.warn('[TV Realtime] Full refresh failed',err);
+      updateTvRealtimeDiagnostics({status:navigator.onLine?'Refresh failed':'Offline',lastReason:`${reason}: ${err?.message||err}`});
+      return false;
+    }finally{ksmTvRefreshInFlight=null}
+  })();
+  return ksmTvRefreshInFlight;
+}
+function beginTvInitialSync(){
+  if(!isTvSession())return;
+  clearTimeout(ksmTvInitialSyncTimer);
+  refreshTvFromCloud('Connection handshake');
+  ksmTvInitialSyncTimer=setTimeout(()=>{
+    const current=Number(cloudSession.revision||0),verified=Number(ksmTvRealtimeDiagnostics.lastVerifiedRevision||0);
+    if(!verified||verified<current)refreshTvFromCloud('Initial sync fallback');
+  },3000);
+  scheduleTvVerification();
+}
 function reconnectTvRealtime(){updateTvRealtimeDiagnostics({status:'Reconnecting',lastReason:'Manual reconnect requested'});disconnectCloudSocket();connectCloudSocket()}
-function disconnectCloudSocket(){clearTimeout(ksmCloudReconnectTimer);ksmCloudReconnectTimer=null;if(ksmCloudSocket){const socket=ksmCloudSocket;ksmCloudSocket=null;try{socket.close(1000,'Reconnect')}catch(_){}}}
+function disconnectCloudSocket(){clearTimeout(ksmCloudReconnectTimer);ksmCloudReconnectTimer=null;clearTvSyncTimers();if(ksmCloudSocket){const socket=ksmCloudSocket;ksmCloudSocket=null;try{socket.close(1000,'Reconnect')}catch(_){}}}
 function scheduleCloudReconnect(){clearTimeout(ksmCloudReconnectTimer);if(!cloudSession.tournamentId||location.protocol==='file:')return;ksmCloudReconnectTimer=setTimeout(()=>connectCloudSocket(),2000)}
 function renderCloudPresence(clients=[]){cloudSession.presence=clients;const el=document.getElementById('cloudPresence');if(el)el.textContent=clients.length?`${clients.length} online`:''}
 function connectCloudSocket(){
@@ -7539,11 +7581,23 @@ function connectCloudSocket(){
   if(ksmCloudSocket&&(ksmCloudSocket.readyState===WebSocket.OPEN||ksmCloudSocket.readyState===WebSocket.CONNECTING))return;
   clearTimeout(ksmCloudReconnectTimer);setConnectionStatus('Sync connecting…','connecting');
   const socket=new WebSocket(cloudSocketUrl(cloudSession.tournamentId));ksmCloudSocket=socket;
-  socket.addEventListener('open',()=>{if(socket!==ksmCloudSocket)return;console.info('[TV Realtime] Connected');updateTvRealtimeDiagnostics({status:'Connected',lastReason:'Socket opened'});setConnectionStatus('Live sync','online');try{socket.send('ping')}catch(_){}flushCloudOutbox()});
-  socket.addEventListener('message',event=>{if(socket!==ksmCloudSocket)return;try{const message=JSON.parse(event.data);const revision=Number(message.record?.revision||0);console.info('[TV Realtime] Message',message.type,revision||'');updateTvRealtimeDiagnostics({messages:ksmTvRealtimeDiagnostics.messages+1,lastMessageAt:Date.now(),lastReceivedRevision:revision||ksmTvRealtimeDiagnostics.lastReceivedRevision,lastReason:`Received ${message.type||'message'}`});if((message.type==='snapshot'||message.type==='connected')&&message.record)applyRemoteCloudRecord(message.record);if(message.presence)renderCloudPresence(message.presence);if(message.type==='presence')renderCloudPresence(message.clients||[]);if(message.type==='credential-rotated'&&message.role===ksmSessionRole){setConnectionStatus('Access key changed','offline');disconnectCloudSocket()}}catch(err){console.warn('Cloud sync message failed',err);updateTvRealtimeDiagnostics({lastReason:`Message error: ${err?.message||err}`})}});
-  socket.addEventListener('close',()=>{if(socket!==ksmCloudSocket)return;console.info('[TV Realtime] Disconnected');ksmCloudSocket=null;updateTvRealtimeDiagnostics({status:navigator.onLine?'Reconnecting':'Offline',lastReason:'Socket closed'});setConnectionStatus(navigator.onLine?'Sync reconnecting…':'Offline • local saved',navigator.onLine?'connecting':'offline');scheduleCloudReconnect()});
+  socket.addEventListener('open',()=>{if(socket!==ksmCloudSocket)return;console.info('[TV Realtime] Connected');updateTvRealtimeDiagnostics({status:'Connected',lastReason:'Socket opened'});setConnectionStatus('Live sync','online');try{socket.send('ping')}catch(_){}flushCloudOutbox();beginTvInitialSync()});
+  socket.addEventListener('message',event=>{if(socket!==ksmCloudSocket)return;try{
+    const message=JSON.parse(event.data);const revision=Number(message.record?.revision||0),current=Number(cloudSession.revision||0);
+    console.info('[TV Realtime] Message',message.type,revision||'');
+    updateTvRealtimeDiagnostics({messages:ksmTvRealtimeDiagnostics.messages+1,lastMessageAt:Date.now(),lastReceivedRevision:revision||ksmTvRealtimeDiagnostics.lastReceivedRevision,lastReason:`Received ${message.type||'message'}`});
+    if((message.type==='snapshot'||message.type==='connected')&&message.record){
+      if(isTvSession()&&revision>current+1){updateTvRealtimeDiagnostics({lastReason:`Revision gap ${current} → ${revision}; requesting full refresh`});refreshTvFromCloud('Revision gap recovery')}
+      else applyRemoteCloudRecord(message.record,false,isTvSession()&&message.type==='connected');
+    }
+    if(message.presence)renderCloudPresence(message.presence);if(message.type==='presence')renderCloudPresence(message.clients||[]);
+    if(message.type==='credential-rotated'&&message.role===ksmSessionRole){setConnectionStatus('Access key changed','offline');disconnectCloudSocket()}
+  }catch(err){console.warn('Cloud sync message failed',err);updateTvRealtimeDiagnostics({lastReason:`Message error: ${err?.message||err}`})}});
+  socket.addEventListener('close',()=>{if(socket!==ksmCloudSocket)return;console.info('[TV Realtime] Disconnected');ksmCloudSocket=null;clearTvSyncTimers();updateTvRealtimeDiagnostics({status:navigator.onLine?'Reconnecting':'Offline',lastReason:'Socket closed'});setConnectionStatus(navigator.onLine?'Sync reconnecting…':'Offline • local saved',navigator.onLine?'connecting':'offline');scheduleCloudReconnect()});
   socket.addEventListener('error',()=>{if(socket===ksmCloudSocket){console.warn('[TV Realtime] Socket error');updateTvRealtimeDiagnostics({status:'Interrupted',lastReason:'Socket error'});setConnectionStatus('Sync interrupted','offline')}});
 }
+window.addEventListener('online',()=>{if(isTvSession()){updateTvRealtimeDiagnostics({status:'Reconnecting',lastReason:'Network restored'});disconnectCloudSocket();connectCloudSocket()}});
+document.addEventListener('visibilitychange',()=>{if(isTvSession()&&!document.hidden)refreshTvFromCloud('TV became visible')});
 let ksmDeferredRemoteRecord=null;
 let ksmLastEditorInputAt=0;
 let ksmDeferredRemoteTimer=null;
@@ -7568,10 +7622,12 @@ document.addEventListener('input',event=>{
   }
 },true);
 document.addEventListener('focusout',()=>setTimeout(applyDeferredRemoteRecord,50),true);
-function applyRemoteCloudRecord(record,allowWhileEditing=false){
+function applyRemoteCloudRecord(record,allowWhileEditing=false,forceApply=false){
+  const tvCourt=(cloudSession.court||state.publicCourt||'A').toUpperCase()==='B'?'B':'A';
+  const priorTvDivision=state.courtActiveDivision?.[tvCourt]||state.courtState?.[tvCourt]?.division||null;
   if(!record||record.tournamentId!==cloudSession.tournamentId){updateTvRealtimeDiagnostics({ignored:ksmTvRealtimeDiagnostics.ignored+1,lastReason:'Ignored wrong tournament'});return false}
   const incomingRevision=Number(record.revision||0);
-  if(incomingRevision<=Number(cloudSession.revision||0)){updateTvRealtimeDiagnostics({ignored:ksmTvRealtimeDiagnostics.ignored+1,lastReason:`Ignored old revision ${incomingRevision}`});return false}
+  if(!forceApply&&incomingRevision<=Number(cloudSession.revision||0)){updateTvRealtimeDiagnostics({ignored:ksmTvRealtimeDiagnostics.ignored+1,lastReason:`Ignored old revision ${incomingRevision}`});return false}
   // Staff pages ignore their own echoed save. Spectator/TV pages must apply it even when
   // they share the same browser-level client ID with the Staff tab.
   const isOwnWritableUpdate=canCloudWrite()&&Boolean(record.updatedBy?.clientId&&record.updatedBy.clientId===cloudSession.clientId);
@@ -7585,7 +7641,7 @@ function applyRemoteCloudRecord(record,allowWhileEditing=false){
   const outbox=readOutbox();if(outbox&&Number(outbox.baseRevision||0)<incomingRevision){preserveRecovery(outbox,record);clearOutbox()}
   ksmApplyingRemoteSnapshot=true;
   try{
-    applyTournamentPayload(record.payload,false);localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(record.payload));cloudSession.revision=incomingRevision;cloudSession.updatedAt=record.updatedAt;persistCloudSession();const by=record.updatedBy?.name||record.updatedBy?.role;updateSaveStatus((by?`Updated by ${by} • `:'Live update • ')+new Date(record.updatedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}));setConnectionStatus('Live sync','online');console.info('[TV Realtime] Applied revision',incomingRevision);updateTvRealtimeDiagnostics({lastAppliedRevision:incomingRevision,lastReason:`Applied revision ${incomingRevision}`});return true
+    applyTournamentPayload(record.payload,false);localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(record.payload));cloudSession.revision=Math.max(Number(cloudSession.revision||0),incomingRevision);cloudSession.updatedAt=record.updatedAt;persistCloudSession();const by=record.updatedBy?.name||record.updatedBy?.role;updateSaveStatus((by?`Updated by ${by} • `:'Live update • ')+new Date(record.updatedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}));setConnectionStatus('Live sync','online');const nextTvDivision=state.courtActiveDivision?.[tvCourt]||state.courtState?.[tvCourt]?.division||null;if(isTvSession()){renderTvDisplay();if(priorTvDivision!==nextTvDivision)console.info('[TV Realtime] Active division changed',tvCourt,priorTvDivision,'→',nextTvDivision)}console.info('[TV Realtime] Applied revision',incomingRevision);updateTvRealtimeDiagnostics({lastAppliedRevision:incomingRevision,lastReason:priorTvDivision!==nextTvDivision?`Applied ${incomingRevision}; Court ${tvCourt} division refreshed`:`Applied revision ${incomingRevision}`});return true
   }finally{ksmApplyingRemoteSnapshot=false}
 }
 
@@ -10214,7 +10270,7 @@ async function openTournamentLibrary(){showHomePage()}
 function spectatorLink(){if(!cloudSession.tournamentId)return '';const url=new URL(location.href);url.search='';url.hash='';url.searchParams.set('tournament',cloudSession.tournamentId);return url.toString()}
 async function openTournamentAccess(){if(!cloudSession.tournamentId)await saveNow();if(!cloudSession.tournamentId){alert('Connect to the internet and save the tournament first.');return}const link=spectatorLink();const qr=`https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(link)}`;openCloudModal('Tournament Access',`<div class="access-link-box">${esc(link)}</div><div class="row" style="margin-top:12px"><button onclick='copyTextValue(${JSON.stringify(link)},"Tournament link copied")'>Copy Link</button></div><div class="access-qr"><img src="${qr}" alt="Tournament access QR code"><p class="small">Scan to open the tournament in Spectator mode.</p></div>`)}
 async function performCloudSave(payload=tournamentPayload(),baseRevision=cloudSession.revision||0){const existing=cloudSession.tournamentId;const attemptId=++ksmCloudAttemptCounter;let envelope={...cloudEnvelope(payload),revision:baseRevision};if(!existing){const password=v316StaffPassword()||promptNewStaffPassword();if(!password)throw new Error('Staff password required');sessionStorage.setItem(KSM_V316_STAFF_SESSION,password);setSessionRole('staff');envelope={...envelope,staffPassword:password}}const body=JSON.stringify(envelope);const snapshotAnalysis=analyzeTournamentSnapshot(payload);writeCloudDiagnosticsState({attemptId,stage:'Sending cloud request',lastAttemptAt:new Date().toISOString(),httpStatus:null,errorMessage:'',errorBody:'',baseRevision,snapshotBytes:new Blob([body]).size,snapshotAnalysis});let response;try{response=await fetch(existing?`/api/tournaments/${encodeURIComponent(existing)}`:'/api/tournaments',{method:existing?'PUT':'POST',headers:cloudHeaders(),body})}catch(err){writeCloudDiagnosticsState({attemptId,stage:'Network request failed',errorMessage:String(err?.message||err),lastFailureAt:new Date().toISOString()});throw err}let responseText='';try{responseText=await response.text()}catch(_){}writeCloudDiagnosticsState({attemptId,stage:'Cloud response received',httpStatus:response.status,errorBody:response.ok?'':responseText.slice(0,1000)});let parsed=null;if(responseText){try{parsed=JSON.parse(responseText)}catch(_){}}if(response.status===403){writeCloudDiagnosticsState({attemptId,stage:'Authorization rejected',errorMessage:'Session authorization required'});throw new Error('Session authorization required')}if(response.status===409){const conflict=parsed||{};const outbox={tournamentId:existing,baseRevision,payload,queuedAt:new Date().toISOString()};preserveRecovery(outbox,conflict.record);clearOutbox();if(conflict.record)applyRemoteCloudRecord(conflict.record);writeCloudDiagnosticsState({attemptId,stage:'Revision conflict',errorMessage:'Cloud revision conflict',serverRevision:conflict.record?.revision||null});throw new Error('Cloud revision conflict')}if(!response.ok){const message=(parsed&&parsed.error)||`Cloud save failed (${response.status})`;writeCloudDiagnosticsState({attemptId,stage:'Cloud save rejected',errorMessage:message});throw new Error(message)}const record=parsed;if(!record)throw new Error('Cloud response was not valid JSON');const idChanged=cloudSession.tournamentId!==record.tournamentId;cloudSession.tournamentId=record.tournamentId;cloudSession.revision=record.revision;cloudSession.updatedAt=record.updatedAt;persistCloudSession();rememberTournament(record);setSessionRole(v316StaffPassword()?'staff':'spectator');clearOutbox();ksmLastSuccessfulSaveAt=Date.parse(record.updatedAt)||Date.now();ksmSaveStatusMode='saved';writeCloudDiagnosticsState({attemptId,stage:'Save completed',httpStatus:response.status,errorMessage:'',errorBody:'',retryCount:0,lastSuccessAt:record.updatedAt||new Date().toISOString(),serverRevision:record.revision});setConnectionStatus('Connected','online');renderPersistentSaveStatus();if(idChanged||!ksmCloudSocket)connectCloudSocket();return record}
-async function loadTournamentFromCloud(tournamentId,options={}){const id=(tournamentId||cloudSession.tournamentId||'').trim();if(!id)throw new Error('Tournament ID required');setConnectionStatus('Loading cloud…','connecting');const response=await fetch(`/api/tournaments/${encodeURIComponent(id)}`);if(!response.ok)throw new Error(`Cloud load failed (${response.status})`);const record=await response.json();disconnectCloudSocket();ksmApplyingRemoteSnapshot=true;try{applyTournamentPayload(record.payload,false);localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(record.payload))}finally{ksmApplyingRemoteSnapshot=false}cloudSession.tournamentId=record.tournamentId;cloudSession.revision=record.revision;cloudSession.updatedAt=record.updatedAt;cloudSession.court='';persistCloudSession();rememberTournament(record);ksmLastSuccessfulSaveAt=Date.parse(record.updatedAt)||Date.now();ksmSaveStatusMode='saved';setSessionRole(v316StaffPassword()?'staff':'spectator');installRoleBanner(ksmSessionRole);connectCloudSocket();setConnectionStatus('Connected','online');renderPersistentSaveStatus();return record}
+async function loadTournamentFromCloud(tournamentId,options={}){const id=(tournamentId||cloudSession.tournamentId||'').trim();if(!id)throw new Error('Tournament ID required');setConnectionStatus('Loading cloud…','connecting');const response=await fetch(`/api/tournaments/${encodeURIComponent(id)}`);if(!response.ok)throw new Error(`Cloud load failed (${response.status})`);const record=await response.json();disconnectCloudSocket();ksmApplyingRemoteSnapshot=true;try{applyTournamentPayload(record.payload,false);localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(record.payload))}finally{ksmApplyingRemoteSnapshot=false}cloudSession.tournamentId=record.tournamentId;cloudSession.revision=record.revision;cloudSession.updatedAt=record.updatedAt;cloudSession.court=options.court?((String(options.court).toUpperCase()==='B')?'B':'A'):'';persistCloudSession();rememberTournament(record);ksmLastSuccessfulSaveAt=Date.parse(record.updatedAt)||Date.now();ksmSaveStatusMode='saved';setSessionRole(v316StaffPassword()?'staff':'spectator');installRoleBanner(ksmSessionRole);connectCloudSocket();setConnectionStatus('Connected','online');renderPersistentSaveStatus();return record}
 async function initializeCloudRoleFromUrl(){ensureClientIdentity();const params=new URLSearchParams(location.search);const id=params.get('tournament')||params.get('spectator')||'';const requestedView=params.get('view')||'';const requestedCourt=(params.get('court')||'A').toUpperCase()==='B'?'B':'A';if(id){sessionStorage.removeItem(KSM_V316_STAFF_SESSION);await loadTournamentFromCloud(id,{spectator:true,court:requestedCourt});setSessionRole('spectator');installRoleBanner('spectator');document.body.classList.remove('ksm-home');if(requestedView==='tv'){document.body.classList.add('ksm-tv');cloudSession.court=requestedCourt;persistCloudSession();renderTvDisplay();renderTvRealtimeDiagnostics();show('tv')}else{document.body.classList.remove('ksm-tv');navigateTo('public')}return true}showHomePage();return true}
 
 initializeCloudRoleFromUrl().catch(err=>{console.error('Unable to initialize cloud session',err);setConnectionStatus('Cloud load failed','offline');showHomePage()});
