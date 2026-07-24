@@ -5232,13 +5232,13 @@ body.ksm-staff .director-only{display:flex!important}
 .branding-preview img{width:100%;height:100%;object-fit:contain;padding:10px;box-sizing:border-box}
 .branding-placeholder{font-size:58px}
 @media(max-width:560px){.home-library-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.branding-panel-body{grid-template-columns:1fr}.branding-preview{width:min(180px,100%)}}
-/* KSM v3.17.6-test — logo removal and cloud reset */
+/* KSM v3.17.7-test — logo removal and cloud reset */
 @media(max-width:980px){
   .icon-nav .setup-nav-tile{grid-template-rows:36px 26px!important;align-content:center!important}
   .icon-nav .setup-nav-tile img{display:block!important;align-self:center!important;margin:0!important}
   .icon-nav .setup-nav-tile span{display:flex!important;align-items:flex-start!important;justify-content:center!important;min-height:22px!important;margin:0!important}
 }
-/* KSM v3.17.6-test — temporary TV realtime diagnostics */
+/* KSM v3.17.7-test — temporary TV realtime diagnostics */
 body.ksm-tv .tv-realtime-diagnostics{position:fixed;right:14px;bottom:14px;z-index:99999;width:300px;padding:10px 12px;border:1px solid rgba(255,255,255,.28);border-radius:10px;background:rgba(0,0,0,.78);color:#fff;font:600 12px/1.35 system-ui,sans-serif;box-shadow:0 5px 20px rgba(0,0,0,.35)}
 body.ksm-tv .tv-realtime-diagnostics strong{color:#e3bd5b;font-size:13px}
 body.ksm-tv .tv-realtime-diagnostics .tvdiag-grid{display:grid;grid-template-columns:112px 1fr;gap:3px 8px;margin-top:5px}
@@ -5253,7 +5253,7 @@ body.ksm-tv .tv-realtime-diagnostics button{margin-top:7px;padding:5px 9px;borde
     <div class="nav-brand-copy">
       <span class="nav-brand-name">KSM</span>
       <span class="nav-brand-subtitle">Kendo Shiai Manager</span>
-      <span class="version-badge">v3.17.6-test</span>
+      <span class="version-badge">v3.17.7-test</span>
     </div>
   </div>
 
@@ -6556,39 +6556,81 @@ function syncActiveScoreToMatch(){
 }
 function renderScore(){updateScoreTournamentName();let m=state.matches[state.current];if(m && !matchBelongsToCourt(m,state.currentCourt||'A'))m=null;if(!m){whiteName.textContent='—';redName.textContent='—';matchMeta.textContent='No active match';whitePts.textContent='';redPts.textContent='';whiteTri.textContent='';redTri.textContent='';renderQueue();renderPublic();renderContext();return}if(m.type==='teamPlayoff'){whiteName.innerHTML=repSelect('W',m.teamWhite,m.white);redName.innerHTML=repSelect('R',m.teamRed,m.red)}else{whiteName.textContent=m.white;redName.textContent=m.red}matchMeta.textContent=m.type==='teamPosition'?`${m.division} • ${m.teamWhite} vs ${m.teamRed} • ${m.position}`:(m.type==='teamPlayoff'?`${m.division} • ${m.teamWhite} vs ${m.teamRed} • ${m.position}`:`${m.division} • ${m.pool==='Championship'?(m.position||'Championship'):'Pool '+m.pool}`);whitePts.textContent=state.score.W.join(' ');redPts.textContent=state.score.R.join(' ');whiteTri.textContent='△ '.repeat(state.score.WT);redTri.textContent='△ '.repeat(state.score.RT);renderQueue();renderPublic();renderContext()}
 
-// ---------- KSM v3.15.9 Persistent sequential court Undo / Redo ----------
+// ---------- KSM v3.17.7-test Compact action-patch court Undo / Redo ----------
 const KSM_HISTORY_LIMIT=100;
 const KSM_HISTORY_KEYS=new Set(['courtActionHistory','courtRedoHistory']);
+const KSM_HISTORY_MISSING={__ksmMissing:true};
 function ensureCourtHistory(){
   state.courtActionHistory=state.courtActionHistory||{A:[],B:[]};
   state.courtRedoHistory=state.courtRedoHistory||{A:[],B:[]};
-  ['A','B'].forEach(c=>{if(!Array.isArray(state.courtActionHistory[c]))state.courtActionHistory[c]=[];if(!Array.isArray(state.courtRedoHistory[c]))state.courtRedoHistory[c]=[]});
+  ['A','B'].forEach(c=>{
+    if(!Array.isArray(state.courtActionHistory[c]))state.courtActionHistory[c]=[];
+    if(!Array.isArray(state.courtRedoHistory[c]))state.courtRedoHistory[c]=[];
+    // Legacy snapshot entries are intentionally discarded because they can exceed storage limits.
+    state.courtActionHistory[c]=state.courtActionHistory[c].filter(action=>action?.format==='patch-v1');
+    state.courtRedoHistory[c]=state.courtRedoHistory[c].filter(action=>action?.format==='patch-v1');
+  });
 }
-function cloneHistoryValue(value){return value===undefined?{__ksmMissing:true}:JSON.parse(JSON.stringify(value))}
+function cloneHistoryValue(value){return value===undefined?{...KSM_HISTORY_MISSING}:JSON.parse(JSON.stringify(value))}
 function historyComparableState(){const out={};Object.keys(state).forEach(k=>{if(!KSM_HISTORY_KEYS.has(k))out[k]=cloneHistoryValue(state[k])});return out}
-function topLevelHistoryChanges(before,after){
-  const changes={},keys=new Set([...Object.keys(before),...Object.keys(after)]);
-  keys.forEach(k=>{const a=before[k],b=after[k];if(JSON.stringify(a)!==JSON.stringify(b))changes[k]={before:a,after:b}});
-  return changes;
+function historyValuesEqual(a,b){return a===b||(Number.isNaN(a)&&Number.isNaN(b))}
+function buildHistoryPatches(before,after,path=[],patches=[]){
+  if(historyValuesEqual(before,after))return patches;
+  const beforeMissing=before&&before.__ksmMissing===true;
+  const afterMissing=after&&after.__ksmMissing===true;
+  if(beforeMissing||afterMissing){patches.push({path:[...path],before:cloneHistoryValue(before),after:cloneHistoryValue(after)});return patches}
+  const beforeArray=Array.isArray(before),afterArray=Array.isArray(after);
+  const beforeObject=before!==null&&typeof before==='object',afterObject=after!==null&&typeof after==='object';
+  if(beforeArray&&afterArray){
+    const length=Math.max(before.length,after.length);
+    for(let i=0;i<length;i++)buildHistoryPatches(i<before.length?before[i]:KSM_HISTORY_MISSING,i<after.length?after[i]:KSM_HISTORY_MISSING,[...path,i],patches);
+    return patches;
+  }
+  if(beforeObject&&afterObject&&!beforeArray&&!afterArray){
+    const keys=new Set([...Object.keys(before),...Object.keys(after)]);
+    keys.forEach(key=>buildHistoryPatches(Object.prototype.hasOwnProperty.call(before,key)?before[key]:KSM_HISTORY_MISSING,Object.prototype.hasOwnProperty.call(after,key)?after[key]:KSM_HISTORY_MISSING,[...path,key],patches));
+    return patches;
+  }
+  patches.push({path:[...path],before:cloneHistoryValue(before),after:cloneHistoryValue(after)});
+  return patches;
 }
 function currentHistoryCourt(){const c=String(state.currentCourt||cloudSession?.court||'A').toUpperCase();return c==='B'?'B':'A'}
 function performCourtAction(label,fn){
   ensureCourtHistory();const court=currentHistoryCourt(),before=historyComparableState();
-  const result=fn();const after=historyComparableState(),changes=topLevelHistoryChanges(before,after);
-  if(Object.keys(changes).length){
+  const result=fn();const after=historyComparableState(),patches=buildHistoryPatches(before,after);
+  if(patches.length){
     const stack=state.courtActionHistory[court];
-    stack.push({label:label||'Action',court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',revision:cloudSession?.revision||0,changes});
+    stack.push({format:'patch-v1',label:label||'Action',court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',revision:cloudSession?.revision||0,patches});
     if(stack.length>KSM_HISTORY_LIMIT)stack.splice(0,stack.length-KSM_HISTORY_LIMIT);
     state.courtRedoHistory[court]=[];
   }
   updateUndoButton();return result;
 }
+function historyPathParent(path){
+  let target=state;
+  for(let i=0;i<path.length-1;i++){
+    const key=path[i],next=path[i+1];
+    if(target[key]===undefined||target[key]===null)target[key]=typeof next==='number'?[]:{};
+    target=target[key];
+  }
+  return {target,key:path[path.length-1]};
+}
+function applyHistoryPatch(patch,direction){
+  const value=patch?.[direction],path=patch?.path||[];
+  if(!path.length)return;
+  const {target,key}=historyPathParent(path),missing=value&&value.__ksmMissing===true;
+  if(Array.isArray(target)&&typeof key==='number'){
+    if(missing){if(key>=0&&key<target.length)target.splice(key,1)}
+    else if(key>=target.length)target.splice(key,0,JSON.parse(JSON.stringify(value)));
+    else target[key]=JSON.parse(JSON.stringify(value));
+  }else if(missing)delete target[key];
+  else target[key]=JSON.parse(JSON.stringify(value));
+}
 function applyHistoryValues(action,direction){
-  if(!action?.changes)return;
-  Object.entries(action.changes).forEach(([key,change])=>{
-    const value=change[direction];
-    if(value&&value.__ksmMissing)delete state[key];else state[key]=JSON.parse(JSON.stringify(value));
-  });
+  if(action?.format==='patch-v1'&&Array.isArray(action.patches)){
+    const patches=direction==='before'?[...action.patches].reverse():action.patches;
+    patches.forEach(patch=>applyHistoryPatch(patch,direction));
+  }else return;
   ensureCourtHistory();
   const court=currentHistoryCourt();
   const cs=state.courtState?.[court]||{division:state.currentDivision,index:state.current||0};
@@ -7377,7 +7419,7 @@ function analyzeTournamentSnapshot(payload=tournamentPayload()){
   return {analyzedAt:new Date().toISOString(),totalBytes,largest,stateBreakdown,setupBreakdown};
 }
 function snapshotAnalysisHtml(analysis){if(!analysis)return '<p class="small">No snapshot analysis has been recorded yet. Make a change or press Save Now.</p>';const top=(analysis.stateBreakdown||[]).slice(0,16),deep=(analysis.largest||[]).slice(0,16);return `<div class="cloud-detail-grid"><div class="cloud-detail"><div class="small">Total snapshot</div><b>${esc(formatSnapshotBytes(analysis.totalBytes))}</b></div><div class="cloud-detail"><div class="small">Analyzed</div><b>${esc(formatDiagnosticTime(analysis.analyzedAt))}</b></div></div><h3 style="margin-top:18px">State breakdown</h3><div class="cloud-detail-grid">${top.map(x=>`<div class="cloud-detail"><div class="small">state.${esc(x.key)}</div><b>${esc(formatSnapshotBytes(x.bytes))}</b><div class="small">${esc(x.summary)}</div></div>`).join('')}</div><h3 style="margin-top:18px">Largest nested paths</h3><div class="cloud-detail-grid">${deep.map(x=>`<div class="cloud-detail"><div class="small" style="overflow-wrap:anywhere">${esc(x.path)}</div><b>${esc(formatSnapshotBytes(x.bytes))}</b><div class="small">${esc(x.summary)}</div></div>`).join('')}</div>`}
-function downloadSnapshotAnalysis(){const analysis=analyzeTournamentSnapshot();downloadJson({appVersion:'3.17.6-test',tournamentId:cloudSession.tournamentId||null,cloudRevision:cloudSession.revision||0,...analysis},`KSM_Snapshot_Analysis_${new Date().toISOString().replace(/[:.]/g,'-')}.json`)}
+function downloadSnapshotAnalysis(){const analysis=analyzeTournamentSnapshot();downloadJson({appVersion:'3.17.7-test',tournamentId:cloudSession.tournamentId||null,cloudRevision:cloudSession.revision||0,...analysis},`KSM_Snapshot_Analysis_${new Date().toISOString().replace(/[:.]/g,'-')}.json`)}
 function analyzeHistoryEntry(entry,index){
   const properties=Object.entries(entry||{}).map(([key,value])=>({key,bytes:payloadByteSize(value),summary:snapshotValueSummary(value)})).sort((a,b)=>b.bytes-a.bytes);
   const changes=Object.entries(entry?.changes||{}).map(([key,value])=>({key,bytes:payloadByteSize(value),beforeBytes:payloadByteSize(value?.before),afterBytes:payloadByteSize(value?.after),summary:snapshotValueSummary(value)})).sort((a,b)=>b.bytes-a.bytes);
@@ -7407,7 +7449,7 @@ function historySampleEntry(entry,index){if(!entry)return null;return {analysis:
 function downloadActionHistorySample(){
   ensureCourtHistory();const courts={};
   ['A','B'].forEach(court=>{const entries=state.courtActionHistory?.[court]||[],sizes=entries.map((entry,index)=>({entry,index,bytes:payloadByteSize(entry)})),largest=sizes.sort((a,b)=>b.bytes-a.bytes)[0]||null;courts[court]={entryCount:entries.length,first:historySampleEntry(entries[0],0),latest:historySampleEntry(entries[entries.length-1],entries.length-1),largest:largest?historySampleEntry(largest.entry,largest.index):null}});
-  downloadJson({appVersion:'3.17.6-test',tournamentId:cloudSession.tournamentId||null,cloudRevision:cloudSession.revision||0,analyzedAt:new Date().toISOString(),courts},`KSM_Action_History_Sample_${new Date().toISOString().replace(/[:.]/g,'-')}.json`)
+  downloadJson({appVersion:'3.17.7-test',tournamentId:cloudSession.tournamentId||null,cloudRevision:cloudSession.revision||0,analyzedAt:new Date().toISOString(),courts},`KSM_Action_History_Sample_${new Date().toISOString().replace(/[:.]/g,'-')}.json`)
 }
 
 const KSM_V3173_RESET_MARKER='ksm.local.reset.v3_17_3';

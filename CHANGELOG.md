@@ -1,3 +1,11 @@
+## v3.17.7-test — Compact Action History
+
+- Replaced newly recorded court undo/redo snapshots with compact path-level patches.
+- Applies the unified patch history to scoring, hansoku, fusen-gachi, representative selection, Next Match, and progression actions.
+- Clears legacy snapshot-format undo/redo entries during upgrade to prevent existing oversized history from continuing to break saves.
+- Preserves separate Court A/B histories, the 100-action limit, and all existing tournament action logic.
+- Added targeted compact-history tests and implementation notes.
+
 ## v3.17.6-test — Action History Analysis
 
 - Added a read-only Action History Analysis section under Developer Tools.

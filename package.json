@@ -1,6 +1,6 @@
 {
   "name": "kendo-shiai-manager",
-  "version": "3.17.6-test",
+  "version": "3.17.7-test",
   "private": true,
   "description": "Kendo Shiai Manager hosted mobile/PWA application",
   "scripts": {
@@ -26,7 +26,8 @@
     "test:v3172": "node tests/v3172-input-focus-stability-test.mjs",
     "test:v3173": "node tests/v3173-logo-removal-worker-reliability-test.mjs",
     "test:v3175": "node tests/v3175-snapshot-analysis-test.mjs",
-    "test:v3176": "node tests/v3176-action-history-analysis-test.mjs"
+    "test:v3176": "node tests/v3176-action-history-analysis-test.mjs",
+    "test:v3177": "node tests/v3177-compact-action-history-test.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.11.0"
