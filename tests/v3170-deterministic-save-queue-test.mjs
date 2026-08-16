@@ -1,0 +1,24 @@
+import fs from 'node:fs';
+
+const html = fs.readFileSync('public/index.html', 'utf8');
+const sw = fs.readFileSync('public/service-worker.js', 'utf8');
+
+const checks = [
+  ['version badge', html.includes('v3.17.3-test')],
+  ['service worker cache', sw.includes('ksm-shell-v3.17.3-test')],
+  ['pending request state', html.includes('let ksmCloudSavePending=null;')],
+  ['queued callers receive promises', html.includes('return new Promise(resolve=>') && html.includes('ksmCloudSavePending.resolvers.push(resolve)')],
+  ['manual force is retained', html.includes('ksmCloudSavePending.force=ksmCloudSavePending.force||Boolean(force)')],
+  ['latest pending save is executed', html.includes('const saved=await saveTournamentToCloudWithReason(pending.reason,pending.force)')],
+  ['queued callers receive actual result', html.includes('pending.resolvers.forEach(resolve=>resolve(saved))')],
+  ['in-flight saves join pending request', html.includes('if(ksmCloudSaveInFlight)return queuePendingCloudSave(reason,force);')],
+  ['pending save runs before original settles', html.includes('finally{ksmCloudSaveInFlight=false;await runPendingCloudSave()}')],
+  ['obsolete boolean queue removed', !html.includes('ksmCloudSaveQueued')]
+];
+
+let failed = false;
+for (const [name, ok] of checks) {
+  console.log(`${ok ? 'PASS' : 'FAIL'}: ${name}`);
+  if (!ok) failed = true;
+}
+process.exit(failed ? 1 : 0);

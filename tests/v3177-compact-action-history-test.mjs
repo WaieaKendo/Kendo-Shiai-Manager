@@ -1,0 +1,16 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const html=fs.readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+assert.match(html,/v3\.17\.8-test/);
+assert.match(html,/format:'patch-v1'/);
+assert.match(html,/function buildHistoryPatches\(/);
+assert.match(html,/function applyHistoryPatch\(/);
+assert.match(html,/Legacy snapshot entries are intentionally discarded/);
+assert.match(html,/filter\(action=>action\?\.format==='patch-v1'\)/);
+assert.doesNotMatch(html,/function topLevelHistoryChanges\(/);
+assert.doesNotMatch(html,/changes=topLevelHistoryChanges/);
+assert.match(html,/function point\(side,letter\)\{performCourtAction/);
+assert.match(html,/function hansoku\(side\)\{performCourtAction/);
+assert.match(html,/function fusen\(side\)\{performCourtAction/);
+assert.match(html,/performCourtAction\(completedLabel/);
+console.log('v3.17.7 compact action history checks passed');

@@ -1,7 +1,7 @@
 from pathlib import Path
 html=Path('public/index.html').read_text()
 checks={
- 'version':'v3.12.9' in html,
+ 'version':'v3.15.4' in html,
  'medal badge background removed':'.division-complete-row b.gold,.division-complete-row b.silver,.division-complete-row b.bronze{background:transparent!important' in html,
  'team metric header present':'team-round-metric-head' in html,
  'white wins label':'white-wins">Wins' in html,
