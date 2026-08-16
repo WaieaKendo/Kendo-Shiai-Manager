@@ -1,3 +1,14 @@
+## v3.17.12-test — Concurrent Court Save Rebase Stabilization
+
+- Fixed the reproduced two-court HTTP 409 save failure that could leave one scorekeeper on “Save needs attention.”
+- Removed a duplicate legacy `performCloudSave()` definition that was shadowing the v3.17.11 conflict-rebase implementation at runtime.
+- Consolidated cloud saving into one authoritative function with diagnostics, authentication, and automatic rebase behavior.
+- Added bounded multi-revision conflict retries and preserved the original base revision across retries.
+- Deduplicated already-applied local actions while preserving the newest remote court state.
+- Merges newer local court actions back onto a successfully rebased cloud result before a queued follow-up save.
+- Added `test:v31712` regression coverage for consecutive Court A/Court B revision conflicts.
+- No scoring, tournament progression, pool, bracket, team, Kachinuki, TV, or audience logic changes.
+
 ## v3.17.11-test — Pinned Court and Revision-Safe Sync
 
 - Pinned Court A/B assignment locally so remote snapshots and reconnects cannot switch scorekeeper identity.

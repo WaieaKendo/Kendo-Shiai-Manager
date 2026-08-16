@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 const root = path.resolve('public');
+const pkg = JSON.parse(fs.readFileSync(path.resolve('package.json'),'utf8'));
+const appVersion = pkg.version;
 const required = [
   'index.html','manifest.webmanifest','service-worker.js',
   'icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png',
@@ -21,7 +23,7 @@ for (const rel of required.filter(x=>x.startsWith('assets/'))) {
     console.error(`UNREFERENCED: ${rel}`); failed = true;
   }
 }
-if (!html.includes('v3.17.10-test') || !html.includes("engineVersion:'3.12.9'")) { console.error('Version marker missing'); failed = true; }
+if (!html.includes(`v${appVersion}`) || !html.includes("engineVersion:'3.12.9'")) { console.error('Version marker missing'); failed = true; }
 if (html.includes("document.addEventListener('touchend'")) { console.error('Legacy touchend click shim still present'); failed = true; }
 
 for (const id of ['courtsMenu','exportMenu','saveLoadMenu']) {
@@ -30,9 +32,8 @@ for (const id of ['courtsMenu','exportMenu','saveLoadMenu']) {
   }
 }
 if (!html.includes('function positionMobileNavMenu')) { console.error('Mobile menu positioning function missing'); failed = true; }
-if (!html.includes("ksm-shell-v3.17.10-test")) { /* marker is in service worker, checked below */ }
 const sw = fs.readFileSync(path.join(root,'service-worker.js'),'utf8');
-if (!sw.includes('ksm-shell-v3.17.10-test')) { console.error('Service worker cache version not bumped'); failed = true; }
+if (!sw.includes(`ksm-shell-v${appVersion}`)) { console.error('Service worker cache version not bumped'); failed = true; }
 
 if (failed) process.exit(1);
 console.log(`PASS: ${required.length} required hosted/PWA files verified.`);
