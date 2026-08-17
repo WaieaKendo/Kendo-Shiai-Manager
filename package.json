@@ -1,6 +1,6 @@
 {
   "name": "kendo-shiai-manager",
-  "version": "3.17.12-test",
+  "version": "3.17.13-test",
   "private": true,
   "description": "Kendo Shiai Manager hosted mobile/PWA application",
   "scripts": {
@@ -32,7 +32,8 @@
     "test:v3179": "node tests/v3179-tv-final-results-test.mjs",
     "test:v31710": "node tests/v31710-single-column-pool-context-test.mjs",
     "test:v31711": "node tests/v31711-pinned-court-revision-safe-sync-test.mjs",
-    "test:v31712": "node tests/v31712-concurrent-court-rebase-test.mjs"
+    "test:v31712": "node tests/v31712-concurrent-court-rebase-test.mjs",
+    "test:v31713": "node tests/v31713-pool-match-order-diagnostics-cleanup-test.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.11.0"

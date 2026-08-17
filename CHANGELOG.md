@@ -1,3 +1,12 @@
+## v3.17.13-test — Canonical Pool Match Order + Live Display Cleanup
+
+- Centralized individual pool match templates so generated 3-person pools always use **A–B → C–B → C–A**.
+- Centralized individual pool match templates so generated 4-person pools always use **A–B → C–D → C–A → B–D → B–C → D–A**.
+- Pool Match Objects now retain explicit `poolOrder` and `poolTemplateOrder` metadata at generation time so their intended sequence is inspectable and regression-testable.
+- Individual pool tiebreak series reuse the same canonical pairing templates instead of maintaining a second copy of the matchup logic.
+- Removed the temporary visible **TV Realtime Diagnostics** overlay from the live display while retaining the underlying realtime diagnostic state and console/debug tooling.
+- Added `test:v31713` regression coverage for both canonical pool sizes and removal of the visible diagnostic overlay.
+
 ## v3.17.12-test — Concurrent Court Save Rebase Stabilization
 
 - Fixed the reproduced two-court HTTP 409 save failure that could leave one scorekeeper on “Save needs attention.”
