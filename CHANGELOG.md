@@ -1,3 +1,13 @@
+## v3.17.14-test — Deterministic Pool Player Slots
+
+- Made each generated pool's visible top-to-bottom player order the authoritative intra-pool slot order: **Player 1 = A, Player 2 = B, Player 3 = C, Player 4 = D**.
+- Pool players now retain explicit `poolSlot` / `poolSlotIndex` metadata, and generated Match Objects retain `whitePoolSlot` / `redPoolSlot` metadata.
+- Pool match generation resolves A/B/C/D directly from the player order shown in the pool card, eliminating ambiguous or apparently random slot identity.
+- Manual pool edits reassign A/B/C/D from the newly saved top-to-bottom order before rebuilding pool matches.
+- Structural no-show removal preserves the surviving competitors' original slot identity because slots are stored on pool entries rather than inferred after removal.
+- Generated Pools and printed pool sheets now visibly show A/B/C/D beside each competitor.
+- Added `test:v31714` regression coverage for generated slots, explicit match-slot metadata, edit re-slotting, and no-show slot preservation.
+
 ## v3.17.13-test — Canonical Pool Match Order + Live Display Cleanup
 
 - Centralized individual pool match templates so generated 3-person pools always use **A–B → C–B → C–A**.
