@@ -1,3 +1,13 @@
+## v3.17.15-test — Tournament State Integrity & Identity-Safe Rebase
+
+- Fixed a concurrency corruption path where index-based replay could create sparse `allMatches` arrays; JSON serialization converted those holes to `null`, which could crash spectator/live rendering and make a tournament appear unloadable.
+- Concurrent rebase now resolves `allMatches` patches by stable match identity before applying them.
+- Patch replay refuses to synthesize sparse array slots.
+- Tournament loads automatically remove invalid/null match entries and adjust saved court/current indexes before rendering.
+- Critical completion helpers are null-safe so one malformed entry cannot crash the entire tournament UI.
+- Cloud Worker now rejects malformed `allMatches` payloads with HTTP 422 instead of persisting corrupt state.
+- Updated the tournament-open error message so a render/data problem is not mislabeled solely as an internet problem.
+
 ## v3.17.14-test — Deterministic Pool Player Slots
 
 - Made each generated pool's visible top-to-bottom player order the authoritative intra-pool slot order: **Player 1 = A, Player 2 = B, Player 3 = C, Player 4 = D**.

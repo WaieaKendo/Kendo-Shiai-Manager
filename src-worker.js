@@ -12,6 +12,16 @@ function sanitizePayload(payload) {
   if (clean.setup && typeof clean.setup === 'object') delete clean.setup.tournamentLogo;
   return clean;
 }
+function validateTournamentPayload(payload) {
+  const allMatches = payload?.state?.allMatches;
+  if (!allMatches || typeof allMatches !== 'object') return null;
+  for (const [division, matches] of Object.entries(allMatches)) {
+    if (!Array.isArray(matches)) return { division, reason: 'allMatches division is not an array' };
+    const invalidIndex = matches.findIndex(match => !match || typeof match !== 'object' || Array.isArray(match));
+    if (invalidIndex >= 0) return { division, index: invalidIndex, reason: 'invalid/null match entry' };
+  }
+  return null;
+}
 function publicRecord(record) {
   if (!record) return null;
   const { credentials, ...safe } = record;
@@ -84,6 +94,8 @@ export class TournamentState {
       const currentRevision = Number(existing?.revision || 0);
       if (existing && expectedRevision !== currentRevision) return json({ error: 'Revision conflict', record: publicRecord(existing) }, 409);
       if (!incoming.payload || typeof incoming.payload !== 'object') return json({ error: 'Tournament payload required' }, 400);
+      const integrityError = validateTournamentPayload(incoming.payload);
+      if (integrityError) return json({ error: 'Invalid tournament state', integrityError }, 422);
 
       const now = new Date().toISOString();
       const record = {
@@ -103,6 +115,8 @@ export class TournamentState {
       if (await this.state.storage.get('record')) return json({ error: 'Tournament already exists' }, 409);
       const incoming = await request.json();
       if (!incoming.staffPassword || String(incoming.staffPassword).length < 4) return json({ error: 'Staff password required' }, 400);
+      const integrityError = validateTournamentPayload(incoming.payload);
+      if (integrityError) return json({ error: 'Invalid tournament state', integrityError }, 422);
       await this.state.storage.put('staffPasswordHash', await passwordHash(incoming.staffPassword));
       const now = new Date().toISOString();
       const record = { schemaVersion: '1.2', tournamentId: incoming.tournamentId, engineVersion: incoming.engineVersion || 'unknown', revision: 1, createdAt: now, updatedAt: now, updatedBy: { role: 'staff', clientId: '', name: 'Tournament creator', court: '' }, payload: sanitizePayload(incoming.payload) };
@@ -164,7 +178,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     try {
-    if (url.pathname === '/api/health') return json({ ok: true, service: 'ksm-cloud', version: '3.17.14-test', realtime: true, roles: ['spectator', 'staff'], offlineOutbox: true });
+    if (url.pathname === '/api/health') return json({ ok: true, service: 'ksm-cloud', version: '3.17.15-test', realtime: true, roles: ['spectator', 'staff'], offlineOutbox: true });
 
     const libraryStub = () => env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName('__ksm_library__'));
     const updateLibrary = async (record) => {
