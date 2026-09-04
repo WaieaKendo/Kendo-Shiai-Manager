@@ -12,6 +12,9 @@ function sanitizePayload(payload) {
   if (clean.setup && typeof clean.setup === 'object') delete clean.setup.tournamentLogo;
   return clean;
 }
+function workerMatchRequiresWinner(match) {
+  return Boolean(match && ((match.championship && match.type === 'individual') || match.type === 'teamPlayoff' || match.type === 'exhibition' || match.requiresWinner === true));
+}
 function validateTournamentPayload(payload) {
   const allMatches = payload?.state?.allMatches;
   if (!allMatches || typeof allMatches !== 'object') return null;
@@ -19,6 +22,24 @@ function validateTournamentPayload(payload) {
     if (!Array.isArray(matches)) return { division, reason: 'allMatches division is not an array' };
     const invalidIndex = matches.findIndex(match => !match || typeof match !== 'object' || Array.isArray(match));
     if (invalidIndex >= 0) return { division, index: invalidIndex, reason: 'invalid/null match entry' };
+    for (let index = 0; index < matches.length; index++) {
+      const match = matches[index];
+      if (!match.done || !workerMatchRequiresWinner(match)) continue;
+      const recorded = match.completedResult?.winner;
+      const snapshotWp = Array.isArray(match.completedResult?.wp) ? match.completedResult.wp.length : null;
+      const snapshotRp = Array.isArray(match.completedResult?.rp) ? match.completedResult.rp.length : null;
+      if (recorded === 'Hikiwake') return { division, index, reason: 'completed winner-required match cannot be Hikiwake' };
+      if (recorded === match.white || recorded === match.red) {
+        if (snapshotWp !== null && snapshotRp !== null) {
+          const consistent = recorded === match.white ? snapshotWp > snapshotRp : snapshotRp > snapshotWp;
+          if (!consistent) return { division, index, reason: 'completedResult winner/score mismatch' };
+        }
+        continue;
+      }
+      const wp = Array.isArray(match.wp) ? match.wp.length : 0;
+      const rp = Array.isArray(match.rp) ? match.rp.length : 0;
+      if (wp === rp) return { division, index, reason: 'completed winner-required match has no identifiable winner' };
+    }
   }
   return null;
 }
@@ -178,7 +199,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     try {
-    if (url.pathname === '/api/health') return json({ ok: true, service: 'ksm-cloud', version: '3.17.15-test', realtime: true, roles: ['spectator', 'staff'], offlineOutbox: true });
+    if (url.pathname === '/api/health') return json({ ok: true, service: 'ksm-cloud', version: '3.17.16-test', realtime: true, roles: ['spectator', 'staff'], offlineOutbox: true });
 
     const libraryStub = () => env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName('__ksm_library__'));
     const updateLibrary = async (record) => {

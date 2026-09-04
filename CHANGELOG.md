@@ -1,3 +1,15 @@
+## v3.17.16-test — Elimination Result Integrity
+
+- Fixed a bracket-progression failure mode where a completed quarterfinal could later resolve as `Hikiwake`, causing a semifinal feeder to lose the actual winner and become unplayable.
+- Match completion now writes an atomic `completedResult` snapshot containing the winner, final white/red point arrays, and hansoku totals. This keeps the result reconstructable even if earlier point-tap patches were saved under a different cloud revision.
+- Completed-result snapshots are validated before use; a winner-required elimination match can never legitimately advance `Hikiwake`.
+- Loaded/rebased tournament state restores completed scores from the atomic result snapshot before recomputing championship/single-elimination advancement.
+- Legacy or malformed winner-required matches that are marked complete but have no identifiable winner are reopened instead of propagating `Hikiwake` into the next round.
+- Championship placeholder/source labels now remain `Winner of …` when a feeder result is invalid instead of displaying `Hikiwake` as if it were a competitor.
+- Court action patches now store the stable Match Object identity at the moment the action is created, so later array sorting/insertion cannot cause a rebase patch to target a different match.
+- Cloud Worker validation rejects completed winner-required matches with ties or inconsistent `completedResult` winner/score data.
+- Added `test:v31716` regression coverage for atomic completion replay, match-index reordering, invalid elimination recovery, safe source labels, QF→SF advancement, and Worker result validation.
+
 ## v3.17.15-test — Tournament State Integrity & Identity-Safe Rebase
 
 - Fixed a concurrency corruption path where index-based replay could create sparse `allMatches` arrays; JSON serialization converted those holes to `null`, which could crash spectator/live rendering and make a tournament appear unloadable.
