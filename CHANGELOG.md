@@ -1,3 +1,13 @@
+## v3.17.17-test — QF Activation + Division Stability
+
+- Fixed an intermittent pool-to-quarterfinal freeze where the bracket had resolved QF players but the Scorekeeper Active Match area remained empty.
+- Court pointers now self-heal when saved at the end of the old queue or on an unresolved/non-scorable championship placeholder.
+- Added a final score-render guard that selects the first currently scorable match for the pinned court/division when the current pointer is stale.
+- Fixed division selections reverting several seconds later after a live remote snapshot. Scorekeeper division selection is now device-local per court.
+- Concurrent rebase now preserves only the local device's pinned-court navigation state and recomputes its active index against the newest match list.
+- Other-court runtime state remains sourced from the newest server record.
+- Pool templates, elimination mappings, scoring rules, and v3.17.16 completed-result integrity are unchanged.
+
 ## v3.17.16-test — Elimination Result Integrity
 
 - Fixed a bracket-progression failure mode where a completed quarterfinal could later resolve as `Hikiwake`, causing a semifinal feeder to lose the actual winner and become unplayable.

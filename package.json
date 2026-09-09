@@ -1,6 +1,6 @@
 {
   "name": "kendo-shiai-manager",
-  "version": "3.17.16-test",
+  "version": "3.17.17-test",
   "private": true,
   "description": "Kendo Shiai Manager hosted mobile/PWA application",
   "scripts": {
@@ -36,7 +36,8 @@
     "test:v31713": "node tests/v31713-pool-match-order-diagnostics-cleanup-test.mjs",
     "test:v31714": "node tests/v31714-deterministic-pool-player-slots-test.mjs",
     "test:v31715": "node tests/v31715-state-integrity-rebase-test.mjs",
-    "test:v31716": "node tests/v31716-elimination-result-integrity-test.mjs"
+    "test:v31716": "node tests/v31716-elimination-result-integrity-test.mjs",
+    "test:v31717": "node tests/v31717-qf-activation-division-stability-test.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.11.0"
