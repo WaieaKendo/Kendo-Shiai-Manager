@@ -199,7 +199,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     try {
-    if (url.pathname === '/api/health') return json({ ok: true, service: 'ksm-cloud', version: '3.17.18-test', realtime: true, roles: ['spectator', 'staff'], offlineOutbox: true });
+    if (url.pathname === '/api/health') return json({ ok: true, service: 'ksm-cloud', version: '3.17.19-test', realtime: true, roles: ['spectator', 'staff'], offlineOutbox: true });
 
     const libraryStub = () => env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName('__ksm_library__'));
     const updateLibrary = async (record) => {

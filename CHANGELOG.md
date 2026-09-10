@@ -1,3 +1,13 @@
+## v3.17.19-test — TV Court Follow Synchronization
+
+- Fixed a Court B TV display failure where the TV could remain locked to the division/runtime state it first loaded instead of following the Court B scorekeeper.
+- Root cause: the v3.17.17 local-division preservation rule correctly protected scorekeepers from remote UI switching, but was also applied to read-only TV/spectator clients; the TV therefore reapplied its own stale local division after every live snapshot.
+- Incoming TV/spectator snapshots now follow the authoritative `courtState` / `courtActiveDivision` for the TV window's assigned court, while writable scorekeeper/staff sessions retain the v3.17.17 local-selection protection.
+- TV sync now resolves its identity from the fixed TV URL court assignment rather than mutable cloud/public court state.
+- Changing the scorekeeper division now immediately publishes that court's active division through the normal critical-save/rebase pipeline, so the TV does not wait for the next scored point or edit before changing divisions.
+- Added `test:v31719` regression coverage for Court B TV following a remote division change while Court B scorekeeper local division remains protected.
+- No scoring, pool, bracket, advancement, Edit Pool, tiebreak, team, Kachinuki, or tournament-template logic changes.
+
 ## v3.17.18-test — Pool Edit Championship Preservation
 
 - Fixed the reproducible pool-to-elimination freeze that occurred specifically after competitors were moved with **Edit Pool**.
