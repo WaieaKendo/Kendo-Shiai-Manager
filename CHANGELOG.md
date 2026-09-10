@@ -1,3 +1,14 @@
+## v3.17.18-test — Pool Edit Championship Preservation
+
+- Fixed the reproducible pool-to-elimination freeze that occurred specifically after competitors were moved with **Edit Pool**.
+- Root cause: `saveEditedPools()` rebuilt `allMatches[division]` with pool matches only, deleting the generated QF/SF/Final Match Objects while the separate bracket preview continued to display the correct resolved qualifiers.
+- Saving pool edits now rebuilds the complete division Match Object set: pool matches plus the frozen championship template.
+- Championship nodes/court assignments are regenerated from the existing frozen bracket mapping, so manual pool edits do not alter the approved elimination template.
+- Court A/B pointers that referenced the pre-edit Match Object array are recalculated after the edit.
+- `syncChampionshipTemplate()` now self-heals missing championship Match Objects from canonical nodes, allowing older broken pool-edit states to recover instead of remaining visually populated but unplayable.
+- Added `test:v31718` coverage for the reported 14-person single-court and 12-person split-court edited-pool cases, including automatic repair of a <=v3.17.17 missing-QF state.
+- Pool match order, championship seed mappings, scoring/tiebreak logic, synchronization, and v3.17.17 device-local division behavior are unchanged.
+
 ## v3.17.17-test — QF Activation + Division Stability
 
 - Fixed an intermittent pool-to-quarterfinal freeze where the bracket had resolved QF players but the Scorekeeper Active Match area remained empty.
