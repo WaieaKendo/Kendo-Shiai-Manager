@@ -1,3 +1,15 @@
+## v3.17.20-test — Pool-Local Tiebreak Ordering
+
+- Fixed intermittent pool tiebreak placement where a tiebreak generated for an earlier pool (for example Pool A) could appear only after the final pool in the division.
+- Root cause 1: dynamic insertion previously depended on `arr.indexOf(afterMatch)`. After a live snapshot/rebase replaced Match Object references, that object-identity lookup could fail and fall back to appending the tiebreak at the end of `allMatches`.
+- Root cause 2: concurrent conflict replay intentionally appended a locally created missing dynamic Match Object to the remote array before replaying its field patches; for pool tiebreaks this moved the match to the end of the division timeline.
+- Individual pool tiebreaks now have a canonical invariant: every tiebreak series is placed immediately after that pool's normal matches and before the next pool begins.
+- Canonical tiebreak ordering is enforced at creation, after concurrent rebase, and when a tournament is loaded, so older misplaced tiebreak states self-repair.
+- Court pointers are reindexed after tiebreak reordering so split-court play advances to the correct local pool tiebreak rather than the next normal pool match.
+- Tiebreak synchronization identity now includes `tiebreakSeries` and `tiebreakIndex`, preventing repeated playoff series between the same competitors from colliding during conflict replay; legacy identity matching remains supported for older action history.
+- Added `test:v31720` coverage for 2-player and 3-player tiebreaks, four-pool sequencing, conflict-rebase recovery, legacy misplaced-state repair, repeated tiebreak series identity, and split-court Pool C→Pool D ordering.
+- No changes to pool round-robin templates, championship mappings, scoring rules, standings/tiebreak qualification criteria, TV behavior, or team/Kachinuki logic.
+
 ## v3.17.19-test — TV Court Follow Synchronization
 
 - Fixed a Court B TV display failure where the TV could remain locked to the division/runtime state it first loaded instead of following the Court B scorekeeper.

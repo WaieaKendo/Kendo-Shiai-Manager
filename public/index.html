@@ -10,7 +10,7 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icons/icon-192.png" sizes="192x192">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-<title>Kendo Shiai Manager v3.17.19-test</title>
+<title>Kendo Shiai Manager v3.17.20-test</title>
 <style>
 :root{--bg:#f7f4ee;--card:#fff;--ink:#222831;--muted:#6f7480;--line:#e6dfd3;--red:#a84a48;--redbg:#f6eceb;--green:#2f9d63;--greenbg:#eaf7ef;--ivory:#fff9ed;--blue:#283140;--shadow:0 14px 36px rgba(30,30,30,.08);--r:16px}*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink)}header{position:sticky;top:0;z-index:10;background:rgba(255,255,255,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:16px 28px;display:flex;justify-content:space-between;gap:16px;align-items:center}.brand{display:flex;gap:14px;align-items:center;font-weight:900}.fuji{width:42px;height:30px;position:relative}.fuji:before{content:"";position:absolute;inset:0;clip-path:polygon(50% 0,100% 100%,0 100%);background:var(--blue)}.fuji:after{content:"";position:absolute;left:10px;right:10px;bottom:3px;border-bottom:3px solid var(--red)}nav{display:flex;gap:8px;flex-wrap:wrap}button{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:12px;padding:10px 14px;font-weight:800;cursor:pointer;min-height:44px;touch-action:manipulation;-webkit-tap-highlight-color:rgba(168,74,72,.18);user-select:none}button:hover{border-color:#cabfaf}.primary{background:var(--ink);color:#fff}.danger{background:#fff2f1;color:#9c3431}.greenBtn{background:var(--greenbg);color:var(--green);border-color:#bce5c8}.tab.active,.seg.active{background:var(--ink);color:#fff}main{max-width:1240px;margin:26px auto;padding:0 22px 70px}.view{display:block}.hidden{display:none!important}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:22px;box-shadow:var(--shadow)}.wide{grid-column:1/-1}h1{font-size:34px;margin:0 0 8px}h2{font-size:21px;margin:0 0 14px}h3{font-size:12px;margin:18px 0 10px;color:var(--muted);text-transform:uppercase;letter-spacing:.09em}.sub,.small{color:var(--muted)}.small{font-size:12px}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.field{display:flex;flex-direction:column;gap:6px;margin:8px 0}.field label{font-size:12px;color:var(--muted);font-weight:900;text-transform:uppercase;letter-spacing:.06em}input,select,textarea{border:1px solid var(--line);border-radius:12px;padding:11px 12px;font-size:16px;background:white;color:var(--ink);outline:none}input[type=checkbox]{width:18px;height:18px;min-width:18px;min-height:18px;padding:0;border-radius:4px;vertical-align:middle;accent-color:var(--red)}td input[type=checkbox]{width:18px;height:18px;padding:0;margin:0 auto;display:block}input:focus,select:focus,textarea:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(168,74,72,.12)}.setup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.stepbar{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:18px 0}.step{border:1px solid var(--line);border-radius:999px;padding:8px 10px;text-align:center;font-size:12px;font-weight:900;color:var(--muted)}.step.on{background:var(--ivory);border-color:#ead9bd;color:var(--ink)}table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:white}th{background:#f5f2ec;color:var(--muted);font-size:12px;text-align:left;text-transform:uppercase;letter-spacing:.07em;padding:10px}td{border-top:1px solid var(--line);padding:6px 8px;vertical-align:middle}td input,td select{width:100%;border:0;border-radius:8px;background:transparent;padding:8px}td input:focus,td select:focus{background:#fff;border:1px solid var(--line);box-shadow:none}.toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0}.status{display:inline-block;border-radius:999px;padding:9px 12px;font-size:12px;font-weight:900;border:1px solid var(--line);cursor:pointer;white-space:nowrap;min-height:38px;touch-action:manipulation;-webkit-tap-highlight-color:rgba(168,74,72,.18);user-select:none}.Checked{background:var(--greenbg);color:var(--green);border-color:#bee4c9}.Registered{background:#f6f6f6;color:#666}.NoShow{background:#fff0ef;color:#ad3f3c;border-color:#efc3bf}.pill{display:inline-flex;gap:8px;align-items:center;background:#f4f1ea;border:1px solid var(--line);border-radius:999px;padding:8px 12px;margin:4px;font-weight:800}.x{cursor:pointer;color:var(--muted)}.pool-wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}.pool{border:1px solid var(--line);border-radius:14px;padding:14px;background:#fff}.competitor-line{display:flex;justify-content:space-between;border-top:1px solid #f1ece4;padding:8px 0;gap:10px}.queue-row{display:grid;grid-template-columns:1fr 54px 1fr;align-items:center;border-top:1px solid var(--line);padding:10px 0}.white{text-align:left;border-left:3px solid #ddd;padding-left:10px}.red{text-align:right;border-right:3px solid var(--red);padding-right:10px}.vs{text-align:center;color:var(--muted);font-weight:900}.scorebox{display:flex;justify-content:space-between;gap:18px}.fighter{flex:1;border:1px solid var(--line);border-radius:16px;padding:18px;background:white}.fighter.redside{text-align:right}.points{min-height:34px;margin:12px 0;font-size:22px;font-weight:900;letter-spacing:.15em}.tri{font-size:13px;color:#333;letter-spacing:.1em;min-height:18px}.score-buttons{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}.score-buttons button{padding:12px}.action-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}.action-row .primary{padding:12px 18px}.muted-card{background:#fbfaf7;border:1px dashed var(--line);border-radius:14px;padding:14px}.search-results{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:white;margin-top:8px}.search-item{padding:12px 14px;border-top:1px solid var(--line);cursor:pointer;min-height:44px;touch-action:manipulation;-webkit-tap-highlight-color:rgba(168,74,72,.18);user-select:none}.search-item:first-child{border-top:0}.search-item:hover{background:#f8f4ee}.review{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.review .tile{background:#fbfaf7;border:1px solid var(--line);border-radius:14px;padding:14px}
 .context-toggle{display:flex;gap:8px;margin-bottom:12px}.context-toggle button.active{background:var(--ink);color:white}.mini-match{display:grid;grid-template-columns:1fr 44px 1fr;gap:8px;align-items:center;border-top:1px solid var(--line);padding:9px 0}.stand-row{display:grid;grid-template-columns:28px 1fr 54px 54px;gap:8px;border-top:1px solid var(--line);padding:8px 0;align-items:center}.team-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}.team-card{border:1px solid var(--line);border-radius:16px;background:#fff;padding:16px}.team-card .slot{display:grid;grid-template-columns:80px 1fr;gap:8px;align-items:center;margin:8px 0}.team-card .slot label{font-size:12px;color:var(--muted);font-weight:900;text-transform:uppercase}.gold{background:#fff7df!important;border-color:#e8c86a!important}.gold .vs{color:#8b6500}.tiebreak-label{font-size:11px;font-weight:900;color:#8b6500;letter-spacing:.08em;text-transform:uppercase}.result-section{border:1px solid var(--line);border-radius:16px;background:white;margin:12px 0;overflow:hidden}.result-section summary{cursor:pointer;padding:16px 18px;font-weight:900;background:#fbfaf7}.result-section .result-inner{padding:16px 18px}.team-sheet{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#fff;margin-top:14px}.team-sheet-head{display:grid;grid-template-columns:1fr 1fr;background:#fbfaf7;border-bottom:1px solid var(--line);padding:14px 16px;font-weight:900}.team-sheet-head .redHead{text-align:right;color:var(--red)}.team-sheet-row{display:grid;grid-template-columns:1fr 70px 1fr;gap:10px;align-items:center;border-top:1px solid var(--line);padding:12px 16px}.team-sheet-row:first-of-type{border-top:0}.team-score-footer{display:grid;grid-template-columns:1fr 70px 1fr;gap:10px;border-top:1px solid var(--line);background:#fbfaf7;padding:12px 16px;font-weight:900}.team-score-footer .red{text-align:right}.live-points{font-size:18px;font-weight:900;letter-spacing:.14em;min-height:24px}.court-live-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.bracket-card{border:1px solid var(--line);border-radius:14px;background:#fff;margin:10px 0;padding:12px}.bracket-round{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:900}.bracket-match{display:grid;grid-template-columns:1fr 42px 1fr;gap:8px;align-items:center;border-top:1px solid var(--line);padding:9px 0}.bracket-match:first-of-type{border-top:0}.bracket-match.compact{grid-template-columns:1fr;border-top:0;background:#fbfaf7;border-radius:10px;margin-top:8px}.future-label{color:var(--muted);font-size:12px}.drop-zone{height:24px;border-radius:8px;margin:2px 0}.drop-zone:hover{background:#fff7df;outline:1px dashed #d7b85b}.bracket-status{font-size:11px;font-weight:900;color:var(--muted);text-align:center}.winner b{font-weight:950;color:var(--green)}.winner-chip{display:inline-block;border-radius:999px;background:var(--greenbg);color:var(--green);padding:3px 8px;font-size:11px;font-weight:900}.court-chip{font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}.division-select{min-width:180px}
@@ -5247,7 +5247,7 @@ body.ksm-staff .director-only{display:flex!important}
   .icon-nav .setup-nav-tile img{display:block!important;align-self:center!important;margin:0!important}
   .icon-nav .setup-nav-tile span{display:flex!important;align-items:flex-start!important;justify-content:center!important;min-height:22px!important;margin:0!important}
 }
-/* KSM v3.17.19-test — TV court/division follow synchronization + scorekeeper selection publishing. */
+/* KSM v3.17.20-test — pool-local tiebreak ordering + conflict-safe dynamic insertion. */
 </style>
 </head>
 <body>
@@ -5257,7 +5257,7 @@ body.ksm-staff .director-only{display:flex!important}
     <div class="nav-brand-copy">
       <span class="nav-brand-name">KSM</span>
       <span class="nav-brand-subtitle">Kendo Shiai Manager</span>
-      <span class="version-badge">v3.17.19-test</span>
+      <span class="version-badge">v3.17.20-test</span>
     </div>
   </div>
 
@@ -7057,12 +7057,84 @@ const APPROVED_DYNAMIC_MATCH_TYPES=Object.freeze(new Set([
   'TEAM_5_PERSON_ROUND_ROBIN_TIEBREAK',
   'KACHINUKI_ROUND_ROBIN_TIEBREAK'
 ]));
+function isIndividualPoolTiebreakMatch(match){return !!(match&&match.type==='individual'&&match.tiebreak&&!match.championship&&match.pool)}
+function reindexPointersAfterMatchReorder(targetState,div,beforeArr,afterArr){
+  if(!targetState||!Array.isArray(beforeArr)||!Array.isArray(afterArr))return;
+  const findMovedIndex=(oldIndex,court)=>{
+    const n=Number(oldIndex);
+    const oldMatch=Number.isFinite(n)&&n>=0&&n<beforeArr.length?beforeArr[n]:null;
+    const identity=matchSyncIdentity(oldMatch);
+    let idx=identity?afterArr.findIndex(match=>matchHasSyncIdentity(match,identity)):-1;
+    if(idx<0||!individualMatchReady(afterArr[idx])||!matchBelongsToCourtInState(targetState,afterArr[idx],court))idx=nextReadyIndexInState(targetState,div,court);
+    return idx;
+  };
+  targetState.courtState=targetState.courtState||{};
+  targetState.courtActiveDivision=targetState.courtActiveDivision||{};
+  for(const court of ['A','B']){
+    const cs=targetState.courtState[court];
+    if(cs?.division===div)cs.index=findMovedIndex(cs.index,court);
+  }
+  if(targetState.currentDivision===div){
+    const court=String(targetState.currentCourt||'A').toUpperCase()==='B'?'B':'A';
+    const currentIndex=findMovedIndex(targetState.current,court);
+    targetState.current=currentIndex;
+    targetState.currentByDivision=targetState.currentByDivision||{};
+    targetState.currentByDivision[div]=currentIndex;
+  }
+}
+function normalizeIndividualPoolTiebreakOrderInState(targetState,div,source='tiebreak order repair'){
+  const arr=targetState?.allMatches?.[div];
+  if(!Array.isArray(arr)||!arr.some(isIndividualPoolTiebreakMatch))return false;
+  const before=[...arr];
+  const decorated=before.map((match,index)=>({match,index}));
+  const tiebreaks=decorated.filter(item=>isIndividualPoolTiebreakMatch(item.match));
+  const rebuilt=decorated.filter(item=>!isIndividualPoolTiebreakMatch(item.match)).map(item=>item.match);
+  const labels=[];
+  (targetState?.pools?.[div]||[]).forEach(pool=>{if(pool?.label&&!labels.includes(pool.label))labels.push(pool.label)});
+  tiebreaks.forEach(item=>{const label=item.match.pool;if(label&&!labels.includes(label))labels.push(label)});
+  labels.forEach(pool=>{
+    const group=tiebreaks.filter(item=>item.match.pool===pool).sort((a,b)=>{
+      const seriesDiff=Number(a.match.tiebreakSeries||1)-Number(b.match.tiebreakSeries||1);
+      if(seriesDiff)return seriesDiff;
+      const indexDiff=Number(a.match.tiebreakIndex??0)-Number(b.match.tiebreakIndex??0);
+      return indexDiff||a.index-b.index;
+    }).map(item=>item.match);
+    if(!group.length)return;
+    let anchor=-1;
+    rebuilt.forEach((match,index)=>{if(match&&match.type==='individual'&&!match.championship&&!match.tiebreak&&match.pool===pool)anchor=index});
+    if(anchor<0){
+      const firstChamp=rebuilt.findIndex(match=>match?.championship);
+      anchor=firstChamp>=0?firstChamp-1:rebuilt.length-1;
+    }
+    rebuilt.splice(anchor+1,0,...group);
+  });
+  const changed=rebuilt.length!==before.length||rebuilt.some((match,index)=>match!==before[index]);
+  if(!changed)return false;
+  targetState.allMatches[div]=rebuilt;
+  reindexPointersAfterMatchReorder(targetState,div,before,rebuilt);
+  console.info('[KSM Tiebreak Order] Repaired pool-local tiebreak placement',{source,division:div});
+  return true;
+}
+function normalizeAllIndividualPoolTiebreakOrder(targetState,source='tiebreak order repair'){
+  let repaired=0;
+  Object.keys(targetState?.allMatches||{}).forEach(div=>{if(normalizeIndividualPoolTiebreakOrderInState(targetState,div,source))repaired++});
+  return repaired;
+}
 function appendApprovedDynamicMatches(div,afterMatch,matches,dynamicType){
   if(!APPROVED_DYNAMIC_MATCH_TYPES.has(dynamicType))throw new Error('Unauthorized dynamic Match Object type: '+dynamicType);
   const arr=state.allMatches[div]||[];
   const list=(Array.isArray(matches)?matches:[matches]).filter(Boolean);
   list.forEach(m=>{m.origin='TIEBREAK';m.dynamicType=dynamicType;});
-  const idx=afterMatch?arr.indexOf(afterMatch):-1;
+  if(dynamicType==='INDIVIDUAL_POOL_TIEBREAK'){
+    // Pool tiebreaks are part of that pool's timeline, not generic appended matches.
+    // Add them safely, then canonicalize by pool so object-identity changes or a
+    // cloud rebase can never strand Pool A's playoff after Pool D.
+    arr.push(...list);state.allMatches[div]=arr;
+    normalizeIndividualPoolTiebreakOrderInState(state,div,'dynamic tiebreak creation');
+    return list;
+  }
+  const afterIdentity=matchSyncIdentity(afterMatch);
+  const idx=afterMatch?arr.findIndex(match=>match===afterMatch||(afterIdentity&&matchHasSyncIdentity(match,afterIdentity))):-1;
   arr.splice(idx>=0?idx+1:arr.length,0,...list);
   state.allMatches[div]=arr;
   return list;
@@ -7638,6 +7710,11 @@ function deferRemoteRecord(record,reason='Local changes pending'){if(!record)ret
 function applyDeferredSyncRecord(){if(!ksmDeferredSyncRecord||localChangesPending())return false;const record=ksmDeferredSyncRecord;ksmDeferredSyncRecord=null;clearTimeout(ksmDeferredSyncTimer);ksmDeferredSyncTimer=null;return applyRemoteCloudRecord(record,true,false)}
 function cloneJson(value){return JSON.parse(JSON.stringify(value))}
 function isValidMatchObject(match){return Boolean(match&&typeof match==='object'&&!Array.isArray(match))}
+function legacyTiebreakSyncIdentity(match){
+  if(!isValidMatchObject(match)||!match.tiebreak)return '';
+  const div=String(match.division||'');
+  return `tiebreak:${div}:${match.pool||''}:${match.tiebreakId||match.position||''}:${match.white||''}:${match.red||''}`;
+}
 function matchSyncIdentity(match){
   if(!isValidMatchObject(match))return '';
   const div=String(match.division||''),type=String(match.type||'');
@@ -7645,7 +7722,7 @@ function matchSyncIdentity(match){
   if(match.elimNodeId)return `elim:${div}:${match.elimNodeId}`;
   if(match.teamNodeId&&match.teamPair)return `team-node:${div}:${match.teamNodeId}:${match.teamPair}:${match.position||''}`;
   if(match.teamPair)return `team-pair:${div}:${match.teamPair}:${match.position||''}:${match.type||''}`;
-  if(match.tiebreak)return `tiebreak:${div}:${match.pool||''}:${match.tiebreakId||match.position||''}:${match.white||''}:${match.red||''}`;
+  if(match.tiebreak)return `tiebreak:${div}:${match.pool||''}:${Number(match.tiebreakSeries||1)}:${Number(match.tiebreakIndex??0)}:${type}:${match.white||''}:${match.red||''}`;
   if(type==='individual'&&!match.championship){
     const order=Number.isInteger(match.poolOrder)?match.poolOrder:'';
     const slots=[match.whitePoolSlot||'',match.redPoolSlot||''].join('-');
@@ -7654,6 +7731,7 @@ function matchSyncIdentity(match){
   if(type==='exhibition')return `exhibition:${div}:${match.white||''}:${match.red||''}`;
   return `match:${div}:${match.pool||''}:${match.position||''}:${match.bracketSlot??''}:${type}:${match.white||match.teamWhite||''}:${match.red||match.teamRed||''}`;
 }
+function matchHasSyncIdentity(match,identity){return !!identity&&(matchSyncIdentity(match)===identity||legacyTiebreakSyncIdentity(match)===identity)}
 function matchBelongsToCourtInState(targetState,m,c){
   if(!m)return false;
   if(m.court)return m.court===c;
@@ -7708,21 +7786,28 @@ function applyPatchToStateObject(targetState,patch){
 function resolveRebasePatch(localState,rebasedState,patch){
   const path=patch?.path||[];
   if(path[0]!=='allMatches'||typeof path[2]!=='number')return patch;
-  const div=path[1],localArr=localState?.allMatches?.[div],remoteArr=rebasedState?.allMatches?.[div];
+  const div=path[1],localArr=localState?.allMatches?.[div];
+  let remoteArr=rebasedState?.allMatches?.[div];
   if(!Array.isArray(localArr)||!Array.isArray(remoteArr))return null;
   // v3.17.16 stamps the match identity when the action occurs. This remains
   // correct even if later sorting/tiebreak insertion changes numeric indexes.
   const identity=patch.matchIdentity||matchSyncIdentity(localArr[path[2]]);
   if(!identity)return null;
-  const localMatch=localArr.find(match=>matchSyncIdentity(match)===identity)||localArr[path[2]];
+  const localMatch=localArr.find(match=>matchHasSyncIdentity(match,identity))||localArr[path[2]];
   if(!isValidMatchObject(localMatch))return null;
-  let remoteIndex=remoteArr.findIndex(match=>matchSyncIdentity(match)===identity);
+  let remoteIndex=remoteArr.findIndex(match=>matchHasSyncIdentity(match,identity));
   if(remoteIndex<0){
     // A local action may have created a new dynamic/tiebreak match after the remote
-    // snapshot revision. Append the complete valid object first, then replay the
-    // field-level patch against that identity. Never assign remoteArr[n] directly.
+    // snapshot revision. Add the complete valid object without ever creating a sparse
+    // array. Individual pool tiebreaks are then normalized back into their own pool's
+    // timeline rather than being left at the end of the division after a conflict.
     remoteArr.push(cloneJson(localMatch));
-    remoteIndex=remoteArr.length-1;
+    if(isIndividualPoolTiebreakMatch(localMatch)){
+      normalizeIndividualPoolTiebreakOrderInState(rebasedState,div,'concurrent rebase insertion');
+      remoteArr=rebasedState?.allMatches?.[div]||remoteArr;
+    }
+    remoteIndex=remoteArr.findIndex(match=>matchHasSyncIdentity(match,identity));
+    if(remoteIndex<0)return null;
   }
   return {...patch,path:[path[0],div,remoteIndex,...path.slice(3)]};
 }
@@ -7760,6 +7845,7 @@ function rebaseLocalPayloadOnRecord(localPayload,serverRecord,originalBaseRevisi
   const actions=pendingLocalCourtActionsForRebase(localPayload,serverRecord,originalBaseRevision);
   actions.forEach(action=>(action.patches||[]).forEach(patch=>{const resolved=resolveRebasePatch(localState,rebased.state,patch);if(resolved)applyPatchToStateObject(rebased.state,resolved)}));
   sanitizeLoadedTournamentState(rebased.state,'concurrent rebase');
+  normalizeAllIndividualPoolTiebreakOrder(rebased.state,'concurrent rebase');
   repairCompletedMatchResults(rebased.state,'concurrent rebase');
   // Court navigation is owner-scoped runtime state, not a tournament-wide view.
   // Preserve only this device's pinned court while retaining the other court from
@@ -7789,7 +7875,7 @@ function analyzeTournamentSnapshot(payload=tournamentPayload()){
   return {analyzedAt:new Date().toISOString(),totalBytes,largest,stateBreakdown,setupBreakdown};
 }
 function snapshotAnalysisHtml(analysis){if(!analysis)return '<p class="small">No snapshot analysis has been recorded yet. Make a change or press Save Now.</p>';const top=(analysis.stateBreakdown||[]).slice(0,16),deep=(analysis.largest||[]).slice(0,16);return `<div class="cloud-detail-grid"><div class="cloud-detail"><div class="small">Total snapshot</div><b>${esc(formatSnapshotBytes(analysis.totalBytes))}</b></div><div class="cloud-detail"><div class="small">Analyzed</div><b>${esc(formatDiagnosticTime(analysis.analyzedAt))}</b></div></div><h3 style="margin-top:18px">State breakdown</h3><div class="cloud-detail-grid">${top.map(x=>`<div class="cloud-detail"><div class="small">state.${esc(x.key)}</div><b>${esc(formatSnapshotBytes(x.bytes))}</b><div class="small">${esc(x.summary)}</div></div>`).join('')}</div><h3 style="margin-top:18px">Largest nested paths</h3><div class="cloud-detail-grid">${deep.map(x=>`<div class="cloud-detail"><div class="small" style="overflow-wrap:anywhere">${esc(x.path)}</div><b>${esc(formatSnapshotBytes(x.bytes))}</b><div class="small">${esc(x.summary)}</div></div>`).join('')}</div>`}
-function downloadSnapshotAnalysis(){const analysis=analyzeTournamentSnapshot();downloadJson({appVersion:'3.17.19-test',tournamentId:cloudSession.tournamentId||null,cloudRevision:cloudSession.revision||0,...analysis},`KSM_Snapshot_Analysis_${new Date().toISOString().replace(/[:.]/g,'-')}.json`)}
+function downloadSnapshotAnalysis(){const analysis=analyzeTournamentSnapshot();downloadJson({appVersion:'3.17.20-test',tournamentId:cloudSession.tournamentId||null,cloudRevision:cloudSession.revision||0,...analysis},`KSM_Snapshot_Analysis_${new Date().toISOString().replace(/[:.]/g,'-')}.json`)}
 function analyzeHistoryEntry(entry,index){
   const properties=Object.entries(entry||{}).map(([key,value])=>({key,bytes:payloadByteSize(value),summary:snapshotValueSummary(value)})).sort((a,b)=>b.bytes-a.bytes);
   const changes=Object.entries(entry?.changes||{}).map(([key,value])=>({key,bytes:payloadByteSize(value),beforeBytes:payloadByteSize(value?.before),afterBytes:payloadByteSize(value?.after),summary:snapshotValueSummary(value)})).sort((a,b)=>b.bytes-a.bytes);
@@ -7819,7 +7905,7 @@ function historySampleEntry(entry,index){if(!entry)return null;return {analysis:
 function downloadActionHistorySample(){
   ensureCourtHistory();const courts={};
   ['A','B'].forEach(court=>{const entries=state.courtActionHistory?.[court]||[],sizes=entries.map((entry,index)=>({entry,index,bytes:payloadByteSize(entry)})),largest=sizes.sort((a,b)=>b.bytes-a.bytes)[0]||null;courts[court]={entryCount:entries.length,first:historySampleEntry(entries[0],0),latest:historySampleEntry(entries[entries.length-1],entries.length-1),largest:largest?historySampleEntry(largest.entry,largest.index):null}});
-  downloadJson({appVersion:'3.17.19-test',tournamentId:cloudSession.tournamentId||null,cloudRevision:cloudSession.revision||0,analyzedAt:new Date().toISOString(),courts},`KSM_Action_History_Sample_${new Date().toISOString().replace(/[:.]/g,'-')}.json`)
+  downloadJson({appVersion:'3.17.20-test',tournamentId:cloudSession.tournamentId||null,cloudRevision:cloudSession.revision||0,analyzedAt:new Date().toISOString(),courts},`KSM_Action_History_Sample_${new Date().toISOString().replace(/[:.]/g,'-')}.json`)
 }
 
 const KSM_V3173_RESET_MARKER='ksm.local.reset.v3_17_3';
@@ -8202,6 +8288,7 @@ function applyTournamentPayload(payload,saveAfter,options={}){
   Object.keys(state).forEach(k=>delete state[k]);
   Object.assign(state, loaded);
   sanitizeLoadedTournamentState(state,options.source||'tournament load');
+  normalizeAllIndividualPoolTiebreakOrder(state,options.source||'tournament load');
   state.teamElimTeams=state.teamElimTeams||{};state.managementRevision=state.managementRevision||0;state.divisionCourts=state.divisionCourts||{};Object.keys(state.divisionCourts).forEach(d=>{if(state.divisionCourts[d]==='Both'&&d!=='Team Tournament')state.divisionCourts[d]='split'});
   if(localCourt){pinCourtLocally(localCourt);state.currentCourt=normalizeCourt(localCourt)}
   if(isTvSession())state.publicCourt=normalizeCourt(localCourt||localPublicCourt);else state.publicCourt=normalizeCourt(localPublicCourt);
