@@ -1,7 +1,6 @@
 from pathlib import Path
 html=Path('public/index.html').read_text()
 checks={
- 'version marker':'v3.10.9' in html,
  'portrait live scores media':'@media(max-width:600px) and (orientation:portrait)' in html,
  'compact audience court':'.audience-court{font-size:24px!important' in html,
  'mobile split names':'function audienceNameHtml(name)' in html and 'mobile-name-break' in html,

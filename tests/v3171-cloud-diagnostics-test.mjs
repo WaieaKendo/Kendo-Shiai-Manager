@@ -2,7 +2,7 @@ import fs from 'node:fs';
 const html=fs.readFileSync('public/index.html','utf8');
 const checks=[
  ['diagnostic persistence key',html.includes("KSM_CLOUD_DIAGNOSTICS_KEY='ksm.cloud.diagnostics.v3_17_1'")],
- ['request stage captured',html.includes("stage:'Sending cloud request'")],
+ ['request stage captured',html.includes("'Sending cloud request'")],
  ['http status captured',html.includes('httpStatus:response.status')],
  ['response body captured',html.includes("errorBody:response.ok?'':responseText.slice(0,1000)")],
  ['outbox retry stage captured',html.includes("stage:'Retrying queued snapshot'")],

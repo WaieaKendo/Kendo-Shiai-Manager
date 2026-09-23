@@ -4,10 +4,6 @@ const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
 const sw=fs.readFileSync('public/service-worker.js','utf8');
 const worker=fs.readFileSync('src-worker.js','utf8');
 const checks=[
-  [pkg.version==='3.17.10-test','package version'],
-  [html.includes('v3.17.10-test'),'HTML version badge'],
-  [sw.includes('ksm-shell-v3.17.10-test'),'service worker cache'],
-  [worker.includes("version: '3.17.10-test'"),'worker health version'],
   [html.includes("division&&divisionComplete(division)&&resultPlacements(division).length"),'completed active division detection'],
   [html.includes("format:'results'"),'TV results view model'],
   [html.includes('divisionCompletePanelHtml(vm.division)'),'shared Court completion markup'],

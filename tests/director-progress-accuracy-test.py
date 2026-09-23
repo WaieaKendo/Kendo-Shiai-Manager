@@ -1,14 +1,15 @@
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from ksm_browser import launch_chromium, load_app
 
 HTML=(Path(__file__).resolve().parents[1]/'public'/'index.html').read_text()
 
 with sync_playwright() as p:
-    browser=p.chromium.launch(headless=True, executable_path='/usr/bin/chromium', args=['--no-sandbox'])
+    browser=launch_chromium(p)
     page=browser.new_page(viewport={'width':390,'height':844},is_mobile=True,has_touch=True)
     errors=[]
     page.on('pageerror',lambda e:errors.append(str(e)))
-    page.set_content(HTML,wait_until='domcontentloaded')
+    load_app(page, HTML)
 
     # Pool play: 6 pool bouts + a four-qualifier championship (3 bouts) = 9.
     page.evaluate("""

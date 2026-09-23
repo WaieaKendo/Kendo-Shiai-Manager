@@ -1,31 +1,12 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { extractFunction } from './lib/ksm-source.mjs';
 
 const html=fs.readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
 const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));
 const sw=fs.readFileSync(new URL('../public/service-worker.js',import.meta.url),'utf8');
 const worker=fs.readFileSync(new URL('../src-worker.js',import.meta.url),'utf8');
 
-function extractFunction(source,name){
-  const marker=`function ${name}(`;
-  const start=source.indexOf(marker);
-  if(start<0)throw new Error(`Missing function ${name}`);
-  const brace=source.indexOf('{',start);
-  let depth=0,quote=null,escaped=false;
-  for(let i=brace;i<source.length;i++){
-    const ch=source[i];
-    if(escaped){escaped=false;continue}
-    if(quote){
-      if(ch==='\\'){escaped=true;continue}
-      if(ch===quote)quote=null;
-      continue;
-    }
-    if(ch==='\''||ch==='"'||ch==='`'){quote=ch;continue}
-    if(ch==='{')depth++;
-    if(ch==='}'&&--depth===0)return source.slice(start,i+1);
-  }
-  throw new Error(`Unbalanced function ${name}`);
-}
 function extractConstStatement(source,name){
   const start=source.indexOf(`const ${name}=`);
   if(start<0)throw new Error(`Missing const ${name}`);
@@ -35,15 +16,11 @@ function extractConstStatement(source,name){
 }
 
 const staticChecks=[
-  [pkg.version==='3.17.14-test','package version'],
-  [html.includes('v3.17.14-test'),'HTML version'],
-  [sw.includes('ksm-shell-v3.17.14-test'),'service worker cache version'],
-  [worker.includes("version: '3.17.14-test'"),'worker version'],
   [html.includes('function poolPlayerSlotLetter(index)'),'canonical pool-slot helper'],
   [html.includes('poolSlot:poolPlayerSlotLetter(index),poolSlotIndex:index'),'pool entries store explicit slot metadata'],
   [html.includes('whitePoolSlot:poolPlayerSlot(players[whiteIndex],whiteIndex)'),'white Match Object slot metadata'],
   [html.includes('redPoolSlot:poolPlayerSlot(players[redIndex],redIndex)'),'red Match Object slot metadata'],
-  [html.includes('state.pools[div]=assignPoolPlayerSlots(state.pools[div]||[])'),'edited pools are re-slotted before match rebuild'],
+  [/const pools=assignPoolPlayerSlots\(state\.pools\[div\]\|\|\[\]\);\s*state\.pools\[div\]=pools;/.test(html),'edited pools are re-slotted before match rebuild'],
   [html.includes('Top-to-bottom order is always A, B, C, D.'),'edit UI explains slot order'],
   [html.includes('pool-slot-badge'),'generated pool UI shows slot badge'],
   [html.includes('${esc(poolPlayerSlot(x,i))}</div>${printNameBlock(x.name,x.dojo)}'),'print pools show slot letters']

@@ -35,17 +35,12 @@ Open the local URL printed by Wrangler. Verify the Worker at `/api/health`.
 ## Tests
 
 ```bash
-npm run check:cloud
-npm run check
+npm install
+npm run test:setup   # one-time: Python Playwright + Chromium for browser tests
+npm test             # full suite (~20 s): engine, UI, backend API contract, two-court end-to-end sync
 ```
 
-For the full TestLab profiles:
-
-```bash
-npm run testlab:smoke
-npm run testlab
-npm run testlab:exhaustive
-```
+See `docs/TESTING.md` for the individual suites, TestLab profiles, and how to run the API contract against a live server.
 
 ## Deployment
 

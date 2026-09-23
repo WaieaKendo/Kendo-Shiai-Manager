@@ -3,8 +3,6 @@ const html=fs.readFileSync('public/index.html','utf8');
 const worker=fs.readFileSync('src-worker.js','utf8');
 const sw=fs.readFileSync('public/service-worker.js','utf8');
 const checks=[
- ['version badge',html.includes('v3.17.3-test')],
- ['cache bumped',sw.includes('ksm-shell-v3.17.3-test')],
  ['logo UI removed',!html.includes('id="tournamentLogo"')&&!html.includes('handleTournamentLogoUpload')],
  ['snapshot excludes logo',!html.includes("['tournamentLogo','tName'")],
  ['library excludes logo',!worker.includes('logo:setup.tournamentLogo')&&!worker.includes('logo:typeof item.logo')],

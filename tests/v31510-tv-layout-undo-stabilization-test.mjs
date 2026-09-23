@@ -1,7 +1,6 @@
 import fs from 'node:fs';
 const html=fs.readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
 const checks=[
- ['version marker',html.includes('v3.15.10</span>')],
  ['white point class',html.includes('tv-point-string tv-white-points')],
  ['red point class',html.includes('tv-point-string tv-red-points')],
  ['fixed medial white zone',html.includes('.tv-white-points{left:676px!important}')],

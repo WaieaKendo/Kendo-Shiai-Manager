@@ -1,20 +1,21 @@
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from ksm_browser import launch_chromium, load_app
 
 ROOT = Path(__file__).resolve().parents[1] / "public"
 HTML = (ROOT / "index.html").read_text(encoding="utf-8")
 
 with sync_playwright() as p:
-    browser = p.chromium.launch(headless=True, executable_path="/usr/bin/chromium", args=["--no-sandbox"])
+    browser = launch_chromium(p)
     page = browser.new_page(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True)
     errors = []
     page.on("pageerror", lambda exc: errors.append(str(exc)))
-    page.set_content(HTML, wait_until="domcontentloaded")
+    load_app(page, HTML)
     page.wait_for_timeout(300)
 
     contracts = [
         ("Courts", "#courtsMenu", "Court A"),
-        ("Live Scores", "#liveScoresMenu", "Court A"),
+        ("TV Display", "#tvMenu", "Court A TV"),  # Live Scores became a direct link; TV Display is the dropdown
         ("Export", "#exportMenu", "Tournament Brackets"),
         ("Save or Load", "#saveLoadMenu", "Save Now"),
     ]

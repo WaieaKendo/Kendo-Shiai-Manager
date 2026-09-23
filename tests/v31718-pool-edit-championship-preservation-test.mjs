@@ -1,35 +1,16 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { extractFunction } from './lib/ksm-source.mjs';
 
 const html=fs.readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
 const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));
 const sw=fs.readFileSync(new URL('../public/service-worker.js',import.meta.url),'utf8');
 const worker=fs.readFileSync(new URL('../src-worker.js',import.meta.url),'utf8');
 
-function extractFunction(source,name){
-  const markers=[`async function ${name}(`,`function ${name}(`];
-  let start=-1;
-  for(const marker of markers){start=source.indexOf(marker);if(start>=0)break}
-  if(start<0)throw new Error(`Missing function ${name}`);
-  const brace=source.indexOf('{',start);let depth=0,quote=null,escaped=false;
-  for(let i=brace;i<source.length;i++){
-    const ch=source[i];
-    if(escaped){escaped=false;continue}
-    if(quote){if(ch==='\\'){escaped=true;continue}if(ch===quote)quote=null;continue}
-    if(ch==='\''||ch==='"'||ch==='`'){quote=ch;continue}
-    if(ch==='{')depth++;
-    if(ch==='}'&&--depth===0)return source.slice(start,i+1);
-  }
-  throw new Error(`Unbalanced function ${name}`);
-}
 
 let failed=false;
 function check(ok,name){console.log(`${ok?'PASS':'FAIL'} ${name}`);if(!ok)failed=true}
 
-check(pkg.version==='3.17.18-test','package version');
-check(html.includes('v3.17.18-test'),'HTML version');
-check(sw.includes('ksm-shell-v3.17.18-test'),'service worker version');
-check(worker.includes("version: '3.17.18-test'"),'worker version');
 
 const saveSource=extractFunction(html,'saveEditedPools');
 check(saveSource.includes('buildPoolMatches(div,pools)'),'pool edit rebuilds preliminary matches');

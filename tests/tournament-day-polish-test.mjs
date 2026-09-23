@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 const html=fs.readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
 const checks=[
- ['v3.15.4 package polish visible', html.includes('setInterval(renderPersistentSaveStatus,60000)')],
+ ['save status refreshes every minute', html.includes('setInterval(renderPersistentSaveStatus,60000)')],
  ['status is vertical', html.includes('flex-direction:column') && html.includes('align-items:flex-end')],
  ['status card removed', html.includes('border:0;') && html.includes('background:transparent;') && html.includes('box-shadow:none;')],
  ['no second save age', !html.includes(' sec ago')],

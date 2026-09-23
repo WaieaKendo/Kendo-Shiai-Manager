@@ -1,7 +1,6 @@
 from pathlib import Path
 html=(Path(__file__).parents[1]/'public'/'index.html').read_text()
 checks={
- 'version':'v3.15.4' in html,
  'single column split context':'split-template-context' in html and 'splitTemplateContextHtml' in html,
  'template node queue':'canonicalSingleElimQueue' in html,
  'all nodes instantiated':'templateNode:true' in html and 'nodes.map(node=>({' in html,

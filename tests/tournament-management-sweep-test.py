@@ -1,14 +1,15 @@
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from ksm_browser import launch_chromium, load_app
 
 HTML=(Path(__file__).resolve().parents[1]/'public'/'index.html').read_text()
 checks=0
 with sync_playwright() as p:
-    browser=p.chromium.launch(headless=True, executable_path='/usr/bin/chromium', args=['--no-sandbox'])
+    browser=launch_chromium(p)
     page=browser.new_page(viewport={'width':1280,'height':900})
     errors=[]
     page.on('pageerror',lambda e:errors.append(str(e)))
-    page.set_content(HTML,wait_until='domcontentloaded')
+    load_app(page, HTML)
 
     # Direct-elimination split sweep 4-32.
     for n in range(4,33):

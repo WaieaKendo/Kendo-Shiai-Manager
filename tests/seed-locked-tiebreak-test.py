@@ -1,8 +1,9 @@
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from ksm_browser import launch_chromium, load_app
 HTML=(Path(__file__).resolve().parents[1]/'public'/'index.html').read_text()
 with sync_playwright() as p:
-  b=p.chromium.launch(headless=True,executable_path='/usr/bin/chromium',args=['--no-sandbox']);page=b.new_page();errs=[];page.on('pageerror',lambda e:errs.append(str(e)));page.set_content(HTML,wait_until='domcontentloaded')
+  b=launch_chromium(p);page=b.new_page();errs=[];page.on('pageerror',lambda e:errs.append(str(e)));load_app(page, HTML)
   page.evaluate("""
     state.pools={Test:[{label:'A',size:3,players:[{name:'A',dojo:'D'},{name:'B',dojo:'D'},{name:'C',dojo:'D'}]}]};
     state.brackets={Test:[['A1','A2']]};state.allMatches={Test:[]};state.divisionCourts={Test:'A'};

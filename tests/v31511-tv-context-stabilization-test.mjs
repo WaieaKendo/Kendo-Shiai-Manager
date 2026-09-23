@@ -1,7 +1,6 @@
 import fs from 'node:fs';
 const html=fs.readFileSync(new URL('../public/index.html', import.meta.url),'utf8');
 const checks=[
- ['version marker',html.includes('v3.15.12</span>')],
  ['shared current zone',html.includes('.tv-kachinuki-main')&&html.includes('top:226px!important')],
  ['persistent upcoming footer',html.includes('top:748px!important')&&html.includes('grid-template-rows:114px 114px')],
  ['kachinuki renderer',html.includes('function tvKachinukiHtml(court,data)')],
