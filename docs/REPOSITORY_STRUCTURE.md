@@ -7,6 +7,11 @@ app/                 Front-end source (built by Vite into dist/, which is not co
   index.html          Markup
   styles/NN-*.css     Stylesheet, concatenated in file-name order
   js/NN-*.js          App code, concatenated in file-name order into ONE classic script
+                      (00-react-bridge.js: the ksm:state-changed event for React islands)
+  *.html              Extra pages other than index.html (Vite entries, React, no app.js)
+  react/              React + strict TypeScript ES modules (own tsconfig.json):
+                        island.tsx (mountIsland), legacy-bridge.ts (useLegacyState),
+                        live/ (useTournamentRecord: GET + spectator WebSocket)
   types/*.d.ts        Tournament data types and globals for `npm run typecheck`
   public/             Icons, SVG assets and manifest, served at the site root unchanged
   service-worker.js   PWA service worker (the build adds the hashed bundle names)

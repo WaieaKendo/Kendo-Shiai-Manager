@@ -69,7 +69,7 @@ function performCourtAction(label,fn){
     if(stack.length>KSM_HISTORY_LIMIT)stack.splice(0,stack.length-KSM_HISTORY_LIMIT);
     state.courtRedoHistory[court]=[];
   }
-  updateUndoButton();return result;
+  updateUndoButton();/* ksm:post-split-begin react-bridge */if(typeof ksmNotifyStateChanged==='function')ksmNotifyStateChanged('court action');/* ksm:post-split-end */return result;
 }
 function historyPathParent(path){
   let target=state;

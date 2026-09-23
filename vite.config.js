@@ -1,8 +1,10 @@
 import crypto from 'node:crypto';
+import path from 'node:path';
 import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 import {
   APP_DIR, DIST_DIR, STYLE_TAG, SCRIPT_TAG, STYLE_URL, SCRIPT_URL,
-  appStyles, appScript, serviceWorker, styleFiles, scriptFiles,
+  appStyles, appScript, serviceWorker, styleFiles, scriptFiles, extraPages,
 } from './scripts/app-sources.mjs';
 
 const DEV_SERVICE_WORKER = `self.addEventListener('install', () => self.skipWaiting());
@@ -12,9 +14,12 @@ self.addEventListener('activate', event => event.waitUntil(caches.keys().then(ke
 // The app is still one classic script plus one stylesheet (see scripts/app-sources.mjs).
 // This plugin serves them in dev and emits them verbatim (no transform or minify) as
 // hashed files in the build; Vite handles index.html and copies app/public/.
+// Only index.html gets the classic bundle; extra pages (app/*.html) are ordinary Vite
+// entries with module scripts from app/react/.
 function ksmClassicBundle() {
   const hashed = (name, ext, source) => `assets/${name}-${crypto.createHash('sha256').update(source).digest('hex').slice(0, 10)}${ext}`;
   let built = null;
+  const pages = extraPages();
   return {
     name: 'ksm-classic-bundle',
     configureServer(server) {
@@ -26,6 +31,8 @@ function ksmClassicBundle() {
         if (url === SCRIPT_URL) return send('text/javascript; charset=utf-8', appScript());
         // No offline cache in dev, so edits show on reload: this worker only clears old caches.
         if (url === '/service-worker.js') return send('text/javascript; charset=utf-8', DEV_SERVICE_WORKER);
+        // Extra pages at their clean URL (/overlay), as Cloudflare's asset server does.
+        if (pages.includes(`${url.slice(1)}.html`)) req.url = req.url.replace(url, `${url}.html`);
         next();
       });
     },
@@ -38,7 +45,7 @@ function ksmClassicBundle() {
       // Before Vite parses the page, so it does not try to bundle the two tags itself.
       order: 'pre',
       handler(html, ctx) {
-        if (ctx.server || !built) return html;
+        if (ctx.server || !built || ctx.path !== '/index.html') return html;
         if (!html.includes(STYLE_TAG) || !html.includes(SCRIPT_TAG)) throw new Error('app/index.html must contain the app.css and app.js tags');
         return html
           .replace(STYLE_TAG, () => `<link rel="stylesheet" href="/${built.cssFile}" vite-ignore>`)
@@ -58,7 +65,7 @@ function ksmClassicBundle() {
 export default defineConfig({
   root: APP_DIR,
   publicDir: 'public',
-  plugins: [ksmClassicBundle(), {
+  plugins: [react(), ksmClassicBundle(), {
     // Vite drops the vite-ignore attribute but leaves its space behind.
     name: 'ksm-tidy-bundle-tags',
     transformIndexHtml: { order: 'post', handler: html => html.replace(/(\/assets\/app-\w+\.(?:css|js)") >/g, '$1>') },
@@ -69,6 +76,10 @@ export default defineConfig({
     minify: false,
     cssMinify: false,
     modulePreload: false,
+    rolldownOptions: {
+      // index.html (the app) plus every extra page (app/*.html), e.g. overlay.html.
+      input: Object.fromEntries(['index.html', ...extraPages()].map(f => [path.basename(f, '.html'), path.join(APP_DIR, f)])),
+    },
   },
   server: {
     // `npm run dev:vite`: the app from Vite, /api from `wrangler dev` (port 8787).

@@ -3,7 +3,7 @@
 // static file at its old URL. run-all.mjs builds dist/ before the tests run.
 import fs from 'node:fs';
 import path from 'node:path';
-import { APP_DIR, DIST_DIR, STYLE_TAG, SCRIPT_TAG, indexHtml, appStyles, appScript, serviceWorker } from '../scripts/app-sources.mjs';
+import { APP_DIR, DIST_DIR, STYLE_TAG, SCRIPT_TAG, indexHtml, appStyles, appScript, serviceWorker, extraPages } from '../scripts/app-sources.mjs';
 
 const checks = [];
 const check = (ok, name) => checks.push([ok, name]);
@@ -24,6 +24,21 @@ check(sw === serviceWorker().replace("'/app.css', '/app.js'", `'/${css}', '/${js
 const shell = [...sw.match(/const APP_SHELL = \[([\s\S]*?)\];/)[1].matchAll(/'([^']+)'/g)].map(m => m[1]);
 const missing = shell.filter(url => url !== '/' && !fs.existsSync(path.join(DIST_DIR, url)));
 check(!missing.length, `every APP_SHELL file exists in dist/ (${shell.length} entries)${missing.length ? ': missing ' + missing.join(', ') : ''}`);
+
+// Extra pages (app/*.html, e.g. overlay.html): built next to index.html, with their own
+// module scripts from app/react/ and without the classic bundle; the service worker lets
+// the network answer their navigations instead of the cached app shell.
+const pages = extraPages();
+for (const page of pages) {
+  const html = fs.existsSync(path.join(DIST_DIR, page)) ? dist(page) : '';
+  const scripts = [...html.matchAll(/<script\b[^>]*>/g)].map(m => m[0]);
+  const modules = scripts.map(tag => tag.match(/type="module"[^>]*src="\/(assets\/[\w.-]+\.js)"/)?.[1]);
+  check(html && scripts.length && modules.every(f => f && fs.existsSync(path.join(DIST_DIR, f))),
+    `dist/${page}: built, only bundled module scripts (${scripts.length})`);
+  check(html && !html.includes('/assets/app-') && modules.every(f => f && !dist(f).includes('function performCourtAction(')), `dist/${page}: does not load the classic app bundle`);
+}
+check(/mode === 'navigate' && url\.pathname !== '\/' && url\.pathname !== '\/index\.html'\) return;/.test(sw),
+  `service worker leaves navigations to extra pages to the network (${pages.length ? pages.join(', ') : 'none yet'})`);
 
 const walk = dir => fs.readdirSync(dir, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]);
 const publicDir = path.join(APP_DIR, 'public');

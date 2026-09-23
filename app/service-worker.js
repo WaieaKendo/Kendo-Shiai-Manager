@@ -20,6 +20,9 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
+  // Only the app itself is the offline shell. Other pages (e.g. /overlay) are live-only:
+  // the network answers them, so they are never cached as /index.html.
+  if (event.request.mode === 'navigate' && url.pathname !== '/' && url.pathname !== '/index.html') return;
   if (event.request.mode === 'navigate') {
     event.respondWith(fetch(event.request).then(response => {
       if (!response.ok) return response;

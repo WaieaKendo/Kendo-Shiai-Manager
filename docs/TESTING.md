@@ -21,7 +21,7 @@ Requirements: Node 20+ and Python 3.10+. No Cloudflare account is needed; tests 
 | `npm run test:e2e:watch` | The full-tournament e2e in visible, slowed-down browser windows (see Watch mode) | ~4 min |
 | `npm run test:golden` | Engine + screen snapshot comparison (76 tournaments) | ~40 s |
 | `npm run test:golden:update` | Approve intended engine/display changes by rewriting the snapshots | ~40 s |
-| `npm run typecheck` | TypeScript check (`tsc --noEmit`); also run by `typecheck-test.mjs` | ~2 s |
+| `npm run typecheck` | TypeScript check (`tsc --noEmit`) of the classic app (`tsconfig.json`) and of `app/react/` (strict, `app/react/tsconfig.json`); also run by `typecheck-test.mjs` | ~2 s |
 | `npm run verify:split` | Proves `app/` is the pre-split `public/index.html` (def5010), moved: markup, CSS and JS byte-identical, JS apart from added type comments | ~1 s |
 | `npm run testlab:smoke` / `testlab` / `testlab:exhaustive` | Tournament-engine simulation matrix (writes reports to `testlab-reports/`, git-ignored) | 5 s – minutes |
 
@@ -35,7 +35,8 @@ The app is written in `app/` and built by Vite into `dist/` (`scripts/app-source
 
 - **Browser tests load the built app.** `load_app()` (`tests/ksm_browser.py`) serves `dist/` on the fake `http://ksm.test` origin; `local_worker()` (`tests/ksm_server.py`) runs `wrangler dev`, which serves `dist/` (`wrangler.jsonc`). Both rebuild first when `dist/` is missing or older than `app/`, so a single test can be run on its own; `run-all.mjs` builds once up front. `app_html()` (`tests/ksm_source.py`) returns the built `index.html` for `load_app(page, html)`.
 - **Source checks read the app as one text.** `html` in `tests/lib/ksm-source.mjs` and `app_source()` in `tests/ksm_source.py` return `app/index.html` with the stylesheet and script inlined in order: the same code, in the same order, as the old single file (only the `<style>` blocks are merged into one). So grep checks, `extractFunction` (last declaration wins) and `withDependencies` work unchanged. `sw` is `app/service-worker.js`.
-- **`build-output-test.mjs`** checks that the build ships `app/` unchanged: markup identical apart from the two hashed bundle URLs, the bundles equal to the concatenated sources (no transform or minify), the service worker's `APP_SHELL` pointing at the bundles, and every `app/public/` file at its old URL.
+- **`build-output-test.mjs`** checks that the build ships `app/` unchanged: markup identical apart from the two hashed bundle URLs, the bundles equal to the concatenated sources (no transform or minify), the service worker's `APP_SHELL` pointing at the bundles, and every `app/public/` file at its old URL. Extra pages (`app/*.html`, React entries) must be built with their own module scripts and never load the classic bundle, and the service worker must leave their navigations to the network.
+- **React code (`app/react/`)** is strict TypeScript in ES modules, bundled by Vite only into the extra pages. Its pure logic has Node unit tests in `tests/react/*.test.mjs` (`node:test`, importing the `.ts` files with `--experimental-strip-types`), run by `react-unit-test.mjs`.
 
 ## What is covered
 
@@ -100,6 +101,8 @@ Results are scripted (the stronger entrant wins), so expected placements follow 
 - `function-override-baseline-test.mjs`: the app redeclares ~35 functions, and the browser runs the last declaration (the split keeps this: the JS files still run as one classic script). The test fails if a new redeclaration appears; lower the baseline when you remove one.
 - `typecheck-test.mjs`: `npm run typecheck` passes. `tsconfig.json` has `checkJs` off; a file opts in with `// @ts-check` on its first line (today the engine files 04–07 and 12–15). Types live in `app/types/` (`tournament.d.ts`: payload, state, Match, pools, bracket nodes, court history, cloud records).
 - `build-output-test.mjs`: see "How tests find the app".
+- `react-unit-test.mjs`: the unit tests in `tests/react/` (live-record logic behind `useTournamentRecord`, and the `ksm:state-changed` bridge in `app/js/00-react-bridge.js`).
+- `npm run verify:split` allows deliberate post-split additions only inside `/* ksm:post-split-begin <name> */ ... /* ksm:post-split-end */` markers, with the count per name pinned in `KNOWN_POST_SPLIT_EDITS` (today `react-bridge`: the bridge file plus the dispatch in `performCourtAction()` and `renderAll()`).
 
 ## Test helper, test IDs and test API
 
@@ -198,7 +201,8 @@ Greps of `src-worker.js`, `wrangler.jsonc` and `service-worker.js` are not affec
 | `sync-saving-test.py` | Save debounce, status wording, offline queue, Save Now, 10-minute autosave, diagnostics + retry, recovery file, court after reload; pins F3 | e2e (helper/test IDs, Playwright clock) | keep |
 | `template-consistency-seed-resolution-test.mjs` | Frozen championship mapping after a no-show; tie for 1st resolves seeds 1 and 2; no-show removal keeps survivors' order | vm-extract | port to engine module |
 | `test-ids-test.py` | The `data-testid` contract | behaviour (helper) | keep (the contract rewritten screens must meet) |
-| `typecheck-test.mjs` | `npm run typecheck` passes (files marked `// @ts-check`) | guard | keep |
+| `typecheck-test.mjs` | `npm run typecheck` passes (files marked `// @ts-check`, and all of `app/react/`) | guard | keep |
+| `react-unit-test.mjs` | Pure logic in `app/react/` and the legacy state-change bridge (`tests/react/*.test.mjs`) | unit (node:test) | keep |
 | `tournament-day-experience-test.mjs` | Save status, Save Now, save on completed match, manual Next Match, 10-minute autosave, recovery files, access links, diagnostics | source grep | save on completion and manual Next Match: retire — covered by e2e; rest convert |
 | `tournament-day-polish-test.mjs` | Save-status wording/refresh, save toasts, access modal hides keys, copy closes modal, QR Back | source grep | convert |
 | `tournament-management-engine-test.py` | Split validation minimum, split court assignment, championship unlock per source pools, split totals | behaviour (engine globals) | port to engine module |

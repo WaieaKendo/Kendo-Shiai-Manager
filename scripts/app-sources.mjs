@@ -6,6 +6,10 @@
 //                       inline on*="..." handlers need globals, and ~35 functions are
 //                       redeclared later in the code, where the last declaration wins.
 //                       Separate <script> tags or ES modules would change both.
+// app/*.html           other pages (e.g. overlay.html): extra Vite entries, built with
+//                       ES-module scripts from app/react/ (React + strict TypeScript) and
+//                       served without the .html (/overlay); none of them load app.js
+// app/react/            React/TSX code, ES modules; never part of app.js
 // app/service-worker.js service worker (the build rewrites /app.css and /app.js to the
 //                       hashed bundle names in APP_SHELL)
 // app/public/           static files, copied to the site root unchanged
@@ -25,6 +29,9 @@ const ordered = (dir, ext) => fs.readdirSync(dir).filter(f => f.endsWith(ext)).s
 export const styleFiles = () => ordered(path.join(APP_DIR, 'styles'), '.css');
 export const scriptFiles = () => ordered(path.join(APP_DIR, 'js'), '.js');
 const concat = files => files.map(f => fs.readFileSync(f, 'utf8')).join('');
+
+/** Extra entry pages: every app/*.html except index.html (file names, sorted). */
+export const extraPages = () => fs.readdirSync(APP_DIR).filter(f => f.endsWith('.html') && f !== 'index.html').sort();
 
 export const appStyles = () => concat(styleFiles());
 export const appScript = () => concat(scriptFiles());

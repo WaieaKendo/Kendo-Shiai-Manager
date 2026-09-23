@@ -9,7 +9,7 @@
     "dev": "vite build && wrangler dev",
     "dev:vite": "vite",
     "deploy": "vite build && wrangler deploy",
-    "typecheck": "tsc --noEmit -p .",
+    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p app/react",
     "verify:split": "node scripts/verify-split.mjs",
     "test": "node tests/run-all.mjs",
     "test:node": "node tests/run-all.mjs --node",
@@ -56,8 +56,15 @@
     "test:v31720": "node tests/v31720-pool-local-tiebreak-order-test.mjs"
   },
   "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
     "typescript": "^7.0.2",
     "vite": "^8.3.0",
     "wrangler": "^4.11.0"
+  },
+  "dependencies": {
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
   }
 }

@@ -31,7 +31,7 @@ The front end lives in `app/` and is built with Vite into `dist/`, which the Wor
 npm install
 npm run dev          # build, then wrangler dev: app + API on http://localhost:8787
 npm run build        # build only (dist/)
-npm run typecheck    # TypeScript check of the files marked // @ts-check
+npm run typecheck    # TypeScript: classic files marked // @ts-check, and app/react/ (strict)
 ```
 
 Open the local URL printed by Wrangler. Verify the Worker at `/api/health`.
