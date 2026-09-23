@@ -14,6 +14,19 @@ Status: ✅ done · 🔨 in progress · ⏳ ready to start · 🗣 needs a decis
 | 0.3 | Red/White side setting for court screen and printed sheets | `feat/court-side-setting` | ✅ | Per court in Setup → Referees, from the scoring table's view; synced to all devices. Default unchanged. TV (audience view) not affected |
 | 0.4 | HTML injection through names in inline click handlers | `fix/inline-handler-escaping` | ✅ | Security; no visible change. `jsArg()` for all handler string arguments |
 
+## Front-end migration: test safety net first
+
+The front end moves to Vite + TypeScript and then React, screen by screen. Tests must survive that, so they drive the app through `data-testid` controls and one helper (see docs/TESTING.md: "Test helper, test IDs and test API" and "Test coverage map").
+
+| # | Task | Branch | Status | Notes |
+|---|---|---|---|---|
+| M.1 | `data-testid` hooks on key controls; `tests/ksm_app.py` + `tests/lib/ksm-test-api.js` as the only way tests reach the app; golden and two-court e2e moved onto them | `feat/test-hooks` | ✅ | Attributes only; golden snapshots unchanged; `test-ids-test.py` pins the contract |
+| M.2 | Full-tournament e2e: director, two courts, spectator, TV; watch mode (`npm run test:e2e:watch`) | `test/full-tournament-e2e` | ✅ | Found F1 (below) |
+| M.3 | Test coverage map: every test's purpose, mechanism and migration fate | `test/full-tournament-e2e` | ✅ | docs/TESTING.md |
+| M.4 | Convert the source-grep checks that nothing else covers into behaviour/layout tests | `test/convert-source-greps` | ⏳ | List in docs/TESTING.md; must land before M.5. Start with undo/redo, hansoku, fusen-gachi, offline outbox, roles |
+| M.5 | Vite + TypeScript build; split `index.html` into modules with no behaviour change | `refactor/vite-typescript` | ⏳ | Golden files byte-identical; e2e and test-ids tests unchanged; retire `function-override-baseline` |
+| M.6 | React pilot: the court (scorekeeper) screen | `feat/react-court-screen` | ⏳ | Keeps every court test ID; e2e-full and test-ids-test must pass unchanged |
+
 ## Phase 1: small scorekeeper improvements
 
 | # | Task | Branch | Status | Notes |
@@ -42,7 +55,7 @@ Status: ✅ done · 🔨 in progress · ⏳ ready to start · 🗣 needs a decis
 - Control desk (court queues, move/reorder, holds, running-late, guarded bracket edits)
 - Match timer, livestream overlay, shinpan rotation
 - HKF-wide people/dojo registry (D1); minors' data policy
-- Gradual React/TypeScript for new screens
+- Gradual React/TypeScript for new screens (groundwork: M.1–M.6 above)
 
 ## Findings
 
