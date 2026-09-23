@@ -313,6 +313,16 @@ class KsmApp:
             raise AssertionError('Tournament validation failed:\n' + page.inner_text(sel('validation-modal')))
         confirm.click()
 
+    def pools(self, division):
+        """Registration -> Pools for `division`: {pool label: [player names]}."""
+        page = self.page
+        self.nav('registration')
+        self.click('reg-tab-pools')
+        page.select_option(sel('pool-division-select'), label=division)
+        return page.evaluate("""() => Object.fromEntries([...document.querySelectorAll('[data-testid="pool"]')].map(p => [
+          p.querySelector('[data-testid="pool-title"]').textContent.replace(/^(Team )?Pool\\s*/, '').trim(),
+          [...p.querySelectorAll('[data-testid="pool-player"]')].map(x => x.textContent.trim())]))""")
+
     # ---------------------------------------------------------- court (scorekeeper)
     def court_screen(self):
         """What the court screen shows: division, match meta, names, points, completion."""
@@ -358,6 +368,10 @@ class KsmApp:
         """Results page: {division: [(place, name), ...]} for every division card."""
         self.nav('results')
         return {div: [tuple(r) for r in rows] for div, rows in self.page.evaluate(_RESULTS_JS).items()}
+
+    def render_tv(self):
+        """(test API) Render the TV display inside this page (offline tests; a TV device uses tv_link())."""
+        self.page.evaluate('KSMTest.renderTv()')
 
     def tv_screen(self):
         """TV display (?view=tv): court, division, meta, current names or completion."""

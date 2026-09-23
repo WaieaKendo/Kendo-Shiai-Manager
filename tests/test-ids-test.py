@@ -20,7 +20,7 @@ SINGLETONS = [
     'team-court', 'setup-save-continue',
     # registration
     'reg-tab-individual', 'reg-tab-team', 'reg-tab-pools', 'generate-button', 'tournament-status',
-    'reg-add-row', 'reg-filter', 'team-add', 'validation-modal',
+    'reg-add-row', 'reg-filter', 'team-add', 'validation-modal', 'pool-division-select',
     # court screen
     'court-title', 'court-division-select', 'court-division-title', 'court-match-meta',
     'court-white-name', 'court-red-name', 'court-white-points', 'court-red-points',
@@ -67,6 +67,9 @@ def main():
         cards = page.evaluate(PER_ROW_JS, ['team-card', TEAM_CARD])
         if len(cards) != 2 or any(set(c.values()) != {1} for c in cards):
             errors.append(f'team-card children: {cards}')
+        pools = app.pools('Open')
+        if sorted(sum(pools.values(), [])) != ['P1', 'P2', 'P3', 'P4']:
+            errors.append(f'pools view: {pools}')
         app.nav('setup')
         setup_rows = page.evaluate(PER_ROW_JS, ['setup-division-row', SETUP_ROW])
         if not setup_rows or any(set(r.values()) != {1} for r in setup_rows):
@@ -85,7 +88,7 @@ def main():
         live = app.live_court('A')
         if not live or live['white'] != m['white'] or live['red'] != m['red']:
             errors.append(f'live-court-A: {live} (court shows {m})')
-        page.evaluate('KSMTest.renderTv()')
+        app.render_tv()
         tv = app.tv_screen()
         if not tv['live'] or tv['white'] != m['white'] or tv['red'] != m['red']:
             errors.append(f'tv (court A): {tv}')
