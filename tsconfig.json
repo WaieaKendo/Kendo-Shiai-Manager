@@ -8,6 +8,8 @@
     "allowJs": true,
     "checkJs": false,
     "noEmit": true,
+    // KSMEngine (app/types/globals.d.ts) is typed from app/engine/index.ts.
+    "allowImportingTsExtensions": true,
     "strict": false,
     "skipLibCheck": true,
     "types": []

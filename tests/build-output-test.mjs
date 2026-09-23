@@ -3,7 +3,7 @@
 // static file at its old URL. run-all.mjs builds dist/ before the tests run.
 import fs from 'node:fs';
 import path from 'node:path';
-import { APP_DIR, DIST_DIR, STYLE_TAG, SCRIPT_TAG, indexHtml, appStyles, appScript, serviceWorker, extraPages } from '../scripts/app-sources.mjs';
+import { APP_DIR, DIST_DIR, STYLE_TAG, SCRIPT_TAG, indexHtml, appStyles, appScript, engineScript, serviceWorker, extraPages } from '../scripts/app-sources.mjs';
 
 const checks = [];
 const check = (ok, name) => checks.push([ok, name]);
@@ -12,15 +12,17 @@ const dist = rel => fs.readFileSync(path.join(DIST_DIR, rel), 'utf8');
 const built = dist('index.html');
 const css = built.match(/<link rel="stylesheet" href="\/(assets\/app-\w+\.css)">/)?.[1];
 const js = built.match(/<script src="\/(assets\/app-\w+\.js)"><\/script>/)?.[1];
-check(css && js, 'dist/index.html links one hashed stylesheet and one classic (non-module) script');
+const engine = built.match(/<script src="\/(assets\/engine-\w+\.js)"><\/script>/)?.[1];
+check(css && js && engine, 'dist/index.html links one hashed stylesheet and two classic (non-module) scripts: engine, app');
 check(!/type="module"/.test(built), 'no module scripts');
-check(built === indexHtml().replace(STYLE_TAG, `<link rel="stylesheet" href="/${css}">`).replace(SCRIPT_TAG, `<script src="/${js}"></script>`),
-  'dist/index.html = app/index.html apart from the two bundle URLs');
+check(built === indexHtml().replace(STYLE_TAG, `<link rel="stylesheet" href="/${css}">`).replace(SCRIPT_TAG, `<script src="/${engine}"></script>\n<script src="/${js}"></script>`),
+  'dist/index.html = app/index.html apart from the bundle URLs, with the engine script right before app.js');
+check(engine && dist(engine) === await engineScript() && /^var KSMEngine = /.test(dist(engine)), 'engine script = app/engine/index.ts as a classic IIFE defining KSMEngine');
 check(css && dist(css) === appStyles(), 'stylesheet = app/styles/*.css in order, untransformed');
 check(js && dist(js) === appScript(), 'script = app/js/*.js in order, untransformed');
 
 const sw = dist('service-worker.js');
-check(sw === serviceWorker().replace("'/app.css', '/app.js'", `'/${css}', '/${js}'`), 'service worker = app/service-worker.js with the bundle URLs in APP_SHELL');
+check(sw === serviceWorker().replace("'/app.css', '/app.js'", `'/${css}', '/${engine}', '/${js}'`), 'service worker = app/service-worker.js with the bundle URLs (engine included) in APP_SHELL');
 const shell = [...sw.match(/const APP_SHELL = \[([\s\S]*?)\];/)[1].matchAll(/'([^']+)'/g)].map(m => m[1]);
 const missing = shell.filter(url => url !== '/' && !fs.existsSync(path.join(DIST_DIR, url)));
 check(!missing.length, `every APP_SHELL file exists in dist/ (${shell.length} entries)${missing.length ? ': missing ' + missing.join(', ') : ''}`);
@@ -35,7 +37,7 @@ for (const page of pages) {
   const modules = scripts.map(tag => tag.match(/type="module"[^>]*src="\/(assets\/[\w.-]+\.js)"/)?.[1]);
   check(html && scripts.length && modules.every(f => f && fs.existsSync(path.join(DIST_DIR, f))),
     `dist/${page}: built, only bundled module scripts (${scripts.length})`);
-  check(html && !html.includes('/assets/app-') && modules.every(f => f && !dist(f).includes('function performCourtAction(')), `dist/${page}: does not load the classic app bundle`);
+  check(html && !html.includes('/assets/app-') && !html.includes('/assets/engine-') && modules.every(f => f && !dist(f).includes('function performCourtAction(')), `dist/${page}: does not load the classic app bundle`);
 }
 check(/mode === 'navigate' && url\.pathname !== '\/' && url\.pathname !== '\/index\.html'\) return;/.test(sw),
   `service worker leaves navigations to extra pages to the network (${pages.length ? pages.join(', ') : 'none yet'})`);

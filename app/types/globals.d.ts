@@ -9,3 +9,6 @@
 declare var teamFormat: HTMLSelectElement;
 /** Setup → team tournament format select (Single Elimination / Round Robin). */
 declare var teamTournamentFormat: HTMLSelectElement;
+
+/** The pure engine modules (app/engine/index.ts), loaded as a classic script before app.js. */
+declare var KSMEngine: typeof import('../engine/index.ts');

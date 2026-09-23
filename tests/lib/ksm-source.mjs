@@ -4,11 +4,17 @@
 // app/index.html with app/styles/*.css and app/js/*.js inlined in file-name order
 // (scripts/app-sources.mjs). The code is the same text, in the same order, so grep
 // checks, extractFunction (last declaration wins) and withDependencies still apply.
+//
+// `engine` is the built engine script (app/engine/*.ts as a classic IIFE defining
+// `var KSMEngine`), which the app loads before app.js. It is not part of `html`. Code
+// that references KSMEngine gets it from withDependencies; tests that assemble vm code
+// from extractFunction by hand prepend `engine`.
 import fs from 'node:fs';
-import { singleFileSource, serviceWorker } from '../../scripts/app-sources.mjs';
+import { singleFileSource, serviceWorker, engineScript } from '../../scripts/app-sources.mjs';
 
 export const readRepoFile = rel => fs.readFileSync(new URL(`../../${rel}`, import.meta.url), 'utf8');
 export const html = singleFileSource();
+export const engine = await engineScript();
 export const worker = readRepoFile('src-worker.js');
 export const sw = serviceWorker();
 export const pkg = JSON.parse(readRepoFile('package.json'));
@@ -101,6 +107,7 @@ export function countDefinitions(source, name) { return definitionStarts(source,
 // definitions of every app function / top-level UPPER_CASE constant it
 // references (transitively) that `code` does not define itself. Names in
 // `exclude` (e.g. functions the test stubs on its vm context) are never pulled in.
+// A reference to KSMEngine pulls in the engine script (`engine`, above).
 
 function topLevelConstants(source) {
   const map = new Map();
@@ -144,7 +151,8 @@ export function withDependencies(source, code, { exclude = [] } = {}) {
     for (const [, name] of text.matchAll(/(?<![\w$.])([A-Za-z_$][\w$]*)\b/g)) {
       if (skipNames.has(name)) continue;
       let def = null;
-      if (functions.has(name)) def = extractFunction(source, name);
+      if (name === 'KSMEngine') def = engine;
+      else if (functions.has(name)) def = extractFunction(source, name);
       else if (constants.has(name)) def = constants.get(name);
       if (!def) continue;
       skipNames.add(name);

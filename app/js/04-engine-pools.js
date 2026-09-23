@@ -28,25 +28,13 @@ function eligibleIndividuals(div){return state.competitors.filter(c=>c.division=
  */
 function eligibleTeams(div){return state.teams.filter(t=>t.status!=='NoShow'&&t.team)}
 /**
- * Pool sizes for n entrants (frozen template library).
+ * Pool sizes for n entrants (frozen template library). Delegates to app/engine/pools.ts.
  * @param {number} n
  * @returns {number[]}
  */
 function poolSizes(n){
-  // Template library: use as many 4-person pools as possible while avoiding 2-person pools.
-  const fixed={
-    6:[3,3],7:[4,3],8:[4,4],
-    9:[3,3,3],10:[4,3,3],11:[4,4,3],
-    12:[4,4,4],13:[4,3,3,3],14:[4,4,3,3],15:[4,4,4,3],16:[4,4,4,4],
-    17:[4,4,3,3,3],18:[4,4,4,3,3],19:[4,4,4,4,3],20:[4,4,4,4,4],
-    21:[4,4,4,3,3,3],22:[4,4,4,4,3,3],
-    23:[4,4,3,3,3,3,3],24:[4,4,4,3,3,3,3],25:[4,4,4,4,3,3,3],26:[4,4,4,4,4,3,3],27:[4,4,4,4,4,4,3],28:[4,4,4,4,4,4,4],
-    29:[4,4,4,4,4,3,3,3],30:[4,4,4,4,4,4,3,3],31:[4,4,4,4,4,4,4,3],32:[4,4,4,4,4,4,4,4],
-    33:[4,4,4,4,4,4,3,3,3],34:[4,4,4,4,4,4,4,3,3],35:[4,4,4,4,4,4,4,4,3],36:[4,4,4,4,4,4,4,4,4],
-    37:[4,4,4,4,4,4,4,3,3,3],38:[4,4,4,4,4,4,4,4,3,3],39:[4,4,4,4,4,4,4,4,4,3],40:[4,4,4,4,4,4,4,4,4,4]
-  };
-  if(fixed[n])return fixed[n];
-  let poolCount=Math.max(1,Math.ceil(n/4));while(n/poolCount<3&&poolCount>1)poolCount--;let sizes=Array(poolCount).fill(3),rem=n-poolCount*3;for(let i=0;i<rem;i++)sizes[i%poolCount]++;return sizes;// wrap: n=5 → [5], not [4,NaN] (which dropped an entrant)
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.poolSizes(n);// moved to app/engine/pools.ts
+  /* ksm:post-split-end */
 }
 /**
  * @param {number} index

@@ -3,8 +3,8 @@ import path from 'node:path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import {
-  APP_DIR, DIST_DIR, STYLE_TAG, SCRIPT_TAG, STYLE_URL, SCRIPT_URL,
-  appStyles, appScript, serviceWorker, styleFiles, scriptFiles, extraPages,
+  APP_DIR, DIST_DIR, STYLE_TAG, SCRIPT_TAG, STYLE_URL, SCRIPT_URL, ENGINE_URL,
+  appStyles, appScript, engineScript, serviceWorker, styleFiles, scriptFiles, engineFiles, extraPages,
 } from './scripts/app-sources.mjs';
 
 const DEV_SERVICE_WORKER = `self.addEventListener('install', () => self.skipWaiting());
@@ -14,6 +14,8 @@ self.addEventListener('activate', event => event.waitUntil(caches.keys().then(ke
 // The app is still one classic script plus one stylesheet (see scripts/app-sources.mjs).
 // This plugin serves them in dev and emits them verbatim (no transform or minify) as
 // hashed files in the build; Vite handles index.html and copies app/public/.
+// The engine (app/engine/*.ts) is bundled into a second classic script that defines
+// `KSMEngine`; the plugin adds its tag right before app.js (app/index.html is unchanged).
 // Only index.html gets the classic bundle; extra pages (app/*.html) are ordinary Vite
 // entries with module scripts from app/react/.
 function ksmClassicBundle() {
@@ -23,12 +25,13 @@ function ksmClassicBundle() {
   return {
     name: 'ksm-classic-bundle',
     configureServer(server) {
-      server.watcher.add([...styleFiles(), ...scriptFiles()]);
-      server.middlewares.use((req, res, next) => {
+      server.watcher.add([...styleFiles(), ...scriptFiles(), ...engineFiles()]);
+      server.middlewares.use(async (req, res, next) => {
         const url = req.url.split('?')[0];
         const send = (type, body) => { res.setHeader('Content-Type', type); res.setHeader('Cache-Control', 'no-store'); res.end(body); };
         if (url === STYLE_URL) return send('text/css; charset=utf-8', appStyles());
         if (url === SCRIPT_URL) return send('text/javascript; charset=utf-8', appScript());
+        if (url === ENGINE_URL) return send('text/javascript; charset=utf-8', await engineScript());
         // No offline cache in dev, so edits show on reload: this worker only clears old caches.
         if (url === '/service-worker.js') return send('text/javascript; charset=utf-8', DEV_SERVICE_WORKER);
         // Extra pages at their clean URL (/overlay), as Cloudflare's asset server does.
@@ -36,28 +39,31 @@ function ksmClassicBundle() {
         next();
       });
     },
-    buildStart() {
-      for (const file of [...styleFiles(), ...scriptFiles()]) this.addWatchFile(file);
-      const css = appStyles(), js = appScript();
-      built = { css, js, cssFile: hashed('app', '.css', css), jsFile: hashed('app', '.js', js) };
+    async buildStart() {
+      for (const file of [...styleFiles(), ...scriptFiles(), ...engineFiles()]) this.addWatchFile(file);
+      const css = appStyles(), js = appScript(), engine = await engineScript();
+      built = { css, js, engine, cssFile: hashed('app', '.css', css), jsFile: hashed('app', '.js', js), engineFile: hashed('engine', '.js', engine) };
     },
     transformIndexHtml: {
       // Before Vite parses the page, so it does not try to bundle the two tags itself.
       order: 'pre',
       handler(html, ctx) {
-        if (ctx.server || !built || ctx.path !== '/index.html') return html;
+        if (ctx.path !== '/index.html') return html;
         if (!html.includes(STYLE_TAG) || !html.includes(SCRIPT_TAG)) throw new Error('app/index.html must contain the app.css and app.js tags');
+        if (ctx.server) return html.replace(SCRIPT_TAG, () => `<script src="${ENGINE_URL}"></script>\n${SCRIPT_TAG}`);
+        if (!built) return html;
         return html
           .replace(STYLE_TAG, () => `<link rel="stylesheet" href="/${built.cssFile}" vite-ignore>`)
-          .replace(SCRIPT_TAG, () => `<script src="/${built.jsFile}" vite-ignore></script>`);
+          .replace(SCRIPT_TAG, () => `<script src="/${built.engineFile}" vite-ignore></script>\n<script src="/${built.jsFile}" vite-ignore></script>`);
       },
     },
     generateBundle() {
       this.emitFile({ type: 'asset', fileName: built.cssFile, source: built.css });
       this.emitFile({ type: 'asset', fileName: built.jsFile, source: built.js });
+      this.emitFile({ type: 'asset', fileName: built.engineFile, source: built.engine });
       const sw = serviceWorker();
       if (!sw.includes(`'${STYLE_URL}', '${SCRIPT_URL}'`)) throw new Error('app/service-worker.js APP_SHELL must list /app.css and /app.js');
-      this.emitFile({ type: 'asset', fileName: 'service-worker.js', source: sw.replace(`'${STYLE_URL}', '${SCRIPT_URL}'`, `'/${built.cssFile}', '/${built.jsFile}'`) });
+      this.emitFile({ type: 'asset', fileName: 'service-worker.js', source: sw.replace(`'${STYLE_URL}', '${SCRIPT_URL}'`, `'/${built.cssFile}', '/${built.engineFile}', '/${built.jsFile}'`) });
     },
   };
 }
@@ -68,7 +74,7 @@ export default defineConfig({
   plugins: [react(), ksmClassicBundle(), {
     // Vite drops the vite-ignore attribute but leaves its space behind.
     name: 'ksm-tidy-bundle-tags',
-    transformIndexHtml: { order: 'post', handler: html => html.replace(/(\/assets\/app-\w+\.(?:css|js)") >/g, '$1>') },
+    transformIndexHtml: { order: 'post', handler: html => html.replace(/(\/assets\/(?:app|engine)-\w+\.(?:css|js)") >/g, '$1>') },
   }],
   build: {
     outDir: DIST_DIR,

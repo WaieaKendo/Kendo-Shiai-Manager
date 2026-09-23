@@ -16,8 +16,13 @@
 // The check removes those regions (and one newline right after an end marker) before
 // comparing, and KNOWN_POST_SPLIT_EDITS pins how many regions each <name> has, so an
 // unmarked or unlisted change still fails.
+//
+// Functions moved into app/engine/ (MOVED_TO_ENGINE) keep their declaration in app/js,
+// with a body that is only a marked delegation to KSMEngine; for them the check
+// compares against the old declaration with its body emptied.
 import { execFileSync } from 'node:child_process';
 import { minify } from 'vite';
+import { extractFunction } from '../tests/lib/ksm-source.mjs';
 import { ROOT, STYLE_TAG, SCRIPT_TAG, indexHtml, appStyles, appScript } from './app-sources.mjs';
 
 const commit = process.argv[2] || 'def5010';
@@ -25,15 +30,23 @@ const KNOWN_POST_SPLIT_EDITS = {
   // feat/react-setup: app/js/00-react-bridge.js + the ksm:state-changed dispatch in
   // performCourtAction() and renderAll(), so React islands re-render with `state`.
   'react-bridge': 3,
+  // refactor/engine-bridge (roadmap 2.0+): one delegation per MOVED_TO_ENGINE function.
+  'engine-bridge': 1,
   // feat/react-overlay: app/js/33-stream-overlay-links.js (TV menu "copy overlay link").
   'stream-overlay': 1,
 };
+// Old functions whose body now lives in app/engine/*.ts (parameter lists without braces).
+const MOVED_TO_ENGINE = ['poolSizes'];
 const old = execFileSync('git', ['show', `${commit}:public/index.html`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64e6 });
 let failed = 0;
 const check = (ok, name) => { console.log(`${ok ? 'PASS' : 'FAIL'} ${name}`); if (!ok) failed++; };
 
 const scriptStart = old.indexOf('\n<script>\n') + 1, scriptEnd = old.indexOf('</script>\n</body>');
-const oldScript = old.slice(scriptStart + '<script>\n'.length, scriptEnd);
+let oldScript = old.slice(scriptStart + '<script>\n'.length, scriptEnd);
+for (const name of MOVED_TO_ENGINE) {
+  const fn = extractFunction(oldScript, name);
+  oldScript = oldScript.replace(fn, () => fn.slice(0, fn.indexOf('{') + 1) + '}');
+}
 const headStyles = old.slice(old.indexOf('<style'), old.indexOf('</head>'));
 const oldStyleBlocks = [...headStyles.matchAll(/<style[^>]*>\n([\s\S]*?)<\/style>/g)];
 const outsideBlocks = headStyles.replace(/<style[^>]*>\n[\s\S]*?<\/style>/g, '');

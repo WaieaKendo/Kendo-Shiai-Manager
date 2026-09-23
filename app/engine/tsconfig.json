@@ -1,0 +1,22 @@
+{
+  // Pure tournament-engine modules: strict TypeScript, no DOM, no globals. Only
+  // erasable syntax and .ts import extensions, so Node runs the unit tests directly
+  // (tests/engine/*.test.mjs) and rolldown bundles them for the classic app.
+  "compilerOptions": {
+    "target": "es2022",
+    "lib": ["es2023"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "types": []
+  },
+  "include": ["./**/*.ts"]
+}

@@ -9,7 +9,7 @@
     "dev": "vite build && wrangler dev",
     "dev:vite": "vite",
     "deploy": "vite build && wrangler deploy",
-    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p app/react",
+    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p app/react && tsc --noEmit -p app/engine",
     "verify:split": "node scripts/verify-split.mjs",
     "test": "node tests/run-all.mjs",
     "test:node": "node tests/run-all.mjs --node",
@@ -59,6 +59,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
+    "rolldown": "^1.2.9",
     "typescript": "^7.0.2",
     "vite": "^8.3.0",
     "wrangler": "^4.11.0"

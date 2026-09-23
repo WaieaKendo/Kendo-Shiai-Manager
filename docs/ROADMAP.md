@@ -25,6 +25,7 @@
 | `refactor/vite-typescript` | M.5: Vite build (`app/` → `dist/`), `index.html` split into ordered CSS/JS files with no behaviour change, tests on the built app, tournament data types, engine files type-checked; newer test IDs pinned. Branched from `test/convert-source-checks` | open — ready for review |
 | `feat/react-setup` | M.6 groundwork: React 19 + strict TypeScript in `app/react/`, extra Vite pages (`app/*.html`), `mountIsland()`, `useTournamentRecord()` (GET + spectator WebSocket, backoff, ignores older revisions), `ksm:state-changed` event from the legacy app (marked post-split edits in `verify:split`), Node unit tests. Branched from `refactor/vite-typescript` | open — ready for review |
 | `feat/react-overlay` | M.6 / 1.4: stream overlay page `/overlay` (React), TV-identical match selection as a typed pure function (parity-tested against the TV on 18 tournaments), band mode for PRISM, "copy overlay link" in the TV menu. Branched from `feat/react-setup` | open — ready for review |
+| `refactor/engine-bridge` | 2.0: `app/engine/` strict-TS modules built into a classic `KSMEngine` script loaded before `app.js` (and importable by `app/react/`); `poolSizes` moved as the first function; `verify:split` + vm test helpers know about it; engine unit tests. Branched from `feat/react-overlay` | open — ready for review |
 
 Nothing has been pushed to GitHub yet; `main` is unchanged from the original repository.
 
@@ -49,9 +50,9 @@ The front end moves to Vite + TypeScript and then React, screen by screen. Tests
 | M.2 | Full-tournament e2e: director, two courts, spectator, TV; watch mode (`npm run test:e2e:watch`) | `test/full-tournament-e2e` | ✅ | Found F1 (below) |
 | M.3 | Test coverage map: every test's purpose, mechanism and migration fate | `test/full-tournament-e2e` | ✅ | docs/TESTING.md |
 | M.4 | Convert the source-grep checks that nothing else covers into behaviour/layout tests | `test/convert-source-checks` | ✅ | All 34 covered or marked dead code in docs/TESTING.md; the greps stay until M.5. Found F2–F4 |
-| M.5 | Vite + TypeScript build; split `index.html` into files with no behaviour change | `refactor/vite-typescript` | ✅ | Still ONE classic script (inline handlers need globals; ~35 redeclared functions rely on order), concatenated from `app/js/NN-*.js`; `npm run verify:split` proves markup/CSS/JS byte-identical to def5010. Golden files byte-identical; tests unchanged (they read the source as one text and load `dist/`). Types for the tournament data; `// @ts-check` on the engine files (pools, teams, single elimination, standings/tiebreaks, championship); the checker found no bugs. `function-override-baseline` stays until the redeclarations go (2.5) |
+| M.5 | Vite + TypeScript build; split `index.html` into files with no behaviour change | `refactor/vite-typescript` | ✅ | Still ONE classic script (inline handlers need globals; ~35 redeclared functions rely on order), concatenated from `app/js/NN-*.js`; `npm run verify:split` proves markup/CSS/JS byte-identical to def5010. Golden files byte-identical; tests unchanged (they read the source as one text and load `dist/`). Types for the tournament data; `// @ts-check` on the engine files (pools, teams, single elimination, standings/tiebreaks, championship); the checker found no bugs. `function-override-baseline` stays until the redeclarations go (2.10) |
 | M.6 | React pilot: the livestream overlay page (1.4) | `feat/react-setup`, `feat/react-overlay` | ✅ | React inside the Vite build (extra pages, islands, live record hook, state-change bridge); `/overlay` is the first React page. The legacy bundle is unchanged apart from two marked hooks and the TV-menu overlay links |
-| M.7 | Typed engine module | `refactor/engine-module` | ⏳ | = 2.1: the checked engine files become one TypeScript module; golden files byte-identical |
+| M.7 | Typed engine module | `refactor/engine-bridge` … `refactor/engine-integrity` | ⏳ | = 2.0–2.7: the engine moves into `app/engine/` step by step; 2.0 done; golden files byte-identical |
 | M.8 | React court (scorekeeper) screen | `feat/react-court-screen` | ⏳ | Keeps every court test ID; e2e-full and test-ids-test must pass unchanged |
 
 Next steps after `feat/react-overlay`: the typed engine module extraction (`refactor/engine-module`, M.7 / 2.1), then the React court screen (M.8).
@@ -85,11 +86,19 @@ Still needed: a full live-stream test (a real stream, a whole match, both courts
 
 | # | Task | Branch | Status | Notes |
 |---|---|---|---|---|
-| 2.1 | Extract the tournament engine into a shared module | `refactor/engine-module` | ⏳ | Golden tests must stay identical |
-| 2.2 | Engine stops reading DOM inputs (team format etc.); settings move into tournament data | `refactor/engine-settings` | ⏳ | |
-| 2.3 | Separate device/screen state from shared tournament data | `refactor/local-view-state` | ⏳ | |
-| 2.4 | Stable IDs for people and matches | `refactor/stable-ids` | ⏳ | Fixes name-change/duplicate-name risk |
-| 2.5 | Remove duplicate function redeclarations | `refactor/dedupe-functions` | ⏳ | Ratchet: `function-override-baseline-test.mjs` |
+| 2.0 | Engine bridge: `app/engine/` (pure strict TS) bundled into a classic `KSMEngine` script loaded before `app.js`; `poolSizes` moved as the proof | `refactor/engine-bridge` | ✅ | Legacy `poolSizes` keeps its name and position, body = marked delegation; `verify:split` knows moved functions; goldens byte-identical |
+| 2.1 | Engine reads settings from tournament data, not DOM inputs (team format etc.) | `refactor/engine-settings` | ⏳ | Stacked on 2.0; goldens identical |
+| 2.2 | Pools: pool building, slots, pool match order → `app/engine/pools.ts` | `refactor/engine-pools` | ⏳ | Stacked on 2.1; goldens identical |
+| 2.3 | Standings and tiebreaks → `app/engine/standings.ts` | `refactor/engine-standings` | ⏳ | Stacked on 2.2; goldens identical |
+| 2.4 | Championship bracket / seeding → `app/engine/championship.ts` | `refactor/engine-championship` | ⏳ | Stacked on 2.3; goldens identical |
+| 2.5 | Single elimination → `app/engine/single-elim.ts` | `refactor/engine-single-elim` | ⏳ | Stacked on 2.4; goldens identical |
+| 2.6 | Team events → `app/engine/teams.ts` | `refactor/engine-teams` | ⏳ | Stacked on 2.5; goldens identical |
+| 2.7 | State integrity / invariants → `app/engine/integrity.ts` | `refactor/engine-integrity` | ⏳ | Stacked on 2.6; goldens identical. Together 2.0–2.7 replace the old "one engine module" step (M.7) |
+| 2.8 | Separate device/screen state from shared tournament data | `refactor/local-view-state` | ⏳ | |
+| 2.9 | Stable IDs for people and matches | `refactor/stable-ids` | ⏳ | Fixes name-change/duplicate-name risk |
+| 2.10 | Remove duplicate function redeclarations | `refactor/dedupe-functions` | ⏳ | Ratchet: `function-override-baseline-test.mjs` |
+
+Each engine step (2.1–2.7) moves functions with the pattern in docs/TESTING.md ("Moving a function into app/engine"): one branch each, stacked, golden files byte-identical.
 
 ## Phase 3+: needs the planning meeting 🗣
 

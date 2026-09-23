@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { extractFunction, html as appSource, sw as appServiceWorker } from './lib/ksm-source.mjs';
+import { extractFunction, engine, html as appSource, sw as appServiceWorker } from './lib/ksm-source.mjs';
 
 const html=appSource;
 const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));
@@ -29,6 +29,7 @@ let failed=false;
 for(const [ok,name] of staticChecks){console.log(`${ok?'PASS':'FAIL'} ${name}`);if(!ok)failed=true}
 
 const snippets=[
+  engine, // KSMEngine: poolSizes delegates to app/engine/pools.ts
   extractConstStatement(html,'POOL_MATCH_TEMPLATES'),
   extractFunction(html,'poolSizes'),
   extractFunction(html,'clubGroup'),
