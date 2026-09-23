@@ -26,7 +26,7 @@ context.renderPools=()=>{};
 context.scheduleAutoSave=()=>{};
 context.setActiveDivision=()=>{};
 context.findNextForCourt=(court,div)=>({division:div,index:0});
-context.championshipNodeSource=()=>null;
+context.seedNameForLabel=()=>null;
 vm.createContext(context);
 vm.runInContext(`${engine}
 const POOL_MATCH_TEMPLATES=Object.freeze({
@@ -80,7 +80,7 @@ function resetDivision(div,sizes,mode,total){
     managementRevision:0
   };
   context.poolDiv.value=div;
-  context.championshipNodeSource=()=>null;
+  context.seedNameForLabel=()=>null;
   context.saveEditedPools();
 }
 
@@ -93,10 +93,10 @@ check(d14.filter(m=>m.championship).length===7,'14-person edited pools retain 7 
 check(d14.filter(m=>m.championship&&m.position==='Quarterfinal').length===4,'14-person edited division has four actual QF Match Objects');
 check(context.state.championshipNodes.D14.length===7,'14-person edit rebuilds canonical championship nodes');
 
-// Simulate completed pool standings. QF seed sources now resolve and must make
+// Simulate completed pool standings (seed labels resolve via seedNameForLabel). QF seed sources now resolve and must make
 // the actual QF Match Objects scorable.
 const d14Seeds={A1:{name:'A1 Winner',dojo:'A'},A2:{name:'A2 Runner',dojo:'A'},B1:{name:'B1 Winner',dojo:'B'},B2:{name:'B2 Runner',dojo:'B'},C1:{name:'C1 Winner',dojo:'C'},C2:{name:'C2 Runner',dojo:'C'},D1:{name:'D1 Winner',dojo:'D'},D2:{name:'D2 Runner',dojo:'D'}};
-context.championshipNodeSource=(div,side)=>side?.seed?d14Seeds[side.seed]||null:null;
+context.seedNameForLabel=(div,label)=>d14Seeds[label]||null;
 context.syncChampionshipTemplate('D14');
 let d14qf=context.state.allMatches.D14.filter(m=>m.championship&&m.position==='Quarterfinal');
 check(d14qf.every(m=>m.ready&&m.white&&m.red),'14-person edited division QFs become scorable after pool completion');
@@ -108,7 +108,7 @@ let d12=context.state.allMatches.D12;
 check(d12.filter(m=>!m.championship).length===18,'12-person edited pools retain all 18 pool Match Objects');
 check(d12.filter(m=>m.championship).length===7,'12-person edited pools retain 7 championship Match Objects');
 const d12Seeds={A1:{name:'A1',dojo:'A'},A2:{name:'A2',dojo:'A'},A3:{name:'A3',dojo:'A'},B1:{name:'B1',dojo:'B'},B2:{name:'B2',dojo:'B'},B3:{name:'B3',dojo:'B'},C1:{name:'C1',dojo:'C'},C2:{name:'C2',dojo:'C'}};
-context.championshipNodeSource=(div,side)=>side?.seed?d12Seeds[side.seed]||null:null;
+context.seedNameForLabel=(div,label)=>d12Seeds[label]||null;
 context.syncChampionshipTemplate('D12');
 let d12qf=context.state.allMatches.D12.filter(m=>m.championship&&m.position==='Quarterfinal');
 check(d12qf.length===4&&d12qf.every(m=>m.ready),'12-person split edited division has four ready QFs');

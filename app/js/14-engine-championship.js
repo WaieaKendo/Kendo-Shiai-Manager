@@ -6,60 +6,16 @@ const CHAMPIONSHIP_TEMPLATE_VERSION='v1.0';
  * @returns {string[][]}
  */
 function championshipTemplateForTotal(total){
-  // Frozen Championship Template Library v1.0.
-  // Each pair is [Red seed, White seed]. The first listed seed is red; the second is white.
-  const T={
-    6:[['A1','B2'],['B1','A2']],
-    7:[['A1','B2'],['B1','A2']],
-    8:[['A1','B2'],['B1','A2']],
-    9:[['A1','B1'],['C1','A2']],
-    10:[['A1','B2'],['C1','A3'],['B1','C2'],['A2','B3']],
-    11:[['A1','B2'],['C1','A3'],['B1','C2'],['A2','B3']],
-    12:[['A1','B2'],['C1','A3'],['B1','C2'],['A2','B3']],
-    13:[['A1','B2'],['C1','D2'],['B1','C2'],['D1','A2']],
-    14:[['A1','B2'],['C1','D2'],['B1','C2'],['D1','A2']],
-    15:[['A1','B2'],['C1','D2'],['B1','C2'],['D1','A2']],
-    16:[['A1','B2'],['C1','D2'],['B1','C2'],['D1','A2']],
-    17:[['A1','D1'],['B1','C2'],['C1','A2'],['B2','E1']],
-    18:[['A1','C2'],['B1','D2'],['E1','A2'],['D1','C1']],
-    19:[['A1','C2'],['B1','D2'],['E1','A2'],['D1','C1']],
-    20:[['A1','C2'],['B1','D2'],['E1','A2'],['D1','C1']],
-    21:[['A1','B2'],['C1','D1'],['A2','F1'],['E1','B1']],
-    22:[['A1','B2'],['C1','D1'],['A2','F1'],['E1','B1']],
-    23:[['A1','D2'],['E1','B3'],['C1','F2'],['G1','B2'],['B1','E2'],['F1','A2'],['D1','A3'],['C2','G2']],
-    24:[['A1','D2'],['E1','B3'],['C1','F2'],['G1','B2'],['B1','E2'],['F1','A2'],['D1','A3'],['C2','G2']],
-    25:[['A1','D2'],['E1','B3'],['C1','F2'],['G1','B2'],['B1','E2'],['F1','A2'],['D1','A3'],['C2','G2']],
-    26:[['A1','D2'],['E1','B3'],['C1','F2'],['G1','B2'],['B1','E2'],['F1','A2'],['D1','A3'],['C2','G2']],
-    27:[['A1','D2'],['E1','B3'],['C1','F2'],['G1','B2'],['B1','E2'],['F1','A2'],['D1','A3'],['C2','G2']],
-    28:[['A1','D2'],['E1','B3'],['C1','F2'],['G1','B2'],['B1','E2'],['F1','A2'],['D1','A3'],['C2','G2']],
-    29:[['A1','D2'],['E1','H2'],['C1','F2'],['G1','B2'],['B1','E2'],['F1','A2'],['D1','C2'],['H1','G2']],
-    30:[['A1','D2'],['E1','H2'],['C1','F2'],['G1','B2'],['B1','E2'],['F1','A2'],['D1','C2'],['H1','G2']],
-    31:[['A1','D2'],['E1','H2'],['C1','F2'],['G1','B2'],['B1','E2'],['F1','A2'],['D1','C2'],['H1','G2']],
-    32:[['A1','D2'],['E1','H2'],['C1','F2'],['G1','B2'],['B1','E2'],['F1','A2'],['D1','C2'],['H1','G2']],
-    33:[['A1','D2'],['G1','B2'],['C1','F2'],['E1','D1'],['B1','E2'],['F1','A2'],['I1','C2'],['H1','G2']],
-    34:[['A1','D2'],['G1','B2'],['C1','F2'],['E1','D1'],['B1','E2'],['F1','A2'],['I1','C2'],['H1','G2']],
-    35:[['A1','D2'],['G1','B2'],['C1','F2'],['E1','D1'],['B1','E2'],['F1','A2'],['I1','C2'],['H1','G2']],
-    36:[['A1','D2'],['G1','B2'],['C1','F2'],['E1','D1'],['B1','E2'],['F1','A2'],['I1','C2'],['H1','G2']],
-    37:[['A1','D2'],['E1','I1'],['C1','F2'],['G1','B2'],['B1','E2'],['F1','A2'],['D1','C2'],['H1','J1']],
-    38:[['A1','D2'],['E1','I1'],['C1','F2'],['G1','B2'],['B1','E2'],['F1','A2'],['D1','C2'],['H1','J1']],
-    39:[['A1','D2'],['E1','I1'],['C1','F2'],['G1','B2'],['B1','E2'],['F1','A2'],['D1','C2'],['H1','J1']],
-    40:[['A1','D2'],['E1','I1'],['C1','F2'],['G1','B2'],['B1','E2'],['F1','A2'],['D1','C2'],['H1','J1']]
-  };
-  return T[total]||[];
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.championshipTemplateForTotal(total);
+  /* ksm:post-split-end */
 }
 /**
  * @param {string} div
  * @returns {string[][]}
  */
 function championshipLabels(div){
-  // Once generated, the frozen template mapping remains authoritative even if
-  // a no-show reduces the number of active pool competitors.
-  if(state.generated && Array.isArray(state.brackets?.[div]) && state.brackets[div].length){
-    return state.brackets[div];
-  }
-  let pools=state.pools[div]||[];
-  let total=pools.reduce((sum,p)=>sum+(p.players?p.players.length:0),0);
-  return championshipTemplateForTotal(total);
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.championshipLabels(state.generated,state.brackets?.[div],state.pools[div]||[]);
+  /* ksm:post-split-end */
 }
 /**
  * How many places of each pool feed the championship (pool label -> places).
@@ -93,35 +49,8 @@ function poolRowsStillTied(a,b){
  * @returns {SeedResolution}
  */
 function poolSeedResolution(poolLabel,div=state.currentDivision){
-  if(!poolFinished(poolLabel,div)||pendingTiebreak(poolLabel,div))return {complete:false,seeds:{},rows:[]};
-  const req=requiredSeedPlaces(div)[poolLabel]||2;
-  const base=initialPoolStandings(poolLabel,div);
-  const seeds={};let complete=true;
-  for(let i=0;i<base.length;){
-    let j=i+1;while(j<base.length&&base[j].wins===base[i].wins&&base[j].pts===base[i].pts)j++;
-    const group=base.slice(i,j),start=i+1,end=j;
-    if(group.length===1){if(start<=req)seeds[start]=group[0];}
-    else if(start<=req){
-      const resolved=resolveTiebreakBaseGroup(poolLabel,div,{start,end,players:group});
-      if(resolved.unresolved.length){complete=false;}
-      const ordered=resolved.ordered||[];
-      for(let offset=0;offset<ordered.length;offset++){
-        const place=start+offset;
-        if(place<=req && !resolved.unresolved.some(x=>x.name===ordered[offset].name))seeds[place]=ordered[offset];
-      }
-      // A fully resolved two-person tie for first explicitly owns both Seed 1
-      // and Seed 2; a tie at the advancement boundary owns only that boundary.
-      if(!resolved.unresolved.length){
-        for(let offset=0;offset<ordered.length;offset++){
-          const place=start+offset;if(place<=req)seeds[place]=ordered[offset];
-        }
-      }
-    }
-    i=j;
-  }
-  for(let place=1;place<=Math.min(req,base.length);place++)if(!seeds[place])complete=false;
-  const rows=poolStandings(poolLabel,div);
-  return {complete,seeds,rows};
+  /* ksm:post-split-begin engine-bridge */return /** @type {SeedResolution} */(KSMEngine.poolSeedResolution((state.pools[div]||[]).find(p=>p.label===poolLabel),poolLabel,state.allMatches[div]||[],requiredSeedPlaces(div)[poolLabel]||2));
+  /* ksm:post-split-end */
 }
 /**
  * @param {string} poolLabel
@@ -137,11 +66,8 @@ function poolPositionsResolved(poolLabel,div=state.currentDivision){return poolS
  * @returns {PoolStandingRow|null}
  */
 function seedNameForLabel(div,label,onlyFinalized=true){
-  let m=String(label).match(/^([A-Z])([123])$/); if(!m)return null;
-  let poolLabel=m[1],place=parseInt(m[2],10);
-  const resolution=poolSeedResolution(poolLabel,div);
-  if(onlyFinalized && !resolution.complete)return null;
-  return resolution.seeds[place]||resolution.rows[place-1]||null;
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.seedNameForLabel(label,poolLabel=>poolSeedResolution(poolLabel,div),onlyFinalized);
+  /* ksm:post-split-end */
 }
 
 /**
@@ -150,16 +76,8 @@ function seedNameForLabel(div,label,onlyFinalized=true){
  * @returns {Match}
  */
 function championshipMatchObjectForNode(div,node){
-  return {
-    division:div,
-    pool:'Championship',
-    white:'',red:'',wdojo:'',rdojo:'',
-    position:node.round,
-    done:false,wp:[],rp:[],
-    type:'individual',championship:true,templateNode:true,origin:'TEMPLATE',ready:false,
-    champNodeId:node.id,bracketSlot:node.slot,court:node.court,
-    seedRed:node.left?.seed||null,seedWhite:node.right?.seed||null
-  };
+  /* ksm:post-split-begin engine-bridge */return /** @type {Match} */(KSMEngine.championshipMatchObjectForNode(div,node));
+  /* ksm:post-split-end */
 }
 /**
  * Creates the championship nodes (state.championshipNodes) and their Match Objects.
@@ -168,33 +86,12 @@ function championshipMatchObjectForNode(div,node){
  * @returns {Match[]}
  */
 function buildChampionshipTemplateMatches(div,seedPairs){
-  const count=(seedPairs||[]).length;
-  if(!count)return [];
-  const nodes=[];
-  const matches=[];
-  const first=firstRoundName(count);
-  function addNode(id,round,slot,left,right){
-    const total=roundMatchCountForDivision(div,round);
-    const court=championshipCourtFor(div,round,slot,total);
-    /** @type {ChampionshipNode} */
-    const node={id,round,slot,left,right,court};nodes.push(node);
-    matches.push(championshipMatchObjectForNode(div,node));
-  }
-  seedPairs.forEach(([red,white],i)=>addNode(`C-${first}-${i}`,first,i,{seed:red},{seed:white}));
-  let prev=nodes.filter(n=>n.round===first),round=nextRoundFromName(first);
-  while(round&&prev.length>1){
-    const next=[];
-    for(let i=0;i<Math.ceil(prev.length/2);i++){
-      const a=prev[i*2],b=prev[i*2+1];
-      const id=`C-${round}-${i}`;
-      addNode(id,round,i,{ref:a?.id||null},{ref:b?.id||null});
-      next.push(nodes[nodes.length-1]);
-    }
-    prev=next;round=nextRoundFromName(round);
-  }
+  /* ksm:post-split-begin engine-bridge */if(!(seedPairs||[]).length)return [];
+  const built=KSMEngine.buildChampionshipTemplateMatches(div,seedPairs,(round,slot,total)=>championshipCourtFor(div,round,slot,total),(state.brackets[div]||championshipLabels(div)||[]).length);
   state.championshipNodes=state.championshipNodes||{};
-  state.championshipNodes[div]=nodes;
-  return matches;
+  state.championshipNodes[div]=built.nodes;
+  return /** @type {Match[]} */(built.matches);
+  /* ksm:post-split-end */
 }
 /**
  * @param {string} div
@@ -202,13 +99,8 @@ function buildChampionshipTemplateMatches(div,seedPairs){
  * @returns {{name: string, dojo: string}|null}
  */
 function championshipNodeSource(div,side){
-  if(!side)return null;
-  if(side.seed)return seedNameForLabel(div,side.seed,true);
-  if(side.ref){
-    const m=(state.allMatches?.[div]||[]).find(x=>x.championship&&x.champNodeId===side.ref);
-    if(m?.done)return champWinnerObj(m);
-  }
-  return null;
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.championshipNodeSource(side,label=>seedNameForLabel(div,label,true),state.allMatches?.[div]||[]);
+  /* ksm:post-split-end */
 }
 /**
  * Fills championship matches from pool seeds and earlier winners.
@@ -216,29 +108,16 @@ function championshipNodeSource(div,side){
  * @returns {Match[]}
  */
 function syncChampionshipTemplate(div){
-  const nodes=state.championshipNodes?.[div]||[];
+  /* ksm:post-split-begin engine-bridge */const nodes=state.championshipNodes?.[div]||[];
   const arr=state.allMatches?.[div]||[];
   if(!nodes.length)return arr;
-  for(const node of nodes){
-    let m=arr.find(x=>x&&x.championship&&x.champNodeId===node.id);
-    if(!m){
-      // A generated championship node must always have a corresponding Match
-      // Object. Self-heal older/incomplete states (including pool-edit states
-      // from <= v3.17.17) instead of leaving a visually populated but unplayable
-      // elimination bracket.
-      m=championshipMatchObjectForNode(div,node);
-      arr.push(m);
-      console.warn('KSM repaired missing championship Match Object',div,node.id);
-    }
-    if(m.done)continue;
-    const red=championshipNodeSource(div,node.left),white=championshipNodeSource(div,node.right);
-    m.position=node.round;m.bracketSlot=node.slot;m.court=node.court;
-    m.red=red?.name||'';m.rdojo=red?.dojo||'';
-    m.white=white?.name||'';m.wdojo=white?.dojo||'';
-    m.ready=!!(red&&white);
-  }
+  const plan=KSMEngine.syncChampionshipTemplate(div,nodes,arr,label=>seedNameForLabel(div,label,true));
+  // Self-heal: a generated championship node must always have a Match Object.
+  plan.missing.forEach(m=>{arr.push(/** @type {Match} */(m));console.warn('KSM repaired missing championship Match Object',div,m.champNodeId);});
+  plan.updates.forEach(u=>Object.assign(arr[u.index],u.set));
   state.allMatches[div]=arr;
   return arr;
+  /* ksm:post-split-end */
 }
 function championshipSeeds(div){
   return championshipLabels(div).map(([r,w])=>[r==='BYE'?{name:'BYE',dojo:''}:seedNameForLabel(div,r,true),w==='BYE'?{name:'BYE',dojo:''}:seedNameForLabel(div,w,true),r,w]);
@@ -249,7 +128,10 @@ function champRoundOrder(name){return name==='Round of 16'?16:name==='Quarterfin
  * @param {Match} m
  * @returns {{name: string, dojo: string}|null}
  */
-function champWinnerObj(m){let win=winnerOf(m);if(win===m.red)return {name:m.red,dojo:m.rdojo};if(win===m.white)return {name:m.white,dojo:m.wdojo};return null}
+function champWinnerObj(m){
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.champWinnerObj(m);
+  /* ksm:post-split-end */
+}
 function nextChampRoundName(current,count){if(current==='Round of 16')return 'Quarterfinal';if(current==='Quarterfinal')return 'Semifinal';if(current==='Semifinal')return 'Final';if(count===8)return 'Quarterfinal';if(count===4)return 'Semifinal';return 'Final'}
 function champSourceWinner(div,round,slot){
   let arr=state.allMatches[div]||[];
@@ -261,7 +143,10 @@ function champSourceWinner(div,round,slot){
   }
   return null;
 }
-function roundMatchCountForDivision(div,round){let initial=(state.brackets[div]||championshipLabels(div)||[]).length;if(round==='Round of 16')return initial;if(round==='Quarterfinal')return initial>=8?4:initial;if(round==='Semifinal')return 2;if(round==='Final')return 1;return initial}
+function roundMatchCountForDivision(div,round){
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.roundMatchCount((state.brackets[div]||championshipLabels(div)||[]).length,round);
+  /* ksm:post-split-end */
+}
 /**
  * @param {Match} m
  * @returns {string}
@@ -313,12 +198,18 @@ function maybeCreateChampionship(m){if(!m||m.type!=='individual'||m.championship
  * @param {number} n number of first-round matches
  * @returns {RoundName}
  */
-function firstRoundName(n){if(n>=8)return 'Round of 16';if(n>=4)return 'Quarterfinal';if(n>=2)return 'Semifinal';return 'Final'}
+function firstRoundName(n){
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.firstRoundName(n);
+  /* ksm:post-split-end */
+}
 /**
  * @param {RoundName} name
  * @returns {RoundName|null}
  */
-function nextRoundFromName(name){if(name==='Round of 16')return 'Quarterfinal';if(name==='Quarterfinal')return 'Semifinal';if(name==='Semifinal')return 'Final';return null}
+function nextRoundFromName(name){
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.nextRoundFromName(name);
+  /* ksm:post-split-end */
+}
 /**
  * @param {RoundName} name
  * @returns {RoundName|null}
@@ -365,12 +256,8 @@ function roundSequenceFromFirst(first){let seq=[];let r=first;while(r){seq.push(
  */
 function champMatchBySlot(div,round,slot){return (state.allMatches[div]||[]).find(x=>x.championship&&x.position===round&&x.bracketSlot===slot)}
 function sourceLabelForRound(div,prevRound,slot){
-  let pm=champMatchBySlot(div,prevRound,slot);
-  if(pm){
-    if(pm.done){const winner=champWinnerObj(pm);if(winner)return {name:winner.name,dojo:winner.dojo||'',done:true};}
-    return {name:`Winner of ${prevRound} Match ${slot+1}`,dojo:'',done:false};
-  }
-  return {name:`Winner of ${prevRound} Match ${slot+1}`,dojo:'',done:false};
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.sourceLabelForRound(state.allMatches[div]||[],prevRound,slot);
+  /* ksm:post-split-end */
 }
 function bracketHtml(div){
   if(state.singleElimNodes&&state.singleElimNodes[div])return singleElimBracketHtml(div);

@@ -1,4 +1,4 @@
-import { html as appSource } from './lib/ksm-source.mjs';
+import { html as appSource, engine } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
 import vm from 'node:vm';
 const html=appSource;
@@ -18,7 +18,7 @@ function ok(cond,msg){if(!cond)throw new Error(msg);passed++;}
 // Frozen championship mapping remains authoritative after a native 6-player no-show.
 {
   const context={state:{generated:true,brackets:{D:[['A1','B2'],['B1','A2']]},pools:{D:[{players:[1,2]},{players:[3,4,5]}]}},championshipTemplateForTotal:()=>[]};
-  vm.createContext(context);vm.runInContext(extract('championshipLabels'),context);
+  vm.createContext(context);vm.runInContext(engine,context);vm.runInContext(extract('championshipLabels'),context);
   const labels=context.championshipLabels('D');
   ok(labels.length===2,'native six-player championship template must remain frozen after no-show');
   ok(labels[0][0]==='A1'&&labels[1][0]==='B1','frozen seed mapping must be preserved');
@@ -26,15 +26,17 @@ function ok(cond,msg){if(!cond)throw new Error(msg);passed++;}
 
 // A completed two-person tie for first explicitly resolves both Seed 1 and Seed 2.
 {
-  const A={name:'A',dojo:'X',wins:2,pts:3},B={name:'B',dojo:'Y',wins:2,pts:3},C={name:'C',dojo:'Z',wins:0,pts:0};
+  // A and B both beat C and draw each other; the finished tiebreak A beats B locks the order.
+  const bout=(white,red,wp,rp,extra={})=>({pool:'A',type:'individual',white,red,wp,rp,done:true,...extra});
   const context={
-    state:{currentDivision:'D'},
-    poolFinished:()=>true,pendingTiebreak:()=>false,
-    requiredSeedPlaces:()=>({A:2}),initialPoolStandings:()=>[A,B,C],
-    resolveTiebreakBaseGroup:()=>({locked:[A,B],unresolved:[],ordered:[A,B]}),
-    poolStandings:()=>[A,B,C]
+    state:{currentDivision:'D',
+      pools:{D:[{label:'A',players:[{name:'A',dojo:'X'},{name:'B',dojo:'Y'},{name:'C',dojo:'Z'}]}]},
+      allMatches:{D:[bout('A','C',['M','K'],[]),bout('B','C',['M','K'],[]),bout('A','B',['M'],['M']),
+        bout('A','B',['M'],[],{tiebreak:true,tiebreakSeries:1,requiresWinner:true})]}},
+    requiredSeedPlaces:()=>({A:2})
   };
   vm.createContext(context);
+  vm.runInContext(engine,context);
   vm.runInContext(extract('poolSeedResolution'),context);
   vm.runInContext(extract('poolPositionsResolved'),context);
   vm.runInContext(extract('seedNameForLabel'),context);

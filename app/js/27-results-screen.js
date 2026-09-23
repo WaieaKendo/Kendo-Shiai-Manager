@@ -2,7 +2,7 @@
 // KSM v3.9.1 — Results presentation
 // ==========================================================
 function resultPlacements(div){
-  if(!divisionComplete(div))return [];
+  /* ksm:post-split-begin engine-bridge */if(!divisionComplete(div))return [];
   if(isTeamDivision(div)){
     const p=teamFinalPlacements(div);
     if(!p)return [];
@@ -15,29 +15,9 @@ function resultPlacements(div){
     return rows;
   }
 
-  const final=(state.allMatches[div]||[]).find(m=>
-    m.championship&&m.position==='Final'&&m.done
-  );
-  if(!final&&isPoolOnlyDivision(div)){
-    const pool=state.pools[div][0];
-    return poolStandings(pool.label,div).slice(0,3).map((r,i)=>({place:['1st','2nd','3rd'][i],name:r.name,tier:['gold','silver','bronze'][i]}));
-  }
-  if(!final)return [];
-
-  const first=winnerOf(final);
-  const second=first===final.red?final.white:final.red;
-  const rows=[
-    {place:'1st',name:first,tier:'gold'},
-    {place:'2nd',name:second,tier:'silver'}
-  ];
-  (state.allMatches[div]||[])
-    .filter(m=>m.championship&&m.position==='Semifinal'&&m.done)
-    .forEach(m=>{
-      const w=winnerOf(m);
-      const loser=w===m.red?m.white:m.red;
-      if(loser)rows.push({place:'3rd',name:loser,tier:'bronze'});
-    });
-  return rows;
+  const matches=state.allMatches[div]||[];
+  return KSMEngine.individualPlacements(matches,isPoolOnlyDivision(div)?()=>poolStandings(state.pools[div][0].label,div):null);
+  /* ksm:post-split-end */
 }
 function resultCardHtml(div){
   const placements=resultPlacements(div),roundRobin=isTeamRoundRobinDivision(div);

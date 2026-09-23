@@ -31,6 +31,17 @@ def match(record, division, white, red):
     raise AssertionError(f'{division}: no match {white} vs {red}')
 
 
+def points(record, division, m):
+    got = match(record, division, m['white'], m['red'])
+    return got.get('wp'), got.get('rp')
+
+
+def wait_record(app, base, tid, check, message):
+    """Poll the cloud copy until check(record) holds (no fixed sleeps: the last save may
+    still be in flight on a loaded machine) and return that record."""
+    return app.wait_for(lambda: (lambda r: r if check(r) else None)(fetch_record(base, tid)), timeout=20, message=message)
+
+
 def main():
     problems = []
     started = time.time()
@@ -94,7 +105,8 @@ def main():
         court_a.score_point('R', 'D')
         court_a.wait_for(lambda: not court_a.outbox(), message='the queued work to be flushed')
         court_a.wait_idle()
-        record = fetch_record(base, tid)
+        record = wait_record(court_a, base, tid, lambda r: points(r, 'Court A Open', first_a) == (['M'], ['D']),
+                             'the cloud copy to hold Court A M / D')
         got = match(record, 'Court A Open', first_a['white'], first_a['red'])
         assert (got.get('wp'), got.get('rp')) == (['M'], ['D']), f'Court A points lost: {got.get("wp")} / {got.get("rp")}'
         assert match(record, 'Court B Open', first_b['white'], first_b['red']).get('rp') == ['K'], 'Court B point lost'
@@ -104,15 +116,15 @@ def main():
         # --- Reload before the debounced save ran: the point is queued at unload ------------
         court_a.score_point('W', 'K')
         court_a.reload()
-        assert court_a.outbox() and court_a.outbox()['reason'] == 'Unsynced changes at page unload', court_a.outbox()
+        court_a.wait_for(court_a.outbox, message='the unload queue to be restored')
+        assert court_a.outbox()['reason'] == 'Unsynced changes at page unload', court_a.outbox()
         assert not court_a.seen_dialogs, f'Court A: reload asked {court_a.seen_dialogs}'
         court_a.staff_login()
         court_a.open_court('A')
         court_a.wait_for(lambda: not court_a.outbox(), message='the unload queue to be flushed')
         court_a.wait_idle()
-        time.sleep(0.5)
-        court_a.wait_idle()
-        record = fetch_record(base, tid)
+        record = wait_record(court_a, base, tid, lambda r: points(r, 'Court A Open', first_a) == (['M', 'K'], ['D']),
+                             'the cloud copy to hold Court A M K / D')
         got = match(record, 'Court A Open', first_a['white'], first_a['red'])
         assert (got.get('wp'), got.get('rp')) == (['M', 'K'], ['D']), f'Court A points: {got.get("wp")} / {got.get("rp")}'
         assert match(record, 'Court B Open', first_b['white'], first_b['red']).get('rp') == ['K'], 'Court B point lost'

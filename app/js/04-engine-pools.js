@@ -96,7 +96,10 @@ function poolCourtFor(div,poolLabel,pools=state.pools[div]||[]){let mode=divisio
  * @param {number} totalInRound
  * @returns {Court}
  */
-function championshipCourtFor(div,round,slot,totalInRound){let mode=divisionCourtMode(div);if(mode!=='split')return /** @type {Court} */(mode);if(round==='Final')return 'A';let total=Math.max(1,totalInRound||1);return Number(slot||0)<Math.ceil(total/2)?'A':'B'}
+function championshipCourtFor(div,round,slot,totalInRound){
+  /* ksm:post-split-begin engine-bridge */return /** @type {Court} */(KSMEngine.championshipCourtFor(divisionCourtMode(div),round,slot,totalInRound));
+  /* ksm:post-split-end */
+}
 const POOL_MATCH_TEMPLATES=Object.freeze({
   2:Object.freeze([[0,1]]),
   3:Object.freeze([[0,1],[2,1],[2,0]]),

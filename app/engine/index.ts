@@ -16,3 +16,13 @@ export {
 export type {
   StandingsMatch, CompletedResultLike, StandingRow, TiebreakStatsRow, TiedGroup, StandingsPool, TiebreakMatch,
 } from './standings.ts';
+export {
+  championshipTemplateForTotal, championshipLabels, firstRoundName, nextRoundFromName, roundMatchCount,
+  championshipCourtFor, championshipMatchObjectForNode, buildChampionshipTemplateMatches, poolFinished,
+  poolSeedResolution, parseSeedLabel, seedNameForLabel, champWinnerObj, championshipNodeSource,
+  syncChampionshipTemplate, sourceLabelForRound, individualPlacements,
+} from './championship.ts';
+export type {
+  ChampSource, ChampNode, ChampMatchLike, Competitor, ChampionshipMatch, SeedResolution as ChampSeedResolution,
+  ChampionshipUpdate, Placement,
+} from './championship.ts';

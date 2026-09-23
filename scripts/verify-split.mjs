@@ -33,7 +33,7 @@ const KNOWN_POST_SPLIT_EDITS = {
   // performCourtAction() and renderAll(), so React islands re-render with `state`.
   'react-bridge': 3,
   // refactor/engine-bridge (roadmap 2.0+): one delegation per MOVED_TO_ENGINE function.
-  'engine-bridge': 24,
+  'engine-bridge': 40,
   // refactor/engine-settings (roadmap 2.1): tournamentSettings() accessor + 9 inline
   // replacements of engine DOM reads (`was:` form, see below).
   'engine-settings': 10,
@@ -48,6 +48,10 @@ const MOVED_TO_ENGINE = [
   'matchRequiresWinner', 'completedResultWinnerValid', 'completedResultSnapshotValid', 'scoreWinnerOf', 'winnerOf',
   'pendingTiebreak', 'initialPoolStandings', 'tiebreakStatsForPlayers', 'tiebreakSeriesStats', 'resolveTiebreakBaseGroup',
   'unresolvedRequiredTiebreakGroup', 'tiebreakMatchesForGroup', 'makeTiebreakMatch', 'requiredSeedPlaces', 'poolStandings',
+  // step 2.4: championship bracket, seeds, advancement and individual placements (app/engine/championship.ts)
+  'championshipTemplateForTotal', 'championshipLabels', 'firstRoundName', 'nextRoundFromName', 'roundMatchCountForDivision',
+  'championshipCourtFor', 'championshipMatchObjectForNode', 'buildChampionshipTemplateMatches', 'poolFinished', 'poolSeedResolution',
+  'seedNameForLabel', 'champWinnerObj', 'championshipNodeSource', 'syncChampionshipTemplate', 'sourceLabelForRound', 'resultPlacements',
 ];
 const old = execFileSync('git', ['show', `${commit}:public/index.html`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64e6 });
 let failed = 0;

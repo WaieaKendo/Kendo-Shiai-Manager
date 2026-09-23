@@ -5,7 +5,10 @@
  * @param {string} [div]
  * @returns {boolean|number}
  */
-function poolFinished(poolLabel,div=state.currentDivision){let base=(state.allMatches[div]||[]).filter(m=>m.pool===poolLabel&&!m.tiebreak&&!m.championship);return base.length && base.every(m=>m.done)}
+function poolFinished(poolLabel,div=state.currentDivision){
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.poolFinished(state.allMatches[div]||[],poolLabel);
+  /* ksm:post-split-end */
+}
 /**
  * @param {string} poolLabel
  * @param {string} div
