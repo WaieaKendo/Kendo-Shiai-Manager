@@ -109,11 +109,12 @@ class KsmApp:
 
     @classmethod
     def open_device(cls, browser, base, name, problems, path='/', password=DEFAULT_PASSWORD,
-                    tournament_name='KSM E2E Cup', viewport=None):
+                    tournament_name='KSM E2E Cup', viewport=None, clock=False):
         """A separate device (own browser context) opening `path` on a live backend.
 
         Answers the app's prompts (tournament name, staff password, device name);
         any other dialog, or a page error, is recorded in `problems`.
+        clock=True installs Playwright's clock first, so a test can fast-forward time.
         """
         ctx = browser.new_context(viewport=viewport or {'width': 1280, 'height': 900}, service_workers='block')
         page = ctx.new_page()
@@ -127,6 +128,8 @@ class KsmApp:
         }
         page.on('dialog', app._on_dialog)
         page.on('pageerror', lambda e: problems.append(f'{name}: page error: {e}'))
+        if clock:
+            page.clock.install()
         page.goto(base + path, wait_until='domcontentloaded')
         page.wait_for_function('window.KSMTest && KSMTest.booted()')
         return app
@@ -190,6 +193,14 @@ class KsmApp:
     def has_autosave(self):
         """(test API) Whether this browser holds a local autosave (what the restore prompt offers)."""
         return self.page.evaluate('KSMTest.hasAutosave()')
+
+    def receive(self, record):
+        """(test API) Deliver a server record as if it came over the live socket; True if applied."""
+        return self.page.evaluate('r => KSMTest.receive(r)', record)
+
+    def client_id(self):
+        """(test API) This device's client ID (sent with every save)."""
+        return self.page.evaluate('KSMTest.clientId()')
 
     def diagnostics(self):
         """(test API) Cloud diagnostics state (rebase attempts etc.)."""
