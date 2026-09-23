@@ -1153,13 +1153,13 @@
     "A": [
      {
       "name": "P08",
-      "wins": 1,
-      "pts": 1
+      "wins": 2,
+      "pts": 2
      },
      {
       "name": "P10",
-      "wins": 0,
-      "pts": 0
+      "wins": 2,
+      "pts": 2
      },
      {
       "name": "P06",
@@ -1168,20 +1168,20 @@
      },
      {
       "name": "P01",
-      "wins": 0,
-      "pts": 0
+      "wins": 1,
+      "pts": 2
      }
     ],
     "B": [
      {
       "name": "P09",
-      "wins": 1,
-      "pts": 1
+      "wins": 2,
+      "pts": 3
      },
      {
       "name": "P02",
-      "wins": 0,
-      "pts": 0
+      "wins": 2,
+      "pts": 3
      },
      {
       "name": "P04",
@@ -1203,12 +1203,12 @@
      {
       "name": "P03",
       "wins": 1,
-      "pts": 1
+      "pts": 3
      },
      {
       "name": "P05",
-      "wins": 0,
-      "pts": 0
+      "wins": 1,
+      "pts": 3
      },
      {
       "name": "P07",

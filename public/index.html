@@ -7547,7 +7547,10 @@ function poolStandings(poolLabel,div=state.currentDivision){
     if(group.length>1&&(i+1)<=req){
       const resolved=resolveTiebreakBaseGroup(poolLabel,div,{start:i+1,end:j,players:group});
       const statsByName=new Map(tiebreakStatsForPlayers(poolLabel,div,group).stats.map(x=>[x.name,x]));
-      rebuilt.push(...resolved.ordered.map(x=>{const st=statsByName.get(x.name);return {name:x.name,dojo:x.dojo,wins:x.wins,pts:x.pts,tbWins:st?.wins||0,tbPts:st?.pts||0,seedLocked:resolved.locked.some(l=>l.name===x.name)};}));
+      // resolved.locked holds tiebreak-series stats; report the pool record (from `group`) as wins/pts
+      // and keep the tiebreak record separately in tbWins/tbPts.
+      const poolRecordByName=new Map(group.map(x=>[x.name,x]));
+      rebuilt.push(...resolved.ordered.map(x=>{const st=statsByName.get(x.name),rec=poolRecordByName.get(x.name)||x;return {name:x.name,dojo:x.dojo,wins:rec.wins,pts:rec.pts,tbWins:st?.wins||0,tbPts:st?.pts||0,seedLocked:resolved.locked.some(l=>l.name===x.name)};}));
     }else rebuilt.push(...group);
     i=j;
   }
