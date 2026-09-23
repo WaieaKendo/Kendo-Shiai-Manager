@@ -3,7 +3,7 @@
  * Member positions of the team format in Setup, in bout order.
  * @returns {TeamPosition[]}
  */
-function teamSlots(){let fmt=teamFormat?.value||'5-Person Team';return fmt==='3-Person Team'||fmt==='Kachinuki'?['senpo','chuken','taisho']:['senpo','jiho','chuken','fukusho','taisho']}
+function teamSlots(){let fmt=/* ksm:post-split-begin engine-settings was:teamFormat?.value */tournamentSettings().teamFormat/* ksm:post-split-end */||'5-Person Team';return fmt==='3-Person Team'||fmt==='Kachinuki'?['senpo','chuken','taisho']:['senpo','jiho','chuken','fukusho','taisho']}
 /**
  * @param {string} k
  * @returns {string} 'senpo' -> 'Senpo'
@@ -16,14 +16,14 @@ function slotLabel(k){return ({senpo:'Senpo',jiho:'Jiho',chuken:'Chuken',fukusho
  * @returns {Match[]}
  */
 function buildTeamMatches(div,teams){
-  let m=[],fmt=teamTournamentFormat?.value||'Single Elimination';
+  let m=[],fmt=/* ksm:post-split-begin engine-settings was:teamTournamentFormat?.value */tournamentSettings().teamTournamentFormat/* ksm:post-split-end */||'Single Elimination';
   state.teamElimTeams=state.teamElimTeams||{};state.teamElimTeams[div]=[...teams];
   if(fmt==='Single Elimination'){
     state.teamBracketNodes=state.teamBracketNodes||{};
     state.teamBracketNodes[div]=teamBracketNodesForCount(teams.length);
     syncTeamBracket(div,m,state.teamElimTeams[div]);
   }else{
-    let slots=teamSlots(),matchFmt=teamFormat?.value||'5-Person Team';
+    let slots=teamSlots(),matchFmt=/* ksm:post-split-begin engine-settings was:teamFormat?.value */tournamentSettings().teamFormat/* ksm:post-split-end */||'5-Person Team';
     for(let i=0;i<teams.length;i++)for(let j=i+1;j<teams.length;j++){
       let court=/** @type {Court} */((i+j)%2===0?'A':'B');
       addTeamPairMatches(m,div,teams[i],teams[j],'A',`${i}-${j}`,court,matchFmt,slots);
@@ -57,7 +57,7 @@ function nodePairId(node){return 'node-'+node.id}
  */
 function syncTeamBracket(div,arr,teams){
   state.teamBracketNodes=state.teamBracketNodes||{};
-  let nodes=state.teamBracketNodes[div]||[];let slots=teamSlots(),matchFmt=teamFormat?.value||'5-Person Team';let changed=true,guard=0;
+  let nodes=state.teamBracketNodes[div]||[];let slots=teamSlots(),matchFmt=/* ksm:post-split-begin engine-settings was:teamFormat?.value */tournamentSettings().teamFormat/* ksm:post-split-end */||'5-Person Team';let changed=true,guard=0;
   while(changed&&guard++<50){changed=false;
     for(let node of nodes){
       if(node.winner)continue;

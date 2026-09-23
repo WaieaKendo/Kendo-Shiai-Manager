@@ -27,6 +27,11 @@ function getSetupSnapshot(){
   ids.forEach(id=>{const el=document.getElementById(id); if(el) data[id]=el.value;});
   return data;
 }
+/* ksm:post-split-begin engine-settings */
+// Engine code reads tournament settings only through this accessor (app/engine/settings.ts);
+// the source is the same `setup` snapshot that tournamentPayload() persists.
+function tournamentSettings(setup=getSetupSnapshot()){return KSMEngine.readSettings(setup)}
+/* ksm:post-split-end */
 function applySetupSnapshot(data){
   if(!data) return;
   Object.keys(data).forEach(id=>{const el=document.getElementById(id); if(el) el.value=data[id];});

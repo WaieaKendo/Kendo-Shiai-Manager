@@ -15,7 +15,9 @@
 //   /* ksm:post-split-begin <name> */ ...added code... /* ksm:post-split-end */
 // The check removes those regions (and one newline right after an end marker) before
 // comparing, and KNOWN_POST_SPLIT_EDITS pins how many regions each <name> has, so an
-// unmarked or unlisted change still fails.
+// unmarked or unlisted change still fails. An inline replacement records the old code
+// in the begin marker, `/* ksm:post-split-begin <name> was:<old code> */new/* ksm:post-split-end */`,
+// and the check puts <old code> back in place of the region.
 //
 // Functions moved into app/engine/ (MOVED_TO_ENGINE) keep their declaration in app/js,
 // with a body that is only a marked delegation to KSMEngine; for them the check
@@ -32,6 +34,9 @@ const KNOWN_POST_SPLIT_EDITS = {
   'react-bridge': 3,
   // refactor/engine-bridge (roadmap 2.0+): one delegation per MOVED_TO_ENGINE function.
   'engine-bridge': 1,
+  // refactor/engine-settings (roadmap 2.1): tournamentSettings() accessor + 9 inline
+  // replacements of engine DOM reads (`was:` form, see below).
+  'engine-settings': 10,
   // feat/react-overlay: app/js/33-stream-overlay-links.js (TV menu "copy overlay link").
   'stream-overlay': 1,
 };
@@ -56,12 +61,12 @@ const oldMarkup = old.slice(0, old.indexOf('<style')) + STYLE_TAG + '\n' + old.s
 check(indexHtml() === oldMarkup, 'app/index.html is the old markup, byte for byte');
 check(appStyles() === oldStyleBlocks.map(m => m[1]).join(''), 'app/styles/*.css concatenated = old <style> blocks, byte for byte');
 
-const POST_SPLIT = /\/\* ksm:post-split-begin ([\w-]+) \*\/[\s\S]*?\/\* ksm:post-split-end \*\/\n?/g;
+const POST_SPLIT = /\/\* ksm:post-split-begin ([\w-]+)(?: was:((?:(?!\*\/)[^\n])*?))? \*\/[\s\S]*?\/\* ksm:post-split-end \*\/\n?/g;
 const found = {};
 for (const m of appScript().matchAll(POST_SPLIT)) found[m[1]] = (found[m[1]] || 0) + 1;
 check(JSON.stringify(found) === JSON.stringify(KNOWN_POST_SPLIT_EDITS),
   `post-split edits are the known ones (${Object.entries(found).map(([k, n]) => `${k}: ${n}`).join(', ') || 'none'})`);
-const js = appScript().replace(POST_SPLIT, '');
+const js = appScript().replace(POST_SPLIT, (_, name, was) => was ?? '');
 check(!/ksm:post-split-(begin|end)/.test(js), 'every post-split marker is paired');
 if (js === oldScript) check(true, 'app/js/*.js concatenated = old <script>, byte for byte');
 else {

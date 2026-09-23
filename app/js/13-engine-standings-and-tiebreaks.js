@@ -382,7 +382,7 @@ function maybeCreateTeamTiebreak(m){
     /** @type {Match} */
     let playoff={division:div,pool:m.pool,white:`${s.teamWhite} Representative`,red:`${s.teamRed} Representative`,wdojo:s.teamWhite,rdojo:s.teamRed,teamWhite:s.teamWhite,teamRed:s.teamRed,position:'Team Playoff',teamPair:pair,done:false,wp:[],rp:[],tiebreak:true,type:'teamPlayoff',court:anchor.court||m.court||'A',teamNodeId:anchor.teamNodeId,bracketSlot:anchor.bracketSlot,parentTeamMatch:true};
     /** @type {DynamicMatchType} */
-    let dynamicType=(teamFormat?.value||'5-Person Team')==='3-Person Team'?'TEAM_3_PERSON_REPRESENTATIVE':'TEAM_5_PERSON_REPRESENTATIVE';
+    let dynamicType=(/* ksm:post-split-begin engine-settings was:teamFormat?.value */tournamentSettings().teamFormat/* ksm:post-split-end */||'5-Person Team')==='3-Person Team'?'TEAM_3_PERSON_REPRESENTATIVE':'TEAM_5_PERSON_REPRESENTATIVE';
     appendApprovedDynamicMatches(div,ms[ms.length-1]||m,playoff,dynamicType);
   }
 }

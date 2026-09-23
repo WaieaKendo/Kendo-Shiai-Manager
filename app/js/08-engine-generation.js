@@ -1,11 +1,11 @@
 function generateDivisionState(div){
   if(div==='Team Tournament'){
-    let teams=eligibleTeams(div);if(!teams.length)return false;let fmt=teamTournamentFormat?.value||'Single Elimination';
+    let teams=eligibleTeams(div);if(!teams.length)return false;let fmt=/* ksm:post-split-begin engine-settings was:teamTournamentFormat?.value */tournamentSettings().teamTournamentFormat/* ksm:post-split-end */||'Single Elimination';
     if(fmt==='Round Robin'){state.pools[div]=[{label:'A',size:teams.length,players:teams.map(t=>({name:t.team,dojo:'',team:true}))}];state.teamPools[div]=state.pools[div];}else{state.pools[div]=[];state.teamPools[div]=[];}
     state.allMatches[div]=buildTeamMatches(div,teams);state.currentByDivision[div]=0;state.divisionCourts[div]=state.divisionCourts[div]||state.divisionCourts['Team Tournament']||'Both';return true;
   }
   if(div==='Exhibition Matches'){
-    if((exhibitionEnabled?.value||'Disabled')!=='Enabled'||!state.exhibitions?.length)return false;
+    if((/* ksm:post-split-begin engine-settings was:exhibitionEnabled?.value */tournamentSettings().exhibitionEnabled/* ksm:post-split-end */||'Disabled')!=='Enabled'||!state.exhibitions?.length)return false;
     state.pools[div]=[{label:'Exhibition',size:state.exhibitions.length,players:state.exhibitions.map(e=>({name:`${e.white} vs ${e.red}`,dojo:'',exhibition:true}))}];state.allMatches[div]=state.exhibitions.filter(e=>e.status!=='NoShow'&&e.white&&e.red).map(e=>({division:div,pool:'Exhibition',white:e.white,red:e.red,wdojo:'',rdojo:'',done:false,wp:[],rp:[],type:'exhibition',court:state.divisionCourts[div]||'B'}));state.currentByDivision[div]=0;state.divisionCourts[div]=state.divisionCourts[div]||'B';return !!state.allMatches[div].length;
   }
   let comps=eligibleIndividuals(div);if(!comps.length)return false;
@@ -20,7 +20,7 @@ function generatePools(options={}){
   if(!options.validated){requestTournamentGeneration();return}
   state.pools={};state.teamPools={};state.allMatches={};state.teamBracketNodes={};state.singleElimNodes={};state.singleElimComps={};state.teamElimTeams={};state.brackets={};state.championshipNodes={};state.byeWinners={};state.currentByDivision={};let generated=0;
   state.divisions.forEach(div=>{if(generateDivisionState(div))generated++});
-  if((teamEnabled?.value||'Enabled')==='Enabled'&&generateDivisionState('Team Tournament'))generated++;
+  if((/* ksm:post-split-begin engine-settings was:teamEnabled?.value */tournamentSettings().teamEnabled/* ksm:post-split-end */||'Enabled')==='Enabled'&&generateDivisionState('Team Tournament'))generated++;
   if(generateDivisionState('Exhibition Matches'))generated++;
   if(!generated){alert('No registered or checked-in competitors, teams, or exhibitions found. No-show entries are excluded.');return}
   initCourtStates();let chosen=(poolDiv&&state.allMatches[poolDiv.value])?poolDiv.value:(state.courtState.A.division||Object.keys(state.allMatches)[0]);setActiveDivision(chosen,true);state.generated=true;state.managementRevision=(state.managementRevision||0)+1;if(window.generateBtn)generateBtn.textContent='Regenerate Tournament';renderAll();show('registration');regTab('pools');scheduleAutoSave();
