@@ -13,9 +13,9 @@ Requirements: Node 20+ and Python 3.10+. No Cloudflare account is needed; tests 
 
 | Command | What it runs | Time |
 |---|---|---|
-| `npm test` | Everything below (same as `npm run check`) | ~55 s |
+| `npm test` | Everything below (same as `npm run check`) | ~60 s (8+ cores) |
 | `npm run test:node` | Node tests only, no browser needed | ~1 s |
-| `npm run test:browser` | Python/Playwright browser tests, including end-to-end | ~50 s |
+| `npm run test:browser` | Python/Playwright browser tests, including end-to-end | ~60 s |
 | `npm run test:api` | Backend API contract, in-process | <1 s |
 | `npm run test:e2e` | Both end-to-end tests (two-court sync, full tournament) against local `wrangler dev` | ~30 s |
 | `npm run test:e2e:watch` | The full-tournament e2e in visible, slowed-down browser windows (see Watch mode) | ~4 min |
@@ -23,7 +23,7 @@ Requirements: Node 20+ and Python 3.10+. No Cloudflare account is needed; tests 
 | `npm run test:golden:update` | Approve intended engine/display changes by rewriting the snapshots | ~40 s |
 | `npm run testlab:smoke` / `testlab` / `testlab:exhaustive` | Tournament-engine simulation matrix (writes reports to `testlab-reports/`, git-ignored) | 5 s – minutes |
 
-`node tests/run-all.mjs <text>` runs only test files whose name contains `<text>` (e.g. `tiebreak`, `v3171`), and `-v` prints every test's output.
+`node tests/run-all.mjs <text>` runs only test files whose name contains `<text>` (e.g. `tiebreak`, `v3171`), and `-v` prints every test's output. Browser tests run 6 at a time on 8+ cores (4 otherwise; `KSM_TEST_JOBS=n` overrides), slowest first.
 
 Run `npm test` before every commit or release. A failing test means either a regression or an intended behaviour change; for the latter, update the test in the same commit and explain why.
 
@@ -94,8 +94,8 @@ Results are scripted (the stronger entrant wins), so expected placements follow 
 Tests must not depend on how a screen is implemented: the front end is moving to Vite/TypeScript and then React, screen by screen.
 
 - **Test IDs.** Controls and read-outs that tests use carry a `data-testid` attribute, in kebab-case: `area-thing[-detail]`, with the side spelled out and the point letter kept (`point-white-M`, `hansoku-red`, `court-white-name`), courts as a suffix (`nav-court-a`, `live-court-A`). Singletons (navigation, court screen controls, Setup/Registration controls) appear exactly once; generated rows repeat per row (`reg-row` > `reg-name`, `team-card` > `team-member-senpo`, `setup-division-row`, `pool` > `pool-player`, `result-card` > `placement-row`). A rewritten screen must keep them; `test-ids-test.py` pins the contract. Add an ID when a test needs a control; never select by `onclick` text, CSS class or layout.
-- **`tests/ksm_app.py` (`KsmApp`)** is the single place Python tests talk to the app. Devices: `KsmApp.open_device(browser, base, name, problems, path)` (own browser context, answers the app's prompts, records page errors and unexpected dialogs), `KsmApp.local(page)` (offline, via `load_app`). `reload()` power-cycles a device. Actions, all through test IDs: `create_tournament`, `staff_login/logout`, `nav(item)`, `open_court`, `tv_link`, `setup_divisions`, `setup_team_event`, `register`, `register_team`, `generate`, `pools`, `current_match`/`court_screen`, `score_point`, `hansoku`, `next_match`, `undo`, `redo`, `fusen_gachi`, `division_options`, `switch_division`, `placements`, `live_court`, `tv_screen`, `wait_for`. `expect_dialog(prefix)` answers a documented dialog and records it (for expected-failure checks).
-- **`tests/lib/ksm-test-api.js` (`window.KSMTest`)** is the only code that touches `index.html` globals. `KsmApp` injects it into every page and uses it, marked "(test API)", only where the app has no UI: sync status (`wait_idle`, `wait_revision`, `revision`, `outbox`, `has_autosave`), bulk setup (`configure`), engine snapshots (`structure`, `final_state`, `standings`), `save_now`, `show_screen`, `render_tv`, and the golden test's `prepareCourt`/`play`. When a screen or the engine moves, update these two files, not the tests.
+- **`tests/ksm_app.py` (`KsmApp`)** is the single place Python tests talk to the app. Devices: `KsmApp.open_device(browser, base, name, problems, path)` (own browser context, answers the app's prompts, records page errors and unexpected dialogs), `KsmApp.local(page)` (offline, via `load_app`). `reload()` power-cycles a device; `open_device(..., clock=True, before_load=fn)` installs Playwright's clock / routes the page before it opens; `put_record()` saves a payload as another staff device; `tv_upcoming()` reads the TV Upcoming cards. Actions, all through test IDs: `create_tournament`, `staff_login/logout`, `nav(item)`, `open_court`, `tv_link`, `setup_divisions`, `setup_team_event`, `register`, `register_team`, `generate`, `pools`, `current_match`/`court_screen`, `score_point`, `hansoku`, `next_match`, `undo`, `redo`, `fusen_gachi`, `division_options`, `switch_division`, `placements`, `live_court`, `tv_screen`, `wait_for`. `expect_dialog(prefix)` answers a documented dialog and records it (for expected-failure checks).
+- **`tests/lib/ksm-test-api.js` (`window.KSMTest`)** is the only code that touches `index.html` globals. `KsmApp` injects it into every page and uses it, marked "(test API)", only where the app has no UI: sync status (`wait_idle`, `wait_revision`, `revision`, `outbox`, `has_autosave`), injected live records (`receive`, `client_id`), bulk setup (`configure`), engine snapshots (`structure`, `final_state`, `standings`), `save_now`, `show_screen`, `render_tv`, and the golden test's `prepareCourt`/`play`. When a screen or the engine moves, update these two files, not the tests.
 
 ## Watch mode
 
@@ -144,6 +144,8 @@ Greps of `src-worker.js`, `wrangler.jsonc` and `service-worker.js` are not affec
 | `bracket-lifecycle-tiebreak-simulation-test.py` | Single elimination 4–32 (one court and split) and pool brackets play to the end through tiebreaks, without errors | behaviour (engine globals) | port to engine module |
 | `cloud-foundation-test.mjs` | Cloud save entry points exist; Worker is a Durable Object that serves assets and has no engine code | source grep | client: retire — covered by e2e-two-court / e2e-full (saves reach the server); worker/wrangler: keep |
 | `cloud-release-test.mjs` | Worker presence, two roles, hashed password, delete; client offline outbox, conflict recovery file, online/offline listeners, diagnostics, device identity | source grep | worker: retire — covered by worker-api-test; client: convert (list below) |
+| `court-actions-test.py` | Undo/Redo, Hansoku, Fusen-gachi, Next Match as one action, per-court history, limit 100, patch storage; pins F2 | e2e (helper/test IDs) | keep |
+| `court-screen-details-test.py` | "Winner of …" placeholders, Pools tab division, Edit Pool, print slot letters, mid-tournament pool/team court context | behaviour (helper/test IDs, offline) | keep |
 | `court-side-setting-test.py` | Per-court Red/White side mirrors that court's screen and print lines only | layout | helper/test IDs |
 | `director-mobile-reliability-test.py` | Overview totals for direct elimination and kachinuki (variable total); mobile Setup date field width | behaviour (engine globals) + layout | totals: port to engine module; layout: helper/test IDs |
 | `director-overview-test.py` | Overview progress count and court queue order on a phone, no sideways scroll | behaviour + layout | helper/test IDs |
@@ -159,6 +161,7 @@ Greps of `src-worker.js`, `wrangler.jsonc` and `service-worker.js` are not affec
 | `header-navigation-polish-test.py` | Header styling: icon baseline, brand wrapping, balanced court title | source grep (CSS) | convert (layout) |
 | `inline-handler-injection-test.py` | Hostile names cannot run code through inline handlers | behaviour + source regex | behaviour: helper/test IDs; the `on…="'${esc(` regex retires with inline handlers (React) |
 | `interface-polish-bundle-test.mjs` | Validation modal and results title styling, gold Next Match, role-based nav visibility, screens a spectator may open | source grep | convert |
+| `layout-screens-test.py` | Phone portrait/landscape header, court, Live Scores, Results; validation modal; medal colours; gold Next Match | layout (helper/test IDs) | keep |
 | `layout-setup-standardization-test.py` | All main views share left edge/width at 390 and 1440 px; Setup fits a phone | layout | helper/test IDs |
 | `match-object-origin-invariant-test.py` | All championship Match Objects exist at generation; only approved dynamic types (tiebreaks, representatives) can be appended | behaviour (engine globals) + source slice | port to engine module |
 | `mobile-court-density-context-test.py` | Phone court header centring, no reserved heights; live team/kachinuki context shows only the sheet | source grep | convert |
@@ -171,12 +174,15 @@ Greps of `src-worker.js`, `wrangler.jsonc` and `service-worker.js` are not affec
 | `reload-restore-test.py` | Link devices (TV, spectator, scorekeeper) reload without the restore prompt (F1); a scorekeeper's queued or not-yet-saved work survives the reload and reaches the cloud after staff login, next to another court's changes; a plain start still offers the autosave | e2e (helper/test IDs) | keep |
 | `responsive-header-test.py` | Header tournament name clamps/wraps on phones | source grep (CSS) | convert (layout) |
 | `role-aware-sync-test.mjs` | Worker hashed password, write auth, credentials stripped; client role links, spectator read-only, role nav | source grep | worker: retire — covered by worker-api-test; client: convert |
+| `roles-access-test.py` | Home library, spectator/TV navigation and screens, no cloud writes from read-only devices, representative, Tournament Access, logout | e2e (helper/test IDs) | keep |
 | `seed-locked-tiebreak-test.py` | A second tiebreak series cannot displace a seed locked by the first | behaviour (engine globals) | port to engine module |
 | `shared-views-tv-display-test.mjs` | Overview naming, spectator screens, spectator court view hides controls, dual-court Live Scores, per-court read-only TV | source grep | dual Live Scores, per-court TV link, TV read-only link: retire — covered by e2e-full; rest convert |
 | `specific-placeholder-medalist-test.py` | Queue and context show specific placeholders ("Winner of …") instead of TBD; medalist styling | source grep | convert |
 | `spectator-experience-test.py` | Live Scores/court context details: phone name split, team lineup with current bout, Next Match, pools in progress first, ✓ on completed pools, alphabetical pools | source grep | final-state text: retire — covered by golden screens; mid-tournament ordering and CSS: convert |
 | `split-court-stabilization-test.py` | Split-court tiebreak goes to its pool's court, needs a winner, is not duplicated; split elimination queue filtered per court | behaviour (engine globals + DOM) | engine: port to engine module; queue: helper/test IDs |
 | `split-court-template-consolidation-test.py` | Split elimination: every template node instantiated, one match per node, readiness gate, court filter, medalist panels | source grep | retire — covered by golden-engine (`se-*-split`: structure, per-court order, court/Live Scores end screens), except "single-column split context" (convert, layout) |
+| `sync-remote-updates-test.py` | Stale/duplicate/own-echo updates, held updates while editing, load-time repair, legacy reset; pins F4 | e2e (helper/test API for injected records) | keep |
+| `sync-saving-test.py` | Save debounce, status wording, offline queue, Save Now, 10-minute autosave, diagnostics + retry, recovery file, court after reload; pins F3 | e2e (helper/test IDs, Playwright clock) | keep |
 | `template-consistency-seed-resolution-test.mjs` | Frozen championship mapping after a no-show; tie for 1st resolves seeds 1 and 2; no-show removal keeps survivors' order | vm-extract | port to engine module |
 | `test-ids-test.py` | The `data-testid` contract | behaviour (helper) | keep (the contract rewritten screens must meet) |
 | `tournament-day-experience-test.mjs` | Save status, Save Now, save on completed match, manual Next Match, 10-minute autosave, recovery files, access links, diagnostics | source grep | save on completion and manual Next Match: retire — covered by e2e; rest convert |
@@ -185,6 +191,7 @@ Greps of `src-worker.js`, `wrangler.jsonc` and `service-worker.js` are not affec
 | `tournament-management-sweep-test.py` | Split courts for elimination 4–32 and pools 6–32 | behaviour (engine globals) | port to engine module |
 | `tv-canvas-isolation-test.mjs` | TV is a fixed 1920×1080 canvas with fixed zones | source grep (CSS) | convert (TV layout) |
 | `tv-display-refinement-test.mjs` | TV court heading, division, point letters, name auto-fit, team sequence, one court per link | source grep (mostly the superseded first TV renderer) | one court per link: retire — covered by e2e-full; rest convert against the tv3 renderer |
+| `tv-display-test.py` | tv3 TV: individual/team/kachinuki, upcoming, self-healing refreshes, fixed 1920×1080 canvas zones | e2e (helper/test IDs, routed socket) | keep |
 | `tv-fullscreen-upcoming-test.mjs` | TV court locked from the URL; fixed canvas; two Upcoming Matches; no White/Red labels | source grep | court lock: retire — covered by e2e-full; rest convert |
 | `tv-live-refinement-test.mjs` | TV menu opens a per-court link; TV team names, wins/points, next match; Live Scores team sheet | source grep | TV link and Live Scores team sheet: retire — covered by e2e-full; rest convert |
 | `tv-stabilization-navigation-test.mjs` | TV canvas, court lock, TV menu hidden for spectators, Search removed, Overview label | source grep | court lock: retire — covered by e2e-full; rest convert |
@@ -225,52 +232,52 @@ Greps of `src-worker.js`, `wrangler.jsonc` and `service-worker.js` are not affec
 
 Support files (not run as tests): `ksm_browser.py`, `ksm_server.py`, `ksm_app.py`, `lib/ksm-test-api.js` (test infrastructure, keep); `lib/ksm-source.mjs` (retires with the last vm-extract test); `run-all.mjs`; `ksm-testlab.py` (simulation matrix, engine globals: port to engine module); `verify-package.mjs` (release package contents: keep); `golden/engine/*.json`.
 
-### Source-grep checks with no behaviour, golden or e2e coverage
+### Source-grep checks that had no behaviour, golden or e2e coverage
 
-These `index.html` checks are the only protection for their behaviour. Each needs a behaviour (or layout) test through `KsmApp`/test IDs **before `index.html` is split**; then the grep can go.
+These `index.html` checks were the only protection for their behaviour. Each now names the behaviour (or layout) test that covers it, or is marked **dead code, retire** when the grep only guards code that is overridden later in the file and never runs. The greps themselves stay until `index.html` is split (M.5); then they can be deleted. Findings F2–F4 (docs/ROADMAP.md) were found while converting them and are pinned by expected-failure checks.
 
 Cloud sync and saving
-1. Offline outbox: scoring while offline queues the snapshot and flushes it when back online (`cloud-release`: offline outbox, online/offline listeners). e2e-full only takes a read-only spectator offline.
-2. Conflict recovery file kept and downloadable (`cloud-release`: `downloadCloudRecovery`; `realtime-sync`: `preserveRecovery`).
-3. Device identity header and own-echo suppression (`cloud-release`: `x-ksm-client-id`; `realtime-sync`: remote echo suppressed; `v3172`: self-originated echo ignored).
-4. Stale/duplicate revisions ignored (`realtime-sync`).
-5. Save debounce: 2 s local, 1.2 s cloud (`v3172`, `v3163`).
-6. Remote updates deferred while staff types in a field and applied on focusout (`v3172`; `v3173`: recent input deferral).
-7. 10-minute safety autosave (`tournament-day-experience`).
-8. Save-status wording and refresh, save toasts ("✓ Saved at", "min ago", "🟢 Online") (`tournament-day-experience`, `tournament-day-polish`).
-9. Save Now menu item (`v316`, `v3161`, `tournament-day-experience`).
-10. Recovery file download/load (`v316`, `v3161`, `tournament-day-experience`).
-11. Cloud Diagnostics and Developer Tools content: save stage, HTTP status, error body, retry queued save, pinned court, snapshot and action-history analysis, TV realtime diagnostics (`v3171`, `v31711`, `v3175`, `v3176`, `v3174`, `v31713`, `cloud-release`).
-12. Scorekeeper's pinned court restored after a reload (`v31711`).
-13. Load-time self-healing is wired in: `sanitizeLoadedTournamentState`, `repairLoadedEliminationAdvancement`, `normalizeAllIndividualPoolTiebreakOrder` run on load and rebase (`v31715`, `v31716`, `v31720`; the functions themselves are vm-tested).
-14. One-time reset of legacy local data (`v3173`).
+1. Offline outbox: scoring while offline queues the snapshot and flushes it when back online. **Covered by** `sync-saving-test.py` (staff scores offline, "1 change waiting", reaches the server when back online) and `reload-restore-test.py` (queued work survives a reload and is flushed after login).
+2. Conflict recovery file kept and downloadable. **Covered by** `sync-saving-test.py` (Download Recovery File carries the queued outbox and the latest local snapshot) and `reload-restore-test.py` (queued staff work is kept, not dropped, when another court saves). The give-up-after-repeated-409 path (`preserveRecovery` in `performCloudSave`) cannot be reached through the UI while the rebase succeeds; the rebase itself is vm-tested (`v31712`).
+3. Device identity and own-echo suppression. **Covered by** `sync-remote-updates-test.py` (a staff device ignores a record carrying its own client ID, a spectator sharing that ID applies it) and the e2e tests (saves carry `x-ksm-client-id`; devices converge).
+4. Stale/duplicate revisions ignored. **Covered by** `sync-remote-updates-test.py`.
+5. Save debounce (2 s local + 1.2 s cloud). **Covered by** `sync-saving-test.py` (a point reaches the server 2.5–6 s after the tap).
+6. Remote updates deferred while staff edit a field, applied on focusout. **Covered by** `sync-remote-updates-test.py` ("Live update waiting for editing to finish", applied after leaving the field).
+7. 10-minute safety autosave. **Covered by** `sync-saving-test.py` (Playwright clock).
+8. Save-status wording and refresh, save toasts. **Covered by** `sync-saving-test.py` ("✓ Saved just now", "✓ Saved 1 min ago", "Saved locally · 1 change waiting", "🟢 Online"/"🟠 Offline", Save Now toasts).
+9. Save Now menu item. **Covered by** `sync-saving-test.py` (online and offline).
+10. Recovery file download/load. **Covered by** `sync-saving-test.py` (download, then load on a fresh device into a new cloud tournament).
+11. Cloud Diagnostics / Developer Tools content. **Covered by** `sync-saving-test.py` (stage, HTTP status, server response, pending queue, pinned court, snapshot and action-history analysis, Retry queued save). TV realtime diagnostics (`v3174`, `v31713`): **dead code, retire** — the page has no `#tvRealtimeDiagnostics` element, so `renderTvRealtimeDiagnostics()` never draws anything.
+12. Scorekeeper's pinned court restored after a reload. **Covered by** `sync-saving-test.py` for a court link (`&court=B`); a court chosen from the Courts menu on a plain link is not restored (finding F3, expected failure).
+13. Load-time self-healing wired in. **Covered by** `sync-remote-updates-test.py` (a saved, un-advanced elimination winner is repaired on a live update and on a fresh load; both paths go through `applyTournamentPayload`, which also runs the sanitizer and the tiebreak-order repair, whose logic is vm-tested).
+14. One-time reset of legacy local data. **Covered by** `sync-remote-updates-test.py` (runs once, not again).
 
 Roles, links and navigation
-15. Spectator and TV sessions never write to the cloud (`role-aware-sync`).
-16. Role-based navigation: spectators see no Setup/Registration/Export/Save and no TV menu (`role-aware-sync`, `interface-polish-bundle`, `tv-stabilization-navigation`).
-17. Spectators may open Court, Overview, Results and Live Scores and are sent to Live Scores from anything else; their court screen hides the controls but shows the court context (`interface-polish-bundle`, `shared-views-tv-display`).
-18. Director/scorekeeper role links carrying a key (`role-aware-sync`) — legacy; decide whether they stay.
-19. Team representative only selectable by staff on the match's own court, read-only otherwise (`v31515`, `v3163`).
-20. Home library: open an existing tournament as spectator, card naming, discovery of locally known tournaments, return paths, Staff Logout (`v3161`, `v316`, `v3162-cloud-first`).
-21. Tournament Access modal: spectator link and QR, no keys shown, copy closes it, QR Back (`tournament-day-polish`, `v316`, `tournament-day-experience`).
+15. Spectator and TV sessions never write to the cloud. **Covered by** `roles-access-test.py` (request log: no PUT/POST/DELETE after clicks, offline/online and live updates).
+16. Role-based navigation. **Covered by** `roles-access-test.py` (spectator: no Setup/Registration/Export/Save/TV; TV: no navigation; staff: all).
+17. Spectator screens and court view. **Covered by** `roles-access-test.py` (Court, Overview, Results, Live Scores allowed, others go to Live Scores; court screen without controls, with context).
+18. Director/scorekeeper role links carrying a key. **Dead code, retire**: the running `initializeCloudRoleFromUrl` ignores `role`/`key` (every link opens read-only; staff log in), and the scorekeeper/director link helpers are only offered by the overridden first `openTournamentAccess`.
+19. Team representative. **Covered by** `roles-access-test.py` (staff get a selector, spectators a read-only name). The "only on the match's own court" branch applies to the removed `scorekeeper` role: **dead code, retire**.
+20. Home library. **Covered by** `roles-access-test.py` (cloud tournament listed by name, opens as spectator on Live Scores, Tournament Library return path, Staff Logout).
+21. Tournament Access modal. **Covered by** `roles-access-test.py` (spectator link without key, QR carries it, Copy Link copies it). "Copy closes the modal" and "QR Back" belong to the overridden first `openTournamentAccess`: **dead code, retire**.
 
 Court screen
-22. Undo/Redo: per-court persistent history (limit 100) stored as patches, legacy entries dropped, Next Match undone as one action, point/hansoku/fusen-gachi undoable, button labels stay "Undo"/"Redo" (`v3159`, `v31510`, `v3177`, `v31515`). No behaviour test presses Undo, Redo, Hansoku or Fusen-gachi today.
-23. Specific placeholders ("Winner of …") in the queue, context and TV instead of TBD (`specific-placeholder-medalist`, `v3159`).
-24. Mid-tournament court context: pools in progress first, alphabetical, ✓ on completed pools, one column; live team/kachinuki context shows only the sheet, with Wins/Points headers (`spectator-experience`, `v31710`, `mobile-court-density-context`, `final-medal-team-context-polish`).
-25. Pools tab division selection independent of the court's division (`v3162-pool-division-selection`, `v3162-cloud-first`).
-26. Pool slot letters in print sheets; Edit Pool re-slots players and keeps the championship (`v31714`, `v31718` UI flow).
+22. Undo/Redo and history. **Covered by** `court-actions-test.py` (labels, enabled state, points/hansoku/fusen-gachi/Next Match undo and redo, per-court stacks, limit 100, patch storage, legacy entries dropped; finding F2).
+23. Specific placeholders ("Winner of …"). **Covered by** `court-screen-details-test.py` (queue, context, no TBD) and `tv-display-test.py` (TV upcoming).
+24. Mid-tournament court context. **Covered by** `court-screen-details-test.py` (pools in progress first and alphabetical, preview, completed pools ✓ below, one column; live team context only the sheet with Wins/Points; team bracket Wins/Points headers, one column).
+25. Pools tab division independent of the court's. **Covered by** `court-screen-details-test.py`.
+26. Pool slot letters in print; Edit Pool. **Covered by** `court-screen-details-test.py` (print sheets A–D; drag between pools, re-lettered, championship kept).
 
 TV and Live Scores
-27. TV Upcoming Matches: two cards, team names for team matches, later team nodes (`tv-fullscreen-upcoming`, `tv-live-refinement`, `v31510`, `v31514`).
-28. TV current match: point letters, team wins/points, kachinuki current bout above three-fighter lineups with eliminated/active/waiting (`tv-display-refinement`, `tv-live-refinement`, `v31511`, `v31514`).
-29. TV self-healing: 15 s verification, revision-gap recovery, refresh on becoming visible (`v3178`).
+27. TV Upcoming Matches. **Covered by** `tv-display-test.py` (two cards, team names, later team rounds with their sources).
+28. TV current match. **Covered by** `tv-display-test.py` (point letters, team Wins/Points, kachinuki current bout above lineups with active/waiting/eliminated).
+29. TV self-healing. **Covered by** `tv-display-test.py` (revision gap triggers a full refresh, visibility and 15 s refresh with the socket held).
 
-Layout and styling (need layout/screenshot tests, not greps)
-30. TV fixed 1920×1080 canvas, zones and font sizes, no White/Red labels, no navigation chrome, results styling (`tv-canvas-isolation`, `tv-fullscreen-upcoming`, `tv-stabilization-navigation`, `v3159`, `v31510`, `v31514`, `v31516`, `v3179`, `shared-views-tv-display`).
-31. Phone header and navigation (`final-mobile-navigation-polish`, `responsive-header`, `header-navigation-polish`, `v3163` Setup alignment).
-32. Phone/landscape court screen, Live Scores and Results; portrait/wide Live Scores grid (`mobile-court-density-context`, `mobile-landscape-final-refinement`, `mobile-landscape-results-live`, `spectator-experience`, `shared-views-tv-display`).
-33. Medal/placement and division-complete styling (`final-tournament-ui-polish`, `final-medal-team-context-polish`, `specific-placeholder-medalist`).
-34. Validation modal and Results title styling, gold Next Match (`interface-polish-bundle`).
+Layout and styling
+30. TV canvas. **Covered by** `tv-display-test.py` (1920×1080 canvas at 0,0; 210/610/260 zones inside it; large names; no chrome; no White/Red labels); final results on the TV by `e2e-full-tournament-test.py`. The first renderer's CSS and markup (`tv-canvas`, `fitTvCanvas`, `tv-white-points` offsets, `tvTeamHtml`, `tvKachinukiHtml`, `tvIndividualHtml`): **dead code, retire**.
+31. Phone header and navigation. **Covered by** `layout-screens-test.py` (portrait and landscape: navigation strip fits, tiles in one row, long tournament name within two lines, no sideways scroll).
+32. Phone/landscape court, Live Scores, Results. **Covered by** `layout-screens-test.py` (landscape court: ten scoring buttons in one band, compact actions; Live Scores stacked in portrait, side by side on desktop; Results two columns in landscape) and the existing `mobile-court-*` layout tests.
+33. Medal/placement and division-complete styling. **Covered by** `layout-screens-test.py` (gold/silver/bronze place colours, no row boxes or label badges).
+34. Validation modal, Results titles, gold Next Match. **Covered by** `layout-screens-test.py` (actions inset at the right of the card, one-line titles, gold Next Match in landscape and desktop).
 
-Several TV greps (`tv-display-refinement`, `v31511`, parts of `tv-live-refinement` and `v31510`, and `shared-views-tv-display`'s "court specific TV links") check the first TV renderer and the first `openTournamentAccess`, which are overridden later in the file and no longer run. Convert what they meant into tests of the tv3 renderer, then delete the dead code and those checks together.
+The TV greps that check the first TV renderer and the first `openTournamentAccess` (`tv-display-refinement`, `v31511`, parts of `tv-live-refinement` and `v31510`, `shared-views-tv-display`'s "court specific TV links") guard code that no longer runs; what they meant is now tested against the tv3 renderer. Delete that dead code and those checks together.

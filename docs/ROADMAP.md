@@ -21,6 +21,7 @@
 | `feat/test-hooks` | Test IDs + test helper | merged into `develop` |
 | `test/full-tournament-e2e` | Full tournament e2e, watch mode, coverage map | merged into `develop` |
 | `fix/tv-reload-restore-prompt` | F1: link devices reload without the restore prompt; unsynced staff work queued and flushed after login | open — ready for review |
+| `test/convert-source-checks` | M.4: behaviour/layout tests for the 34 grep-only checks (coverage map updated); found F2–F4. Branched from `fix/tv-reload-restore-prompt` | open — ready for review |
 
 Nothing has been pushed to GitHub yet; `main` is unchanged from the original repository.
 
@@ -44,7 +45,7 @@ The front end moves to Vite + TypeScript and then React, screen by screen. Tests
 | M.1 | `data-testid` hooks on key controls; `tests/ksm_app.py` + `tests/lib/ksm-test-api.js` as the only way tests reach the app; golden and two-court e2e moved onto them | `feat/test-hooks` | ✅ | Attributes only; golden snapshots unchanged; `test-ids-test.py` pins the contract |
 | M.2 | Full-tournament e2e: director, two courts, spectator, TV; watch mode (`npm run test:e2e:watch`) | `test/full-tournament-e2e` | ✅ | Found F1 (below) |
 | M.3 | Test coverage map: every test's purpose, mechanism and migration fate | `test/full-tournament-e2e` | ✅ | docs/TESTING.md |
-| M.4 | Convert the source-grep checks that nothing else covers into behaviour/layout tests | `test/convert-source-greps` | ⏳ | List in docs/TESTING.md; must land before M.5. Start with undo/redo, hansoku, fusen-gachi, offline outbox, roles |
+| M.4 | Convert the source-grep checks that nothing else covers into behaviour/layout tests | `test/convert-source-checks` | ✅ | All 34 covered or marked dead code in docs/TESTING.md; the greps stay until M.5. Found F2–F4 |
 | M.5 | Vite + TypeScript build; split `index.html` into modules with no behaviour change | `refactor/vite-typescript` | ⏳ | Golden files byte-identical; e2e and test-ids tests unchanged; retire `function-override-baseline` |
 | M.6 | React pilot: the court (scorekeeper) screen | `feat/react-court-screen` | ⏳ | Keeps every court test ID; e2e-full and test-ids-test must pass unchanged |
 
