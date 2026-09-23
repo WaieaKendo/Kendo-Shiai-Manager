@@ -33,7 +33,7 @@ const KNOWN_POST_SPLIT_EDITS = {
   // performCourtAction() and renderAll(), so React islands re-render with `state`.
   'react-bridge': 3,
   // refactor/engine-bridge (roadmap 2.0+): one delegation per MOVED_TO_ENGINE function.
-  'engine-bridge': 40,
+  'engine-bridge': 49,
   // refactor/engine-settings (roadmap 2.1): tournamentSettings() accessor + 9 inline
   // replacements of engine DOM reads (`was:` form, see below).
   'engine-settings': 10,
@@ -52,6 +52,9 @@ const MOVED_TO_ENGINE = [
   'championshipTemplateForTotal', 'championshipLabels', 'firstRoundName', 'nextRoundFromName', 'roundMatchCountForDivision',
   'championshipCourtFor', 'championshipMatchObjectForNode', 'buildChampionshipTemplateMatches', 'poolFinished', 'poolSeedResolution',
   'seedNameForLabel', 'champWinnerObj', 'championshipNodeSource', 'syncChampionshipTemplate', 'sourceLabelForRound', 'resultPlacements',
+  // step 2.5: individual single elimination placement, nodes and advancement (app/engine/single-elim.ts)
+  'singleElimBracketSize', 'protectedSeedQuadrant', 'singleElimSlotInfo', 'chooseBestSeedSlot', 'placeIndividualsForSingleElim',
+  'buildIndividualSingleElimMatches', 'indivSide', 'syncIndividualSingleElim', 'sideLabelGeneric',
 ];
 const old = execFileSync('git', ['show', `${commit}:public/index.html`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64e6 });
 let failed = 0;
@@ -61,7 +64,9 @@ const scriptStart = old.indexOf('\n<script>\n') + 1, scriptEnd = old.indexOf('</
 let oldScript = old.slice(scriptStart + '<script>\n'.length, scriptEnd);
 for (const name of MOVED_TO_ENGINE) {
   const fn = extractFunction(oldScript, name);
-  oldScript = oldScript.replace(fn, () => fn.slice(0, fn.indexOf('{') + 1) + '}');
+  // The LAST declaration (the one that runs); an earlier redeclaration may be identical text.
+  const at = oldScript.lastIndexOf(fn);
+  oldScript = oldScript.slice(0, at) + fn.slice(0, fn.indexOf('{') + 1) + '}' + oldScript.slice(at + fn.length);
 }
 const headStyles = old.slice(old.indexOf('<style'), old.indexOf('</head>'));
 const oldStyleBlocks = [...headStyles.matchAll(/<style[^>]*>\n([\s\S]*?)<\/style>/g)];

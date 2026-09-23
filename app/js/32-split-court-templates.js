@@ -28,47 +28,16 @@ function canonicalSingleElimMatch(div,node,arr){
   return kept;
 }
 function syncIndividualSingleElim(div,arr,comps){
-  state.singleElimNodes=state.singleElimNodes||{};
+  /* ksm:post-split-begin engine-bridge */state.singleElimNodes=state.singleElimNodes||{};
   const nodes=state.singleElimNodes[div]||[];
-  const courtMode=state.divisionCourts[div]||'A';
-  let changed=true,guard=0;
-  while(changed&&guard++<50){
-    changed=false;
-    for(const node of nodes){
-      const match=arr.find(m=>m.singleElim&&m.elimNodeId===node.id);
-      if(!match){
-        console.error('KSM template invariant: missing Match Object for',div,node.id);
-        continue;
-      }
-      if(match.done){
-        const winner=winnerOf(match);
-        if(winner&&winner!=='Hikiwake'){
-          const next=winner===match.red?{name:match.red,dojo:match.rdojo}:{name:match.white,dojo:match.wdojo};
-          if(!node.winner||node.winner.name!==next.name){node.winner=next;changed=true;}
-        }
-        continue;
-      }
-      if(node.winner){match.ready=false;continue;}
-      const red=indivSide(node.left,comps,div),white=indivSide(node.right,comps,div);
-      if(red&&!white&&!node.right?.ref){node.winner=red;match.ready=false;changed=true;continue;}
-      if(white&&!red&&!node.left?.ref){node.winner=white;match.ready=false;changed=true;continue;}
-      match.position=node.round;
-      match.court=courtMode==='split'?(node.round==='Final'?'A':node.court):courtMode;
-      match.bracketSlot=node.slot||0;
-      if(red&&white){
-        match.red=red.name;match.rdojo=red.dojo||'';
-        match.white=white.name;match.wdojo=white.dojo||'';
-        match.ready=true;
-      }else{
-        match.red=red?.name||'';match.rdojo=red?.dojo||'';
-        match.white=white?.name||'';match.wdojo=white?.dojo||'';
-        match.ready=false;
-      }
-    }
-  }
+  const plan=KSMEngine.syncIndividualSingleElim(nodes,arr,comps,/** @type {Court|'split'} */(state.divisionCourts[div]||'A'));
+  plan.missing.forEach(id=>console.error('KSM template invariant: missing Match Object for',div,id));
+  plan.winners.forEach(w=>{nodes[w.index].winner=w.winner;});
+  plan.updates.forEach(u=>Object.assign(arr[u.index],u.set));
   sortIndividualSingleElimMatches(div,arr);
   state.allMatches[div]=arr;
   return enforceUniqueIndividualMatches(div);
+  /* ksm:post-split-end */
 }
 function canonicalSingleElimQueue(div,court,current){
   const nodes=state.singleElimNodes?.[div]||[];

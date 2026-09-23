@@ -26,3 +26,11 @@ export type {
   ChampSource, ChampNode, ChampMatchLike, Competitor, ChampionshipMatch, SeedResolution as ChampSeedResolution,
   ChampionshipUpdate, Placement,
 } from './championship.ts';
+export {
+  singleElimBracketSize, protectedSeedQuadrant, singleElimSlotInfo, chooseBestSeedSlot, placeIndividualsForSingleElim,
+  singleElimCourtFor, buildIndividualSingleElimMatches, indivSide, syncIndividualSingleElim, sideLabelGeneric,
+} from './single-elim.ts';
+export type {
+  SingleElimSource, SingleElimTemplateNode, SingleElimNode, SingleElimWinner, SingleElimEntrant, SlotInfo,
+  SingleElimMatch, SingleElimMatchLike, SingleElimUpdate,
+} from './single-elim.ts';
