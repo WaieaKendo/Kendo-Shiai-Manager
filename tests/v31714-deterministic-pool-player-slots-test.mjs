@@ -6,6 +6,8 @@ const html=appSource;
 const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));
 const sw=appServiceWorker;
 const worker=fs.readFileSync(new URL('../src-worker.js',import.meta.url),'utf8');
+// Pool building/slots/match generation moved to app/engine/pools.ts (roadmap 2.2).
+const enginePools=fs.readFileSync(new URL('../app/engine/pools.ts',import.meta.url),'utf8');
 
 function extractConstStatement(source,name){
   const start=source.indexOf(`const ${name}=`);
@@ -17,9 +19,9 @@ function extractConstStatement(source,name){
 
 const staticChecks=[
   [html.includes('function poolPlayerSlotLetter(index)'),'canonical pool-slot helper'],
-  [html.includes('poolSlot:poolPlayerSlotLetter(index),poolSlotIndex:index'),'pool entries store explicit slot metadata'],
-  [html.includes('whitePoolSlot:poolPlayerSlot(players[whiteIndex],whiteIndex)'),'white Match Object slot metadata'],
-  [html.includes('redPoolSlot:poolPlayerSlot(players[redIndex],redIndex)'),'red Match Object slot metadata'],
+  [enginePools.includes('poolSlot: poolPlayerSlotLetter(index), poolSlotIndex: index'),'pool entries store explicit slot metadata'],
+  [enginePools.includes('whitePoolSlot: poolPlayerSlot(w, whiteIndex)'),'white Match Object slot metadata'],
+  [enginePools.includes('redPoolSlot: poolPlayerSlot(r, redIndex)'),'red Match Object slot metadata'],
   [/const pools=assignPoolPlayerSlots\(state\.pools\[div\]\|\|\[\]\);\s*state\.pools\[div\]=pools;/.test(html),'edited pools are re-slotted before match rebuild'],
   [html.includes('Top-to-bottom order is always A, B, C, D.'),'edit UI explains slot order'],
   [html.includes('pool-slot-badge'),'generated pool UI shows slot badge'],

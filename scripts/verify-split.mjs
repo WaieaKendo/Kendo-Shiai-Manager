@@ -33,7 +33,7 @@ const KNOWN_POST_SPLIT_EDITS = {
   // performCourtAction() and renderAll(), so React islands re-render with `state`.
   'react-bridge': 3,
   // refactor/engine-bridge (roadmap 2.0+): one delegation per MOVED_TO_ENGINE function.
-  'engine-bridge': 1,
+  'engine-bridge': 9,
   // refactor/engine-settings (roadmap 2.1): tournamentSettings() accessor + 9 inline
   // replacements of engine DOM reads (`was:` form, see below).
   'engine-settings': 10,
@@ -41,7 +41,10 @@ const KNOWN_POST_SPLIT_EDITS = {
   'stream-overlay': 1,
 };
 // Old functions whose body now lives in app/engine/*.ts (parameter lists without braces).
-const MOVED_TO_ENGINE = ['poolSizes'];
+const MOVED_TO_ENGINE = [
+  'poolSizes', 'clubGroup', 'shuffleDeterministic', 'poolPlayerSlotLetter', 'assignPoolPlayerSlots',
+  'poolPlayerSlot', 'buildPools', 'poolMatchPairs', 'buildPoolMatches',
+];
 const old = execFileSync('git', ['show', `${commit}:public/index.html`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64e6 });
 let failed = 0;
 const check = (ok, name) => { console.log(`${ok ? 'PASS' : 'FAIL'} ${name}`); if (!ok) failed++; };

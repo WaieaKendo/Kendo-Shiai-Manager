@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { extractFunction, html as appSource, sw as appServiceWorker } from './lib/ksm-source.mjs';
+import { extractFunction, engine, html as appSource, sw as appServiceWorker } from './lib/ksm-source.mjs';
 
 const html=appSource;
 const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));
@@ -28,7 +28,7 @@ context.setActiveDivision=()=>{};
 context.findNextForCourt=(court,div)=>({division:div,index:0});
 context.championshipNodeSource=()=>null;
 vm.createContext(context);
-vm.runInContext(`
+vm.runInContext(`${engine}
 const POOL_MATCH_TEMPLATES=Object.freeze({
   2:Object.freeze([[0,1]]),
   3:Object.freeze([[0,1],[2,1],[2,0]]),

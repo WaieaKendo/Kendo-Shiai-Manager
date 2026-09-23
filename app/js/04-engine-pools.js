@@ -4,13 +4,19 @@
  * @param {string} d
  * @returns {string}
  */
-function clubGroup(d){let s=(d||'').toLowerCase();return s.includes('aiea')||s.includes('waipahu')?'aiea-waipahu':s}
+function clubGroup(d){
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.clubGroup(d);// moved to app/engine/pools.ts
+  /* ksm:post-split-end */
+}
 /**
  * @template {{name: string, dojo: string}} T
  * @param {T[]} arr
  * @returns {T[]}
  */
-function shuffleDeterministic(arr){return arr.map((x,i)=>({x,k:(clubGroup(x.dojo)+x.name+i)})).sort((a,b)=>a.k.localeCompare(b.k)).map(o=>o.x)}
+function shuffleDeterministic(arr){
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.shuffleDeterministic(arr);// moved to app/engine/pools.ts
+  /* ksm:post-split-end */
+}
 /**
  * @param {string} div
  * @returns {boolean}
@@ -40,42 +46,36 @@ function poolSizes(n){
  * @param {number} index
  * @returns {string}
  */
-function poolPlayerSlotLetter(index){return String.fromCharCode(65+Math.max(0,Number(index)||0))}
+function poolPlayerSlotLetter(index){
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.poolPlayerSlotLetter(index);// moved to app/engine/pools.ts
+  /* ksm:post-split-end */
+}
 /**
  * Gives each pool player its A/B/C/D slot (copies the players).
  * @param {Pool[]} pools
  * @returns {Pool[]}
  */
 function assignPoolPlayerSlots(pools){
-  (pools||[]).forEach(pool=>{
-    pool.players=(pool.players||[]).map((player,index)=>({...player,poolSlot:poolPlayerSlotLetter(index),poolSlotIndex:index}));
-  });
-  return pools;
+  /* ksm:post-split-begin engine-bridge */KSMEngine.assignPoolPlayerSlots(pools).forEach((p,i)=>{pools[i].players=p.players});return pools;// moved to app/engine/pools.ts
+  /* ksm:post-split-end */
 }
 /**
  * @param {PoolPlayer} player
  * @param {number} index
  * @returns {string}
  */
-function poolPlayerSlot(player,index){return player?.poolSlot||poolPlayerSlotLetter(index)}
+function poolPlayerSlot(player,index){
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.poolPlayerSlot(player,index);// moved to app/engine/pools.ts
+  /* ksm:post-split-end */
+}
 /**
  * Seeds, then dojo-separated fill.
  * @param {Competitor[]} comps
  * @returns {Pool[]}
  */
 function buildPools(comps){
-  let n=comps.length,sizes=poolSizes(n);
-  let pools=sizes.map((size,i)=>({label:String.fromCharCode(65+i),size,players:[]}));
-  let sorted=[...comps].sort((a,b)=>(parseInt(a.seed)||999)-(parseInt(b.seed)||999)||a.name.localeCompare(b.name));
-  let seeds=sorted.filter(c=>c.seed).slice(0,pools.length);
-  seeds.forEach((c,i)=>pools[i].players.push(c));
-  let rest=sorted.filter(c=>!seeds.includes(c));let groups={};
-  rest.forEach(c=>{let g=clubGroup(c.dojo);(groups[g]=groups[g]||[]).push(c)});
-  let grouped=Object.values(groups).sort((a,b)=>b.length-a.length).map(g=>shuffleDeterministic(g));
-  grouped.forEach(group=>{group.forEach(c=>{let choices=pools.filter(p=>p.players.length<p.size);choices.sort((p1,p2)=>{let same1=p1.players.filter(x=>clubGroup(x.dojo)===clubGroup(c.dojo)).length;let same2=p2.players.filter(x=>clubGroup(x.dojo)===clubGroup(c.dojo)).length;if(same1!==same2)return same1-same2;let fill=(p1.players.length/p1.size)-(p2.players.length/p2.size);if(fill!==0)return fill;return p1.label.localeCompare(p2.label)});if(choices[0])choices[0].players.push(c)})});
-  // Visible top-to-bottom order is the canonical A/B/C/D slot order.
-  // Clone pool entries so slot metadata stays local to the pool rather than registration records.
-  return assignPoolPlayerSlots(pools);
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.buildPools(comps);// moved to app/engine/pools.ts
+  /* ksm:post-split-end */
 }
 /**
  * @param {string} div
@@ -108,11 +108,8 @@ const POOL_MATCH_TEMPLATES=Object.freeze({
  * @returns {number[][]}
  */
 function poolMatchPairs(size){
-  const fixed=POOL_MATCH_TEMPLATES[size];
-  if(fixed)return fixed.map(pair=>[...pair]);
-  const pairs=[];
-  for(let i=0;i<size;i++)for(let j=i+1;j<size;j++)pairs.push([i,j]);
-  return pairs;
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.poolMatchPairs(size);// moved to app/engine/pools.ts
+  /* ksm:post-split-end */
 }
 /**
  * @param {string} div
@@ -120,29 +117,6 @@ function poolMatchPairs(size){
  * @returns {Match[]}
  */
 function buildPoolMatches(div,pools){
-  const matches=[];
-  (pools||[]).forEach((pool,poolOrder)=>{
-    const players=pool.players||[];
-    const pairs=poolMatchPairs(players.length);
-    const court=poolCourtFor(div,pool.label,pools);
-    pairs.forEach(([whiteIndex,redIndex],poolTemplateOrder)=>matches.push({
-      division:div,
-      pool:pool.label,
-      white:players[whiteIndex].name,
-      red:players[redIndex].name,
-      wdojo:players[whiteIndex].dojo,
-      rdojo:players[redIndex].dojo,
-      whitePoolSlot:poolPlayerSlot(players[whiteIndex],whiteIndex),
-      redPoolSlot:poolPlayerSlot(players[redIndex],redIndex),
-      done:false,
-      wp:[],
-      rp:[],
-      type:'individual',
-      origin:'TEMPLATE',
-      court,
-      poolOrder,
-      poolTemplateOrder
-    }));
-  });
-  return matches;
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.buildPoolMatches(div,pools,(pools||[]).map(pool=>poolCourtFor(div,pool.label,pools)));// moved to app/engine/pools.ts
+  /* ksm:post-split-end */
 }
