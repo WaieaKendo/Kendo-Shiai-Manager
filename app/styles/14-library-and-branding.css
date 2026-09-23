@@ -1,0 +1,19 @@
+/* KSM v3.16.2 cloud-first library and tournament branding */
+.home-library-grid{grid-template-columns:repeat(auto-fill,minmax(150px,190px));align-items:start}
+.home-tournament-item{display:flex;flex-direction:column;gap:9px;min-width:0}
+.home-tournament-card{aspect-ratio:1/1;min-height:0;padding:14px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.home-card-logo{width:100%;height:100%;object-fit:contain;border-radius:10px}
+.home-card-placeholder{font-size:54px;line-height:1;filter:grayscale(.15)}
+.home-card-name-below{border:0;background:transparent;padding:0 4px;color:inherit;font:800 16px/1.25 system-ui;text-align:center;cursor:pointer;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.branding-panel-body{display:grid;grid-template-columns:180px 1fr;gap:20px;align-items:center}
+.branding-preview{width:180px;aspect-ratio:1/1;border:1px solid var(--line,#d8dde6);border-radius:16px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.branding-preview img{width:100%;height:100%;object-fit:contain;padding:10px;box-sizing:border-box}
+.branding-placeholder{font-size:58px}
+@media(max-width:560px){.home-library-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.branding-panel-body{grid-template-columns:1fr}.branding-preview{width:min(180px,100%)}}
+/* KSM v3.17.8-test — logo removal and cloud reset */
+@media(max-width:980px){
+  .icon-nav .setup-nav-tile{grid-template-rows:36px 26px!important;align-content:center!important}
+  .icon-nav .setup-nav-tile img{display:block!important;align-self:center!important;margin:0!important}
+  .icon-nav .setup-nav-tile span{display:flex!important;align-items:flex-start!important;justify-content:center!important;min-height:22px!important;margin:0!important}
+}
+/* KSM v3.17.20-test — pool-local tiebreak ordering + conflict-safe dynamic insertion. */

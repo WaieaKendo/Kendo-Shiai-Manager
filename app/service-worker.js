@@ -1,6 +1,6 @@
 const CACHE_NAME = 'ksm-shell-v3.17.20-test';
 const APP_SHELL = [
-  '/', '/index.html', '/manifest.webmanifest',
+  '/', '/index.html', '/app.css', '/app.js', '/manifest.webmanifest',
   '/icons/icon-192.png', '/icons/icon-512.png', '/icons/apple-touch-icon.png',
   '/assets/ksm-fuji-logo.svg', '/assets/ksm-fuji-logo-nav.svg',
   '/assets/KSM-Background-watermark.svg', '/assets/ksm-seigaiha-light.svg', '/assets/ksm-seigaiha-dark.svg',

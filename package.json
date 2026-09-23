@@ -5,8 +5,12 @@
   "type": "module",
   "description": "Kendo Shiai Manager hosted mobile/PWA application",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "build": "vite build",
+    "dev": "vite build && wrangler dev",
+    "dev:vite": "vite",
+    "deploy": "vite build && wrangler deploy",
+    "typecheck": "tsc --noEmit -p .",
+    "verify:split": "node scripts/verify-split.mjs",
     "test": "node tests/run-all.mjs",
     "test:node": "node tests/run-all.mjs --node",
     "test:browser": "node tests/run-all.mjs --py",
@@ -52,6 +56,8 @@
     "test:v31720": "node tests/v31720-pool-local-tiebreak-order-test.mjs"
   },
   "devDependencies": {
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0",
     "wrangler": "^4.11.0"
   }
 }

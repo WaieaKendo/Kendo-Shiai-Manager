@@ -1,0 +1,249 @@
+function poolFinished(poolLabel,div=state.currentDivision){let base=(state.allMatches[div]||[]).filter(m=>m.pool===poolLabel&&!m.tiebreak&&!m.championship);return base.length && base.every(m=>m.done)}
+function pendingTiebreak(poolLabel,div){return (state.allMatches[div]||[]).some(x=>x.pool===poolLabel&&x.tiebreak&&!x.done)}
+function topSeedsResolved(poolLabel,div=state.currentDivision){return poolPositionsResolved(poolLabel,div);}
+function initialPoolStandings(poolLabel,div=state.currentDivision){
+  let pool=(state.pools[div]||[]).find(p=>p.label===poolLabel);if(!pool)return [];
+  let rows=pool.players.map(p=>({name:p.name,dojo:p.dojo,wins:0,pts:0}));
+  (state.allMatches[div]||[]).filter(m=>m.pool===poolLabel&&m.done&&!m.tiebreak).forEach(m=>{
+    let w=rows.find(r=>r.name===m.white),r=rows.find(x=>x.name===m.red);
+    if(w)w.pts+=(m.wp||[]).length;if(r)r.pts+=(m.rp||[]).length;
+    let win=winnerOf(m);if(win===m.white&&w)w.wins++;if(win===m.red&&r)r.wins++;
+  });
+  return rows.sort((a,b)=>b.wins-a.wins||b.pts-a.pts||a.name.localeCompare(b.name));
+}
+function tiebreakStatsForPlayers(poolLabel,div,players){
+  let names=new Set(players.map(x=>x.name));
+  let stats=players.map(x=>({name:x.name,dojo:x.dojo,wins:0,pts:0,baseWins:x.wins,basePts:x.pts}));
+  let done=(state.allMatches[div]||[]).filter(x=>x.pool===poolLabel&&x.done&&x.tiebreak&&x.type==='individual'&&names.has(x.white)&&names.has(x.red));
+  done.forEach(x=>{let w=stats.find(r=>r.name===x.white),r=stats.find(y=>y.name===x.red);if(w)w.pts+=(x.wp||[]).length;if(r)r.pts+=(x.rp||[]).length;let win=winnerOf(x);if(win===x.white&&w)w.wins++;if(win===x.red&&r)r.wins++;});
+  stats.sort((a,b)=>b.wins-a.wins||b.pts-a.pts||a.name.localeCompare(b.name));
+  return {stats,done};
+}
+
+function tiebreakSeriesStats(poolLabel,div,players,series){
+  const names=new Set(players.map(x=>x.name));
+  const stats=players.map(x=>({name:x.name,dojo:x.dojo,wins:0,pts:0,baseWins:x.wins,basePts:x.pts}));
+  const matches=(state.allMatches[div]||[]).filter(x=>x.pool===poolLabel&&x.done&&x.tiebreak&&x.type==='individual'&&Number(x.tiebreakSeries||1)===Number(series)&&names.has(x.white)&&names.has(x.red));
+  matches.forEach(x=>{const w=stats.find(r=>r.name===x.white),r=stats.find(y=>y.name===x.red);if(w)w.pts+=(x.wp||[]).length;if(r)r.pts+=(x.rp||[]).length;const win=winnerOf(x);if(win===x.white&&w)w.wins++;if(win===x.red&&r)r.wins++;});
+  stats.sort((a,b)=>b.wins-a.wins||b.pts-a.pts||a.name.localeCompare(b.name));
+  return {stats,matches};
+}
+function resolveTiebreakBaseGroup(poolLabel,div,target){
+  const base=[...target.players];
+  const baseByName=new Map(base.map(x=>[x.name,x]));
+  const all=(state.allMatches[div]||[]).filter(x=>x.pool===poolLabel&&x.tiebreak&&x.type==='individual'&&baseByName.has(x.white)&&baseByName.has(x.red));
+  const series=[...new Set(all.map(x=>Number(x.tiebreakSeries||1)))].sort((a,b)=>a-b);
+  const locked=[];let unresolved=[...base];let lastStats=[];
+  for(const seriesId of series){
+    const participantNames=[...new Set(all.filter(x=>Number(x.tiebreakSeries||1)===seriesId).flatMap(x=>[x.white,x.red]))];
+    const participants=participantNames.map(n=>baseByName.get(n)).filter(Boolean).filter(x=>!locked.some(l=>l.name===x.name));
+    if(participants.length<2)continue;
+    const result=tiebreakSeriesStats(poolLabel,div,participants,seriesId);
+    if(result.matches.length===0||result.matches.some(x=>!x.done)){unresolved=participants;break;}
+    lastStats=result.stats;
+    let tieAt=-1;
+    for(let i=0;i<result.stats.length;){let j=i+1;while(j<result.stats.length&&result.stats[j].wins===result.stats[i].wins&&result.stats[j].pts===result.stats[i].pts)j++;if(j-i===1){locked.push(result.stats[i]);}else{tieAt=i;unresolved=result.stats.slice(i,j).map(x=>baseByName.get(x.name));break;}i=j;}
+    if(tieAt<0)unresolved=[];
+  }
+  const used=new Set([...locked,...unresolved].map(x=>x.name));
+  const remainder=base.filter(x=>!used.has(x.name));
+  return {locked,unresolved,ordered:[...locked,...unresolved,...remainder],lastStats};
+}
+function unresolvedRequiredTiebreakGroup(poolLabel,div,target,reqSeed){
+  const resolution=resolveTiebreakBaseGroup(poolLabel,div,target);
+  const unresolvedStart=target.start+resolution.locked.length;
+  if(unresolvedStart>reqSeed)return null;
+  if(resolution.unresolved.length>1)return resolution.unresolved;
+  if(!resolution.locked.length&&!resolution.unresolved.length)return target.players;
+  return null;
+}
+function tiebreakMatchesForGroup(div,pool,players){
+  const pairs=poolMatchPairs(players.length);
+  const requiresWinner=players.length===2;
+  const existing=(state.allMatches?.[div]||[]).filter(m=>m.pool===pool&&m.tiebreak&&m.type==='individual');
+  const series=(existing.reduce((max,m)=>Math.max(max,Number(m.tiebreakSeries||1)),0)||0)+1;
+  return pairs.map(([i,j],index)=>makeTiebreakMatch(div,pool,players[i],players[j],requiresWinner,series,index));
+}
+
+const APPROVED_DYNAMIC_MATCH_TYPES=Object.freeze(new Set([
+  'INDIVIDUAL_POOL_TIEBREAK',
+  'TEAM_3_PERSON_REPRESENTATIVE',
+  'TEAM_5_PERSON_REPRESENTATIVE',
+  'KACHINUKI_REPRESENTATIVE',
+  'TEAM_3_PERSON_ROUND_ROBIN_TIEBREAK',
+  'TEAM_5_PERSON_ROUND_ROBIN_TIEBREAK',
+  'KACHINUKI_ROUND_ROBIN_TIEBREAK'
+]));
+function isIndividualPoolTiebreakMatch(match){return !!(match&&match.type==='individual'&&match.tiebreak&&!match.championship&&match.pool)}
+function reindexPointersAfterMatchReorder(targetState,div,beforeArr,afterArr){
+  if(!targetState||!Array.isArray(beforeArr)||!Array.isArray(afterArr))return;
+  const findMovedIndex=(oldIndex,court)=>{
+    const n=Number(oldIndex);
+    const oldMatch=Number.isFinite(n)&&n>=0&&n<beforeArr.length?beforeArr[n]:null;
+    const identity=matchSyncIdentity(oldMatch);
+    let idx=identity?afterArr.findIndex(match=>matchHasSyncIdentity(match,identity)):-1;
+    if(idx<0||!individualMatchReady(afterArr[idx])||!matchBelongsToCourtInState(targetState,afterArr[idx],court))idx=nextReadyIndexInState(targetState,div,court);
+    return idx;
+  };
+  targetState.courtState=targetState.courtState||{};
+  targetState.courtActiveDivision=targetState.courtActiveDivision||{};
+  for(const court of ['A','B']){
+    const cs=targetState.courtState[court];
+    if(cs?.division===div)cs.index=findMovedIndex(cs.index,court);
+  }
+  if(targetState.currentDivision===div){
+    const court=String(targetState.currentCourt||'A').toUpperCase()==='B'?'B':'A';
+    const currentIndex=findMovedIndex(targetState.current,court);
+    targetState.current=currentIndex;
+    targetState.currentByDivision=targetState.currentByDivision||{};
+    targetState.currentByDivision[div]=currentIndex;
+  }
+}
+function normalizeIndividualPoolTiebreakOrderInState(targetState,div,source='tiebreak order repair'){
+  const arr=targetState?.allMatches?.[div];
+  if(!Array.isArray(arr)||!arr.some(isIndividualPoolTiebreakMatch))return false;
+  const before=[...arr];
+  const decorated=before.map((match,index)=>({match,index}));
+  const tiebreaks=decorated.filter(item=>isIndividualPoolTiebreakMatch(item.match));
+  const rebuilt=decorated.filter(item=>!isIndividualPoolTiebreakMatch(item.match)).map(item=>item.match);
+  const labels=[];
+  (targetState?.pools?.[div]||[]).forEach(pool=>{if(pool?.label&&!labels.includes(pool.label))labels.push(pool.label)});
+  tiebreaks.forEach(item=>{const label=item.match.pool;if(label&&!labels.includes(label))labels.push(label)});
+  labels.forEach(pool=>{
+    const group=tiebreaks.filter(item=>item.match.pool===pool).sort((a,b)=>{
+      const seriesDiff=Number(a.match.tiebreakSeries||1)-Number(b.match.tiebreakSeries||1);
+      if(seriesDiff)return seriesDiff;
+      const indexDiff=Number(a.match.tiebreakIndex??0)-Number(b.match.tiebreakIndex??0);
+      return indexDiff||a.index-b.index;
+    }).map(item=>item.match);
+    if(!group.length)return;
+    let anchor=-1;
+    rebuilt.forEach((match,index)=>{if(match&&match.type==='individual'&&!match.championship&&!match.tiebreak&&match.pool===pool)anchor=index});
+    if(anchor<0){
+      const firstChamp=rebuilt.findIndex(match=>match?.championship);
+      anchor=firstChamp>=0?firstChamp-1:rebuilt.length-1;
+    }
+    rebuilt.splice(anchor+1,0,...group);
+  });
+  const changed=rebuilt.length!==before.length||rebuilt.some((match,index)=>match!==before[index]);
+  if(!changed)return false;
+  targetState.allMatches[div]=rebuilt;
+  reindexPointersAfterMatchReorder(targetState,div,before,rebuilt);
+  console.info('[KSM Tiebreak Order] Repaired pool-local tiebreak placement',{source,division:div});
+  return true;
+}
+function normalizeAllIndividualPoolTiebreakOrder(targetState,source='tiebreak order repair'){
+  let repaired=0;
+  Object.keys(targetState?.allMatches||{}).forEach(div=>{if(normalizeIndividualPoolTiebreakOrderInState(targetState,div,source))repaired++});
+  return repaired;
+}
+function appendApprovedDynamicMatches(div,afterMatch,matches,dynamicType){
+  if(!APPROVED_DYNAMIC_MATCH_TYPES.has(dynamicType))throw new Error('Unauthorized dynamic Match Object type: '+dynamicType);
+  const arr=state.allMatches[div]||[];
+  const list=(Array.isArray(matches)?matches:[matches]).filter(Boolean);
+  list.forEach(m=>{m.origin='TIEBREAK';m.dynamicType=dynamicType;});
+  if(dynamicType==='INDIVIDUAL_POOL_TIEBREAK'){
+    // Pool tiebreaks are part of that pool's timeline, not generic appended matches.
+    // Add them safely, then canonicalize by pool so object-identity changes or a
+    // cloud rebase can never strand Pool A's playoff after Pool D.
+    arr.push(...list);state.allMatches[div]=arr;
+    normalizeIndividualPoolTiebreakOrderInState(state,div,'dynamic tiebreak creation');
+    return list;
+  }
+  const afterIdentity=matchSyncIdentity(afterMatch);
+  const idx=afterMatch?arr.findIndex(match=>match===afterMatch||(afterIdentity&&matchHasSyncIdentity(match,afterIdentity))):-1;
+  arr.splice(idx>=0?idx+1:arr.length,0,...list);
+  state.allMatches[div]=arr;
+  return list;
+}
+function maybeCreateTiebreaks(m){
+  if(!m || m.type!=='individual') return;
+  let div=m.division, arr=state.allMatches[div]||state.matches;
+  let originalDone=(arr.filter(x=>x.pool===m.pool&&x.type==='individual'&&!x.tiebreak&&!x.championship).every(x=>x.done));
+  if(!originalDone) return;
+  if(pendingTiebreak(m.pool,div)) return;
+  let base=initialPoolStandings(m.pool,div);
+  let reqSeed=(requiredSeedPlaces(div)[m.pool]||2);
+  let groups=[];
+  for(let i=0;i<base.length;){let j=i+1;while(j<base.length&&base[j].wins===base[i].wins&&base[j].pts===base[i].pts)j++;groups.push({start:i+1,end:j,players:base.slice(i,j)});i=j;}
+  for(let target of groups){
+    if(target.players.length<=1 || target.start>reqSeed) continue;
+    let unresolved=unresolvedRequiredTiebreakGroup(m.pool,div,target,reqSeed);
+    if(!unresolved || unresolved.length<=1) continue;
+    let newMatches=tiebreakMatchesForGroup(div,m.pool,unresolved);
+    if(newMatches.length){appendApprovedDynamicMatches(div,m,newMatches,'INDIVIDUAL_POOL_TIEBREAK');return;}
+  }
+}
+function makeTiebreakMatch(division,pool,a,b,requiresWinner=false,tiebreakSeries=1,tiebreakIndex=0){return {division,pool,white:a.name,red:b.name,wdojo:a.dojo,rdojo:b.dojo,done:false,wp:[],rp:[],tiebreak:true,type:'individual',requiresWinner:!!requiresWinner,tiebreakSeries,tiebreakIndex,court:poolCourtFor(division,pool)};}
+
+function teamPairMatches(div,pair){return (state.allMatches[div]||[]).filter(x=>x.teamPair===pair && (x.type==='teamPosition'||x.type==='teamPlayoff'||x.type==='kachinuki'))}
+function teamPositionMatches(div,pair){return (state.allMatches[div]||[]).filter(x=>x.teamPair===pair && x.type==='teamPosition')}
+function teamPairSummary(div,pair){let ms=teamPairMatches(div,pair);let first=ms[0]||{};let wWins=0,rWins=0,wPts=0,rPts=0,done=0;ms.forEach(x=>{if(x.done){done++;let wp=(x.wp||[]).length,rp=(x.rp||[]).length;wPts+=wp;rPts+=rp;if(wp>rp)wWins++; else if(rp>wp)rWins++;}});return {teamWhite:first.teamWhite||'',teamRed:first.teamRed||'',wWins,rWins,wPts,rPts,done,total:ms.length,matches:ms}}
+function teamPairIds(div='Team Tournament'){
+  return [...new Set((state.allMatches[div]||[])
+    .filter(match=>match.teamPair&&(match.type==='teamPosition'||match.type==='teamPlayoff'||match.type==='kachinuki'))
+    .map(match=>match.teamPair))];
+}
+function isTeamRoundRobinDivision(div='Team Tournament'){
+  if(!isTeamDivision(div))return false;
+  if((state.teamBracketNodes?.[div]||[]).length)return false;
+  const matches=state.allMatches?.[div]||[];
+  return matches.some(match=>match.teamPair&&(match.type==='teamPosition'||match.type==='teamPlayoff'||match.type==='kachinuki'));
+}
+function teamRoundRobinPairResolved(div,pair){
+  const matches=teamPairMatches(div,pair);
+  return !!(matches.length&&matches.every(match=>match.done)&&teamWinner(div,pair));
+}
+function teamStandings(div='Team Tournament'){
+  const teams={};
+  const ensure=name=>{
+    if(name&&!teams[name])teams[name]={name,played:0,wins:0,losses:0,matchWins:0,pts:0};
+    return teams[name];
+  };
+  (eligibleTeams(div)||[]).forEach(team=>ensure(team.team));
+  (state.allMatches[div]||[]).forEach(match=>{ensure(match.teamWhite);ensure(match.teamRed)});
+  teamPairIds(div).forEach(pair=>{
+    const summary=teamPairSummary(div,pair);
+    const white=ensure(summary.teamWhite),red=ensure(summary.teamRed);
+    if(!white||!red||!teamRoundRobinPairResolved(div,pair))return;
+    const winner=teamWinner(div,pair);
+    white.played++;red.played++;
+    white.matchWins+=summary.wWins;red.matchWins+=summary.rWins;
+    white.pts+=summary.wPts;red.pts+=summary.rPts;
+    if(winner===white.name){white.wins++;red.losses++;}
+    else if(winner===red.name){red.wins++;white.losses++;}
+  });
+  const rows=Object.values(teams).sort((a,b)=>b.wins-a.wins||b.pts-a.pts||a.name.localeCompare(b.name));
+  rows.forEach((row,index)=>{
+    row.rank=index+1;
+    row.nameFallback=rows.some((other,otherIndex)=>otherIndex!==index&&other.wins===row.wins&&other.pts===row.pts);
+  });
+  return rows;
+}
+function teamRoundRobinProgress(div='Team Tournament'){
+  const pairs=teamPairIds(div),complete=pairs.filter(pair=>teamRoundRobinPairResolved(div,pair)).length;
+  return {complete,total:pairs.length};
+}
+function teamRoundRobinPlacements(div='Team Tournament'){
+  if(!divisionComplete(div))return null;
+  const rows=teamStandings(div);
+  if(!rows.length)return null;
+  return {first:rows[0]?.name||'',second:rows[1]?.name||'',thirds:rows[2]?[rows[2].name]:[],standings:rows,roundRobin:true};
+}
+function maybeCreateTeamTiebreak(m){
+  if(!m || m.type!=='teamPosition' || m.tiebreak) return;
+  let div=m.division, pair=m.teamPair, arr=state.allMatches[div]||[];
+  let ms=teamPositionMatches(div,pair);
+  if(!ms.length || !ms.every(x=>x.done)) return;
+  if(arr.some(x=>x.tiebreak && x.type==='teamPlayoff' && x.teamPair===pair)) return;
+  let s=teamPairSummary(div,pair);
+  if(s.wWins===s.rWins && s.wPts===s.rPts){
+    let anchor=ms[ms.length-1]||m;
+    let playoff={division:div,pool:m.pool,white:`${s.teamWhite} Representative`,red:`${s.teamRed} Representative`,wdojo:s.teamWhite,rdojo:s.teamRed,teamWhite:s.teamWhite,teamRed:s.teamRed,position:'Team Playoff',teamPair:pair,done:false,wp:[],rp:[],tiebreak:true,type:'teamPlayoff',court:anchor.court||m.court||'A',teamNodeId:anchor.teamNodeId,bracketSlot:anchor.bracketSlot,parentTeamMatch:true};
+    let dynamicType=(teamFormat?.value||'5-Person Team')==='3-Person Team'?'TEAM_3_PERSON_REPRESENTATIVE':'TEAM_5_PERSON_REPRESENTATIVE';
+    appendApprovedDynamicMatches(div,ms[ms.length-1]||m,playoff,dynamicType);
+  }
+}
+
+function allPoolMatchesComplete(div){let arr=state.allMatches[div]||[];let poolMs=arr.filter(m=>m&&m.type==='individual' && !m.championship);return poolMs.length && poolMs.every(m=>m.done)}
+function hasPendingIndividualTiebreak(div){return (state.allMatches[div]||[]).some(m=>m&&m.type==='individual'&&m.tiebreak&&!m.done)}

@@ -1,0 +1,205 @@
+/* =========================================================
+   KSM v3.11.1 — global layout standard and mobile Setup
+   Presentation only. No tournament-state ownership changes.
+   ========================================================= */
+:root{
+  --ksm-page-max:1400px;
+  --ksm-page-gutter:24px;
+  --ksm-page-top:24px;
+  --ksm-page-bottom:72px;
+  --ksm-card-gap:18px;
+  --ksm-card-radius:20px;
+  --ksm-card-pad:22px;
+}
+
+/* One outer geometry for every application view. */
+main{
+  width:100%;
+  max-width:none !important;
+  margin:0 !important;
+  padding:0 0 var(--ksm-page-bottom) !important;
+}
+main > .view{
+  width:min(var(--ksm-page-max),calc(100% - (var(--ksm-page-gutter) * 2))) !important;
+  max-width:var(--ksm-page-max) !important;
+  margin:var(--ksm-page-top) auto 0 !important;
+  padding:0 !important;
+}
+main > .view.hidden{display:none!important}
+main > .view > .grid,
+main > .view > .results-page,
+main > .view > .director-page,
+main > .view > .scorekeeper-shell,
+main > .view > .public-shell,
+main > .view > .setup-page{
+  width:100%;
+  max-width:none;
+  margin-left:auto;
+  margin-right:auto;
+}
+
+/* Normalize the common content surfaces without overriding purpose-built
+   scoreboard and print sheets. */
+main > .view:not(#score):not(#public):not(#print) > .card,
+main > .view:not(#score):not(#public):not(#print) > .grid > .card,
+main > .view:not(#score):not(#public):not(#print) .results-card{
+  border-radius:var(--ksm-card-radius);
+}
+main > .view > .grid{gap:var(--ksm-card-gap)}
+
+/* Setup inherits the same page container instead of defining a second one. */
+#setup{padding:0 !important}
+.setup-page{width:100%;max-width:none}
+.setup-layout{gap:var(--ksm-card-gap);margin-top:var(--ksm-card-gap)}
+.setup-panel{padding:var(--ksm-card-pad)}
+
+@media(max-width:760px){
+  :root{
+    --ksm-page-gutter:12px;
+    --ksm-page-top:14px;
+    --ksm-page-bottom:calc(56px + env(safe-area-inset-bottom));
+    --ksm-card-gap:12px;
+    --ksm-card-radius:17px;
+    --ksm-card-pad:16px;
+  }
+  main > .view{
+    width:calc(100% - (var(--ksm-page-gutter) * 2)) !important;
+    margin:var(--ksm-page-top) auto 0 !important;
+  }
+
+  /* All first content surfaces begin at the same distance below navigation. */
+  #registration,#score,#director,#public,#search,#results,#print,#setup{
+    width:calc(100% - (var(--ksm-page-gutter) * 2)) !important;
+    max-width:calc(100% - (var(--ksm-page-gutter) * 2)) !important;
+    margin:var(--ksm-page-top) auto 0 !important;
+  }
+
+  /* Compact, phone-first Setup hero. */
+  .setup-hero{
+    min-height:118px;
+    padding:20px 18px;
+    border-radius:var(--ksm-card-radius);
+    align-items:center;
+  }
+  .setup-hero-mark{
+    width:190px;
+    height:112px;
+    right:8px;
+    bottom:-18px;
+  }
+  .setup-kicker{font-size:10px;letter-spacing:.10em}
+  .setup-hero h1{font-size:34px;line-height:1.05;margin:5px 0 7px}
+  .setup-gold-rule{width:124px}
+  .setup-subtitle{font-size:13px;margin-top:8px}
+
+  .setup-layout{display:grid;grid-template-columns:1fr}
+  .setup-panel,.setup-panel-wide{grid-column:1;width:100%}
+  .setup-panel-head{margin-bottom:14px;gap:10px}
+  .setup-panel-head h2{font-size:22px}
+  .setup-panel-head p{font-size:13px;line-height:1.4}
+  .setup-form-grid{grid-template-columns:1fr;gap:12px}
+  .setup-stack{gap:12px}
+  .setup-panel input,.setup-panel select,.setup-panel textarea{
+    min-height:48px;
+    font-size:16px;
+  }
+  .setup-panel textarea{min-height:96px}
+
+  /* The division matrix becomes a vertical set of touch-friendly cards. */
+  .setup-division-table-wrap{
+    overflow:visible;
+    border:0;
+    border-radius:0;
+  }
+  .setup-division-table,
+  .setup-division-table tbody,
+  .setup-division-table tr,
+  .setup-division-table td{display:block;width:100%}
+  .setup-division-table thead{display:none}
+  .setup-division-table{border:0;background:transparent}
+  .setup-division-table tbody{display:grid;gap:10px}
+  .setup-division-table tr{
+    padding:13px;
+    border:1px solid #e1d7ca;
+    border-radius:14px;
+    background:#fffefb;
+  }
+  .setup-division-table td{
+    display:grid;
+    grid-template-columns:82px minmax(0,1fr);
+    align-items:center;
+    gap:10px;
+    min-height:42px;
+    padding:6px 0;
+    border:0;
+  }
+  .setup-division-table td::before{
+    color:#6f7480;
+    font-size:10px;
+    font-weight:950;
+    letter-spacing:.07em;
+    text-transform:uppercase;
+  }
+  .setup-division-table td:nth-child(1)::before{content:'Use'}
+  .setup-division-table td:nth-child(2)::before{content:'Division'}
+  .setup-division-table td:nth-child(3)::before{content:'Format'}
+  .setup-division-table td:nth-child(4)::before{content:'Court'}
+  .setup-division-table td input[type='checkbox']{margin:0}
+  .setup-division-table td select{width:100%;min-height:44px}
+  .setup-division-table td:nth-child(4){grid-template-columns:82px minmax(0,1fr) auto}
+  .setup-division-table td:nth-child(4) button{min-width:44px;padding:8px}
+
+  .custom-division-box{padding:13px;margin-top:12px}
+  .custom-division-row{grid-template-columns:1fr;gap:9px}
+  .custom-division-row button{width:100%;min-height:48px}
+  .setup-action-row{position:static;padding-top:0}
+  .setup-primary-action{width:100%;min-width:0;min-height:52px}
+
+  /* Common cards and toolbars share mobile geometry. */
+  #registration > .card,
+  #search .card,
+  #director .director-overview,
+  #results .results-card,
+  #print > .card{
+    width:100%;
+    margin-left:0;
+    margin-right:0;
+  }
+  .toolbar{gap:10px}
+  .toolbar > .row{width:100%}
+  .toolbar > .row > button{flex:1 1 145px}
+  .toolbar input,.toolbar select{max-width:100%}
+}
+
+@media(min-width:761px){
+  /* Keep every desktop view aligned to the same 1400px canvas. */
+  #setup,#registration,#score,#director,#public,#search,#results,#print{
+    width:min(var(--ksm-page-max),calc(100% - (var(--ksm-page-gutter) * 2)));
+  }
+}
+/* KSM v3.11.2 — Director total scope and mobile field/active-match fixes */
+@media (max-width:600px) and (orientation:portrait){
+  /* Compact the Scorekeeper active match without changing its information order. */
+  #score .scoreboard-match{
+    gap:4px!important;
+    row-gap:4px!important;
+    padding:5px 0 10px!important;
+  }
+  #score .scoreboard-side .sk-dojo{margin-top:4px!important}
+  #score .scoreboard-side .tri{margin-top:5px!important;min-height:18px!important}
+  #score .scoreboard-score-row{min-height:56px!important;margin:0!important}
+  #score .score-stack{min-height:54px!important}
+  #score .scoreboard-score-row .points{font-size:58px!important;min-height:42px!important}
+  #score .scoreboard-score-row .tri{margin-top:2px!important;min-height:14px!important;font-size:14px!important}
+
+  /* iOS date controls can retain an intrinsic width unless every sizing axis is reset. */
+  #setup #tDate{
+    display:block!important;
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+    box-sizing:border-box!important;
+    -webkit-appearance:none;
+    appearance:none;
+  }
+}
