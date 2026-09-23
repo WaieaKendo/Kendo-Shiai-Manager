@@ -75,7 +75,9 @@ _TV_JS = """() => {
 _LIVE_JS = """(court) => {
   const card = document.querySelector(`[data-testid="live-scores"] [data-testid="live-court-${court}"]`);
   const text = id => (card?.querySelector(`[data-testid="${id}"]`)?.textContent || '').trim();
-  return card ? {meta: text('live-meta'), white: text('live-white-name'), red: text('live-red-name')} : null;
+  // Team matches show a team sheet; its current bout carries the names.
+  return card ? {meta: text('live-meta'), white: text('live-white-name') || text('current-bout-white-name'),
+                 red: text('live-red-name') || text('current-bout-red-name')} : null;
 }"""
 
 
@@ -84,6 +86,7 @@ class KsmApp:
         self.page = page
         self.name = name
         self.problems = problems if problems is not None else []
+        self.answers, self.expected, self.seen_dialogs = {}, {}, []
         page.add_init_script(API_JS)
 
     # ------------------------------------------------------------------ devices
@@ -118,7 +121,19 @@ class KsmApp:
         page.wait_for_function('window.KSMTest && KSMTest.booted()')
         return app
 
+    def expect_dialog(self, prefix, accept=False):
+        """Answer a dialog that is a known (documented) app behaviour instead of flagging it.
+
+        Seen messages are collected in `self.seen_dialogs`, so a test can assert the
+        behaviour still happens (an expected-failure check for a recorded finding).
+        """
+        self.expected[prefix] = accept
+
     def _on_dialog(self, d):
+        for prefix, accept in self.expected.items():
+            if d.message.startswith(prefix):
+                self.seen_dialogs.append(d.message)
+                return d.accept() if accept else d.dismiss()
         for prefix, answer in self.answers.items():
             if d.message.startswith(prefix):
                 return d.accept(answer)
@@ -215,14 +230,28 @@ class KsmApp:
         self.page.wait_for_selector(f'#score {sel("court-title")}:has-text("Court {court.upper()}")')
 
     def tv_link(self, court):
-        """TV menu -> Court A/B TV opens the TV display in a new window; returns its URL."""
-        self.click('nav-tv')
-        with self.page.context.expect_page() as popup:
-            self.click(f'nav-tv-{court.lower()}')
-        tv = popup.value
-        url = tv.url
-        tv.close()
-        return url
+        """TV menu -> Court A/B TV: returns the link the app opens for the TV display.
+
+        The new window's request is answered with an empty page, so the TV app does
+        not run inside this device's browser profile; open the link on its own device.
+        """
+        ctx, captured = self.page.context, []
+
+        def grab(route):
+            captured.append(route.request.url)
+            route.fulfill(status=200, content_type='text/html', body='')
+        is_tv = lambda url: 'view=tv' in url
+        ctx.route(is_tv, grab)
+        try:
+            self.click('nav-tv')
+            with ctx.expect_page() as popup:
+                self.click(f'nav-tv-{court.lower()}')
+            popup.value.wait_for_load_state()
+            popup.value.close()
+        finally:
+            ctx.unroute(is_tv, grab)
+        assert captured, f'{self.name}: TV menu did not open a TV link'
+        return captured[0]
 
     # -------------------------------------------------------------------- setup
     def setup_divisions(self, divisions):

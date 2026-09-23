@@ -2,6 +2,10 @@
 
 Uses Playwright's bundled Chromium by default (`python -m playwright install chromium`).
 Set KSM_CHROMIUM_PATH to use a system Chromium instead (e.g. /usr/bin/chromium in CI).
+
+Watch mode: KSM_HEADED=1 opens visible browser windows and KSM_SLOWMO=<ms>
+slows every action down (default 250 ms when headed), so a person can follow
+a test, e.g. `npm run test:e2e:watch`.
 """
 import mimetypes
 import os
@@ -11,9 +15,15 @@ PUBLIC = Path(__file__).resolve().parents[1] / 'public'
 APP_ORIGIN = 'http://ksm.test'
 
 
+def watch_mode():
+    return os.environ.get('KSM_HEADED') == '1'
+
+
 def launch_chromium(p):
     path = os.environ.get('KSM_CHROMIUM_PATH') or None
-    return p.chromium.launch(headless=True, executable_path=path, args=['--no-sandbox'])
+    headed = watch_mode()
+    slow_mo = float(os.environ.get('KSM_SLOWMO') or (250 if headed else 0))
+    return p.chromium.launch(headless=not headed, slow_mo=slow_mo, executable_path=path, args=['--no-sandbox'])
 
 
 def load_app(page, html=None, wait_until='domcontentloaded', session='staff'):

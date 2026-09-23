@@ -9867,11 +9867,11 @@ function alignedMatchRowHtml(match,options={}){
   const statusClass=String(status).toLowerCase().includes('done')?'done':
     String(status).toLowerCase().includes('await')?'awaiting':'';
   return `<div class="aligned-match-row ${current?'current':''} ${compact?'compact':''} ${extra}">
-    <div class="match-name white">${esc(white||'TBD')}</div>
+    <div class="match-name white"${current?' data-testid="current-bout-white-name"':''}>${esc(white||'TBD')}</div>
     ${alignedPointSlots(wp,'W')}
     <div class="match-status ${statusClass}">${esc(status||'vs')}</div>
     ${alignedPointSlots(rp,'R')}
-    <div class="match-name red">${esc(red||'TBD')}</div>
+    <div class="match-name red"${current?' data-testid="current-bout-red-name"':''}>${esc(red||'TBD')}</div>
   </div>`;
 }
 function alignedPlaceholderRowHtml(white,red,status='awaiting',compact=false){

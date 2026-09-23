@@ -12,6 +12,7 @@
     "test:browser": "node tests/run-all.mjs --py",
     "test:api": "node tests/worker-api-test.mjs",
     "test:e2e": "node tests/run-all.mjs e2e-",
+    "test:e2e:watch": "KSM_HEADED=1 KSM_SLOWMO=${KSM_SLOWMO:-300} .venv/bin/python tests/e2e-full-tournament-test.py",
     "test:golden": "node tests/run-all.mjs golden-",
     "test:golden:update": "KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-engine-test.py",
     "test:setup": "python3 -m venv .venv && .venv/bin/pip install -q playwright && .venv/bin/python -m playwright install chromium",

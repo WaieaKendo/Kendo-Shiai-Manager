@@ -43,3 +43,11 @@ Status: ✅ done · 🔨 in progress · ⏳ ready to start · 🗣 needs a decis
 - Match timer, livestream overlay, shinpan rotation
 - HKF-wide people/dojo registry (D1); minors' data policy
 - Gradual React/TypeScript for new screens
+
+## Findings
+
+Bugs found by tests and not fixed yet. Each one is pinned by a test that expects the current (wrong) behaviour, so the test fails once the bug is fixed; then update the test and mark the finding fixed here.
+
+| # | Finding | Found by | Reproduction | Status |
+|---|---|---|---|---|
+| F1 | A reloaded device stops on a blocking **"Restore autosaved tournament?"** confirm before it loads the cloud copy. On a TV display nobody is there to answer, so a power cut or browser restart leaves the TV frozen on the dialog; the local autosave is also pointless for a device opened from a cloud link. | `e2e-full-tournament-test.py` (TV power-cycle checkpoint; expected-failure check on `tv.seen_dialogs`) | Open a TV link (`/?role=spectator&tournament=<id>&court=A&view=tv`, from TV → Court A TV), wait for the display, reload the page. `restoreAutoSaveIfWanted()` runs at startup whenever `localStorage` holds an autosave. Same on spectator and scorekeeper devices. | ⏳ open |
