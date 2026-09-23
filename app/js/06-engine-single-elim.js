@@ -1,9 +1,14 @@
+// @ts-check
 const BRACKET_SLOT_TEMPLATES={
   4:[{slot:1,quadrant:0,protectedSeed:1},{slot:2,quadrant:0},{slot:3,quadrant:1,protectedSeed:2},{slot:4,quadrant:1}],
   8:[{slot:1,quadrant:0,protectedSeed:1},{slot:2,quadrant:0},{slot:3,quadrant:1,protectedSeed:4},{slot:4,quadrant:1},{slot:5,quadrant:2,protectedSeed:3},{slot:6,quadrant:2},{slot:7,quadrant:3,protectedSeed:2},{slot:8,quadrant:3}],
   16:[{slot:1,quadrant:0,protectedSeed:1},{slot:2,quadrant:0},{slot:3,quadrant:0},{slot:4,quadrant:0},{slot:5,quadrant:1,protectedSeed:4},{slot:6,quadrant:1},{slot:7,quadrant:1},{slot:8,quadrant:1},{slot:9,quadrant:2,protectedSeed:3},{slot:10,quadrant:2},{slot:11,quadrant:2},{slot:12,quadrant:2},{slot:13,quadrant:3,protectedSeed:2},{slot:14,quadrant:3},{slot:15,quadrant:3},{slot:16,quadrant:3}],
   32:[{slot:1,quadrant:0,protectedSeed:1},{slot:9,quadrant:1,protectedSeed:4},{slot:17,quadrant:2,protectedSeed:3},{slot:25,quadrant:3,protectedSeed:2}]
 };
+/**
+ * @param {number} n
+ * @returns {number}
+ */
 function singleElimBracketSize(n){return n<=4?4:n<=8?8:n<=16?16:32;}
 function protectedSeedQuadrant(seed){return ({1:0,2:3,3:2,4:1})[seed] ?? null;}
 
@@ -57,6 +62,11 @@ function chooseBestSeedSlot(q,positions,info,allPositions){
   });
   return candidates[0];
 }
+/**
+ * Bracket order: seeds in protected quadrants, then dojo-separated fill.
+ * @param {Competitor[]} comps
+ * @returns {Competitor[]}
+ */
 function placeIndividualsForSingleElim(comps){
   let n=comps.length;if(n<=1)return comps;
   let sorted=[...comps].sort((a,b)=>(parseInt(a.seed)||999)-(parseInt(b.seed)||999)||a.name.localeCompare(b.name));
@@ -117,11 +127,18 @@ function dedupeSingleElimMatches(div){
   return out;
 }
 
+/**
+ * One Match Object per bracket node (state.singleElimNodes), filled as winners are known.
+ * @param {string} div
+ * @param {Competitor[]} comps
+ * @returns {Match[]}
+ */
 function buildIndividualSingleElimMatches(div,comps){
   state.singleElimNodes=state.singleElimNodes||{};
   const nodes=teamBracketNodesForCount(comps.length).map(n=>({...n,winner:null}));
   state.singleElimNodes[div]=nodes;
-  const courtMode=state.divisionCourts[div]||'A';
+  const courtMode=/** @type {Court|'split'} */(state.divisionCourts[div]||'A');
+  /** @type {Match[]} */
   const arr=nodes.map(node=>({
     division:div,pool:'Championship',white:'',red:'',wdojo:'',rdojo:'',
     position:node.round,done:false,wp:[],rp:[],type:'individual',championship:true,
@@ -132,6 +149,12 @@ function buildIndividualSingleElimMatches(div,comps){
   syncIndividualSingleElim(div,arr,comps);
   return arr;
 }
+/**
+ * @param {BracketSource|null} side
+ * @param {Competitor[]} comps
+ * @param {string} div
+ * @returns {{name: string, dojo: string}|null}
+ */
 function indivSide(side,comps,div){
   if(!side)return null;
   if(side.team){let c=comps[side.team-1];return c?{name:c.name,dojo:c.dojo}:null;}
@@ -139,10 +162,15 @@ function indivSide(side,comps,div){
   return null;
 }
 function indivNodeHasMatch(arr,node){return arr.some(m=>individualLogicalMatchKey(m)===`single:${node.id}`)}
+/**
+ * @param {string} div
+ * @param {Match[]} arr
+ * @param {Competitor[]} comps
+ */
 function syncIndividualSingleElim(div,arr,comps){
   state.singleElimNodes=state.singleElimNodes||{};
   const nodes=state.singleElimNodes[div]||[];
-  const courtMode=state.divisionCourts[div]||'A';
+  const courtMode=/** @type {Court|'split'} */(state.divisionCourts[div]||'A');
   let changed=true,guard=0;
   while(changed&&guard++<50){
     changed=false;
@@ -182,6 +210,9 @@ function syncIndividualSingleElim(div,arr,comps){
   state.allMatches[div]=arr;
   return enforceUniqueIndividualMatches(div);
 }
+/**
+ * @param {Match} m
+ */
 function maybeAdvanceIndividualSingleElim(m){
   if(!m||!m.singleElim)return;
   let div=m.division,arr=state.allMatches[div]||[],comps=(state.singleElimComps&&state.singleElimComps[div])||eligibleIndividuals(div).filter(c=>c.name);
@@ -207,6 +238,12 @@ function championshipSideLabel(side,div){
   }
   return 'TBD';
 }
+/**
+ * Name, or where the side comes from ('Winner of …').
+ * @param {Match} match
+ * @param {'white'|'red'} side
+ * @returns {string}
+ */
 function specificMatchSideLabel(match,side){
   if(!match)return 'TBD';
   const actual=side==='white'?(match.white||match.teamWhite):(match.red||match.teamRed);

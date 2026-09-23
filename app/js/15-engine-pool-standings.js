@@ -1,3 +1,10 @@
+// @ts-check
+/**
+ * Pool standings; tied groups are ordered by their tiebreaks (their pool record is kept in wins/pts).
+ * @param {string} poolLabel
+ * @param {string} [div]
+ * @returns {PoolStandingRow[]}
+ */
 function poolStandings(poolLabel,div=state.currentDivision){
   let pool=(state.pools[div]||[]).find(p=>p.label===poolLabel);if(!pool)return [];
   let base=initialPoolStandings(poolLabel,div);if(!base.length)return [];

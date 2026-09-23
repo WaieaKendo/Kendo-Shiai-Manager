@@ -1,5 +1,20 @@
+// @ts-check
+/**
+ * Member positions of the team format in Setup, in bout order.
+ * @returns {TeamPosition[]}
+ */
 function teamSlots(){let fmt=teamFormat?.value||'5-Person Team';return fmt==='3-Person Team'||fmt==='Kachinuki'?['senpo','chuken','taisho']:['senpo','jiho','chuken','fukusho','taisho']}
+/**
+ * @param {string} k
+ * @returns {string} 'senpo' -> 'Senpo'
+ */
 function slotLabel(k){return ({senpo:'Senpo',jiho:'Jiho',chuken:'Chuken',fukusho:'Fukusho',taisho:'Taisho'}[k]||k)}
+/**
+ * Team event matches: single-elimination bracket (state.teamBracketNodes) or round robin.
+ * @param {string} div
+ * @param {Team[]} teams
+ * @returns {Match[]}
+ */
 function buildTeamMatches(div,teams){
   let m=[],fmt=teamTournamentFormat?.value||'Single Elimination';
   state.teamElimTeams=state.teamElimTeams||{};state.teamElimTeams[div]=[...teams];
@@ -10,12 +25,18 @@ function buildTeamMatches(div,teams){
   }else{
     let slots=teamSlots(),matchFmt=teamFormat?.value||'5-Person Team';
     for(let i=0;i<teams.length;i++)for(let j=i+1;j<teams.length;j++){
-      let court=((i+j)%2===0?'A':'B');
+      let court=/** @type {Court} */((i+j)%2===0?'A':'B');
       addTeamPairMatches(m,div,teams[i],teams[j],'A',`${i}-${j}`,court,matchFmt,slots);
     }
   }
   return m
 }
+/**
+ * @param {BracketSource|null} side
+ * @param {Team[]} teams
+ * @param {string} div
+ * @returns {Team|null}
+ */
 function teamSideTeam(side,teams,div){
   if(!side)return null;
   if(side.team)return teams[side.team-1]||null;
@@ -23,7 +44,17 @@ function teamSideTeam(side,teams,div){
   return null;
 }
 function nodeHasMatch(arr,node){return arr.some(m=>m.teamNodeId===node.id)}
+/**
+ * @param {TeamBracketNode} node
+ * @returns {string}
+ */
 function nodePairId(node){return 'node-'+node.id}
+/**
+ * Creates the bouts of every team node whose two teams are known.
+ * @param {string} div
+ * @param {Match[]} arr
+ * @param {Team[]} teams
+ */
 function syncTeamBracket(div,arr,teams){
   state.teamBracketNodes=state.teamBracketNodes||{};
   let nodes=state.teamBracketNodes[div]||[];let slots=teamSlots(),matchFmt=teamFormat?.value||'5-Person Team';let changed=true,guard=0;

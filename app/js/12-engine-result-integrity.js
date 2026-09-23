@@ -1,8 +1,19 @@
+// @ts-check
+/**
+ * @param {Match} m
+ * @param {string} winner
+ * @returns {boolean}
+ */
 function completedResultWinnerValid(m,winner){
   if(!m||!winner)return false;
   if(winner===m.white||winner===m.red)return true;
   return winner==='Hikiwake'&&!matchRequiresWinner(m);
 }
+/**
+ * @param {Match} m
+ * @param {CompletedResult} [snapshot]
+ * @returns {boolean}
+ */
 function completedResultSnapshotValid(m,snapshot){
   if(!snapshot||!completedResultWinnerValid(m,snapshot.winner)||!Array.isArray(snapshot.wp)||!Array.isArray(snapshot.rp))return false;
   const wp=snapshot.wp.length,rp=snapshot.rp.length;
@@ -10,25 +21,49 @@ function completedResultSnapshotValid(m,snapshot){
   if(snapshot.winner===m.red)return rp>wp;
   return snapshot.winner==='Hikiwake'&&wp===rp;
 }
+/**
+ * Winner's name from the points, or 'Hikiwake'.
+ * @param {Match} m
+ * @returns {string}
+ */
 function scoreWinnerOf(m){
   if(!m)return 'Hikiwake';
   const wp=(m.wp||[]).length,rp=(m.rp||[]).length;
   if(wp>rp)return m.white;if(rp>wp)return m.red;return 'Hikiwake';
 }
+/**
+ * @param {Match} m
+ * @param {'W'|'R'} side
+ * @returns {PointLetter[]}
+ */
 function pointsFor(m,side){
   const snapshot=m?.done&&completedResultSnapshotValid(m,m.completedResult)?m.completedResult:null;
   const saved=side==='W'?snapshot?.wp:snapshot?.rp;
   return Array.isArray(saved)?saved:((side==='W'?m?.wp:m?.rp)||[]);
 }
+/**
+ * Winner's name (the saved result when it is valid), or 'Hikiwake'.
+ * @param {Match} m
+ * @returns {string}
+ */
 function winnerOf(m){
   const snapshot=m?.done?m.completedResult:null;
   if(completedResultSnapshotValid(m,snapshot))return snapshot.winner;
   return scoreWinnerOf(m);
 }
+/**
+ * @param {Match} m
+ * @returns {CompletedResult}
+ */
 function completedResultSnapshot(m){
   const winner=scoreWinnerOf(m);
   return {winner,wp:[...(m?.wp||[])],rp:[...(m?.rp||[])],wt:Number(m?.wt||0),rt:Number(m?.rt||0),recordedAt:new Date().toISOString()};
 }
+/**
+ * @param {TournamentState} [targetState]
+ * @param {string} [source]
+ * @returns {{restored: number, created: number, reopened: number}}
+ */
 function repairCompletedMatchResults(targetState=state,source='load'){
   const all=targetState?.allMatches;if(!all||typeof all!=='object')return {restored:0,created:0,reopened:0};
   let restored=0,created=0,reopened=0;

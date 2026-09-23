@@ -1,4 +1,10 @@
+// @ts-check
 const CHAMPIONSHIP_TEMPLATE_VERSION='v1.0';
+/**
+ * Frozen first-round seed pairs for `total` pool entrants, e.g. [['A1','B2'],['B1','A2']].
+ * @param {number} total
+ * @returns {string[][]}
+ */
 function championshipTemplateForTotal(total){
   // Frozen Championship Template Library v1.0.
   // Each pair is [Red seed, White seed]. The first listed seed is red; the second is white.
@@ -41,6 +47,10 @@ function championshipTemplateForTotal(total){
   };
   return T[total]||[];
 }
+/**
+ * @param {string} div
+ * @returns {string[][]}
+ */
 function championshipLabels(div){
   // Once generated, the frozen template mapping remains authoritative even if
   // a no-show reduces the number of active pool competitors.
@@ -51,11 +61,21 @@ function championshipLabels(div){
   let total=pools.reduce((sum,p)=>sum+(p.players?p.players.length:0),0);
   return championshipTemplateForTotal(total);
 }
+/**
+ * How many places of each pool feed the championship (pool label -> places).
+ * @param {string} div
+ * @returns {Record<string, number>}
+ */
 function requiredSeedPlaces(div){
   // Pool-only divisions award 1st–3rd from standings, so ties touching those places need tiebreaks.
   if(isPoolOnlyDivision(div)){const pool=state.pools[div][0];return {[pool.label]:Math.min(3,pool.players?.length||0)};}
   let req={};championshipLabels(div).flat().forEach(label=>{let m=String(label).match(/^([A-Z])(\d)$/);if(m){let p=parseInt(m[2],10);req[m[1]]=Math.max(req[m[1]]||0,p);}});return req;
 }
+/**
+ * @param {PoolStandingRow} a
+ * @param {PoolStandingRow} b
+ * @returns {boolean}
+ */
 function poolRowsStillTied(a,b){
   if(!a||!b)return false;
   if(a.wins!==b.wins || a.pts!==b.pts)return false;
@@ -68,6 +88,11 @@ function poolRowsStillTied(a,b){
   }
   return true;
 }
+/**
+ * @param {string} poolLabel
+ * @param {string} [div]
+ * @returns {SeedResolution}
+ */
 function poolSeedResolution(poolLabel,div=state.currentDivision){
   if(!poolFinished(poolLabel,div)||pendingTiebreak(poolLabel,div))return {complete:false,seeds:{},rows:[]};
   const req=requiredSeedPlaces(div)[poolLabel]||2;
@@ -99,7 +124,19 @@ function poolSeedResolution(poolLabel,div=state.currentDivision){
   const rows=poolStandings(poolLabel,div);
   return {complete,seeds,rows};
 }
+/**
+ * @param {string} poolLabel
+ * @param {string} [div]
+ * @returns {boolean}
+ */
 function poolPositionsResolved(poolLabel,div=state.currentDivision){return poolSeedResolution(poolLabel,div).complete;}
+/**
+ * The standings row for a seed label ('A1'), or null while undecided.
+ * @param {string} div
+ * @param {string} label
+ * @param {boolean} [onlyFinalized]
+ * @returns {PoolStandingRow|null}
+ */
 function seedNameForLabel(div,label,onlyFinalized=true){
   let m=String(label).match(/^([A-Z])([123])$/); if(!m)return null;
   let poolLabel=m[1],place=parseInt(m[2],10);
@@ -108,6 +145,11 @@ function seedNameForLabel(div,label,onlyFinalized=true){
   return resolution.seeds[place]||resolution.rows[place-1]||null;
 }
 
+/**
+ * @param {string} div
+ * @param {ChampionshipNode} node
+ * @returns {Match}
+ */
 function championshipMatchObjectForNode(div,node){
   return {
     division:div,
@@ -120,6 +162,12 @@ function championshipMatchObjectForNode(div,node){
     seedRed:node.left?.seed||null,seedWhite:node.right?.seed||null
   };
 }
+/**
+ * Creates the championship nodes (state.championshipNodes) and their Match Objects.
+ * @param {string} div
+ * @param {string[][]} seedPairs
+ * @returns {Match[]}
+ */
 function buildChampionshipTemplateMatches(div,seedPairs){
   const count=(seedPairs||[]).length;
   if(!count)return [];
@@ -129,6 +177,7 @@ function buildChampionshipTemplateMatches(div,seedPairs){
   function addNode(id,round,slot,left,right){
     const total=roundMatchCountForDivision(div,round);
     const court=championshipCourtFor(div,round,slot,total);
+    /** @type {ChampionshipNode} */
     const node={id,round,slot,left,right,court};nodes.push(node);
     matches.push(championshipMatchObjectForNode(div,node));
   }
@@ -148,6 +197,11 @@ function buildChampionshipTemplateMatches(div,seedPairs){
   state.championshipNodes[div]=nodes;
   return matches;
 }
+/**
+ * @param {string} div
+ * @param {BracketSource} side
+ * @returns {{name: string, dojo: string}|null}
+ */
 function championshipNodeSource(div,side){
   if(!side)return null;
   if(side.seed)return seedNameForLabel(div,side.seed,true);
@@ -157,6 +211,11 @@ function championshipNodeSource(div,side){
   }
   return null;
 }
+/**
+ * Fills championship matches from pool seeds and earlier winners.
+ * @param {string} div
+ * @returns {Match[]}
+ */
 function syncChampionshipTemplate(div){
   const nodes=state.championshipNodes?.[div]||[];
   const arr=state.allMatches?.[div]||[];
@@ -187,6 +246,10 @@ function championshipSeeds(div){
 }
 function bracketPairsFromSeeds(seeds){return seeds}
 function champRoundOrder(name){return name==='Round of 16'?16:name==='Quarterfinal'?8:name==='Semifinal'?4:name==='Final'?2:0}
+/**
+ * @param {Match} m
+ * @returns {{name: string, dojo: string}|null}
+ */
 function champWinnerObj(m){let win=winnerOf(m);if(win===m.red)return {name:m.red,dojo:m.rdojo};if(win===m.white)return {name:m.white,dojo:m.wdojo};return null}
 function nextChampRoundName(current,count){if(current==='Round of 16')return 'Quarterfinal';if(current==='Quarterfinal')return 'Semifinal';if(current==='Semifinal')return 'Final';if(count===8)return 'Quarterfinal';if(count===4)return 'Semifinal';return 'Final'}
 function champSourceWinner(div,round,slot){
@@ -200,6 +263,10 @@ function champSourceWinner(div,round,slot){
   return null;
 }
 function roundMatchCountForDivision(div,round){let initial=(state.brackets[div]||championshipLabels(div)||[]).length;if(round==='Round of 16')return initial;if(round==='Quarterfinal')return initial>=8?4:initial;if(round==='Semifinal')return 2;if(round==='Final')return 1;return initial}
+/**
+ * @param {Match} m
+ * @returns {string}
+ */
 function individualLogicalMatchKey(m){
   if(!m||m.type!=='individual')return null;
   if(m.singleElim)return `single:${m.elimNodeId||m.position+':'+(m.bracketSlot??'')}`;
@@ -210,6 +277,9 @@ function individualLogicalMatchKey(m){
   }
   return null;
 }
+/**
+ * @param {string} div
+ */
 function enforceUniqueIndividualMatches(div){
   const arr=state.allMatches?.[div]||[];
   const seen=new Map(),out=[];
@@ -228,11 +298,32 @@ function enforceUniqueIndividualMatches(div){
   if(state.currentDivision===div)state.matches=out;
   return out;
 }
+/**
+ * @param {string} div
+ */
 function recomputeChampionshipAdvancement(div){return syncChampionshipTemplate(div)}
+/**
+ * @param {Match} m
+ */
 function maybeAdvanceChampionship(m){if(!m||!m.championship||m.type!=='individual')return;syncChampionshipTemplate(m.division)}
+/**
+ * @param {Match} m
+ */
 function maybeCreateChampionship(m){if(!m||m.type!=='individual'||m.championship)return;syncChampionshipTemplate(m.division)}
+/**
+ * @param {number} n number of first-round matches
+ * @returns {RoundName}
+ */
 function firstRoundName(n){if(n>=8)return 'Round of 16';if(n>=4)return 'Quarterfinal';if(n>=2)return 'Semifinal';return 'Final'}
+/**
+ * @param {RoundName} name
+ * @returns {RoundName|null}
+ */
 function nextRoundFromName(name){if(name==='Round of 16')return 'Quarterfinal';if(name==='Quarterfinal')return 'Semifinal';if(name==='Semifinal')return 'Final';return null}
+/**
+ * @param {RoundName} name
+ * @returns {RoundName|null}
+ */
 function previousRoundName(name){if(name==='Quarterfinal')return 'Round of 16';if(name==='Semifinal')return 'Quarterfinal';if(name==='Final')return 'Semifinal';return null}
 function placeholderMatchHtml(red,white,status='vs',extra=''){
   // Visual order is always White on the left and Red on the right.
@@ -262,7 +353,17 @@ function expectedRoundCount(div,round){
   while(r){count=Math.ceil(count/2);if(r===round)return count;if(r==='Final')break;r=nextRoundFromName(r)}
   return 0;
 }
+/**
+ * @param {RoundName} first
+ * @returns {RoundName[]}
+ */
 function roundSequenceFromFirst(first){let seq=[];let r=first;while(r){seq.push(r);if(r==='Final')break;r=nextRoundFromName(r)}return seq;}
+/**
+ * @param {string} div
+ * @param {RoundName} round
+ * @param {number} slot
+ * @returns {Match|undefined}
+ */
 function champMatchBySlot(div,round,slot){return (state.allMatches[div]||[]).find(x=>x.championship&&x.position===round&&x.bracketSlot===slot)}
 function sourceLabelForRound(div,prevRound,slot){
   let pm=champMatchBySlot(div,prevRound,slot);

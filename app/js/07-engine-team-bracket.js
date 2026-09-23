@@ -1,6 +1,31 @@
+// @ts-check
+/**
+ * Bracket side: team number n (1-based registration order).
+ * @param {number} n
+ * @returns {BracketSource}
+ */
 function T(n){return {team:n}}
+/**
+ * Bracket side: winner of node id.
+ * @param {string} id
+ * @returns {BracketSource}
+ */
 function W(id){return {ref:id}}
+/**
+ * @param {string} id
+ * @param {RoundName} round
+ * @param {Court} court
+ * @param {BracketSource|null} left
+ * @param {BracketSource|null} right
+ * @param {number} slot
+ * @returns {TeamBracketNode}
+ */
 function N(id,round,court,left,right,slot){return {id,round,court,left,right,slot,winner:null}}
+/**
+ * Frozen bracket template for n teams (also used for individual single elimination).
+ * @param {number} n
+ * @returns {TeamBracketNode[]}
+ */
 function teamBracketNodesForCount(n){
   // Team Single-Elimination Template Library v1.0
   // Fixed data templates. Red listed first, White second. Top half Court A, bottom half Court B, Final Court A.
@@ -42,7 +67,7 @@ function teamBracketNodesForCount(n){
     let spec=specs[n]||specs[32];let nodes=[];
     (spec.P||[]).forEach((p,i)=>nodes.push(N('P'+(i+1),'Play-in',p[0],T(p[1]),T(p[2]),p[3]-1)));
     let firstRoundName=n===32?'Round of 32':'Round of 16';let firstPrefix=n===32?'R32':'R16';
-    spec.R.forEach((r,i)=>{let court=i<Math.ceil(spec.R.length/2)?'A':'B';let left=typeof r[0]==='number'?T(r[0]):W(r[0]);let right=typeof r[1]==='number'?T(r[1]):W(r[1]);let dest=n===32?'R16-'+(Math.floor(i/2)+1):'QF'+(Math.floor(i/2)+1);nodes.push(N(firstPrefix+'-'+(i+1),firstRoundName,court,left,right,i));});
+    spec.R.forEach((r,i)=>{let court=/** @type {Court} */(i<Math.ceil(spec.R.length/2)?'A':'B');let left=typeof r[0]==='number'?T(r[0]):W(r[0]);let right=typeof r[1]==='number'?T(r[1]):W(r[1]);let dest=n===32?'R16-'+(Math.floor(i/2)+1):'QF'+(Math.floor(i/2)+1);nodes.push(N(firstPrefix+'-'+(i+1),firstRoundName,court,left,right,i));});
     if(n===32){for(let i=1;i<=8;i++)nodes.push(N('R16-'+i,'Round of 16',i<=4?'A':'B',W('R32-'+(2*i-1)),W('R32-'+(2*i)),i-1));}
     for(let i=1;i<=4;i++)nodes.push(N('QF'+i,'Quarterfinal',i<=2?'A':'B',W((n===32?'R16':'R16')+'-'+(2*i-1)),W((n===32?'R16':'R16')+'-'+(2*i)),i-1));
     if(n<32){ // for 16-team base, QFs should read from R16 nodes already created
@@ -59,6 +84,18 @@ function teamBracketNodesForCount(n){
   alert('Team single-elimination templates currently support 2–32 teams.');
   return [];
 }
+/**
+ * Adds a pairing's bouts (one kachinuki bout, or one per position).
+ * @param {Match[]} m
+ * @param {string} div
+ * @param {Team} a White team
+ * @param {Team} b Red team
+ * @param {string} pool
+ * @param {string} pairId
+ * @param {Court} court
+ * @param {string} matchFmt
+ * @param {TeamPosition[]} slots
+ */
 function addTeamPairMatches(m,div,a,b,pool,pairId,court,matchFmt,slots){
   if(matchFmt==='Kachinuki'){
     let lineupW=['senpo','chuken','taisho'].map(k=>a[k]||`${a.team} ${slotLabel(k)}`),lineupR=['senpo','chuken','taisho'].map(k=>b[k]||`${b.team} ${slotLabel(k)}`);
@@ -67,6 +104,11 @@ function addTeamPairMatches(m,div,a,b,pool,pairId,court,matchFmt,slots){
     slots.forEach(k=>m.push({division:div,pool,white:a[k]||`${a.team} ${slotLabel(k)}`,red:b[k]||`${b.team} ${slotLabel(k)}`,wdojo:a.team,rdojo:b.team,teamWhite:a.team,teamRed:b.team,position:slotLabel(k),teamPair:pairId,done:false,wp:[],rp:[],type:'teamPosition',origin:'TEMPLATE',court}));
   }
 }
+/**
+ * Next lineup indexes after a kachinuki bout: the winner stays, a draw eliminates both (except a last player).
+ * @param {Match} m
+ * @returns {{wi: number, ri: number, whiteExhausted: boolean, redExhausted: boolean}}
+ */
 function kachinukiTransitionState(m){
   let wp=(m.wp||[]).length,rp=(m.rp||[]).length;
   let wi=m.wIndex,ri=m.rIndex;
@@ -79,6 +121,11 @@ function kachinukiTransitionState(m){
   }
   return {wi,ri,whiteExhausted:wi>2,redExhausted:ri>2};
 }
+/**
+ * @param {string} div
+ * @param {string} pair
+ * @returns {string|null}
+ */
 function kachinukiPairWinner(div,pair){
   let ms=teamPairMatches(div,pair);
   let playoff=ms.find(x=>x.type==='teamPlayoff');
@@ -96,7 +143,16 @@ function kachinukiPairWinner(div,pair){
   if(terminal.redExhausted&&!terminal.whiteExhausted)return last.teamWhite;
   return null;
 }
+/**
+ * Winning team name of a pairing, or null while undecided.
+ * @param {string} div
+ * @param {string} pair
+ * @returns {string|null}
+ */
 function teamWinner(div,pair){let ms=teamPairMatches(div,pair);if(ms.some(x=>x.type==='kachinuki'))return kachinukiPairWinner(div,pair);let s=teamPairSummary(div,pair);if(s.wWins>s.rWins)return s.teamWhite;if(s.rWins>s.wWins)return s.teamRed;if(s.wPts>s.rPts)return s.teamWhite;if(s.rPts>s.wPts)return s.teamRed;return null}
+/**
+ * @param {Match} m
+ */
 function maybeAdvanceTeamBracket(m){
   if(!m || !(m.type==='teamPosition'||m.type==='teamPlayoff'||m.type==='kachinuki'))return;
   let div=m.division, fmt=teamTournamentFormat?.value||'Single Elimination';
