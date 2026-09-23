@@ -12,7 +12,7 @@ Status: ✅ done · 🔨 in progress · ⏳ ready to start · 🗣 needs a decis
 | 0.1 | Tiebreak standings show the tiebreak-match record instead of the pool record | `fix/tiebreak-standings` | ✅ | Order was already correct; only the numbers shown were wrong |
 | 0.2 | Round robins with 3–5 players never finish or show placements; **5 entrants silently dropped one competitor** | `fix/small-round-robin-results` | ✅ | Placements from final pool standings (tiebreaks for places 1–3); 5 entrants → one pool of 5. Confirm the rule with HKF |
 | 0.3 | Red/White side setting for court screen and printed sheets | `feat/court-side-setting` | ✅ | Per court in Setup → Referees, from the scoring table's view; synced to all devices. Default unchanged. TV (audience view) not affected |
-| 0.4 | HTML injection through names in inline click handlers | `fix/inline-handler-escaping` | ⏳ | Security; no visible change |
+| 0.4 | HTML injection through names in inline click handlers | `fix/inline-handler-escaping` | ✅ | Security; no visible change. `jsArg()` for all handler string arguments |
 
 ## Phase 1: small scorekeeper improvements
 
@@ -20,6 +20,8 @@ Status: ✅ done · 🔨 in progress · ⏳ ready to start · 🗣 needs a decis
 |---|---|---|---|---|
 | 1.1 | Court automatically moves to the next division with ready matches | `feat/court-auto-advance` | ⏳ | Today the scorekeeper switches by hand when a division ends |
 | 1.2 | Preset per-court division running order in Setup | `feat/court-running-order` | ⏳ | Feeds 1.1 |
+
+| 1.3 | One-click PDF download of print sheets (today: browser Print → Save as PDF) | `feat/pdf-export` | ⏳ | e.g. to email sheets to dojos before the event |
 
 ## Phase 2: groundwork for sync redesign (no user-visible change)
 
