@@ -35,6 +35,16 @@ def fetch_record(base, tid):
         return json.load(r)
 
 
+def put_record(base, tid, payload, revision, password=DEFAULT_PASSWORD, client_id='test-harness', name='Test harness'):
+    """Save a tournament payload straight to the server, as another staff device (or an older app version) would."""
+    body = json.dumps({'tournamentId': tid, 'revision': revision, 'payload': payload}).encode()
+    req = urllib.request.Request(f'{base}/api/tournaments/{tid}', data=body, method='PUT', headers={
+        'content-type': 'application/json', 'x-ksm-role': 'staff', 'x-ksm-session-key': password,
+        'x-ksm-client-id': client_id, 'x-ksm-client-name': name})
+    with urllib.request.urlopen(req) as r:
+        return json.load(r)
+
+
 # Reads the court (scorekeeper) screen through its test IDs only.
 _COURT_JS = """() => {
   const q = id => document.querySelector(`#score [data-testid="${id}"]`);
