@@ -101,8 +101,8 @@ Results are scripted (the stronger entrant wins), so expected placements follow 
 - `function-override-baseline-test.mjs`: the app redeclares ~35 functions, and the browser runs the last declaration (the split keeps this: the JS files still run as one classic script). The test fails if a new redeclaration appears; lower the baseline when you remove one.
 - `typecheck-test.mjs`: `npm run typecheck` passes. `tsconfig.json` has `checkJs` off; a file opts in with `// @ts-check` on its first line (today the engine files 04–07 and 12–15). Types live in `app/types/` (`tournament.d.ts`: payload, state, Match, pools, bracket nodes, court history, cloud records).
 - `build-output-test.mjs`: see "How tests find the app".
-- `react-unit-test.mjs`: the unit tests in `tests/react/` (live-record logic behind `useTournamentRecord`, and the `ksm:state-changed` bridge in `app/js/00-react-bridge.js`).
-- `npm run verify:split` allows deliberate post-split additions only inside `/* ksm:post-split-begin <name> */ ... /* ksm:post-split-end */` markers, with the count per name pinned in `KNOWN_POST_SPLIT_EDITS` (today `react-bridge`: the bridge file plus the dispatch in `performCourtAction()` and `renderAll()`).
+- `react-unit-test.mjs`: the unit tests in `tests/react/` (live-record logic behind `useTournamentRecord`, the `ksm:state-changed` bridge in `app/js/00-react-bridge.js`, and the overlay's URL options, band-mode layout and match selection).
+- `npm run verify:split` allows deliberate post-split additions only inside `/* ksm:post-split-begin <name> */ ... /* ksm:post-split-end */` markers, with the count per name pinned in `KNOWN_POST_SPLIT_EDITS` (today `react-bridge`: the bridge file plus the dispatch in `performCourtAction()` and `renderAll()`; `stream-overlay`: `app/js/33-stream-overlay-links.js`, the TV-menu overlay links).
 
 ## Test helper, test IDs and test API
 
@@ -203,6 +203,8 @@ Greps of `src-worker.js`, `wrangler.jsonc` and `service-worker.js` are not affec
 | `test-ids-test.py` | The `data-testid` contract | behaviour (helper) | keep (the contract rewritten screens must meet) |
 | `typecheck-test.mjs` | `npm run typecheck` passes (files marked `// @ts-check`, and all of `app/react/`) | guard | keep |
 | `react-unit-test.mjs` | Pure logic in `app/react/` and the legacy state-change bridge (`tests/react/*.test.mjs`) | unit (node:test) | keep |
+| `overlay-test.py` | Stream overlay `/overlay` on local `wrangler dev`: idle before generation, same current match and "Next" as the Court A TV, follows a point/hansoku/Next Match within seconds, team match on `?court=B&red=left`, TV-menu copy link, transparent page, no PUT/POST/DELETE, band mode at 733×1303 on a landscape device (and `?y=`); the court page fires `ksm:state-changed` | e2e (helper/test IDs) | keep |
+| `overlay-match-parity-test.py` | The overlay's pure match selection (`app/react/overlay/court-match.ts`) equals the legacy TV view model (current match, names, pool/round line, points, first upcoming) in every state of 18 golden tournaments played to the end, both courts | behaviour (offline app + Node) | keep until the TV itself uses the shared function |
 | `tournament-day-experience-test.mjs` | Save status, Save Now, save on completed match, manual Next Match, 10-minute autosave, recovery files, access links, diagnostics | source grep | save on completion and manual Next Match: retire — covered by e2e; rest convert |
 | `tournament-day-polish-test.mjs` | Save-status wording/refresh, save toasts, access modal hides keys, copy closes modal, QR Back | source grep | convert |
 | `tournament-management-engine-test.py` | Split validation minimum, split court assignment, championship unlock per source pools, split totals | behaviour (engine globals) | port to engine module |

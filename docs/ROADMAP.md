@@ -23,6 +23,8 @@
 | `fix/tv-reload-restore-prompt` | F1: link devices reload without the restore prompt; unsynced staff work queued and flushed after login | open — ready for review |
 | `test/convert-source-checks` | M.4: behaviour/layout tests for the 34 grep-only checks (coverage map updated); found F2–F4. Branched from `fix/tv-reload-restore-prompt` | open — ready for review |
 | `refactor/vite-typescript` | M.5: Vite build (`app/` → `dist/`), `index.html` split into ordered CSS/JS files with no behaviour change, tests on the built app, tournament data types, engine files type-checked; newer test IDs pinned. Branched from `test/convert-source-checks` | open — ready for review |
+| `feat/react-setup` | M.6 groundwork: React 19 + strict TypeScript in `app/react/`, extra Vite pages (`app/*.html`), `mountIsland()`, `useTournamentRecord()` (GET + spectator WebSocket, backoff, ignores older revisions), `ksm:state-changed` event from the legacy app (marked post-split edits in `verify:split`), Node unit tests. Branched from `refactor/vite-typescript` | open — ready for review |
+| `feat/react-overlay` | M.6 / 1.4: stream overlay page `/overlay` (React), TV-identical match selection as a typed pure function (parity-tested against the TV on 18 tournaments), band mode for PRISM, "copy overlay link" in the TV menu. Branched from `feat/react-setup` | open — ready for review |
 
 Nothing has been pushed to GitHub yet; `main` is unchanged from the original repository.
 
@@ -48,11 +50,11 @@ The front end moves to Vite + TypeScript and then React, screen by screen. Tests
 | M.3 | Test coverage map: every test's purpose, mechanism and migration fate | `test/full-tournament-e2e` | ✅ | docs/TESTING.md |
 | M.4 | Convert the source-grep checks that nothing else covers into behaviour/layout tests | `test/convert-source-checks` | ✅ | All 34 covered or marked dead code in docs/TESTING.md; the greps stay until M.5. Found F2–F4 |
 | M.5 | Vite + TypeScript build; split `index.html` into files with no behaviour change | `refactor/vite-typescript` | ✅ | Still ONE classic script (inline handlers need globals; ~35 redeclared functions rely on order), concatenated from `app/js/NN-*.js`; `npm run verify:split` proves markup/CSS/JS byte-identical to def5010. Golden files byte-identical; tests unchanged (they read the source as one text and load `dist/`). Types for the tournament data; `// @ts-check` on the engine files (pools, teams, single elimination, standings/tiebreaks, championship); the checker found no bugs. `function-override-baseline` stays until the redeclarations go (2.5) |
-| M.6 | React pilot: the livestream overlay page (1.4) | `feat/livestream-overlay` | ⏳ | A new, read-only page, so no existing screen is at risk; sets up React inside the Vite build |
+| M.6 | React pilot: the livestream overlay page (1.4) | `feat/react-setup`, `feat/react-overlay` | ✅ | React inside the Vite build (extra pages, islands, live record hook, state-change bridge); `/overlay` is the first React page. The legacy bundle is unchanged apart from two marked hooks and the TV-menu overlay links |
 | M.7 | Typed engine module | `refactor/engine-module` | ⏳ | = 2.1: the checked engine files become one TypeScript module; golden files byte-identical |
 | M.8 | React court (scorekeeper) screen | `feat/react-court-screen` | ⏳ | Keeps every court test ID; e2e-full and test-ids-test must pass unchanged |
 
-Next steps after `refactor/vite-typescript`: the React pilot (livestream overlay page, M.6), then the typed engine module extraction (M.7 / 2.1), then the React court screen (M.8).
+Next steps after `feat/react-overlay`: the typed engine module extraction (`refactor/engine-module`, M.7 / 2.1), then the React court screen (M.8).
 
 ## Phase 1: small scorekeeper improvements
 
@@ -61,7 +63,7 @@ Next steps after `refactor/vite-typescript`: the React pilot (livestream overlay
 | 1.1 | Court automatically moves to the next division with ready matches | `feat/court-auto-advance` | ⏳ | Today the scorekeeper switches by hand when a division ends |
 | 1.2 | Preset per-court division running order in Setup | `feat/court-running-order` | ⏳ | Feeds 1.1 |
 | 1.3 | One-click PDF download of print sheets (today: browser Print → Save as PDF) | `feat/pdf-export` | ⏳ | e.g. to email sheets to dojos before the event |
-| 1.4 | Livestream overlay page | `feat/livestream-overlay` | ⏳ | Candidate for the first React screen (M.6). See below |
+| 1.4 | Livestream overlay page | `feat/react-overlay` | ✅ | The first React page (M.6). See below; a real live-stream test is still to do |
 
 ### 1.4 Livestream overlay page
 
@@ -75,7 +77,9 @@ Findings so far (tested in PRISM Live Studio on iOS with a standalone test page,
 - In landscape, PRISM keeps the web widget portrait-shaped (e.g. 733×1303), so a bar at the bottom of the page lands off-screen. Resizing the widget by hand in PRISM fixed it.
 - The test page therefore has an automatic "band mode" (moves the bar into the visible middle band when the page is much taller than wide) and a `?y=NN` override for the bar's vertical position.
 
-Still needed: a full live-stream test (a real stream, a whole match, both courts).
+Built in `feat/react-overlay` as `/overlay?tournament=<id>&court=A|B` (options and PRISM notes in README.md): the Court's current match exactly as its TV shows it (names, dojos or teams, division · pool/round/position, points, hansoku, "Next:"), an idle state, a subtle "Reconnecting…" badge, automatic band mode (device landscape + page portrait → bar at `y`% of the height, default 74, sized by the width), `?y=`/`?band=` overrides and `?debug=1` (size, orientation, mode). Staff copy the link from the TV menu.
+
+Still needed: a full live-stream test (a real stream, a whole match, both courts) on the real domain.
 
 ## Phase 2: groundwork for sync redesign (no user-visible change)
 

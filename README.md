@@ -23,13 +23,28 @@ Kendo Shiai Manager (KSM) is a hosted, installable tournament-management applica
 
 The cloud layer stores the existing KSM tournament payload as an opaque snapshot. It does not generate pools, create Match Objects, reorder matches, advance brackets, or regenerate tournament templates.
 
+## Stream overlay (OBS / PRISM)
+
+`/overlay?tournament=<id>&court=A` is a read-only, transparent lower third for a livestream: the court's current match exactly as its TV display shows it (names and dojos, or teams and the current position for team matches; division · pool/round; points and hansoku; the next match), updated live over the spectator WebSocket. It needs no login and never writes. Staff copy the link from the **TV** menu (**Copy Court A/B overlay link**).
+
+| Option | Default | |
+|---|---|---|
+| `court=A\|B` | `A` | Which court |
+| `red=left\|right` | `right` | Side of the bar Red is on |
+| `pos=top\|bottom` | `bottom` | Bar position on a landscape page |
+| `y=NN` | `74` in band mode | Band mode: the bar's top edge at NN % of the page height (setting it turns band mode on) |
+| `band=1\|0` | auto | Force band mode on or off |
+| `debug=1` | off | Shows page size, page/device orientation, mode and connection |
+
+Designed for a 1920×1080 browser source; it scales with the page width. In **OBS** add a Browser Source of that size. In **PRISM Live Studio** the page must come from a real https domain (an IP address or self-signed certificate is rejected). PRISM keeps web widgets portrait-shaped even when streaming landscape; either resize the widget to landscape by hand, or rely on band mode, which detects a landscape device with a portrait page and moves the bar into the visible band (adjust with `y=`).
+
 ## Local development
 
 The front end lives in `app/` and is built with Vite into `dist/`, which the Worker serves (see `docs/REPOSITORY_STRUCTURE.md`).
 
 ```bash
 npm install
-npm run dev          # build, then wrangler dev: app + API on http://localhost:8787
+npm run dev          # build, then wrangler dev: app + API on http://localhost:8787 (overlay: /overlay?tournament=<id>)
 npm run build        # build only (dist/)
 npm run typecheck    # TypeScript: classic files marked // @ts-check, and app/react/ (strict)
 ```

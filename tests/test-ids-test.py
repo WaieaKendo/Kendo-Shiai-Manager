@@ -11,7 +11,7 @@ from ksm_browser import launch_chromium
 SINGLETONS = [
     # header / navigation
     'nav-setup', 'nav-registration', 'nav-courts', 'nav-court-a', 'nav-court-b', 'nav-live-scores',
-    'nav-tv', 'nav-tv-a', 'nav-tv-b', 'nav-overview', 'nav-results', 'nav-export', 'nav-save-load',
+    'nav-tv', 'nav-tv-a', 'nav-tv-b', 'nav-overlay-a', 'nav-overlay-b', 'nav-overview', 'nav-results', 'nav-export', 'nav-save-load',
     'nav-new-tournament', 'nav-save-now', 'nav-library', 'nav-tournament-access',
     'nav-export-brackets', 'nav-cloud-diagnostics', 'nav-download-recovery', 'nav-load-recovery', 'recovery-file-input',
     'staff-auth', 'connection-status', 'save-status', 'home-new-tournament',
