@@ -44,7 +44,9 @@ def local_worker(timeout=60):
     state_dir = tempfile.mkdtemp(prefix='ksm-e2e-')
     log = open(Path(state_dir) / 'wrangler.log', 'w')
     proc = subprocess.Popen(
-        [str(wrangler), 'dev', '--ip', '127.0.0.1', '--port', str(port), '--persist-to', state_dir, '--log-level', 'warn'],
+        # Own inspector port too (default 9229), so several e2e tests can run in parallel.
+        [str(wrangler), 'dev', '--ip', '127.0.0.1', '--port', str(port), '--inspector-port', str(_free_port()),
+         '--persist-to', state_dir, '--log-level', 'warn'],
         cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
         env={**os.environ, 'WRANGLER_SEND_METRICS': 'false', 'CI': '1'},
         start_new_session=True,
