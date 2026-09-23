@@ -13,11 +13,13 @@ Requirements: Node 20+ and Python 3.10+. No Cloudflare account is needed; tests 
 
 | Command | What it runs | Time |
 |---|---|---|
-| `npm test` | Everything below (same as `npm run check`) | ~20 s |
+| `npm test` | Everything below (same as `npm run check`) | ~45 s |
 | `npm run test:node` | Node tests only, no browser needed | ~1 s |
 | `npm run test:browser` | Python/Playwright browser tests, including end-to-end | ~20 s |
 | `npm run test:api` | Backend API contract, in-process | <1 s |
 | `npm run test:e2e` | Two-court end-to-end sync test against local `wrangler dev` | ~15 s |
+| `npm run test:golden` | Engine + screen snapshot comparison (76 tournaments) | ~40 s |
+| `npm run test:golden:update` | Approve intended engine/display changes by rewriting the snapshots | ~40 s |
 | `npm run testlab:smoke` / `testlab` / `testlab:exhaustive` | Tournament-engine simulation matrix (writes reports to `testlab-reports/`, git-ignored) | 5 s – minutes |
 
 `node tests/run-all.mjs <text>` runs only test files whose name contains `<text>` (e.g. `tiebreak`, `v3171`), and `-v` prints every test's output.
@@ -25,6 +27,38 @@ Requirements: Node 20+ and Python 3.10+. No Cloudflare account is needed; tests 
 Run `npm test` before every commit or release. A failing test means either a regression or an intended behaviour change; for the latter, update the test in the same commit and explain why.
 
 ## What is covered
+
+**Golden snapshots (`golden-engine-test.py`): the main "did anything change?" check.** It sets up 76 tournaments:
+- round robin with 3–16 players;
+- single elimination with 2–16 players;
+- one court and split courts;
+- seeded draws, no-shows and several divisions at once;
+- 3-person, 5-person and kachinuki team events, in bracket and round-robin formats.
+
+It plays every match to the end through the same `point()` / `nextMatch()` calls the scorekeeper buttons use. Results come from a fixed rule, so some pool matches end in hikiwake and force tiebreaks.
+
+For each tournament it records:
+- the pools;
+- the generated match list;
+- the order matches came up on each court;
+- every score and winner;
+- pool/team standings and medal placements;
+- any alert or page error;
+- for six of them, the visible text of the Results, Live Scores, Overview and Court screens.
+
+These records live in `tests/golden/engine/*.json` and are compared on every run.
+
+When the test fails, it prints what changed, e.g.:
+
+```
+FAIL rr-04-courtA: engine output changed
+    /final/Open/matches[5]/winner: "P03" -> "P01"
+    /final/Open/standings/A[0]/name: "P03" -> "P02"
+```
+
+- **Not intended:** you've found a regression.
+- **Intended** (a deliberate rule or display change): run `npm run test:golden:update`, review the JSON diff in git, and commit it with the code change so the reviewer sees exactly what changed.
+- **Just one scenario:** `.venv/bin/python tests/golden-engine-test.py rr-12`.
 
 **Backend API contract (`worker-api-test.mjs`)** runs the real `src-worker.js` against an in-memory Cloudflare runtime and checks tournament creation, staff password auth, stale-revision rejection (409), simultaneous saves (exactly one wins), integrity validation (422), WebSocket snapshot/presence/delete broadcasts, the tournament library, deletion and admin reset.
 
@@ -46,6 +80,10 @@ Use this mode to prove that a replacement backend (e.g. an AWS port) behaves ide
 **Guards:**
 - `version-consistency-test.mjs`: `package.json`, the HTML badge and title, the service worker cache name, `/api/health` and `CHANGELOG.md` agree. Bump the version in all of them together.
 - `function-override-baseline-test.mjs`: `index.html` redeclares ~35 functions, and the browser runs the last declaration. The test fails if a new redeclaration appears; lower the baseline when you remove one.
+
+## Continuous integration
+
+`.github/workflows/test.yml` runs `npm test` on every push and pull request on GitHub (Ubuntu, Node 22, Python 3.12, Playwright Chromium).
 
 ## Writing tests
 

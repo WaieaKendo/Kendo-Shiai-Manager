@@ -1,0 +1,1253 @@
+{
+ "setup": [
+  {
+   "team": true,
+   "format": "5-Person Team",
+   "tournament": "Round Robin",
+   "teams": 4,
+   "court": "Both"
+  }
+ ],
+ "generated": {
+  "Team Tournament": {
+   "pools": [
+    {
+     "label": "A",
+     "players": [
+      "Team A",
+      "Team B",
+      "Team C",
+      "Team D"
+     ]
+    }
+   ],
+   "matches": [
+    {
+     "pool": "A",
+     "position": "Senpo",
+     "node": null,
+     "court": "B",
+     "white": "TA1",
+     "red": "TB1",
+     "teams": "Team A v Team B",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": "Jiho",
+     "node": null,
+     "court": "B",
+     "white": "TA2",
+     "red": "TB2",
+     "teams": "Team A v Team B",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": "Chuken",
+     "node": null,
+     "court": "B",
+     "white": "TA3",
+     "red": "TB3",
+     "teams": "Team A v Team B",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": "Fukusho",
+     "node": null,
+     "court": "B",
+     "white": "TA4",
+     "red": "TB4",
+     "teams": "Team A v Team B",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": "Taisho",
+     "node": null,
+     "court": "B",
+     "white": "TA5",
+     "red": "TB5",
+     "teams": "Team A v Team B",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": "Senpo",
+     "node": null,
+     "court": "A",
+     "white": "TA1",
+     "red": "TC1",
+     "teams": "Team A v Team C",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": "Jiho",
+     "node": null,
+     "court": "A",
+     "white": "TA2",
+     "red": "TC2",
+     "teams": "Team A v Team C",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": "Chuken",
+     "node": null,
+     "court": "A",
+     "white": "TA3",
+     "red": "TC3",
+     "teams": "Team A v Team C",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": "Fukusho",
+     "node": null,
+     "court": "A",
+     "white": "TA4",
+     "red": "TC4",
+     "teams": "Team A v Team C",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": "Taisho",
+     "node": null,
+     "court": "A",
+     "white": "TA5",
+     "red": "TC5",
+     "teams": "Team A v Team C",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": "Senpo",
+     "node": null,
+     "court": "B",
+     "white": "TA1",
+     "red": "TD1",
+     "teams": "Team A v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": "Jiho",
+     "node": null,
+     "court": "B",
+     "white": "TA2",
+     "red": "TD2",
+     "teams": "Team A v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": "Chuken",
+     "node": null,
+     "court": "B",
+     "white": "TA3",
+     "red": "TD3",
+     "teams": "Team A v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": "Fukusho",
+     "node": null,
+     "court": "B",
+     "white": "TA4",
+     "red": "TD4",
+     "teams": "Team A v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": "Taisho",
+     "node": null,
+     "court": "B",
+     "white": "TA5",
+     "red": "TD5",
+     "teams": "Team A v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": "Senpo",
+     "node": null,
+     "court": "B",
+     "white": "TB1",
+     "red": "TC1",
+     "teams": "Team B v Team C",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": "Jiho",
+     "node": null,
+     "court": "B",
+     "white": "TB2",
+     "red": "TC2",
+     "teams": "Team B v Team C",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": "Chuken",
+     "node": null,
+     "court": "B",
+     "white": "TB3",
+     "red": "TC3",
+     "teams": "Team B v Team C",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": "Fukusho",
+     "node": null,
+     "court": "B",
+     "white": "TB4",
+     "red": "TC4",
+     "teams": "Team B v Team C",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": "Taisho",
+     "node": null,
+     "court": "B",
+     "white": "TB5",
+     "red": "TC5",
+     "teams": "Team B v Team C",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": "Senpo",
+     "node": null,
+     "court": "A",
+     "white": "TB1",
+     "red": "TD1",
+     "teams": "Team B v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": "Jiho",
+     "node": null,
+     "court": "A",
+     "white": "TB2",
+     "red": "TD2",
+     "teams": "Team B v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": "Chuken",
+     "node": null,
+     "court": "A",
+     "white": "TB3",
+     "red": "TD3",
+     "teams": "Team B v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": "Fukusho",
+     "node": null,
+     "court": "A",
+     "white": "TB4",
+     "red": "TD4",
+     "teams": "Team B v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": "Taisho",
+     "node": null,
+     "court": "A",
+     "white": "TB5",
+     "red": "TD5",
+     "teams": "Team B v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": "Senpo",
+     "node": null,
+     "court": "B",
+     "white": "TC1",
+     "red": "TD1",
+     "teams": "Team C v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": "Jiho",
+     "node": null,
+     "court": "B",
+     "white": "TC2",
+     "red": "TD2",
+     "teams": "Team C v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": "Chuken",
+     "node": null,
+     "court": "B",
+     "white": "TC3",
+     "red": "TD3",
+     "teams": "Team C v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": "Fukusho",
+     "node": null,
+     "court": "B",
+     "white": "TC4",
+     "red": "TD4",
+     "teams": "Team C v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": "Taisho",
+     "node": null,
+     "court": "B",
+     "white": "TC5",
+     "red": "TD5",
+     "teams": "Team C v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    }
+   ]
+  }
+ },
+ "play_order": [
+  "A | Team Tournament | Senpo | TA1 v TC1 | white WM",
+  "B | Team Tournament | Senpo | TA1 v TB1 | white WM",
+  "A | Team Tournament | Jiho | TA2 v TC2 | red RK",
+  "B | Team Tournament | Jiho | TA2 v TB2 | red RD RM",
+  "A | Team Tournament | Chuken | TA3 v TC3 | white WM RD WK",
+  "B | Team Tournament | Chuken | TA3 v TB3 | tie WM RK",
+  "A | Team Tournament | Fukusho | TA4 v TC4 | red RK",
+  "B | Team Tournament | Fukusho | TA4 v TB4 | white WM",
+  "A | Team Tournament | Taisho | TA5 v TC5 | tie WM RK",
+  "B | Team Tournament | Taisho | TA5 v TB5 | red RD RM",
+  "A | Team Tournament | Team Playoff TB | Team A Representative v Team C Representative | white WM RD WK",
+  "B | Team Tournament | Senpo | TA1 v TD1 | red RD RM",
+  "A | Team Tournament | Senpo | TB1 v TD1 | red RK",
+  "B | Team Tournament | Jiho | TA2 v TD2 | tie WM RK",
+  "A | Team Tournament | Jiho | TB2 v TD2 | white WM RD WK",
+  "B | Team Tournament | Chuken | TA3 v TD3 | white WM",
+  "A | Team Tournament | Chuken | TB3 v TD3 | red RK",
+  "B | Team Tournament | Fukusho | TA4 v TD4 | red RD RM",
+  "A | Team Tournament | Fukusho | TB4 v TD4 | tie WM RK",
+  "B | Team Tournament | Taisho | TA5 v TD5 | white WM",
+  "A | Team Tournament | Taisho | TB5 v TD5 | white WM RD WK",
+  "B | Team Tournament | Senpo | TB1 v TC1 | red RD RM",
+  "A | Team Tournament | Team Playoff TB | Team B Representative v Team D Representative | red RK",
+  "B | Team Tournament | Jiho | TB2 v TC2 | tie WM RK",
+  "B | Team Tournament | Chuken | TB3 v TC3 | white WM",
+  "B | Team Tournament | Fukusho | TB4 v TC4 | red RD RM",
+  "B | Team Tournament | Taisho | TB5 v TC5 | white WM",
+  "B | Team Tournament | Senpo | TC1 v TD1 | tie WM RK",
+  "B | Team Tournament | Jiho | TC2 v TD2 | white WM",
+  "B | Team Tournament | Chuken | TC3 v TD3 | red RD RM",
+  "B | Team Tournament | Fukusho | TC4 v TD4 | white WM",
+  "B | Team Tournament | Taisho | TC5 v TD5 | red RK"
+ ],
+ "final": {
+  "Team Tournament": {
+   "complete": true,
+   "matches": [
+    {
+     "pool": "A",
+     "position": "Senpo",
+     "node": null,
+     "court": "B",
+     "white": "TA1",
+     "red": "TB1",
+     "teams": "Team A v Team B",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [],
+     "winner": "TA1"
+    },
+    {
+     "pool": "A",
+     "position": "Jiho",
+     "node": null,
+     "court": "B",
+     "white": "TA2",
+     "red": "TB2",
+     "teams": "Team A v Team B",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "D",
+      "M"
+     ],
+     "winner": "TB2"
+    },
+    {
+     "pool": "A",
+     "position": "Chuken",
+     "node": null,
+     "court": "B",
+     "white": "TA3",
+     "red": "TB3",
+     "teams": "Team A v Team B",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [
+      "K"
+     ],
+     "winner": "Hikiwake"
+    },
+    {
+     "pool": "A",
+     "position": "Fukusho",
+     "node": null,
+     "court": "B",
+     "white": "TA4",
+     "red": "TB4",
+     "teams": "Team A v Team B",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [],
+     "winner": "TA4"
+    },
+    {
+     "pool": "A",
+     "position": "Taisho",
+     "node": null,
+     "court": "B",
+     "white": "TA5",
+     "red": "TB5",
+     "teams": "Team A v Team B",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "D",
+      "M"
+     ],
+     "winner": "TB5"
+    },
+    {
+     "pool": "A",
+     "position": "Senpo",
+     "node": null,
+     "court": "A",
+     "white": "TA1",
+     "red": "TC1",
+     "teams": "Team A v Team C",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [],
+     "winner": "TA1"
+    },
+    {
+     "pool": "A",
+     "position": "Jiho",
+     "node": null,
+     "court": "A",
+     "white": "TA2",
+     "red": "TC2",
+     "teams": "Team A v Team C",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "K"
+     ],
+     "winner": "TC2"
+    },
+    {
+     "pool": "A",
+     "position": "Chuken",
+     "node": null,
+     "court": "A",
+     "white": "TA3",
+     "red": "TC3",
+     "teams": "Team A v Team C",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M",
+      "K"
+     ],
+     "rp": [
+      "D"
+     ],
+     "winner": "TA3"
+    },
+    {
+     "pool": "A",
+     "position": "Fukusho",
+     "node": null,
+     "court": "A",
+     "white": "TA4",
+     "red": "TC4",
+     "teams": "Team A v Team C",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "K"
+     ],
+     "winner": "TC4"
+    },
+    {
+     "pool": "A",
+     "position": "Taisho",
+     "node": null,
+     "court": "A",
+     "white": "TA5",
+     "red": "TC5",
+     "teams": "Team A v Team C",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [
+      "K"
+     ],
+     "winner": "Hikiwake"
+    },
+    {
+     "pool": "A",
+     "position": "Team Playoff",
+     "node": null,
+     "court": "A",
+     "white": "Team A Representative",
+     "red": "Team C Representative",
+     "teams": "Team A v Team C",
+     "type": "teamPlayoff",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": true,
+     "done": true,
+     "wp": [
+      "M",
+      "K"
+     ],
+     "rp": [
+      "D"
+     ],
+     "winner": "Team A Representative"
+    },
+    {
+     "pool": "A",
+     "position": "Senpo",
+     "node": null,
+     "court": "B",
+     "white": "TA1",
+     "red": "TD1",
+     "teams": "Team A v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "D",
+      "M"
+     ],
+     "winner": "TD1"
+    },
+    {
+     "pool": "A",
+     "position": "Jiho",
+     "node": null,
+     "court": "B",
+     "white": "TA2",
+     "red": "TD2",
+     "teams": "Team A v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [
+      "K"
+     ],
+     "winner": "Hikiwake"
+    },
+    {
+     "pool": "A",
+     "position": "Chuken",
+     "node": null,
+     "court": "B",
+     "white": "TA3",
+     "red": "TD3",
+     "teams": "Team A v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [],
+     "winner": "TA3"
+    },
+    {
+     "pool": "A",
+     "position": "Fukusho",
+     "node": null,
+     "court": "B",
+     "white": "TA4",
+     "red": "TD4",
+     "teams": "Team A v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "D",
+      "M"
+     ],
+     "winner": "TD4"
+    },
+    {
+     "pool": "A",
+     "position": "Taisho",
+     "node": null,
+     "court": "B",
+     "white": "TA5",
+     "red": "TD5",
+     "teams": "Team A v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [],
+     "winner": "TA5"
+    },
+    {
+     "pool": "A",
+     "position": "Senpo",
+     "node": null,
+     "court": "B",
+     "white": "TB1",
+     "red": "TC1",
+     "teams": "Team B v Team C",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "D",
+      "M"
+     ],
+     "winner": "TC1"
+    },
+    {
+     "pool": "A",
+     "position": "Jiho",
+     "node": null,
+     "court": "B",
+     "white": "TB2",
+     "red": "TC2",
+     "teams": "Team B v Team C",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [
+      "K"
+     ],
+     "winner": "Hikiwake"
+    },
+    {
+     "pool": "A",
+     "position": "Chuken",
+     "node": null,
+     "court": "B",
+     "white": "TB3",
+     "red": "TC3",
+     "teams": "Team B v Team C",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [],
+     "winner": "TB3"
+    },
+    {
+     "pool": "A",
+     "position": "Fukusho",
+     "node": null,
+     "court": "B",
+     "white": "TB4",
+     "red": "TC4",
+     "teams": "Team B v Team C",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "D",
+      "M"
+     ],
+     "winner": "TC4"
+    },
+    {
+     "pool": "A",
+     "position": "Taisho",
+     "node": null,
+     "court": "B",
+     "white": "TB5",
+     "red": "TC5",
+     "teams": "Team B v Team C",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [],
+     "winner": "TB5"
+    },
+    {
+     "pool": "A",
+     "position": "Senpo",
+     "node": null,
+     "court": "A",
+     "white": "TB1",
+     "red": "TD1",
+     "teams": "Team B v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "K"
+     ],
+     "winner": "TD1"
+    },
+    {
+     "pool": "A",
+     "position": "Jiho",
+     "node": null,
+     "court": "A",
+     "white": "TB2",
+     "red": "TD2",
+     "teams": "Team B v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M",
+      "K"
+     ],
+     "rp": [
+      "D"
+     ],
+     "winner": "TB2"
+    },
+    {
+     "pool": "A",
+     "position": "Chuken",
+     "node": null,
+     "court": "A",
+     "white": "TB3",
+     "red": "TD3",
+     "teams": "Team B v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "K"
+     ],
+     "winner": "TD3"
+    },
+    {
+     "pool": "A",
+     "position": "Fukusho",
+     "node": null,
+     "court": "A",
+     "white": "TB4",
+     "red": "TD4",
+     "teams": "Team B v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [
+      "K"
+     ],
+     "winner": "Hikiwake"
+    },
+    {
+     "pool": "A",
+     "position": "Taisho",
+     "node": null,
+     "court": "A",
+     "white": "TB5",
+     "red": "TD5",
+     "teams": "Team B v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M",
+      "K"
+     ],
+     "rp": [
+      "D"
+     ],
+     "winner": "TB5"
+    },
+    {
+     "pool": "A",
+     "position": "Team Playoff",
+     "node": null,
+     "court": "A",
+     "white": "Team B Representative",
+     "red": "Team D Representative",
+     "teams": "Team B v Team D",
+     "type": "teamPlayoff",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": true,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "K"
+     ],
+     "winner": "Team D Representative"
+    },
+    {
+     "pool": "A",
+     "position": "Senpo",
+     "node": null,
+     "court": "B",
+     "white": "TC1",
+     "red": "TD1",
+     "teams": "Team C v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [
+      "K"
+     ],
+     "winner": "Hikiwake"
+    },
+    {
+     "pool": "A",
+     "position": "Jiho",
+     "node": null,
+     "court": "B",
+     "white": "TC2",
+     "red": "TD2",
+     "teams": "Team C v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [],
+     "winner": "TC2"
+    },
+    {
+     "pool": "A",
+     "position": "Chuken",
+     "node": null,
+     "court": "B",
+     "white": "TC3",
+     "red": "TD3",
+     "teams": "Team C v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "D",
+      "M"
+     ],
+     "winner": "TD3"
+    },
+    {
+     "pool": "A",
+     "position": "Fukusho",
+     "node": null,
+     "court": "B",
+     "white": "TC4",
+     "red": "TD4",
+     "teams": "Team C v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [],
+     "winner": "TC4"
+    },
+    {
+     "pool": "A",
+     "position": "Taisho",
+     "node": null,
+     "court": "B",
+     "white": "TC5",
+     "red": "TD5",
+     "teams": "Team C v Team D",
+     "type": "teamPosition",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "K"
+     ],
+     "winner": "TD5"
+    }
+   ],
+   "standings": {
+    "team": [
+     {
+      "name": "Team D",
+      "wins": 3,
+      "pts": 15
+     },
+     {
+      "name": "Team B",
+      "wins": 1,
+      "pts": 13
+     },
+     {
+      "name": "Team C",
+      "wins": 1,
+      "pts": 13
+     },
+     {
+      "name": "Team A",
+      "wins": 1,
+      "pts": 12
+     }
+    ]
+   },
+   "placements": [
+    {
+     "place": "1st",
+     "name": "Team D"
+    },
+    {
+     "place": "2nd",
+     "name": "Team B"
+    }
+   ]
+  }
+ },
+ "events": []
+}

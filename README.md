@@ -37,7 +37,7 @@ Open the local URL printed by Wrangler. Verify the Worker at `/api/health`.
 ```bash
 npm install
 npm run test:setup   # one-time: Python Playwright + Chromium for browser tests
-npm test             # full suite (~20 s): engine, UI, backend API contract, two-court end-to-end sync
+npm test             # full suite (~45 s): engine snapshots, UI, backend API contract, two-court end-to-end sync
 ```
 
 See `docs/TESTING.md` for the individual suites, TestLab profiles, and how to run the API contract against a live server.
