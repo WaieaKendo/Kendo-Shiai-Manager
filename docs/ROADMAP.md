@@ -22,6 +22,7 @@
 | `test/full-tournament-e2e` | Full tournament e2e, watch mode, coverage map | merged into `develop` |
 | `fix/tv-reload-restore-prompt` | F1: link devices reload without the restore prompt; unsynced staff work queued and flushed after login | open — ready for review |
 | `test/convert-source-checks` | M.4: behaviour/layout tests for the 34 grep-only checks (coverage map updated); found F2–F4. Branched from `fix/tv-reload-restore-prompt` | open — ready for review |
+| `refactor/vite-typescript` | M.5: Vite build (`app/` → `dist/`), `index.html` split into ordered CSS/JS files with no behaviour change, tests on the built app, tournament data types, engine files type-checked; newer test IDs pinned. Branched from `test/convert-source-checks` | open — ready for review |
 
 Nothing has been pushed to GitHub yet; `main` is unchanged from the original repository.
 
@@ -46,8 +47,12 @@ The front end moves to Vite + TypeScript and then React, screen by screen. Tests
 | M.2 | Full-tournament e2e: director, two courts, spectator, TV; watch mode (`npm run test:e2e:watch`) | `test/full-tournament-e2e` | ✅ | Found F1 (below) |
 | M.3 | Test coverage map: every test's purpose, mechanism and migration fate | `test/full-tournament-e2e` | ✅ | docs/TESTING.md |
 | M.4 | Convert the source-grep checks that nothing else covers into behaviour/layout tests | `test/convert-source-checks` | ✅ | All 34 covered or marked dead code in docs/TESTING.md; the greps stay until M.5. Found F2–F4 |
-| M.5 | Vite + TypeScript build; split `index.html` into modules with no behaviour change | `refactor/vite-typescript` | ⏳ | Golden files byte-identical; e2e and test-ids tests unchanged; retire `function-override-baseline` |
-| M.6 | React pilot: the court (scorekeeper) screen | `feat/react-court-screen` | ⏳ | Keeps every court test ID; e2e-full and test-ids-test must pass unchanged |
+| M.5 | Vite + TypeScript build; split `index.html` into files with no behaviour change | `refactor/vite-typescript` | ✅ | Still ONE classic script (inline handlers need globals; ~35 redeclared functions rely on order), concatenated from `app/js/NN-*.js`; `npm run verify:split` proves markup/CSS/JS byte-identical to def5010. Golden files byte-identical; tests unchanged (they read the source as one text and load `dist/`). Types for the tournament data; `// @ts-check` on the engine files (pools, teams, single elimination, standings/tiebreaks, championship); the checker found no bugs. `function-override-baseline` stays until the redeclarations go (2.5) |
+| M.6 | React pilot: the livestream overlay page (1.4) | `feat/livestream-overlay` | ⏳ | A new, read-only page, so no existing screen is at risk; sets up React inside the Vite build |
+| M.7 | Typed engine module | `refactor/engine-module` | ⏳ | = 2.1: the checked engine files become one TypeScript module; golden files byte-identical |
+| M.8 | React court (scorekeeper) screen | `feat/react-court-screen` | ⏳ | Keeps every court test ID; e2e-full and test-ids-test must pass unchanged |
+
+Next steps after `refactor/vite-typescript`: the React pilot (livestream overlay page, M.6), then the typed engine module extraction (M.7 / 2.1), then the React court screen (M.8).
 
 ## Phase 1: small scorekeeper improvements
 
@@ -55,8 +60,22 @@ The front end moves to Vite + TypeScript and then React, screen by screen. Tests
 |---|---|---|---|---|
 | 1.1 | Court automatically moves to the next division with ready matches | `feat/court-auto-advance` | ⏳ | Today the scorekeeper switches by hand when a division ends |
 | 1.2 | Preset per-court division running order in Setup | `feat/court-running-order` | ⏳ | Feeds 1.1 |
-
 | 1.3 | One-click PDF download of print sheets (today: browser Print → Save as PDF) | `feat/pdf-export` | ⏳ | e.g. to email sheets to dojos before the event |
+| 1.4 | Livestream overlay page | `feat/livestream-overlay` | ⏳ | Candidate for the first React screen (M.6). See below |
+
+### 1.4 Livestream overlay page
+
+A page the streaming app shows on top of the camera picture: the current match of one court (names, points, division), updated live.
+
+Requirements: transparent background; one URL per court (like the TV links); read-only (spectator session, never writes); laid out for a 1920×1080 stream.
+
+Findings so far (tested in PRISM Live Studio on iOS with a standalone test page, not yet with KSM):
+- PRISM only accepts a real https domain: an IP address or a self-signed certificate was rejected; the page worked from a real domain.
+- Portrait works.
+- In landscape, PRISM keeps the web widget portrait-shaped (e.g. 733×1303), so a bar at the bottom of the page lands off-screen. Resizing the widget by hand in PRISM fixed it.
+- The test page therefore has an automatic "band mode" (moves the bar into the visible middle band when the page is much taller than wide) and a `?y=NN` override for the bar's vertical position.
+
+Still needed: a full live-stream test (a real stream, a whole match, both courts).
 
 ## Phase 2: groundwork for sync redesign (no user-visible change)
 
@@ -75,9 +94,18 @@ The front end moves to Vite + TypeScript and then React, screen by screen. Tests
 - Environments: `dev.tournaments.hawaiikendofederation.org` / `tournaments.hawaiikendofederation.org`, deploy freeze while Ready/Live
 - Backups: R2 exports by tournament stage, final archives, restore drill
 - Control desk (court queues, move/reorder, holds, running-late, guarded bracket edits)
-- Match timer, livestream overlay, shinpan rotation
+- Match timer, shinpan rotation (livestream overlay: 1.4)
 - HKF-wide people/dojo registry (D1); minors' data policy
-- Gradual React/TypeScript for new screens (groundwork: M.1–M.6 above)
+- Gradual React/TypeScript for new screens (groundwork: M.1–M.8 above)
+
+## After the meeting: publishing plan
+
+Everything stays local until the planning meeting. If the plan is agreed:
+
+1. The owner creates `develop` on GitHub from `main`.
+2. The local branches are pushed and opened as pull requests into `develop`, in Branch-log order (each builds on the one before). They can be grouped into a few PRs: tests (`test-baseline`, `feat/test-hooks`, `test/full-tournament-e2e`, `test/convert-source-checks`), bug fixes (`fix/…`, `feat/court-side-setting`), test infrastructure, and the refactor (`refactor/vite-typescript`).
+3. Review, possibly by the creator's AI agent; CI runs `npm test` on every PR.
+4. `main` only moves at release points: `develop` is merged into `main` after sign-off.
 
 ## Findings
 

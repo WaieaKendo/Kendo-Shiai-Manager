@@ -9,9 +9,11 @@ npm install
 npm run check:cloud
 npm run check
 npx wrangler login
-npx wrangler deploy --dry-run
+npm run build && npx wrangler deploy --dry-run
 npm run deploy
 ```
+
+`npm run deploy` builds the front end (`vite build`, into `dist/`) and then runs `wrangler deploy`, which serves `dist/` as the static assets. Never run a bare `wrangler deploy` without building first: it would publish whatever is in `dist/`.
 
 The checked-in `wrangler.jsonc` includes the `TournamentState` Durable Object and its SQLite migration.
 

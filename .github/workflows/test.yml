@@ -1,6 +1,6 @@
 name: Tests
 
-# Runs the full regression suite (npm test) on every push and pull request.
+# Runs the full regression suite (npm test: builds dist/ first) on every push and pull request.
 on:
   push:
   pull_request:
@@ -21,7 +21,7 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install Node dependencies (wrangler)
+      - name: Install Node dependencies (wrangler, vite, typescript)
         run: npm ci
 
       - name: Install Playwright + Chromium

@@ -25,19 +25,25 @@ The cloud layer stores the existing KSM tournament payload as an opaque snapshot
 
 ## Local development
 
+The front end lives in `app/` and is built with Vite into `dist/`, which the Worker serves (see `docs/REPOSITORY_STRUCTURE.md`).
+
 ```bash
 npm install
-npm run dev
+npm run dev          # build, then wrangler dev: app + API on http://localhost:8787
+npm run build        # build only (dist/)
+npm run typecheck    # TypeScript check of the files marked // @ts-check
 ```
 
 Open the local URL printed by Wrangler. Verify the Worker at `/api/health`.
+
+For quicker front-end edits, run `npm run dev` in one terminal and `npm run dev:vite` in another: the Vite dev server (http://localhost:5173) serves `app/` without a build step (reload to see changes) and passes `/api` to wrangler on port 8787.
 
 ## Tests
 
 ```bash
 npm install
 npm run test:setup   # one-time: Python Playwright + Chromium for browser tests
-npm test             # full suite (~45 s): engine snapshots, UI, backend API contract, two-court end-to-end sync
+npm test             # builds, then the full suite (~80 s): engine snapshots, UI, types, backend API contract, end-to-end sync
 ```
 
 See `docs/TESTING.md` for the individual suites, TestLab profiles, and how to run the API contract against a live server.
@@ -46,7 +52,7 @@ See `docs/TESTING.md` for the individual suites, TestLab profiles, and how to ru
 
 ```bash
 npx wrangler login
-npm run deploy
+npm run deploy       # builds dist/ first, then wrangler deploy
 ```
 
 See `docs/DEPLOYMENT.md` and `docs/CLOUD_OPERATIONS.md` before production use.
