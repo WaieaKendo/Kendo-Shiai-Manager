@@ -46,7 +46,7 @@ test('legacy global poolSizes delegates to KSMEngine with the same results', () 
 });
 
 // ---- Step 2.2: pool building, slots and pool match order --------------------------
-import { execFileSync } from 'node:child_process';
+import { gitShow } from '../lib/git-show.mjs';
 import {
   clubGroup, shuffleDeterministic, poolPlayerSlotLetter, poolPlayerSlot,
   assignPoolPlayerSlots, buildPools, poolMatchPairs, buildPoolMatches,
@@ -130,8 +130,9 @@ test('buildPoolMatches: canonical order, courts per pool, fixed field order', ()
 });
 
 // Equivalence with the pre-move legacy code (ef0a095), run in a vm on the same inputs.
-test('engine pool building and match generation equal the pre-move legacy code', () => {
-  const legacySrc = execFileSync('git', ['show', 'ef0a095:app/js/04-engine-pools.js'], { encoding: 'utf8' });
+test('engine pool building and match generation equal the pre-move legacy code', t => {
+  const legacySrc = gitShow('ef0a095', 'app/js/04-engine-pools.js');
+  if (legacySrc === null) return t.skip('ef0a095 not in this clone');
   const ctx = vm.createContext({ state: { divisionCourts: {}, pools: {} } });
   vm.runInContext(`${engine}\n${extractFunction(html, 'poolSizes')}\n${legacySrc.replace(/function poolSizes\(n\)\{[\s\S]*?\n\}\n/, '')}`, ctx);
   const dojos = ['Aiea', 'Waipahu', 'Hilo', 'Maui', 'Kona', 'Honolulu', ''];

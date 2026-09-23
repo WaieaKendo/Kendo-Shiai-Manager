@@ -157,7 +157,8 @@ export function withDependencies(source, code, { exclude = [] } = {}) {
       if (!def) continue;
       skipNames.add(name);
       added.push(def);
-      queue.push(def);
+      // The engine is self-contained; its own function names are not app dependencies.
+      if (def !== engine) queue.push(def);
     }
   }
   return [code, ...added].join('\n');

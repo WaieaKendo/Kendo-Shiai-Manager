@@ -124,9 +124,8 @@ function point(side,letter){performCourtAction(`${side==='W'?'White':'Red'} ${le
 function hansoku(side){performCourtAction(`${side==='W'?'White':'Red'} Hansoku`,()=>{if(side==='W'){state.score.WT++;if(state.score.WT%2===0)state.score.R.push('H')}else{state.score.RT++;if(state.score.RT%2===0)state.score.W.push('H')}syncActiveScoreToMatch();renderScore()})}
 function fusen(side){performCourtAction(`${side==='W'?'White':'Red'} Fusen-gachi`,()=>{if(side==='W'){state.score.W=[];state.score.R=['F','F']}else{state.score.R=[];state.score.W=['F','F']}syncActiveScoreToMatch();renderScore()})}
 function matchRequiresWinner(m){
-  if(!m)return false;
-  if((m.championship&&m.type==='individual') || m.type==='teamPlayoff' || m.type==='exhibition')return true;
-  return m.requiresWinner===true;
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.matchRequiresWinner(m);
+  /* ksm:post-split-end */
 }
 function nextMatch(){
   let m=state.matches[state.current];

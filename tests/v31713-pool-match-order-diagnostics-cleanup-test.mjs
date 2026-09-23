@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { extractFunction, withDependencies, html as appSource, sw as appServiceWorker } from './lib/ksm-source.mjs';
+import { extractFunction, withDependencies, html as appSource, sw as appServiceWorker, engine } from './lib/ksm-source.mjs';
 
 const html=appSource;
 const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));
@@ -18,7 +18,8 @@ function extractConstStatement(source,name){
 const checks=[
   [html.includes("3:Object.freeze([[0,1],[2,1],[2,0]])"),'3-person canonical template'],
   [html.includes("4:Object.freeze([[0,1],[2,3],[2,0],[1,3],[1,2],[3,0]])"),'4-person canonical template'],
-  [html.includes('const pairs=poolMatchPairs(players.length);'),'tiebreaks reuse canonical pool templates'],
+  // tiebreakMatchesForGroup moved to app/engine/standings.ts (roadmap 2.3).
+  [/function tiebreakMatchesForGroup\([^)]*\) \{\s*const pairs = poolMatchPairs\(players\.length\)/.test(engine),'tiebreaks reuse canonical pool templates'],
   [!html.includes('id="tvRealtimeDiagnostics"'),'visible TV diagnostics element removed'],
   [!html.includes('body.ksm-tv .tv-realtime-diagnostics{'),'visible TV diagnostics CSS removed'],
   [html.includes('const ksmTvRealtimeDiagnostics={'),'internal realtime diagnostics retained'],

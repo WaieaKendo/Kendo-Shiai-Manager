@@ -5,9 +5,8 @@
  * @returns {boolean}
  */
 function completedResultWinnerValid(m,winner){
-  if(!m||!winner)return false;
-  if(winner===m.white||winner===m.red)return true;
-  return winner==='Hikiwake'&&!matchRequiresWinner(m);
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.completedResultWinnerValid(m,winner);
+  /* ksm:post-split-end */
 }
 /**
  * @param {Match} m
@@ -15,11 +14,8 @@ function completedResultWinnerValid(m,winner){
  * @returns {boolean}
  */
 function completedResultSnapshotValid(m,snapshot){
-  if(!snapshot||!completedResultWinnerValid(m,snapshot.winner)||!Array.isArray(snapshot.wp)||!Array.isArray(snapshot.rp))return false;
-  const wp=snapshot.wp.length,rp=snapshot.rp.length;
-  if(snapshot.winner===m.white)return wp>rp;
-  if(snapshot.winner===m.red)return rp>wp;
-  return snapshot.winner==='Hikiwake'&&wp===rp;
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.completedResultSnapshotValid(m,snapshot);
+  /* ksm:post-split-end */
 }
 /**
  * Winner's name from the points, or 'Hikiwake'.
@@ -27,9 +23,8 @@ function completedResultSnapshotValid(m,snapshot){
  * @returns {string}
  */
 function scoreWinnerOf(m){
-  if(!m)return 'Hikiwake';
-  const wp=(m.wp||[]).length,rp=(m.rp||[]).length;
-  if(wp>rp)return m.white;if(rp>wp)return m.red;return 'Hikiwake';
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.scoreWinnerOf(m);
+  /* ksm:post-split-end */
 }
 /**
  * @param {Match} m
@@ -47,9 +42,8 @@ function pointsFor(m,side){
  * @returns {string}
  */
 function winnerOf(m){
-  const snapshot=m?.done?m.completedResult:null;
-  if(completedResultSnapshotValid(m,snapshot))return snapshot.winner;
-  return scoreWinnerOf(m);
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.winnerOf(m);
+  /* ksm:post-split-end */
 }
 /**
  * @param {Match} m

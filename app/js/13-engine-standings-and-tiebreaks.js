@@ -11,7 +11,10 @@ function poolFinished(poolLabel,div=state.currentDivision){let base=(state.allMa
  * @param {string} div
  * @returns {boolean}
  */
-function pendingTiebreak(poolLabel,div){return (state.allMatches[div]||[]).some(x=>x.pool===poolLabel&&x.tiebreak&&!x.done)}
+function pendingTiebreak(poolLabel,div){
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.pendingTiebreak(state.allMatches[div]||[],poolLabel);
+  /* ksm:post-split-end */
+}
 /**
  * @param {string} poolLabel
  * @param {string} [div]
@@ -25,14 +28,8 @@ function topSeedsResolved(poolLabel,div=state.currentDivision){return poolPositi
  * @returns {PoolStandingRow[]}
  */
 function initialPoolStandings(poolLabel,div=state.currentDivision){
-  let pool=(state.pools[div]||[]).find(p=>p.label===poolLabel);if(!pool)return [];
-  let rows=pool.players.map(p=>({name:p.name,dojo:p.dojo,wins:0,pts:0}));
-  (state.allMatches[div]||[]).filter(m=>m.pool===poolLabel&&m.done&&!m.tiebreak).forEach(m=>{
-    let w=rows.find(r=>r.name===m.white),r=rows.find(x=>x.name===m.red);
-    if(w)w.pts+=(m.wp||[]).length;if(r)r.pts+=(m.rp||[]).length;
-    let win=winnerOf(m);if(win===m.white&&w)w.wins++;if(win===m.red&&r)r.wins++;
-  });
-  return rows.sort((a,b)=>b.wins-a.wins||b.pts-a.pts||a.name.localeCompare(b.name));
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.initialPoolStandings((state.pools[div]||[]).find(p=>p.label===poolLabel),state.allMatches[div]||[]);
+  /* ksm:post-split-end */
 }
 /**
  * @param {string} poolLabel
@@ -41,12 +38,8 @@ function initialPoolStandings(poolLabel,div=state.currentDivision){
  * @returns {{stats: TiebreakStatsRow[], done: Match[]}}
  */
 function tiebreakStatsForPlayers(poolLabel,div,players){
-  let names=new Set(players.map(x=>x.name));
-  let stats=players.map(x=>({name:x.name,dojo:x.dojo,wins:0,pts:0,baseWins:x.wins,basePts:x.pts}));
-  let done=(state.allMatches[div]||[]).filter(x=>x.pool===poolLabel&&x.done&&x.tiebreak&&x.type==='individual'&&names.has(x.white)&&names.has(x.red));
-  done.forEach(x=>{let w=stats.find(r=>r.name===x.white),r=stats.find(y=>y.name===x.red);if(w)w.pts+=(x.wp||[]).length;if(r)r.pts+=(x.rp||[]).length;let win=winnerOf(x);if(win===x.white&&w)w.wins++;if(win===x.red&&r)r.wins++;});
-  stats.sort((a,b)=>b.wins-a.wins||b.pts-a.pts||a.name.localeCompare(b.name));
-  return {stats,done};
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.tiebreakStatsForPlayers(state.allMatches[div]||[],poolLabel,players);
+  /* ksm:post-split-end */
 }
 
 /**
@@ -57,12 +50,8 @@ function tiebreakStatsForPlayers(poolLabel,div,players){
  * @returns {{stats: TiebreakStatsRow[], matches: Match[]}}
  */
 function tiebreakSeriesStats(poolLabel,div,players,series){
-  const names=new Set(players.map(x=>x.name));
-  const stats=players.map(x=>({name:x.name,dojo:x.dojo,wins:0,pts:0,baseWins:x.wins,basePts:x.pts}));
-  const matches=(state.allMatches[div]||[]).filter(x=>x.pool===poolLabel&&x.done&&x.tiebreak&&x.type==='individual'&&Number(x.tiebreakSeries||1)===Number(series)&&names.has(x.white)&&names.has(x.red));
-  matches.forEach(x=>{const w=stats.find(r=>r.name===x.white),r=stats.find(y=>y.name===x.red);if(w)w.pts+=(x.wp||[]).length;if(r)r.pts+=(x.rp||[]).length;const win=winnerOf(x);if(win===x.white&&w)w.wins++;if(win===x.red&&r)r.wins++;});
-  stats.sort((a,b)=>b.wins-a.wins||b.pts-a.pts||a.name.localeCompare(b.name));
-  return {stats,matches};
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.tiebreakSeriesStats(state.allMatches[div]||[],poolLabel,players,series);
+  /* ksm:post-split-end */
 }
 /**
  * Orders a tied group by its tiebreak series, one series after another.
@@ -72,25 +61,8 @@ function tiebreakSeriesStats(poolLabel,div,players,series){
  * @returns {{locked: TiebreakStatsRow[], unresolved: PoolStandingRow[], ordered: (PoolStandingRow|TiebreakStatsRow)[], lastStats: TiebreakStatsRow[]}}
  */
 function resolveTiebreakBaseGroup(poolLabel,div,target){
-  const base=[...target.players];
-  const baseByName=new Map(base.map(x=>[x.name,x]));
-  const all=(state.allMatches[div]||[]).filter(x=>x.pool===poolLabel&&x.tiebreak&&x.type==='individual'&&baseByName.has(x.white)&&baseByName.has(x.red));
-  const series=[...new Set(all.map(x=>Number(x.tiebreakSeries||1)))].sort((a,b)=>a-b);
-  const locked=[];let unresolved=[...base];let lastStats=[];
-  for(const seriesId of series){
-    const participantNames=[...new Set(all.filter(x=>Number(x.tiebreakSeries||1)===seriesId).flatMap(x=>[x.white,x.red]))];
-    const participants=participantNames.map(n=>baseByName.get(n)).filter(Boolean).filter(x=>!locked.some(l=>l.name===x.name));
-    if(participants.length<2)continue;
-    const result=tiebreakSeriesStats(poolLabel,div,participants,seriesId);
-    if(result.matches.length===0||result.matches.some(x=>!x.done)){unresolved=participants;break;}
-    lastStats=result.stats;
-    let tieAt=-1;
-    for(let i=0;i<result.stats.length;){let j=i+1;while(j<result.stats.length&&result.stats[j].wins===result.stats[i].wins&&result.stats[j].pts===result.stats[i].pts)j++;if(j-i===1){locked.push(result.stats[i]);}else{tieAt=i;unresolved=result.stats.slice(i,j).map(x=>baseByName.get(x.name));break;}i=j;}
-    if(tieAt<0)unresolved=[];
-  }
-  const used=new Set([...locked,...unresolved].map(x=>x.name));
-  const remainder=base.filter(x=>!used.has(x.name));
-  return {locked,unresolved,ordered:[...locked,...unresolved,...remainder],lastStats};
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.resolveTiebreakBaseGroup(state.allMatches[div]||[],poolLabel,target);
+  /* ksm:post-split-end */
 }
 /**
  * Players still tied for a place that matters (up to reqSeed), or null.
@@ -101,12 +73,8 @@ function resolveTiebreakBaseGroup(poolLabel,div,target){
  * @returns {PoolStandingRow[]|null}
  */
 function unresolvedRequiredTiebreakGroup(poolLabel,div,target,reqSeed){
-  const resolution=resolveTiebreakBaseGroup(poolLabel,div,target);
-  const unresolvedStart=target.start+resolution.locked.length;
-  if(unresolvedStart>reqSeed)return null;
-  if(resolution.unresolved.length>1)return resolution.unresolved;
-  if(!resolution.locked.length&&!resolution.unresolved.length)return target.players;
-  return null;
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.unresolvedRequiredTiebreakGroup(state.allMatches[div]||[],poolLabel,target,reqSeed);
+  /* ksm:post-split-end */
 }
 /**
  * @param {string} div
@@ -115,11 +83,8 @@ function unresolvedRequiredTiebreakGroup(poolLabel,div,target,reqSeed){
  * @returns {Match[]}
  */
 function tiebreakMatchesForGroup(div,pool,players){
-  const pairs=poolMatchPairs(players.length);
-  const requiresWinner=players.length===2;
-  const existing=(state.allMatches?.[div]||[]).filter(m=>m.pool===pool&&m.tiebreak&&m.type==='individual');
-  const series=(existing.reduce((max,m)=>Math.max(max,Number(m.tiebreakSeries||1)),0)||0)+1;
-  return pairs.map(([i,j],index)=>makeTiebreakMatch(div,pool,players[i],players[j],requiresWinner,series,index));
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.tiebreakMatchesForGroup(state.allMatches?.[div]||[],div,pool,players,poolCourtFor(div,pool));
+  /* ksm:post-split-end */
 }
 
 const APPROVED_DYNAMIC_MATCH_TYPES=Object.freeze(new Set([
@@ -271,7 +236,10 @@ function maybeCreateTiebreaks(m){
  * @param {number} [tiebreakIndex]
  * @returns {Match}
  */
-function makeTiebreakMatch(division,pool,a,b,requiresWinner=false,tiebreakSeries=1,tiebreakIndex=0){return {division,pool,white:a.name,red:b.name,wdojo:a.dojo,rdojo:b.dojo,done:false,wp:[],rp:[],tiebreak:true,type:'individual',requiresWinner:!!requiresWinner,tiebreakSeries,tiebreakIndex,court:poolCourtFor(division,pool)};}
+function makeTiebreakMatch(division,pool,a,b,requiresWinner=false,tiebreakSeries=1,tiebreakIndex=0){
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.makeTiebreakMatch(division,pool,a,b,requiresWinner,tiebreakSeries,tiebreakIndex,poolCourtFor(division,pool));
+  /* ksm:post-split-end */
+}
 
 /**
  * @param {string} div

@@ -45,7 +45,7 @@ The app is written in `app/` and built by Vite into `dist/` (`scripts/app-source
 2. In `app/js`, keep the LAST declaration of the legacy function (same name and position, so last-declaration-wins and `extractFunction` still work) and replace its body with one marked delegation: `function f(a){\n  /* ksm:post-split-begin engine-bridge */return KSMEngine.f(a);\n  /* ksm:post-split-end */\n}`. Where it read globals, pass them in here (e.g. `KSMEngine.f(a, state.x)`). Earlier redeclarations stay until 2.10.
 3. `scripts/verify-split.mjs`: add the name to `MOVED_TO_ENGINE` and raise the `engine-bridge` count.
    For a small inline change instead of a whole function, keep the old code in the marker: `/* ksm:post-split-begin <name> was:<old code> */new/* ksm:post-split-end */` (verify-split puts `<old code>` back; used by `engine-settings` for `tournamentSettings().teamFormat`).
-4. Add `tests/engine/<area>.test.mjs` (table/edge cases plus a parity check through the legacy global, as `pools.test.mjs` does); fix any hand-assembled vm test that extracts the function (prepend `engine`).
+4. Add `tests/engine/<area>.test.mjs` (table/edge cases plus a parity check through the legacy global, as `pools.test.mjs` does); fix any hand-assembled vm test that extracts the function (prepend `engine`). A legacy-equivalence test that reads pre-move code must use `gitShow()` from `tests/lib/git-show.mjs`, which prints SKIP when the commit is missing (shallow clone) so the test is skipped, not failed.
 5. `npm run typecheck`, `npm run verify:split`, `npm test`; `tests/golden/engine/*.json` must stay byte-identical (never run `test:golden:update` in these steps).
 
 ## What is covered

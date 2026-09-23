@@ -33,7 +33,7 @@ const KNOWN_POST_SPLIT_EDITS = {
   // performCourtAction() and renderAll(), so React islands re-render with `state`.
   'react-bridge': 3,
   // refactor/engine-bridge (roadmap 2.0+): one delegation per MOVED_TO_ENGINE function.
-  'engine-bridge': 9,
+  'engine-bridge': 24,
   // refactor/engine-settings (roadmap 2.1): tournamentSettings() accessor + 9 inline
   // replacements of engine DOM reads (`was:` form, see below).
   'engine-settings': 10,
@@ -44,6 +44,10 @@ const KNOWN_POST_SPLIT_EDITS = {
 const MOVED_TO_ENGINE = [
   'poolSizes', 'clubGroup', 'shuffleDeterministic', 'poolPlayerSlotLetter', 'assignPoolPlayerSlots',
   'poolPlayerSlot', 'buildPools', 'poolMatchPairs', 'buildPoolMatches',
+  // step 2.3: standings, tiebreaks and winner helpers (app/engine/standings.ts)
+  'matchRequiresWinner', 'completedResultWinnerValid', 'completedResultSnapshotValid', 'scoreWinnerOf', 'winnerOf',
+  'pendingTiebreak', 'initialPoolStandings', 'tiebreakStatsForPlayers', 'tiebreakSeriesStats', 'resolveTiebreakBaseGroup',
+  'unresolvedRequiredTiebreakGroup', 'tiebreakMatchesForGroup', 'makeTiebreakMatch', 'requiredSeedPlaces', 'poolStandings',
 ];
 const old = execFileSync('git', ['show', `${commit}:public/index.html`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64e6 });
 let failed = 0;

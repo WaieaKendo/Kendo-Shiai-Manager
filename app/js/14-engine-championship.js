@@ -67,9 +67,8 @@ function championshipLabels(div){
  * @returns {Record<string, number>}
  */
 function requiredSeedPlaces(div){
-  // Pool-only divisions award 1st–3rd from standings, so ties touching those places need tiebreaks.
-  if(isPoolOnlyDivision(div)){const pool=state.pools[div][0];return {[pool.label]:Math.min(3,pool.players?.length||0)};}
-  let req={};championshipLabels(div).flat().forEach(label=>{let m=String(label).match(/^([A-Z])(\d)$/);if(m){let p=parseInt(m[2],10);req[m[1]]=Math.max(req[m[1]]||0,p);}});return req;
+  /* ksm:post-split-begin engine-bridge */const poolOnly=isPoolOnlyDivision(div);return KSMEngine.requiredSeedPlaces(poolOnly?state.pools[div][0]:null,poolOnly?[]:championshipLabels(div));
+  /* ksm:post-split-end */
 }
 /**
  * @param {PoolStandingRow} a

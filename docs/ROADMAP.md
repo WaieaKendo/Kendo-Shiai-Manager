@@ -28,6 +28,7 @@
 | `refactor/engine-bridge` | 2.0: `app/engine/` strict-TS modules built into a classic `KSMEngine` script loaded before `app.js` (and importable by `app/react/`); `poolSizes` moved as the first function; `verify:split` + vm test helpers know about it; engine unit tests. Branched from `feat/react-overlay` | open — ready for review |
 | `refactor/engine-settings` | 2.1: `app/engine/settings.ts` (`TournamentSettings`, pure `readSettings(setup)` with the engine's historical defaults) + legacy `tournamentSettings()` accessor over the persisted `setup` snapshot; engine files 05/07/08/13 no longer read `teamFormat`/`teamTournamentFormat`/`teamEnabled`/`exhibitionEnabled` inputs; `verify:split` gains the inline `was:` marker form. Payload shape unchanged. Branched from `refactor/engine-bridge` | open — ready for review |
 | `refactor/engine-pools` | 2.2: `buildPools` (seeds, dojo spreading via `clubGroup` incl. Aiea/Waipahu, `shuffleDeterministic`), slot assignment and pool match order/generation as typed pure functions in `app/engine/pools.ts`; legacy wrappers delegate (`buildPoolMatches` passes each pool's court from `poolCourtFor`, `assignPoolPlayerSlots` keeps its in-place update); unit tests + equivalence with the pre-move code. Branched from `refactor/engine-settings` | open — ready for review |
+| `refactor/engine-standings` | 2.3: pool standings (`initialPoolStandings`, `poolStandings` with the pool record in wins/pts and the tiebreak record in tbWins/tbPts), `requiredSeedPlaces` (incl. pool-only 1st–3rd), tiebreak resolution (`tiebreakStatsForPlayers`, `tiebreakSeriesStats`, `resolveTiebreakBaseGroup`, `unresolvedRequiredTiebreakGroup`), tiebreak match objects (`makeTiebreakMatch`, `tiebreakMatchesForGroup`), `pendingTiebreak` and the winner helpers as typed pure functions in `app/engine/standings.ts`; `maybeCreateTiebreaks`/`appendApprovedDynamicMatches` stay legacy and call them. Unit tests + legacy equivalence over golden-scenario states; legacy-equivalence tests skip without the old commit and CI checks out full history. Branched from `refactor/engine-pools` | open — ready for review |
 
 Nothing has been pushed to GitHub yet; `main` is unchanged from the original repository.
 
@@ -54,7 +55,7 @@ The front end moves to Vite + TypeScript and then React, screen by screen. Tests
 | M.4 | Convert the source-grep checks that nothing else covers into behaviour/layout tests | `test/convert-source-checks` | ✅ | All 34 covered or marked dead code in docs/TESTING.md; the greps stay until M.5. Found F2–F4 |
 | M.5 | Vite + TypeScript build; split `index.html` into files with no behaviour change | `refactor/vite-typescript` | ✅ | Still ONE classic script (inline handlers need globals; ~35 redeclared functions rely on order), concatenated from `app/js/NN-*.js`; `npm run verify:split` proves markup/CSS/JS byte-identical to def5010. Golden files byte-identical; tests unchanged (they read the source as one text and load `dist/`). Types for the tournament data; `// @ts-check` on the engine files (pools, teams, single elimination, standings/tiebreaks, championship); the checker found no bugs. `function-override-baseline` stays until the redeclarations go (2.10) |
 | M.6 | React pilot: the livestream overlay page (1.4) | `feat/react-setup`, `feat/react-overlay` | ✅ | React inside the Vite build (extra pages, islands, live record hook, state-change bridge); `/overlay` is the first React page. The legacy bundle is unchanged apart from two marked hooks and the TV-menu overlay links |
-| M.7 | Typed engine module | `refactor/engine-bridge` … `refactor/engine-integrity` | ⏳ | = 2.0–2.7: the engine moves into `app/engine/` step by step; 2.0–2.2 done; golden files byte-identical |
+| M.7 | Typed engine module | `refactor/engine-bridge` … `refactor/engine-integrity` | ⏳ | = 2.0–2.7: the engine moves into `app/engine/` step by step; 2.0–2.3 done; golden files byte-identical |
 | M.8 | React court (scorekeeper) screen | `feat/react-court-screen` | ⏳ | Keeps every court test ID; e2e-full and test-ids-test must pass unchanged |
 
 Next steps after `feat/react-overlay`: the typed engine module extraction (`refactor/engine-module`, M.7 / 2.1), then the React court screen (M.8).
@@ -91,7 +92,7 @@ Still needed: a full live-stream test (a real stream, a whole match, both courts
 | 2.0 | Engine bridge: `app/engine/` (pure strict TS) bundled into a classic `KSMEngine` script loaded before `app.js`; `poolSizes` moved as the proof | `refactor/engine-bridge` | ✅ | Legacy `poolSizes` keeps its name and position, body = marked delegation; `verify:split` knows moved functions; goldens byte-identical |
 | 2.1 | Engine reads settings from tournament data, not DOM inputs (team format etc.) | `refactor/engine-settings` | ✅ | Engine calls `tournamentSettings()` → `KSMEngine.readSettings(setup)`; `setup` is the saved payload's object (still filled from the Setup inputs by `getSetupSnapshot()` — moving the live copy off the DOM comes with the server step); payload + goldens unchanged |
 | 2.2 | Pools: pool building, slots, pool match order → `app/engine/pools.ts` | `refactor/engine-pools` | ✅ | `clubGroup`, `shuffleDeterministic`, slot helpers, `buildPools`, `poolMatchPairs`, `buildPoolMatches` moved; `poolCourtFor`/`divisionCourtMode` stay legacy (read `state`, cache `pool.court`) and feed the courts in; goldens identical |
-| 2.3 | Standings and tiebreaks → `app/engine/standings.ts` | `refactor/engine-standings` | ⏳ | Stacked on 2.2; goldens identical |
+| 2.3 | Standings and tiebreaks → `app/engine/standings.ts` | `refactor/engine-standings` | ✅ | Standings, required places, tiebreak resolution/match objects and winner helpers moved; the state-mutating parts (`maybeCreateTiebreaks`, `appendApprovedDynamicMatches`, tiebreak order repair) and `poolCourtFor`/`championshipLabels`/`isPoolOnlyDivision` stay legacy and feed their inputs in; goldens identical |
 | 2.4 | Championship bracket / seeding → `app/engine/championship.ts` | `refactor/engine-championship` | ⏳ | Stacked on 2.3; goldens identical |
 | 2.5 | Single elimination → `app/engine/single-elim.ts` | `refactor/engine-single-elim` | ⏳ | Stacked on 2.4; goldens identical |
 | 2.6 | Team events → `app/engine/teams.ts` | `refactor/engine-teams` | ⏳ | Stacked on 2.5; goldens identical |
@@ -123,6 +124,8 @@ Everything stays local until the planning meeting. If the plan is agreed:
 4. `main` only moves at release points: `develop` is merged into `main` after sign-off.
 
 ## Findings
+
+> **Numbering clash:** F5 is used twice — on this branch line (`refactor/engine-*`: team-format default, below) and on `fix/setup-edit-conflict-merge` (restructuring edits). Renumber one of them when the branches are merged.
 
 Bugs found by tests and not fixed yet. Each one is pinned by a test that expects the current (wrong) behaviour, so the test fails once the bug is fixed; then update the test and mark the finding fixed here.
 
