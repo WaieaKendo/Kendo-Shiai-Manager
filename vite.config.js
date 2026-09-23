@@ -5,6 +5,10 @@ import {
   appStyles, appScript, serviceWorker, styleFiles, scriptFiles,
 } from './scripts/app-sources.mjs';
 
+const DEV_SERVICE_WORKER = `self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => self.clients.claim())));
+`;
+
 // The app is still one classic script plus one stylesheet (see scripts/app-sources.mjs).
 // This plugin serves them in dev and emits them verbatim (no transform or minify) as
 // hashed files in the build; Vite handles index.html and copies app/public/.
@@ -20,7 +24,8 @@ function ksmClassicBundle() {
         const send = (type, body) => { res.setHeader('Content-Type', type); res.setHeader('Cache-Control', 'no-store'); res.end(body); };
         if (url === STYLE_URL) return send('text/css; charset=utf-8', appStyles());
         if (url === SCRIPT_URL) return send('text/javascript; charset=utf-8', appScript());
-        if (url === '/service-worker.js') return send('text/javascript; charset=utf-8', serviceWorker());
+        // No offline cache in dev, so edits show on reload: this worker only clears old caches.
+        if (url === '/service-worker.js') return send('text/javascript; charset=utf-8', DEV_SERVICE_WORKER);
         next();
       });
     },
