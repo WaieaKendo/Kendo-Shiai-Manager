@@ -8143,7 +8143,7 @@ function applyRemoteCloudRecord(record,allowWhileEditing=false,forceApply=false)
     if(!ksmDeferredRemoteRecord||incomingRevision>Number(ksmDeferredRemoteRecord.revision||0))ksmDeferredRemoteRecord=record;
     updateSaveStatus('Live update waiting for editing to finish');updateTvRealtimeDiagnostics({lastReason:`Deferred revision ${incomingRevision} while editing`});return false;
   }
-  const outbox=readOutbox();if(outbox&&Number(outbox.baseRevision||0)<incomingRevision){preserveRecovery(outbox,record);clearOutbox()}
+  const outbox=readOutbox();if(outbox&&Number(outbox.baseRevision||0)<incomingRevision&&!(isReadOnlySession()&&outbox.role==='staff'&&outbox.tournamentId===record.tournamentId)){preserveRecovery(outbox,record);clearOutbox()}
   ksmApplyingRemoteSnapshot=true;
   try{
     applyTournamentPayload(record.payload,false,{pinnedCourt:pinnedCourt(),preserveLocalDivision:preserveLocalDivisionForRemoteSync(),source:'live sync'});restorePinnedCourt();localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(record.payload));cloudSession.revision=Math.max(Number(cloudSession.revision||0),incomingRevision);cloudSession.updatedAt=record.updatedAt;persistCloudSession();const by=record.updatedBy?.name||record.updatedBy?.role;updateSaveStatus((by?`Updated by ${by} • `:'Live update • ')+new Date(record.updatedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}));setConnectionStatus('Live sync','online');const nextTvDivision=state.courtActiveDivision?.[tvCourt]||state.courtState?.[tvCourt]?.division||null;if(isTvSession()){renderTvDisplay();if(priorTvDivision!==nextTvDivision)console.info('[TV Realtime] Active division changed',tvCourt,priorTvDivision,'→',nextTvDivision)}console.info('[TV Realtime] Applied revision',incomingRevision);updateTvRealtimeDiagnostics({lastAppliedRevision:incomingRevision,lastReason:priorTvDivision!==nextTvDivision?`Applied ${incomingRevision}; Court ${tvCourt} division refreshed`:`Applied revision ${incomingRevision}`});return true
@@ -8216,7 +8216,11 @@ async function saveTournamentToCloudWithReason(reason='Autosave',force=false){
     if(!localChangesPending())applyDeferredSyncRecord();
   }
 }
-async function flushCloudOutbox(){const outbox=readOutbox();if(!outbox||ksmCloudSaveInFlight||isReadOnlySession()||!navigator.onLine)return false;if(outbox.tournamentId&&outbox.tournamentId!==cloudSession.tournamentId){writeCloudDiagnosticsState({stage:'Outbox blocked',errorMessage:'Queued snapshot belongs to a different tournament',queuedTournamentId:outbox.tournamentId||'',activeTournamentId:cloudSession.tournamentId||''});return false}ksmCloudSaveInFlight=true;ksmSaveStatusMode='syncing';writeCloudDiagnosticsState({stage:'Retrying queued snapshot',lastAttemptAt:new Date().toISOString(),baseRevision:outbox.baseRevision||0,snapshotBytes:payloadByteSize(outbox.payload),retryCount:(readCloudDiagnosticsState().retryCount||0)+1});renderPersistentSaveStatus();try{await performCloudSave(outbox.payload,outbox.baseRevision);return true}catch(err){console.warn('Queued cloud save failed',err);writeCloudDiagnosticsState({stage:'Queued save failed',errorMessage:String(err?.message||err),lastFailureAt:new Date().toISOString()});ksmSaveStatusMode='error';renderPersistentSaveStatus();return false}finally{ksmCloudSaveInFlight=false}}
+async function flushCloudOutbox(){const outbox=readOutbox();if(!outbox||ksmCloudSaveInFlight||isReadOnlySession()||!navigator.onLine)return false;if(outbox.tournamentId&&outbox.tournamentId!==cloudSession.tournamentId){writeCloudDiagnosticsState({stage:'Outbox blocked',errorMessage:'Queued snapshot belongs to a different tournament',queuedTournamentId:outbox.tournamentId||'',activeTournamentId:cloudSession.tournamentId||''});return false}ksmCloudSaveInFlight=true;ksmSaveStatusMode='syncing';writeCloudDiagnosticsState({stage:'Retrying queued snapshot',lastAttemptAt:new Date().toISOString(),baseRevision:outbox.baseRevision||0,snapshotBytes:payloadByteSize(outbox.payload),retryCount:(readCloudDiagnosticsState().retryCount||0)+1});renderPersistentSaveStatus();const mutationVersion=ksmLocalMutationVersion;try{const record=await performCloudSave(outbox.payload,outbox.baseRevision);
+  // After a reload the screen shows the older cloud copy and our own echo is ignored: show what
+  // was just saved, replaying court actions taken while the flush was in flight (as a rebase does).
+  if(record?.payload){const localPayload=ksmLocalMutationVersion===mutationVersion?record.payload:rebaseLocalPayloadOnRecord(tournamentPayload(),record,Number(outbox.baseRevision||0));ksmApplyingRemoteSnapshot=true;try{applyTournamentPayload(localPayload,false,{pinnedCourt:pinnedCourt(),preserveLocalDivision:true,source:'outbox flush'});localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(localPayload))}finally{ksmApplyingRemoteSnapshot=false}}
+  return true}catch(err){console.warn('Queued cloud save failed',err);writeCloudDiagnosticsState({stage:'Queued save failed',errorMessage:String(err?.message||err),lastFailureAt:new Date().toISOString()});ksmSaveStatusMode='error';renderPersistentSaveStatus();return false}finally{ksmCloudSaveInFlight=false;await runPendingCloudSave()}}
 async function retryQueuedCloudSave(){if(!readOutbox()){showKsmToast('No queued snapshot to retry',1800);return}showKsmToast('Retrying queued save…',1200);const ok=await flushCloudOutbox();showKsmToast(ok?'✓ Queued save completed':'Queued save still needs attention',2600,!ok);cloudDiagnostics()}
 function scheduleCloudSave(reason='Autosave',delay=1200){if(ksmApplyingRemoteSnapshot||isReadOnlySession())return;clearTimeout(ksmCloudTimer);ksmCloudTimer=setTimeout(()=>{ksmCloudTimer=null;saveTournamentToCloudWithReason(reason)},delay)}
 async function promptLoadTournamentFromCloud(){const id=prompt('Enter Tournament ID',cloudSession.tournamentId||'');if(!id)return;try{await loadTournamentFromCloud(id,{spectator:true});updateSaveStatus('Loaded cloud tournament')}catch(err){alert('Unable to load that cloud tournament.');console.error(err);setConnectionStatus('Cloud load failed','offline')}}
@@ -8348,6 +8352,10 @@ function applyTournamentPayload(payload,saveAfter,options={}){
 }
 function restoreAutoSaveIfWanted(){
   try{
+    // A tournament link (spectator, TV, court device) always loads the cloud copy, which would
+    // replace anything restored here. Unsynced staff work is kept in the outbox instead.
+    const params=new URLSearchParams(location.search);
+    if(params.get('tournament')||params.get('spectator'))return false;
     const raw=localStorage.getItem(KSM_SAVE_KEY);
     if(!raw) return false;
     const payload=JSON.parse(raw);
@@ -8361,6 +8369,11 @@ function restoreAutoSaveIfWanted(){
   }catch(err){console.warn('Autosave restore failed',err)}
   return false;
 }
+// A reload before the debounced cloud save runs must not drop staff work: queue it in the
+// outbox, which survives the reload and is flushed once staff access is back.
+// An older queued snapshot keeps its base revision so the flush still replays its court actions.
+function queueUnsyncedStaffWorkBeforeUnload(){if(isReadOnlySession()||!cloudSession.tournamentId||!localChangesPending())return;const earlier=readOutbox();if(earlier?.tournamentId&&earlier.tournamentId!==cloudSession.tournamentId)return;writeOutbox(tournamentPayload(),'Unsynced changes at page unload');if(earlier){const queued=readOutbox();queued.baseRevision=Math.min(Number(earlier.baseRevision||0),Number(queued.baseRevision||0));localStorage.setItem(KSM_CLOUD_OUTBOX_KEY,JSON.stringify(queued))}}
+window.addEventListener('beforeunload', queueUnsyncedStaffWorkBeforeUnload);
 window.addEventListener('beforeunload', autoSaveTournament);
 document.addEventListener('input', scheduleAutoSave, true);
 document.addEventListener('change', scheduleAutoSave, true);

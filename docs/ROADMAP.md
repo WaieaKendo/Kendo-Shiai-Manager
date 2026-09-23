@@ -20,6 +20,7 @@
 | `fix/inline-handler-escaping` | 0.4 | merged into `develop` |
 | `feat/test-hooks` | Test IDs + test helper | merged into `develop` |
 | `test/full-tournament-e2e` | Full tournament e2e, watch mode, coverage map | merged into `develop` |
+| `fix/tv-reload-restore-prompt` | F1: link devices reload without the restore prompt; unsynced staff work queued and flushed after login | open — ready for review |
 
 Nothing has been pushed to GitHub yet; `main` is unchanged from the original repository.
 
@@ -83,4 +84,4 @@ Bugs found by tests and not fixed yet. Each one is pinned by a test that expects
 
 | # | Finding | Found by | Reproduction | Status |
 |---|---|---|---|---|
-| F1 | A reloaded device stops on a blocking **"Restore autosaved tournament?"** confirm before it loads the cloud copy. On a TV display nobody is there to answer, so a power cut or browser restart leaves the TV frozen on the dialog; the local autosave is also pointless for a device opened from a cloud link. | `e2e-full-tournament-test.py` (TV power-cycle checkpoint; expected-failure check on `tv.seen_dialogs`) | Open a TV link (`/?role=spectator&tournament=<id>&court=A&view=tv`, from TV → Court A TV), wait for the display, reload the page. `restoreAutoSaveIfWanted()` runs at startup whenever `localStorage` holds an autosave. Same on spectator and scorekeeper devices. | ⏳ open |
+| F1 | A reloaded device stopped on a blocking **"Restore autosaved tournament?"** confirm before it loaded the cloud copy. On a TV display nobody is there to answer, so a power cut or browser restart left the TV frozen on the dialog. The prompt was also useless for link devices: the cloud load replaced whatever it restored. | `e2e-full-tournament-test.py` (TV power-cycle checkpoint) | Open a TV link (`/?role=spectator&tournament=<id>&court=A&view=tv`), wait for the display, reload. Fixed in `fix/tv-reload-restore-prompt`: devices opened from a tournament link skip the prompt; unsynced staff work is queued in the outbox (also at page unload), survives the read-only reload and is merged into the cloud copy when staff logs in again. Pinned by `reload-restore-test.py` and the e2e TV/spectator reloads. A plain start (no link) still offers the autosave. | ✅ fixed |

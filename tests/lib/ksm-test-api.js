@@ -17,6 +17,9 @@ window.KSMTest = {
   role() { return ksmSessionRole; },
   pending() { return localChangesPending(); },
   diagnostics() { return readCloudDiagnosticsState(); },
+  // Snapshot queued for the cloud (offline, failed save, reload before a save): who queued it, for which tournament.
+  outbox() { const o = readOutbox(); return o ? {tournamentId: o.tournamentId, role: o.role, baseRevision: o.baseRevision, reason: o.actions?.[0]?.reason || ''} : null; },
+  hasAutosave() { return !!localStorage.getItem(KSM_SAVE_KEY); },
   generated() { return !!state.generated && Object.keys(state.allMatches || {}).length > 0; },
   allMatches() { return state.allMatches; },
   pools() { return state.pools; },

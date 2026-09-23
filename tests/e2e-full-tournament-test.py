@@ -9,7 +9,8 @@ Devices (separate browser contexts) against a throwaway `wrangler dev`:
     finished they pick the next one in the court's division selector (the app
     has no auto-advance yet).
   * Spectator (Live Scores) and a Court A TV (the link from the TV menu) follow
-    along; they are checked at checkpoints, and each drops off and catches up.
+    along; they are checked at checkpoints, and each drops off and catches up
+    (the spectator goes offline, both are reloaded; neither may show a prompt).
 
 Divisions: individual round robin on Court A (8 registered, 1 no-show; a scripted
 pool draw forces a tiebreak), individual single elimination on Court B (6), and a
@@ -222,13 +223,17 @@ def main():
             if steps >= 8 and not dropped:
                 # Spectator loses its connection and the TV is power-cycled mid-tournament.
                 spectator.page.context.set_offline(True)
-                # Finding F1 (docs/ROADMAP.md): a reloaded device asks "Restore autosaved
-                # tournament?" before it loads the cloud copy. Nobody is at a TV to answer.
+                # Nobody is at a TV to answer a prompt: a reloaded link device must not ask
+                # "Restore autosaved tournament?" (finding F1, fixed); record it if it does.
                 tv.expect_dialog('Restore autosaved tournament?', accept=False)
                 tv.page.reload(wait_until='domcontentloaded')
                 dropped = True
             if dropped is True and steps >= 12:
                 spectator.page.context.set_offline(False)
+                # The spectator is power-cycled too, once it is back online.
+                spectator.expect_dialog('Restore autosaved tournament?', accept=False)
+                spectator.page.reload(wait_until='domcontentloaded')
+                spectator.page.wait_for_function('window.KSMTest && KSMTest.booted()')
                 dropped = 'restored'
                 check_followers(courts, spectator, tv, problems, 'after reconnect')
 
@@ -281,9 +286,10 @@ def main():
         if not tv_final['complete']:
             problems.append(f'TV Court A does not show final results at the end: {tv_final}')
 
-        # Expected-failure check for finding F1: when this fails, the bug is fixed —
-        # drop expect_dialog() above and mark F1 fixed in docs/ROADMAP.md.
-        assert tv.seen_dialogs, 'Finding F1 no longer reproduces: update this test and docs/ROADMAP.md'
+        # Finding F1 (fixed): reloaded TV and spectator load the cloud copy without a prompt.
+        for device in (tv, spectator):
+            if device.seen_dialogs:
+                problems.append(f'{device.name} reload asked: {device.seen_dialogs}')
 
         if watch_mode():
             time.sleep(3)

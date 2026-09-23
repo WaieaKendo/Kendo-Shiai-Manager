@@ -143,6 +143,11 @@ class KsmApp:
     def close(self):
         self.page.context.close()
 
+    def reload(self):
+        """Reload the page (power cut, browser restart) and wait for the app to boot again."""
+        self.page.reload(wait_until='domcontentloaded')
+        self.page.wait_for_function('window.KSMTest && KSMTest.booted()')
+
     # --------------------------------------------------------- cloud / sync status
     def tournament_id(self):
         """(test API) Cloud tournament ID of this device."""
@@ -167,6 +172,14 @@ class KsmApp:
     def all_matches(self):
         """(test API) The device's copy of every division's match list."""
         return self.page.evaluate('KSMTest.allMatches()')
+
+    def outbox(self):
+        """(test API) The snapshot queued for the cloud, or None: {tournamentId, role, baseRevision, reason}."""
+        return self.page.evaluate('KSMTest.outbox()')
+
+    def has_autosave(self):
+        """(test API) Whether this browser holds a local autosave (what the restore prompt offers)."""
+        return self.page.evaluate('KSMTest.hasAutosave()')
 
     def diagnostics(self):
         """(test API) Cloud diagnostics state (rebase attempts etc.)."""
