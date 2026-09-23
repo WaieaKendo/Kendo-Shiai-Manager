@@ -74,11 +74,13 @@ _TV_JS = """() => {
   const root = document.querySelector('[data-testid="tv-display"]');
   const text = id => (root?.querySelector(`[data-testid="${id}"]`)?.innerText || '').replace(/\\s+/g, ' ').trim();
   return {
-    court: text('tv-court').replace(/^Court\\s*/, ''), division: text('tv-division'), meta: text('tv-meta'),
+    court: text('tv-court').replace(/^Court\\s*/i, ''), division: text('tv-division'), meta: text('tv-meta'),
     live: !!root?.querySelector('[data-testid="tv-current-match"]'),
     complete: !!root?.querySelector('[data-testid="division-complete"]'),
     white: text('tv-white-name'), red: text('tv-red-name'),
     white_team: text('tv-white-team'), red_team: text('tv-red-team'),
+    white_score: text('tv-white-score'), red_score: text('tv-red-score'),
+    white_summary: text('tv-white-summary'), red_summary: text('tv-red-summary'),
   };
 }"""
 
@@ -109,12 +111,13 @@ class KsmApp:
 
     @classmethod
     def open_device(cls, browser, base, name, problems, path='/', password=DEFAULT_PASSWORD,
-                    tournament_name='KSM E2E Cup', viewport=None, clock=False):
+                    tournament_name='KSM E2E Cup', viewport=None, clock=False, before_load=None):
         """A separate device (own browser context) opening `path` on a live backend.
 
         Answers the app's prompts (tournament name, staff password, device name);
         any other dialog, or a page error, is recorded in `problems`.
-        clock=True installs Playwright's clock first, so a test can fast-forward time.
+        clock=True installs Playwright's clock first, so a test can fast-forward time;
+        before_load(page) runs before the page opens (e.g. to route its live socket).
         """
         ctx = browser.new_context(viewport=viewport or {'width': 1280, 'height': 900}, service_workers='block')
         page = ctx.new_page()
@@ -130,6 +133,8 @@ class KsmApp:
         page.on('pageerror', lambda e: problems.append(f'{name}: page error: {e}'))
         if clock:
             page.clock.install()
+        if before_load:
+            before_load(page)
         page.goto(base + path, wait_until='domcontentloaded')
         page.wait_for_function('window.KSMTest && KSMTest.booted()')
         return app
@@ -437,8 +442,14 @@ class KsmApp:
         self.page.evaluate('KSMTest.renderTv()')
 
     def tv_screen(self):
-        """TV display (?view=tv): court, division, meta, current names or completion."""
+        """TV display (?view=tv): court, division, meta, current names or completion, scores, team summaries."""
         return self.page.evaluate(_TV_JS)
+
+    def tv_upcoming(self):
+        """TV Upcoming Matches cards: [(white, red)] or None for an empty card."""
+        return self.page.evaluate("""() => [...document.querySelectorAll('[data-testid="tv-upcoming-card"]')].map(c => {
+          const w = c.querySelector('[data-testid="tv-upcoming-white"]'), r = c.querySelector('[data-testid="tv-upcoming-red"]');
+          return w ? [w.innerText.trim(), r.innerText.trim()] : null; })""")
 
     def live_court(self, court):
         """Live Scores card for a court: {meta, white, red} (the page must be showing Live Scores)."""

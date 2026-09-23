@@ -11,6 +11,7 @@
 // Python tests use .venv/bin/python when present, otherwise KSM_PYTHON or python3.
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -46,7 +47,9 @@ function run(file) {
   });
 }
 
-// Node tests are fast and independent; Python tests each launch a browser, so run a few at a time.
+// Node tests are fast and independent; Python tests each launch a browser (and some a local
+// wrangler), so run a few at a time: KSM_TEST_JOBS, or 6 on machines with 8+ cores, else 4.
+const PY_JOBS = Number(process.env.KSM_TEST_JOBS) || (os.cpus().length >= 8 ? 6 : 4);
 async function runPool(list, concurrency) {
   const results = [];
   let next = 0;
@@ -64,8 +67,11 @@ async function runPool(list, concurrency) {
 }
 
 const nodeFiles = files.filter(f => f.endsWith('.mjs'));
-const pyFiles = files.filter(f => f.endsWith('.py'));
-const results = [...await runPool(nodeFiles, 8), ...await runPool(pyFiles, 4)];
+// Start the slowest browser tests first so they overlap with the many short ones.
+const SLOW = ['golden-engine', 'court-actions', 'e2e-full', 'sync-saving', 'tv-display', 'sync-remote', 'e2e-two', 'reload-restore', 'roles-access'];
+const slowRank = f => { const i = SLOW.findIndex(s => f.startsWith(s)); return i < 0 ? SLOW.length : i; };
+const pyFiles = files.filter(f => f.endsWith('.py')).sort((a, b) => slowRank(a) - slowRank(b));
+const results = [...await runPool(nodeFiles, 8), ...await runPool(pyFiles, PY_JOBS)];
 const failed = results.filter(r => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} test files passed` + (failed.length ? `\nFailed:\n${failed.map(r => `  - ${r.file}`).join('\n')}` : ''));
 if (!results.length) console.log('No tests matched.');

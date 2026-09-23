@@ -5333,7 +5333,7 @@ body.ksm-staff .director-only{display:flex!important}
         <span>Export <b aria-hidden="true">▾</b></span>
       </button>
       <div id="exportMenu" role="menu" class="nav-dropdown nav-dropdown-wide hidden">
-        <button onclick="exportTournamentBrackets()">Tournament Brackets</button>
+        <button onclick="exportTournamentBrackets()" data-testid="nav-export-brackets">Tournament Brackets</button>
         <button onclick="exportResultsAwards()">Results &amp; Awards</button>
         <button onclick="closeNavMenus();alert('Referee assignment export will be added with the Referee Assignment module.')">Referee Assignments</button>
         <button onclick="closeNavMenus();alert('Tournament Archive export will be added with the archive module.')">Tournament Archive</button>
@@ -5586,7 +5586,7 @@ body.ksm-staff .director-only{display:flex!important}
       <div class="sk-header scoreboard-header">
         <div class="scoreboard-tournament">
           <img src="/assets/ksm-fuji-logo.svg" alt="" aria-hidden="true">
-          <div id="scoreTournamentName">Kendo Tournament</div>
+          <div id="scoreTournamentName" data-testid="court-tournament-name">Kendo Tournament</div>
         </div>
         <div class="scoreboard-heading-center">
           <h1 id="courtTitle" data-testid="court-title">Court A</h1>
@@ -6566,8 +6566,8 @@ function selectScorekeeperDivision(div){
 function makeMatches(div){state.allMatches[div]=buildPoolMatches(div,state.pools[div]||[]);setActiveDivision(div)}
 function renderPools(){
   let div=poolDiv?.value||state.poolViewDivision||state.currentDivision;state.poolViewDivision=div;let pools=state.pools[div]||[];
-  let poolHtml=pools.length?pools.map(p=>`<div class="pool" data-testid="pool" ondragover="event.preventDefault();this.classList.add('drop-target')" ondragleave="this.classList.remove('drop-target')" ondrop="if(event.target===this)dropPoolPlayer(event,${jsArg(p.label)});this.classList.remove('drop-target')"><h3 data-testid="pool-title">${isTeamDivision(div)?'Team Pool':'Pool'} ${p.label}</h3>${p.players.map((x,idx)=>`<div class="drag-player" draggable="true" ondragstart="dragPoolPlayer(event,${jsArg(p.label)},${idx})"><span class="pool-slot-badge">${esc(poolPlayerSlot(x,idx))}</span><b data-testid="pool-player">${esc(x.name)}</b><span class="small" style="float:right">${esc(x.dojo)}</span></div>`).join('')}</div>`).join(''):(isTeamDivision(div)&&state.allMatches[div]?.length?'<div class="muted-card">Single-elimination team bracket created. Team position matches are available in the Court queue.</div>':((state.divisionTypes[div]==='Single Elimination'&&state.allMatches[div]?.length)?'<div class="muted-card">Single-elimination bracket created. Matches are available in the Court queue.</div>':'<div class="muted-card">No pools generated yet.</div>'));
-  let edit=pools.length&&!isTeamRoundRobinDivision(div)?'<div class="toolbar"><button onclick="toggleEditPools()">Edit Pool</button></div>':'';
+  let poolHtml=pools.length?pools.map(p=>`<div class="pool" data-testid="pool" ondragover="event.preventDefault();this.classList.add('drop-target')" ondragleave="this.classList.remove('drop-target')" ondrop="if(event.target===this)dropPoolPlayer(event,${jsArg(p.label)});this.classList.remove('drop-target')"><h3 data-testid="pool-title">${isTeamDivision(div)?'Team Pool':'Pool'} ${p.label}</h3>${p.players.map((x,idx)=>`<div class="drag-player" draggable="true" ondragstart="dragPoolPlayer(event,${jsArg(p.label)},${idx})"><span class="pool-slot-badge" data-testid="pool-slot">${esc(poolPlayerSlot(x,idx))}</span><b data-testid="pool-player">${esc(x.name)}</b><span class="small" style="float:right">${esc(x.dojo)}</span></div>`).join('')}</div>`).join(''):(isTeamDivision(div)&&state.allMatches[div]?.length?'<div class="muted-card">Single-elimination team bracket created. Team position matches are available in the Court queue.</div>':((state.divisionTypes[div]==='Single Elimination'&&state.allMatches[div]?.length)?'<div class="muted-card">Single-elimination bracket created. Matches are available in the Court queue.</div>':'<div class="muted-card">No pools generated yet.</div>'));
+  let edit=pools.length&&!isTeamRoundRobinDivision(div)?'<div class="toolbar"><button onclick="toggleEditPools()" data-testid="pool-edit">Edit Pool</button></div>':'';
   let rightTitle=isTeamRoundRobinDivision(div)?'Team Standings':'Championship Preview';
   poolOutput.className='pools-layout';
   poolOutput.innerHTML=`<div><h2>Pools</h2>${edit}<div class="pool-list">${poolHtml}</div></div><div><h2>${rightTitle}</h2>${bracketHtml(div)}</div>`;
@@ -7626,7 +7626,7 @@ function insertPoolPlayer(ev,toLabel,toIndex){
   toggleEditPools();
 }
 function dropPoolPlayer(ev,toLabel){ev.preventDefault();let div=poolDiv?.value||state.currentDivision;let pools=state.pools[div]||[];let data;try{data=JSON.parse(ev.dataTransfer.getData('text/plain'))}catch(e){return}let from=pools.find(p=>p.label===data.poolLabel),to=pools.find(p=>p.label===toLabel);if(!from||!to)return;let player=from.players.splice(data.idx,1)[0];if(player)to.players.push(player);toggleEditPools();}
-function toggleEditPools(){let div=poolDiv?.value||state.currentDivision;let pools=state.pools[div]||[];if(!pools.length)return;poolOutput.className='pools-layout';poolOutput.innerHTML='<div><div class="toolbar"><button class="primary" onclick="saveEditedPools()">Save Pool Changes</button><button onclick="renderPools()">Cancel</button></div><p class="sub">Drag players between pools or drop between names to insert into that position. Top-to-bottom order is always A, B, C, D.</p><div class="pool-list">'+pools.map((p,pi)=>`<div class="pool" ondragover="event.preventDefault();this.classList.add('drop-target')" ondragleave="this.classList.remove('drop-target')" ondrop="if(event.target===this)dropPoolPlayer(event,${jsArg(p.label)});this.classList.remove('drop-target')"><h3>Pool ${esc(p.label)}</h3><div class="drop-zone" ondragover="event.preventDefault()" ondrop="insertPoolPlayer(event,${jsArg(p.label)},0)"></div>${p.players.map((x,idx)=>`<div class="drag-player" draggable="true" ondragstart="dragPoolPlayer(event,${jsArg(p.label)},${idx})"><span class="pool-slot-badge">${esc(poolPlayerSlotLetter(idx))}</span><b>${esc(x.name)}</b><span class="small" style="float:right">${esc(x.dojo||'')}</span></div><div class="drop-zone" ondragover="event.preventDefault()" ondrop="insertPoolPlayer(event,${jsArg(p.label)},${idx+1})"></div>`).join('')}</div>`).join('')+'</div></div><div><h2>Championship Preview</h2>'+bracketHtml(div)+'</div>';}
+function toggleEditPools(){let div=poolDiv?.value||state.currentDivision;let pools=state.pools[div]||[];if(!pools.length)return;poolOutput.className='pools-layout';poolOutput.innerHTML='<div><div class="toolbar"><button class="primary" onclick="saveEditedPools()" data-testid="pool-edit-save">Save Pool Changes</button><button onclick="renderPools()">Cancel</button></div><p class="sub">Drag players between pools or drop between names to insert into that position. Top-to-bottom order is always A, B, C, D.</p><div class="pool-list">'+pools.map((p,pi)=>`<div class="pool" data-testid="pool-edit-pool" ondragover="event.preventDefault();this.classList.add('drop-target')" ondragleave="this.classList.remove('drop-target')" ondrop="if(event.target===this)dropPoolPlayer(event,${jsArg(p.label)});this.classList.remove('drop-target')"><h3>Pool ${esc(p.label)}</h3><div class="drop-zone" data-testid="pool-edit-drop" ondragover="event.preventDefault()" ondrop="insertPoolPlayer(event,${jsArg(p.label)},0)"></div>${p.players.map((x,idx)=>`<div class="drag-player" draggable="true" data-testid="pool-edit-player" ondragstart="dragPoolPlayer(event,${jsArg(p.label)},${idx})"><span class="pool-slot-badge">${esc(poolPlayerSlotLetter(idx))}</span><b>${esc(x.name)}</b><span class="small" style="float:right">${esc(x.dojo||'')}</span></div><div class="drop-zone" data-testid="pool-edit-drop" ondragover="event.preventDefault()" ondrop="insertPoolPlayer(event,${jsArg(p.label)},${idx+1})"></div>`).join('')}</div>`).join('')+'</div></div><div><h2>Championship Preview</h2>'+bracketHtml(div)+'</div>';}
 function movePoolPlayer(fromPool,idx,toPool){let div=poolDiv?.value||state.currentDivision;let pools=state.pools[div]||[];toPool=parseInt(toPool,10);if(fromPool===toPool)return;let player=pools[fromPool].players.splice(idx,1)[0];if(player)pools[toPool].players.push(player);toggleEditPools();}
 function saveEditedPools(){
   let div=poolDiv?.value||state.currentDivision;
@@ -7686,7 +7686,7 @@ function previewResultsSheet(){refreshPrintDivisionSelect();printBody.innerHTML=
 function previewFullPrintPacket(){refreshPrintDivisionSelect();let divs=printableDivisions();printBody.innerHTML=(divs.length?divs.map(printDivisionSheet).join(''):printSheet('No generated divisions','Generate a tournament before printing.',''))+printResultsSheet()}
 function printDivisionSheet(div){return isTeamDivision(div)?printTeamDivisionSheet(div):printIndividualDivisionSheet(div)}
 function printIndividualDivisionSheet(div){let pools=state.pools[div]||[],court=state.divisionCourts[div]||'A',format=state.divisionTypes[div]||'Round Robin';let body='';
-  if(pools.length){body+=`<div class="print-section-title">Pools</div><div class="print-pool-grid">`+pools.map(p=>`<div class="print-card"><div class="print-round">Pool ${esc(p.label)}</div><div class="print-list">${p.players.map((x,i)=>`<div class="print-person"><div class="print-place-label">${esc(poolPlayerSlot(x,i))}</div>${printNameBlock(x.name,x.dojo)}</div>`).join('')}</div></div>`).join('')+`</div>`;
+  if(pools.length){body+=`<div class="print-section-title">Pools</div><div class="print-pool-grid">`+pools.map(p=>`<div class="print-card" data-testid="print-pool"><div class="print-round">Pool ${esc(p.label)}</div><div class="print-list">${p.players.map((x,i)=>`<div class="print-person" data-testid="print-pool-player"><div class="print-place-label" data-testid="print-slot">${esc(poolPlayerSlot(x,i))}</div>${printNameBlock(x.name,x.dojo)}</div>`).join('')}</div></div>`).join('')+`</div>`;
     body+=`<div class="print-section-title">Pool Match Order</div><div class="print-match-grid">`+pools.map(p=>{let ms=(state.allMatches[div]||[]).filter(m=>m.pool===p.label&&!m.championship&&!m.tiebreak);return `<div class="print-card soft"><div class="print-round">Pool ${esc(p.label)}</div>${ms.map((m,i)=>printMatchLine(m.white,m.red,m.wdojo,m.rdojo,'Match '+(i+1),m.court)).join('')||'<div class="print-dojo">No pool matches.</div>'}</div>`}).join('')+`</div>`;
   }else{body+=`<div class="print-section-title">Bracket</div>`;}
   body+=`<div class="print-section-title">Championship Bracket</div>${printBracketCards(div)}`;
@@ -9624,10 +9624,10 @@ function buildTV3ViewModel(court){
   const m=data.match,meta=audienceMeta(m),teamMode=isTeamMatch(m);
   return {court,empty:false,division:m.division,data,match:m,meta,teamMode,format:m.type==='kachinuki'?'kachinuki':(teamMode?'team':'individual'),upcoming:tv3UpcomingModel(court,m,teamMode)};
 }
-function tv3Header(vm){return `<div class="tv3-head"><div class="tv3-court" data-testid="tv-court">Court ${esc(vm.court)}</div><div class="tv3-division" data-testid="tv-division">${esc(vm.meta?.division||vm.division||'No active match')}</div><div class="tv3-meta" data-testid="tv-meta">${esc(vm.meta?.line||'')}</div></div>`}
+function tv3Header(vm){return `<div class="tv3-head" data-testid="tv-header"><div class="tv3-court" data-testid="tv-court">Court ${esc(vm.court)}</div><div class="tv3-division" data-testid="tv-division">${esc(vm.meta?.division||vm.division||'No active match')}</div><div class="tv3-meta" data-testid="tv-meta">${esc(vm.meta?.line||'')}</div></div>`}
 function tv3Upcoming(vm){
-  const cards=vm.upcoming.map(x=>x?`<div class="tv3-up-card"><div><div class="tv3-up-name">${esc(x.left)}</div>${x.leftSub?`<div class="tv3-up-sub">${esc(x.leftSub)}</div>`:''}</div><div class="tv3-up-vs">vs</div><div><div class="tv3-up-name">${esc(x.right)}</div>${x.rightSub?`<div class="tv3-up-sub">${esc(x.rightSub)}</div>`:''}</div></div>`:`<div class="tv3-up-card empty"><div class="tv3-up-name">No additional match scheduled</div></div>`).join('');
-  return `<div class="tv3-upcoming"><div class="tv3-upcoming-title">Upcoming Matches</div>${cards}</div>`;
+  const cards=vm.upcoming.map(x=>x?`<div class="tv3-up-card" data-testid="tv-upcoming-card"><div><div class="tv3-up-name" data-testid="tv-upcoming-white">${esc(x.left)}</div>${x.leftSub?`<div class="tv3-up-sub">${esc(x.leftSub)}</div>`:''}</div><div class="tv3-up-vs">vs</div><div><div class="tv3-up-name" data-testid="tv-upcoming-red">${esc(x.right)}</div>${x.rightSub?`<div class="tv3-up-sub">${esc(x.rightSub)}</div>`:''}</div></div>`:`<div class="tv3-up-card empty" data-testid="tv-upcoming-card"><div class="tv3-up-name">No additional match scheduled</div></div>`).join('');
+  return `<div class="tv3-upcoming" data-testid="tv-upcoming"><div class="tv3-upcoming-title">Upcoming Matches</div>${cards}</div>`;
 }
 function tv3Player(name,dojo,red=false){return `<div class="tv3-player${red?' red':''}"><div class="tv3-top-rule${red?' red':''}"></div><div class="tv3-player-copy"><div class="tv3-name" data-testid="tv-${red?'red':'white'}-name">${tv3Name(name)}</div><div class="tv3-sub">${esc(dojo||'')}</div></div></div>`}
 function tv3Individual(vm){
@@ -9639,12 +9639,12 @@ function tv3Team(vm){
   const rows=all.length?all:[m],count=rows.length<=3?3:5,first=rows[0]||m,sum=teamPairSummary(m.division,m.teamPair);
   const left=rows.map((x,i)=>{const p=activeScoreArrays(x);return `<div class="tv3-team-row${x===m?' active':''}"${x===m?' data-testid="tv-active-bout"':''}><div class="tv3-person"${x===m?' data-testid="tv-white-name"':''}><span class="tv3-pos">${i+1}</span>${esc(x.white||'TBD')}</div><div class="tv3-row-score">${esc(tvPointText(p.W))}</div></div>`}).join('');
   const right=rows.map((x,i)=>{const p=activeScoreArrays(x);return `<div class="tv3-team-row${x===m?' active':''}"><div class="tv3-row-score">${esc(tvPointText(p.R))}</div><div class="tv3-person"${x===m?' data-testid="tv-red-name"':''}>${esc(x.red||'TBD')}<span class="tv3-pos">${i+1}</span></div></div>`}).join('');
-  return `<div class="tv3-body"><div class="tv3-team-grid" data-testid="tv-current-match"><div class="tv3-team-col"><div class="tv3-top-rule"></div><div class="tv3-team-name" data-testid="tv-white-team">${esc(first.teamWhite||m.teamWhite||'White Team')}</div><div class="tv3-roster ${count===3?'three':'five'}">${left}</div><div class="tv3-summary"><span class="label">Wins</span> ${sum.wWins} &nbsp; <span class="label">Points</span> ${sum.wPts}</div></div><div></div><div class="tv3-team-col red"><div class="tv3-top-rule red"></div><div class="tv3-team-name" data-testid="tv-red-team">${esc(first.teamRed||m.teamRed||'Red Team')}</div><div class="tv3-roster ${count===3?'three':'five'}">${right}</div><div class="tv3-summary"><span class="label">Wins</span> ${sum.rWins} &nbsp; <span class="label">Points</span> ${sum.rPts}</div></div></div></div>`;
+  return `<div class="tv3-body"><div class="tv3-team-grid" data-testid="tv-current-match"><div class="tv3-team-col"><div class="tv3-top-rule"></div><div class="tv3-team-name" data-testid="tv-white-team">${esc(first.teamWhite||m.teamWhite||'White Team')}</div><div class="tv3-roster ${count===3?'three':'five'}">${left}</div><div class="tv3-summary" data-testid="tv-white-summary"><span class="label">Wins</span> ${sum.wWins} &nbsp; <span class="label">Points</span> ${sum.wPts}</div></div><div></div><div class="tv3-team-col red"><div class="tv3-top-rule red"></div><div class="tv3-team-name" data-testid="tv-red-team">${esc(first.teamRed||m.teamRed||'Red Team')}</div><div class="tv3-roster ${count===3?'three':'five'}">${right}</div><div class="tv3-summary" data-testid="tv-red-summary"><span class="label">Wins</span> ${sum.rWins} &nbsp; <span class="label">Points</span> ${sum.rPts}</div></div></div></div>`;
 }
-function tv3KRow(name,index,active){const stateName=index<active?'eliminated':index===active?'active':'waiting';return `<div class="tv3-k-row ${stateName}"><span>${esc(name||'—')}</span><span class="tv3-k-state">${stateName}</span></div>`}
+function tv3KRow(name,index,active){const stateName=index<active?'eliminated':index===active?'active':'waiting';return `<div class="tv3-k-row ${stateName}" data-testid="tv-kachinuki-row"><span>${esc(name||'—')}</span><span class="tv3-k-state">${stateName}</span></div>`}
 function tv3Kachinuki(vm){
   const m=vm.match,p=activeScoreArrays(m),wl=(m.lineupW||[]).slice(0,3),rl=(m.lineupR||[]).slice(0,3);while(wl.length<3)wl.push('—');while(rl.length<3)rl.push('—');
-  return `<div class="tv3-body"><div class="tv3-k-wrap" data-testid="tv-current-match"><div class="tv3-k-current">${tv3Player(m.white||'—','',false)}<div class="tv3-score white">${esc(tvPointText(p.W))}</div><div class="tv3-versus">vs</div><div class="tv3-score red">${esc(tvPointText(p.R))}</div>${tv3Player(m.red||'—','',true)}</div><div class="tv3-k-lineups"><div class="tv3-k-team"><div class="tv3-top-rule"></div><div class="tv3-k-title">${esc(m.teamWhite||'White Team')}</div><div class="tv3-k-rows">${wl.map((n,i)=>tv3KRow(n,i,m.wIndex||0)).join('')}</div></div><div></div><div class="tv3-k-team red"><div class="tv3-top-rule red"></div><div class="tv3-k-title">${esc(m.teamRed||'Red Team')}</div><div class="tv3-k-rows">${rl.map((n,i)=>tv3KRow(n,i,m.rIndex||0)).join('')}</div></div></div></div></div>`;
+  return `<div class="tv3-body"><div class="tv3-k-wrap" data-testid="tv-current-match"><div class="tv3-k-current" data-testid="tv-kachinuki-current">${tv3Player(m.white||'—','',false)}<div class="tv3-score white" data-testid="tv-white-score">${esc(tvPointText(p.W))}</div><div class="tv3-versus">vs</div><div class="tv3-score red" data-testid="tv-red-score">${esc(tvPointText(p.R))}</div>${tv3Player(m.red||'—','',true)}</div><div class="tv3-k-lineups"><div class="tv3-k-team" data-testid="tv-kachinuki-lineup"><div class="tv3-top-rule"></div><div class="tv3-k-title">${esc(m.teamWhite||'White Team')}</div><div class="tv3-k-rows">${wl.map((n,i)=>tv3KRow(n,i,m.wIndex||0)).join('')}</div></div><div></div><div class="tv3-k-team red" data-testid="tv-kachinuki-lineup"><div class="tv3-top-rule red"></div><div class="tv3-k-title">${esc(m.teamRed||'Red Team')}</div><div class="tv3-k-rows">${rl.map((n,i)=>tv3KRow(n,i,m.rIndex||0)).join('')}</div></div></div></div></div>`;
 }
 function tv3Results(vm){
   return `<div class="tv3-body tv3-results-body">${divisionCompletePanelHtml(vm.division)}</div>`;
@@ -9657,7 +9657,7 @@ function renderTvDisplay(){
   const vm=buildTV3ViewModel(tvAssignedCourt());
   const body=vm.empty?`<div class="tv3-body"></div>`:(vm.format==='results'?tv3Results(vm):vm.format==='individual'?tv3Individual(vm):vm.format==='kachinuki'?tv3Kachinuki(vm):tv3Team(vm));
   const footer=vm.format==='results'?tv3ResultsFooter():tv3Upcoming(vm);
-  tvLive.innerHTML=`<div class="tv3-root">${tv3Header(vm)}${body}${footer}</div>`;
+  tvLive.innerHTML=`<div class="tv3-root" data-testid="tv-canvas">${tv3Header(vm)}${body}${footer}</div>`;
 }
 
 // ==========================================================
@@ -10098,7 +10098,7 @@ function teamResultsBracketHtml(div){
 
   return `<div class="results-team-bracket">${rounds.map(round=>`
     <section class="results-team-round">
-      <div class="team-round-metric-head">
+      <div class="team-round-metric-head" data-testid="team-round-head">
         <h3>${esc(round)}</h3>
         <span class="metric-label white-wins">Wins</span>
         <span class="metric-label white-points">Points</span>
@@ -10659,8 +10659,8 @@ function poolResultCardHtml(div,pool,options={}){
   const complete=options.completed??poolDisplayComplete(div,pool.label);
   const standingsHtml=standings.map((row,index)=>`<div class="stand-row"><span>${index+1}</span><div><b>${esc(row.name)}</b><div class="small">${esc(row.dojo||'')}</div></div><b>${row.wins}</b><b>${row.pts}</b></div>`).join('');
   const matchesHtml=matches.map(match=>alignedMatchRowHtml(match,{status:match.done?'DONE':(match.tiebreak?'TIEBREAK':'vs'),compact:true,current:!!options.currentMatch&&match===options.currentMatch})).join('');
-  return `<section class="pool-result-card ${options.active?'active-pool-card':''} ${complete?'completed-pool-card':''}">
-    <h3><span>Pool ${esc(pool.label)}</span>${complete?'<span class="pool-complete-mark" aria-label="Complete">✓</span>':''}</h3>
+  return `<section class="pool-result-card ${options.active?'active-pool-card':''} ${complete?'completed-pool-card':''}" data-testid="context-pool">
+    <h3><span data-testid="context-pool-title">Pool ${esc(pool.label)}</span>${complete?'<span class="pool-complete-mark" data-testid="context-pool-complete" aria-label="Complete">✓</span>':''}</h3>
     <div class="pool-result-standings"><div class="stand-row small"><b>#</b><b>Name</b><b>Wins</b><b>Pts</b></div>${standingsHtml}</div>
     <div>${matchesHtml||'<div class="small">No pool matches available.</div>'}</div>
   </section>`;
@@ -10674,7 +10674,7 @@ function orderedPoolContextHtml(div,currentMatch){
   const completedHtml=completed.map(pool=>poolResultCardHtml(div,pool,{completed:true})).join('');
   return `<div class="pool-context-stack">
     ${incompleteHtml?`<div class="context-box"><div class="pool-context-section-label">Pools In Progress</div><div class="all-pools-context-grid">${incompleteHtml}</div></div><div class="pool-context-divider" aria-hidden="true"></div>`:''}
-    <div class="context-box pool-context-bracket"><h2>Championship Bracket Preview</h2>${bracketHtml(div)}</div>
+    <div class="context-box pool-context-bracket" data-testid="context-bracket"><h2>Championship Bracket Preview</h2>${bracketHtml(div)}</div>
     ${completedHtml?`<div class="pool-context-divider" aria-hidden="true"></div><div class="context-box"><div class="all-pools-context-grid">${completedHtml}</div></div>`:''}
   </div>`;
 }
