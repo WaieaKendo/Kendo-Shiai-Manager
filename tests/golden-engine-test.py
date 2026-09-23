@@ -22,7 +22,8 @@ import sys
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
-from ksm_browser import launch_chromium, load_app
+from ksm_browser import launch_chromium
+from ksm_app import KsmApp
 
 GOLDEN_DIR = Path(__file__).resolve().parent / 'golden' / 'engine'
 UPDATE = os.environ.get('KSM_UPDATE_GOLDEN') == '1' or '--update' in sys.argv
@@ -79,72 +80,21 @@ SCENARIOS['multi-division-two-courts'] = [
     division('Youth', 'Round Robin', 'split', people(10, 'Y', seeds=2)),
 ]
 
-SETUP_JS = """(entries) => {
-  const divs = entries.filter(d => !d.team), team = entries.find(d => d.team);
-  state.divisions = divs.map(d => d.name);
-  state.divisionTypes = Object.fromEntries(divs.map(d => [d.name, d.format]));
-  state.divisionCourts = Object.fromEntries(divs.map(d => [d.name, d.court]));
-  state.competitors = divs.flatMap(d => d.entrants.map(e => ({...e, division: d.name})));
-  state.teams = []; state.exhibitions = [];
-  teamEnabled.value = team ? 'Enabled' : 'Disabled';
-  if (team) {
-    teamFormat.value = team.format; teamTournamentFormat.value = team.tournament;
-    state.divisionCourts['Team Tournament'] = team.court;
-    const slots = team.format === '5-Person Team' ? ['senpo','jiho','chuken','fukusho','taisho'] : ['senpo','chuken','taisho'];
-    state.teams = Array.from({length: team.teams}, (_, i) => {
-      const code = String.fromCharCode(65 + i);
-      return {team: `Team ${code}`, type: team.format, status: 'Checked', ...Object.fromEntries(slots.map((s, j) => [s, `T${code}${j + 1}`]))};
-    });
-  }
-  generatePools({validated: true});
-}"""
-
-CAPTURE_STRUCTURE_JS = """() => Object.fromEntries(Object.keys(state.allMatches).filter(div => (state.allMatches[div] || []).length).map(div => [div, {
-  pools: (state.pools[div] || []).map(p => ({label: p.label, players: (p.players || []).map(x => x.name)})),
-  matches: (state.allMatches[div] || []).map(matchSummary),
-}]))"""
-
 # One scorekeeper step on a court: open the court like the Courts menu does; if it has
-# nothing to play in its current division, move to the next division with a ready match.
+# nothing to play in its current division, move to the next division with a ready match
+# (KSMTest.prepareCourt). The outcome comes from a hash of the two names.
 STEP_JS = """(court) => {
-  chooseCourt(court);
-  let m = state.matches[state.current];
-  if (!individualMatchReady(m) || !matchBelongsToCourt(m, court)) {
-    const cs = findNextForCourt(court, null, 0);
-    if (!cs || cs.index >= (state.allMatches[cs.division] || []).length) return null;
-    applyCourtState(court, cs, true); rememberLocalCourtDivision(court, cs.division); renderScore();
-    m = state.matches[state.current];
-    if (!individualMatchReady(m)) return null;
-  }
-  const mustWin = matchRequiresWinner(m) || m.singleElim || m.championship || m.tiebreak;
+  const m = KSMTest.prepareCourt(court);
+  if (!m) return null;
+  const mustWin = KSMTest.mustWin(m);
   const h = [...(m.white + '|' + m.red)].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 7);
   let outcome = ['tie', 'white', 'white', 'red', 'red'][h % 5];
   if (outcome === 'tie' && mustWin) outcome = h % 2 ? 'white' : 'red';
   const pts = outcome === 'tie' ? [['W','M'],['R','K']] : outcome === 'white' ? (h % 3 ? [['W','M']] : [['W','M'],['R','D'],['W','K']]) : (h % 3 ? [['R','K']] : [['R','D'],['R','M']]);
   const label = {division: m.division, pool: m.pool || null, position: m.position || null, tiebreak: !!m.tiebreak, white: m.white, red: m.red};
-  pts.forEach(([side, letter]) => point(side, letter));
-  nextMatch();
+  KSMTest.play(pts);
   return {court, ...label, outcome, score: pts.map(p => p.join('')).join(' ')};
 }"""
-
-CAPTURE_FINAL_JS = """() => Object.fromEntries(Object.keys(state.allMatches).filter(div => (state.allMatches[div] || []).length).map(div => [div, {
-  complete: divisionComplete(div),
-  matches: (state.allMatches[div] || []).map(matchSummary),
-  standings: isTeamDivision(div)
-    ? (isTeamRoundRobinDivision(div) ? {team: teamStandings(div).map(r => ({name: r.name, wins: r.wins, pts: r.pts}))} : {})
-    : Object.fromEntries((state.pools[div] || []).map(p => [p.label,
-        poolStandings(p.label, div).map(r => ({name: r.name, wins: r.wins, pts: r.pts}))])),
-  placements: resultPlacements(div).map(r => ({place: r.place, name: r.name})),
-}]))"""
-
-HELPERS_JS = """() => { window.matchSummary = m => m ? ({
-  pool: m.pool || null, position: m.position || null, node: m.elimNodeId || m.champNodeId || null,
-  court: m.court || null, white: m.white || '', red: m.red || '',
-  teams: m.teamWhite || m.teamRed ? `${m.teamWhite || ''} v ${m.teamRed || ''}` : null, type: m.type || null,
-  championship: !!m.championship, singleElim: !!m.singleElim, tiebreak: !!m.tiebreak,
-  done: !!m.done, wp: m.wp || [], rp: m.rp || [],
-  winner: m.done ? (winnerOf(m) || null) : null,
-}) : null; }"""
 
 
 # For these scenarios, also record the visible text of the main screens after the
@@ -153,11 +103,12 @@ SCREEN_SCENARIOS = {'multi-division-two-courts', 'individual-and-team', 'se-08-s
 SCREENS = {'results': 'results', 'public': 'public', 'director': 'director', 'score': 'score'}
 
 
-def capture_screens(page):
+def capture_screens(app):
     import re
+    page = app.page
     out = {}
     for view, element_id in SCREENS.items():
-        page.evaluate(f"navigateTo('{view}')")
+        app.show_screen(view)
         page.wait_for_timeout(50)
         text = page.inner_text(f'#{element_id}')
         # Drop clock times / dates that change between runs.
@@ -178,10 +129,9 @@ def run_scenario(browser, divisions, name=''):
         d.accept()
     page.on('dialog', on_dialog)
     page.on('pageerror', lambda e: events.append(f'page error: {e}'))
-    load_app(page)
-    page.evaluate(HELPERS_JS)
-    page.evaluate(SETUP_JS, divisions)
-    generated = page.evaluate(CAPTURE_STRUCTURE_JS)
+    app = KsmApp.local(page)
+    app.configure(divisions)
+    generated = app.structure()
     log = []
     for _ in range(600):
         progressed = False
@@ -192,8 +142,8 @@ def run_scenario(browser, divisions, name=''):
                 progressed = True
         if not progressed:
             break
-    final = page.evaluate(CAPTURE_FINAL_JS)
-    screens = capture_screens(page) if name in SCREEN_SCENARIOS else None
+    final = app.final_state()
+    screens = capture_screens(app) if name in SCREEN_SCENARIOS else None
     page.close()
     return {
         'setup': divisions,

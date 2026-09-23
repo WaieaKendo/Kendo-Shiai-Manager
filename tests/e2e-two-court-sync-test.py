@@ -13,15 +13,13 @@ index.html in three browser sessions against a local `wrangler dev` backend:
 After everything settles, the server copy and every device must agree, and
 no point, completed match or winner from either court may be lost.
 """
-import json
 import time
-import urllib.request
 
 from playwright.sync_api import sync_playwright
+from ksm_app import KsmApp, fetch_record
 from ksm_browser import launch_chromium
 from ksm_server import local_worker
 
-PASSWORD = 'e2e-staff-pass'
 DIVS = {'A': 'Court A Open', 'B': 'Court B Open'}
 PLAYERS = {
     'A': ['Aoki Ken', 'Baba Jun', 'Chiba Rei', 'Doi Sho'],
@@ -31,80 +29,35 @@ PLAYERS = {
 POINTS = [('W', 'M'), ('R', 'K'), ('W', 'D')]
 
 
-def fetch_record(base, tid):
-    with urllib.request.urlopen(f'{base}/api/tournaments/{tid}') as r:
-        return json.load(r)
-
-
-def dialog_handler(name, problems):
-    answers = {
-        'Tournament Name': 'E2E Two Court Cup',
-        'Create Staff password': PASSWORD,
-        'Confirm Staff password': PASSWORD,
-        'Enter Staff password': PASSWORD,
-        'Name this device': name,
-    }
-
-    def handle(d):
-        for prefix, answer in answers.items():
-            if d.message.startswith(prefix):
-                return d.accept(answer)
-        problems.append(f'{name}: unexpected {d.type}: {d.message}')
-        d.accept()
-    return handle
-
-
-def open_device(browser, base, name, problems, path='/'):
-    ctx = browser.new_context(viewport={'width': 1280, 'height': 900}, service_workers='block')
-    page = ctx.new_page()
-    page.on('dialog', dialog_handler(name, problems))
-    page.on('pageerror', lambda e: problems.append(f'{name}: page error: {e}'))
-    page.goto(base + path, wait_until='domcontentloaded')
-    page.wait_for_function('typeof state==="object" && typeof cloudSession==="object"')
-    return page
-
-
-def wait_idle(page, timeout=30):
-    page.wait_for_function('!localChangesPending()', timeout=timeout * 1000)
-
-
 def main():
     problems = []
     with local_worker() as base, sync_playwright() as p:
         browser = launch_chromium(p)
 
         # --- Director creates and generates the tournament --------------------------
-        director = open_device(browser, base, 'Director', problems)
-        director.evaluate('createNewTournament()')
-        director.wait_for_function('Boolean(cloudSession.tournamentId)', timeout=20000)
-        tid = director.evaluate('cloudSession.tournamentId')
-        director.evaluate("""([divs, players]) => {
-          state.divisions = [divs.A, divs.B];
-          state.divisionTypes = {[divs.A]: 'Round Robin', [divs.B]: 'Round Robin'};
-          state.divisionCourts = {[divs.A]: 'A', [divs.B]: 'B'};
-          state.competitors = ['A', 'B'].flatMap(c => players[c].map((name, i) =>
-            ({name, dojo: `Dojo ${c}${i}`, division: divs[c], seed: '', status: 'Checked'})));
-          state.teams = []; state.exhibitions = [];
-          generatePools({validated: true});
-          criticalAutoSave('E2E generate');
-        }""", [DIVS, PLAYERS])
-        wait_idle(director)
+        director = KsmApp.open_device(browser, base, 'Director', problems, tournament_name='E2E Two Court Cup')
+        tid = director.create_tournament()
+        director.configure([
+            {'name': DIVS[c], 'format': 'Round Robin', 'court': c,
+             'entrants': [{'name': name, 'dojo': f'Dojo {c}{i}', 'seed': '', 'status': 'Checked'} for i, name in enumerate(PLAYERS[c])]}
+            for c in 'AB'])
+        director.save_now('E2E generate')
+        director.wait_idle()
         record = fetch_record(base, tid)
         planned = {c: [m for m in record['payload']['state']['allMatches'][DIVS[c]] if not m.get('championship') and not m.get('tiebreak')] for c in 'AB'}
         assert all(planned[c] for c in 'AB'), 'generation produced no pool matches'
         assert all(m.get('court', 'A') == c for c in 'AB' for m in planned[c]), 'matches not assigned to their court'
 
         # --- Spectator + two scorekeeper devices join over the cloud ---------------
-        spectator = open_device(browser, base, 'Spectator', problems, f'/?tournament={tid}')
+        spectator = KsmApp.open_device(browser, base, 'Spectator', problems, f'/?tournament={tid}')
         courts = {}
         for c in 'AB':
-            page = open_device(browser, base, f'Court {c}', problems, f'/?tournament={tid}&court={c}')
-            page.wait_for_function('cloudSession.tournamentId && Object.keys(state.allMatches||{}).length > 0', timeout=20000)
-            page.evaluate('toggleStaffSession()')
-            page.wait_for_function('ksmSessionRole === "staff"', timeout=10000)
-            page.evaluate(f"chooseCourt('{c}')")
-            page.wait_for_function(f"state.currentCourt === '{c}' && state.matches[state.current] && state.matches[state.current].court === '{c}'")
-            courts[c] = page
+            court = KsmApp.open_device(browser, base, f'Court {c}', problems, f'/?tournament={tid}&court={c}')
+            court.wait_generated()
+            court.staff_login()
+            court.open_court(c)
+            court.wait_for(court.current_match, message=f'a match on Court {c}')
+            courts[c] = court
 
         # --- Both courts play every match simultaneously ---------------------------
         # Pool matches only: championship brackets are not part of this scenario.
@@ -112,27 +65,27 @@ def main():
         rounds = max(len(planned['A']), len(planned['B']))
         for i in range(rounds):
             for c in 'AB':
-                page = courts[c]
+                court = courts[c]
                 if i >= len(planned[c]):
                     continue
-                m = page.evaluate('(() => { const m = state.matches[state.current]; return m && !m.championship && !m.tiebreak ? {white: m.white, red: m.red} : null })()')
-                if not m:
+                m = court.current_match()
+                if not m or not m['meta'].startswith('Pool'):
                     continue
                 pts = POINTS if i % 2 else POINTS[:1]  # alternate 1-0 and 2-1 wins for White
                 for side, letter in pts:
-                    page.click(f"#score button[onclick=\"point('{side}','{letter}')\"]")
-                page.click('#score button.next-match-btn')
-                played[c].append({**m, 'wp': len([x for x in pts if x[0] == 'W']), 'rp': len([x for x in pts if x[0] == 'R'])})
+                    court.score_point(side, letter)
+                court.next_match()
+                played[c].append({'white': m['white'], 'red': m['red'], 'wp': len([x for x in pts if x[0] == 'W']), 'rp': len([x for x in pts if x[0] == 'R'])})
 
         for c in 'AB':
             assert len(played[c]) == len(planned[c]), f'Court {c} played {len(played[c])}/{len(planned[c])} pool matches'
 
         # --- Let every device finish syncing -------------------------------------
-        for page in [courts['A'], courts['B']]:
-            wait_idle(page, timeout=45)
+        for court in courts.values():
+            court.wait_idle(timeout=45)
         time.sleep(2)  # allow final live broadcasts to land
-        for page in [courts['A'], courts['B']]:
-            wait_idle(page, timeout=45)
+        for court in courts.values():
+            court.wait_idle(timeout=45)
 
         record = fetch_record(base, tid)
         server = record['payload']['state']['allMatches']
@@ -156,18 +109,19 @@ def main():
             return {d: sorted((m.get('white'), m.get('red'), bool(m.get('tiebreak')), bool(m.get('done')), len(m.get('wp') or []), len(m.get('rp') or []))
                               for m in allm.get(d, []) if not m.get('championship')) for d in DIVS.values()}
         expected = summary(server)
-        for name, page in [('Court A', courts['A']), ('Court B', courts['B']), ('Spectator', spectator), ('Director', director)]:
+        for device in [courts['A'], courts['B'], spectator, director]:
+            name = device.name
             try:
-                page.wait_for_function('rev => Number(cloudSession.revision) >= rev', arg=record['revision'], timeout=15000)
+                device.wait_revision(record['revision'])
             except Exception:
-                problems.append(f"{name} stuck at revision {page.evaluate('cloudSession.revision')} (server {record['revision']})")
+                problems.append(f"{name} stuck at revision {device.revision()} (server {record['revision']})")
                 continue
-            got = summary(page.evaluate('state.allMatches'))
+            got = summary(device.all_matches())
             if got != expected:
                 problems.append(f'{name} diverged from server:\n  device={got}\n  server={expected}')
 
         assert not problems, '\n'.join(problems)
-        conflicts = [page.evaluate('readCloudDiagnosticsState()') for page in courts.values()]
+        conflicts = [court.diagnostics() for court in courts.values()]
         rebases = sum(1 for d in conflicts if d.get('rebaseAttempt'))
         print(f"PASS two courts played {len(played['A'])}+{len(played['B'])} matches concurrently; "
               f"server revision {record['revision']}; devices converged (rebased saves seen on {rebases} court device(s))")

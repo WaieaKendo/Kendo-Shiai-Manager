@@ -5279,56 +5279,56 @@ body.ksm-staff .director-only{display:flex!important}
   </div>
 
   <nav class="minimal-nav icon-nav" aria-label="Primary navigation">
-    <button class="nav-tile director-only setup-nav-tile" onclick="navigateTo('setup')" title="Setup">
+    <button class="nav-tile director-only setup-nav-tile" onclick="navigateTo('setup')" title="Setup" data-testid="nav-setup">
       <img src="/assets/nav-icons/setup.svg" alt="">
       <span>Setup</span>
     </button>
 
-    <button class="nav-tile director-only" onclick="openRegistrationTab('individual')" title="Registration">
+    <button class="nav-tile director-only" onclick="openRegistrationTab('individual')" title="Registration" data-testid="nav-registration">
       <img src="/assets/nav-icons/registration.svg" alt="">
       <span>Registration</span>
     </button>
 
     <div class="nav-menu nav-tile-wrap role-court-access">
-      <button class="nav-tile nav-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="courtsMenu" onclick="toggleNavMenu('courtsMenu',event)" title="Courts">
+      <button class="nav-tile nav-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="courtsMenu" onclick="toggleNavMenu('courtsMenu',event)" title="Courts" data-testid="nav-courts">
         <img src="/assets/nav-icons/courts.svg" alt="">
         <span>Courts <b aria-hidden="true">▾</b></span>
       </button>
       <div id="courtsMenu" role="menu" class="nav-dropdown hidden">
-        <button onclick="chooseCourt('A')">Court A</button>
-        <button onclick="chooseCourt('B')">Court B</button>
+        <button onclick="chooseCourt('A')" data-testid="nav-court-a">Court A</button>
+        <button onclick="chooseCourt('B')" data-testid="nav-court-b">Court B</button>
       </div>
     </div>
 
-    <button class="nav-tile" onclick="navigateTo('public')" title="Live Scores">
+    <button class="nav-tile" onclick="navigateTo('public')" title="Live Scores" data-testid="nav-live-scores">
       <img src="/assets/nav-icons/live-scores.svg" alt="">
       <span>Live Scores</span>
     </button>
 
     <div class="nav-menu nav-tile-wrap role-court-access tv-role-access">
-      <button class="nav-tile nav-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="tvMenu" onclick="toggleNavMenu('tvMenu',event)" title="TV Display">
+      <button class="nav-tile nav-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="tvMenu" onclick="toggleNavMenu('tvMenu',event)" title="TV Display" data-testid="nav-tv">
         <img src="/assets/nav-icons/live-scores.svg" alt="">
         <span>TV <b aria-hidden="true">▾</b></span>
       </button>
       <div id="tvMenu" role="menu" class="nav-dropdown hidden">
-        <button onclick="launchTvDisplay('A')">Court A TV</button>
-        <button onclick="launchTvDisplay('B')">Court B TV</button>
+        <button onclick="launchTvDisplay('A')" data-testid="nav-tv-a">Court A TV</button>
+        <button onclick="launchTvDisplay('B')" data-testid="nav-tv-b">Court B TV</button>
       </div>
     </div>
 
-    <button class="nav-tile role-court-access" onclick="navigateTo('director')" title="Tournament Overview">
+    <button class="nav-tile role-court-access" onclick="navigateTo('director')" title="Tournament Overview" data-testid="nav-overview">
       <img src="/assets/nav-icons/live-scores.svg" alt="">
       <span>Overview</span>
     </button>
 
 
-    <button class="nav-tile" onclick="navigateTo('results')" title="Results">
+    <button class="nav-tile" onclick="navigateTo('results')" title="Results" data-testid="nav-results">
       <img src="/assets/nav-icons/results.svg" alt="">
       <span>Results</span>
     </button>
 
     <div class="nav-menu nav-tile-wrap director-only">
-      <button class="nav-tile nav-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="exportMenu" onclick="toggleNavMenu('exportMenu',event)" title="Export">
+      <button class="nav-tile nav-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="exportMenu" onclick="toggleNavMenu('exportMenu',event)" title="Export" data-testid="nav-export">
         <img src="/assets/nav-icons/export.svg" alt="">
         <span>Export <b aria-hidden="true">▾</b></span>
       </button>
@@ -5341,15 +5341,15 @@ body.ksm-staff .director-only{display:flex!important}
     </div>
 
     <div class="nav-menu nav-tile-wrap director-only">
-      <button class="nav-tile nav-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="saveLoadMenu" onclick="toggleNavMenu('saveLoadMenu',event)" title="Save or Load">
+      <button class="nav-tile nav-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="saveLoadMenu" onclick="toggleNavMenu('saveLoadMenu',event)" title="Save or Load" data-testid="nav-save-load">
         <img src="/assets/nav-icons/save-load.svg" alt="">
         <span>Save / Load <b aria-hidden="true">▾</b></span>
       </button>
       <div id="saveLoadMenu" role="menu" class="nav-dropdown nav-dropdown-wide hidden">
         <div class="menu-heading">Tournament</div>
-        <button onclick="closeNavMenus();createNewTournament()">New Tournament</button>
-        <button onclick="closeNavMenus();saveNow()">Save Now</button>
-        <button onclick="closeNavMenus();showHomePage()">Tournament Library</button>
+        <button onclick="closeNavMenus();createNewTournament()" data-testid="nav-new-tournament">New Tournament</button>
+        <button onclick="closeNavMenus();saveNow()" data-testid="nav-save-now">Save Now</button>
+        <button onclick="closeNavMenus();showHomePage()" data-testid="nav-library">Tournament Library</button>
         <button onclick="closeNavMenus();manualSaveTournament()">Download Tournament File</button>
         <button onclick="closeNavMenus();triggerLoadTournament()">Load Tournament File</button>
         <div class="menu-divider"></div><div class="menu-heading">Recovery</div>
@@ -5357,7 +5357,7 @@ body.ksm-staff .director-only{display:flex!important}
         <button onclick="closeNavMenus();triggerLoadRecoveryFile()">Load Recovery File</button>
         <div class="menu-divider"></div><div class="menu-heading">Sharing</div>
         <button onclick="closeNavMenus();copyTournamentId()">Copy Tournament ID</button>
-        <button onclick="closeNavMenus();openTournamentAccess()">Tournament Access</button>
+        <button onclick="closeNavMenus();openTournamentAccess()" data-testid="nav-tournament-access">Tournament Access</button>
         <div class="menu-divider"></div><div class="menu-heading">Cloud</div>
         <button onclick="closeNavMenus();cloudDiagnostics()">Cloud Diagnostics</button>
       </div>
@@ -5367,7 +5367,7 @@ body.ksm-staff .director-only{display:flex!important}
     <input id="ksmRecoveryFile" type="file" accept=".ksm,application/json" style="display:none" onchange="loadRecoveryFile(event)">
   </nav>
 
-  <div class="row cloud-status-wrap"><button id="staffAuthButton" class="secondary" type="button" onclick="toggleStaffSession()">Staff Login</button><div onclick="cloudDiagnostics()" role="button" tabindex="0" title="Open Cloud Diagnostics"><span id="sessionRole" hidden>Spectator</span><span id="connectionStatus" class="small nav-save-status">Local</span><span id="cloudPresence" hidden></span><span id="saveStatus" class="small nav-save-status">Not saved yet</span></div></div>
+  <div class="row cloud-status-wrap"><button id="staffAuthButton" class="secondary" type="button" onclick="toggleStaffSession()" data-testid="staff-auth">Staff Login</button><div onclick="cloudDiagnostics()" role="button" tabindex="0" title="Open Cloud Diagnostics"><span id="sessionRole" hidden>Spectator</span><span id="connectionStatus" class="small nav-save-status" data-testid="connection-status">Local</span><span id="cloudPresence" hidden></span><span id="saveStatus" class="small nav-save-status" data-testid="save-status">Not saved yet</span></div></div>
 </header>
 <main>
 
@@ -5379,7 +5379,7 @@ body.ksm-staff .director-only{display:flex!important}
     </div>
     <div class="home-head">
       <div><h2>Your Tournaments</h2><p>Create a new tournament or open an existing tournament in Spectator mode.</p></div>
-      <button class="home-new-button" type="button" onclick="createNewTournament()">＋ New Tournament</button>
+      <button class="home-new-button" type="button" data-testid="home-new-tournament" onclick="createNewTournament()">＋ New Tournament</button>
     </div>
     <div id="homeTournamentLibrary" class="home-library-grid"></div>
   </div>
@@ -5408,7 +5408,7 @@ body.ksm-staff .director-only{display:flex!important}
         <div class="setup-form-grid">
           <div class="field">
             <label>Tournament Name</label>
-            <input id="tName" value="Aiea Taiheiji Kendo Tournament">
+            <input id="tName" value="Aiea Taiheiji Kendo Tournament" data-testid="setup-tournament-name">
           </div>
           <div class="field">
             <label>Host Organization</label>
@@ -5456,24 +5456,24 @@ body.ksm-staff .director-only{display:flex!important}
                 <th>Court Assignment</th>
               </tr>
             </thead>
-            <tbody id="divisionSetupRows"></tbody>
+            <tbody id="divisionSetupRows" data-testid="setup-division-rows"></tbody>
           </table>
         </div>
 
         <div class="custom-division-box">
           <div class="custom-division-title">Add Custom Division</div>
           <div class="custom-division-row">
-            <input id="customDivName" placeholder="Division name">
-            <select id="customDivFormat">
+            <input id="customDivName" placeholder="Division name" data-testid="custom-division-name">
+            <select id="customDivFormat" data-testid="custom-division-format">
               <option>Round Robin</option>
               <option>Single Elimination</option>
             </select>
-            <select id="customDivCourt">
+            <select id="customDivCourt" data-testid="custom-division-court">
               <option value="A">Court A</option>
               <option value="B">Court B</option>
               <option value="split">Split Between Courts</option>
             </select>
-            <button onclick="addCustomDivision()">+ Add Division</button>
+            <button onclick="addCustomDivision()" data-testid="custom-division-add">+ Add Division</button>
           </div>
         </div>
       </section>
@@ -5488,14 +5488,14 @@ body.ksm-staff .director-only{display:flex!important}
         <div class="setup-stack">
           <div class="field">
             <label>Enable Team Tournament</label>
-            <select id="teamEnabled" onchange="saveSetup()">
+            <select id="teamEnabled" onchange="saveSetup()" data-testid="team-enabled">
               <option>Enabled</option>
               <option>Disabled</option>
             </select>
           </div>
           <div class="field">
             <label>Team Match Format</label>
-            <select id="teamFormat" onchange="saveSetup();renderTeams()">
+            <select id="teamFormat" onchange="saveSetup();renderTeams()" data-testid="team-format">
               <option selected>3-Person Team</option>
               <option>5-Person Team</option>
               <option>Kachinuki</option>
@@ -5503,14 +5503,14 @@ body.ksm-staff .director-only{display:flex!important}
           </div>
           <div class="field">
             <label>Tournament Format</label>
-            <select id="teamTournamentFormat" onchange="saveSetup()">
+            <select id="teamTournamentFormat" onchange="saveSetup()" data-testid="team-tournament-format">
               <option selected>Single Elimination</option>
               <option>Round Robin</option>
             </select>
           </div>
           <div class="field">
             <label>Court Assignment</label>
-            <select id="teamCourt" onchange="state.divisionCourts['Team Tournament']=this.value;saveSetup()">
+            <select id="teamCourt" onchange="state.divisionCourts['Team Tournament']=this.value;saveSetup()" data-testid="team-court">
               <option>A</option>
               <option>B</option>
               <option selected>Both</option>
@@ -5574,12 +5574,12 @@ body.ksm-staff .director-only{display:flex!important}
       </section>
 
       <div class="setup-action-row">
-        <button class="setup-primary-action" onclick="saveSetup();show('registration')">Save Setup &amp; Continue</button>
+        <button class="setup-primary-action" onclick="saveSetup();show('registration')" data-testid="setup-save-continue">Save Setup &amp; Continue</button>
       </div>
     </div>
   </div>
 </section>
-<section id="registration" class="view hidden"><div class="card wide"><div class="toolbar"><div class="row"><button id="indTab" class="tab active" onclick="regTab('individual')">Individual Players</button><button id="teamTab" class="tab" onclick="regTab('team')">Team Registration</button><button id="exhibitionTab" class="tab" onclick="regTab('exhibition')">Exhibition</button><button id="poolsTab" class="tab" onclick="regTab('pools')">Pools</button><button id="generateBtn" class="primary" onclick="requestTournamentGeneration()">Generate Tournament</button><button id="regenerateDivisionBtn" onclick="openRegenerateDivisionDialog()">Regenerate Single Division</button></div><div class="row"><button onclick="alert('CSV import will be added in the production build.')">Import CSV</button><button onclick="exportCSV()">Export CSV</button><button onclick="alert('Paste rows directly into the table from Excel.')">Paste from Excel</button><button onclick="loadFullTournament()">Load Sample Tournament</button><button class="danger" onclick="clearCompetitors()">Clear Registration</button></div></div><div id="tournamentStatusCard" class="tournament-status-card"></div></div><div id="indReg" class="card wide"><div class="toolbar"><div class="row"><button class="primary" onclick="addRow()">+ Add Row</button><button onclick="addRow(5)">+ 5 Rows</button><button onclick="loadSamples()">Load Sample Players</button></div><div class="row"><input id="regFilter" placeholder="Filter players..." oninput="renderReg()"></div></div><div style="overflow:auto"><table id="regTable"></table></div></div><div id="teamReg" class="card wide hidden"><div class="toolbar"><div class="row"><button class="primary" onclick="addTeamRow()">+ Add Team</button><button onclick="addTeamRow(3)">+ 3 Teams</button><button onclick="loadTeamSamples()">Load Sample Teams</button><button onclick="addAutoTeam()">+ Auto Test Team</button><button class="danger" onclick="state.teams=[];renderTeams()">Clear Teams</button></div><div class="row"><input id="teamFilter" placeholder="Filter teams..." oninput="renderTeams()"></div></div><p class="sub">Use vertical team cards. Team name is the only team identifier required.</p><div style="overflow:auto"><table id="teamTable"></table></div></div><div id="exhibitionReg" class="card wide hidden"><div class="toolbar"><div class="row"><button class="primary" onclick="addExhibitionRow()">+ Add Exhibition Match</button><button onclick="addExhibitionRow(3)">+ 3 Matches</button><button class="danger" onclick="state.exhibitions=[];renderExhibitions()">Clear Exhibitions</button></div></div><div style="overflow:auto"><table id="exhibitionTable"></table></div></div><div id="poolsReg" class="card wide hidden"><h1>Generated Pools</h1><p class="sub">Pools are generated from registered or checked-in individual competitors. No-show competitors are excluded.</p><div class="row"><select id="poolDiv" onchange="state.poolViewDivision=this.value;renderPools()"></select><button onclick="generatePools()">Regenerate</button></div><div id="poolOutput" class="pool-wrap" style="margin-top:16px"></div></div></section><section id="score" class="view hidden">
+<section id="registration" class="view hidden"><div class="card wide"><div class="toolbar"><div class="row"><button id="indTab" class="tab active" onclick="regTab('individual')" data-testid="reg-tab-individual">Individual Players</button><button id="teamTab" class="tab" onclick="regTab('team')" data-testid="reg-tab-team">Team Registration</button><button id="exhibitionTab" class="tab" onclick="regTab('exhibition')">Exhibition</button><button id="poolsTab" class="tab" onclick="regTab('pools')" data-testid="reg-tab-pools">Pools</button><button id="generateBtn" class="primary" onclick="requestTournamentGeneration()" data-testid="generate-button">Generate Tournament</button><button id="regenerateDivisionBtn" onclick="openRegenerateDivisionDialog()">Regenerate Single Division</button></div><div class="row"><button onclick="alert('CSV import will be added in the production build.')">Import CSV</button><button onclick="exportCSV()">Export CSV</button><button onclick="alert('Paste rows directly into the table from Excel.')">Paste from Excel</button><button onclick="loadFullTournament()">Load Sample Tournament</button><button class="danger" onclick="clearCompetitors()">Clear Registration</button></div></div><div id="tournamentStatusCard" class="tournament-status-card" data-testid="tournament-status"></div></div><div id="indReg" class="card wide"><div class="toolbar"><div class="row"><button class="primary" onclick="addRow()" data-testid="reg-add-row">+ Add Row</button><button onclick="addRow(5)">+ 5 Rows</button><button onclick="loadSamples()">Load Sample Players</button></div><div class="row"><input id="regFilter" placeholder="Filter players..." oninput="renderReg()" data-testid="reg-filter"></div></div><div style="overflow:auto"><table id="regTable"></table></div></div><div id="teamReg" class="card wide hidden"><div class="toolbar"><div class="row"><button class="primary" onclick="addTeamRow()" data-testid="team-add">+ Add Team</button><button onclick="addTeamRow(3)">+ 3 Teams</button><button onclick="loadTeamSamples()">Load Sample Teams</button><button onclick="addAutoTeam()">+ Auto Test Team</button><button class="danger" onclick="state.teams=[];renderTeams()">Clear Teams</button></div><div class="row"><input id="teamFilter" placeholder="Filter teams..." oninput="renderTeams()"></div></div><p class="sub">Use vertical team cards. Team name is the only team identifier required.</p><div style="overflow:auto"><table id="teamTable"></table></div></div><div id="exhibitionReg" class="card wide hidden"><div class="toolbar"><div class="row"><button class="primary" onclick="addExhibitionRow()">+ Add Exhibition Match</button><button onclick="addExhibitionRow(3)">+ 3 Matches</button><button class="danger" onclick="state.exhibitions=[];renderExhibitions()">Clear Exhibitions</button></div></div><div style="overflow:auto"><table id="exhibitionTable"></table></div></div><div id="poolsReg" class="card wide hidden"><h1>Generated Pools</h1><p class="sub">Pools are generated from registered or checked-in individual competitors. No-show competitors are excluded.</p><div class="row"><select id="poolDiv" onchange="state.poolViewDivision=this.value;renderPools()"></select><button onclick="generatePools()">Regenerate</button></div><div id="poolOutput" class="pool-wrap" style="margin-top:16px"></div></div></section><section id="score" class="view hidden">
   <div class="scorekeeper-shell">
     <div class="card scorekeeper-main scoreboard-card">
       <img class="active-match-watermark" src="/assets/KSM-Background-watermark.svg" alt="" aria-hidden="true">
@@ -5589,12 +5589,12 @@ body.ksm-staff .director-only{display:flex!important}
           <div id="scoreTournamentName">Kendo Tournament</div>
         </div>
         <div class="scoreboard-heading-center">
-          <h1 id="courtTitle">Court A</h1>
+          <h1 id="courtTitle" data-testid="court-title">Court A</h1>
           <div class="sk-division-row">
-            <select id="scoreDiv" class="division-select" onchange="selectScorekeeperDivision(this.value)"></select>
+            <select id="scoreDiv" class="division-select" onchange="selectScorekeeperDivision(this.value)" data-testid="court-division-select"></select>
           </div>
-          <div class="sk-division-title" id="scoreDivisionTitle">—</div>
-          <div class="sk-match-line" id="matchMeta">No active match</div>
+          <div class="sk-division-title" id="scoreDivisionTitle" data-testid="court-division-title">—</div>
+          <div class="sk-match-line" id="matchMeta" data-testid="court-match-meta">No active match</div>
         </div>
         <div class="scoreboard-heading-spacer" aria-hidden="true"></div>
       </div>
@@ -5604,7 +5604,7 @@ body.ksm-staff .director-only{display:flex!important}
           <div class="competitor-head">
             <span class="side-dot white-dot" aria-hidden="true"></span>
             <div>
-              <h2 id="whiteName">—</h2>
+              <h2 id="whiteName" data-testid="court-white-name">—</h2>
               <div class="sk-dojo" id="whiteDojo">—</div>
             </div>
           </div>
@@ -5612,20 +5612,20 @@ body.ksm-staff .director-only{display:flex!important}
 
         <div class="scoreboard-score-row">
           <div class="score-stack white-score-stack">
-            <div class="points white-score" id="whitePts"></div>
-            <div class="tri" id="whiteTri"></div>
+            <div class="points white-score" id="whitePts" data-testid="court-white-points"></div>
+            <div class="tri" id="whiteTri" data-testid="court-white-hansoku"></div>
           </div>
           <div class="score-vs">vs</div>
           <div class="score-stack red-score-stack">
-            <div class="points red-score" id="redPts"></div>
-            <div class="tri" id="redTri"></div>
+            <div class="points red-score" id="redPts" data-testid="court-red-points"></div>
+            <div class="tri" id="redTri" data-testid="court-red-hansoku"></div>
           </div>
         </div>
 
         <div class="scoreboard-side scoreboard-red">
           <div class="competitor-head red-head">
             <div class="red-identity">
-              <h2 id="redName">—</h2>
+              <h2 id="redName" data-testid="court-red-name">—</h2>
               <div class="sk-dojo" id="redDojo">—</div>
             </div>
             <span class="side-dot red-dot" aria-hidden="true"></span>
@@ -5636,45 +5636,45 @@ body.ksm-staff .director-only{display:flex!important}
       <div class="score-controls-grid">
         <div class="control-panel white-control-panel">
           <div class="score-buttons sk-score-buttons">
-            <button onclick="point('W','M')"><span class="point-letter">M</span><span class="point-name">Men</span></button>
-            <button onclick="point('W','K')"><span class="point-letter">K</span><span class="point-name">Kote</span></button>
-            <button onclick="point('W','D')"><span class="point-letter">D</span><span class="point-name">Do</span></button>
-            <button onclick="point('W','T')"><span class="point-letter">T</span><span class="point-name">Tsuki</span></button>
-            <button onclick="hansoku('W')"><span class="point-letter">H</span><span class="point-name">Hansoku</span></button>
+            <button onclick="point('W','M')" data-testid="point-white-M"><span class="point-letter">M</span><span class="point-name">Men</span></button>
+            <button onclick="point('W','K')" data-testid="point-white-K"><span class="point-letter">K</span><span class="point-name">Kote</span></button>
+            <button onclick="point('W','D')" data-testid="point-white-D"><span class="point-letter">D</span><span class="point-name">Do</span></button>
+            <button onclick="point('W','T')" data-testid="point-white-T"><span class="point-letter">T</span><span class="point-name">Tsuki</span></button>
+            <button onclick="hansoku('W')" data-testid="hansoku-white"><span class="point-letter">H</span><span class="point-name">Hansoku</span></button>
           </div>
         </div>
 
         <div class="control-panel red-control-panel">
           <div class="score-buttons sk-score-buttons">
-            <button onclick="point('R','M')"><span class="point-letter">M</span><span class="point-name">Men</span></button>
-            <button onclick="point('R','K')"><span class="point-letter">K</span><span class="point-name">Kote</span></button>
-            <button onclick="point('R','D')"><span class="point-letter">D</span><span class="point-name">Do</span></button>
-            <button onclick="point('R','T')"><span class="point-letter">T</span><span class="point-name">Tsuki</span></button>
-            <button onclick="hansoku('R')"><span class="point-letter">H</span><span class="point-name">Hansoku</span></button>
+            <button onclick="point('R','M')" data-testid="point-red-M"><span class="point-letter">M</span><span class="point-name">Men</span></button>
+            <button onclick="point('R','K')" data-testid="point-red-K"><span class="point-letter">K</span><span class="point-name">Kote</span></button>
+            <button onclick="point('R','D')" data-testid="point-red-D"><span class="point-letter">D</span><span class="point-name">Do</span></button>
+            <button onclick="point('R','T')" data-testid="point-red-T"><span class="point-letter">T</span><span class="point-name">Tsuki</span></button>
+            <button onclick="hansoku('R')" data-testid="hansoku-red"><span class="point-letter">H</span><span class="point-name">Hansoku</span></button>
           </div>
         </div>
       </div>
 
       <div class="action-row sk-action-row bottom-action-row">
-        <button id="undoBtn" class="action-btn undo-action" onclick="undo()">
+        <button id="undoBtn" class="action-btn undo-action" onclick="undo()" data-testid="undo">
       <svg class="action-svg undo-svg" viewBox="0 0 64 64" aria-hidden="true">
         <path d="M24 14H10v14" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M11 27c4-10 14-17 26-17 15 0 27 12 27 27S52 64 37 64c-11 0-21-7-25-17" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
       </svg>
       <span class="action-label">Undo</span>
     </button>
-        <button id="redoBtn" class="action-btn redo-action" onclick="redo()" disabled>
+        <button id="redoBtn" class="action-btn redo-action" onclick="redo()" disabled data-testid="redo">
       <svg class="action-svg undo-svg" viewBox="0 0 64 64" aria-hidden="true" style="transform:scaleX(-1)">
         <path d="M24 14H10v14" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M11 27c4-10 14-17 26-17 15 0 27 12 27 27S52 64 37 64c-11 0-21-7-25-17" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
       </svg>
       <span class="action-label">Redo</span>
     </button>
-        <button class="action-btn fusen-action" onclick="openFusenDialog()">
+        <button class="action-btn fusen-action" onclick="openFusenDialog()" data-testid="fusen-gachi">
       <span class="action-symbol flag-symbol" aria-hidden="true">⚑</span>
       <span>Fusen-gachi</span>
     </button>
-        <button class="primary next-match-btn action-btn" onclick="nextMatch()">
+        <button class="primary next-match-btn action-btn" onclick="nextMatch()" data-testid="next-match">
       <span class="action-symbol next-symbol" aria-hidden="true">»</span>
       <span>Next Match</span>
     </button>
@@ -5684,11 +5684,11 @@ body.ksm-staff .director-only{display:flex!important}
     <div class="sk-support-grid">
       <div class="card sk-context-card scoreboard-support-card">
         <div class="toolbar"><h1>Court Context</h1></div>
-        <div id="courtContext"></div>
+        <div id="courtContext" data-testid="court-context"></div>
       </div>
       <div class="card sk-queue-card scoreboard-support-card">
         <h1>Court Queue</h1>
-        <div id="queue"></div>
+        <div id="queue" data-testid="court-queue"></div>
       </div>
     </div>
   </div>
@@ -5698,9 +5698,9 @@ body.ksm-staff .director-only{display:flex!important}
       <h2 id="fusenTitle">Fusen-gachi</h2>
       <p class="sub">Which side forfeited?</p>
       <div class="modal-actions">
-        <button onclick="confirmFusen('W')">White</button>
-        <button onclick="confirmFusen('R')">Red</button>
-        <button onclick="closeFusenDialog()">Cancel</button>
+        <button onclick="confirmFusen('W')" data-testid="fusen-white">White</button>
+        <button onclick="confirmFusen('R')" data-testid="fusen-red">Red</button>
+        <button onclick="closeFusenDialog()" data-testid="fusen-cancel">Cancel</button>
       </div>
     </div>
   </div>
@@ -5710,18 +5710,18 @@ body.ksm-staff .director-only{display:flex!important}
     <section class="director-overall-card">
       <div class="director-kicker">Tournament Overview</div>
       <h1 id="directorTournamentName">Kendo Tournament</h1>
-      <div class="director-progress-label"><span>Overall Progress</span><strong id="directorOverallCount">0 / 0 Matches</strong></div>
+      <div class="director-progress-label"><span>Overall Progress</span><strong id="directorOverallCount" data-testid="overview-progress">0 / 0 Matches</strong></div>
       <div class="director-progress-track"><div id="directorOverallBar" class="director-progress-fill"></div></div>
       <div id="directorOverallRemaining" class="director-remaining">0 Remaining</div>
     </section>
-    <div id="directorCourtGrid" class="director-court-grid"></div>
+    <div id="directorCourtGrid" class="director-court-grid" data-testid="overview-courts"></div>
   </div>
 </section>
 <section id="public" class="view hidden">
-  <div id="publicLive" class="live-scores-overview"></div>
+  <div id="publicLive" class="live-scores-overview" data-testid="live-scores"></div>
 </section>
 <section id="tv" class="view hidden" aria-label="TV Court Display">
-  <div id="tvLive" class="tv-court-display"></div>
+  <div id="tvLive" class="tv-court-display" data-testid="tv-display"></div>
 </section>
 <section id="results" class="view hidden">
   <div class="results-page">
@@ -5736,7 +5736,7 @@ body.ksm-staff .director-only{display:flex!important}
       <button class="results-export-button" onclick="exportResultsAwards()">Export Results</button>
     </div>
 
-    <div id="resultsBody" class="results-dashboard"></div>
+    <div id="resultsBody" class="results-dashboard" data-testid="results"></div>
   </div>
 
   <div id="resultsBracketModal" class="ksm-modal hidden" role="dialog" aria-modal="true" aria-labelledby="resultsBracketTitle">
@@ -5750,7 +5750,7 @@ body.ksm-staff .director-only{display:flex!important}
   </div>
 </section>
 
-<div id="validationModal" class="ksm-modal hidden" role="dialog" aria-modal="true" aria-labelledby="validationModalTitle">
+<div id="validationModal" class="ksm-modal hidden" role="dialog" aria-modal="true" aria-labelledby="validationModalTitle" data-testid="validation-modal">
   <div class="results-modal-card management-modal-card">
     <h2 id="validationModalTitle" class="validation-modal-title">Tournament Validation</h2>
     <div id="validationModalBody"></div><div class="action-row validation-modal-actions" id="validationModalActions"></div>
@@ -5782,7 +5782,7 @@ function toggleDivision(d,on){if(on&&!state.divisions.includes(d)){state.divisio
 function setDivisionFormat(d,v){state.divisionTypes[d]=v;renderReg()}
 function setDivisionCourt(d,v){state.divisionCourts[d]=v;renderDivisions();renderTournamentStatus()}
 function renderDivisionSetup(){if(!window.divisionSetupRows)return;let custom=state.divisions.filter(d=>!DIVISION_PRESETS.some(p=>p[0]===d));let rows=DIVISION_PRESETS.map(([d,fmt,c])=>divisionSetupRow(d,state.divisions.includes(d),false)).join('')+custom.map(d=>divisionSetupRow(d,true,true)).join('');divisionSetupRows.innerHTML=rows;if(window.teamCourt)teamCourt.value=state.divisionCourts['Team Tournament']||'Both';if(window.teamAwardMode)teamAwardMode.value=state.teamAwardMode||'top2'}
-function divisionSetupRow(d,enabled,custom){let court=state.divisionCourts[d]||'A';return `<tr><td><input type="checkbox" ${enabled?'checked':''} onchange="toggleDivision(${jsArg(d)},this.checked)"></td><td><b>${esc(d)}</b>${custom?' <span class="small">custom</span>':''}</td><td><select ${enabled?'':'disabled'} onchange="setDivisionFormat(${jsArg(d)},this.value)"><option ${state.divisionTypes[d]==='Round Robin'?'selected':''}>Round Robin</option><option ${state.divisionTypes[d]==='Single Elimination'?'selected':''}>Single Elimination</option></select></td><td><select ${enabled?'':'disabled'} onchange="setDivisionCourt(${jsArg(d)},this.value)"><option value="A" ${court==='A'?'selected':''}>Court A</option><option value="B" ${court==='B'?'selected':''}>Court B</option><option value="split" ${court==='split'?'selected':''}>Split Between Courts</option></select>${custom?` <button onclick="removeDivision(state.divisions.indexOf(${jsArg(d)}))">×</button>`:''}</td></tr>`}
+function divisionSetupRow(d,enabled,custom){let court=state.divisionCourts[d]||'A';return `<tr data-testid="setup-division-row"><td><input type="checkbox" ${enabled?'checked':''} onchange="toggleDivision(${jsArg(d)},this.checked)" data-testid="setup-division-enabled"></td><td><b data-testid="setup-division-name">${esc(d)}</b>${custom?' <span class="small">custom</span>':''}</td><td><select ${enabled?'':'disabled'} onchange="setDivisionFormat(${jsArg(d)},this.value)" data-testid="setup-division-format"><option ${state.divisionTypes[d]==='Round Robin'?'selected':''}>Round Robin</option><option ${state.divisionTypes[d]==='Single Elimination'?'selected':''}>Single Elimination</option></select></td><td><select ${enabled?'':'disabled'} onchange="setDivisionCourt(${jsArg(d)},this.value)" data-testid="setup-division-court"><option value="A" ${court==='A'?'selected':''}>Court A</option><option value="B" ${court==='B'?'selected':''}>Court B</option><option value="split" ${court==='split'?'selected':''}>Split Between Courts</option></select>${custom?` <button onclick="removeDivision(state.divisions.indexOf(${jsArg(d)}))">×</button>`:''}</td></tr>`}
 function courtEligibleDivisions(court){
   let all=[...new Set([...Object.keys(state.allMatches||{}),...state.divisions])];
   return all.filter(d=>{
@@ -5953,7 +5953,7 @@ function renderTournamentStatus(){
 function showValidationDialog(result,onConfirm){
   validationModalTitle.textContent=result.valid?'Tournament Validation Passed':'Tournament Validation';
   validationModalBody.innerHTML=result.valid?'<div class="muted-card"><b>✓ No blocking issues found.</b><div class="small" style="margin-top:6px">Generate Tournament?</div></div>':`<div class="validation-list">${result.issues.map(x=>`<div class="validation-issue ${esc(x.severity)}"><b>${esc(x.divisionId||'Tournament')}</b><div>${esc(x.message)}</div>${x.suggestedAction?`<div class="small">${esc(x.suggestedAction)}</div>`:''}</div>`).join('')}</div>`;
-  validationModalActions.innerHTML=result.valid?'<button onclick="closeManagementModal(\'validationModal\')">Cancel</button><button class="primary" id="validationGenerateConfirm">Generate</button>':'<button class="primary" onclick="closeManagementModal(\'validationModal\')">Close</button>';
+  validationModalActions.innerHTML=result.valid?'<button onclick="closeManagementModal(\'validationModal\')" data-testid="generate-cancel">Cancel</button><button class="primary" id="validationGenerateConfirm" data-testid="generate-confirm">Generate</button>':'<button class="primary" onclick="closeManagementModal(\'validationModal\')" data-testid="validation-close">Close</button>';
   validationModal.classList.remove('hidden');
   if(result.valid)document.getElementById('validationGenerateConfirm').onclick=()=>{closeManagementModal('validationModal');onConfirm()};
 }
@@ -5967,8 +5967,8 @@ function openRegenerateDivisionDialog(){
   regenerateModal.classList.remove('hidden');
 }
 function continueRegenerateDivision(){let selected=document.querySelector('input[name="regenDiv"]:checked')?.value;if(!selected){alert('No division is ready to regenerate.');return}if(divisionRegenerationStatus(selected)!=='ready'){alert('This division cannot be regenerated.');return}regenerateModalTitle.textContent=`Regenerate ${selected}?`;regenerateModalBody.innerHTML=`<div class="muted-card"><p>This will rebuild this division’s pools or bracket, Match Objects, court queues, Court Context, Results state, and Director progress.</p><p><b>All other divisions will remain unchanged.</b></p></div>`;regenerateModalActions.innerHTML=`<button onclick="closeManagementModal('regenerateModal')">Cancel</button><button class="primary" onclick="regenerateSingleDivision(${jsArg(selected)})">Regenerate</button>`}
-function renderReg(){let f=(regFilter?.value||'').toLowerCase();let rows=state.competitors.map((c,i)=>({...c,i})).filter(c=>!f||[c.name,c.dojo,c.division,c.status].join(' ').toLowerCase().includes(f));regTable.innerHTML=`<thead><tr><th>Name</th><th>Dojo</th><th>Division</th><th>Seed</th><th>Status</th><th></th></tr></thead><tbody>`+rows.map(c=>`<tr><td><input value="${esc(c.name)}" onchange="updateComp(${c.i},'name',this.value)"></td><td><input value="${esc(c.dojo)}" onchange="updateComp(${c.i},'dojo',this.value)"></td><td><select class="division-select" onchange="updateComp(${c.i},'division',this.value)">${state.divisions.map(d=>`<option ${d===c.division?'selected':''}>${esc(d)}</option>`).join('')}</select></td><td><input value="${esc(c.seed)}" onchange="updateComp(${c.i},'seed',this.value)"></td><td><span class="status ${c.status}" onclick="cycleCompetitorStatus(${c.i})">${c.status==='Checked'?'● Checked In':c.status==='NoShow'?'● No Show':'○ Registered'}</span></td><td><button onclick="state.competitors.splice(${c.i},1);renderReg();renderTournamentStatus()">×</button></td></tr>`).join('')+`</tbody>`}
-function renderTeams(){let f=(teamFilter?.value||'').toLowerCase();let rows=state.teams.map((c,i)=>({...c,i})).filter(c=>!f||[c.team,c.type,c.senpo,c.jiho,c.chuken,c.fukusho,c.taisho].join(' ').toLowerCase().includes(f));let fmt=teamFormat?.value||'5-Person Team';let slots=fmt==='3-Person Team'||fmt==='Kachinuki'?['senpo','chuken','taisho']:['senpo','jiho','chuken','fukusho','taisho'];teamTable.outerHTML=`<div id="teamTable" class="team-cards">`+rows.map(c=>`<div class="team-card"><div class="row" style="justify-content:space-between"><div class="field" style="flex:1"><label>Team Name</label><input value="${esc(c.team)}" onchange="state.teams[${c.i}].team=this.value"></div><button onclick="state.teams.splice(${c.i},1);renderTeams();renderTournamentStatus()">×</button></div><div class="small">${esc(fmt)} • ${esc(teamTournamentFormat?.value||'Single Elimination')}</div>${slots.map(k=>`<div class="slot"><label>${k}</label><input value="${esc(c[k])}" onchange="state.teams[${c.i}].${k}=this.value"></div>`).join('')}<div style="margin-top:10px"><span class="status ${c.status}" onclick="cycleTeamStatus(${c.i})">${c.status==='Checked'?'● Checked In':c.status==='NoShow'?'● No Show':'○ Registered'}</span></div></div>`).join('')+`</div>`}
+function renderReg(){let f=(regFilter?.value||'').toLowerCase();let rows=state.competitors.map((c,i)=>({...c,i})).filter(c=>!f||[c.name,c.dojo,c.division,c.status].join(' ').toLowerCase().includes(f));regTable.innerHTML=`<thead><tr><th>Name</th><th>Dojo</th><th>Division</th><th>Seed</th><th>Status</th><th></th></tr></thead><tbody>`+rows.map(c=>`<tr data-testid="reg-row"><td><input value="${esc(c.name)}" onchange="updateComp(${c.i},'name',this.value)" data-testid="reg-name"></td><td><input value="${esc(c.dojo)}" onchange="updateComp(${c.i},'dojo',this.value)" data-testid="reg-dojo"></td><td><select class="division-select" onchange="updateComp(${c.i},'division',this.value)" data-testid="reg-division">${state.divisions.map(d=>`<option ${d===c.division?'selected':''}>${esc(d)}</option>`).join('')}</select></td><td><input value="${esc(c.seed)}" onchange="updateComp(${c.i},'seed',this.value)" data-testid="reg-seed"></td><td><span class="status ${c.status}" onclick="cycleCompetitorStatus(${c.i})" data-testid="reg-status">${c.status==='Checked'?'● Checked In':c.status==='NoShow'?'● No Show':'○ Registered'}</span></td><td><button onclick="state.competitors.splice(${c.i},1);renderReg();renderTournamentStatus()" data-testid="reg-remove">×</button></td></tr>`).join('')+`</tbody>`}
+function renderTeams(){let f=(teamFilter?.value||'').toLowerCase();let rows=state.teams.map((c,i)=>({...c,i})).filter(c=>!f||[c.team,c.type,c.senpo,c.jiho,c.chuken,c.fukusho,c.taisho].join(' ').toLowerCase().includes(f));let fmt=teamFormat?.value||'5-Person Team';let slots=fmt==='3-Person Team'||fmt==='Kachinuki'?['senpo','chuken','taisho']:['senpo','jiho','chuken','fukusho','taisho'];teamTable.outerHTML=`<div id="teamTable" class="team-cards">`+rows.map(c=>`<div class="team-card" data-testid="team-card"><div class="row" style="justify-content:space-between"><div class="field" style="flex:1"><label>Team Name</label><input value="${esc(c.team)}" onchange="state.teams[${c.i}].team=this.value" data-testid="team-name"></div><button onclick="state.teams.splice(${c.i},1);renderTeams();renderTournamentStatus()" data-testid="team-remove">×</button></div><div class="small">${esc(fmt)} • ${esc(teamTournamentFormat?.value||'Single Elimination')}</div>${slots.map(k=>`<div class="slot"><label>${k}</label><input value="${esc(c[k])}" onchange="state.teams[${c.i}].${k}=this.value" data-testid="team-member-${k}"></div>`).join('')}<div style="margin-top:10px"><span class="status ${c.status}" onclick="cycleTeamStatus(${c.i})" data-testid="team-status">${c.status==='Checked'?'● Checked In':c.status==='NoShow'?'● No Show':'○ Registered'}</span></div></div>`).join('')+`</div>`}
 function addExhibitionRow(n=1){for(let i=0;i<n;i++)state.exhibitions.push({white:'',red:'',division:'Exhibition Matches',status:'Registered'});renderExhibitions()}
 function renderExhibitions(){if(!window.exhibitionTable)return;let rows=state.exhibitions||[];exhibitionTable.innerHTML=`<thead><tr><th>White Player</th><th>Red Player</th><th>Status</th><th></th></tr></thead><tbody>`+rows.map((x,i)=>`<tr><td><input value="${esc(x.white)}" onchange="state.exhibitions[${i}].white=this.value"></td><td><input value="${esc(x.red)}" onchange="state.exhibitions[${i}].red=this.value"></td><td><span class="status ${x.status}" onclick="state.exhibitions[${i}].status=statusCycle(state.exhibitions[${i}].status);renderExhibitions()">${x.status==='Checked'?'● Checked In':x.status==='NoShow'?'● No Show':'○ Registered'}</span></td><td><button onclick="state.exhibitions.splice(${i},1);renderExhibitions()">×</button></td></tr>`).join('')+`</tbody>`}
 function updateComp(i,k,v){state.competitors[i][k]=v;if(k==='division'&&v&&!state.divisions.includes(v)){state.divisions.push(v);renderDivisions()}renderTournamentStatus()}
@@ -9416,13 +9416,13 @@ function liveScorePoints(m){
 }
 function liveScoresCourtCard(court){
   const data=courtCurrentMatch(court);
-  if(!data)return `<section class="live-court-card"><div class="live-court-head"><h2>Court ${esc(court)}</h2><span>No active match</span></div><div class="live-empty">Waiting for the next division</div></section>`;
+  if(!data)return `<section class="live-court-card" data-testid="live-court-${esc(court)}"><div class="live-court-head"><h2>Court ${esc(court)}</h2><span data-testid="live-meta">No active match</span></div><div class="live-empty">Waiting for the next division</div></section>`;
   const m=data.match, next=data.next, meta=audienceMeta(m), pts=liveScorePoints(m);
   if(m.type==='teamPosition'||m.type==='teamPlayoff'||m.type==='kachinuki'){
     const sheet=m.type==='kachinuki'?kachinukiSheetHtml(m):teamSheetHtml(m.division,m.teamPair,m);
-    return `<section class="live-court-card live-team-card"><div class="live-court-head"><h2>Court ${esc(court)}</h2><span>${esc(meta.division)} • ${esc(meta.line)}</span></div>${sheet}<div class="live-next"><span>Next</span>${next?`<b>${esc(next.teamWhite||next.white||'TBD')}</b><i>vs</i><b>${esc(next.teamRed||next.red||'TBD')}</b>`:'<em>No match queued</em>'}</div></section>`;
+    return `<section class="live-court-card live-team-card" data-testid="live-court-${esc(court)}"><div class="live-court-head"><h2>Court ${esc(court)}</h2><span data-testid="live-meta">${esc(meta.division)} • ${esc(meta.line)}</span></div>${sheet}<div class="live-next"><span>Next</span>${next?`<b>${esc(next.teamWhite||next.white||'TBD')}</b><i>vs</i><b>${esc(next.teamRed||next.red||'TBD')}</b>`:'<em>No match queued</em>'}</div></section>`;
   }
-  return `<section class="live-court-card"><div class="live-court-head"><h2>Court ${esc(court)}</h2><span>${esc(meta.division)} • ${esc(meta.line)}</span></div><div class="live-match-row"><div class="live-player white"><span class="live-side-label">White</span><strong>${esc(m.white||'TBD')}</strong><small>${esc(m.wdojo||'')}</small></div><div class="live-score-pair"><b>${esc(pts.white)}</b><span>vs</span><b>${esc(pts.red)}</b></div><div class="live-player red"><span class="live-side-label">Red</span><strong>${esc(m.red||'TBD')}</strong><small>${esc(m.rdojo||'')}</small></div></div><div class="live-next"><span>Next</span>${next?`<b>${esc(next.white||'TBD')}</b><i>vs</i><b>${esc(next.red||'TBD')}</b>`:'<em>No match queued</em>'}</div></section>`;
+  return `<section class="live-court-card" data-testid="live-court-${esc(court)}"><div class="live-court-head"><h2>Court ${esc(court)}</h2><span data-testid="live-meta">${esc(meta.division)} • ${esc(meta.line)}</span></div><div class="live-match-row"><div class="live-player white"><span class="live-side-label">White</span><strong data-testid="live-white-name">${esc(m.white||'TBD')}</strong><small>${esc(m.wdojo||'')}</small></div><div class="live-score-pair"><b>${esc(pts.white)}</b><span>vs</span><b>${esc(pts.red)}</b></div><div class="live-player red"><span class="live-side-label">Red</span><strong data-testid="live-red-name">${esc(m.red||'TBD')}</strong><small>${esc(m.rdojo||'')}</small></div></div><div class="live-next"><span>Next</span>${next?`<b>${esc(next.white||'TBD')}</b><i>vs</i><b>${esc(next.red||'TBD')}</b>`:'<em>No match queued</em>'}</div></section>`;
 }
 function renderPublic(){
   if(!window.publicLive)return;
@@ -9611,27 +9611,27 @@ function buildTV3ViewModel(court){
   const m=data.match,meta=audienceMeta(m),teamMode=isTeamMatch(m);
   return {court,empty:false,division:m.division,data,match:m,meta,teamMode,format:m.type==='kachinuki'?'kachinuki':(teamMode?'team':'individual'),upcoming:tv3UpcomingModel(court,m,teamMode)};
 }
-function tv3Header(vm){return `<div class="tv3-head"><div class="tv3-court">Court ${esc(vm.court)}</div><div class="tv3-division">${esc(vm.meta?.division||vm.division||'No active match')}</div><div class="tv3-meta">${esc(vm.meta?.line||'')}</div></div>`}
+function tv3Header(vm){return `<div class="tv3-head"><div class="tv3-court" data-testid="tv-court">Court ${esc(vm.court)}</div><div class="tv3-division" data-testid="tv-division">${esc(vm.meta?.division||vm.division||'No active match')}</div><div class="tv3-meta" data-testid="tv-meta">${esc(vm.meta?.line||'')}</div></div>`}
 function tv3Upcoming(vm){
   const cards=vm.upcoming.map(x=>x?`<div class="tv3-up-card"><div><div class="tv3-up-name">${esc(x.left)}</div>${x.leftSub?`<div class="tv3-up-sub">${esc(x.leftSub)}</div>`:''}</div><div class="tv3-up-vs">vs</div><div><div class="tv3-up-name">${esc(x.right)}</div>${x.rightSub?`<div class="tv3-up-sub">${esc(x.rightSub)}</div>`:''}</div></div>`:`<div class="tv3-up-card empty"><div class="tv3-up-name">No additional match scheduled</div></div>`).join('');
   return `<div class="tv3-upcoming"><div class="tv3-upcoming-title">Upcoming Matches</div>${cards}</div>`;
 }
-function tv3Player(name,dojo,red=false){return `<div class="tv3-player${red?' red':''}"><div class="tv3-top-rule${red?' red':''}"></div><div class="tv3-player-copy"><div class="tv3-name">${tv3Name(name)}</div><div class="tv3-sub">${esc(dojo||'')}</div></div></div>`}
+function tv3Player(name,dojo,red=false){return `<div class="tv3-player${red?' red':''}"><div class="tv3-top-rule${red?' red':''}"></div><div class="tv3-player-copy"><div class="tv3-name" data-testid="tv-${red?'red':'white'}-name">${tv3Name(name)}</div><div class="tv3-sub">${esc(dojo||'')}</div></div></div>`}
 function tv3Individual(vm){
   const m=vm.match,p=activeScoreArrays(m);
-  return `<div class="tv3-body"><div class="tv3-individual">${tv3Player(tvIndividualSideLabel(m,'white'),m.wdojo,false)}<div class="tv3-score white">${esc(tvPointText(p.W))}</div><div class="tv3-versus">vs</div><div class="tv3-score red">${esc(tvPointText(p.R))}</div>${tv3Player(tvIndividualSideLabel(m,'red'),m.rdojo,true)}</div></div>`;
+  return `<div class="tv3-body"><div class="tv3-individual" data-testid="tv-current-match">${tv3Player(tvIndividualSideLabel(m,'white'),m.wdojo,false)}<div class="tv3-score white" data-testid="tv-white-score">${esc(tvPointText(p.W))}</div><div class="tv3-versus">vs</div><div class="tv3-score red" data-testid="tv-red-score">${esc(tvPointText(p.R))}</div>${tv3Player(tvIndividualSideLabel(m,'red'),m.rdojo,true)}</div></div>`;
 }
 function tv3Team(vm){
   const m=vm.match,all=(state.allMatches[m.division]||[]).filter(x=>x.teamPair===m.teamPair&&(x.type==='teamPosition'||x.type==='teamPlayoff'));
   const rows=all.length?all:[m],count=rows.length<=3?3:5,first=rows[0]||m,sum=teamPairSummary(m.division,m.teamPair);
-  const left=rows.map((x,i)=>{const p=activeScoreArrays(x);return `<div class="tv3-team-row${x===m?' active':''}"><div class="tv3-person"><span class="tv3-pos">${i+1}</span>${esc(x.white||'TBD')}</div><div class="tv3-row-score">${esc(tvPointText(p.W))}</div></div>`}).join('');
-  const right=rows.map((x,i)=>{const p=activeScoreArrays(x);return `<div class="tv3-team-row${x===m?' active':''}"><div class="tv3-row-score">${esc(tvPointText(p.R))}</div><div class="tv3-person">${esc(x.red||'TBD')}<span class="tv3-pos">${i+1}</span></div></div>`}).join('');
-  return `<div class="tv3-body"><div class="tv3-team-grid"><div class="tv3-team-col"><div class="tv3-top-rule"></div><div class="tv3-team-name">${esc(first.teamWhite||m.teamWhite||'White Team')}</div><div class="tv3-roster ${count===3?'three':'five'}">${left}</div><div class="tv3-summary"><span class="label">Wins</span> ${sum.wWins} &nbsp; <span class="label">Points</span> ${sum.wPts}</div></div><div></div><div class="tv3-team-col red"><div class="tv3-top-rule red"></div><div class="tv3-team-name">${esc(first.teamRed||m.teamRed||'Red Team')}</div><div class="tv3-roster ${count===3?'three':'five'}">${right}</div><div class="tv3-summary"><span class="label">Wins</span> ${sum.rWins} &nbsp; <span class="label">Points</span> ${sum.rPts}</div></div></div></div>`;
+  const left=rows.map((x,i)=>{const p=activeScoreArrays(x);return `<div class="tv3-team-row${x===m?' active':''}"${x===m?' data-testid="tv-active-bout"':''}><div class="tv3-person"${x===m?' data-testid="tv-white-name"':''}><span class="tv3-pos">${i+1}</span>${esc(x.white||'TBD')}</div><div class="tv3-row-score">${esc(tvPointText(p.W))}</div></div>`}).join('');
+  const right=rows.map((x,i)=>{const p=activeScoreArrays(x);return `<div class="tv3-team-row${x===m?' active':''}"><div class="tv3-row-score">${esc(tvPointText(p.R))}</div><div class="tv3-person"${x===m?' data-testid="tv-red-name"':''}>${esc(x.red||'TBD')}<span class="tv3-pos">${i+1}</span></div></div>`}).join('');
+  return `<div class="tv3-body"><div class="tv3-team-grid" data-testid="tv-current-match"><div class="tv3-team-col"><div class="tv3-top-rule"></div><div class="tv3-team-name" data-testid="tv-white-team">${esc(first.teamWhite||m.teamWhite||'White Team')}</div><div class="tv3-roster ${count===3?'three':'five'}">${left}</div><div class="tv3-summary"><span class="label">Wins</span> ${sum.wWins} &nbsp; <span class="label">Points</span> ${sum.wPts}</div></div><div></div><div class="tv3-team-col red"><div class="tv3-top-rule red"></div><div class="tv3-team-name" data-testid="tv-red-team">${esc(first.teamRed||m.teamRed||'Red Team')}</div><div class="tv3-roster ${count===3?'three':'five'}">${right}</div><div class="tv3-summary"><span class="label">Wins</span> ${sum.rWins} &nbsp; <span class="label">Points</span> ${sum.rPts}</div></div></div></div>`;
 }
 function tv3KRow(name,index,active){const stateName=index<active?'eliminated':index===active?'active':'waiting';return `<div class="tv3-k-row ${stateName}"><span>${esc(name||'—')}</span><span class="tv3-k-state">${stateName}</span></div>`}
 function tv3Kachinuki(vm){
   const m=vm.match,p=activeScoreArrays(m),wl=(m.lineupW||[]).slice(0,3),rl=(m.lineupR||[]).slice(0,3);while(wl.length<3)wl.push('—');while(rl.length<3)rl.push('—');
-  return `<div class="tv3-body"><div class="tv3-k-wrap"><div class="tv3-k-current">${tv3Player(m.white||'—','',false)}<div class="tv3-score white">${esc(tvPointText(p.W))}</div><div class="tv3-versus">vs</div><div class="tv3-score red">${esc(tvPointText(p.R))}</div>${tv3Player(m.red||'—','',true)}</div><div class="tv3-k-lineups"><div class="tv3-k-team"><div class="tv3-top-rule"></div><div class="tv3-k-title">${esc(m.teamWhite||'White Team')}</div><div class="tv3-k-rows">${wl.map((n,i)=>tv3KRow(n,i,m.wIndex||0)).join('')}</div></div><div></div><div class="tv3-k-team red"><div class="tv3-top-rule red"></div><div class="tv3-k-title">${esc(m.teamRed||'Red Team')}</div><div class="tv3-k-rows">${rl.map((n,i)=>tv3KRow(n,i,m.rIndex||0)).join('')}</div></div></div></div></div>`;
+  return `<div class="tv3-body"><div class="tv3-k-wrap" data-testid="tv-current-match"><div class="tv3-k-current">${tv3Player(m.white||'—','',false)}<div class="tv3-score white">${esc(tvPointText(p.W))}</div><div class="tv3-versus">vs</div><div class="tv3-score red">${esc(tvPointText(p.R))}</div>${tv3Player(m.red||'—','',true)}</div><div class="tv3-k-lineups"><div class="tv3-k-team"><div class="tv3-top-rule"></div><div class="tv3-k-title">${esc(m.teamWhite||'White Team')}</div><div class="tv3-k-rows">${wl.map((n,i)=>tv3KRow(n,i,m.wIndex||0)).join('')}</div></div><div></div><div class="tv3-k-team red"><div class="tv3-top-rule red"></div><div class="tv3-k-title">${esc(m.teamRed||'Red Team')}</div><div class="tv3-k-rows">${rl.map((n,i)=>tv3KRow(n,i,m.rIndex||0)).join('')}</div></div></div></div></div>`;
 }
 function tv3Results(vm){
   return `<div class="tv3-body tv3-results-body">${divisionCompletePanelHtml(vm.division)}</div>`;
@@ -9692,22 +9692,22 @@ function resultCardHtml(div){
   const placements=resultPlacements(div),roundRobin=isTeamRoundRobinDivision(div);
   if(!placements.length){
     const progress=roundRobin?teamRoundRobinProgress(div):null;
-    return `<article class="result-progress-card">
-      <h2 class="result-card-title">${esc(div)}</h2>
+    return `<article class="result-progress-card" data-testid="result-card">
+      <h2 class="result-card-title" data-testid="result-card-title">${esc(div)}</h2>
       <div class="result-progress-message">${roundRobin?`Round robin in progress • ${progress.complete}/${progress.total} pairings complete`:'Tournament in progress'}</div>
       ${roundRobin?`<div class="result-card-footer"><button class="view-bracket-link" onclick="openResultsBracket(${jsArg(div)})">View Standings →</button></div>`:''}
     </article>`;
   }
 
   const rows=placements.map((p,i)=>`
-    <div class="placement-row ${i===0?'champion':''}">
+    <div class="placement-row ${i===0?'champion':''}" data-testid="placement-row">
       <div class="placement-ribbon ${p.tier}"></div>
-      <div class="placement-label">${esc(p.place)}</div>
-      <div class="placement-name">${esc(p.name)}</div>
+      <div class="placement-label" data-testid="placement-place">${esc(p.place)}</div>
+      <div class="placement-name" data-testid="placement-name">${esc(p.name)}</div>
     </div>`).join('');
 
-  return `<article class="result-award-card">
-    <h2 class="result-card-title">${esc(div)}</h2>
+  return `<article class="result-award-card" data-testid="result-card">
+    <h2 class="result-card-title" data-testid="result-card-title">${esc(div)}</h2>
     <div class="result-card-rule"></div>
     <div class="placement-list">${rows}</div>
     <div class="result-card-footer">
@@ -10806,8 +10806,8 @@ renderContext=function(){
 
 function divisionCompletePanelHtml(div){
   const placements=resultPlacements(div);
-  if(!placements.length)return `<div class="division-complete-panel"><div class="small">Final results are available in Results.</div></div>`;
-  return `<div class="division-complete-panel"><div class="division-complete-list">${placements.map(p=>`<div class="division-complete-row"><b class="${esc(p.tier||'')}">${esc(p.place)}</b><span>${esc(p.name)}</span></div>`).join('')}</div></div>`;
+  if(!placements.length)return `<div class="division-complete-panel" data-testid="division-complete"><div class="small">Final results are available in Results.</div></div>`;
+  return `<div class="division-complete-panel" data-testid="division-complete"><div class="division-complete-list">${placements.map(p=>`<div class="division-complete-row" data-testid="division-complete-row"><b class="${esc(p.tier||'')}">${esc(p.place)}</b><span>${esc(p.name)}</span></div>`).join('')}</div></div>`;
 }
 function setCourtCompletePresentation(div,complete){
   const card=document.querySelector('#score .scoreboard-card');if(!card)return;
