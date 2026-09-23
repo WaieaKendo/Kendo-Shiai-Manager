@@ -45,7 +45,8 @@ window.KSMTest = {
     teamEnabled.value = team ? 'Enabled' : 'Disabled';
     if (team) {
       teamFormat.value = team.format; teamTournamentFormat.value = team.tournament;
-      state.divisionCourts['Team Tournament'] = team.court;
+      // The Setup select too: saveSetup() and synced setup snapshots read the team court from it.
+      teamCourt.value = team.court; state.divisionCourts['Team Tournament'] = team.court;
       const slots = team.format === '5-Person Team' ? ['senpo','jiho','chuken','fukusho','taisho'] : ['senpo','chuken','taisho'];
       state.teams = Array.from({length: team.teams}, (_, i) => {
         const code = String.fromCharCode(65 + i);
