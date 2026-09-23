@@ -10,6 +10,18 @@ const problems = [];
 for (const file of files) {
   const g = JSON.parse(fs.readFileSync(new URL(file, dir), 'utf8'));
   const name = file.replace(/\.json$/, '');
+
+  // Every checked-in entrant of an individual round robin is placed in exactly one pool,
+  // and no pool is empty.
+  for (const d of g.setup.filter(d => !d.team && d.format === 'Round Robin')) {
+    const pools = g.generated[d.name]?.pools || [];
+    const placed = pools.flatMap(p => p.players);
+    for (const e of d.entrants.filter(e => e.status === 'Checked')) {
+      const count = placed.filter(n => n === e.name).length;
+      if (count !== 1) problems.push(`${name} ${d.name}: ${e.name} placed in ${count} pools`);
+    }
+    for (const p of pools) if (!p.players.length) problems.push(`${name} ${d.name}: pool ${p.label} is empty`);
+  }
   for (const [div, fin] of Object.entries(g.final)) {
     const matches = fin.matches.filter(Boolean);
 

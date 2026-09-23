@@ -161,7 +161,7 @@
  ],
  "final": {
   "Open": {
-   "complete": false,
+   "complete": true,
    "matches": [
     {
      "pool": "A",
@@ -308,7 +308,20 @@
      }
     ]
    },
-   "placements": []
+   "placements": [
+    {
+     "place": "1st",
+     "name": "P03"
+    },
+    {
+     "place": "2nd",
+     "name": "P02"
+    },
+    {
+     "place": "3rd",
+     "name": "P01"
+    }
+   ]
   }
  },
  "events": []

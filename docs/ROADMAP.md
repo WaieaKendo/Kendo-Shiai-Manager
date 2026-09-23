@@ -1,6 +1,6 @@
 # KSM roadmap and task list
 
-Every task is done on its own branch off `test-baseline` and must pass `npm test`.
+Every task is done on its own branch and must pass `npm test`. Phase 0 branches are stacked (each starts from the previous one) because they all update golden snapshots; merge them in order.
 Golden snapshot changes (`tests/golden/engine/*.json`) are reviewed in the diff and explained in the commit.
 
 Status: ✅ done · 🔨 in progress · ⏳ ready to start · 🗣 needs a decision from the planning meeting first
@@ -9,8 +9,8 @@ Status: ✅ done · 🔨 in progress · ⏳ ready to start · 🗣 needs a decis
 
 | # | Task | Branch | Status | Notes |
 |---|---|---|---|---|
-| 0.1 | Tiebreak standings show the tiebreak-match record instead of the pool record | `fix/tiebreak-standings` | ⏳ | Order was already correct; only the numbers shown were wrong |
-| 0.2 | Round robins with 3–5 players never finish or show placements | `fix/small-round-robin-results` | ⏳ | Default: place from final pool standings. Confirm the rule with HKF |
+| 0.1 | Tiebreak standings show the tiebreak-match record instead of the pool record | `fix/tiebreak-standings` | ✅ | Order was already correct; only the numbers shown were wrong |
+| 0.2 | Round robins with 3–5 players never finish or show placements; **5 entrants silently dropped one competitor** | `fix/small-round-robin-results` | ✅ | Placements from final pool standings (tiebreaks for places 1–3); 5 entrants → one pool of 5. Confirm the rule with HKF |
 | 0.3 | Red/White side setting for court screen and printed sheets | `feat/court-side-setting` | ⏳ | Per-device setting; default unchanged (White left) |
 | 0.4 | HTML injection through names in inline click handlers | `fix/inline-handler-escaping` | ⏳ | Security; no visible change |
 

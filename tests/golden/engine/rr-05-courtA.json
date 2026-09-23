@@ -47,12 +47,9 @@
       "P01",
       "P04",
       "P02",
-      "P05"
+      "P05",
+      "P03"
      ]
-    },
-    {
-     "label": "B",
-     "players": []
     }
    ],
    "matches": [
@@ -78,7 +75,24 @@
      "position": null,
      "node": null,
      "court": "A",
-     "white": "P02",
+     "white": "P01",
+     "red": "P02",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P01",
      "red": "P05",
      "teams": null,
      "type": "individual",
@@ -95,25 +109,8 @@
      "position": null,
      "node": null,
      "court": "A",
-     "white": "P02",
-     "red": "P01",
-     "teams": null,
-     "type": "individual",
-     "championship": false,
-     "singleElim": false,
-     "tiebreak": false,
-     "done": false,
-     "wp": [],
-     "rp": [],
-     "winner": null
-    },
-    {
-     "pool": "A",
-     "position": null,
-     "node": null,
-     "court": "A",
-     "white": "P04",
-     "red": "P05",
+     "white": "P01",
+     "red": "P03",
      "teams": null,
      "type": "individual",
      "championship": false,
@@ -146,8 +143,76 @@
      "position": null,
      "node": null,
      "court": "A",
+     "white": "P04",
+     "red": "P05",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P04",
+     "red": "P03",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P02",
+     "red": "P05",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P02",
+     "red": "P03",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": null,
+     "node": null,
+     "court": "A",
      "white": "P05",
-     "red": "P01",
+     "red": "P03",
      "teams": null,
      "type": "individual",
      "championship": false,
@@ -163,16 +228,20 @@
  },
  "play_order": [
   "A | Open | A | P01 v P04 | white WM",
-  "A | Open | A | P02 v P05 | red RD RM",
-  "A | Open | A | P02 v P01 | tie WM RK",
-  "A | Open | A | P04 v P05 | white WM",
+  "A | Open | A | P01 v P02 | tie WM RK",
+  "A | Open | A | P01 v P05 | red RK",
+  "A | Open | A | P01 v P03 | white WM RD WK",
   "A | Open | A | P04 v P02 | red RK",
-  "A | Open | A | P05 v P01 | red RK",
-  "A | Open | A TB | P02 v P05 | red RD RM"
+  "A | Open | A | P04 v P05 | white WM",
+  "A | Open | A | P04 v P03 | red RD RM",
+  "A | Open | A | P02 v P05 | red RD RM",
+  "A | Open | A | P02 v P03 | white WM",
+  "A | Open | A | P05 v P03 | tie WM RK",
+  "A | Open | A TB | P01 v P05 | red RK"
  ],
  "final": {
   "Open": {
-   "complete": false,
+   "complete": true,
    "matches": [
     {
      "pool": "A",
@@ -198,28 +267,8 @@
      "position": null,
      "node": null,
      "court": "A",
-     "white": "P02",
-     "red": "P05",
-     "teams": null,
-     "type": "individual",
-     "championship": false,
-     "singleElim": false,
-     "tiebreak": false,
-     "done": true,
-     "wp": [],
-     "rp": [
-      "D",
-      "M"
-     ],
-     "winner": "P05"
-    },
-    {
-     "pool": "A",
-     "position": null,
-     "node": null,
-     "court": "A",
-     "white": "P02",
-     "red": "P01",
+     "white": "P01",
+     "red": "P02",
      "teams": null,
      "type": "individual",
      "championship": false,
@@ -233,6 +282,66 @@
       "K"
      ],
      "winner": "Hikiwake"
+    },
+    {
+     "pool": "A",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P01",
+     "red": "P05",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "K"
+     ],
+     "winner": "P05"
+    },
+    {
+     "pool": "A",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P01",
+     "red": "P03",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M",
+      "K"
+     ],
+     "rp": [
+      "D"
+     ],
+     "winner": "P01"
+    },
+    {
+     "pool": "A",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P04",
+     "red": "P02",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "K"
+     ],
+     "winner": "P02"
     },
     {
      "pool": "A",
@@ -259,7 +368,7 @@
      "node": null,
      "court": "A",
      "white": "P04",
-     "red": "P02",
+     "red": "P03",
      "teams": null,
      "type": "individual",
      "championship": false,
@@ -268,28 +377,10 @@
      "done": true,
      "wp": [],
      "rp": [
-      "K"
+      "D",
+      "M"
      ],
-     "winner": "P02"
-    },
-    {
-     "pool": "A",
-     "position": null,
-     "node": null,
-     "court": "A",
-     "white": "P05",
-     "red": "P01",
-     "teams": null,
-     "type": "individual",
-     "championship": false,
-     "singleElim": false,
-     "tiebreak": false,
-     "done": true,
-     "wp": [],
-     "rp": [
-      "K"
-     ],
-     "winner": "P01"
+     "winner": "P03"
     },
     {
      "pool": "A",
@@ -302,7 +393,7 @@
      "type": "individual",
      "championship": false,
      "singleElim": false,
-     "tiebreak": true,
+     "tiebreak": false,
      "done": true,
      "wp": [],
      "rp": [
@@ -310,34 +401,110 @@
       "M"
      ],
      "winner": "P05"
+    },
+    {
+     "pool": "A",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P02",
+     "red": "P03",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [],
+     "winner": "P02"
+    },
+    {
+     "pool": "A",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P05",
+     "red": "P03",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [
+      "K"
+     ],
+     "winner": "Hikiwake"
+    },
+    {
+     "pool": "A",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P01",
+     "red": "P05",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": true,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "K"
+     ],
+     "winner": "P05"
     }
    ],
    "standings": {
     "A": [
      {
+      "name": "P05",
+      "wins": 2,
+      "pts": 4
+     },
+     {
       "name": "P01",
+      "wins": 2,
+      "pts": 4
+     },
+     {
+      "name": "P02",
       "wins": 2,
       "pts": 3
      },
      {
-      "name": "P05",
+      "name": "P03",
       "wins": 1,
-      "pts": 2
-     },
-     {
-      "name": "P02",
-      "wins": 1,
-      "pts": 2
+      "pts": 4
      },
      {
       "name": "P04",
       "wins": 1,
       "pts": 1
      }
-    ],
-    "B": []
+    ]
    },
-   "placements": []
+   "placements": [
+    {
+     "place": "1st",
+     "name": "P05"
+    },
+    {
+     "place": "2nd",
+     "name": "P01"
+    },
+    {
+     "place": "3rd",
+     "name": "P02"
+    }
+   ]
   }
  },
  "events": []

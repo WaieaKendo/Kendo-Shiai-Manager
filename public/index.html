@@ -5996,7 +5996,7 @@ function poolSizes(n){
     37:[4,4,4,4,4,4,4,3,3,3],38:[4,4,4,4,4,4,4,4,3,3],39:[4,4,4,4,4,4,4,4,4,3],40:[4,4,4,4,4,4,4,4,4,4]
   };
   if(fixed[n])return fixed[n];
-  let poolCount=Math.max(1,Math.ceil(n/4));while(n/poolCount<3&&poolCount>1)poolCount--;let sizes=Array(poolCount).fill(3),rem=n-poolCount*3;for(let i=0;i<rem;i++)sizes[i]++;return sizes;
+  let poolCount=Math.max(1,Math.ceil(n/4));while(n/poolCount<3&&poolCount>1)poolCount--;let sizes=Array(poolCount).fill(3),rem=n-poolCount*3;for(let i=0;i<rem;i++)sizes[i%poolCount]++;return sizes;// wrap: n=5 → [5], not [4,NaN] (which dropped an entrant)
 }
 function poolPlayerSlotLetter(index){return String.fromCharCode(65+Math.max(0,Number(index)||0))}
 function assignPoolPlayerSlots(pools){
@@ -6547,7 +6547,14 @@ function renderPools(){
   poolOutput.innerHTML=`<div><h2>Pools</h2>${edit}<div class="pool-list">${poolHtml}</div></div><div><h2>${rightTitle}</h2>${bracketHtml(div)}</div>`;
   renderResultsDashboard();
 }
-function divisionComplete(div){const matches=(state.allMatches[div]||[]).filter(isValidMatchObject);return matches.some(m=>m.championship&&m.position==='Final'&&m.done) || (isTeamDivision(div)&&matches.length && matches.every(m=>m.done));}
+function divisionComplete(div){const matches=(state.allMatches[div]||[]).filter(isValidMatchObject);return matches.some(m=>m.championship&&m.position==='Final'&&m.done) || ((isTeamDivision(div)||isPoolOnlyDivision(div))&&matches.length && matches.every(m=>m.done));}
+// Individual round robins too small for a championship bracket (3–5 entrants: a single pool
+// and no frozen template) have no Final; they are decided by the final pool standings.
+function isPoolOnlyDivision(div){
+  if(isTeamDivision(div)||(state.divisionTypes?.[div]||'Round Robin')!=='Round Robin')return false;
+  const pools=state.pools?.[div]||[];
+  return pools.length===1&&!championshipLabels(div).length;
+}
 function medalResultsHtml(div){if(!divisionComplete(div))return '';if(isTeamDivision(div))return teamFinalResultsHtml(div);let final=(state.allMatches[div]||[]).find(m=>m.championship&&m.position==='Final'&&m.done);if(final){let first=winnerOf(final),second=first===final.red?final.white:final.red;let thirds=(state.allMatches[div]||[]).filter(m=>m.championship&&m.position==='Semifinal'&&m.done).map(m=>{let w=winnerOf(m);return w===m.red?m.white:m.red}).filter(Boolean);return `<div class="muted-card"><div class="competitor-line"><b>🥇 1st</b><span>${esc(first)}</span></div><div class="competitor-line"><b>🥈 2nd</b><span>${esc(second)}</span></div>${thirds.map(t=>`<div class="competitor-line"><b>🥉 3rd</b><span>${esc(t)}</span></div>`).join('')}</div>`;}return `<div class="muted-card"><b>Completed</b></div>`}
 
 function teamNodeSideName(side,div){
@@ -7284,6 +7291,8 @@ function championshipLabels(div){
   return championshipTemplateForTotal(total);
 }
 function requiredSeedPlaces(div){
+  // Pool-only divisions award 1st–3rd from standings, so ties touching those places need tiebreaks.
+  if(isPoolOnlyDivision(div)){const pool=state.pools[div][0];return {[pool.label]:Math.min(3,pool.players?.length||0)};}
   let req={};championshipLabels(div).flat().forEach(label=>{let m=String(label).match(/^([A-Z])(\d)$/);if(m){let p=parseInt(m[2],10);req[m[1]]=Math.max(req[m[1]]||0,p);}});return req;
 }
 function poolRowsStillTied(a,b){
@@ -9625,6 +9634,10 @@ function resultPlacements(div){
   const final=(state.allMatches[div]||[]).find(m=>
     m.championship&&m.position==='Final'&&m.done
   );
+  if(!final&&isPoolOnlyDivision(div)){
+    const pool=state.pools[div][0];
+    return poolStandings(pool.label,div).slice(0,3).map((r,i)=>({place:['1st','2nd','3rd'][i],name:r.name,tier:['gold','silver','bronze'][i]}));
+  }
   if(!final)return [];
 
   const first=winnerOf(final);
