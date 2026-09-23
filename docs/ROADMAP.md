@@ -1,7 +1,27 @@
 # KSM roadmap and task list
 
-Every task is done on its own branch and must pass `npm test`. Phase 0 branches are stacked (each starts from the previous one) because they all update golden snapshots; merge them in order.
-Golden snapshot changes (`tests/golden/engine/*.json`) are reviewed in the diff and explained in the commit.
+## How branches work
+
+- **`develop`** holds all finished, tested work. Every new task branches from `develop` and is merged back into it once `npm test` passes and it has been reviewed, so each new branch starts with everything done so far.
+- **`main`** only moves at release points (after sign-off, and never inside the pre-event freeze): `develop` is merged into `main`.
+- Task branches are short-lived: `fix/…`, `feat/…`, `test/…`, `refactor/…`, `docs/…`. After merging they can be deleted — their commits live on in `develop`.
+- If a task needs another unfinished branch's work, merge that branch into `develop` first, or `git cherry-pick` the specific commit.
+- Golden snapshot conflicts (two branches both changed `tests/golden/engine/*.json`): merge, then run `npm run test:golden:update`, review the diff, and commit.
+- Golden snapshot changes are always reviewed in the diff and explained in the commit message.
+
+### Branch log
+
+| Branch | Contents | State |
+|---|---|---|
+| `test-baseline` | Test suite repair, backend contract + two-court e2e, golden snapshots, CI, this roadmap | merged into `develop` |
+| `fix/tiebreak-standings` | 0.1 | merged into `develop` |
+| `fix/small-round-robin-results` | 0.2 | merged into `develop` |
+| `feat/court-side-setting` | 0.3 | merged into `develop` |
+| `fix/inline-handler-escaping` | 0.4 | merged into `develop` |
+| `feat/test-hooks` | Test IDs + test helper | merged into `develop` |
+| `test/full-tournament-e2e` | Full tournament e2e, watch mode, coverage map | merged into `develop` |
+
+Nothing has been pushed to GitHub yet; `main` is unchanged from the original repository.
 
 Status: ✅ done · 🔨 in progress · ⏳ ready to start · 🗣 needs a decision from the planning meeting first
 
