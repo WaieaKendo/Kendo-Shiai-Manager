@@ -1,10 +1,16 @@
-// Shared helpers for tests that inspect or execute pieces of public/index.html.
+// Shared helpers for tests that inspect or execute pieces of the app's source.
+//
+// `html` is the app as ONE text, as public/index.html was before the Vite split:
+// app/index.html with app/styles/*.css and app/js/*.js inlined in file-name order
+// (scripts/app-sources.mjs). The code is the same text, in the same order, so grep
+// checks, extractFunction (last declaration wins) and withDependencies still apply.
 import fs from 'node:fs';
+import { singleFileSource, serviceWorker } from '../../scripts/app-sources.mjs';
 
 export const readRepoFile = rel => fs.readFileSync(new URL(`../../${rel}`, import.meta.url), 'utf8');
-export const html = readRepoFile('public/index.html');
+export const html = singleFileSource();
 export const worker = readRepoFile('src-worker.js');
-export const sw = readRepoFile('public/service-worker.js');
+export const sw = serviceWorker();
 export const pkg = JSON.parse(readRepoFile('package.json'));
 
 // Characters/keywords after which a `/` starts a regex literal rather than division.
@@ -62,7 +68,7 @@ function definitionStarts(source, name) {
   return [...source.matchAll(re)].map(m => m.index);
 }
 
-// Extracts a named function declaration's source. index.html redefines many
+// Extracts a named function declaration's source. The app redefines many
 // functions later in the file to override earlier versions; the browser runs the
 // LAST definition, so that is the default. Pass { occurrence: 'first' } for the original.
 export function extractFunction(source, name, { occurrence = 'last' } = {}) {
@@ -92,7 +98,7 @@ export function countDefinitions(source, name) { return definitionStarts(source,
 // Dependency resolution for vm-based behaviour tests.
 //
 // withDependencies(html, code, { exclude }) returns `code` followed by the
-// definitions of every index.html function / top-level UPPER_CASE constant it
+// definitions of every app function / top-level UPPER_CASE constant it
 // references (transitively) that `code` does not define itself. Names in
 // `exclude` (e.g. functions the test stubs on its vm context) are never pulled in.
 

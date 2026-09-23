@@ -1,5 +1,6 @@
+import { html as appSource } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
-const html=fs.readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+const html=appSource;
 const checks=[
  ['white point class',html.includes('tv-point-string tv-white-points')],
  ['red point class',html.includes('tv-point-string tv-red-points')],

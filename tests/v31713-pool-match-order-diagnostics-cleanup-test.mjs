@@ -1,10 +1,10 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { extractFunction, withDependencies } from './lib/ksm-source.mjs';
+import { extractFunction, withDependencies, html as appSource, sw as appServiceWorker } from './lib/ksm-source.mjs';
 
-const html=fs.readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+const html=appSource;
 const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));
-const sw=fs.readFileSync(new URL('../public/service-worker.js',import.meta.url),'utf8');
+const sw=appServiceWorker;
 const worker=fs.readFileSync(new URL('../src-worker.js',import.meta.url),'utf8');
 
 function extractConstStatement(source,name){

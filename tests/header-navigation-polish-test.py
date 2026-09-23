@@ -1,5 +1,6 @@
 from pathlib import Path
-s=Path('public/index.html').read_text()
+from ksm_source import app_source
+s=app_source()
 checks={
 'live scores icon baseline':'aria-controls="liveScoresMenu"] img' in s and 'translateY(2px)' in s,
 'shared brand selectors':'.scoreboard-tournament,\n.audience-tournament' in s,

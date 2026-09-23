@@ -2,6 +2,7 @@
 
 Runs Cloudflare's real Workers runtime locally (no Cloudflare account needed)
 with its own temporary Durable Object storage, and shuts it down afterwards.
+The site is the built app in dist/ (wrangler.jsonc `assets`), rebuilt first if stale.
 Set KSM_BASE_URL to reuse an already-running server instead.
 """
 import contextlib
@@ -14,6 +15,8 @@ import tempfile
 import time
 import urllib.request
 from pathlib import Path
+
+from ksm_source import ensure_built
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -40,6 +43,7 @@ def local_worker(timeout=60):
     wrangler = ROOT / 'node_modules' / '.bin' / 'wrangler'
     if not wrangler.exists():
         raise SystemExit('wrangler is not installed — run `npm install` first.')
+    ensure_built()
     port = _free_port()
     state_dir = tempfile.mkdtemp(prefix='ksm-e2e-')
     log = open(Path(state_dir) / 'wrangler.log', 'w')

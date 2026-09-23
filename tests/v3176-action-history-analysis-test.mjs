@@ -1,7 +1,8 @@
+import { html as appSource, sw as appServiceWorker } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
-const html=fs.readFileSync('public/index.html','utf8');
+const html=appSource;
 const worker=fs.readFileSync('src-worker.js','utf8');
-const sw=fs.readFileSync('public/service-worker.js','utf8');
+const sw=appServiceWorker;
 const checks=[
  ['history analyzer',html.includes('function analyzeCourtActionHistory')],
  ['entry analyzer',html.includes('function analyzeHistoryEntry')],

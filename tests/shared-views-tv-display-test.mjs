@@ -1,5 +1,6 @@
+import { html as appSource } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
-const html = fs.readFileSync('public/index.html', 'utf8');
+const html = appSource;
 const checks = [
   ['overview navigation renamed', html.includes('<span>Overview</span>') && html.includes('title="Tournament Overview"')],
   ['spectator courts allowed', html.includes("!['score','public','results','director'].includes(id)")],

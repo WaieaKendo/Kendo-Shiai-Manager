@@ -1,6 +1,7 @@
+import { html as appSource, sw as appServiceWorker } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
-const html=fs.readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
-const sw=fs.readFileSync(new URL('../public/service-worker.js',import.meta.url),'utf8');
+const html=appSource;
+const sw=appServiceWorker;
 const worker=fs.readFileSync(new URL('../src-worker.js',import.meta.url),'utf8');
 const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));
 const checks=[

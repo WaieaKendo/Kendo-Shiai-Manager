@@ -1,5 +1,6 @@
+import { html as appSource } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
-const html=fs.readFileSync('public/index.html','utf8');
+const html=appSource;
 const checks=[
  ['TV navigation available',html.includes('id="tvMenu"')&&html.includes("launchTvDisplay('A')")&&html.includes("launchTvDisplay('B')")],
  ['TV opens separate court link',html.includes("window.open(tvLink(court),'_blank','noopener')")],

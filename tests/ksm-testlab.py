@@ -18,9 +18,10 @@ from typing import Callable, Any
 
 from playwright.sync_api import sync_playwright
 from ksm_browser import launch_chromium, load_app
+from ksm_source import app_html
 
 ROOT = Path(__file__).resolve().parents[1]
-HTML = (ROOT / "public" / "index.html").read_text(encoding="utf-8")
+HTML = app_html()
 REPORT_DIR = ROOT / "testlab-reports"
 
 

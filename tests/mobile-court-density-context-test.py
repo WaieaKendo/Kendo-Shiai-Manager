@@ -1,8 +1,9 @@
 from pathlib import Path
+from ksm_source import app_source
 import re
 
 root=Path(__file__).resolve().parents[1]
-html=(root/'public/index.html').read_text()
+html=app_source()
 checks={
  'landscape heading absolute center': '#score .scoreboard-heading-center{' in html and 'left:50% !important' in html and 'transform:translateX(-50%) !important' in html,
  'division centered': '#score .scoreboard-heading-center #scoreDiv{' in html and 'text-align-last:center !important' in html,

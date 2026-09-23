@@ -1,5 +1,6 @@
+import { html as appSource } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
-const html=fs.readFileSync('public/index.html','utf8');
+const html=appSource;
 const checks=[
   ['independent pool selection state', html.includes("poolViewDivision:'Women’s Open'")],
   ['selector updates pool selection state', html.includes('onchange="state.poolViewDivision=this.value;renderPools()"')],

@@ -1,6 +1,7 @@
+import { html as appSource, sw as appServiceWorker } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
-const html=fs.readFileSync('public/index.html','utf8');
-const sw=fs.readFileSync('public/service-worker.js','utf8');
+const html=appSource;
+const sw=appServiceWorker;
 const checks=[
   ['name line-height',html.includes('.tv3-name{font-size:76px!important;line-height:1!important')],
   ['descender padding',html.includes('padding-bottom:6px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important')],

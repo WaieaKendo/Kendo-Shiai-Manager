@@ -1,5 +1,6 @@
 from pathlib import Path
-html=Path('public/index.html').read_text()
+from ksm_source import app_source
+html=app_source()
 checks={
  'landscape query':'@media (orientation:landscape) and (max-height:560px) and (max-width:980px)' in html,
  'results two columns':'#results .results-card-grid' in html and 'columns:2 280px !important' in html,

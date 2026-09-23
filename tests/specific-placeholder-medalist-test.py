@@ -1,5 +1,6 @@
 from pathlib import Path
-s=Path('public/index.html').read_text()
+from ksm_source import app_source
+s=app_source()
 checks={
  'specific label helper':'function specificMatchSideLabel(match,side)' in s,
  'championship source labels':'function championshipSideLabel(side,div)' in s,

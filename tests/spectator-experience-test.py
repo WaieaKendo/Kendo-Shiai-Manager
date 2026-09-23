@@ -1,5 +1,6 @@
 from pathlib import Path
-html=Path('public/index.html').read_text()
+from ksm_source import app_source
+html=app_source()
 checks={
  'portrait live scores media':'@media(max-width:600px) and (orientation:portrait)' in html,
  'compact audience court':'.audience-court{font-size:24px!important' in html,

@@ -1,5 +1,6 @@
+import { html as appSource } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
-const html=fs.readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+const html=appSource;
 const checks=[
  ['fixed canvas',html.includes('width:1920px!important;height:1080px!important')&&html.includes('transform:none!important')],
  ['no automatic resize listener',!html.includes("window.addEventListener('resize',()=>{if(document.body.classList.contains('ksm-tv'))fitTvCanvas()})")],

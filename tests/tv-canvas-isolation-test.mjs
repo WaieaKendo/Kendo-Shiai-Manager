@@ -1,5 +1,6 @@
+import { html as appSource } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
-const html=fs.readFileSync('public/index.html','utf8');
+const html=appSource;
 const checks=[
  ['isolated TV rule',html.includes('isolated fixed-coordinate TV presentation canvas')||html.includes('fixed picture-like TV canvas')],
  ['TV route fixed 1920 canvas',html.includes('body.ksm-tv main>#tv')&&html.includes('width:1920px!important;height:1080px!important')],

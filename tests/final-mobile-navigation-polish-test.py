@@ -1,5 +1,6 @@
 from pathlib import Path
-html=Path('public/index.html').read_text()
+from ksm_source import app_source
+html=app_source()
 checks={
   'portrait safe area':'padding-top:calc(12px + env(safe-area-inset-top)) !important' in html,
   'fixed icon rows':'grid-template-rows:36px 26px !important' in html,

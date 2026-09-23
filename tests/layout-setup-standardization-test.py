@@ -1,9 +1,9 @@
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 from ksm_browser import launch_chromium, load_app
+from ksm_source import app_html
 
-ROOT=Path(__file__).resolve().parents[1]/'public'
-HTML=(ROOT/'index.html').read_text(encoding='utf-8')
+HTML=app_html()
 
 with sync_playwright() as p:
     browser=launch_chromium(p)

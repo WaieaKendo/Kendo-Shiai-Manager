@@ -1,6 +1,7 @@
+import { html as appSource } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
 import vm from 'node:vm';
-const html=fs.readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+const html=appSource;
 function extract(name){
   const start=html.indexOf(`function ${name}(`);
   if(start<0)throw new Error(`Missing ${name}`);

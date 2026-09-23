@@ -1,5 +1,6 @@
+import { html as appSource } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
-const html=fs.readFileSync('public/index.html','utf8');
+const html=appSource;
 const checks=[
   ['calm local autosave',html.includes("setTimeout(()=>{ksmSaveTimer=null;autoSaveTournament(reason)},2000)")],
   ['calm cloud debounce',html.includes("scheduleCloudSave(reason='Autosave',delay=1200)")],

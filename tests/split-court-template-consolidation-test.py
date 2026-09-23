@@ -1,5 +1,6 @@
 from pathlib import Path
-html=(Path(__file__).parents[1]/'public'/'index.html').read_text()
+from ksm_source import app_source
+html=app_source()
 checks={
  'single column split context':'split-template-context' in html and 'splitTemplateContextHtml' in html,
  'template node queue':'canonicalSingleElimQueue' in html,
