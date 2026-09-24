@@ -126,6 +126,7 @@ M.11 itself:
 | 1.2 | Preset per-court division running order in Setup | `feat/court-running-order` | ⏳ | Feeds 1.1 |
 | 1.3 | One-click PDF download of print sheets (today: browser Print → Save as PDF) | `feat/pdf-export` | ⏳ | e.g. to email sheets to dojos before the event |
 | 1.4 | Livestream overlay page | `feat/react-overlay` | ✅ | The first React page (M.6). See below; a real live-stream test is still to do |
+| 1.8 | Edit a match result directly (correct mistakes), separate from Undo | `feat/edit-match` | ⏳ | Undo only unwinds a court's history in order, so fixing a match three bouts back means undoing everything after it. Plan below |
 
 ### 1.4 Livestream overlay page
 
@@ -142,6 +143,16 @@ Findings so far (tested in PRISM Live Studio on iOS with a standalone test page,
 Built in `feat/react-overlay` as `/overlay?tournament=<id>&court=A|B` (options and PRISM notes in README.md): the Court's current match exactly as its TV shows it (names, dojos or teams, division · pool/round/position, points, hansoku, "Next:"), an idle state, a subtle "Reconnecting…" badge, automatic band mode (device landscape + page portrait → bar at `y`% of the height, default 74, sized by the width), `?y=`/`?band=` overrides and `?debug=1` (size, orientation, mode). Staff copy the link from the TV menu.
 
 Still needed: a full live-stream test (a real stream, a whole match, both courts) on the real domain.
+
+### 1.8 Edit a match: plan
+
+Staff open any played match (from the court queue/history, the pool or bracket view, Results) and correct it without touching the court's current match or its Undo history.
+
+- **What can be edited**: points and their order, hansoku, fusen-gachi / fusen, hikiwake, winner (hantei), encho, and for team playoffs the representatives. With match timing (1.5) / a timer: the recorded duration and whether encho was needed.
+- **Sync**: the edit is a court action like any other (patch-v1), so it syncs, rebases on conflicts and can be undone, but it goes into its own history entry with who, when and a reason (audit trail), not into the court's Undo stack.
+- **Consequences from the engine, shown before saving**: recompute standings; list what else changes (pool order, a tiebreak created or no longer needed, championship seeds, bracket winners, placements). If later matches were already played on seeds or winners the edit changes, warn and require confirmation, or block and point to guarded bracket edits (control desk, Phase 3). Reuse the integrity/repair plans in `app/engine/integrity.ts`; no rules in the UI.
+- **Timing**: an edit must not restart or change the court's running match timer; corrected durations feed the court time estimates (running late).
+- **Tests**: edit a pool bout that flips standings (and seeds), an edit after the next round started, conflicting edits from two devices, undo of an edit.
 
 ## Phase 1b: tournament setup and the printed program
 
