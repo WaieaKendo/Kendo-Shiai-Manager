@@ -1,20 +1,28 @@
 function generateDivisionState(div){
-  if(div==='Team Tournament'){
-    let teams=eligibleTeams(div);if(!teams.length)return false;let fmt=/* ksm:post-split-begin engine-settings was:teamTournamentFormat?.value */tournamentSettings().teamTournamentFormat/* ksm:post-split-end */||'Single Elimination';
-    if(fmt==='Round Robin'){state.pools[div]=[{label:'A',size:teams.length,players:teams.map(t=>({name:t.team,dojo:'',team:true}))}];state.teamPools[div]=state.pools[div];}else{state.pools[div]=[];state.teamPools[div]=[];}
-    state.allMatches[div]=buildTeamMatches(div,teams);state.currentByDivision[div]=0;state.divisionCourts[div]=state.divisionCourts[div]||state.divisionCourts['Team Tournament']||'Both';return true;
+  /* ksm:post-split-begin engine-bridge */const settings=tournamentSettings();
+  const plan=KSMEngine.generateDivision({division:div,competitors:state.competitors,teams:state.teams,exhibitions:state.exhibitions,divisionType:state.divisionTypes[div],courtMode:state.divisionCourts[div],settings,bracketNodesForCount:teamBracketNodesForCount});
+  if(!plan)return false;
+  if(plan.kind==='team'){
+    state.pools[div]=plan.pools;state.teamPools[div]=plan.teamPools;
+    state.teamElimTeams=state.teamElimTeams||{};state.teamElimTeams[div]=plan.teamElimTeams;
+    const m=/** @type {Match[]} */(plan.matches);
+    if(plan.teamBracketNodes){state.teamBracketNodes=state.teamBracketNodes||{};state.teamBracketNodes[div]=plan.teamBracketNodes;syncTeamBracket(div,m,state.teamElimTeams[div]);}
+    state.allMatches[div]=m;state.currentByDivision[div]=0;state.divisionCourts[div]=plan.divisionCourt;return true;
   }
-  if(div==='Exhibition Matches'){
-    if((/* ksm:post-split-begin engine-settings was:exhibitionEnabled?.value */tournamentSettings().exhibitionEnabled/* ksm:post-split-end */||'Disabled')!=='Enabled'||!state.exhibitions?.length)return false;
-    state.pools[div]=[{label:'Exhibition',size:state.exhibitions.length,players:state.exhibitions.map(e=>({name:`${e.white} vs ${e.red}`,dojo:'',exhibition:true}))}];state.allMatches[div]=state.exhibitions.filter(e=>e.status!=='NoShow'&&e.white&&e.red).map(e=>({division:div,pool:'Exhibition',white:e.white,red:e.red,wdojo:'',rdojo:'',done:false,wp:[],rp:[],type:'exhibition',court:state.divisionCourts[div]||'B'}));state.currentByDivision[div]=0;state.divisionCourts[div]=state.divisionCourts[div]||'B';return !!state.allMatches[div].length;
+  if(plan.kind==='exhibition'){
+    state.pools[div]=plan.pools;state.allMatches[div]=/** @type {Match[]} */(plan.matches);state.currentByDivision[div]=0;state.divisionCourts[div]=plan.divisionCourt;return plan.generated;
   }
-  let comps=eligibleIndividuals(div);if(!comps.length)return false;
-  if((state.divisionTypes[div]||'Round Robin')==='Single Elimination'){
-    let ordered=placeIndividualsForSingleElim(comps);state.pools[div]=[];state.singleElimComps[div]=ordered;state.allMatches[div]=buildIndividualSingleElimMatches(div,ordered);
+  if(plan.kind==='singleElim'){
+    state.pools[div]=[];state.singleElimComps[div]=plan.singleElimComps;
+    state.singleElimNodes=state.singleElimNodes||{};state.singleElimNodes[div]=plan.singleElimNodes;
+    const arr=/** @type {Match[]} */(plan.matches);syncIndividualSingleElim(div,arr,plan.singleElimComps);state.allMatches[div]=arr;
   }else{
-    let pools=buildPools(comps);state.pools[div]=pools;state.brackets[div]=championshipTemplateForTotal(comps.length);state.allMatches[div]=buildPoolMatches(div,pools).concat(buildChampionshipTemplateMatches(div,state.brackets[div]));syncChampionshipTemplate(div);
+    state.pools[div]=plan.pools;state.brackets[div]=plan.brackets;
+    if(plan.championshipNodes){state.championshipNodes=state.championshipNodes||{};state.championshipNodes[div]=plan.championshipNodes;}
+    state.allMatches[div]=/** @type {Match[]} */(plan.matches);syncChampionshipTemplate(div);
   }
   state.currentByDivision[div]=0;return true;
+  /* ksm:post-split-end */
 }
 function generatePools(options={}){
   if(!options.validated){requestTournamentGeneration();return}

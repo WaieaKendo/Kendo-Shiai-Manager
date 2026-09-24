@@ -271,15 +271,16 @@ function loadTournamentFromFile(event){
   event.target.value='';
 }
 function repairLoadedEliminationAdvancement(source='tournament load'){
-  repairCompletedMatchResults(state,source);
-  Object.keys(state.allMatches||{}).forEach(div=>{
-    if((state.championshipNodes?.[div]||[]).length)syncChampionshipTemplate(div);
-    if((state.singleElimNodes?.[div]||[]).length){
+  /* ksm:post-split-begin engine-bridge */repairCompletedMatchResults(state,source);
+  KSMEngine.loadedEliminationRepairPlan(Object.keys(state.allMatches||{}),state.championshipNodes,state.singleElimNodes).forEach(({division:div,championship,singleElim})=>{
+    if(championship)syncChampionshipTemplate(div);
+    if(singleElim){
       (state.singleElimNodes[div]||[]).forEach(node=>{node.winner=null});
       const comps=(state.singleElimComps?.[div]||eligibleIndividuals(div).filter(c=>c.name));
       syncIndividualSingleElim(div,state.allMatches[div]||[],comps);
     }
   });
+  /* ksm:post-split-end */
 }
 function rehydrateLoadedTournamentState(options){
   options=options||{};

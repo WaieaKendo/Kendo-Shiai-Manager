@@ -50,8 +50,8 @@ function winnerOf(m){
  * @returns {CompletedResult}
  */
 function completedResultSnapshot(m){
-  const winner=scoreWinnerOf(m);
-  return {winner,wp:[...(m?.wp||[])],rp:[...(m?.rp||[])],wt:Number(m?.wt||0),rt:Number(m?.rt||0),recordedAt:new Date().toISOString()};
+  /* ksm:post-split-begin engine-bridge */return /** @type {CompletedResult} */(KSMEngine.completedResultSnapshot(m,new Date().toISOString()));
+  /* ksm:post-split-end */
 }
 /**
  * @param {TournamentState} [targetState]
@@ -59,36 +59,21 @@ function completedResultSnapshot(m){
  * @returns {{restored: number, created: number, reopened: number}}
  */
 function repairCompletedMatchResults(targetState=state,source='load'){
-  const all=targetState?.allMatches;if(!all||typeof all!=='object')return {restored:0,created:0,reopened:0};
-  let restored=0,created=0,reopened=0;
-  for(const [div,arr] of Object.entries(all)){
-    if(!Array.isArray(arr))continue;
-    arr.forEach((m,index)=>{
-      if(!m||typeof m!=='object'||!m.done)return;
-      const snapshot=m.completedResult;
-      if(snapshot&&completedResultSnapshotValid(m,snapshot)){
-        if(Array.isArray(snapshot.wp)){m.wp=[...snapshot.wp];restored++;}
-        if(Array.isArray(snapshot.rp))m.rp=[...snapshot.rp];
-        if(Number.isFinite(Number(snapshot.wt)))m.wt=Number(snapshot.wt);
-        if(Number.isFinite(Number(snapshot.rt)))m.rt=Number(snapshot.rt);
-        return;
-      }
-      const computed=scoreWinnerOf(m);
-      if(matchRequiresWinner(m)&&computed==='Hikiwake'){
-        // A completed elimination match without an identifiable winner is unsafe.
-        // Re-open the feeder instead of allowing the literal word Hikiwake to
-        // advance into a semifinal/final and freeze the bracket.
-        m.done=false;delete m.completedResult;
-        if(m.templateNode)m.ready=!!(m.white&&m.red);
-        reopened++;
-        console.warn('[KSM Result Integrity] Re-opened completed winner-required match with no winner',{source,division:div,index,position:m.position,white:m.white,red:m.red});
-        return;
-      }
-      m.completedResult={winner:computed,wp:[...(m.wp||[])],rp:[...(m.rp||[])],wt:Number(m.wt||0),rt:Number(m.rt||0),recordedAt:new Date().toISOString()};
-      created++;
-    });
-  }
+  /* ksm:post-split-begin engine-bridge */const plan=KSMEngine.planCompletedResultRepairs(targetState?.allMatches,new Date().toISOString());
+  const all=/** @type {Record<string, Match[]>} */(targetState?.allMatches);
+  plan.repairs.forEach(r=>{
+    const m=all[r.division][r.index];
+    if(r.action==='reopen'){
+      // A completed elimination match without an identifiable winner is unsafe.
+      // Re-open the feeder instead of allowing the literal word Hikiwake to
+      // advance into a semifinal/final and freeze the bracket.
+      Object.assign(m,r.set);delete m.completedResult;
+      console.warn('[KSM Result Integrity] Re-opened completed winner-required match with no winner',{source,division:r.division,index:r.index,position:m.position,white:m.white,red:m.red});
+    }else Object.assign(m,r.set);
+  });
+  const {restored,created,reopened}=plan;
   if(restored||created||reopened)console.info('[KSM Result Integrity] Normalized completed match results',{source,restored,created,reopened});
   return {restored,created,reopened};
+  /* ksm:post-split-end */
 }
 

@@ -44,29 +44,22 @@ function localChangesPending(){return ksmLocalMutationVersion>ksmConfirmedMutati
 function deferRemoteRecord(record,reason='Local changes pending'){if(!record)return false;if(!ksmDeferredSyncRecord||Number(record.revision||0)>Number(ksmDeferredSyncRecord.revision||0))ksmDeferredSyncRecord=record;clearTimeout(ksmDeferredSyncTimer);ksmDeferredSyncTimer=setTimeout(applyDeferredSyncRecord,1800);writeCloudDiagnosticsState({stage:'Remote snapshot deferred',deferredRevision:Number(record.revision||0),deferredReason:reason,pinnedCourt:pinnedCourt()||''});return false}
 function applyDeferredSyncRecord(){if(!ksmDeferredSyncRecord||localChangesPending())return false;const record=ksmDeferredSyncRecord;ksmDeferredSyncRecord=null;clearTimeout(ksmDeferredSyncTimer);ksmDeferredSyncTimer=null;return applyRemoteCloudRecord(record,true,false)}
 function cloneJson(value){return JSON.parse(JSON.stringify(value))}
-function isValidMatchObject(match){return Boolean(match&&typeof match==='object'&&!Array.isArray(match))}
+function isValidMatchObject(match){
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.isValidMatchObject(match);
+  /* ksm:post-split-end */
+}
 function legacyTiebreakSyncIdentity(match){
-  if(!isValidMatchObject(match)||!match.tiebreak)return '';
-  const div=String(match.division||'');
-  return `tiebreak:${div}:${match.pool||''}:${match.tiebreakId||match.position||''}:${match.white||''}:${match.red||''}`;
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.legacyTiebreakSyncIdentity(match);
+  /* ksm:post-split-end */
 }
 function matchSyncIdentity(match){
-  if(!isValidMatchObject(match))return '';
-  const div=String(match.division||''),type=String(match.type||'');
-  if(match.champNodeId)return `champ:${div}:${match.champNodeId}`;
-  if(match.elimNodeId)return `elim:${div}:${match.elimNodeId}`;
-  if(match.teamNodeId&&match.teamPair)return `team-node:${div}:${match.teamNodeId}:${match.teamPair}:${match.position||''}`;
-  if(match.teamPair)return `team-pair:${div}:${match.teamPair}:${match.position||''}:${match.type||''}`;
-  if(match.tiebreak)return `tiebreak:${div}:${match.pool||''}:${Number(match.tiebreakSeries||1)}:${Number(match.tiebreakIndex??0)}:${type}:${match.white||''}:${match.red||''}`;
-  if(type==='individual'&&!match.championship){
-    const order=Number.isInteger(match.poolOrder)?match.poolOrder:'';
-    const slots=[match.whitePoolSlot||'',match.redPoolSlot||''].join('-');
-    return `pool:${div}:${match.pool||''}:${order}:${slots}:${match.white||''}:${match.red||''}`;
-  }
-  if(type==='exhibition')return `exhibition:${div}:${match.white||''}:${match.red||''}`;
-  return `match:${div}:${match.pool||''}:${match.position||''}:${match.bracketSlot??''}:${type}:${match.white||match.teamWhite||''}:${match.red||match.teamRed||''}`;
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.matchSyncIdentity(match);
+  /* ksm:post-split-end */
 }
-function matchHasSyncIdentity(match,identity){return !!identity&&(matchSyncIdentity(match)===identity||legacyTiebreakSyncIdentity(match)===identity)}
+function matchHasSyncIdentity(match,identity){
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.matchHasSyncIdentity(match,identity);
+  /* ksm:post-split-end */
+}
 function matchBelongsToCourtInState(targetState,m,c){
   if(!m)return false;
   if(m.court)return m.court===c;

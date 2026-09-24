@@ -27,12 +27,18 @@ function isTeamDivision(div){return div==='Team Tournament'||/team|kachinuki/i.t
  * @param {string} div
  * @returns {Competitor[]}
  */
-function eligibleIndividuals(div){return state.competitors.filter(c=>c.division===div&&c.status!=='NoShow'&&c.name)}
+function eligibleIndividuals(div){
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.eligibleIndividuals(state.competitors,div);
+  /* ksm:post-split-end */
+}
 /**
  * @param {string} div
  * @returns {Team[]}
  */
-function eligibleTeams(div){return state.teams.filter(t=>t.status!=='NoShow'&&t.team)}
+function eligibleTeams(div){
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.eligibleTeams(state.teams);
+  /* ksm:post-split-end */
+}
 /**
  * Pool sizes for n entrants (frozen template library). Delegates to app/engine/pools.ts.
  * @param {number} n

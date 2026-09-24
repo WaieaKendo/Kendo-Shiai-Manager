@@ -152,35 +152,18 @@ function roundMatchCountForDivision(div,round){
  * @returns {string}
  */
 function individualLogicalMatchKey(m){
-  if(!m||m.type!=='individual')return null;
-  if(m.singleElim)return `single:${m.elimNodeId||m.position+':'+(m.bracketSlot??'')}`;
-  if(m.championship)return `champ:${m.position||'Championship'}:${m.bracketSlot??''}`;
-  if(m.tiebreak){
-    const pair=[m.white||'',m.red||''].sort().join('|');
-    return `tiebreak:${m.pool||''}:${m.tiebreakSeries||1}:${m.tiebreakIndex??0}:${pair}`;
-  }
-  return null;
+  /* ksm:post-split-begin engine-bridge */return /** @type {string} */(KSMEngine.individualLogicalMatchKey(m));
+  /* ksm:post-split-end */
 }
 /**
  * @param {string} div
  */
 function enforceUniqueIndividualMatches(div){
-  const arr=state.allMatches?.[div]||[];
-  const seen=new Map(),out=[];
-  arr.forEach(m=>{
-    const key=individualLogicalMatchKey(m);
-    if(!key){out.push(m);return;}
-    if(!seen.has(key)){seen.set(key,m);out.push(m);return;}
-    const kept=seen.get(key);
-    if(!kept.done&&m.done){
-      const idx=out.indexOf(kept);
-      if(idx>=0)out[idx]=m;
-      seen.set(key,m);
-    }
-  });
+  /* ksm:post-split-begin engine-bridge */const out=KSMEngine.uniqueIndividualMatches(state.allMatches?.[div]||[]);
   state.allMatches[div]=out;
   if(state.currentDivision===div)state.matches=out;
   return out;
+  /* ksm:post-split-end */
 }
 /**
  * @param {string} div
