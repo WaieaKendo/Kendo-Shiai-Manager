@@ -104,6 +104,10 @@ function applyHistoryValues(action,direction){
 }
 function updateUndoButton(){
   ensureCourtHistory();const court=currentHistoryCourt(),undoStack=state.courtActionHistory[court],redoStack=state.courtRedoHistory[court];
+/* ksm:post-split-begin react-court */
+  // React action row (35-react-court.js): publish the buttons instead of writing them.
+  if(ksmReactCourtActionsActive())return ksmPublishCourtActions({undo:{disabled:!undoStack.length,label:'Undo'},redo:{disabled:!redoStack.length,label:'Redo'}});
+/* ksm:post-split-end */
   const undoBtn=document.getElementById('undoBtn'),redoBtn=document.getElementById('redoBtn');
   if(undoBtn){undoBtn.disabled=!undoStack.length;undoBtn.innerHTML=`<svg class="action-svg undo-svg" viewBox="0 0 64 64" aria-hidden="true"><path d="M24 14H10v14" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 27c4-10 14-17 26-17 15 0 27 12 27 27S52 64 37 64c-11 0-21-7-25-17" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/></svg><span class="action-label">Undo</span>`}
   if(redoBtn){redoBtn.disabled=!redoStack.length;redoBtn.innerHTML=`<svg class="action-svg undo-svg" viewBox="0 0 64 64" aria-hidden="true" style="transform:scaleX(-1)"><path d="M24 14H10v14" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 27c4-10 14-17 26-17 15 0 27 12 27 27S52 64 37 64c-11 0-21-7-25-17" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/></svg><span class="action-label">Redo</span>`}

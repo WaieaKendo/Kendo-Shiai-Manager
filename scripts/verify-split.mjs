@@ -35,9 +35,10 @@ const KNOWN_POST_SPLIT_EDITS = {
   // feat/react-court-screen, feat/react-court-header (M.8): the court screen's React islands
   // (app/js/35-react-court.js); renderScore() hands the match display over (check at the top of
   // the last renderScore()); renderDivisions() and updateScoreTournamentName() publish the
-  // header. Listed here because renderDivisions() (02) is its first region: the check compares
-  // names in order of first appearance.
-  'react-court': 4,
+  // header; feat/react-court-actions: updateUndoButton() (10) publishes Undo/Redo. Listed here
+  // because renderDivisions() (02) is its first region: the check compares names in order of
+  // first appearance.
+  'react-court': 5,
   // refactor/engine-bridge (roadmap 2.0+): one delegation per MOVED_TO_ENGINE function.
   'engine-bridge': 88,
   // refactor/engine-settings (roadmap 2.1): tournamentSettings() accessor + inline
