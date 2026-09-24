@@ -249,27 +249,35 @@ function makeTiebreakMatch(division,pool,a,b,requiresWinner=false,tiebreakSeries
  * @param {string} pair
  * @returns {Match[]}
  */
-function teamPairMatches(div,pair){return (state.allMatches[div]||[]).filter(x=>x.teamPair===pair && (x.type==='teamPosition'||x.type==='teamPlayoff'||x.type==='kachinuki'))}
+function teamPairMatches(div,pair){
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamPairMatches(state.allMatches[div]||[],pair);
+  /* ksm:post-split-end */
+}
 /**
  * @param {string} div
  * @param {string} pair
  * @returns {Match[]}
  */
-function teamPositionMatches(div,pair){return (state.allMatches[div]||[]).filter(x=>x.teamPair===pair && x.type==='teamPosition')}
+function teamPositionMatches(div,pair){
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamPositionMatches(state.allMatches[div]||[],pair);
+  /* ksm:post-split-end */
+}
 /**
  * @param {string} div
  * @param {string} pair
  * @returns {TeamPairSummary}
  */
-function teamPairSummary(div,pair){let ms=teamPairMatches(div,pair);let first=ms[0]||/** @type {Partial<Match>} */({});let wWins=0,rWins=0,wPts=0,rPts=0,done=0;ms.forEach(x=>{if(x.done){done++;let wp=(x.wp||[]).length,rp=(x.rp||[]).length;wPts+=wp;rPts+=rp;if(wp>rp)wWins++; else if(rp>wp)rWins++;}});return {teamWhite:first.teamWhite||'',teamRed:first.teamRed||'',wWins,rWins,wPts,rPts,done,total:ms.length,matches:ms}}
+function teamPairSummary(div,pair){
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamPairSummary(state.allMatches[div]||[],pair);
+  /* ksm:post-split-end */
+}
 /**
  * @param {string} [div]
  * @returns {string[]}
  */
 function teamPairIds(div='Team Tournament'){
-  return [...new Set((state.allMatches[div]||[])
-    .filter(match=>match.teamPair&&(match.type==='teamPosition'||match.type==='teamPlayoff'||match.type==='kachinuki'))
-    .map(match=>match.teamPair))];
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamPairIds(state.allMatches[div]||[]);
+  /* ksm:post-split-end */
 }
 /**
  * @param {string} [div]
@@ -287,75 +295,40 @@ function isTeamRoundRobinDivision(div='Team Tournament'){
  * @returns {boolean}
  */
 function teamRoundRobinPairResolved(div,pair){
-  const matches=teamPairMatches(div,pair);
-  return !!(matches.length&&matches.every(match=>match.done)&&teamWinner(div,pair));
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamRoundRobinPairResolved(state.allMatches[div]||[],pair);
+  /* ksm:post-split-end */
 }
 /**
  * @param {string} [div]
  * @returns {TeamStandingRow[]}
  */
 function teamStandings(div='Team Tournament'){
-  const teams={};
-  const ensure=name=>{
-    if(name&&!teams[name])teams[name]={name,played:0,wins:0,losses:0,matchWins:0,pts:0};
-    return teams[name];
-  };
-  (eligibleTeams(div)||[]).forEach(team=>ensure(team.team));
-  (state.allMatches[div]||[]).forEach(match=>{ensure(match.teamWhite);ensure(match.teamRed)});
-  teamPairIds(div).forEach(pair=>{
-    const summary=teamPairSummary(div,pair);
-    const white=ensure(summary.teamWhite),red=ensure(summary.teamRed);
-    if(!white||!red||!teamRoundRobinPairResolved(div,pair))return;
-    const winner=teamWinner(div,pair);
-    white.played++;red.played++;
-    white.matchWins+=summary.wWins;red.matchWins+=summary.rWins;
-    white.pts+=summary.wPts;red.pts+=summary.rPts;
-    if(winner===white.name){white.wins++;red.losses++;}
-    else if(winner===red.name){red.wins++;white.losses++;}
-  });
-  const rows=Object.values(teams).sort((a,b)=>b.wins-a.wins||b.pts-a.pts||a.name.localeCompare(b.name));
-  rows.forEach((row,index)=>{
-    row.rank=index+1;
-    row.nameFallback=rows.some((other,otherIndex)=>otherIndex!==index&&other.wins===row.wins&&other.pts===row.pts);
-  });
-  return rows;
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamStandings(state.allMatches[div]||[],eligibleTeams(div)||[]);
+  /* ksm:post-split-end */
 }
 /**
  * @param {string} [div]
  * @returns {{complete: number, total: number}}
  */
 function teamRoundRobinProgress(div='Team Tournament'){
-  const pairs=teamPairIds(div),complete=pairs.filter(pair=>teamRoundRobinPairResolved(div,pair)).length;
-  return {complete,total:pairs.length};
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamRoundRobinProgress(state.allMatches[div]||[]);
+  /* ksm:post-split-end */
 }
 /**
  * @param {string} [div]
  */
 function teamRoundRobinPlacements(div='Team Tournament'){
-  if(!divisionComplete(div))return null;
-  const rows=teamStandings(div);
-  if(!rows.length)return null;
-  return {first:rows[0]?.name||'',second:rows[1]?.name||'',thirds:rows[2]?[rows[2].name]:[],standings:rows,roundRobin:true};
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamRoundRobinPlacements(!!divisionComplete(div),state.allMatches[div]||[],eligibleTeams(div)||[]);
+  /* ksm:post-split-end */
 }
 /**
  * After a team bout: a representative playoff when the pairing is level.
  * @param {Match} m
  */
 function maybeCreateTeamTiebreak(m){
-  if(!m || m.type!=='teamPosition' || m.tiebreak) return;
-  let div=m.division, pair=m.teamPair, arr=state.allMatches[div]||[];
-  let ms=teamPositionMatches(div,pair);
-  if(!ms.length || !ms.every(x=>x.done)) return;
-  if(arr.some(x=>x.tiebreak && x.type==='teamPlayoff' && x.teamPair===pair)) return;
-  let s=teamPairSummary(div,pair);
-  if(s.wWins===s.rWins && s.wPts===s.rPts){
-    let anchor=ms[ms.length-1]||m;
-    /** @type {Match} */
-    let playoff={division:div,pool:m.pool,white:`${s.teamWhite} Representative`,red:`${s.teamRed} Representative`,wdojo:s.teamWhite,rdojo:s.teamRed,teamWhite:s.teamWhite,teamRed:s.teamRed,position:'Team Playoff',teamPair:pair,done:false,wp:[],rp:[],tiebreak:true,type:'teamPlayoff',court:anchor.court||m.court||'A',teamNodeId:anchor.teamNodeId,bracketSlot:anchor.bracketSlot,parentTeamMatch:true};
-    /** @type {DynamicMatchType} */
-    let dynamicType=(/* ksm:post-split-begin engine-settings was:teamFormat?.value */tournamentSettings().teamFormat/* ksm:post-split-end */||'5-Person Team')==='3-Person Team'?'TEAM_3_PERSON_REPRESENTATIVE':'TEAM_5_PERSON_REPRESENTATIVE';
-    appendApprovedDynamicMatches(div,ms[ms.length-1]||m,playoff,dynamicType);
-  }
+  /* ksm:post-split-begin engine-bridge */const plan=KSMEngine.maybeCreateTeamTiebreak(m,state.allMatches[m?.division]||[],tournamentSettings().teamFormat);
+  if(plan)appendApprovedDynamicMatches(m.division,plan.anchor,/** @type {Match} */(plan.playoff),plan.dynamicType);
+  /* ksm:post-split-end */
 }
 
 /**

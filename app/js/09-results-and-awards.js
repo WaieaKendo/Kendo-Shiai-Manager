@@ -9,20 +9,13 @@ function isPoolOnlyDivision(div){
 function medalResultsHtml(div){if(!divisionComplete(div))return '';if(isTeamDivision(div))return teamFinalResultsHtml(div);let final=(state.allMatches[div]||[]).find(m=>m.championship&&m.position==='Final'&&m.done);if(final){let first=winnerOf(final),second=first===final.red?final.white:final.red;let thirds=(state.allMatches[div]||[]).filter(m=>m.championship&&m.position==='Semifinal'&&m.done).map(m=>{let w=winnerOf(m);return w===m.red?m.white:m.red}).filter(Boolean);return `<div class="muted-card"><div class="competitor-line"><b>🥇 1st</b><span>${esc(first)}</span></div><div class="competitor-line"><b>🥈 2nd</b><span>${esc(second)}</span></div>${thirds.map(t=>`<div class="competitor-line"><b>🥉 3rd</b><span>${esc(t)}</span></div>`).join('')}</div>`;}return `<div class="muted-card"><b>Completed</b></div>`}
 
 function teamNodeSideName(side,div){
-  if(!side)return '';
-  if(side.team){let t=eligibleTeams(div)[side.team-1];return t&&t.team?t.team:'';}
-  if(side.ref){let n=(state.teamBracketNodes?.[div]||[]).find(x=>x.id===side.ref);return n&&n.winner?n.winner:'';}
-  return '';
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamNodeSideName(side,eligibleTeams(div),state.teamBracketNodes?.[div]||[]);
+  /* ksm:post-split-end */
 }
 function teamFinalPlacements(div){
-  if(isTeamRoundRobinDivision(div))return teamRoundRobinPlacements(div);
-  let nodes=state.teamBracketNodes?.[div]||[];
-  let final=nodes.find(n=>n.round==='Final')||nodes[nodes.length-1];
-  if(!final||!final.winner)return null;
-  let left=teamNodeSideName(final.left,div),right=teamNodeSideName(final.right,div);
-  let second=final.winner===left?right:left;
-  let thirds=nodes.filter(n=>n.round==='Semifinal'&&n.winner).map(n=>{let l=teamNodeSideName(n.left,div),r=teamNodeSideName(n.right,div);return n.winner===l?r:l;}).filter(Boolean);
-  return {first:final.winner,second,thirds,roundRobin:false};
+  /* ksm:post-split-begin engine-bridge */if(isTeamRoundRobinDivision(div))return teamRoundRobinPlacements(div);
+  return KSMEngine.teamFinalPlacements(state.teamBracketNodes?.[div]||[],eligibleTeams(div));
+  /* ksm:post-split-end */
 }
 function teamFinalResultsHtml(div){
   let p=teamFinalPlacements(div);

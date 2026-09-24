@@ -10,13 +10,12 @@ import {
   buildIndividualSingleElimMatches, syncIndividualSingleElim, sideLabelGeneric, indivSide,
 } from '../../app/engine/single-elim.ts';
 import { individualPlacements } from '../../app/engine/championship.ts';
+import { teamBracketNodesForCount } from '../../app/engine/teams.ts';
 import { html, engine, extractFunction } from '../lib/ksm-source.mjs';
 import { gitShow } from '../lib/git-show.mjs';
 
-// The frozen templates stay with the team bracket in app/js (2.6); take them from there.
-const tpl = vm.createContext({});
-vm.runInContext(['T', 'W', 'N', 'teamBracketNodesForCount'].map(n => extractFunction(html, n)).join('\n'), tpl);
-const nodesFor = n => tpl.teamBracketNodesForCount(n);
+// The frozen templates moved with the team bracket into app/engine/teams.ts (2.6).
+const nodesFor = n => teamBracketNodesForCount(n);
 const DOJOS = ['Dojo A', 'Dojo B', 'Dojo C', 'Dojo D'];
 const entrants = (n, seeds = 0) => Array.from({ length: n }, (_, i) => ({ name: `P${String(i + 1).padStart(2, '0')}`, dojo: DOJOS[i % 4], seed: i < seeds ? String(i + 1) : '' }));
 const MATCH_KEYS = ['division', 'pool', 'white', 'red', 'wdojo', 'rdojo', 'position', 'done', 'wp', 'rp', 'type', 'championship',

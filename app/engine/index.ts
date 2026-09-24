@@ -34,3 +34,15 @@ export type {
   SingleElimSource, SingleElimTemplateNode, SingleElimNode, SingleElimWinner, SingleElimEntrant, SlotInfo,
   SingleElimMatch, SingleElimMatchLike, SingleElimUpdate,
 } from './single-elim.ts';
+export {
+  teamSlots, slotLabel, teamPairMatchObjects, buildTeamMatches, teamSource, winnerSource, teamNode, teamBracketNodesForCount,
+  teamPairMatches, teamPositionMatches, teamPairSummary, teamWinner, teamPairIds, teamSideTeam, nodeHasMatch, nodePairId,
+  syncTeamBracket, maybeCreateTeamTiebreak, teamRoundRobinPairResolved, teamStandings, teamRoundRobinProgress,
+  teamRoundRobinPlacements, teamNodeSideName, teamFinalPlacements,
+} from './teams.ts';
+export type {
+  TeamPosition, TeamEntry, TeamBracketSource, TeamBracketNode, TeamPositionMatch, KachinukiStartMatch, TeamBout, TeamMatchLike,
+  TeamPairSummary as TeamPairSummaryData, TeamPlayoffSource, TeamPlayoff, TeamRepresentativeType, TeamStandingRow, TeamPlacements,
+} from './teams.ts';
+export { kachinukiTransitionState, kachinukiPairWinner, maybeCreateKachinukiNext } from './kachinuki.ts';
+export type { KachinukiMatchLike, KachinukiBoutLike, KachinukiTransition, KachinukiPlayoff, KachinukiContinuation, KachinukiNext } from './kachinuki.ts';

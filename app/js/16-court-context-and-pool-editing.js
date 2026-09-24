@@ -10,16 +10,11 @@ function renderContext(){if(!window.courtContext)return;let m=state.matches[stat
   courtContext.innerHTML=`<div class="context-split"><div class="context-box"><h2>Pool ${esc(currentPool)} Standings</h2><div class="stand-row small"><b>#</b><b>Name</b><b>Wins</b><b>Pts</b></div>${standings.map((r,i)=>`<div class="stand-row"><span>${i+1}</span><div><b>${esc(r.name)}</b><div class="small">${esc(r.dojo)}</div></div><b>${r.wins}</b><b>${r.pts}</b>${typeof r.tbWins==='number'?`<div class="small" style="grid-column:2 / -1">Tiebreak: ${r.tbWins}W / ${r.tbPts} pts</div>`:''}</div>`).join('')}</div><div class="context-box"><h2>Championship Bracket Preview</h2>${bracketHtml(m.division)}</div></div>`}
 
 function maybeCreateKachinukiNext(m){
-  if(!m || m.type!=='kachinuki' || m.tiebreak) return;
-  let div=m.division, arr=state.allMatches[div]||[];
-  let transition=kachinukiTransitionState(m);
-  let wi=transition.wi,ri=transition.ri;
-  let whiteTaishoLost=transition.whiteExhausted;
-  let redTaishoLost=transition.redExhausted;
-  let next=null;
-  if(whiteTaishoLost && redTaishoLost){next={division:div,pool:m.pool,white:`${m.teamWhite} Representative`,red:`${m.teamRed} Representative`,wdojo:m.teamWhite,rdojo:m.teamRed,teamWhite:m.teamWhite,teamRed:m.teamRed,position:'Kachinuki Playoff',teamPair:m.teamPair,done:false,wp:[],rp:[],tiebreak:true,type:'teamPlayoff',court:m.court,teamNodeId:m.teamNodeId,bracketSlot:m.bracketSlot};}
-  else if(!whiteTaishoLost && !redTaishoLost){next={division:div,pool:m.pool,white:m.lineupW[wi],red:m.lineupR[ri],wdojo:m.teamWhite,rdojo:m.teamRed,teamWhite:m.teamWhite,teamRed:m.teamRed,position:'Kachinuki',teamPair:m.teamPair,done:false,wp:[],rp:[],type:'kachinuki',court:m.court,lineupW:m.lineupW,lineupR:m.lineupR,wIndex:wi,rIndex:ri,teamNodeId:m.teamNodeId,bracketSlot:m.bracketSlot};}
-  if(next){if(next.type==='teamPlayoff')appendApprovedDynamicMatches(div,m,next,'KACHINUKI_REPRESENTATIVE');else{next.origin='TEMPLATE_CONTINUATION';let idx=arr.indexOf(m);arr.splice(idx+1,0,next);state.allMatches[div]=arr;}}
+  /* ksm:post-split-begin engine-bridge */const plan=KSMEngine.maybeCreateKachinukiNext(m);if(!plan)return;
+  let div=m.division,arr=state.allMatches[div]||[];
+  if(plan.kind==='playoff')appendApprovedDynamicMatches(div,m,/** @type {Match} */(plan.match),'KACHINUKI_REPRESENTATIVE');
+  else{let idx=arr.indexOf(m);arr.splice(idx+1,0,/** @type {Match} */(plan.match));state.allMatches[div]=arr;}
+  /* ksm:post-split-end */
 }
 function kachinukiSheetHtml(m){let pts=activeScoreArrays(m);let w=m.lineupW||[],r=m.lineupR||[];function list(arr,idx,side){return arr.map((name,i)=>`<div class="competitor-line ${i<idx?'small':''}"><b>${esc(name)}</b><span class="small">${i<idx?'eliminated':(i===idx?'active':'waiting')}</span></div>`).join('')}return `<div class="team-sheet"><div class="team-sheet-head"><div>${esc(m.teamWhite)}</div><div class="redHead">${esc(m.teamRed)}</div></div><div class="team-sheet-row gold"><div class="white"><b>${esc(m.white)}</b><div class="live-points">${pts.W.join(' ')}</div></div><div class="vs">NOW</div><div class="red"><b>${esc(m.red)}</b><div class="live-points">${pts.R.join(' ')}</div></div></div><div class="team-sheet-row"><div>${list(w,m.wIndex,'W')}</div><div></div><div>${list(r,m.rIndex,'R')}</div></div></div>`}
 

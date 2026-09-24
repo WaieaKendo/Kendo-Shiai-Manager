@@ -33,10 +33,11 @@ const KNOWN_POST_SPLIT_EDITS = {
   // performCourtAction() and renderAll(), so React islands re-render with `state`.
   'react-bridge': 3,
   // refactor/engine-bridge (roadmap 2.0+): one delegation per MOVED_TO_ENGINE function.
-  'engine-bridge': 49,
-  // refactor/engine-settings (roadmap 2.1): tournamentSettings() accessor + 9 inline
-  // replacements of engine DOM reads (`was:` form, see below).
-  'engine-settings': 10,
+  'engine-bridge': 76,
+  // refactor/engine-settings (roadmap 2.1): tournamentSettings() accessor + inline
+  // replacements of engine DOM reads (`was:` form, see below); 9 at 2.1, 4 left after
+  // the team engine moved (2.6) and its bridges pass tournamentSettings() in.
+  'engine-settings': 5,
   // feat/react-overlay: app/js/33-stream-overlay-links.js (TV menu "copy overlay link").
   'stream-overlay': 1,
 };
@@ -55,6 +56,13 @@ const MOVED_TO_ENGINE = [
   // step 2.5: individual single elimination placement, nodes and advancement (app/engine/single-elim.ts)
   'singleElimBracketSize', 'protectedSeedQuadrant', 'singleElimSlotInfo', 'chooseBestSeedSlot', 'placeIndividualsForSingleElim',
   'buildIndividualSingleElimMatches', 'indivSide', 'syncIndividualSingleElim', 'sideLabelGeneric',
+  // step 2.6: team bouts, bracket templates and advancement, pairing winners, representative
+  // playoff, round-robin standings and placements, kachinuki (app/engine/teams.ts, kachinuki.ts)
+  'teamSlots', 'slotLabel', 'buildTeamMatches', 'teamSideTeam', 'nodeHasMatch', 'nodePairId', 'syncTeamBracket',
+  'T', 'W', 'N', 'teamBracketNodesForCount', 'addTeamPairMatches', 'kachinukiTransitionState', 'kachinukiPairWinner', 'teamWinner',
+  'teamPairMatches', 'teamPositionMatches', 'teamPairSummary', 'teamPairIds', 'teamRoundRobinPairResolved', 'teamStandings',
+  'teamRoundRobinProgress', 'teamRoundRobinPlacements', 'maybeCreateTeamTiebreak', 'teamNodeSideName', 'teamFinalPlacements',
+  'maybeCreateKachinukiNext',
 ];
 const old = execFileSync('git', ['show', `${commit}:public/index.html`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64e6 });
 let failed = 0;
