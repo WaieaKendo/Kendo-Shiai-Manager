@@ -1,7 +1,7 @@
 /* ksm:post-split-begin react-court */
 // ==========================================================
 // React court screen (app/react/court/, roadmap M.8)
-// app/react/court/main.tsx mounts two islands and sets window flags; the legacy code still
+// app/react/court/main.tsx mounts four islands and sets window flags; the legacy code still
 // chooses the court's match and division, computes what is shown and runs the actions, and
 // publishes plain data for the islands instead of writing their elements:
 // * scoreboard (window.ksmReactScoreboard): renderScore() (22-scorekeeper-screen.js) comes
@@ -11,6 +11,13 @@
 //   (02-court-match-order.js: court title, the division select's options) and renderScore()
 //   (division title, match line) publish their fields (ksm:court-header) instead of writing
 //   #scoreTournamentName, #courtTitle, #scoreDiv, #scoreDivisionTitle, #matchMeta.
+// * score buttons and action row (window.ksmReactCourtActions): the score buttons
+//   (#score .score-controls-grid) have no legacy writer; updateUndoButton()
+//   (10-court-scoring-and-history.js) publishes whether Undo/Redo may be pressed and their
+//   labels (ksm:court-actions) instead of writing #undoBtn/#redoBtn. Every button calls the
+//   same legacy global as the legacy inline handler (point, hansoku, undo, redo,
+//   openFusenDialog, nextMatch); the Fusen-gachi dialog (#fusenDialog) stays legacy markup.
+//   A spectator and a completed division hide both through CSS only (F2 stays, ROADMAP.md).
 // Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
 function ksmReactScoreboardActive(){return typeof window!=='undefined'&&window.ksmReactScoreboard===true}
@@ -42,6 +49,11 @@ function ksmCourtHeaderFromDom(){
 function ksmPublishCourtHeader(fields){
   window.ksmCourtHeaderInput={...(window.ksmCourtHeaderInput||ksmCourtHeaderFromDom()),...fields};
   window.dispatchEvent(new CustomEvent('ksm:court-header'));
+}
+function ksmReactCourtActionsActive(){return typeof window!=='undefined'&&window.ksmReactCourtActions===true}
+function ksmPublishCourtActions(actions){
+  window.ksmCourtActionsInput=actions;
+  window.dispatchEvent(new CustomEvent('ksm:court-actions'));
 }
 // renderScore() with the React scoreboard: the legacy one minus the match display.
 function renderScoreWithReactScoreboard(){
