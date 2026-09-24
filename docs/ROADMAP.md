@@ -65,6 +65,7 @@ The front end moves to Vite + TypeScript and then React, screen by screen. Tests
 | M.8 | React court (scorekeeper) screen | `feat/react-court-screen` | 🔨 | Keeps every court test ID; e2e-full and test-ids-test must pass unchanged. Island by island inside the legacy page (plan below). Step 1 done: the match display |
 | M.9 | Path URLs for screens instead of query parameters (e.g. `/t/<id>/court/a`) | `feat/path-urls` | ⏳ | After M.8. Old `?tournament=…&court=…` links keep working (redirect); offline service worker and Cloudflare serve the app for the new paths. Plan below |
 | M.10 | Sync safety net: a cheap revision check on every screen, paced by socket health and tournament phase | `feat/sync-safety-net` | ⏳ | Next to M.9. First piece: a revision-only endpoint (or ETag/304). Plan below |
+| M.11 | Per-tournament theming: colors, logos, images on every screen | `feat/tournament-theming` | ⏳ | Last UI item. The structural steps (M.8–M.10, 2.8+) follow the theming rules below now, so M.11 only adds data + a Setup editor |
 
 ### M.8 React court screen: plan
 
@@ -97,6 +98,22 @@ Today only the TV has a fallback for a missed live update (full refresh every 15
 5. **Staff devices**: a polled record follows the socket rule: while the device has unconfirmed local changes it is deferred, never applied over them (see F6).
 
 With action-based sync (Phase 3) the same check becomes "actions after revision N".
+
+### M.11 Per-tournament theming: plan
+
+Each tournament can set its own colors, logo and images (court screen, TV, overlay, Live Scores, Results, library card, print sheets). Tacked on at the end, but built in along the way: **every structural step (React islands and pages, CSS moves, new endpoints) follows these rules now.**
+
+Rules for the structural steps:
+- **Colors only through theme tokens**: CSS custom properties (today's `:root` set in `app/styles/02-branding.css`: `--ksm-navy`, `--ksm-gold`, …). No new hard-coded colors in React components or new CSS; when a step rewrites CSS, it replaces the hex values it touches with tokens (about 430 remain today; the overlay CSS has its own).
+- **Assets from one place**: logos, watermark and background images come from one theme module / prop with today's KSM assets as defaults, never inlined in markup, so a tournament's images can replace them.
+- **Kendo semantics stay fixed**: red/white side colors and completed/live states are meaning, not branding; a theme may tint accents, not swap aka/shiro. Keep contrast readable on the TV and in print.
+
+M.11 itself:
+1. **Theme data**: a `branding` object in the tournament's setup (colors, asset references), read through a typed accessor with KSM defaults (like `readSettings`), applied once at the page root as CSS variables. Synced like other setup data.
+2. **Images as separate assets, not inside the snapshot**: v3.16.2 stored the logo as PNG data in the setup snapshot and v3.17.3 removed it (the Worker strips it), because the snapshot is re-sent on every save. Store images in R2 (or another asset store) by content hash, reference them from `branding`, cache them in the service worker for offline devices.
+3. **Setup editor**: pick colors (with a contrast check), upload/remove images, preview on court/TV/overlay; reset to KSM defaults.
+4. **Print**: printed sheets use the logo and a print-safe variant of the colors.
+5. **Tests**: themed and default tournaments through the layout/parity tests; contrast check on TV and court.
 
 ## Phase 1: small scorekeeper improvements
 
