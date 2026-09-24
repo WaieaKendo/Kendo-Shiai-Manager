@@ -49,6 +49,7 @@ Status: ✅ done · 🔨 in progress · ⏳ ready to start · 🗣 needs a decis
 | 0.2 | Round robins with 3–5 players never finish or show placements; **5 entrants silently dropped one competitor** | `fix/small-round-robin-results` | ✅ | Placements from final pool standings (tiebreaks for places 1–3); 5 entrants → one pool of 5. Confirm the rule with HKF |
 | 0.3 | Red/White side setting for court screen and printed sheets | `feat/court-side-setting` | ✅ | Per court in Setup → Referees, from the scoring table's view; synced to all devices. Default unchanged. TV (audience view) not affected |
 | 0.4 | HTML injection through names in inline click handlers | `fix/inline-handler-escaping` | ✅ | Security; no visible change. `jsArg()` for all handler string arguments |
+| 0.5 | **Load Tournament File can overwrite the live event**: it replaces the open tournament with the file and autosaves, so on a staff device the file becomes the cloud copy on every device. No confirm, no check that the file is the same tournament | `fix/load-file-guard` | ⏳ | Data-loss risk; before the next event. Confirm before replacing; a file from a different tournament ID loads as a new tournament (or is refused), never over the open one; show the file's name/date/revision. Pinned by M.12's `.ksm` round-trip test |
 
 ## Front-end migration: test safety net first
 
@@ -173,11 +174,22 @@ Each engine step (2.1–2.7) moves functions with the pattern in docs/TESTING.md
 - Action-based sync, server as the official copy (Durable Object per tournament), offline queue
 - Logins/sessions, court device pairing, rate limits (remove passwords from links)
 - Environments: `dev.tournaments.hawaiikendofederation.org` / `tournaments.hawaiikendofederation.org`, deploy freeze while Ready/Live
-- Backups: R2 exports by tournament stage, final archives, restore drill
+- Backups and replacing Save/Load (see below)
 - Control desk (court queues, move/reorder, holds, running-late, guarded bracket edits)
 - Match timer, shinpan rotation (livestream overlay: 1.4)
 - HKF-wide people/dojo registry (D1); minors' data policy
 - Gradual React/TypeScript for new screens (groundwork: M.1–M.8 above)
+
+### Backups and replacing Save/Load (for the meeting)
+
+Today the only cloud storage is one Durable Object per tournament (`TournamentState`, SQLite); there is no automatic backup, and docs/CLOUD_OPERATIONS.md asks staff to download a `.ksm` file before the event. Proposal: backups happen by themselves, and Save/Load leaves the main navigation.
+
+1. **Version history in the tournament's Durable Object**: restore points as SQLite rows at generation, end of pools, each bracket stage and the final, plus the last N saves. A director picks one and restores it (e.g. "before Regenerate Single Division"). Lost if the object itself is reset or deleted, so not a backup on its own.
+2. **Cloudflare point-in-time recovery** of SQLite-backed Durable Objects (currently about 30 days; confirm limits): whole-object restore for disasters, operated by an admin.
+3. **Off-object copies in R2** (new bucket binding, e.g. `KSM_BACKUPS`): the Worker writes a JSON export at each stage point and a final archive (`tournaments/<id>/<stage>-rev<N>.json`), with lifecycle retention. Survives an object reset, a bad deploy or a bad save. Restore = admin import into a new or existing tournament; practise it (restore drill) before the first event that relies on it.
+4. **Outside Cloudflare**: the final archive (with the program, 1.7) downloadable or sent elsewhere, in case of account-level loss.
+
+Then: **Export / Import tournament** stays as a deliberate admin tool (Setup / Director), not the main nav; the **recovery file** becomes a Developer Tools diagnostic once action-based sync removes conflict losses; for events with no internet at all, devices keep queued work in IndexedDB (local-first) instead of anyone passing files around (today's outbox holds only one snapshot). The 0.5 guard is needed until then.
 
 ## After the meeting: publishing plan
 
