@@ -1,11 +1,16 @@
 /* ksm:post-split-begin react-court */
 // ==========================================================
 // React court screen (app/react/court/, roadmap M.8)
-// Once app/react/court/main.tsx has mounted the scoreboard island it sets
-// window.ksmReactScoreboard, and renderScore() (22-scorekeeper-screen.js) comes here: the
-// legacy code still chooses the court's match, sets the header and draws the queue and
-// context, and publishes the match display (ksm:court-scoreboard) for the island instead
-// of writing #whiteName, #whitePts, ... itself.
+// app/react/court/main.tsx mounts two islands and sets window flags; the legacy code still
+// chooses the court's match and division, computes what is shown and runs the actions, and
+// publishes plain data for the islands instead of writing their elements:
+// * scoreboard (window.ksmReactScoreboard): renderScore() (22-scorekeeper-screen.js) comes
+//   here and publishes the match display (ksm:court-scoreboard) instead of writing
+//   #whiteName, #whitePts, ...; it still draws the queue and context.
+// * header (window.ksmReactCourtHeader): updateScoreTournamentName() (22), renderDivisions()
+//   (02-court-match-order.js: court title, the division select's options) and renderScore()
+//   (division title, match line) publish their fields (ksm:court-header) instead of writing
+//   #scoreTournamentName, #courtTitle, #scoreDiv, #scoreDivisionTitle, #matchMeta.
 // Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
 function ksmReactScoreboardActive(){return typeof window!=='undefined'&&window.ksmReactScoreboard===true}
@@ -24,14 +29,29 @@ function ksmPublishCourtScoreboard(m){
   window.ksmCourtScoreboardInput=ksmScoreboardInput(m);
   window.dispatchEvent(new CustomEvent('ksm:court-scoreboard'));
 }
+function ksmReactCourtHeaderActive(){return typeof window!=='undefined'&&window.ksmReactCourtHeader===true}
+// The header as the legacy renderer drew it: the islands mount after app.js has rendered,
+// and a writer publishes only its own fields (a completed division keeps the last match line).
+function ksmCourtHeaderFromDom(){
+  const text=id=>document.getElementById(id)?.textContent||'';
+  const select=document.getElementById('scoreDiv');
+  return {tournamentName:text('scoreTournamentName'),court:text('courtTitle').replace(/^Court /,''),
+    divisions:select?[...select.options].map(o=>o.textContent):[],currentDivision:select?select.value:'',
+    divisionTitle:text('scoreDivisionTitle'),matchLine:text('matchMeta')};
+}
+function ksmPublishCourtHeader(fields){
+  window.ksmCourtHeaderInput={...(window.ksmCourtHeaderInput||ksmCourtHeaderFromDom()),...fields};
+  window.dispatchEvent(new CustomEvent('ksm:court-header'));
+}
 // renderScore() with the React scoreboard: the legacy one minus the match display.
 function renderScoreWithReactScoreboard(){
   updateScoreTournamentName();
   let m=ensureScorableCurrentMatch();
   if(m && !matchBelongsToCourt(m,state.currentCourt||'A'))m=null;
   const meta=matchDisplayMeta(m);
-  matchMeta.textContent=meta.line;
-  if(window.scoreDivisionTitle)scoreDivisionTitle.textContent=m?meta.division:(state.currentDivision||'—');
+  const header={matchLine:meta.line,divisionTitle:m?meta.division:(state.currentDivision||'—')};
+  if(ksmReactCourtHeaderActive())ksmPublishCourtHeader(header);
+  else{matchMeta.textContent=header.matchLine;if(window.scoreDivisionTitle)scoreDivisionTitle.textContent=header.divisionTitle;}
   ksmPublishCourtScoreboard(m);
   renderQueue();renderPublic();renderContext();
 }
