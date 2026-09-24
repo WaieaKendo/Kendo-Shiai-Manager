@@ -66,6 +66,7 @@ The front end moves to Vite + TypeScript and then React, screen by screen. Tests
 | M.9 | Path URLs for screens instead of query parameters (e.g. `/t/<id>/court/a`) | `feat/path-urls` | ⏳ | After M.8. Old `?tournament=…&court=…` links keep working (redirect); offline service worker and Cloudflare serve the app for the new paths. Plan below |
 | M.10 | Sync safety net: a cheap revision check on every screen, paced by socket health and tournament phase | `feat/sync-safety-net` | ⏳ | Next to M.9. First piece: a revision-only endpoint (or ETag/304). Plan below |
 | M.11 | Per-tournament theming: colors, logos, images on every screen | `feat/tournament-theming` | ⏳ | Last UI item. The structural steps (M.8–M.10, 2.8+) follow the theming rules below now, so M.11 only adds data + a Setup editor |
+| M.12 | Tests for registration and file import/export, before those screens move to React | `test/registration-and-files` | ⏳ | Most setups in tests skip Registration (`KSMTest.configure`), so much of it is untested. Order: `.ksm` Download/Load Tournament File round trip (the offline backup), Load Recovery File (only source-grep today), Export CSV, Clear Registration/Teams/Exhibitions, exhibitions, Regenerate Single Division dialog, Export Brackets/Results, Preview Full Packet. Decide at the meeting: implement or remove the placeholder buttons (Import CSV, Paste from Excel, Referee Assignment and Archive exports) |
 
 ### M.8 React court screen: plan
 
@@ -139,6 +140,14 @@ Findings so far (tested in PRISM Live Studio on iOS with a standalone test page,
 Built in `feat/react-overlay` as `/overlay?tournament=<id>&court=A|B` (options and PRISM notes in README.md): the Court's current match exactly as its TV shows it (names, dojos or teams, division · pool/round/position, points, hansoku, "Next:"), an idle state, a subtle "Reconnecting…" badge, automatic band mode (device landscape + page portrait → bar at `y`% of the height, default 74, sized by the width), `?y=`/`?band=` overrides and `?debug=1` (size, orientation, mode). Staff copy the link from the TV menu.
 
 Still needed: a full live-stream test (a real stream, a whole match, both courts) on the real domain.
+
+## Phase 1b: tournament setup and the printed program
+
+| # | Task | Branch | Status | Notes |
+|---|---|---|---|---|
+| 1.5 | Match timing per bracket stage | `feat/match-timing` | ⏳ | Match length per division and stage (pools, early rounds, semifinal, final; finals can be longer), encho (overtime) length or unlimited, tiebreak/representative bout length. Stored in the tournament setup, read through `readSettings` (`app/engine/settings.ts`) with today's behaviour as the default. Feeds the program (1.7), later the match timer and court time estimates |
+| 1.6 | More division formats, first: single elimination into a round robin | `feat/format-se-into-rr` | ⏳ | As run at an earlier tournament: an elimination stage whose survivors play a final round robin. A new plan in `app/engine/generation.ts` (`generateDivision`) plus its advancement and placements, tested like the existing formats (unit + golden scenario). Confirm the exact rules (how many advance, tiebreaks in the final pool) |
+| 1.7 | Tournament program: print / PDF export | `feat/tournament-program` | ⏳ | Needs 1.5 (and 1.6 for its formats). Cover page and extra info (event details, schedule, sponsors/notes), the rules (match length by stage, encho, how ties and tiebreaks are decided, team formats), courts and their divisions, each division with its pools/brackets. Generated from tournament data, not app screens. Own print stylesheet: no app header, navigation or screen chrome, page breaks per division, prints like a real program. Uses the M.11 theme (logo, print-safe colors). Replaces or extends Preview Full Packet |
 
 ## Phase 2: groundwork for sync redesign (no user-visible change)
 
