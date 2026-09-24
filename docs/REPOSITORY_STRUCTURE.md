@@ -13,7 +13,8 @@ app/                 Front-end source (built by Vite into dist/, which is not co
   react/              React + strict TypeScript ES modules (own tsconfig.json):
                         island.tsx (mountIsland), legacy-bridge.ts (useLegacyState),
                         live/ (useTournamentRecord: GET + spectator WebSocket),
-                        overlay/ (stream overlay; court-match.ts = the TV's match selection)
+                        overlay/ (stream overlay; court-match.ts = the TV's match selection),
+                        court/ (React court screen islands inside index.html, M.8)
   engine/             Pure tournament-engine modules, strict TypeScript (own tsconfig.json):
                         no DOM, no globals, explicit inputs/outputs. index.ts is bundled
                         into a classic script defining `KSMEngine`, loaded before app.js;

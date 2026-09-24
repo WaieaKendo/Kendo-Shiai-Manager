@@ -191,6 +191,9 @@ function ensureScorableCurrentMatch(){
   return null;
 }
 function renderScore(){
+/* ksm:post-split-begin react-court */
+  if(ksmReactScoreboardActive())return renderScoreWithReactScoreboard();
+/* ksm:post-split-end */
   updateScoreTournamentName();
   let m=ensureScorableCurrentMatch();
   if(m && !matchBelongsToCourt(m,state.currentCourt||'A'))m=null;
