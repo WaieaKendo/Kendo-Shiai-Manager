@@ -63,6 +63,7 @@ The front end moves to Vite + TypeScript and then React, screen by screen. Tests
 | M.6 | React pilot: the livestream overlay page (1.4) | `feat/react-setup`, `feat/react-overlay` | ✅ | React inside the Vite build (extra pages, islands, live record hook, state-change bridge); `/overlay` is the first React page. The legacy bundle is unchanged apart from two marked hooks and the TV-menu overlay links |
 | M.7 | Typed engine module | `refactor/engine-bridge` … `refactor/engine-integrity` | ✅ | = 2.0–2.7: the engine moved into `app/engine/` step by step (see `app/engine/README.md`); golden files byte-identical |
 | M.8 | React court (scorekeeper) screen | `feat/react-court-screen` | 🔨 | Keeps every court test ID; e2e-full and test-ids-test must pass unchanged. Island by island inside the legacy page (plan below). Step 1 done: the match display |
+| M.9 | Path URLs for screens instead of query parameters (e.g. `/t/<id>/court/a`) | `feat/path-urls` | ⏳ | After M.8. Old `?tournament=…&court=…` links keep working (redirect); offline service worker and Cloudflare serve the app for the new paths. Plan below |
 
 ### M.8 React court screen: plan
 
@@ -73,6 +74,16 @@ The court screen moves to React one island at a time inside the legacy page (`ap
 3. Score buttons and action row (Undo/Redo labels, Next Match, Fusen-gachi dialog), still calling the legacy actions; fixes F2 (Undo hidden when a division completes) as part of the rewrite.
 4. Queue and context panels (`renderQueue`/`renderContext`: pools, bracket, team rounds), from `app/engine/` data.
 5. Division-complete panel; remove the legacy court renderer, its redeclarations (2.10 ratchet) and the parity test.
+
+### M.9 Path URLs: plan
+
+Today every screen is one page driven by query parameters (`/?tournament=<id>&court=A`, `&role=spectator&view=tv` for a TV); only the stream overlay has a path (`/overlay`). After M.8, move to path URLs, for example `/t/<id>/court/a`, `/t/<id>/tv/a`, `/t/<id>/live`, `/t/<id>/overlay/a`. Routing is its own step, not part of the React conversion. To handle:
+
+- **Existing links**: TV, court and overlay links are copied onto devices before an event. Old query links must keep working, most likely by redirecting to the new path.
+- **Offline**: the service worker serves only `/` and `/index.html` as the app shell and sends every other navigation to the network. It must serve the app for the new paths, or an offline court device gets nothing.
+- **Hosting**: Cloudflare must answer the new paths with the app, as it maps `/overlay` to `overlay.html` today.
+- **Passwords in links** (Phase 3: logins, device pairing): design the URL scheme together with that, so links change only once.
+- **Tests**: `KsmApp.open_device` paths, the TV/overlay link tests and `e2e-full` use the query links; add the new paths and keep one check that the old links still work.
 
 ## Phase 1: small scorekeeper improvements
 
