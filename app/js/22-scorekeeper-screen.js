@@ -228,6 +228,9 @@ function renderScore(){
 
 // ---------- KSM v3.9.1 Header and action-label helpers ----------
 function updateScoreTournamentName(){
+/* ksm:post-split-begin react-court */
+  if(ksmReactCourtHeaderActive())return ksmPublishCourtHeader({tournamentName:(window.tName&&tName.value)?tName.value:'Kendo Tournament'});
+/* ksm:post-split-end */
   const target=document.getElementById('scoreTournamentName');
   if(target)target.textContent=(window.tName&&tName.value)?tName.value:'Kendo Tournament';
 }

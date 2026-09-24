@@ -32,6 +32,12 @@ const KNOWN_POST_SPLIT_EDITS = {
   // feat/react-setup: app/js/00-react-bridge.js + the ksm:state-changed dispatch in
   // performCourtAction() and renderAll(), so React islands re-render with `state`.
   'react-bridge': 3,
+  // feat/react-court-screen, feat/react-court-header (M.8): the court screen's React islands
+  // (app/js/35-react-court.js); renderScore() hands the match display over (check at the top of
+  // the last renderScore()); renderDivisions() and updateScoreTournamentName() publish the
+  // header. Listed here because renderDivisions() (02) is its first region: the check compares
+  // names in order of first appearance.
+  'react-court': 4,
   // refactor/engine-bridge (roadmap 2.0+): one delegation per MOVED_TO_ENGINE function.
   'engine-bridge': 88,
   // refactor/engine-settings (roadmap 2.1): tournamentSettings() accessor + inline
@@ -42,9 +48,6 @@ const KNOWN_POST_SPLIT_EDITS = {
   // fix/outbox-flush-local-changes (F6): mergeQueuedStaffWork() and its call at staff login;
   // the outbox flush also replays court actions taken before it started (comment + condition).
   'outbox-flush-rebase': 4,
-  // feat/react-court-screen (M.8): renderScore() hands the match display to the React island
-  // (app/js/35-react-court.js + the check at the top of the last renderScore()).
-  'react-court': 2,
   // feat/react-overlay: app/js/33-stream-overlay-links.js (TV menu "copy overlay link").
   'stream-overlay': 1,
 };
