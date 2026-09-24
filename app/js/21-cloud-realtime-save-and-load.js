@@ -201,10 +201,28 @@ async function saveTournamentToCloudWithReason(reason='Autosave',force=false){
     if(!localChangesPending())applyDeferredSyncRecord();
   }
 }
+/* ksm:post-split-begin outbox-flush-rebase */
+// After a link reload the device is read-only and follows the cloud copy, so staff work queued
+// before the reload exists only in the outbox, and any successful save clears the outbox. When
+// staff logs in again, replay the queued court actions onto the current copy (the same rebase
+// as a 409), so every save from then on carries them, not only the flush.
+function mergeQueuedStaffWork(){
+  const outbox=readOutbox();
+  if(!outbox?.payload||isReadOnlySession()||(outbox.tournamentId&&outbox.tournamentId!==cloudSession.tournamentId))return false;
+  const merged=rebaseLocalPayloadOnRecord(outbox.payload,{payload:tournamentPayload(),revision:cloudSession.revision},Number(outbox.baseRevision||0));
+  ksmApplyingRemoteSnapshot=true;
+  try{applyTournamentPayload(merged,false,{pinnedCourt:pinnedCourt(),preserveLocalDivision:true,source:'queued work merge'});localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(merged))}finally{ksmApplyingRemoteSnapshot=false}
+  return true;
+}
+/* ksm:post-split-end */
 async function flushCloudOutbox(){const outbox=readOutbox();if(!outbox||ksmCloudSaveInFlight||isReadOnlySession()||!navigator.onLine)return false;if(outbox.tournamentId&&outbox.tournamentId!==cloudSession.tournamentId){writeCloudDiagnosticsState({stage:'Outbox blocked',errorMessage:'Queued snapshot belongs to a different tournament',queuedTournamentId:outbox.tournamentId||'',activeTournamentId:cloudSession.tournamentId||''});return false}ksmCloudSaveInFlight=true;ksmSaveStatusMode='syncing';writeCloudDiagnosticsState({stage:'Retrying queued snapshot',lastAttemptAt:new Date().toISOString(),baseRevision:outbox.baseRevision||0,snapshotBytes:payloadByteSize(outbox.payload),retryCount:(readCloudDiagnosticsState().retryCount||0)+1});renderPersistentSaveStatus();const mutationVersion=ksmLocalMutationVersion;try{const record=await performCloudSave(outbox.payload,outbox.baseRevision);
   // After a reload the screen shows the older cloud copy and our own echo is ignored: show what
   // was just saved, replaying court actions taken while the flush was in flight (as a rebase does).
-  if(record?.payload){const localPayload=ksmLocalMutationVersion===mutationVersion?record.payload:rebaseLocalPayloadOnRecord(tournamentPayload(),record,Number(outbox.baseRevision||0));ksmApplyingRemoteSnapshot=true;try{applyTournamentPayload(localPayload,false,{pinnedCourt:pinnedCourt(),preserveLocalDivision:true,source:'outbox flush'});localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(localPayload))}finally{ksmApplyingRemoteSnapshot=false}}
+/* ksm:post-split-begin outbox-flush-rebase */
+  // Also replay actions taken before the flush started (after a reload, staff can score before
+  // the socket opens and triggers the flush): any unconfirmed local change, not only newer ones.
+/* ksm:post-split-end */
+  if(record?.payload){const localPayload=/* ksm:post-split-begin outbox-flush-rebase was:ksmLocalMutationVersion===mutationVersion */ksmLocalMutationVersion===mutationVersion&&ksmLocalMutationVersion<=ksmConfirmedMutationVersion/* ksm:post-split-end */?record.payload:rebaseLocalPayloadOnRecord(tournamentPayload(),record,Number(outbox.baseRevision||0));ksmApplyingRemoteSnapshot=true;try{applyTournamentPayload(localPayload,false,{pinnedCourt:pinnedCourt(),preserveLocalDivision:true,source:'outbox flush'});localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(localPayload))}finally{ksmApplyingRemoteSnapshot=false}}
   return true}catch(err){console.warn('Queued cloud save failed',err);writeCloudDiagnosticsState({stage:'Queued save failed',errorMessage:String(err?.message||err),lastFailureAt:new Date().toISOString()});ksmSaveStatusMode='error';renderPersistentSaveStatus();return false}finally{ksmCloudSaveInFlight=false;await runPendingCloudSave()}}
 async function retryQueuedCloudSave(){if(!readOutbox()){showKsmToast('No queued snapshot to retry',1800);return}showKsmToast('Retrying queued save…',1200);const ok=await flushCloudOutbox();showKsmToast(ok?'✓ Queued save completed':'Queued save still needs attention',2600,!ok);cloudDiagnostics()}
 function scheduleCloudSave(reason='Autosave',delay=1200){if(ksmApplyingRemoteSnapshot||isReadOnlySession())return;clearTimeout(ksmCloudTimer);ksmCloudTimer=setTimeout(()=>{ksmCloudTimer=null;saveTournamentToCloudWithReason(reason)},delay)}

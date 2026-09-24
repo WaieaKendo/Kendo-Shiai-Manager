@@ -39,6 +39,9 @@ const KNOWN_POST_SPLIT_EDITS = {
   // the team engine moved (2.6) and its bridges pass tournamentSettings() in; 3 after
   // division generation moved (2.7).
   'engine-settings': 3,
+  // fix/outbox-flush-local-changes (F6): mergeQueuedStaffWork() and its call at staff login;
+  // the outbox flush also replays court actions taken before it started (comment + condition).
+  'outbox-flush-rebase': 4,
   // feat/react-overlay: app/js/33-stream-overlay-links.js (TV menu "copy overlay link").
   'stream-overlay': 1,
 };

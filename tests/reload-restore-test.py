@@ -5,7 +5,9 @@ Against a throwaway `wrangler dev`:
     they load the cloud copy and keep following the court;
   * a Court A scorekeeper whose save failed (outbox) reloads while Court B keeps
     scoring: no prompt, the queued work survives the read-only reload and is
-    merged into the cloud copy once staff logs in again;
+    merged into the cloud copy once staff logs in again, also when the scorekeeper
+    scores before the live connection is back (its opening sends the queue) or it
+    opens while another save is in flight (F6);
   * a Court A scorekeeper reloads right after scoring, before the debounced save
     ran: the point is queued at unload and reaches the cloud after login;
   * a device opened without a tournament link still offers the local autosave.
@@ -18,6 +20,22 @@ from ksm_browser import launch_chromium
 from ksm_server import local_worker
 
 PROMPT = 'Restore autosaved tournament?'
+
+# Slow venue network on a device: every save (PUT) is answered 1.5 s late, and live sockets
+# opened from now on deliver nothing (not even 'open') until window.ksmTestOpenSockets().
+SLOW_NETWORK_JS = """() => {
+  const f = window.fetch;
+  window.fetch = (u, o) => o && o.method === 'PUT' ? f(u, o).then(r => new Promise(done => setTimeout(() => done(r), 1500))) : f(u, o);
+  let open; const gate = new Promise(r => { open = r; }); window.ksmTestOpenSockets = open;
+  const W = window.WebSocket;
+  window.WebSocket = function (url, protocols) {
+    const socket = new W(url, protocols), add = socket.addEventListener.bind(socket);
+    socket.addEventListener = (type, listener, options) => add(type, e => gate.then(() => listener(e)), options);
+    return socket;
+  };
+  window.WebSocket.prototype = W.prototype;
+  for (const k of ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED']) window.WebSocket[k] = W[k];
+}"""
 
 
 def people(prefix, n):
@@ -97,12 +115,15 @@ def main():
         court_a.wait_revision(fetch_record(base, tid)['revision'])
         assert court_a.outbox(), 'Court A: queued work was dropped while logged out'
 
-        # Slow network: the scorekeeper opens the court and scores while the flush is in flight.
-        court_a.page.evaluate("""() => { const f = window.fetch; window.fetch = (u, o) =>
-          o && o.method === 'PUT' ? new Promise(r => setTimeout(r, 1500)).then(() => f(u, o)) : f(u, o); }""")
+        # Slow network: the scorekeeper logs in and scores before the live connection is back (its
+        # opening sends the queue). The point used to be overwritten by the flushed copy: flaky
+        # under load, deterministic here. (Scoring while the queue is in flight: next section.)
+        court_a.page.evaluate(SLOW_NETWORK_JS)
         court_a.staff_login()
         court_a.open_court('A')
         court_a.score_point('R', 'D')
+        assert court_a.outbox(), 'Court A: the queue was sent before the live connection opened'
+        court_a.page.evaluate('window.ksmTestOpenSockets()')
         court_a.wait_for(lambda: not court_a.outbox(), message='the queued work to be flushed')
         court_a.wait_idle()
         record = wait_record(court_a, base, tid, lambda r: points(r, 'Court A Open', first_a) == (['M'], ['D']),
@@ -119,14 +140,22 @@ def main():
         court_a.wait_for(court_a.outbox, message='the unload queue to be restored')
         assert court_a.outbox()['reason'] == 'Unsynced changes at page unload', court_a.outbox()
         assert not court_a.seen_dialogs, f'Court A: reload asked {court_a.seen_dialogs}'
+        # Slow network again, and the live connection opens while the save of a hansoku is in
+        # flight: that save used to succeed without the queued point and clear the queue.
+        court_a.page.evaluate(SLOW_NETWORK_JS)
         court_a.staff_login()
         court_a.open_court('A')
+        with court_a.page.expect_request(lambda request: request.method == 'PUT'):
+            court_a.hansoku('R')
+        court_a.page.evaluate('window.ksmTestOpenSockets()')
         court_a.wait_for(lambda: not court_a.outbox(), message='the unload queue to be flushed')
         court_a.wait_idle()
-        record = wait_record(court_a, base, tid, lambda r: points(r, 'Court A Open', first_a) == (['M', 'K'], ['D']),
-                             'the cloud copy to hold Court A M K / D')
+        red_hansoku = lambda r: match(r, 'Court A Open', first_a['white'], first_a['red']).get('rt')
+        record = wait_record(court_a, base, tid, lambda r: points(r, 'Court A Open', first_a) == (['M', 'K'], ['D']) and red_hansoku(r) == 1,
+                             'the cloud copy to hold Court A M K / D and a red hansoku')
         got = match(record, 'Court A Open', first_a['white'], first_a['red'])
-        assert (got.get('wp'), got.get('rp')) == (['M', 'K'], ['D']), f'Court A points: {got.get("wp")} / {got.get("rp")}'
+        assert (got.get('wp'), got.get('rp'), got.get('rt')) == (['M', 'K'], ['D'], 1), \
+            f'Court A: {got.get("wp")} / {got.get("rp")}, red hansoku {got.get("rt")}'
         assert match(record, 'Court B Open', first_b['white'], first_b['red']).get('rp') == ['K'], 'Court B point lost'
         for device in (court_b, tv, spectator):
             device.wait_revision(record['revision'])
