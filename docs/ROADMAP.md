@@ -64,6 +64,7 @@ The front end moves to Vite + TypeScript and then React, screen by screen. Tests
 | M.7 | Typed engine module | `refactor/engine-bridge` … `refactor/engine-integrity` | ✅ | = 2.0–2.7: the engine moved into `app/engine/` step by step (see `app/engine/README.md`); golden files byte-identical |
 | M.8 | React court (scorekeeper) screen | `feat/react-court-screen` | 🔨 | Keeps every court test ID; e2e-full and test-ids-test must pass unchanged. Island by island inside the legacy page (plan below). Step 1 done: the match display |
 | M.9 | Path URLs for screens instead of query parameters (e.g. `/t/<id>/court/a`) | `feat/path-urls` | ⏳ | After M.8. Old `?tournament=…&court=…` links keep working (redirect); offline service worker and Cloudflare serve the app for the new paths. Plan below |
+| M.10 | Sync safety net: a cheap revision check on every screen, paced by socket health and tournament phase | `feat/sync-safety-net` | ⏳ | Next to M.9. First piece: a revision-only endpoint (or ETag/304). Plan below |
 
 ### M.8 React court screen: plan
 
@@ -84,6 +85,18 @@ Today every screen is one page driven by query parameters (`/?tournament=<id>&co
 - **Hosting**: Cloudflare must answer the new paths with the app, as it maps `/overlay` to `overlay.html` today.
 - **Passwords in links** (Phase 3: logins, device pairing): design the URL scheme together with that, so links change only once.
 - **Tests**: `KsmApp.open_device` paths, the TV/overlay link tests and `e2e-full` use the query links; add the new paths and keep one check that the old links still work.
+
+### M.10 Sync safety net: plan
+
+Today only the TV has a fallback for a missed live update (full refresh every 15 s, on a revision gap and when it becomes visible). Scorekeepers, spectators and the overlay (`useTournamentRecord`) rely on the socket and its reconnects. Add one safety net in `useTournamentRecord`, so every React page has it:
+
+1. **Revision-only check** (first piece): a tiny endpoint returning the latest revision, or an ETag/`If-None-Match` GET answered 304 when nothing changed. Download the full record only when the revision is newer. Add jitter so devices do not ask at the same second.
+2. **Pace by socket health first**: socket healthy → every 30–60 s; socket down or reconnecting → every 5–10 s with backoff until it is back.
+3. **Pace by tournament phase**: before generation → none; live → as above; after the last match (from the engine's completion data, not a UI rule) → every few minutes, because results often get corrected after the final; archived → none.
+4. **Always check at once** when the page becomes visible, when the network comes back and when a socket message skips a revision (as the TV does today).
+5. **Staff devices**: a polled record follows the socket rule: while the device has unconfirmed local changes it is deferred, never applied over them (see F6).
+
+With action-based sync (Phase 3) the same check becomes "actions after revision N".
 
 ## Phase 1: small scorekeeper improvements
 
