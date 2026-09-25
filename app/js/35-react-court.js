@@ -25,6 +25,11 @@
 //   writing #queue and #courtContext. setCourtSupportMode() still sets the layout classes
 //   around the panels. The HTML helpers (bracketHtml(), teamSheetHtml(), ...) stay for the
 //   other screens that use them.
+// * division complete (window.ksmReactCourtComplete): setCourtCompletePresentation() (32-)
+//   publishes whether this court's division is complete and its placements
+//   (ksm:court-complete) instead of setting .division-complete on #score .scoreboard-card and
+//   writing divisionCompletePanelHtml() into it; the renderScore() wrapper (32-) still decides
+//   when. divisionCompletePanelHtml() stays for Live Scores and the TV.
 // Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
 function ksmReactScoreboardActive(){return typeof window!=='undefined'&&window.ksmReactScoreboard===true}
@@ -61,6 +66,16 @@ function ksmReactCourtActionsActive(){return typeof window!=='undefined'&&window
 function ksmPublishCourtActions(actions){
   window.ksmCourtActionsInput=actions;
   window.dispatchEvent(new CustomEvent('ksm:court-actions'));
+}
+function ksmReactCourtCompleteActive(){return typeof window!=='undefined'&&window.ksmReactCourtComplete===true}
+// divisionCompletePanelHtml() (32-) as data: esc() text (String(x||'')).
+function ksmDivisionCompleteInput(div,complete){
+  if(!complete)return {complete:false,placements:[]};
+  return {complete:true,placements:resultPlacements(div).map(p=>({place:ksmText(p.place),name:ksmText(p.name),tier:ksmText(p.tier)}))};
+}
+function ksmPublishCourtComplete(input){
+  window.ksmCourtCompleteInput=input;
+  window.dispatchEvent(new CustomEvent('ksm:court-complete'));
 }
 // renderScore() with the React scoreboard: the legacy one minus the match display.
 function renderScoreWithReactScoreboard(){

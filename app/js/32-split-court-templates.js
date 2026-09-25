@@ -97,6 +97,7 @@ function divisionCompletePanelHtml(div){
 }
 function setCourtCompletePresentation(div,complete){
   const card=document.querySelector('#score .scoreboard-card');if(!card)return;
+  /* ksm:post-split-begin react-court */if(ksmReactCourtCompleteActive()){ksmPublishCourtComplete(ksmDivisionCompleteInput(div,complete));return;}/* ksm:post-split-end */
   let panel=card.querySelector('.division-complete-panel');
   if(complete){
     card.classList.add('division-complete');

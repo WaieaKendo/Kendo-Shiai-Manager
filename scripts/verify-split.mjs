@@ -40,7 +40,7 @@ const KNOWN_POST_SPLIT_EDITS = {
   // queue and context panels (two one-line hand-overs). Listed here
   // because renderDivisions() (02) is its first region: the check compares names in order of
   // first appearance.
-  'react-court': 7,
+  'react-court': 8,
   // refactor/engine-bridge (roadmap 2.0+): one delegation per MOVED_TO_ENGINE function.
   'engine-bridge': 88,
   // refactor/engine-settings (roadmap 2.1): tournamentSettings() accessor + inline

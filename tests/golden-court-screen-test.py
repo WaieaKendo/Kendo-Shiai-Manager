@@ -144,7 +144,7 @@ PANEL_FIBERS_JS = """(root) => {
   return [els.length, els.filter(e => Object.keys(e).some(k => k.startsWith('__reactFiber'))).length];
 }"""
 # The panels React renders (every element in them has a React fiber).
-REACT_PANELS = ['context', 'queue']
+REACT_PANELS = ['context', 'queue', 'complete panel']
 PANELS_SEEN = {name: 0 for name in REACT_PANELS}  # most React-rendered elements seen in each panel
 # Which kinds of panel content the React islands were given.
 VARIANTS_JS = """() => {
@@ -169,6 +169,10 @@ HISTORY_JS = """() => Object.fromEntries(['undo', 'redo'].map(id => {
   const b = document.querySelector(`#score [data-testid="${id}"]`);
   return [id, {enabled: !b.disabled, visible: b.checkVisibility(), label: b.textContent.trim()}];
 }))"""
+# Dialogs shown depending on timing, not on the court screen: the offline test copy's debounced
+# cloud save asks for a staff password (answered with nothing, so the save stops), once per save
+# that happens to run. Every other dialog is part of the snapshot.
+TIMING_DIALOGS = {'Create Staff password'}
 SPECTATOR_JS = "() => { setSessionRole('spectator'); installRoleBanner('spectator'); }"
 
 
@@ -272,7 +276,7 @@ class Golden:
             geometry = self.approved['geometry'].get(PLATFORM)
             self.approved_geometry = expand(geometry) if geometry else None
         app.page.on('pageerror', lambda e: errors.append(f'{name}: {e}'))
-        app.page.on('dialog', lambda d: (self.dialogs.append(d.message), d.accept()))
+        app.page.on('dialog', lambda d: (d.message in TIMING_DIALOGS or self.dialogs.append(d.message), d.accept()))
 
     def check(self, step):
         page = self.app.page
@@ -327,6 +331,8 @@ class Golden:
             assert page.evaluate(FIBER_JS, el), f'{self.name}: {step}: {el} is not rendered by React'
         for name in REACT_PANELS:
             total, owned = page.evaluate(PANEL_FIBERS_JS, PANELS[name])
+            if name == 'complete panel' and total:
+                assert page.evaluate(FIBER_JS, PANELS[name]), f'{self.name}: {step}: the division-complete panel is not rendered by React'
             assert total == owned, f'{self.name}: {step}: {total - owned} of {total} elements in the {name} are not rendered by React'
             PANELS_SEEN[name] = max(PANELS_SEEN[name], owned)
         VARIANTS_SEEN.update(page.evaluate(VARIANTS_JS))
@@ -598,7 +604,7 @@ def main():
             # (Not reachable from these runs: the queue's final results (the division is
             # complete by then, so the queue is empty), championship placeholder queue rows
             # (the frozen templates create every championship match at generation) and
-            # "No division selected.".)
+            # "No division selected.", and a complete division without placements.)
             expected = {
                 'context: pools', 'context: active pool', 'context: completed pools', 'context: pool tiebreak row',
                 'context: pools with bracket cards', 'context: pools with bracket message', 'context: pools with bracket team-standings',
@@ -606,6 +612,7 @@ def main():
                 'context: bracket with bracket team-bracket', 'context: bracket with bracket message',
                 'queue: empty', 'queue: message', 'queue: groups', 'queue row: individual match', 'queue row: individual match tiebreak',
                 'queue row: team match', 'queue row: team placeholder', 'queue row: aligned awaiting',
+                'complete: placements',
             }
             assert expected <= VARIANTS_SEEN, f'panel variants not covered: {sorted(expected - VARIANTS_SEEN)}'
         assert not errors, '\n'.join(errors)

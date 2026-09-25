@@ -4,6 +4,7 @@
 // legacy renderer keeps drawing everything.
 import { mountIsland } from '../island.tsx';
 import { CourtActions, CourtScoreButtons } from './CourtActions.tsx';
+import { CourtComplete } from './CourtComplete.tsx';
 import { CourtContext } from './CourtContext.tsx';
 import { CourtHeader } from './CourtHeader.tsx';
 import { CourtQueue } from './CourtQueue.tsx';
@@ -14,6 +15,7 @@ interface LegacyWindow {
   ksmReactCourtHeader?: boolean;
   ksmReactCourtActions?: boolean;
   ksmReactCourtPanels?: boolean;
+  ksmReactCourtComplete?: boolean;
   renderDivisions?: () => void;
   renderQueue?: () => void;
   renderContext?: () => void;
@@ -22,6 +24,17 @@ interface LegacyWindow {
 }
 
 const legacy = window as unknown as LegacyWindow;
+const card = document.querySelector('#score .scoreboard-card');
+if (card && typeof legacy.renderScore === 'function') {
+  // From now on setCourtCompletePresentation() publishes the division-complete state instead of
+  // setting the card's class and panel; take back what it drew already. renderScore() below
+  // publishes the current court's state. The panel is a portal into the card (see
+  // CourtComplete), so this island's own container stays out of the page.
+  card.querySelector(':scope > .division-complete-panel')?.remove();
+  card.classList.remove('division-complete');
+  legacy.ksmReactCourtComplete = true;
+  mountIsland(document.createElement('div'), <CourtComplete card={card} />);
+}
 const header = document.querySelector('#score .scoreboard-header');
 const scoreboard = document.querySelector('#score .scoreboard-match');
 if (header && scoreboard && typeof legacy.renderScore === 'function' && typeof legacy.renderDivisions === 'function') {
