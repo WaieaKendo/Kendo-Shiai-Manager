@@ -78,7 +78,7 @@ async function runPool(list, concurrency) {
 
 const nodeFiles = files.filter(f => f.endsWith('.mjs'));
 // Start the slowest browser tests first so they overlap with the many short ones.
-const SLOW = ['golden-engine', 'court-actions', 'e2e-full', 'sync-saving', 'tv-display', 'sync-remote', 'e2e-two', 'reload-restore', 'roles-access'];
+const SLOW = ['golden-engine', 'golden-court', 'court-actions', 'e2e-full', 'sync-saving', 'tv-display', 'sync-remote', 'e2e-two', 'reload-restore', 'roles-access'];
 const slowRank = f => { const i = SLOW.findIndex(s => f.startsWith(s)); return i < 0 ? SLOW.length : i; };
 const pyFiles = files.filter(f => f.endsWith('.py')).sort((a, b) => slowRank(a) - slowRank(b));
 const results = [...await runPool(nodeFiles, 8), ...await runPool(pyFiles, PY_JOBS)];
