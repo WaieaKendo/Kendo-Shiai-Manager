@@ -52,7 +52,7 @@ Status: ✅ done · 🔨 in progress · ⏳ ready to start · 🗣 needs a decis
 | 0.2 | Round robins with 3–5 players never finish or show placements; **5 entrants silently dropped one competitor** | `fix/small-round-robin-results` | ✅ | Placements from final pool standings (tiebreaks for places 1–3); 5 entrants → one pool of 5. Confirm the rule with HKF |
 | 0.3 | Red/White side setting for court screen and printed sheets | `feat/court-side-setting` | ✅ | Per court in Setup → Referees, from the scoring table's view; synced to all devices. Default unchanged. TV (audience view) not affected |
 | 0.4 | HTML injection through names in inline click handlers | `fix/inline-handler-escaping` | ✅ | Security; no visible change. `jsArg()` for all handler string arguments |
-| 0.5 | **Load Tournament File can overwrite the live event**: it replaces the open tournament with the file and autosaves, so on a staff device the file becomes the cloud copy on every device. No confirm, no check that the file is the same tournament | `fix/load-file-guard` | ⏳ | Data-loss risk; before the next event. Confirm before replacing; a file from a different tournament ID loads as a new tournament (or is refused), never over the open one; show the file's name/date/revision. Pinned by M.12's `.ksm` round-trip test |
+| 0.5 | **Load Tournament File can overwrite the live event**: it replaces the open tournament with the file and autosaves, so on a staff device the file becomes the cloud copy on every device. No confirm, no check that the file is the same tournament | `fix/pre-event` | ⏳ | Data-loss risk; before the next event. Confirm before replacing; a file from a different tournament ID loads as a new tournament (or is refused), never over the open one; show the file's name/date/revision. Pinned by M.12's `.ksm` round-trip test |
 
 ## Front-end migration: test safety net first
 
@@ -71,7 +71,8 @@ The front end moves to Vite + TypeScript and then React, screen by screen. Tests
 | M.9 | Path URLs for screens instead of query parameters (e.g. `/t/<id>/court/a`) | `feat/path-urls` | ⏳ | After M.8. Old `?tournament=…&court=…` links keep working (redirect); offline service worker and Cloudflare serve the app for the new paths. Plan below |
 | M.10 | Sync safety net: a cheap revision check on every screen, paced by socket health and tournament phase | `feat/sync-safety-net` | ⏳ | Next to M.9. First piece: a revision-only endpoint (or ETag/304). Plan below |
 | M.11 | Per-tournament theming: colors, logos, images on every screen | `feat/tournament-theming` | ⏳ | Last UI item. The structural steps (M.8–M.10, 2.8+) follow the theming rules below now, so M.11 only adds data + a Setup editor |
-| M.12 | Tests for registration and file import/export, before those screens move to React | `test/registration-and-files` | ⏳ | Most setups in tests skip Registration (`KSMTest.configure`), so much of it is untested. Order: `.ksm` Download/Load Tournament File round trip (the offline backup), Load Recovery File (only source-grep today), Export CSV, Clear Registration/Teams/Exhibitions, exhibitions, Regenerate Single Division dialog, Export Brackets/Results, Preview Full Packet. Decide at the meeting: implement or remove the placeholder buttons (Import CSV, Paste from Excel, Referee Assignment and Archive exports) |
+| M.12 | Tests for registration and file import/export, before those screens move to React | `fix/pre-event` | ⏳ | Most setups in tests skip Registration (`KSMTest.configure`), so much of it is untested. Order: `.ksm` Download/Load Tournament File round trip (the offline backup), Load Recovery File (only source-grep today), Export CSV, Clear Registration/Teams/Exhibitions, exhibitions, Regenerate Single Division dialog, Export Brackets/Results, Preview Full Packet. Decide at the meeting: implement or remove the placeholder buttons (Import CSV, Paste from Excel, Referee Assignment and Archive exports) |
+| M.13 | Remaining screens to React, one at a time like M.8 | `feat/react-<screen>` | ⏳ | Needs M.12 first (Registration/files have almost no tests). Order: Live Scores + TV (display only, reuse the court data), Results/awards, Overview/director, Tournament Library/home, Pools, Setup, Registration (teams, exhibitions), then print as part of the program (1.7). Same rules: identical DOM/test IDs, snapshot or parity test before deleting legacy, theming rules. Some may land before the meeting (nothing is pushed) |
 
 ### M.8 React court screen: plan
 
@@ -174,6 +175,18 @@ Staff open any played match (from the court queue/history, the pool or bracket v
 - **Timing**: an edit must not restart or change the court's running match timer; corrected durations feed the court time estimates (running late).
 - **Tests**: edit a pool bout that flips standings (and seeds), an edit after the next round started, conflicting edits from two devices, undo of an edit.
 
+### fix/pre-event: plan
+
+One branch on top of `feat/react-court-screen` with the work that makes the next event safer, one commit per item so each can be taken or dropped:
+
+1. **0.5** Load Tournament File guard.
+2. **M.12** tests for registration and file import/export (`.ksm` round trip first; it pins 0.5).
+3. **F2** Undo/Redo stay after a division's last match, redone in the React court (the old `fix/undo-after-division-complete` edited the deleted legacy renderer). Updates the court snapshots and the F2 expected-failure check in `court-actions-test.py`.
+4. **F3** court chosen from the Courts menu restored after reload (from `fix/court-pin-after-reload`).
+5. **F4** Setup/Registration edits merged three-way on a save conflict (from `fix/setup-edit-conflict-merge`; also fixes the F5 numbering clash).
+
+F2 is on the court quirks list for the meeting; its commit is ready but can be dropped.
+
 ## Phase 1b: tournament setup and the printed program
 
 | # | Task | Branch | Status | Notes |
@@ -203,13 +216,30 @@ Each engine step (2.1–2.7) moves functions with the pattern in docs/TESTING.md
 ## Phase 3+: needs the planning meeting 🗣
 
 - Action-based sync, server as the official copy (Durable Object per tournament), offline queue
-- Logins/sessions, court device pairing, rate limits (remove passwords from links)
+- Logins and permissions (see "Login and permissions: proposal" below), rate limits, remove passwords from links
 - Environments: `dev.tournaments.hawaiikendofederation.org` / `tournaments.hawaiikendofederation.org`, deploy freeze while Ready/Live
 - Backups and replacing Save/Load (see below)
 - Control desk (court queues, move/reorder, holds, running-late, guarded bracket edits)
 - Match timer, shinpan rotation (livestream overlay: 1.4)
 - HKF-wide people/dojo registry (D1); minors' data policy
 - Gradual React/TypeScript for new screens (groundwork: M.1–M.8 above)
+
+### Login and permissions: proposal (for the meeting)
+
+Today: one shared staff password per tournament (4 characters minimum), stored as an unsalted SHA-256 hash in the Durable Object, sent with every save (`x-ksm-session-key`) and kept in `sessionStorage`; no limit on login attempts; the login is a browser `prompt()` (some embedded/kiosk browsers block it, e.g. the Claude browser pane).
+
+Two separate questions: **who are you** (authentication) and **what may you do** (authorization, always checked by the Worker on every write; the UI only hides what a role can't use).
+
+| Who | Authentication | Authorization |
+|---|---|---|
+| Directors / admins (a few HKF people) | **Cloudflare Access** (email one-time code or Google; free for a small team, confirm limits). Cloudflare sets the `CF_Authorization` cookie and forwards a signed token (`Cf-Access-Jwt-Assertion`); the Worker verifies it against the account's Access public keys | KSM's own per-tournament role list in the Durable Object (Access knows who, not "directs this tournament") |
+| Court tablets | **Device pairing** in KSM: the director shows a short code / QR, the tablet exchanges it for its own token (tournament + court), revocable, expires after the event | The token's scope: that tournament, that court; can't edit Setup or score another court |
+| Spectators / TVs | None | Read-only (or the visibility the meeting decides) |
+
+- The front end calls `GET /api/me?tournament=<id>` → `{ email, role, court }` and shows the views for that role; every save is re-checked by the Worker.
+- Access protects hostnames/paths (e.g. admin paths), not tournaments, so it pairs with M.9 path URLs; it needs the app on a domain in the HKF-owned Cloudflare account (hosting decision first).
+- Offline/PWA: when an Access session expires, API calls are redirected to Cloudflare's login page; the app must detect it and show "sign in again", the service worker must never cache that page as the app, and work scored meanwhile stays queued (outbox, F6) until sign-in.
+- Useful now, whatever is chosen: an in-app login dialog instead of `prompt()`, a limit on login attempts, a salted slow hash (PBKDF2 in Workers), a short-lived session token instead of the password on every save.
 
 ### Backups and replacing Save/Load (for the meeting)
 
@@ -227,7 +257,7 @@ Then: **Export / Import tournament** stays as a deliberate admin tool (Setup / D
 Everything stays local until the planning meeting. If the plan is agreed:
 
 1. The owner creates `develop` on GitHub from `main`.
-2. The local branches are pushed and opened as pull requests into `develop`, in Branch-log order (each builds on the one before). They can be grouped into a few PRs: tests (`test-baseline`, `feat/test-hooks`, `test/full-tournament-e2e`, `test/convert-source-checks`), bug fixes (`fix/…`, `feat/court-side-setting`), test infrastructure, and the refactor (`refactor/vite-typescript`).
+2. The local branches are pushed and opened as two pull requests into `develop`, each a contiguous slice of the stack (no history rewriting): **PR 1, tests and bug fixes** (`test-baseline` … `test/convert-source-checks`: test suite, 0.1–0.4, test hooks, e2e, F1, converted grep checks; `develop` already holds the first part) together with `fix/pre-event` (0.5, M.12, F2–F4) reviewed in the same batch; **PR 2, Vite, TypeScript and React** (`refactor/vite-typescript` … `feat/react-court-screen`: build and types, React foundation, overlay, engine modules, F6, the React court screen, and any M.13 screens converted before the meeting). `fix/pre-event` sits on top of PR 2's tip, so it merges after it.
 3. Review, possibly by the creator's AI agent; CI runs `npm test` on every PR.
 4. `main` only moves at release points: `develop` is merged into `main` after sign-off.
 
