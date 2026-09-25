@@ -59,6 +59,11 @@ const KNOWN_POST_SPLIT_EDITS = {
   // fix/outbox-flush-local-changes (F6): mergeQueuedStaffWork() and its call at staff login;
   // the outbox flush also replays court actions taken before it started (comment + condition).
   'outbox-flush-rebase': 4,
+  // fix/pre-event (roadmap 0.5): Load Tournament File asks before replacing the open tournament and
+  // loads a file of another tournament as a new one (loadTournamentFromFile(): two inline
+  // replacements; the helpers after it); Download Tournament File writes the tournament ID and
+  // revision into the file (manualSaveTournament(), inline).
+  'load-file-guard': 4,
   // feat/react-overlay: app/js/33-stream-overlay-links.js (TV menu "copy overlay link").
   'stream-overlay': 1,
 };
