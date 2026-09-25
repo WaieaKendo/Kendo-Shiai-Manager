@@ -1,23 +1,4 @@
-function finalResultsHtml(div){
-  if(isTeamDivision(div))return divisionComplete(div)?teamFinalResultsHtml(div):'';
-  let final=(state.allMatches[div]||[]).find(m=>m.championship&&m.position==='Final'&&m.done);
-  if(!final)return '';
-  let first=winnerOf(final), second=first===final.red?final.white:final.red;
-  let semi=(state.allMatches[div]||[]).filter(m=>m.championship&&m.position==='Semifinal'&&m.done);
-  let thirds=semi.map(m=>{let w=winnerOf(m);return w===m.red?m.white:m.red}).filter(Boolean);
-  return `<div class="muted-card"><h2>Final Results</h2><div class="competitor-line"><b>1st</b><span>${esc(first)}</span></div><div class="competitor-line"><b>2nd</b><span>${esc(second)}</span></div>${thirds.map(t=>`<div class="competitor-line"><b>3rd</b><span>${esc(t)}</span></div>`).join('')}</div>`;
-}
 
-function teamQueueStatusHtml(div,c){
-  let arr=state.allMatches[div]||[];
-  let other=arr.find(m=>!m.done && (m.type==='teamPosition'||m.type==='teamPlayoff'||m.type==='kachinuki') && !matchBelongsToCourt(m,c));
-  if(other){
-    let label=other.pool||other.position||'Next Match';
-    return `<div class="muted-card"><b>Awaiting Next Match</b><br>${esc(label)}<br><span class="small">Court ${esc(other.court||'A')}</span></div>`;
-  }
-  let doneHtml=finalResultsHtml(div);
-  return doneHtml || '<div class="muted-card">Queue complete.</div>';
-}
 function teamSideLabel(side,div){
   if(!side)return 'TBD';
   // Direct team references must resolve to the registered team name everywhere,
@@ -33,95 +14,6 @@ function teamSideLabel(side,div){
   }
   return 'TBD';
 }
-function teamPlaceholderRows(div,c,existingPairs){
-  let nodes=(state.teamBracketNodes?.[div]||[]);
-  let out=[];
-  nodes.forEach(node=>{
-    if(node.winner||node.court!==c)return;
-    if(existingPairs.has(nodePairId(node)))return;
-    let a=teamSideTeam(node.left,eligibleTeams(div),div),b=teamSideTeam(node.right,eligibleTeams(div),div);
-    if(a&&b)return; // actual match will be created by syncTeamBracket
-    // Node left is the red source and node right is the white source.
-    out.push(`<div class="queue-row"><div class="white"><b>${esc(teamSideLabel(node.right,div))}</b></div><div class="vs">awaiting<div class="small">${esc(node.round)}</div></div><div class="red"><b>${esc(teamSideLabel(node.left,div))}</b></div></div>`);
-  });
-  return out;
-}
-function queueRowHtml(white,red,status,round,extraClass=''){
-  return `<div class="queue-row ${extraClass}"><div class="white"><b>${esc(white||'TBD')}</b></div><div class="vs">${status}<div class="small">${esc(round||'')}</div></div><div class="red"><b>${esc(red||'TBD')}</b></div></div>`;
-}
-function championshipQueueRows(div,c){
-  let labels=championshipLabels(div);
-  if(!labels.length)return [];
-  let first=firstRoundName(labels.length);
-  let seq=roundSequenceFromFirst(first);
-  let rows=[];
-  seq.forEach(round=>{
-    let expected=expectedRoundCount(div,round); if(!expected)return;
-    for(let i=0;i<expected;i++){
-      let m=champMatchBySlot(div,round,i);
-      if(m&&m.done)continue;
-      if(m){
-        if(!matchBelongsToCourt(m,c))continue;
-        let playable=m.white&&m.red;
-        rows.push(queueRowHtml(m.white,m.red,playable?'vs':'awaiting',m.position||round,m.tiebreak?'gold':''));
-      }else if(round===first){
-        // First-round championship source labels are [red, white]. Render white on the left and red on the right.
-        let pair=labels[i]||[];let rLabel=pair[0],wLabel=pair[1];
-        let r=seedNameForLabel(div,rLabel,true),w=seedNameForLabel(div,wLabel,true);
-        let red=r?r.name:rLabel,white=w?w.name:wLabel;
-        let status=(String(wLabel).toUpperCase()==='BYE'||!wLabel)?'BYE':((r&&w)?'vs':'awaiting');
-        rows.push(queueRowHtml(white,red,status,round));
-      }else{
-        let prev=previousRoundName(round);
-        let red=sourceLabelForRound(div,prev,i*2),white=sourceLabelForRound(div,prev,i*2+1);
-        rows.push(queueRowHtml(white.name,red.name,(red.done&&white.done)?'vs':'awaiting',round));
-      }
-    }
-  });
-  return rows;
-}
-function renderQueue(){let doneHtml=finalResultsHtml(state.currentDivision);let all=state.allMatches[state.currentDivision]||[];let c=state.currentCourt||'A';if(eliminationFinalDone(state.currentDivision)){queue.innerHTML=doneHtml||'<div class="muted-card">Division complete.</div>';return;}
-  let isTeam=all.some(m=>m.type==='teamPosition'||m.type==='teamPlayoff'||m.type==='kachinuki');
-  if(isTeam){
-    let q=sortTeamMatches(state.currentDivision).filter(m=>!m.done && matchBelongsToCourt(m,c));
-    let seen=new Set();let rows=[];
-    q.forEach((m)=>{let key=m.teamPair;if(seen.has(key))return;seen.add(key);rows.push(`<div class="queue-row ${m.tiebreak?'gold':''}"><div class="white"><b>${esc(m.teamWhite||m.wdojo)}</b></div><div class="vs">${rows.length===0?'NOW':'vs'}<div class="small">${esc(m.pool||m.position||'Team Match')}</div></div><div class="red"><b>${esc(m.teamRed||m.rdojo)}</b></div></div>`)});
-    rows.push(...teamPlaceholderRows(state.currentDivision,c,seen));
-    queue.innerHTML=rows.join('')||teamQueueStatusHtml(state.currentDivision,c);return;
-  }
-  // Individual single-elimination queue is a read-only view of the immutable node list.
-  // It shows every incomplete future match exactly once, including placeholders, and hides completed matches.
-  if(all.some(m=>m.singleElim)){
-    let arr=dedupeSingleElimMatches(state.currentDivision);
-    let nodes=(state.singleElimNodes?.[state.currentDivision]||[]);
-    let rows=[];
-    nodes.forEach(node=>{
-      let m=arr.find(x=>x.singleElim&&x.elimNodeId===node.id);
-      if(m&&m.done)return;
-      if(node.winner&&!m)return; // auto-advanced bye; no scoreable match to show
-      if(m && matchBelongsToCourt(m,c)){
-        rows.push(`<div class="queue-row ${m.tiebreak?'gold':''}"><div class="white"><b>${esc(m.white)}</b><div class="small">${esc(m.wdojo||'')}</div></div><div class="vs">${rows.length===0?'NOW':'vs'}<div class="small">${m.position?esc(m.position):''}</div></div><div class="red"><b>${esc(m.red)}</b><div class="small">${esc(m.rdojo||'')}</div></div></div>`);
-      } else if(!m) {
-        let court=(state.divisionCourts[state.currentDivision]||'A');
-        if(court===c){
-          rows.push(`<div class="queue-row"><div class="white"><b>${esc(sideLabelGeneric(node.right,state.currentDivision))}</b></div><div class="vs">awaiting<div class="small">${esc(node.round||'')}</div></div><div class="red"><b>${esc(sideLabelGeneric(node.left,state.currentDivision))}</b></div></div>`);
-        }
-      }
-    });
-    if(!rows.length){queue.innerHTML=doneHtml||'<div class="muted-card">Queue complete.</div>';return;}
-    queue.innerHTML=rows.join('');return;
-  }
-  // Round robin / pool play queue is also a view of the full ordered division match timeline.
-  // It includes pool matches plus championship placeholders, and hides completed matches.
-  let q=(state.allMatches[state.currentDivision]||[]).filter(m=>!m.done && !m.championship && matchBelongsToCourt(m,c));
-  let groups=[];q.forEach((m,i)=>{let key=m.pool||'Championship';let g=groups.find(x=>x.pool===key);if(!g){g={pool:key,matches:[]};groups.push(g)}g.matches.push({m,i});});
-  let html='';groups.forEach((g,gi)=>{let label=(gi===0?'Current Pool ':'Next Pool ')+esc(g.pool);let body=g.matches.map(({m,i})=>`<div class="queue-row ${m.tiebreak?'gold':''}"><div class="white"><b>${esc(specificMatchSideLabel(m,'white'))}</b><div class="small">${esc(m.wdojo||'')}</div></div><div class="vs">${m.tiebreak?'<div class="tiebreak-label">TIEBREAK</div>':(i===0?'NOW':'vs')}<div class="small">${m.position?esc(m.position):''}</div></div><div class="red"><b>${esc(specificMatchSideLabel(m,'red'))}</b><div class="small">${esc(m.rdojo||'')}</div></div></div>`).join('');
-    if(gi===0)html+=`<div class="queue-divider">${label}</div>${body}`;else html+=`<details class="result-section"><summary>${label}</summary><div class="result-inner">${body}</div></details>`;
-  });
-  let champRows=championshipQueueRows(state.currentDivision,c);
-  if(champRows.length){html+=`<div class="queue-divider">Championship Bracket</div>${champRows.join('')}`;}
-  if(doneHtml && !q.length && !champRows.length){queue.innerHTML=doneHtml;return;}
-  queue.innerHTML=html||'<div class="muted-card">Queue complete.</div>'}
 function courtCurrentMatch(court){
   let cs=state.courtState?.[court];
   if(cs&&cs.division&&eliminationFinalDone(cs.division))return null;

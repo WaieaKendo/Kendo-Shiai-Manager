@@ -1,13 +1,3 @@
-function renderContext(){if(!window.courtContext)return;let m=state.matches[state.current];if(!m){courtContext.innerHTML='<div class="muted-card">No active match.</div>';return}
-  if(m.type==='teamPosition'||m.type==='teamPlayoff'||m.type==='kachinuki'){
-    if(m.type==='kachinuki'){courtContext.innerHTML=kachinukiSheetHtml(m);return;}
-    let s=teamPairSummary(m.division,m.teamPair);
-    courtContext.innerHTML=`<h2>${esc(s.teamWhite)} vs ${esc(s.teamRed)}</h2><p class="sub">Current team match only</p>${teamSheetHtml(m.division,m.teamPair,m)}`;return;
-  }
-  if(m.singleElim || (m.championship && m.pool==='Championship' && !(state.pools[m.division]||[]).length)){courtContext.innerHTML=`<div class="context-box"><h2>Championship Bracket Preview</h2>${bracketHtml(m.division)}</div>`;return;}
-  let currentPool=m.pool && m.pool!=='Championship'?m.pool:(state.pools[m.division]?.[0]?.label||'A');
-  let standings=poolStandings(currentPool,m.division);
-  courtContext.innerHTML=`<div class="context-split"><div class="context-box"><h2>Pool ${esc(currentPool)} Standings</h2><div class="stand-row small"><b>#</b><b>Name</b><b>Wins</b><b>Pts</b></div>${standings.map((r,i)=>`<div class="stand-row"><span>${i+1}</span><div><b>${esc(r.name)}</b><div class="small">${esc(r.dojo)}</div></div><b>${r.wins}</b><b>${r.pts}</b>${typeof r.tbWins==='number'?`<div class="small" style="grid-column:2 / -1">Tiebreak: ${r.tbWins}W / ${r.tbPts} pts</div>`:''}</div>`).join('')}</div><div class="context-box"><h2>Championship Bracket Preview</h2>${bracketHtml(m.division)}</div></div>`}
 
 function maybeCreateKachinukiNext(m){
   /* ksm:post-split-begin engine-bridge */const plan=KSMEngine.maybeCreateKachinukiNext(m);if(!plan)return;

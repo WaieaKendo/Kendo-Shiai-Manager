@@ -2,10 +2,10 @@
 (app/react/court/, roadmap M.8).
 
 It replaces court-scoreboard-parity-test.py, which compared the React islands with the legacy
-court renderer side by side until that renderer was removed. The approved snapshots in
-tests/golden/court/*.json were first recorded from the LEGACY renderer (M.8 step 5, before it
-was deleted), with the parity test's serializer, so they pin exactly what the legacy court
-screen drew.
+court renderer side by side until that renderer was removed (M.8 step 5). The approved
+snapshots in tests/golden/court/*.json were recorded from the LEGACY renderer just before it was
+deleted, with the parity test's serializer, so they pin exactly what the legacy court screen
+drew (quirks included, see docs/ROADMAP.md "Court quirks kept").
 
 One offline copy of the app runs each scenario (the parity test's scenarios, same actions in
 the same order); after every step the court screen is serialized and compared with the
@@ -25,6 +25,8 @@ approved snapshot:
     (setCourtSupportMode());
   * the court screen read-out (KsmApp.court_screen()) and the dialogs shown.
 React must render the islands' elements (a React fiber on each, every element in the panels).
+Last, the app without the court module script must show the "court screen could not load"
+notice instead of the static court markup (and a working page never shows it).
 
 Scenarios (one file each):
   individual-rr-actions  points, hansoku (two give the opponent a point), undo, redo (Redo
@@ -73,10 +75,6 @@ GOLDEN_DIR = Path(__file__).resolve().parent / 'golden' / 'court'
 UPDATE = os.environ.get('KSM_UPDATE_GOLDEN') == '1' or '--update' in sys.argv
 PLATFORM = sys.platform
 ONLY = [a for a in sys.argv[1:] if not a.startswith('-')]
-# M.8 step 5 only, until the legacy court renderer is deleted: record the approved snapshots
-# from the legacy renderer (the app without the court module script).
-LEGACY = os.environ.get('KSM_GOLDEN_COURT_LEGACY') == '1'
-assert not LEGACY or UPDATE, 'KSM_GOLDEN_COURT_LEGACY=1 only records (with KSM_UPDATE_GOLDEN=1)'
 
 SNAPSHOT_JS = """(root) => {
   const walk = n => {
@@ -323,10 +321,6 @@ class Golden:
 
     def check_react(self, step):
         page = self.app.page
-        if LEGACY:
-            for el in REACT_ELEMENTS:
-                assert not page.evaluate(FIBER_JS, el), f'{self.name}: {step}: legacy copy: {el} is rendered by React'
-            return
         for el in REACT_ELEMENTS:
             assert page.evaluate(FIBER_JS, el), f'{self.name}: {step}: {el} is not rendered by React'
         for name in REACT_PANELS:
@@ -360,19 +354,36 @@ class Golden:
         self.app.page.close()
 
 
-def legacy_html():
+def without_court_module():
+    """dist/index.html without the court module script (as a device whose copy lacks it)."""
     html = (DIST / 'index.html').read_text(encoding='utf-8')
     court = re.search(r'<script type="module"[^>]*src="/assets/index-[\w-]+\.js"></script>\n?', html)
     assert court, 'dist/index.html: no court module script'
     return html.replace(court.group(0), '')
 
 
+def court_module_missing(browser, errors):
+    """Without the court module nothing draws the court screen: it says so instead."""
+    app = KsmApp(browser.new_page(), 'no court module')
+    page = app.page
+    page.on('pageerror', lambda e: errors.append(f'court module missing: {e}'))
+    load_app(page, html=without_court_module())
+    app.configure([{'name': 'Open', 'format': 'Round Robin', 'court': 'A', 'entrants': people('P', 3)}])
+    app.click('nav-courts')
+    app.click('nav-court-a')
+    notice = page.locator('#score [data-testid="court-module-missing"]')
+    assert notice.is_visible(), 'no "court screen could not load" notice without the court module'
+    assert 'Court screen could not load' in notice.inner_text(), notice.inner_text()
+    assert not page.locator('#score .scorekeeper-shell').is_visible(), 'the static court markup is shown without the court module'
+    page.close()
+
+
 def open_app(browser, name, entries, errors, court='A', tournament_name=None):
     app = KsmApp(browser.new_page(), name)
-    load_app(app.page, html=legacy_html() if LEGACY else None)
+    load_app(app.page)
     golden = Golden(name, app, errors)
-    for flag in ('ksmReactScoreboard', 'ksmReactCourtHeader', 'ksmReactCourtActions', 'ksmReactCourtPanels'):
-        assert app.page.evaluate(f'window.{flag} === {"undefined" if LEGACY else "true"}'), f'{name}: {flag}'
+    assert app.page.evaluate('window.ksmCourtScreenMounted === true'), f'{name}: the court module did not mount'
+    assert app.page.locator('#courtModuleMissing').count() == 0, f'{name}: "court screen could not load" shown on a working page'
     if tournament_name:
         app.page.evaluate('name => { tName.value = name; }', tournament_name)
     app.configure(entries)
@@ -581,12 +592,15 @@ SCENARIOS = {
     'spectator': spectator,
     **{name: (lambda browser, errors, n=name, e=entries, d=draws: play_through(browser, errors, n, e, d)) for name, entries, draws in PLAY_THROUGHS},
 }
+# Checks without a snapshot file.
+CHECKS = {'court-module-missing': court_module_missing}
 
 
 def main():
     started = time.time()
     chosen = [n for n in SCENARIOS if not ONLY or any(q in n for q in ONLY)]
-    assert chosen, f'no scenario matches {ONLY}'
+    checks = [n for n in CHECKS if not UPDATE and (not ONLY or any(q in n for q in ONLY))]
+    assert chosen or checks, f'no scenario matches {ONLY}'
     missing_geometry = []
     with sync_playwright() as p:
         browser = launch_chromium(p)
@@ -597,6 +611,9 @@ def main():
                 if PLATFORM not in approved.get('geometry', {}):
                     missing_geometry.append(name)
             SCENARIOS[name](browser, errors)
+            print(f'  {name}: ok')
+        for name in checks:
+            CHECKS[name](browser, errors)
             print(f'  {name}: ok')
         if not ONLY and not UPDATE:
             for kind, seen in PANELS_SEEN.items():
@@ -619,7 +636,8 @@ def main():
         browser.close()
     note = f'; element boxes not recorded for {PLATFORM} in {len(missing_geometry)} scenario(s), compared without them' if missing_geometry else ''
     verb = 'UPDATED' if UPDATE else 'PASS'
-    print(f'{verb} court screen = approved snapshots ({", ".join(chosen)}){note} in {time.time() - started:.0f}s')
+    print(f'{verb} court screen = approved snapshots ({", ".join(chosen)}){note}'
+          f'{"; " + ", ".join(checks) if checks else ""} in {time.time() - started:.0f}s')
 
 
 if __name__ == '__main__':

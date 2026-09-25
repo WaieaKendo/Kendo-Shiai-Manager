@@ -10,8 +10,6 @@ import {
 export const SCOREBOARD_EVENT = 'ksm:court-scoreboard';
 
 interface CourtWindow {
-  /** Set by main.tsx: the legacy renderScore() publishes instead of writing these elements. */
-  ksmReactScoreboard?: boolean;
   /** The last ScoreboardInput the legacy renderScore() published. */
   ksmCourtScoreboardInput?: ScoreboardInput;
   setRepresentative?: (side: Side, value: string) => void;

@@ -9,8 +9,6 @@ import { EMPTY_HEADER, courtHeaderView, type CourtHeaderInput } from './header-m
 export const HEADER_EVENT = 'ksm:court-header';
 
 interface CourtWindow {
-  /** Set by main.tsx: the legacy header writers publish instead of writing these elements. */
-  ksmReactCourtHeader?: boolean;
   /** The header as the legacy writers last published it. */
   ksmCourtHeaderInput?: CourtHeaderInput;
   selectScorekeeperDivision?: (division: string) => void;

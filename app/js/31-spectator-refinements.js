@@ -70,46 +70,5 @@ function poolDisplayComplete(div,label){
   const matches=(state.allMatches?.[div]||[]).filter(match=>match.pool===label&&!match.championship);
   return matches.length>0&&matches.every(match=>match.done);
 }
-function poolResultCardHtml(div,pool,options={}){
-  const standings=poolStandings(pool.label,div);
-  const matches=(state.allMatches?.[div]||[]).filter(match=>match.pool===pool.label&&!match.championship);
-  const complete=options.completed??poolDisplayComplete(div,pool.label);
-  const standingsHtml=standings.map((row,index)=>`<div class="stand-row"><span>${index+1}</span><div><b>${esc(row.name)}</b><div class="small">${esc(row.dojo||'')}</div></div><b>${row.wins}</b><b>${row.pts}</b></div>`).join('');
-  const matchesHtml=matches.map(match=>alignedMatchRowHtml(match,{status:match.done?'DONE':(match.tiebreak?'TIEBREAK':'vs'),compact:true,current:!!options.currentMatch&&match===options.currentMatch})).join('');
-  return `<section class="pool-result-card ${options.active?'active-pool-card':''} ${complete?'completed-pool-card':''}" data-testid="context-pool">
-    <h3><span data-testid="context-pool-title">Pool ${esc(pool.label)}</span>${complete?'<span class="pool-complete-mark" data-testid="context-pool-complete" aria-label="Complete">✓</span>':''}</h3>
-    <div class="pool-result-standings"><div class="stand-row small"><b>#</b><b>Name</b><b>Wins</b><b>Pts</b></div>${standingsHtml}</div>
-    <div>${matchesHtml||'<div class="small">No pool matches available.</div>'}</div>
-  </section>`;
-}
-function orderedPoolContextHtml(div,currentMatch){
-  const pools=[...(state.pools?.[div]||[])].sort((a,b)=>String(a.label).localeCompare(String(b.label)));
-  const incomplete=pools.filter(pool=>!poolDisplayComplete(div,pool.label));
-  const completed=pools.filter(pool=>poolDisplayComplete(div,pool.label));
-  const currentLabel=currentMatch&&!currentMatch.championship?currentMatch.pool:null;
-  const incompleteHtml=incomplete.map(pool=>poolResultCardHtml(div,pool,{active:pool.label===currentLabel,currentMatch})).join('');
-  const completedHtml=completed.map(pool=>poolResultCardHtml(div,pool,{completed:true})).join('');
-  return `<div class="pool-context-stack">
-    ${incompleteHtml?`<div class="context-box"><div class="pool-context-section-label">Pools In Progress</div><div class="all-pools-context-grid">${incompleteHtml}</div></div><div class="pool-context-divider" aria-hidden="true"></div>`:''}
-    <div class="context-box pool-context-bracket" data-testid="context-bracket"><h2>Championship Bracket Preview</h2>${bracketHtml(div)}</div>
-    ${completedHtml?`<div class="pool-context-divider" aria-hidden="true"></div><div class="context-box"><div class="all-pools-context-grid">${completedHtml}</div></div>`:''}
-  </div>`;
-}
-function renderContext(){
-  if(!window.courtContext)return;
-  const m=state.matches[state.current];
-  if(!m){setCourtSupportMode('standard');courtContext.innerHTML='<div class="muted-card">No active match.</div>';return;}
-  if(m.type==='teamPosition'||m.type==='teamPlayoff'||m.type==='kachinuki'){
-    setCourtSupportMode('standard');
-    if(m.type==='kachinuki'){courtContext.innerHTML=kachinukiSheetHtml(m);return;}
-    const summary=teamPairSummary(m.division,m.teamPair);
-    courtContext.innerHTML=teamSheetHtml(m.division,m.teamPair,m);return;
-  }
-  if(m.singleElim||(m.championship&&m.pool==='Championship'&&!(state.pools[m.division]||[]).length)){
-    setCourtSupportMode('singleElim');courtContext.innerHTML=renderSingleElimContext(m.division);return;
-  }
-  setCourtSupportMode('standard');
-  courtContext.innerHTML=orderedPoolContextHtml(m.division,m);
-}
 
 

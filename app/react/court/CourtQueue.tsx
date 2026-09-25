@@ -1,7 +1,8 @@
 // The court screen's queue panel (the contents of #queue), the same elements, classes and
-// test IDs as the legacy renderQueue(), so the court CSS (including the Red/White side
-// setting on .queue-row and .aligned-match-row) and the tests apply unchanged. The legacy
-// renderQueue() publishes what it would have drawn (ksm:court-queue).
+// test IDs as the legacy renderQueue() drew (removed in M.8 step 5; tests/golden/court pins
+// it), so the court CSS (including the Red/White side setting on .queue-row and
+// .aligned-match-row) and the tests apply unchanged. renderQueue() (app/js/32-) publishes what
+// to show (ksm:court-queue).
 import { useSyncExternalStore } from 'react';
 import { AlignedRow } from './MatchRows.tsx';
 import {
@@ -12,9 +13,7 @@ import {
 export const QUEUE_EVENT = 'ksm:court-queue';
 
 interface CourtWindow {
-  /** Set by main.tsx: the legacy renderQueue() and renderContext() publish instead of writing. */
-  ksmReactCourtPanels?: boolean;
-  /** The queue as the legacy renderQueue() last published it. */
+  /** The queue as renderQueue() last published it. */
   ksmCourtQueueInput?: CourtQueueInput;
 }
 
@@ -45,7 +44,7 @@ function Row({ row }: { row: QueueRowItemView }) {
   );
 }
 
-/** finalResultsHtml() (11-court-queue-and-views.js) and teamFinalResultsHtml() (09-). */
+/** As the legacy finalResultsHtml() (11-, removed) and teamFinalResultsHtml() (09-). */
 export function FinalResults({ results }: { results: FinalResultsInput | null }) {
   if (!results) return <div className="muted-card"><b>Completed</b></div>;
   return (

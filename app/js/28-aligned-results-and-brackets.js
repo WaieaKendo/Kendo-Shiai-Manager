@@ -113,28 +113,6 @@ function singleElimBracketHtml(div){
     </div>`).join('');
 }
 
-function singleElimRoundCardHtml(div,round){
-  const nodes=(state.singleElimNodes?.[div]||[]).filter(node=>node.round===round);
-  if(!nodes.length)return '';
-  return `<div class="bracket-card">
-    <div class="bracket-round">${esc(round)}</div>
-    ${nodes.map(node=>{
-      const match=(state.allMatches?.[div]||[]).find(item=>item.singleElim&&item.elimNodeId===node.id);
-      if(match){
-        return alignedMatchRowHtml(match,{
-          status:match.done?'DONE':'vs',
-          compact:true
-        });
-      }
-      return alignedPlaceholderRowHtml(
-        sideLabelGeneric(node.right,div),
-        sideLabelGeneric(node.left,div),
-        (!node.left||!node.right)?'BYE':'awaiting',
-        true
-      );
-    }).join('')}
-  </div>`;
-}
 
 function bracketHtml(div){
   if(isTeamRoundRobinDivision(div))return teamRoundRobinStandingsHtml(div,{compact:true,includePairResults:false});

@@ -1,38 +1,34 @@
 /* ksm:post-split-begin react-court */
 // ==========================================================
 // React court screen (app/react/court/, roadmap M.8)
-// app/react/court/main.tsx mounts six islands and sets window flags; the legacy code still
-// chooses the court's match and division, computes what is shown and runs the actions, and
-// publishes plain data for the islands instead of writing their elements:
-// * scoreboard (window.ksmReactScoreboard): renderScore() (22-scorekeeper-screen.js) comes
-//   here and publishes the match display (ksm:court-scoreboard) instead of writing
-//   #whiteName, #whitePts, ...; it still draws the queue and context.
-// * header (window.ksmReactCourtHeader): updateScoreTournamentName() (22), renderDivisions()
+// The court (scorekeeper) screen is drawn only by React: app/react/court/main.tsx mounts seven
+// islands. The legacy code still chooses the court's match and division, computes what is
+// shown and runs the actions; its writers publish plain data (a window property plus an event)
+// that the islands render:
+// * header: updateScoreTournamentName() (22-scorekeeper-screen.js), renderDivisions()
 //   (02-court-match-order.js: court title, the division select's options) and renderScore()
-//   (division title, match line) publish their fields (ksm:court-header) instead of writing
-//   #scoreTournamentName, #courtTitle, #scoreDiv, #scoreDivisionTitle, #matchMeta.
-// * score buttons and action row (window.ksmReactCourtActions): the score buttons
-//   (#score .score-controls-grid) have no legacy writer; updateUndoButton()
-//   (10-court-scoring-and-history.js) publishes whether Undo/Redo may be pressed and their
-//   labels (ksm:court-actions) instead of writing #undoBtn/#redoBtn. Every button calls the
-//   same legacy global as the legacy inline handler (point, hansoku, undo, redo,
+//   (22: division title, match line from matchDisplayMeta()) publish their own fields
+//   (ksm:court-header, window.ksmCourtHeaderInput); the header starts from the static markup.
+// * match display: renderScore() (22) publishes the court's match, points, hansoku and the
+//   team-playoff representatives (ksm:court-scoreboard).
+// * score buttons and action row: the score buttons have no writer; updateUndoButton()
+//   (10-court-scoring-and-history.js) publishes whether Undo/Redo may be pressed
+//   (ksm:court-actions). Every button calls the legacy global (point, hansoku, undo, redo,
 //   openFusenDialog, nextMatch); the Fusen-gachi dialog (#fusenDialog) stays legacy markup.
-//   A spectator and a completed division hide both through CSS only (F2 stays, ROADMAP.md).
-// * queue and context panels (window.ksmReactCourtPanels): the live renderQueue() and
-//   renderContext() (the wrappers in 32-split-court-templates.js) hand over to
-//   ksmQueuePanelInput() / ksmContextPanelInput() below, which mirror their decisions and
-//   HTML helpers as data and publish it (ksm:court-queue, ksm:court-context) instead of
-//   writing #queue and #courtContext. setCourtSupportMode() still sets the layout classes
-//   around the panels. The HTML helpers (bracketHtml(), teamSheetHtml(), ...) stay for the
-//   other screens that use them.
-// * division complete (window.ksmReactCourtComplete): setCourtCompletePresentation() (32-)
-//   publishes whether this court's division is complete and its placements
-//   (ksm:court-complete) instead of setting .division-complete on #score .scoreboard-card and
-//   writing divisionCompletePanelHtml() into it; the renderScore() wrapper (32-) still decides
-//   when. divisionCompletePanelHtml() stays for Live Scores and the TV.
+//   A spectator and a completed division hide them through CSS only (F2 stays, ROADMAP.md).
+// * queue and context panels: renderQueue() and renderContext() (32-split-court-templates.js)
+//   publish ksmQueuePanelInput() / ksmContextPanelInput() below (ksm:court-queue,
+//   ksm:court-context); setCourtSupportMode() (24-) still sets the layout classes around them.
+// * division complete: the renderScore() wrapper (32-) decides when; setCourtCompletePresentation()
+//   (32-) publishes the placements (ksm:court-complete) for the .division-complete class and
+//   panel on #score .scoreboard-card.
+// The legacy court renderer (the DOM-writing renderScore/renderQueue/renderContext and their
+// HTML helpers) was removed in M.8 step 5; the functions below mirror its decisions, which
+// tests/golden/court/*.json (recorded from it) pin. HTML helpers that other screens share
+// (bracketHtml(), teamSheetHtml(), divisionCompletePanelHtml(), ...) stay. If the court module
+// does not load, the court screen shows a notice (the end of this file).
 // Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
-function ksmReactScoreboardActive(){return typeof window!=='undefined'&&window.ksmReactScoreboard===true}
 function ksmScoreboardInput(m){
   if(!m)return {match:null,score:{W:[],R:[],WT:0,RT:0},representatives:null};
   const s=state.score||{};
@@ -48,26 +44,18 @@ function ksmPublishCourtScoreboard(m){
   window.ksmCourtScoreboardInput=ksmScoreboardInput(m);
   window.dispatchEvent(new CustomEvent('ksm:court-scoreboard'));
 }
-function ksmReactCourtHeaderActive(){return typeof window!=='undefined'&&window.ksmReactCourtHeader===true}
-// The header as the legacy renderer drew it: the islands mount after app.js has rendered,
-// and a writer publishes only its own fields (a completed division keeps the last match line).
-function ksmCourtHeaderFromDom(){
-  const text=id=>document.getElementById(id)?.textContent||'';
-  const select=document.getElementById('scoreDiv');
-  return {tournamentName:text('scoreTournamentName'),court:text('courtTitle').replace(/^Court /,''),
-    divisions:select?[...select.options].map(o=>o.textContent):[],currentDivision:select?select.value:'',
-    divisionTitle:text('scoreDivisionTitle'),matchLine:text('matchMeta')};
-}
+// The static header markup (app/index.html), which the first publish starts from: each writer
+// publishes only its own fields (a completed division keeps the last match line).
+// (A function, not a const: app.js publishes before this file's top level has run.)
+function ksmStaticCourtHeader(){return {tournamentName:'Kendo Tournament',court:'A',divisions:[],currentDivision:'',divisionTitle:'—',matchLine:'No active match'}}
 function ksmPublishCourtHeader(fields){
-  window.ksmCourtHeaderInput={...(window.ksmCourtHeaderInput||ksmCourtHeaderFromDom()),...fields};
+  window.ksmCourtHeaderInput={...(window.ksmCourtHeaderInput||ksmStaticCourtHeader()),...fields};
   window.dispatchEvent(new CustomEvent('ksm:court-header'));
 }
-function ksmReactCourtActionsActive(){return typeof window!=='undefined'&&window.ksmReactCourtActions===true}
 function ksmPublishCourtActions(actions){
   window.ksmCourtActionsInput=actions;
   window.dispatchEvent(new CustomEvent('ksm:court-actions'));
 }
-function ksmReactCourtCompleteActive(){return typeof window!=='undefined'&&window.ksmReactCourtComplete===true}
 // divisionCompletePanelHtml() (32-) as data: esc() text (String(x||'')).
 function ksmDivisionCompleteInput(div,complete){
   if(!complete)return {complete:false,placements:[]};
@@ -77,29 +65,15 @@ function ksmPublishCourtComplete(input){
   window.ksmCourtCompleteInput=input;
   window.dispatchEvent(new CustomEvent('ksm:court-complete'));
 }
-// renderScore() with the React scoreboard: the legacy one minus the match display.
-function renderScoreWithReactScoreboard(){
-  updateScoreTournamentName();
-  let m=ensureScorableCurrentMatch();
-  if(m && !matchBelongsToCourt(m,state.currentCourt||'A'))m=null;
-  const meta=matchDisplayMeta(m);
-  const header={matchLine:meta.line,divisionTitle:m?meta.division:(state.currentDivision||'—')};
-  if(ksmReactCourtHeaderActive())ksmPublishCourtHeader(header);
-  else{matchMeta.textContent=header.matchLine;if(window.scoreDivisionTitle)scoreDivisionTitle.textContent=header.divisionTitle;}
-  ksmPublishCourtScoreboard(m);
-  renderQueue();renderPublic();renderContext();
-}
 
-// ---------- Queue and context panels (window.ksmReactCourtPanels) ----------
-// The live renderQueue() and renderContext() are the split-court wrappers in
-// 32-split-court-templates.js (around the last declarations, in 24- and 31-). While the panels
-// islands are active they hand over here: ksmQueuePanelInput() and ksmContextPanelInput() make
-// the same decisions and read the same data (engine bridges: poolStandings, teamPairSummary,
-// teamStandings, seedNameForLabel, sourceLabelForRound, ...) as the live renderers and their
-// HTML helpers, and publish it as plain data (ksm:court-queue, ksm:court-context) instead of
-// HTML. The helpers stay for the screens that share them (Results, Live Scores, print).
+// ---------- Queue and context panels ----------
+// ksmQueuePanelInput() and ksmContextPanelInput() make the decisions of the removed legacy
+// queue/context renderers and read the same data (engine bridges: poolStandings,
+// teamPairSummary, teamStandings, seedNameForLabel, sourceLabelForRound, ...), and publish it as
+// plain data (ksm:court-queue, ksm:court-context). The comments name the legacy function each
+// part mirrors ("(removed)": deleted with the legacy court renderer in M.8 step 5; the others
+// still draw Results, Live Scores or print).
 // Text is what esc() showed (String(x||'')); numbers the templates printed as is are String(x).
-function ksmReactCourtPanelsActive(){return typeof window!=='undefined'&&window.ksmReactCourtPanels===true}
 function ksmPublishCourtQueue(input){
   window.ksmCourtQueueInput=input;
   window.dispatchEvent(new CustomEvent('ksm:court-queue'));
@@ -143,7 +117,7 @@ function ksmFutureRoundCards(startRound,matchCount){
   }
   return cards;
 }
-// singleElimRoundCardHtml() (28-); null for a round without nodes.
+// singleElimRoundCardHtml() (24-/28-, removed); null for a round without nodes.
 function ksmSingleElimRoundCard(div,round){
   const nodes=(state.singleElimNodes?.[div]||[]).filter(node=>node.round===round);
   if(!nodes.length)return null;
@@ -220,7 +194,7 @@ function ksmTeamResults(div){
     return ksmPlaceholderRow(white,red,node.winner?'DONE':'awaiting',true);
   })}))};
 }
-// poolResultCardHtml() (31-).
+// poolResultCardHtml() (29-/31-, removed).
 function ksmPoolCard(div,pool,options={}){
   const standings=poolStandings(pool.label,div);
   const matches=(state.allMatches?.[div]||[]).filter(match=>match.pool===pool.label&&!match.championship);
@@ -229,7 +203,7 @@ function ksmPoolCard(div,pool,options={}){
     standings:standings.map(row=>({name:ksmText(row.name),dojo:ksmText(row.dojo),wins:String(row.wins),pts:String(row.pts)})),
     matches:matches.map(match=>ksmAlignedRow(match,{status:match.done?'DONE':(match.tiebreak?'TIEBREAK':'vs'),compact:true,current:!!options.currentMatch&&match===options.currentMatch}))};
 }
-// orderedPoolContextHtml() (31-).
+// orderedPoolContextHtml() (31-, removed).
 function ksmPoolContext(div,currentMatch){
   const pools=[...(state.pools?.[div]||[])].sort((a,b)=>String(a.label).localeCompare(String(b.label)));
   const incomplete=pools.filter(pool=>!poolDisplayComplete(div,pool.label));
@@ -239,10 +213,10 @@ function ksmPoolContext(div,currentMatch){
   const done=completed.map(pool=>ksmPoolCard(div,pool,{completed:true}));
   return {kind:'pools',inProgress,bracket:ksmBracket(div),completed:done};
 }
-// The live renderSingleElimContext() (the 32- wrapper around 24-).
+// renderSingleElimContext() (the 32- wrapper around 24-, removed).
 function ksmSingleElimContext(div){
   if(divisionCourtMode(div)==='split'){
-    // splitTemplateContextHtml() (32-)
+    // splitTemplateContextHtml() (32-, removed)
     const nodes=state.singleElimNodes?.[div]||[];
     if(!nodes.length)return {kind:'message',text:'Single-elimination bracket will appear after generation.'};
     return {kind:'split-single-elim',cards:[...new Set(nodes.map(n=>n.round))].map(round=>ksmSingleElimRoundCard(div,round)).filter(Boolean)};
@@ -271,8 +245,9 @@ function ksmKachinukiSheet(m){
   return {teamWhite:ksmText(m.teamWhite),teamRed:ksmText(m.teamRed),current:ksmAlignedRow(m,{wp:pts.W,rp:pts.R,status:'NOW',current:true}),
     white:side(m.lineupW,m.wIndex),red:side(m.lineupR,m.rIndex)};
 }
-// The live renderContext(): the 32- wrapper, then renderContext() (31-) for a match on this
-// court or persistentContextHtml() (32-) otherwise, calling setCourtSupportMode() as they do.
+// renderContext() as the legacy renderer drew it (removed): the 32- wrapper, then renderContext()
+// (31-) for a match on this court or persistentContextHtml() (32-) otherwise, calling
+// setCourtSupportMode() as they did.
 // (31- also computes an unused teamPairSummary() for a team match; left out.)
 function ksmContextPanelInput(){
   const m=state.matches?.[state.current];
@@ -296,7 +271,7 @@ function ksmContextPanelInput(){
   if(isTeamDivision(div))return {kind:'bracket',bracket:ksmTeamResults(div)};
   return {kind:'bracket',bracket:ksmBracket(div)};
 }
-// finalResultsHtml() (11-) as data; null where it returns ''.
+// finalResultsHtml() (11-, removed) as data; null where it returned ''.
 function ksmFinalResults(div){
   if(isTeamDivision(div)){
     if(!divisionComplete(div))return null;
@@ -315,7 +290,7 @@ function ksmFinalResults(div){
   const thirds=semi.map(m=>{const w=winnerOf(m);return w===m.red?m.white:m.red}).filter(Boolean);
   return {kind:'results',results:{title:'Final Results',lines:[{place:'1st',name:ksmText(first)},{place:'2nd',name:ksmText(second)},...thirds.map(t=>({place:'3rd',name:ksmText(t)}))]}};
 }
-// renderGroupedQueueRow(m) (24-).
+// renderGroupedQueueRow(m) (24-, removed).
 function ksmQueueRow(m){
   return {kind:'queue',team:false,placeholder:false,tiebreak:!!m.tiebreak,
     white:{name:ksmText(specificMatchSideLabel(m,'white')),detail:ksmText(m.wdojo||m.teamWhite||'')},
@@ -330,7 +305,7 @@ function ksmQueueGroups(){
   const groups=[];
   return {groups,add(label,row){let g=groups.find(x=>x.label===label);if(!g){g={label,rows:[]};groups.push(g)}g.rows.push(row)}};
 }
-// poolChampionshipQueueGroups() (24-).
+// poolChampionshipQueueGroups() (24-, removed).
 function ksmChampionshipQueueGroups(div,court){
   const labels=championshipLabels(div);
   if(!labels.length)return [];
@@ -355,7 +330,7 @@ function ksmChampionshipQueueGroups(div,court){
   });
   return out.groups;
 }
-// teamQueueGroups() (24-): one row per pairing, grouped by the normalized round.
+// teamQueueGroups() (24-, removed): one row per pairing, grouped by the normalized round.
 function ksmTeamQueueGroups(div,court,current){
   const all=sortTeamMatches(div),currentPair=current?.teamPair||null,seenPairs=new Set(),out=ksmQueueGroups();
   const add=(label,row)=>out.add(normalizeQueueGroupLabel(label||'Team Match'),row);
@@ -379,8 +354,8 @@ function ksmTeamQueueGroups(div,court,current){
   });
   return out.groups;
 }
-// The live renderQueue(): the 32- wrapper (a split single elimination: canonicalSingleElimQueue()),
-// then renderQueue() (the last declaration, 24-).
+// renderQueue() as the legacy renderer drew it (removed): the 32- wrapper (a split single
+// elimination: canonicalSingleElimQueue()), then renderQueue() (the last declaration, 24-).
 function ksmQueuePanelInput(){
   const div=state.currentDivision,court=state.currentCourt||'A';
   if(!div)return {kind:'empty'};
@@ -418,4 +393,20 @@ function ksmQueuePanelInput(){
     .forEach(m=>out.add(`Pool ${m.pool||'A'}`,ksmQueueRow(m)));
   return groupsOr([...out.groups,...ksmChampionshipQueueGroups(div,court)],doneOr('Queue complete.'));
 }
+
+// If the court module (app/react/court/main.tsx, a module script after app.js) did not run, say
+// so on the court screen instead of the static markup, which nothing updates any more (e.g. an
+// offline device whose cached copy lacks the module). Module scripts run before
+// DOMContentLoaded, so a working page never shows this.
+function ksmShowCourtModuleMissing(){
+  if(window.ksmCourtScreenMounted)return;
+  const shell=document.querySelector('#score .scorekeeper-shell');
+  if(!shell||document.getElementById('courtModuleMissing'))return;
+  const notice=document.createElement('div');
+  notice.id='courtModuleMissing';notice.className='card';notice.setAttribute('role','alert');notice.setAttribute('data-testid','court-module-missing');
+  notice.innerHTML='<h1>Court screen could not load</h1><p class="sub">Reload the page. If this device is offline, reconnect once so it can download the current version of the app.</p>';
+  shell.style.display='none';
+  shell.before(notice);
+}
+document.addEventListener('DOMContentLoaded',ksmShowCourtModuleMissing);
 /* ksm:post-split-end */

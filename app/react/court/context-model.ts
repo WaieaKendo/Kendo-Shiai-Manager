@@ -3,9 +3,9 @@
 // single-elimination bracket, the team match's bout sheet, a kachinuki sheet, team standings
 // or the team bracket.
 //
-// The legacy app still decides what is shown and computes it: the live renderContext() (the
-// split-court wrapper in app/js/32- around the last declaration in 31-) is mirrored by
-// ksmContextPanelInput() in app/js/35-react-court.js, which gets standings, pairing summaries
+// The legacy app still decides what is shown and computes it: the legacy context renderer (the
+// split-court renderContext() wrapper in app/js/32- around the last declaration in 31-, removed
+// in M.8 step 5) is mirrored by ksmContextPanelInput() in app/js/35-react-court.js, which gets standings, pairing summaries
 // and bracket labels from the legacy engine bridges (app/engine) and publishes a
 // CourtContextInput (ksm:court-context) instead of writing #courtContext. The legacy
 // setCourtSupportMode() keeps toggling the panels' layout classes outside the island.
@@ -86,7 +86,7 @@ export interface TeamSheetInput {
 }
 
 export type CourtContextInput =
-  /** Nothing: the static markup, before the legacy renderer ran. */
+  /** Nothing: the static markup, before anything was published. */
   | { kind: 'empty' }
   /** A .muted-card message ('No active match.', 'No division selected.', 'Single-elimination bracket will appear after generation.'). */
   | { kind: 'message'; text: string }

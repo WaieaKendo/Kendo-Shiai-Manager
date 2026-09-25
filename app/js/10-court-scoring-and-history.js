@@ -10,7 +10,6 @@ function syncActiveScoreToMatch(){
   m.wt=state.score?.WT||0;
   m.rt=state.score?.RT||0;
 }
-function renderScore(){updateScoreTournamentName();let m=state.matches[state.current];if(m && !matchBelongsToCourt(m,state.currentCourt||'A'))m=null;if(!m){whiteName.textContent='—';redName.textContent='—';matchMeta.textContent='No active match';whitePts.textContent='';redPts.textContent='';whiteTri.textContent='';redTri.textContent='';renderQueue();renderPublic();renderContext();return}if(m.type==='teamPlayoff'){whiteName.innerHTML=repSelect('W',m.teamWhite,m.white);redName.innerHTML=repSelect('R',m.teamRed,m.red)}else{whiteName.textContent=m.white;redName.textContent=m.red}matchMeta.textContent=m.type==='teamPosition'?`${m.division} • ${m.teamWhite} vs ${m.teamRed} • ${m.position}`:(m.type==='teamPlayoff'?`${m.division} • ${m.teamWhite} vs ${m.teamRed} • ${m.position}`:`${m.division} • ${m.pool==='Championship'?(m.position||'Championship'):'Pool '+m.pool}`);whitePts.textContent=state.score.W.join(' ');redPts.textContent=state.score.R.join(' ');whiteTri.textContent='△ '.repeat(state.score.WT);redTri.textContent='△ '.repeat(state.score.RT);renderQueue();renderPublic();renderContext()}
 
 // ---------- KSM v3.17.8-test Compact action-patch court Undo / Redo ----------
 const KSM_HISTORY_LIMIT=100;
@@ -103,14 +102,12 @@ function applyHistoryValues(action,direction){
   renderAll();
 }
 function updateUndoButton(){
-  ensureCourtHistory();const court=currentHistoryCourt(),undoStack=state.courtActionHistory[court],redoStack=state.courtRedoHistory[court];
 /* ksm:post-split-begin react-court */
-  // React action row (35-react-court.js): publish the buttons instead of writing them.
-  if(ksmReactCourtActionsActive())return ksmPublishCourtActions({undo:{disabled:!undoStack.length,label:'Undo'},redo:{disabled:!redoStack.length,label:'Redo'}});
+  // The React action row (35-react-court.js) draws the buttons: publish whether Undo/Redo may
+  // be pressed (the labels stay plain "Undo"/"Redo").
+  ensureCourtHistory();const court=currentHistoryCourt(),undoStack=state.courtActionHistory[court],redoStack=state.courtRedoHistory[court];
+  ksmPublishCourtActions({undo:{disabled:!undoStack.length,label:'Undo'},redo:{disabled:!redoStack.length,label:'Redo'}});
 /* ksm:post-split-end */
-  const undoBtn=document.getElementById('undoBtn'),redoBtn=document.getElementById('redoBtn');
-  if(undoBtn){undoBtn.disabled=!undoStack.length;undoBtn.innerHTML=`<svg class="action-svg undo-svg" viewBox="0 0 64 64" aria-hidden="true"><path d="M24 14H10v14" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 27c4-10 14-17 26-17 15 0 27 12 27 27S52 64 37 64c-11 0-21-7-25-17" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/></svg><span class="action-label">Undo</span>`}
-  if(redoBtn){redoBtn.disabled=!redoStack.length;redoBtn.innerHTML=`<svg class="action-svg undo-svg" viewBox="0 0 64 64" aria-hidden="true" style="transform:scaleX(-1)"><path d="M24 14H10v14" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 27c4-10 14-17 26-17 15 0 27 12 27 27S52 64 37 64c-11 0-21-7-25-17" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/></svg><span class="action-label">Redo</span>`}
 }
 function undo(){
   ensureCourtHistory();const court=currentHistoryCourt(),stack=state.courtActionHistory[court];const action=stack.pop();

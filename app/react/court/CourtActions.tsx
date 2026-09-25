@@ -13,8 +13,6 @@ import {
 export const ACTIONS_EVENT = 'ksm:court-actions';
 
 interface CourtWindow {
-  /** Set by main.tsx: the legacy updateUndoButton() publishes instead of writing #undoBtn/#redoBtn. */
-  ksmReactCourtActions?: boolean;
   /** Undo/Redo as the legacy updateUndoButton() last published them. */
   ksmCourtActionsInput?: CourtActionsInput;
   point?: (side: Side, letter: string) => void;

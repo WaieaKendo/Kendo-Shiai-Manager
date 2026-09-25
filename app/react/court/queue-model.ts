@@ -1,11 +1,12 @@
 // The court screen's queue panel (#queue, data-testid court-queue): the court's upcoming
 // matches in groups (pool, round), or a message.
 //
-// The legacy app still decides what is queued: the live renderQueue() (the split-court
-// wrapper in app/js/32- around the last declaration in 24-) is mirrored by ksmQueuePanelInput()
-// in app/js/35-react-court.js, which publishes a CourtQueueInput (ksm:court-queue) instead of
-// writing #queue. courtQueueView() adds what the legacy HTML helpers derived: row classes,
-// group titles (normalizeQueueGroupLabel()) and empty groups left out (groupedQueueSection()).
+// The legacy app still decides what is queued: ksmQueuePanelInput() in app/js/35-react-court.js
+// makes the decisions of the legacy queue renderer (the split-court renderQueue() wrapper in
+// app/js/32- around the last declaration in 24-, removed in M.8 step 5) and renderQueue()
+// publishes a CourtQueueInput (ksm:court-queue). courtQueueView() adds what the legacy HTML
+// helpers derived: row classes, group titles (normalizeQueueGroupLabel()) and empty groups left
+// out (as groupedQueueSection() did).
 import { alignedRowView, type AlignedRowInput, type AlignedRowView } from './rows-model.ts';
 
 export interface QueueSideInput {

@@ -1,7 +1,10 @@
-// Court screen islands in the legacy app (index.html; the build adds this module after
-// app.js). The React court screen (M.8) replaces the legacy court screen piece by piece.
-// When this module does not load (e.g. an offline device whose cache predates it) the
-// legacy renderer keeps drawing everything.
+// The court (scorekeeper) screen: React islands in the legacy page (index.html; the build adds
+// this module after app.js and lists its files in the service worker's APP_SHELL, so an offline
+// device has it). The legacy code chooses the court's match and division, computes what is shown
+// and runs the actions; it publishes plain data for each island (app/js/35-react-court.js) and
+// never writes the court screen itself (M.8). The static court markup in index.html only holds
+// the mount points until this module runs. If this module does not load, the legacy code shows
+// a "court screen not loaded" notice instead (35-react-court.js, on DOMContentLoaded).
 import { mountIsland } from '../island.tsx';
 import { CourtActions, CourtScoreButtons } from './CourtActions.tsx';
 import { CourtComplete } from './CourtComplete.tsx';
@@ -11,11 +14,8 @@ import { CourtQueue } from './CourtQueue.tsx';
 import { CourtScoreboard } from './CourtScoreboard.tsx';
 
 interface LegacyWindow {
-  ksmReactScoreboard?: boolean;
-  ksmReactCourtHeader?: boolean;
-  ksmReactCourtActions?: boolean;
-  ksmReactCourtPanels?: boolean;
-  ksmReactCourtComplete?: boolean;
+  /** Set here once the islands are mounted; the legacy fallback notice checks it. */
+  ksmCourtScreenMounted?: boolean;
   renderDivisions?: () => void;
   renderQueue?: () => void;
   renderContext?: () => void;
@@ -24,49 +24,37 @@ interface LegacyWindow {
 }
 
 const legacy = window as unknown as LegacyWindow;
-const card = document.querySelector('#score .scoreboard-card');
-if (card && typeof legacy.renderScore === 'function') {
-  // From now on setCourtCompletePresentation() publishes the division-complete state instead of
-  // setting the card's class and panel; take back what it drew already. renderScore() below
-  // publishes the current court's state. The panel is a portal into the card (see
-  // CourtComplete), so this island's own container stays out of the page.
-  card.querySelector(':scope > .division-complete-panel')?.remove();
-  card.classList.remove('division-complete');
-  legacy.ksmReactCourtComplete = true;
-  mountIsland(document.createElement('div'), <CourtComplete card={card} />);
-}
-const header = document.querySelector('#score .scoreboard-header');
-const scoreboard = document.querySelector('#score .scoreboard-match');
-if (header && scoreboard && typeof legacy.renderScore === 'function' && typeof legacy.renderDivisions === 'function') {
-  // From now on renderDivisions() and renderScore() publish the header and scoreboard
-  // instead of writing their elements; run them once so the islands start with the current
-  // court. (The header starts from what the legacy renderer drew, see ksmPublishCourtHeader.)
-  legacy.ksmReactScoreboard = true;
-  legacy.ksmReactCourtHeader = true;
-  legacy.renderDivisions();
-  legacy.renderScore();
-  mountIsland(header, <CourtHeader />);
-  mountIsland(scoreboard, <CourtScoreboard />);
-}
-const controls = document.querySelector('#score .score-controls-grid');
-const actions = document.querySelector('#score .bottom-action-row');
-if (controls && actions && typeof legacy.updateUndoButton === 'function') {
-  // The score buttons have no legacy writer. From now on updateUndoButton() publishes Undo and
-  // Redo instead of writing #undoBtn/#redoBtn; run it once for the current court's history.
-  legacy.ksmReactCourtActions = true;
-  legacy.updateUndoButton();
-  mountIsland(controls, <CourtScoreButtons />);
-  mountIsland(actions, <CourtActions />);
-}
-const context = document.querySelector('#score #courtContext');
-const queue = document.querySelector('#score #queue');
-if (context && queue && typeof legacy.renderQueue === 'function' && typeof legacy.renderContext === 'function') {
-  // From now on renderQueue() and renderContext() publish the panels instead of writing
-  // #queue/#courtContext (setCourtSupportMode() still sets the layout classes around them);
-  // run them once for the current court.
-  legacy.ksmReactCourtPanels = true;
-  legacy.renderQueue();
-  legacy.renderContext();
-  mountIsland(context, <CourtContext />);
-  mountIsland(queue, <CourtQueue />);
-}
+const required = <T,>(value: T | null | undefined, what: string): T => {
+  if (value === null || value === undefined) throw new Error(`KSM court screen: ${what} is missing`);
+  return value;
+};
+const el = (selector: string) => required(document.querySelector(selector), selector);
+const fn = (f: (() => void) | undefined, name: string) => required(f, `${name}()`);
+
+const card = el('#score .scoreboard-card');
+const header = el('#score .scoreboard-header');
+const scoreboard = el('#score .scoreboard-match');
+const controls = el('#score .score-controls-grid');
+const actions = el('#score .bottom-action-row');
+const context = el('#score #courtContext');
+const queue = el('#score #queue');
+
+// The legacy writers have published since app.js started (the islands read the last published
+// data when they mount); run them once more, in the order the islands used to take over, so
+// every island starts from the current court.
+fn(legacy.renderDivisions, 'renderDivisions')();
+fn(legacy.renderScore, 'renderScore')();
+fn(legacy.updateUndoButton, 'updateUndoButton')();
+fn(legacy.renderQueue, 'renderQueue')();
+fn(legacy.renderContext, 'renderContext')();
+
+// The division-complete panel is a portal into the scoreboard card (see CourtComplete), so this
+// island's own container stays out of the page.
+mountIsland(document.createElement('div'), <CourtComplete card={card} />);
+mountIsland(header, <CourtHeader />);
+mountIsland(scoreboard, <CourtScoreboard />);
+mountIsland(controls, <CourtScoreButtons />);
+mountIsland(actions, <CourtActions />);
+mountIsland(context, <CourtContext />);
+mountIsland(queue, <CourtQueue />);
+legacy.ksmCourtScreenMounted = true;

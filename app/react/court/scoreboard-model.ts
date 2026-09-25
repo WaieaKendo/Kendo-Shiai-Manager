@@ -1,10 +1,11 @@
 // The court screen scoreboard: each side's name, dojo (or team), points and hansoku for the
 // match on the court, and the team-playoff representative picker.
 //
-// The legacy app still chooses the court's match: renderScore() (app/js/35-react-court.js)
+// The legacy app still chooses the court's match: renderScore() (app/js/22-scorekeeper-screen.js)
 // publishes a ScoreboardInput (the match or null, the live score and, for a team playoff,
 // each side's roster and whether it may be changed). scoreboardView() turns it into what
-// CourtScoreboard renders: exactly what the legacy renderer wrote into the same elements.
+// CourtScoreboard renders: exactly what the legacy renderer (removed in M.8 step 5) wrote into
+// the same elements.
 
 export type Side = 'W' | 'R';
 

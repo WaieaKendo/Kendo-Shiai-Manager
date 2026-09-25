@@ -80,11 +80,9 @@ function renderDivisions(){
     let all=[...new Set([...state.divisions,...Object.keys(state.allMatches||{})])];
     let opts=all.filter(d=>{let c=state.divisionCourts[d]||'A';return c===court||c==='split'||(d==='Team Tournament'&&(state.divisionCourts[d]||'Both')==='Both')});
 /* ksm:post-split-begin react-court */
-    if(ksmReactCourtHeaderActive())return ksmPublishCourtHeader({court,divisions:opts,currentDivision:state.currentDivision||''});
+    // The React court header (35-react-court.js) draws the court title and the select.
+    ksmPublishCourtHeader({court,divisions:opts,currentDivision:state.currentDivision||''});
 /* ksm:post-split-end */
-    scoreDiv.innerHTML=opts.map(d=>`<option ${d===state.currentDivision?'selected':''}>${esc(d)}</option>`).join('');
-    if(window.courtTitle)courtTitle.textContent='Court '+court;
-    if(window.scoreDiv&&state.currentDivision)scoreDiv.value=state.currentDivision;
   }
 }
 function openCourt(c){

@@ -22,6 +22,10 @@
 // Functions moved into app/engine/ (MOVED_TO_ENGINE) keep their declaration in app/js,
 // with a body that is only a marked delegation to KSMEngine; for them the check
 // compares against the old declaration with its body emptied.
+//
+// Old code deliberately deleted (REMOVED_COURT_RENDERER: the legacy court renderer, M.8
+// step 5) is named piece by piece; the check deletes exactly those pieces from the old script
+// before comparing, so every other difference, and any piece that no longer matches, still fails.
 import { execFileSync } from 'node:child_process';
 import { minify } from 'vite';
 import { extractFunction } from '../tests/lib/ksm-source.mjs';
@@ -37,9 +41,13 @@ const KNOWN_POST_SPLIT_EDITS = {
   // the last renderScore()); renderDivisions() and updateScoreTournamentName() publish the
   // header; feat/react-court-actions: updateUndoButton() (10) publishes Undo/Redo;
   // feat/react-court-context: the live renderQueue()/renderContext() wrappers (32) publish the
-  // queue and context panels (two one-line hand-overs). Listed here
-  // because renderDivisions() (02) is its first region: the check compares names in order of
-  // first appearance.
+  // queue and context panels; feat/react-court-finish (step 5): setCourtCompletePresentation()
+  // (32) publishes the division-complete panel, and with the legacy renderer removed
+  // (REMOVED_COURT_RENDERER) the court writers' bodies are marked publishers: renderDivisions()
+  // (02), updateUndoButton() (10), renderScore() and updateScoreTournamentName() (22),
+  // renderQueue(), renderContext() (new declarations in place of the 32 wrappers) and
+  // setCourtCompletePresentation() (32). Listed here because renderDivisions() (02) is its first
+  // region: the check compares names in order of first appearance.
   'react-court': 8,
   // refactor/engine-bridge (roadmap 2.0+): one delegation per MOVED_TO_ENGINE function.
   'engine-bridge': 88,
@@ -81,6 +89,39 @@ const MOVED_TO_ENGINE = [
   'legacyTiebreakSyncIdentity', 'matchSyncIdentity', 'matchHasSyncIdentity', 'individualLogicalMatchKey',
   'enforceUniqueIndividualMatches', 'eligibleIndividuals', 'eligibleTeams', 'generateDivisionState',
 ];
+// feat/react-court-finish (M.8 step 5): the legacy court renderer, deleted. React draws the
+// court screen (app/react/court/); tests/golden/court/*.json pin what this code drew. Entries:
+//   'name#n'       the n-th declaration (1-based) of function `name` in the old script, deleted
+//   'name#n:body'  its body only: the declaration stays in app/js and its new body is entirely
+//                  a marked react-court region (like MOVED_TO_ENGINE)
+//   {from, to}     the old code from `from` (unique in the old script) through the next `to`
+// Numbers are positions in the old single file (= app/js order): the file each was in is noted.
+const REMOVED_COURT_RENDERER = [
+  // The DOM-writing court screen renderers and their dead redeclarations (2.10).
+  'renderScore#1', 'renderScore#2', 'renderScore#3',            // 10, 22, 22 (overridden by #4)
+  'renderScore#4:body',                                          // 22: publishes the header and match (react-court)
+  'setMatchBadge#1', 'setMatchBadge#2', 'renderPointLetters#1',  // 22: only the removed renderScore() used them
+  'legacyUpdateUndoButton#1', 'legacyUpdateUndoButton#2', 'legacyUpdateUndoButton#3', 'legacyUpdateUndoButton#4', // 22: never called
+  'updateUndoButton#1:body',                                     // 10: publishes Undo/Redo (react-court)
+  'updateScoreTournamentName#1:body',                            // 22: publishes the tournament name (react-court)
+  { from: '    scoreDiv.innerHTML=opts.map(', to: 'if(window.scoreDiv&&state.currentDivision)scoreDiv.value=state.currentDivision;\n' }, // renderDivisions() (02): court title + select
+  'renderQueue#1', 'renderQueue#2', 'renderQueue#3', 'renderQueue#4', // 11, 22, 24, 24 (#4 was the one the 32 wrapper called)
+  'renderContext#1', 'renderContext#2', 'renderContext#3', 'renderContext#4', 'renderContext#5', 'renderContext#6', 'renderContext#7', // 16, 22, 24, 29, 29, 29, 31
+  // The split-court wrappers (32); renderQueue() and renderContext() are marked new declarations there.
+  { from: 'const renderQueue_v3121=renderQueue;', to: '  renderQueue_v3121();\n};\n' },
+  { from: 'const renderContext_v3121=renderContext;', to: '  courtContext.innerHTML=persistentContextHtml(div,null);\n};\n' },
+  { from: 'const renderSingleElimContext_v3121=renderSingleElimContext;', to: '};\n' },
+  'setCourtCompletePresentation#1:body',                         // 32: publishes the division-complete panel (react-court)
+  // HTML helpers only the removed renderers used (no other screen or test calls them).
+  'finalResultsHtml#1', 'teamQueueStatusHtml#1', 'teamPlaceholderRows#1', 'queueRowHtml#1', 'championshipQueueRows#1', // 11
+  'scorekeeperQueueRow#1', 'courtQueueItems#1',                  // 22
+  'queueGroupLabel#1', 'renderGroupedQueueRow#1', 'groupedQueueSection#1', 'poolChampionshipQueueGroups#1',
+  'teamQueueGroups#1', 'renderSingleElimContext#1',              // 24
+  'singleElimRoundCardHtml#1', 'singleElimRoundCardHtml#2',      // 24, 28
+  'allPoolResultsContextHtml#1', 'allPoolResultsContextHtml#2', 'activePoolForDivision#1', // 29
+  'poolResultCardHtml#1', 'poolResultCardHtml#2', 'orderedPoolContextHtml#1', // 29, 31, 31
+  'splitTemplateContextHtml#1', 'canonicalSingleElimQueue#1', 'persistentContextHtml#1', // 32
+];
 const old = execFileSync('git', ['show', `${commit}:public/index.html`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64e6 });
 let failed = 0;
 const check = (ok, name) => { console.log(`${ok ? 'PASS' : 'FAIL'} ${name}`); if (!ok) failed++; };
@@ -92,6 +133,28 @@ for (const name of MOVED_TO_ENGINE) {
   // The LAST declaration (the one that runs); an earlier redeclaration may be identical text.
   const at = oldScript.lastIndexOf(fn);
   oldScript = oldScript.slice(0, at) + fn.slice(0, fn.indexOf('{') + 1) + '}' + oldScript.slice(at + fn.length);
+}
+// Delete REMOVED_COURT_RENDERER from the old script: find every piece first (positions in the
+// old script as it is now), refuse overlaps, then cut from the end.
+{
+  const cuts = REMOVED_COURT_RENDERER.map(entry => {
+    if (typeof entry === 'object') {
+      const at = oldScript.indexOf(entry.from);
+      if (at < 0 || oldScript.indexOf(entry.from, at + 1) >= 0) throw new Error(`REMOVED_COURT_RENDERER: ${entry.from} is not unique in the old script`);
+      const end = oldScript.indexOf(entry.to, at);
+      if (end < 0) throw new Error(`REMOVED_COURT_RENDERER: no ${entry.to} after ${entry.from}`);
+      return { at, end: end + entry.to.length, what: entry.from };
+    }
+    const [, name, nth, body] = entry.match(/^([\w$]+)#(\d+)(:body)?$/);
+    const starts = [...oldScript.matchAll(new RegExp(`(?:async\\s+)?function\\s+${name}\\s*\\(`, 'g'))].map(m => m.index);
+    const at = starts[Number(nth) - 1];
+    if (at === undefined) throw new Error(`REMOVED_COURT_RENDERER: the old script has ${starts.length} declarations of ${name}, not ${nth}`);
+    const fn = extractFunction(oldScript.slice(at), name, { occurrence: 'first' });
+    if (body) return { at: at + fn.indexOf('{') + 1, end: at + fn.length - 1, what: entry };
+    return { at, end: at + fn.length + (oldScript[at + fn.length] === '\n' ? 1 : 0), what: entry };
+  }).sort((a, b) => a.at - b.at);
+  cuts.forEach((c, i) => { if (i && c.at < cuts[i - 1].end) throw new Error(`REMOVED_COURT_RENDERER: ${c.what} overlaps ${cuts[i - 1].what}`); });
+  for (const c of cuts.reverse()) oldScript = oldScript.slice(0, c.at) + oldScript.slice(c.end);
 }
 const headStyles = old.slice(old.indexOf('<style'), old.indexOf('</head>'));
 const oldStyleBlocks = [...headStyles.matchAll(/<style[^>]*>\n([\s\S]*?)<\/style>/g)];

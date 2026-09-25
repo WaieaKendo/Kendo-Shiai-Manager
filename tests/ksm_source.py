@@ -6,6 +6,8 @@ The app is written in app/ and built by Vite into dist/ (see scripts/app-sources
                   with app/styles/*.css and app/js/*.js (each in file-name order) inlined.
                   For checks that read the code. Same as tests/lib/ksm-source.mjs `html`.
     app_html()    the built dist/index.html, for load_app(page, html).
+    court_react_source() the React court screen (app/react/court/*.ts, *.tsx) as one text, for
+                  checks of court markup that React renders (roadmap M.8).
     ensure_built() rebuilds dist/ when it is missing or older than app/ (run-all builds first).
 """
 import subprocess
@@ -26,6 +28,10 @@ def app_source():
     html = (APP / 'index.html').read_text(encoding='utf-8')
     html = html.replace(STYLE_TAG, '<style>\n' + _read_all('styles', '.css') + '</style>', 1)
     return html.replace(SCRIPT_TAG, '<script>\n' + _read_all('js', '.js') + '</script>', 1)
+
+
+def court_react_source():
+    return ''.join(f.read_text(encoding='utf-8') for f in sorted((APP / 'react' / 'court').glob('*.ts*')))
 
 
 def ensure_built():

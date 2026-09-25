@@ -1,7 +1,8 @@
 // The court screen's context panel (the contents of #courtContext), the same elements, classes
-// and test IDs as the legacy renderContext() and its HTML helpers, so the court CSS and the
-// tests apply unchanged. The legacy renderContext() publishes what it would have drawn
-// (ksm:court-context); setCourtSupportMode() stays legacy (classes outside the island).
+// and test IDs as the legacy renderContext() and its HTML helpers drew (removed in M.8 step 5;
+// tests/golden/court pins them), so the court CSS and the tests apply unchanged. renderContext()
+// (app/js/32-) publishes what to show (ksm:court-context); setCourtSupportMode() stays legacy
+// (classes outside the island).
 import { useSyncExternalStore } from 'react';
 import { DEFAULT_COURT_PANEL_ICONS, type CourtPanelIcons } from './branding.ts';
 import { AlignedRow, BracketCard } from './MatchRows.tsx';
@@ -13,9 +14,7 @@ import {
 export const CONTEXT_EVENT = 'ksm:court-context';
 
 interface CourtWindow {
-  /** Set by main.tsx: the legacy renderQueue() and renderContext() publish instead of writing. */
-  ksmReactCourtPanels?: boolean;
-  /** The context as the legacy renderContext() last published it. */
+  /** The context as renderContext() last published it. */
   ksmCourtContextInput?: CourtContextInput;
 }
 
@@ -78,7 +77,7 @@ function Bracket({ bracket }: { bracket: BracketView }) {
   }
 }
 
-/** poolResultCardHtml() (31-spectator-refinements.js). */
+/** As the legacy poolResultCardHtml() (31-, removed). */
 function PoolCard({ card, icons }: { card: PoolCardView; icons: CourtPanelIcons }) {
   return (
     <section className={card.className} data-testid="context-pool">
