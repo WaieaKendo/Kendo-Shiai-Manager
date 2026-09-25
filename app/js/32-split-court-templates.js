@@ -56,6 +56,7 @@ function canonicalSingleElimQueue(div,court,current){
 const renderQueue_v3121=renderQueue;
 renderQueue=function(){
   const target=document.getElementById('queue');if(!target)return;
+  /* ksm:post-split-begin react-court */if(ksmReactCourtPanelsActive()){ksmPublishCourtQueue(ksmQueuePanelInput());return;}/* ksm:post-split-end */
   const div=state.currentDivision,court=state.currentCourt||'A';
   if(!div){target.innerHTML='';return;}
   if(divisionComplete(div)){target.innerHTML='';return;}
@@ -81,6 +82,7 @@ function persistentContextHtml(div,current){
 const renderContext_v3121=renderContext;
 renderContext=function(){
   if(!window.courtContext)return;
+  /* ksm:post-split-begin react-court */if(ksmReactCourtPanelsActive()){ksmPublishCourtContext(ksmContextPanelInput());return;}/* ksm:post-split-end */
   const m=state.matches?.[state.current];
   if(m&&matchBelongsToCourt(m,state.currentCourt||'A')){renderContext_v3121();return;}
   const div=contextDivisionForCourt();

@@ -4,14 +4,19 @@
 // legacy renderer keeps drawing everything.
 import { mountIsland } from '../island.tsx';
 import { CourtActions, CourtScoreButtons } from './CourtActions.tsx';
+import { CourtContext } from './CourtContext.tsx';
 import { CourtHeader } from './CourtHeader.tsx';
+import { CourtQueue } from './CourtQueue.tsx';
 import { CourtScoreboard } from './CourtScoreboard.tsx';
 
 interface LegacyWindow {
   ksmReactScoreboard?: boolean;
   ksmReactCourtHeader?: boolean;
   ksmReactCourtActions?: boolean;
+  ksmReactCourtPanels?: boolean;
   renderDivisions?: () => void;
+  renderQueue?: () => void;
+  renderContext?: () => void;
   renderScore?: () => void;
   updateUndoButton?: () => void;
 }
@@ -39,4 +44,16 @@ if (controls && actions && typeof legacy.updateUndoButton === 'function') {
   legacy.updateUndoButton();
   mountIsland(controls, <CourtScoreButtons />);
   mountIsland(actions, <CourtActions />);
+}
+const context = document.querySelector('#score #courtContext');
+const queue = document.querySelector('#score #queue');
+if (context && queue && typeof legacy.renderQueue === 'function' && typeof legacy.renderContext === 'function') {
+  // From now on renderQueue() and renderContext() publish the panels instead of writing
+  // #queue/#courtContext (setCourtSupportMode() still sets the layout classes around them);
+  // run them once for the current court.
+  legacy.ksmReactCourtPanels = true;
+  legacy.renderQueue();
+  legacy.renderContext();
+  mountIsland(context, <CourtContext />);
+  mountIsland(queue, <CourtQueue />);
 }

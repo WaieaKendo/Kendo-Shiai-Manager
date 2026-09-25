@@ -1,6 +1,6 @@
 """The React court islands (app/react/court/, roadmap M.8) draw exactly what the legacy
 renderer drew: the scoreboard (step 1), the header (step 2), the score buttons and the action
-row (step 3).
+row (step 3), the queue and context panels (step 4).
 
 Two offline copies of the app get the same tournament and the same court actions: one with
 the React islands (the built app), one without their module script (the legacy renderer).
@@ -10,7 +10,12 @@ options, division title, match line), compared as elements, ids, classes, test I
 text and select values; the score buttons (#score .score-controls-grid) and the action row
 (#score .bottom-action-row: Undo, Redo, Fusen-gachi, Next Match), compared with every
 attribute (disabled, the inline SVG) and whether each element is visible; the Fusen-gachi
-dialog's state and the court screen read-out must be identical:
+dialog's state and the court screen read-out must be identical; so must the context panel
+(#courtContext) and the queue panel (#queue): every attribute, text, visibility and each
+element's position and size (so whitespace between inline elements counts too), their
+innerText and the layout classes around them (setCourtSupportMode()). React must render every
+element in the panels in the React copy (a fiber on each) and none in the legacy copy.
+Scenarios:
   * an individual round robin: points, hansoku (two give the opponent a point), undo, redo
     (Redo enabled after Undo, disabled again by a new action), Fusen-gachi (cancelled, then
     confirmed), Next Match, to the end of the division (where score buttons and action row
@@ -21,7 +26,16 @@ dialog's state and the court screen read-out must be identical:
     name, switching division with the select (also to a completed one and back), scoring in
     the split division on both courts, finishing Court B's division (the division-complete
     screen keeps the last match line);
-  * a spectator's court screen (as after Staff Logout): same markup, no visible controls.
+  * a spectator's court screen (as after Staff Logout): same markup, no visible controls;
+  * whole divisions played through on both courts, compared after every click and on idle
+    courts: each round the page opens Court A, then Court B, moves the court to the next
+    division with a ready match (KSMTest.prepareCourt, as the golden test), and plays it with
+    the point buttons and Next Match (outcome from a hash of the names, draws where allowed).
+    Individual round robin split across courts (pools, championship bracket preview, split
+    championship), a round robin of draws (pool tiebreaks), single elimination on one court
+    (earlier/later rounds) and split across courts, 3-person team single elimination
+    (team queue, bout sheet, team bracket), 3-person team round robin (standings, pair
+    results), kachinuki; each to its division-complete screen, then its spectator view.
 The React copy must really render the islands (React fiber on their elements); the legacy
 copy must not.
 """
@@ -65,6 +79,48 @@ REACT_ELEMENTS = [
     '#score [data-testid="hansoku-red"]', '#undoBtn', '#undoBtn path', '#redoBtn', '#redoBtn .action-label',
     '#score [data-testid="fusen-gachi"]', '#score [data-testid="next-match"]',
 ]
+# The panels: every attribute, visibility and the element's box (rounded to 1/4 px); innerText.
+PANEL_JS = """(root) => {
+  const walk = n => {
+    if (n.nodeType === 3) return n.textContent.trim() ? n.textContent : null;
+    if (n.nodeType !== 1) return null;
+    const attrs = [...n.attributes].filter(a => !a.name.startsWith('on')).map(a => `${a.name}=${a.value}`).sort();
+    const r = n.getBoundingClientRect(), q = v => Math.round(v * 4) / 4;
+    // In page coordinates, not the viewport's (the copies may be scrolled differently).
+    const visible = n.checkVisibility(), box = visible ? [q(r.x + scrollX), q(r.y + scrollY), q(r.width), q(r.height)].join(',') : '';
+    return [n.tagName, attrs.join(' '), visible ? 'visible' : 'hidden', box,
+            ...[...n.childNodes].map(walk).filter(x => x !== null)];
+  };
+  const el = document.querySelector(root);
+  return {tree: walk(el), text: el.innerText};
+}"""
+PANELS = {'context': '#score #courtContext', 'queue': '#score #queue'}
+PANELS_SEEN = {name: 0 for name in PANELS}  # most React-rendered elements seen in each panel
+# Which kinds of panel content the React copy was given (what the legacy renderer published).
+VARIANTS_JS = """() => {
+  const out = [], c = window.ksmCourtContextInput, q = window.ksmCourtQueueInput;
+  if (c) {
+    out.push('context: ' + c.kind);
+    if (c.bracket) out.push(`context: ${c.kind} with bracket ${c.bracket.kind}`);
+    if (JSON.stringify(c).includes('"status":"TIEBREAK"')) out.push('context: pool tiebreak row');
+    if ((c.inProgress || []).some(p => p.active)) out.push('context: active pool');
+    if ((c.completed || []).length) out.push('context: completed pools');
+  }
+  if (q) {
+    out.push('queue: ' + q.kind);
+    (q.groups || []).forEach(g => g.rows.forEach(r => out.push('queue row: ' + (r.kind === 'aligned' ? 'aligned ' + r.status
+      : [r.team ? 'team' : 'individual', r.placeholder ? 'placeholder' : 'match', r.tiebreak ? 'tiebreak' : ''].filter(Boolean).join(' ')))));
+  }
+  return [...new Set(out)];
+}"""
+VARIANTS_SEEN = set()
+# Elements under a panel: [how many, how many with a React fiber].
+PANEL_FIBERS_JS = """(root) => {
+  const els = [...document.querySelectorAll(root + ' *')];
+  return [els.length, els.filter(e => Object.keys(e).some(k => k.startsWith('__reactFiber'))).length];
+}"""
+# The layout classes setCourtSupportMode() (legacy) sets around the panels.
+SUPPORT_JS = """() => ['.sk-support-grid', '.sk-queue-card'].map(s => document.querySelector('#score ' + s).className)"""
 HISTORY_JS = """() => Object.fromEntries(['undo', 'redo'].map(id => {
   const b = document.querySelector(`#score [data-testid="${id}"]`);
   return [id, {enabled: !b.disabled, visible: b.checkVisibility(), label: b.textContent.trim()}];
@@ -106,6 +162,8 @@ def snapshot(app):
     trees = {name: app.page.evaluate(SNAPSHOT_JS, root) for name, root in TREES.items()}
     trees.update({name: app.page.evaluate(FULL_SNAPSHOT_JS, root) for name, root in FULL_TREES.items()})
     trees['fusen dialog'] = app.page.evaluate(FUSEN_JS)
+    trees.update({name: app.page.evaluate(PANEL_JS, root) for name, root in PANELS.items()})
+    trees['support layout'] = app.page.evaluate(SUPPORT_JS)
     return trees
 
 
@@ -114,6 +172,13 @@ def compare(react, legacy, step):
     assert got[0][1] == got[1][1], f'{step}: court screen differs\n  React:  {got[0][1]}\n  Legacy: {got[1][1]}'
     for name in got[0][0]:
         assert got[0][0][name] == got[1][0][name], f'{step}: {name} differs\n  React:  {got[0][0][name]}\n  Legacy: {got[1][0][name]}'
+    for name, root in PANELS.items():
+        total, owned = react.page.evaluate(PANEL_FIBERS_JS, root)
+        assert total == owned, f'{step}: React: {total - owned} of {total} elements in the {name} panel are not rendered by React'
+        PANELS_SEEN[name] = max(PANELS_SEEN[name], owned)
+        total, owned = legacy.page.evaluate(PANEL_FIBERS_JS, root)
+        assert owned == 0, f'{step}: Legacy: {owned} elements in the {name} panel are rendered by React'
+    VARIANTS_SEEN.update(react.page.evaluate(VARIANTS_JS))
     return got[0][1]
 
 
@@ -131,6 +196,67 @@ def history(app):
 def expect_history(react, step, undo, redo):
     h = history(react)
     assert (h['undo']['enabled'], h['redo']['enabled']) == (undo, redo), f'{step}: Undo/Redo enabled {h}, expected {(undo, redo)}'
+
+
+# Move the court to its next ready match like the golden test (tests/golden-engine-test.py).
+PREPARE_JS = """(court) => {
+  const m = KSMTest.prepareCourt(court);
+  return m ? {white: m.white, red: m.red, mustWin: !!KSMTest.mustWin(m)} : null;
+}"""
+ALL_COMPLETE_JS = "() => Object.keys(state.allMatches).filter(d => (state.allMatches[d] || []).length).every(d => divisionComplete(d))"
+
+
+def match_points(m, draws):
+    """The golden test's outcome rule (a hash of the names); draws=True: a draw wherever allowed."""
+    h = 7
+    for ch in f"{m['white']}|{m['red']}":
+        h = (h * 31 + ord(ch)) & 0xffffffff
+    outcome = 'tie' if draws else ['tie', 'white', 'white', 'red', 'red'][h % 5]
+    if outcome == 'tie' and m['mustWin']:
+        outcome = 'white' if h % 2 else 'red'
+    if outcome == 'tie':
+        return [] if draws else [('W', 'M'), ('R', 'K')]
+    if outcome == 'white':
+        return [('W', 'M')] if h % 3 else [('W', 'M'), ('R', 'D'), ('W', 'K')]
+    return [('R', 'K')] if h % 3 else [('R', 'D'), ('R', 'M')]
+
+
+def play_through(browser, name, entries, errors, draws=False):
+    """Play every division of `entries` to the end on Courts A and B, comparing after each click."""
+    react, legacy = open_pair(browser, entries)
+    dialogs = {'React': [], 'Legacy': []}
+    for app in (react, legacy):
+        app.page.on('pageerror', lambda e, n=app.name: errors.append(f'{name}: {n}: {e}'))
+        app.page.on('dialog', lambda d, n=app.name: (dialogs[n].append(d.message), d.accept()))
+    compare(react, legacy, f'{name}: start')
+    played = 0
+    for _ in range(300):
+        progressed = False
+        for court in ('A', 'B'):
+            ready = [app.page.evaluate(PREPARE_JS, court) for app in (react, legacy)]
+            assert ready[0] == ready[1], f'{name}: Court {court}: {ready}'
+            compare(react, legacy, f'{name}: Court {court} {"match " + str(played + 1) if ready[0] else "idle"}')
+            m = ready[0]
+            if not m:
+                continue
+            progressed = True
+            step = f"{name}: Court {court} match {played + 1} ({m['white']} v {m['red']})"
+            for side, letter in match_points(m, draws):
+                both(react, legacy, f'{step}: {side} {letter}', lambda a: a.score_point(side, letter))
+            both(react, legacy, f'{step}: next match', lambda a: a.next_match())
+            played += 1
+        if not progressed:
+            break
+    assert react.page.evaluate(ALL_COMPLETE_JS), f'{name}: not every division is complete after {played} matches'
+    assert dialogs['React'] == dialogs['Legacy'], f'{name}: dialogs differ: {dialogs}'
+    for court in ('A', 'B'):
+        both(react, legacy, f'{name}: complete, Court {court}', lambda a: a.open_court(court))
+    both(react, legacy, f'{name}: spectator', lambda a: a.page.evaluate("() => { setSessionRole('spectator'); installRoleBanner('spectator'); }"))
+    for court in ('A', 'B'):
+        both(react, legacy, f'{name}: spectator Court {court}', lambda a: a.open_court(court))
+    for app in (react, legacy):
+        app.page.close()
+    return played
 
 
 def main():
@@ -257,9 +383,37 @@ def main():
             shown = app.page.evaluate("() => ['.score-controls-grid', '.bottom-action-row'].filter(s => document.querySelector('#score ' + s).checkVisibility())")
             assert not shown, f'{app.name}: spectator court screen shows {shown}'
 
+        # --- Whole divisions, every context and queue variant ------------------------------
+        team = lambda fmt, tournament, n, court: {'team': True, 'format': fmt, 'tournament': tournament, 'teams': n, 'court': court}
+        runs = [
+            ('RR 8 split', [{'name': 'Open', 'format': 'Round Robin', 'court': 'split', 'entrants': people('P', 8)}], False),
+            ('RR 6 draws', [{'name': 'Open', 'format': 'Round Robin', 'court': 'A', 'entrants': people('D', 6)}], True),
+            ('SE 6 Court A', [{'name': 'Kids', 'format': 'Single Elimination', 'court': 'A', 'entrants': people('S', 6)}], False),
+            ('SE 8 split', [{'name': 'Kids', 'format': 'Single Elimination', 'court': 'split', 'entrants': people('E', 8)}], False),
+            ('team SE 4 both courts', [team('3-Person Team', 'Single Elimination', 4, 'Both')], False),
+            ('team RR 3', [team('3-Person Team', 'Round Robin', 3, 'A')], False),
+            ('kachinuki SE 4', [team('Kachinuki', 'Single Elimination', 4, 'A')], False),
+        ]
+        played = {name: play_through(browser, name, entries, errors, draws) for name, entries, draws in runs}
+        for kind, seen in PANELS_SEEN.items():
+            assert seen, f'React never rendered anything in the {kind} panel'
+        # (Not reachable from these runs: the queue's final results (the division is complete by
+        # then, so the queue is empty), championship placeholder queue rows (the frozen templates
+        # create every championship match at generation) and "No division selected.".)
+        expected = {
+            'context: pools', 'context: active pool', 'context: completed pools', 'context: pool tiebreak row',
+            'context: pools with bracket cards', 'context: pools with bracket message', 'context: pools with bracket team-standings',
+            'context: single-elim', 'context: split-single-elim', 'context: team-sheet', 'context: kachinuki',
+            'context: bracket with bracket team-bracket', 'context: bracket with bracket message',
+            'queue: empty', 'queue: message', 'queue: groups', 'queue row: individual match', 'queue row: individual match tiebreak',
+            'queue row: team match', 'queue row: team placeholder', 'queue row: aligned awaiting',
+        }
+        assert expected <= VARIANTS_SEEN, f'panel variants not covered: {sorted(expected - VARIANTS_SEEN)}'
+
         assert not errors, '\n'.join(errors)
-        print(f'PASS React court scoreboard + header + score buttons + action row = legacy renderer '
-              f'(individual RR, team playoff, two courts + split division, spectator) in {time.time() - started:.0f}s')
+        print(f'PASS React court scoreboard + header + score buttons + action row + queue + context = legacy renderer '
+              f'(individual RR, team playoff, two courts + split division, spectator; played through: '
+              f'{", ".join(f"{n} ({c} matches)" for n, c in played.items())}) in {time.time() - started:.0f}s')
         browser.close()
 
 

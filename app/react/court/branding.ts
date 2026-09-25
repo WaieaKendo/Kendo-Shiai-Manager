@@ -27,3 +27,11 @@ export const DEFAULT_COURT_ACTION_ICONS: CourtActionIcons = {
   fusen: '⚑',
   next: '»',
 };
+
+/** Symbols in the context panel (#courtContext), as the legacy markup draws them. */
+export interface CourtPanelIcons {
+  /** The mark after a completed pool's title (.pool-complete-mark). */
+  poolComplete: string;
+}
+
+export const DEFAULT_COURT_PANEL_ICONS: CourtPanelIcons = { poolComplete: '✓' };
