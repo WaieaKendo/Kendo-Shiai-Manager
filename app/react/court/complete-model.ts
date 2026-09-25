@@ -1,6 +1,7 @@
 // The court screen's division-complete presentation: the .division-complete class on
 // #score .scoreboard-card (the court CSS then hides the match display, the score buttons and
-// the action row, finding F2) and the .division-complete-panel at the end of that card, with
+// Fusen-gachi / Next Match; Undo and Redo stay, F2) and the .division-complete-panel at the end
+// of that card, with
 // the division's placements.
 //
 // The legacy app decides when a division is complete on this court (the renderScore()

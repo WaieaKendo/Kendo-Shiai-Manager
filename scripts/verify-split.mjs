@@ -71,6 +71,12 @@ const KNOWN_POST_SPLIT_EDITS = {
   // feat/react-overlay: app/js/33-stream-overlay-links.js (TV menu "copy overlay link").
   'stream-overlay': 1,
 };
+// The same markers in app/styles/*.css (count per name, in order of first appearance).
+const KNOWN_POST_SPLIT_CSS_EDITS = {
+  // fix/pre-event (F2): Undo/Redo stay on the division-complete court screen (08); only
+  // Fusen-gachi and Next Match are hidden there.
+  'undo-after-complete': 1,
+};
 // Old functions whose body now lives in app/engine/*.ts (parameter lists without braces).
 const MOVED_TO_ENGINE = [
   'poolSizes', 'clubGroup', 'shuffleDeterministic', 'poolPlayerSlotLetter', 'assignPoolPlayerSlots',
@@ -206,9 +212,15 @@ for (const [tag, id] of MARKUP_TEST_IDS) {
   else markup = markup.replace(added, () => tag);
 }
 check(markup === oldMarkup, `app/index.html is the old markup, byte for byte, apart from ${MARKUP_TEST_IDS.length} listed test IDs`);
-check(appStyles() === oldStyleBlocks.map(m => m[1]).join(''), 'app/styles/*.css concatenated = old <style> blocks, byte for byte');
-
 const POST_SPLIT = /\/\* ksm:post-split-begin ([\w-]+)(?: was:((?:(?!\*\/)[^\n])*?))? \*\/[\s\S]*?\/\* ksm:post-split-end \*\/\n?/g;
+// CSS takes the same markers (KNOWN_POST_SPLIT_CSS_EDITS); without them the styles stay byte for byte.
+const foundCss = {};
+for (const m of appStyles().matchAll(POST_SPLIT)) foundCss[m[1]] = (foundCss[m[1]] || 0) + 1;
+check(JSON.stringify(foundCss) === JSON.stringify(KNOWN_POST_SPLIT_CSS_EDITS),
+  `post-split CSS edits are the known ones (${Object.entries(foundCss).map(([k, n]) => `${k}: ${n}`).join(', ') || 'none'})`);
+check(appStyles().replace(POST_SPLIT, (_, name, was) => was ?? '') === oldStyleBlocks.map(m => m[1]).join(''),
+  'app/styles/*.css concatenated = old <style> blocks, byte for byte, apart from marked post-split edits');
+
 const found = {};
 for (const m of appScript().matchAll(POST_SPLIT)) found[m[1]] = (found[m[1]] || 0) + 1;
 check(JSON.stringify(found) === JSON.stringify(KNOWN_POST_SPLIT_EDITS),

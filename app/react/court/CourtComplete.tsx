@@ -1,7 +1,8 @@
 // The court screen's division-complete presentation: the .division-complete class on the
 // scoreboard card and the .division-complete-panel as the card's last child, the same
 // elements, classes and test IDs as divisionCompletePanelHtml(), so the court CSS (which hides
-// the match display, score buttons and action row) and the tests apply unchanged. The card
+// the match display, score buttons, Fusen-gachi and Next Match; Undo/Redo stay, F2) and the
+// tests apply unchanged. The card
 // itself is legacy markup that holds the other islands, so the panel is a portal into it and
 // the class is set on it after each render. The legacy setCourtCompletePresentation()
 // publishes whether the division is complete and its placements (ksm:court-complete).
