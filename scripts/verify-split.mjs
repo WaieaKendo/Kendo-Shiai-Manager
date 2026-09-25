@@ -49,6 +49,10 @@ const KNOWN_POST_SPLIT_EDITS = {
   // setCourtCompletePresentation() (32). Listed here because renderDivisions() (02) is its first
   // region: the check compares names in order of first appearance.
   'react-court': 8,
+  // fix/pre-event (M.12): test IDs on markup drawn by app/js (03: the exhibition rows and the
+  // Regenerate Single Division dialog), each line kept in its `was:` marker. Test IDs on the
+  // static markup are listed in MARKUP_TEST_IDS instead.
+  'test-ids': 4,
   // refactor/engine-bridge (roadmap 2.0+): one delegation per MOVED_TO_ENGINE function.
   'engine-bridge': 88,
   // refactor/engine-settings (roadmap 2.1): tournamentSettings() accessor + inline
@@ -127,6 +131,33 @@ const REMOVED_COURT_RENDERER = [
   'poolResultCardHtml#1', 'poolResultCardHtml#2', 'orderedPoolContextHtml#1', // 29, 31, 31
   'splitTemplateContextHtml#1', 'canonicalSingleElimQueue#1', 'persistentContextHtml#1', // 32
 ];
+// fix/pre-event (M.12): data-testid attributes added to existing markup, as [old start tag, test ID];
+// the check takes each ` data-testid="<id>"` out again (it must appear exactly once, at the end
+// of that tag) and then compares byte for byte, so any other markup change still fails.
+const MARKUP_TEST_IDS = [
+  ['<button onclick="exportResultsAwards()">', 'nav-export-results'],
+  ['<button onclick="closeNavMenus();alert(\'Referee assignment export will be added with the Referee Assignment module.\')">', 'nav-export-referees'],
+  ['<button onclick="closeNavMenus();alert(\'Tournament Archive export will be added with the archive module.\')">', 'nav-export-archive'],
+  ['<button onclick="closeNavMenus();manualSaveTournament()">', 'nav-download-file'],
+  ['<button onclick="closeNavMenus();triggerLoadTournament()">', 'nav-load-file'],
+  ['<input id="ksmLoadFile" type="file" accept=".ksm,application/json" style="display:none" onchange="loadTournamentFromFile(event)">', 'load-file-input'],
+  ['<select id="exhibitionEnabled" onchange="saveSetup();renderReg()">', 'exhibition-enabled'],
+  ['<button id="exhibitionTab" class="tab" onclick="regTab(\'exhibition\')">', 'reg-tab-exhibition'],
+  ['<button id="regenerateDivisionBtn" onclick="openRegenerateDivisionDialog()">', 'regenerate-division-button'],
+  ['<button onclick="alert(\'CSV import will be added in the production build.\')">', 'reg-import-csv'],
+  ['<button onclick="exportCSV()">', 'reg-export-csv'],
+  ['<button onclick="alert(\'Paste rows directly into the table from Excel.\')">', 'reg-paste-excel'],
+  ['<button class="danger" onclick="clearCompetitors()">', 'reg-clear'],
+  ['<button class="danger" onclick="state.teams=[];renderTeams()">', 'team-clear'],
+  ['<button class="primary" onclick="addExhibitionRow()">', 'exhibition-add'],
+  ['<button onclick="addExhibitionRow(3)">', 'exhibition-add-3'],
+  ['<button class="danger" onclick="state.exhibitions=[];renderExhibitions()">', 'exhibition-clear'],
+  ['<div id="regenerateModal" class="ksm-modal hidden" role="dialog" aria-modal="true" aria-labelledby="regenerateModalTitle">', 'regenerate-modal'],
+  ['<h2 id="regenerateModalTitle">', 'regenerate-modal-title'],
+  ['<button onclick="closeManagementModal(\'regenerateModal\')" aria-label="Close">', 'regenerate-modal-close'],
+  ['<button class="primary" onclick="previewFullPrintPacket()">', 'print-full-packet'],
+  ['<div id="printBody" class="print-body">', 'print-body'],
+];
 const old = execFileSync('git', ['show', `${commit}:public/index.html`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64e6 });
 let failed = 0;
 const check = (ok, name) => { console.log(`${ok ? 'PASS' : 'FAIL'} ${name}`); if (!ok) failed++; };
@@ -167,7 +198,14 @@ const outsideBlocks = headStyles.replace(/<style[^>]*>\n[\s\S]*?<\/style>/g, '')
 
 check(!outsideBlocks.trim(), `old <head> held only <style> blocks between <title> and </head> (${oldStyleBlocks.length} blocks)`);
 const oldMarkup = old.slice(0, old.indexOf('<style')) + STYLE_TAG + '\n' + old.slice(old.indexOf('</head>'), scriptStart) + SCRIPT_TAG + old.slice(scriptEnd + '</script>'.length);
-check(indexHtml() === oldMarkup, 'app/index.html is the old markup, byte for byte');
+let markup = indexHtml();
+for (const [tag, id] of MARKUP_TEST_IDS) {
+  const added = `${tag.slice(0, -1)} data-testid="${id}">`;
+  const count = markup.split(added).length - 1;
+  if (count !== 1) check(false, `MARKUP_TEST_IDS: ${id} is on its tag ${count} times (expected once)`);
+  else markup = markup.replace(added, () => tag);
+}
+check(markup === oldMarkup, `app/index.html is the old markup, byte for byte, apart from ${MARKUP_TEST_IDS.length} listed test IDs`);
 check(appStyles() === oldStyleBlocks.map(m => m[1]).join(''), 'app/styles/*.css concatenated = old <style> blocks, byte for byte');
 
 const POST_SPLIT = /\/\* ksm:post-split-begin ([\w-]+)(?: was:((?:(?!\*\/)[^\n])*?))? \*\/[\s\S]*?\/\* ksm:post-split-end \*\/\n?/g;
