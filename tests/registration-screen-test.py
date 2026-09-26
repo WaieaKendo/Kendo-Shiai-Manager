@@ -3,8 +3,8 @@
 Setup and Registration are filled in like a director would (most other tests skip them with
 KSMTest.configure), then:
   * Export CSV downloads the registered players (quoted, commas and quotes escaped);
-  * Clear Registration asks first (Cancel keeps the players); Clear Teams and Clear Exhibitions
-    clear at once without asking (finding F8, expected failure);
+  * Clear Registration, Clear Teams and Clear Exhibitions ask first: Cancel keeps the entries,
+    OK clears them (F8 fixed);
   * exhibitions: the tab appears when enabled in Setup, + Add / + 3 Matches add rows, names,
     status and remove work, and generation creates a match for each complete, non-no-show row;
   * Regenerate Single Division: every division with its status (Ready, Matches Started,
@@ -182,7 +182,7 @@ def main():
         assert all(x.lower() in packet for x in (f'{MAIN} • Round Robin', f'{SECOND} • Single Elimination', 'Division Results', placements[THIRD][0][1])), packet[:1500]
         assert packet.index('division sheet') < packet.index('division results'), 'packet order: division sheets, then results'
 
-        # --- Clear Registration asks; Clear Teams / Clear Exhibitions do not ----------------------------
+        # --- Clear Registration / Teams / Exhibitions ask first (F8) --------------------------------------
         app.nav('registration')
         app.click('reg-tab-individual')
         app.expect_dialog('Clear all individual competitors?', accept=False)
@@ -194,20 +194,25 @@ def main():
         app.click('reg-clear')
         app.wait_for_dialogs()
         assert count('reg-row') == 0, 'Clear Registration kept players'
-        # Finding F8 (docs/ROADMAP.md): Clear Teams and Clear Exhibitions delete every entry at once,
-        # without the confirmation Clear Registration asks for. Expected failure: update when fixed.
-        app.seen_dialogs.clear()
-        app.click('reg-tab-team')
-        app.click('team-clear')
-        app.click('reg-tab-exhibition')
-        app.click('exhibition-clear')
-        page.wait_for_timeout(300)
-        assert not app.seen_dialogs and count('team-card') == 0 and count('exhibition-row') == 0, \
-            'Finding F8 no longer reproduces (Clear Teams/Exhibitions asked first): update this test and docs/ROADMAP.md'
+        # F8 (docs/ROADMAP.md, fixed): Clear Teams and Clear Exhibitions ask first, like Clear Registration.
+        for tab, button, row, question in (('reg-tab-team', 'team-clear', 'team-card', 'Clear all teams?'),
+                                           ('reg-tab-exhibition', 'exhibition-clear', 'exhibition-row', 'Clear all exhibition matches?')):
+            app.click(tab)
+            before = count(row)
+            assert before > 0, f'{row}: nothing to clear'
+            app.expect_dialog(question, accept=False)
+            app.seen_dialogs.clear()
+            app.click(button)
+            assert app.wait_for_dialogs() == [question] and count(row) == before, f'{button}: Cancel changed the list'
+            app.expect_dialog(question, accept=True)
+            app.seen_dialogs.clear()
+            app.click(button)
+            app.wait_for_dialogs()
+            app.wait_for(lambda: count(row) == 0, message=f'{button} to clear the list')
 
         assert not problems, '\n'.join(problems)
         print('PASS registration: CSV export, placeholders, teams, exhibitions, regenerate dialog, '
-              'brackets/results/full packet print, clear buttons (F8 pinned)')
+              'brackets/results/full packet print, clear buttons ask first (F8)')
         browser.close()
 
 

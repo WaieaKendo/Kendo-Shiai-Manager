@@ -53,6 +53,8 @@ const KNOWN_POST_SPLIT_EDITS = {
   // Regenerate Single Division dialog), each line kept in its `was:` marker. Test IDs on the
   // static markup are listed in MARKUP_TEST_IDS instead.
   'test-ids': 4,
+  // fix/pre-event (F8): clearTeams()/clearExhibitions() confirm first (app/js/03).
+  'clear-confirm': 1,
   // refactor/engine-bridge (roadmap 2.0+): one delegation per MOVED_TO_ENGINE function.
   'engine-bridge': 88,
   // refactor/engine-settings (roadmap 2.1): tournamentSettings() accessor + inline
@@ -153,6 +155,13 @@ const REMOVED_COURT_RENDERER = [
 // fix/pre-event (M.12): data-testid attributes added to existing markup, as [old start tag, test ID];
 // the check takes each ` data-testid="<id>"` out again (it must appear exactly once, at the end
 // of that tag) and then compares byte for byte, so any other markup change still fails.
+// fix/pre-event (F8): deliberate edits of existing markup, as [markup before, markup now]. Each
+// 'now' must appear exactly once; the check puts 'before' back (before the test-ID step) and then
+// compares byte for byte, so any other markup change still fails.
+const MARKUP_EDITS = [
+  ['<button class="danger" onclick="state.teams=[];renderTeams()" data-testid="team-clear">', '<button class="danger" onclick="clearTeams()" data-testid="team-clear">'],
+  ['<button class="danger" onclick="state.exhibitions=[];renderExhibitions()" data-testid="exhibition-clear">', '<button class="danger" onclick="clearExhibitions()" data-testid="exhibition-clear">'],
+];
 const MARKUP_TEST_IDS = [
   ['<button onclick="exportResultsAwards()">', 'nav-export-results'],
   ['<button onclick="closeNavMenus();alert(\'Referee assignment export will be added with the Referee Assignment module.\')">', 'nav-export-referees'],
@@ -221,13 +230,18 @@ const outsideBlocks = headStyles.replace(/<style[^>]*>\n[\s\S]*?<\/style>/g, '')
 check(!outsideBlocks.trim(), `old <head> held only <style> blocks between <title> and </head> (${oldStyleBlocks.length} blocks)`);
 const oldMarkup = old.slice(0, old.indexOf('<style')) + STYLE_TAG + '\n' + old.slice(old.indexOf('</head>'), scriptStart) + SCRIPT_TAG + old.slice(scriptEnd + '</script>'.length);
 let markup = indexHtml();
+for (const [before, now] of MARKUP_EDITS) {
+  const count = markup.split(now).length - 1;
+  if (count !== 1) check(false, `MARKUP_EDITS: ${now} appears ${count} times (expected once)`);
+  else markup = markup.replace(now, () => before);
+}
 for (const [tag, id] of MARKUP_TEST_IDS) {
   const added = `${tag.slice(0, -1)} data-testid="${id}">`;
   const count = markup.split(added).length - 1;
   if (count !== 1) check(false, `MARKUP_TEST_IDS: ${id} is on its tag ${count} times (expected once)`);
   else markup = markup.replace(added, () => tag);
 }
-check(markup === oldMarkup, `app/index.html is the old markup, byte for byte, apart from ${MARKUP_TEST_IDS.length} listed test IDs`);
+check(markup === oldMarkup, `app/index.html is the old markup, byte for byte, apart from ${MARKUP_TEST_IDS.length} listed test IDs and ${MARKUP_EDITS.length} listed edits`);
 const POST_SPLIT = /\/\* ksm:post-split-begin ([\w-]+)(?: was:((?:(?!\*\/)[^\n])*?))? \*\/[\s\S]*?\/\* ksm:post-split-end \*\/\n?/g;
 // CSS takes the same markers (KNOWN_POST_SPLIT_CSS_EDITS); without them the styles stay byte for byte.
 const foundCss = {};

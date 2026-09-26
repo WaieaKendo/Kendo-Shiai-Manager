@@ -111,3 +111,8 @@ function loadFullTournament(){
 }
 
 function clearCompetitors(){if(confirm('Clear all individual competitors?')){state.competitors=[];renderReg()}}
+/* ksm:post-split-begin clear-confirm */
+// F8: Clear Teams and Clear Exhibitions ask first, like Clear Registration (clearCompetitors).
+function clearTeams(){if(confirm('Clear all teams?')){state.teams=[];renderTeams()}}
+function clearExhibitions(){if(confirm('Clear all exhibition matches?')){state.exhibitions=[];renderExhibitions()}}
+/* ksm:post-split-end */
