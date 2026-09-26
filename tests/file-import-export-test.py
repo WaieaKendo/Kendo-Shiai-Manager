@@ -12,8 +12,8 @@ the Save / Load menu (test IDs, Playwright's download and file-chooser APIs):
     tournaments stay unchanged; a file without a tournament ID (older app) is treated the same;
   * invalid files (not JSON, no tournament data, a recovery file) are refused and change nothing;
   * Load Recovery File refuses a file that is not a recovery file and a cancelled password,
-    changing nothing; and (finding F7) it switches the device to a new tournament without asking,
-    so work still queued for the open tournament never reaches the cloud.
+    changing nothing; it asks before loading as a new tournament (Cancel changes nothing) and
+    refuses while work for the open tournament is still queued, which then reaches the cloud (F7).
 """
 import json
 import tempfile
@@ -162,37 +162,60 @@ def main():
         director.load_recovery_file(path)  # a tournament file, not a recovery file
         director.wait_for_dialogs()
         assert director.tournament_id() == tid and director.revision() == rev, 'an invalid recovery file changed the device'
-        # Cancelling the new Staff password leaves everything as it was.
+        # With a tournament open it asks first (F7); Cancel leaves everything as it was.
+        ask = 'Load this recovery file as a new tournament?'
+        director.expect_dialog(ask, accept=False)
+        director.seen_dialogs.clear()
+        director.load_recovery_file(recovery_path)
+        assert director.wait_for_dialogs() == [director.seen_dialogs[0]] and director.seen_dialogs[0].startswith(ask)
+        assert 'Files Cup' in director.seen_dialogs[0], director.seen_dialogs
+        assert director.tournament_id() == tid and director.revision() == rev, 'Cancel changed the device'
+        # Cancelling the new Staff password leaves the open tournament as it was. (Before asking for
+        # the password, the guard saves this device's pending autosave, e.g. the screen it is on, so
+        # the revision may move; the tournament's matches must not.)
+        matches = server(tid)['payload']['state']['allMatches']
+        director.expect_dialog(ask, accept=True)
         director.expect_dialog('Create Staff password')
         director.seen_dialogs.clear()
         director.load_recovery_file(recovery_path)
-        director.wait_for_dialogs(2)
-        assert director.seen_dialogs[1] == 'Unable to load this recovery file.', director.seen_dialogs
-        assert director.tournament_id() == tid and director.revision() == rev
+        director.wait_for_dialogs(3)
+        assert director.seen_dialogs[2] == 'Unable to load this recovery file.', director.seen_dialogs
+        director.wait_idle()
+        assert director.tournament_id() == tid and server(tid)['payload']['state']['allMatches'] == matches, \
+            'a cancelled recovery load changed the open tournament'
         del director.expected['Create Staff password']
 
-        # Finding F7 (docs/ROADMAP.md): Load Recovery File switches the device to the file's snapshot
-        # as a new tournament without asking (its "different Tournament ID" confirm runs after the
-        # device's tournament ID is cleared, so it never shows), and work still queued for the open
-        # tournament never reaches the cloud. Expected failure: update when fixed.
-        director.expect_dialog('This recovery file belongs to a different Tournament ID')
+        # F7 (docs/ROADMAP.md, fixed): while work for the open tournament is still queued (offline),
+        # Load Recovery File refuses and changes nothing; the queued point then reaches the cloud.
+        refused = 'This device has changes that could not be saved to the cloud yet.'
+        director.expect_dialog(refused)
         page.context.set_offline(True)
         director.score_point('R', 'D')
         director.wait_for(director.outbox, message='the offline point to be queued')
         director.seen_dialogs.clear()
         director.load_recovery_file(recovery_path)
-        director.wait_for(lambda: page.inner_text(sel('save-status')).strip() == 'Recovery file loaded', message='the recovery file to load')
+        director.wait_for_dialogs(2)
+        assert director.seen_dialogs[1].startswith(refused), director.seen_dialogs
+        assert director.tournament_id() == tid and director.outbox(), 'a refused recovery file changed the device'
         page.context.set_offline(False)
+        director.save_now()
+        director.wait_idle()
+        has_point = lambda: any(m.get('rp') == ['D'] for m in server(tid)['payload']['state']['allMatches']['Files Division'])
+        director.wait_for(has_point, message='the queued point to reach the open tournament')
+        # With nothing queued, it loads as a new tournament and the open one stays unchanged.
+        before = server(tid)
+        director.seen_dialogs.clear()
+        director.load_recovery_file(recovery_path)
+        director.wait_for(lambda: page.inner_text(sel('save-status')).strip() == 'Recovery file loaded', message='the recovery file to load')
         director.save_now()
         director.wait_for(lambda: director.tournament_id() not in (None, tid), message='the recovered tournament')
         director.wait_idle()
-        queued_lost = not any(m.get('rp') == ['D'] for m in server(tid)['payload']['state']['allMatches']['Files Division'])
-        assert not director.seen_dialogs and queued_lost, \
-            'Finding F7 no longer reproduces (Load Recovery File asked first or kept the queued work): update this test and docs/ROADMAP.md'
+        after = server(tid)['payload']['state']['allMatches']
+        assert after == before['payload']['state']['allMatches'] and has_point(), 'loading the recovery file changed the open tournament'
 
         assert not problems, '\n'.join(problems)
         print(f'PASS tournament files: download/load round trip, same-tournament confirm, other tournament as new, '
-              f'older file, invalid files, recovery file refusals, F7 pinned ({time.time() - started:.0f}s)')
+              f'older file, invalid files, recovery file: ask, refusals, queued work kept (F7) ({time.time() - started:.0f}s)')
         browser.close()
 
 

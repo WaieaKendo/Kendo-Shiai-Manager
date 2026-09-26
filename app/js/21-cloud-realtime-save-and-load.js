@@ -260,7 +260,26 @@ function promptDeviceName(role,current){if(role==='spectator')return current||'S
 window.addEventListener('online',()=>{setConnectionStatus('Reconnecting','connecting');ksmSaveStatusMode=readOutbox()?'syncing':'saved';renderPersistentSaveStatus();connectCloudSocket();flushCloudOutbox()});window.addEventListener('offline',()=>{setConnectionStatus('Offline','offline');markLocalSave('Offline safety save');writeOutbox(tournamentPayload(),'Connection lost')});
 
 function triggerLoadRecoveryFile(){document.getElementById('ksmRecoveryFile')?.click()}
-async function loadRecoveryFile(event){const file=event.target.files&&event.target.files[0];if(!file)return;try{const pack=JSON.parse(await file.text());if(pack.fileType!=='KSM_RECOVERY'||!pack.latestLocalSnapshot?.state)throw new Error('Invalid recovery file');const restoredPassword=promptNewStaffPassword();if(!restoredPassword)throw new Error('New Staff password required');sessionStorage.setItem(KSM_V316_STAFF_SESSION,restoredPassword);setSessionRole('staff');cloudSession.tournamentId=null;cloudSession.revision=0;if(cloudSession.tournamentId&&pack.tournamentId&&cloudSession.tournamentId!==pack.tournamentId&&!confirm('This recovery file belongs to a different Tournament ID. Load its local snapshot anyway?'))return;applyTournamentPayload(pack.latestLocalSnapshot,false);localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(pack.latestLocalSnapshot));if(pack.outbox)localStorage.setItem(KSM_CLOUD_OUTBOX_KEY,JSON.stringify(pack.outbox));cloudSession.tournamentId=null;cloudSession.revision=0;if(pack.assignedCourt)cloudSession.court=pack.assignedCourt;persistCloudSession();ksmSaveStatusMode='offline';setConnectionStatus(navigator.onLine?'Connected':'Offline',navigator.onLine?'online':'offline');renderPersistentSaveStatus();if(navigator.onLine&&pack.outbox)await flushCloudOutbox();updateSaveStatus('Recovery file loaded')}catch(err){console.error(err);alert('Unable to load this recovery file.')}finally{event.target.value=''}}
+/* ksm:post-split-begin recovery-guard */
+// F7: Load Recovery File always makes a new tournament from the file's snapshot. Ask first when a
+// tournament is open (its old "different Tournament ID" confirm ran after the ID was cleared, so
+// it never showed), and never load while this device still has work queued for the cloud: the
+// file's outbox would replace it and that work would never arrive. Same rule as Load Tournament
+// File (0.5).
+async function confirmRecoveryFileLoad(pack){
+  const name=pack.latestLocalSnapshot?.setup?.tName||'Unnamed tournament';
+  const when=pack.createdAt&&!isNaN(new Date(pack.createdAt))?new Date(pack.createdAt).toLocaleString():'unknown date';
+  if(cloudSession.tournamentId){
+    const open=(window.tName&&tName.value)||'The open tournament';
+    if(!confirm(`Load this recovery file as a new tournament? File: ${name}, saved ${when}. ${open} stays unchanged.`))return false;
+  }
+  // Only when there is something to save: a save with nothing new would still add a revision.
+  const saved=cloudSession.tournamentId&&!isReadOnlySession()&&localChangesPending()?await saveTournamentToCloudWithReason('Before loading a recovery file',true):true;
+  if(!saved||readOutbox()){alert('This device has changes that could not be saved to the cloud yet. Connect to the internet (or use Save Now), then load the recovery file again. Nothing was changed.');return false}
+  return true;
+}
+/* ksm:post-split-end */
+async function loadRecoveryFile(event){const file=event.target.files&&event.target.files[0];if(!file)return;try{const pack=JSON.parse(await file.text());if(pack.fileType!=='KSM_RECOVERY'||!pack.latestLocalSnapshot?.state)throw new Error('Invalid recovery file');/* ksm:post-split-begin recovery-guard */if(!(await confirmRecoveryFileLoad(pack)))return;/* ksm:post-split-end */const restoredPassword=promptNewStaffPassword();if(!restoredPassword)throw new Error('New Staff password required');sessionStorage.setItem(KSM_V316_STAFF_SESSION,restoredPassword);setSessionRole('staff');cloudSession.tournamentId=null;cloudSession.revision=0;if(cloudSession.tournamentId&&pack.tournamentId&&cloudSession.tournamentId!==pack.tournamentId&&!confirm('This recovery file belongs to a different Tournament ID. Load its local snapshot anyway?'))return;applyTournamentPayload(pack.latestLocalSnapshot,false);localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(pack.latestLocalSnapshot));if(pack.outbox)localStorage.setItem(KSM_CLOUD_OUTBOX_KEY,JSON.stringify(pack.outbox));cloudSession.tournamentId=null;cloudSession.revision=0;if(pack.assignedCourt)cloudSession.court=pack.assignedCourt;persistCloudSession();ksmSaveStatusMode='offline';setConnectionStatus(navigator.onLine?'Connected':'Offline',navigator.onLine?'online':'offline');renderPersistentSaveStatus();if(navigator.onLine&&pack.outbox)await flushCloudOutbox();updateSaveStatus('Recovery file loaded')}catch(err){console.error(err);alert('Unable to load this recovery file.')}finally{event.target.value=''}}
 function manualSaveTournament(){
   try{
     const payload=/* ksm:post-split-begin load-file-guard was:tournamentPayload() */tournamentFilePayload()/* ksm:post-split-end */;

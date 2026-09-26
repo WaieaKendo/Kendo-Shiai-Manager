@@ -78,6 +78,9 @@ const KNOWN_POST_SPLIT_EDITS = {
   // fix/outbox-flush-local-changes (F6): mergeQueuedStaffWork() and its call at staff login;
   // the outbox flush also replays court actions taken before it started (comment + condition).
   'outbox-flush-rebase': 4,
+  // fix/pre-event (F7): Load Recovery File asks first and refuses while work is queued
+  // (confirmRecoveryFileLoad() + its call in loadRecoveryFile()).
+  'recovery-guard': 2,
   // fix/pre-event (roadmap 0.5): Load Tournament File asks before replacing the open tournament and
   // loads a file of another tournament as a new one (loadTournamentFromFile(): two inline
   // replacements; the helpers after it); Download Tournament File writes the tournament ID and

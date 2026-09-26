@@ -133,6 +133,8 @@ def main():
 
         fresh = KsmApp.open_device(browser, base, 'Replacement device', problems, password='new-pass')
         fresh.create_tournament()  # a replacement device needs a staff session to see the menu
+        # That tournament is open, so loading the recovery file asks first (F7) and leaves it unchanged.
+        fresh.expect_dialog('Load this recovery file as a new tournament?', accept=True)
         fresh.click('nav-save-load')
         fresh.click('nav-load-recovery')
         fresh.page.set_input_files(sel('recovery-file-input'), str(dl.value.path()) + '.ksm')
