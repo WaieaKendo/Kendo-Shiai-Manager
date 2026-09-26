@@ -65,6 +65,14 @@ const KNOWN_POST_SPLIT_EDITS = {
   // and a tournament link without &court= starts on the device's stored court (33:
   // initializeCloudRoleFromUrl()).
   'court-pin': 5,
+  // fix/pre-event (F4, from fix/setup-edit-conflict-merge): the 409 rebase merges non-court edits
+  // three-way against the cloud copy they started from. 18: the merge helpers,
+  // rebaseLocalPayloadOnRecord()'s basePayload parameter and merge call; 20: writeOutbox() keeps
+  // the base; 21: live updates / own echo remember the base, the rebased save, the outbox flush
+  // (two) and the page-unload queue pass it on (mergeQueuedStaffWork() passes the outbox's base
+  // inside its outbox-flush-rebase region); 33: performCloudSave() takes, passes on and
+  // remembers it, loadTournamentFromCloud() remembers it.
+  'edit-merge': 15,
   // fix/outbox-flush-local-changes (F6): mergeQueuedStaffWork() and its call at staff login;
   // the outbox flush also replays court actions taken before it started (comment + condition).
   'outbox-flush-rebase': 4,
@@ -168,6 +176,9 @@ const MARKUP_TEST_IDS = [
   ['<button onclick="closeManagementModal(\'regenerateModal\')" aria-label="Close">', 'regenerate-modal-close'],
   ['<button class="primary" onclick="previewFullPrintPacket()">', 'print-full-packet'],
   ['<div id="printBody" class="print-body">', 'print-body'],
+  // F4 (fix/setup-edit-conflict-merge): Setup fields its conflict test edits.
+  ['<input id="tHost" value="Aiea Taiheiji Kendo Club">', 'setup-host'],
+  ['<input id="tLocation" value="Halawa District Park">', 'setup-location'],
 ];
 const old = execFileSync('git', ['show', `${commit}:public/index.html`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64e6 });
 let failed = 0;

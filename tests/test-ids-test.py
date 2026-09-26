@@ -17,7 +17,7 @@ SINGLETONS = [
     'nav-download-file', 'nav-load-file', 'load-file-input', 'nav-export-results', 'nav-export-referees', 'nav-export-archive',
     'staff-auth', 'connection-status', 'save-status', 'home-new-tournament',
     # setup
-    'setup-tournament-name', 'setup-division-rows', 'custom-division-name', 'custom-division-format',
+    'setup-tournament-name', 'setup-host', 'setup-location', 'setup-division-rows', 'custom-division-name', 'custom-division-format',
     'custom-division-court', 'custom-division-add', 'team-enabled', 'team-format', 'team-tournament-format',
     'team-court', 'setup-save-continue', 'exhibition-enabled',
     # registration
