@@ -11,8 +11,8 @@ KSMTest.configure), then:
     Not Generated; only Ready can be chosen), the confirmation, and a regenerated division
     next to an unchanged one;
   * Export -> Tournament Brackets / Results & Awards and Preview Full Packet draw their print
-    sheets (division sheets with pools and players, results with the placements; a finished
-    pool-only round robin prints "Results pending": finding F9, expected failure);
+    sheets (division sheets with pools and players, results with the same placements as the
+    Results screen, including a finished pool-only round robin: F9 fixed);
   * placeholder buttons (Import CSV, Paste from Excel, Referee Assignments, Tournament Archive)
     still only show their "will be added" message (implement or remove: planning meeting).
 No page error or unexpected dialog may occur.
@@ -168,15 +168,13 @@ def main():
         app.click('nav-export-results')
         results = page.inner_text(sel('print-body')).lower()
         assert 'division results' in results and 'no awards entered.' in results, results[:1500]
-        for div in (THIRD, SECOND):
+        assert placements.get(MAIN), f'{MAIN} should have placements on the Results screen: {placements}'
+        # MAIN is a pool-only round robin (4 players, roadmap 0.2): it used to print "Results pending" (F9).
+        for div in (THIRD, SECOND, MAIN):
             printed = f'{div}\n' + '\n'.join(f'{place}\n{person}' for place, person in placements[div])
             assert printed.lower() in results, f'Results & Awards lack the {div} placements {placements[div]}:\n{results[:1500]}'
         assert f'team tournament\nresults pending' in results  # still being played
-        # Finding F9 (docs/ROADMAP.md): the printed Results & Awards only read a championship Final, so
-        # a finished pool-only round robin (3-5 players, roadmap 0.2) prints "Results pending"
-        # although Results and the court show its placements. Expected failure: update when fixed.
-        assert f'{MAIN}\nresults pending'.lower() in results, \
-            'Finding F9 no longer reproduces (printed results for a pool-only round robin): update this test and docs/ROADMAP.md'
+        assert f'{MAIN}\nresults pending'.lower() not in results, 'F9: the finished round robin prints "Results pending"'
         app.click('print-full-packet')
         packet = page.inner_text(sel('print-body')).lower()
         assert all(x.lower() in packet for x in (f'{MAIN} • Round Robin', f'{SECOND} • Single Elimination', 'Division Results', placements[THIRD][0][1])), packet[:1500]

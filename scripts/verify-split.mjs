@@ -62,6 +62,8 @@ const KNOWN_POST_SPLIT_EDITS = {
   // the team engine moved (2.6) and its bridges pass tournamentSettings() in; 3 after
   // division generation moved (2.7).
   'engine-settings': 3,
+  // fix/pre-event (F9): printPlacementsForDivision() uses resultPlacements() (comment + body).
+  'print-placements': 2,
   // fix/pre-event (F3, from fix/court-pin-after-reload): the pinned-court key no longer holds the
   // session role (18: storedCourtPin(), courtPinStorageKey() parameter + body, pinnedCourt() body)
   // and a tournament link without &court= starts on the device's stored court (33:
