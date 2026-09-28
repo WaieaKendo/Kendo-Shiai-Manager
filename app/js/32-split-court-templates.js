@@ -73,17 +73,6 @@ renderScore=function(){
   }
   setCourtCompletePresentation(div,false);renderScore_v3121();
 };
-const renderPublic_v3121=renderPublic;
-renderPublic=function(){
-  /* ksm:post-split-begin react-live */if(ksmReactLiveScoresActive()){ksmRenderLiveScores();return;}/* ksm:post-split-end */
-  const court=state.publicCourt||'A';
-  const div=state.courtActiveDivision?.[court]||state.courtState?.[court]?.division||state.currentDivision;
-  if(div&&divisionComplete(div)&&!courtCurrentMatch(court)){
-    if(window.publicLive)publicLive.innerHTML=`<div class="audience-hero">${divisionCompletePanelHtml(div)}</div>`;
-    return;
-  }
-  renderPublic_v3121();
-};
 
 if(!restoreAutoSaveIfWanted()) renderAll();
 setConnectionStatus(cloudSession.tournamentId?'Sync connecting…':'Local only',cloudSession.tournamentId?'connecting':'local');

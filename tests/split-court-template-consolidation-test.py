@@ -7,6 +7,9 @@ react=court_react_source()
 # tests/golden/court/*.json pin the result. The court checks below point at that code.
 # Node/Match Object construction lives in app/engine/single-elim.ts since roadmap 2.5.
 engine=(Path(__file__).resolve().parent.parent/'app/engine/single-elim.ts').read_text()
+# M.13: Live Scores is React. app/js/36-react-live-scores.js publishes the complete division's
+# placements, app/react/live-scores/LiveScores.tsx draws them with the court's panel.
+live_react=(Path(__file__).resolve().parent.parent/'app/react/live-scores/LiveScores.tsx').read_text()
 checks={
  'single column split context':'split-template-context' in html and "return {kind:'split-single-elim',cards:" in html and 'single-elim-context-grid split-template-context' in react,
  'template node queue':"const nodes=state.singleElimNodes?.[div]||[],arr=enforceUniqueIndividualMatches(div),out=ksmQueueGroups();" in html,
@@ -18,7 +21,7 @@ checks={
  'persistent context':'const div=contextDivisionForCourt();' in html and 'if((state.pools?.[div]||[]).length)return ksmPoolContext(div,null);' in html,
  'queue empty on complete':"if(divisionComplete(div))return {kind:'empty'};" in html,
  'court medalist panel':'setCourtCompletePresentation' in html,
- 'live medalist panel':'divisionCompletePanelHtml(div)' in html,
+ 'live medalist panel':"ksmPublishLiveScores({kind:'complete',complete:ksmDivisionCompleteInput(div,true)});" in html and "<div className=\"audience-hero\"><DivisionCompletePanel view={view.complete} /></div>" in live_react,
 }
 failed=[k for k,v in checks.items() if not v]
 if failed:raise SystemExit('FAIL: '+', '.join(failed))

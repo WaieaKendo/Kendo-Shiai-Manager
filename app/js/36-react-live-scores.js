@@ -1,25 +1,27 @@
 /* ksm:post-split-begin react-live */
 // ==========================================================
 // React Live Scores (app/react/live-scores/, roadmap M.13)
-// The Live Scores screen (#public) is drawn by one React island (LiveScores), mounted by
+// The Live Scores screen (#public) is drawn only by React: one island (LiveScores), mounted by
 // app/react/live-scores/main.tsx. The legacy code still chooses each court's match
 // (courtCurrentMatch(), which also moves a court on to its next match, as before) and decides
-// when the Live Scores court's division is complete; renderPublic() (the live declaration is the
-// 32-split-court-templates.js wrapper) publishes what to show as plain data (ksm:live-scores,
-// window.ksmLiveScoresInput) while the island is mounted, instead of writing #publicLive.
-// The functions below mirror the legacy renderer's decisions (the 32- wrapper, renderPublic()
-// and liveScoresCourtCard() in 25-live-scores.js), which tests/golden/live-scores/*.json
+// when the Live Scores court's division is complete; renderPublic() (25-live-scores.js) calls
+// ksmRenderLiveScores() below, which publishes what to show as plain data (ksm:live-scores,
+// window.ksmLiveScoresInput) and never writes #publicLive.
+// The legacy Live Scores renderer (the 32-split-court-templates.js wrapper around renderPublic(),
+// renderPublic() and liveScoresCourtCard() in 25-, the dead renderPublic() in 11-) was removed in
+// M.13; the functions below mirror its decisions, which tests/golden/live-scores/*.json
 // (recorded from it) pin. Team and kachinuki sheets are the court screen's data
 // (ksmTeamSheet(), ksmKachinukiSheet(), 35-react-court.js), the placements its
-// division-complete data (ksmDivisionCompleteInput()).
+// division-complete data (ksmDivisionCompleteInput()). HTML helpers other screens share
+// (audienceMeta(), teamSheetHtml(), kachinukiSheetHtml(), divisionCompletePanelHtml(), ...) stay.
+// If the React module does not load, Live Scores shows a notice (the end of this file).
 // Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
-function ksmReactLiveScoresActive(){return !!window.ksmLiveScoresMounted}
 function ksmPublishLiveScores(input){
   window.ksmLiveScoresInput=input;
   window.dispatchEvent(new CustomEvent('ksm:live-scores'));
 }
-// liveScoresCourtCard(court) (25-) as data: text is what esc() showed (String(x||'')).
+// liveScoresCourtCard(court) (25-, removed) as data: text is what esc() showed (String(x||'')).
 function ksmLiveScoresCourt(court){
   const data=courtCurrentMatch(court);
   if(!data)return {court:ksmText(court),kind:'idle'};
@@ -37,9 +39,10 @@ function ksmLiveScoresCourt(court){
     points:{W:letters(pts.W),R:letters(pts.R)},
     next:next?{white:ksmText(next.white||'TBD'),red:ksmText(next.red||'TBD')}:null};
 }
-// The legacy renderPublic() (the 32- wrapper, then 25-) as data, in the same order, so
-// courtCurrentMatch() moves the courts on as it did: the Live Scores court's division complete
-// and no match on it -> its placements instead of the courts; otherwise Court A and Court B.
+// renderPublic() as the legacy renderer drew it (the 32- wrapper, then 25-; removed), in the
+// same order, so courtCurrentMatch() moves the courts on as it did: the Live Scores court's
+// division complete and no match on it -> its placements instead of the courts; otherwise
+// Court A and Court B.
 // A TV device (body.ksm-tv) redraws its TV display after the courts, as before.
 function ksmRenderLiveScores(){
   const court=state.publicCourt||'A';
@@ -52,4 +55,20 @@ function ksmRenderLiveScores(){
   ksmPublishLiveScores({kind:'courts',courts:[ksmLiveScoresCourt('A'),ksmLiveScoresCourt('B')]});
   if(document.body.classList.contains('ksm-tv'))renderTvDisplay();
 }
+
+// If the React module (app/react/main.tsx, a module script after app.js) did not run, say so on
+// Live Scores instead of an empty page, which nothing fills any more (e.g. an offline device
+// whose cached copy lacks the module). Module scripts run before DOMContentLoaded, so a working
+// page never shows this.
+function ksmShowLiveScoresModuleMissing(){
+  if(window.ksmLiveScoresMounted)return;
+  const live=document.getElementById('publicLive');
+  if(!live||document.getElementById('liveScoresModuleMissing'))return;
+  const notice=document.createElement('div');
+  notice.id='liveScoresModuleMissing';notice.className='card';notice.setAttribute('role','alert');notice.setAttribute('data-testid','live-scores-module-missing');
+  notice.innerHTML='<h1>Live Scores could not load</h1><p class="sub">Reload the page. If this device is offline, reconnect once so it can download the current version of the app.</p>';
+  live.style.display='none';
+  live.before(notice);
+}
+document.addEventListener('DOMContentLoaded',ksmShowLiveScoresModuleMissing);
 /* ksm:post-split-end */

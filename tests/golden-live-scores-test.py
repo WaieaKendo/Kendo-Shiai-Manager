@@ -1,10 +1,11 @@
 """Golden (snapshot) test of the Live Scores screen (#public, nav "Live Scores"; roadmap M.13).
 
-Spectators land on Live Scores. The approved snapshots in tests/golden/live-scores/*.json were
-recorded from the LEGACY renderer (renderPublic() and liveScoresCourtCard() in
-app/js/25-live-scores.js, the division-complete wrapper in 32-split-court-templates.js), before
-the screen moved to React, so they pin exactly what the legacy screen drew (quirks included,
-see docs/ROADMAP.md "Live Scores quirks kept").
+Spectators land on Live Scores. Since M.13 the screen is drawn only by React (the LiveScores
+island, app/react/live-scores/; app/js/36-react-live-scores.js publishes its data). The approved
+snapshots in tests/golden/live-scores/*.json were recorded from the LEGACY renderer
+(renderPublic() and liveScoresCourtCard() in app/js/25-live-scores.js, the division-complete
+wrapper in 32-split-court-templates.js) before it was removed, so they pin exactly what the
+legacy screen drew (quirks included, see docs/ROADMAP.md "Live Scores quirks kept").
 
 One offline copy of the app runs each scenario with Live Scores on screen; after every step
 the whole #public view is serialized (golden_screen.PANEL_JS: elements, ids, classes, test IDs,
@@ -12,7 +13,8 @@ every attribute, text, visibility, innerText, and each element's page box per pl
 compared with the approved snapshot, together with the Live Scores read-out of both courts
 (KsmApp.live_court()) and the dialogs shown. React must render every element in #publicLive
 (the LiveScores island, app/react/live-scores/), and every kind of Live Scores content must be
-covered.
+covered. Last, the app without the React module script must show the "Live Scores could not
+load" notice instead of an empty screen (and a working page never shows it).
 
 Live Scores is redrawn by every court action (renderScore() calls renderPublic()) and by
 opening it (show() runs renderAll()), so the scenarios use both:
@@ -37,6 +39,7 @@ Approve an intended change (review the JSON diff, commit it with the code change
 
     KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-live-scores-test.py [scenario ...]
 """
+import re
 import time
 from pathlib import Path
 
@@ -46,7 +49,7 @@ from golden_screen import (
     Golden, geometry_recorded, match_points, people, team,
 )
 from ksm_app import KsmApp
-from ksm_browser import launch_chromium, load_app
+from ksm_browser import DIST, launch_chromium, load_app
 
 GOLDEN_DIR = Path(__file__).resolve().parent / 'golden' / 'live-scores'
 ROOT = '#public'
@@ -107,9 +110,34 @@ def open_app(name, browser, errors, entries=None):
     load_app(app.page)
     golden = Golden(name, app, errors, GOLDEN_DIR, capture, check_react)
     assert app.page.evaluate('window.ksmLiveScoresMounted === true'), f'{name}: the Live Scores island did not mount'
+    assert app.page.locator('#liveScoresModuleMissing').count() == 0, f'{name}: "Live Scores could not load" shown on a working page'
     if entries:
         app.configure(entries)
     return golden
+
+
+def without_screens_module():
+    """dist/index.html without the React screens' module script (as a device whose copy lacks it)."""
+    html = (DIST / 'index.html').read_text(encoding='utf-8')
+    module = re.search(r'<script type="module"[^>]*src="/assets/index-[\w-]+\.js"></script>\n?', html)
+    assert module, 'dist/index.html: no module script'
+    return html.replace(module.group(0), '')
+
+
+def live_scores_module_missing(browser, errors):
+    """Without the React module nothing draws Live Scores: it says so instead."""
+    app = KsmApp(browser.new_page(viewport=DESKTOP), 'no React module')
+    page = app.page
+    page.on('pageerror', lambda e: errors.append(f'Live Scores module missing: {e}'))
+    load_app(page, html=without_screens_module())
+    app.configure([{'name': 'Open', 'format': 'Round Robin', 'court': 'A', 'entrants': people('P', 3)}])
+    app.nav('live-scores')
+    notice = page.locator('#public [data-testid="live-scores-module-missing"]')
+    assert notice.is_visible(), 'no "Live Scores could not load" notice without the React module'
+    assert 'Live Scores could not load' in notice.inner_text(), notice.inner_text()
+    assert not page.locator('#publicLive').is_visible(), 'the empty Live Scores markup is shown without the React module'
+    assert page.evaluate('window.ksmLiveScoresInput.kind') == 'courts', 'renderPublic() did not publish without the island'
+    page.close()
 
 
 def phone_views(g, label):
@@ -239,18 +267,24 @@ SCENARIOS = {
     **{name: (lambda browser, errors, n=name, e=entries, d=draws, b=court_b: play_through(browser, errors, n, e, d, b))
        for name, entries, draws, court_b in PLAY_THROUGHS},
 }
+# Checks without a snapshot file.
+CHECKS = {'live-scores-module-missing': live_scores_module_missing}
 
 
 def main():
     started = time.time()
     chosen = [n for n in SCENARIOS if not ONLY or any(q in n for q in ONLY)]
-    assert chosen, f'no scenario matches {ONLY}'
+    checks = [n for n in CHECKS if not UPDATE and (not ONLY or any(q in n for q in ONLY))]
+    assert chosen or checks, f'no scenario matches {ONLY}'
     missing_geometry = [n for n in chosen if not UPDATE and not geometry_recorded(GOLDEN_DIR, n)]
     with sync_playwright() as p:
         browser = launch_chromium(p)
         errors = []
         for name in chosen:
             SCENARIOS[name](browser, errors)
+            print(f'  {name}: ok')
+        for name in checks:
+            CHECKS[name](browser, errors)
             print(f'  {name}: ok')
         if not ONLY and not UPDATE:
             assert ELEMENTS_SEEN[0], 'React never rendered anything on Live Scores'
@@ -267,7 +301,8 @@ def main():
         browser.close()
     note = f'; element boxes not recorded for {PLATFORM} in {len(missing_geometry)} scenario(s), compared without them' if missing_geometry else ''
     verb = 'UPDATED' if UPDATE else 'PASS'
-    print(f'{verb} Live Scores = approved snapshots ({", ".join(chosen)}){note} in {time.time() - started:.0f}s')
+    print(f'{verb} Live Scores = approved snapshots ({", ".join(chosen)}){note}'
+          f'{"; " + ", ".join(checks) if checks else ""} in {time.time() - started:.0f}s')
 
 
 if __name__ == '__main__':

@@ -207,24 +207,12 @@ function kachinukiAudienceHtml(court,data){
     <div class="team-next-pair">(${esc(nextTeamPairText(m.division,court,m))})</div>
   </div>`;
 }
-function liveScorePoints(m){
-  const pts=activeScoreArrays(m);
-  return {white:(pts.W||[]).join(' ')||'—',red:(pts.R||[]).join(' ')||'—'};
-}
-function liveScoresCourtCard(court){
-  const data=courtCurrentMatch(court);
-  if(!data)return `<section class="live-court-card" data-testid="live-court-${esc(court)}"><div class="live-court-head"><h2>Court ${esc(court)}</h2><span data-testid="live-meta">No active match</span></div><div class="live-empty">Waiting for the next division</div></section>`;
-  const m=data.match, next=data.next, meta=audienceMeta(m), pts=liveScorePoints(m);
-  if(m.type==='teamPosition'||m.type==='teamPlayoff'||m.type==='kachinuki'){
-    const sheet=m.type==='kachinuki'?kachinukiSheetHtml(m):teamSheetHtml(m.division,m.teamPair,m);
-    return `<section class="live-court-card live-team-card" data-testid="live-court-${esc(court)}"><div class="live-court-head"><h2>Court ${esc(court)}</h2><span data-testid="live-meta">${esc(meta.division)} • ${esc(meta.line)}</span></div>${sheet}<div class="live-next"><span>Next</span>${next?`<b>${esc(next.teamWhite||next.white||'TBD')}</b><i>vs</i><b>${esc(next.teamRed||next.red||'TBD')}</b>`:'<em>No match queued</em>'}</div></section>`;
-  }
-  return `<section class="live-court-card" data-testid="live-court-${esc(court)}"><div class="live-court-head"><h2>Court ${esc(court)}</h2><span data-testid="live-meta">${esc(meta.division)} • ${esc(meta.line)}</span></div><div class="live-match-row"><div class="live-player white"><span class="live-side-label">White</span><strong data-testid="live-white-name">${esc(m.white||'TBD')}</strong><small>${esc(m.wdojo||'')}</small></div><div class="live-score-pair"><b>${esc(pts.white)}</b><span>vs</span><b>${esc(pts.red)}</b></div><div class="live-player red"><span class="live-side-label">Red</span><strong data-testid="live-red-name">${esc(m.red||'TBD')}</strong><small>${esc(m.rdojo||'')}</small></div></div><div class="live-next"><span>Next</span>${next?`<b>${esc(next.white||'TBD')}</b><i>vs</i><b>${esc(next.red||'TBD')}</b>`:'<em>No match queued</em>'}</div></section>`;
-}
 function renderPublic(){
-  if(!window.publicLive)return;
-  publicLive.innerHTML=`<div class="live-scores-heading"><div class="setup-panel-eyebrow">Live Tournament</div><h1>Live Scores</h1></div><div class="live-courts-grid">${liveScoresCourtCard('A')}${liveScoresCourtCard('B')}</div>`;
-  if(document.body.classList.contains('ksm-tv'))renderTvDisplay();
+/* ksm:post-split-begin react-live */
+  // Live Scores is React (app/react/live-scores/, 36-react-live-scores.js): the screen is
+  // published to it instead of written (M.13); on a TV device the TV display is redrawn too.
+  ksmRenderLiveScores();
+/* ksm:post-split-end */
 }
 function fitTvText(root=tvLive){
   if(!root)return;

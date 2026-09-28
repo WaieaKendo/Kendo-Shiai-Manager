@@ -1,12 +1,15 @@
-import { html as appSource } from './lib/ksm-source.mjs';
+import { html as appSource, readRepoFile } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
 const html = appSource;
+// M.13: Live Scores is React. app/js/36-react-live-scores.js decides and publishes both courts,
+// app/react/live-scores/LiveScores.tsx draws them (tests/golden/live-scores pins the result).
+const liveReact = readRepoFile('app/react/live-scores/LiveScores.tsx');
 const checks = [
   ['overview navigation renamed', html.includes('<span>Overview</span>') && html.includes('title="Tournament Overview"')],
   ['spectator courts allowed', html.includes("!['score','public','results','director'].includes(id)")],
   ['shared spectator court presentation', html.includes('body.ksm-spectator #score .score-controls-grid') && html.includes('body.ksm-spectator #score .sk-action-row')],
   ['spectator court context visible', !html.includes('body.ksm-spectator #score{display:none')],
-  ['dual court live scores', html.includes("liveScoresCourtCard('A')") && html.includes("liveScoresCourtCard('B')")],
+  ['dual court live scores', html.includes("courts:[ksmLiveScoresCourt('A'),ksmLiveScoresCourt('B')]") && liveReact.includes('<div className="live-courts-grid">{view.courts.map(c => <CourtCard key={c.testId} card={c} />)}</div>')],
   ['portrait vertical live scores', html.includes('@media(max-width:560px) and (orientation:portrait)') && html.includes('.live-courts-grid{grid-template-columns:1fr')],
   ['wide two column live scores', html.includes('.live-courts-grid{display:grid;grid-template-columns:repeat(2')],
   ['single court TV view', html.includes('function renderTvDisplay()') && html.includes('const court=tvAssignedCourt(),data=courtCurrentMatch(court);')],

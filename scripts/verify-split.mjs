@@ -24,8 +24,9 @@
 // compares against the old declaration with its body emptied.
 //
 // Old code deliberately deleted (REMOVED_COURT_RENDERER: the legacy court renderer, M.8
-// step 5) is named piece by piece; the check deletes exactly those pieces from the old script
-// before comparing, so every other difference, and any piece that no longer matches, still fails.
+// step 5; REMOVED_LIVE_SCORES_RENDERER: the legacy Live Scores renderer, M.13) is named piece by
+// piece; the check deletes exactly those pieces from the old script before comparing, so every
+// other difference, and any piece that no longer matches, still fails.
 import { execFileSync } from 'node:child_process';
 import { minify } from 'vite';
 import { extractFunction } from '../tests/lib/ksm-source.mjs';
@@ -90,10 +91,10 @@ const KNOWN_POST_SPLIT_EDITS = {
   // replacements; the helpers after it); Download Tournament File writes the tournament ID and
   // revision into the file (manualSaveTournament(), inline).
   'load-file-guard': 4,
-  // feat/react-live-scores (M.13): the Live Scores screen's React island. The live renderPublic()
-  // (the 32- wrapper) hands over to ksmRenderLiveScores() while the island is mounted, and
-  // app/js/36-react-live-scores.js publishes the screen as plain data. Listed here because the
-  // 32- hand-over is its first region (names in order of first appearance).
+  // feat/react-live-scores (M.13): the Live Scores screen's React island. With the legacy
+  // renderer removed (REMOVED_LIVE_SCORES_RENDERER) renderPublic()'s body (25) is a marked call
+  // of ksmRenderLiveScores(), and app/js/36-react-live-scores.js publishes the screen as plain
+  // data and shows a notice when the React module is missing.
   'react-live': 2,
   // feat/react-overlay: app/js/33-stream-overlay-links.js (TV menu "copy overlay link").
   'stream-overlay': 1,
@@ -164,6 +165,17 @@ const REMOVED_COURT_RENDERER = [
   'poolResultCardHtml#1', 'poolResultCardHtml#2', 'orderedPoolContextHtml#1', // 29, 31, 31
   'splitTemplateContextHtml#1', 'canonicalSingleElimQueue#1', 'persistentContextHtml#1', // 32
 ];
+// feat/react-live-scores (M.13): the legacy Live Scores renderer, deleted. React draws Live Scores
+// (app/react/live-scores/); tests/golden/live-scores/*.json pin what this code drew. Same entry
+// forms as REMOVED_COURT_RENDERER. Shared helpers (audienceMeta(), teamSheetHtml(),
+// kachinukiSheetHtml(), divisionCompletePanelHtml(), the TV's) stay.
+const REMOVED_LIVE_SCORES_RENDERER = [
+  'renderPublic#1',                                              // 11: never ran (overridden by #2)
+  'renderPublic#2:body',                                         // 25: publishes Live Scores (react-live)
+  'liveScorePoints#1', 'liveScoresCourtCard#1',                  // 25: only the removed renderPublic() used them
+  // 32: the division-complete wrapper; ksmRenderLiveScores() (36) makes its decision.
+  { from: 'const renderPublic_v3121=renderPublic;', to: '  renderPublic_v3121();\n};\n' },
+];
 // fix/pre-event (M.12): data-testid attributes added to existing markup, as [old start tag, test ID];
 // the check takes each ` data-testid="<id>"` out again (it must appear exactly once, at the end
 // of that tag) and then compares byte for byte, so any other markup change still fails.
@@ -213,26 +225,30 @@ for (const name of MOVED_TO_ENGINE) {
   const at = oldScript.lastIndexOf(fn);
   oldScript = oldScript.slice(0, at) + fn.slice(0, fn.indexOf('{') + 1) + '}' + oldScript.slice(at + fn.length);
 }
-// Delete REMOVED_COURT_RENDERER from the old script: find every piece first (positions in the
-// old script as it is now), refuse overlaps, then cut from the end.
+// Delete REMOVED_COURT_RENDERER and REMOVED_LIVE_SCORES_RENDERER from the old script: find every
+// piece first (positions in the old script as it is now), refuse overlaps, then cut from the end.
 {
-  const cuts = REMOVED_COURT_RENDERER.map(entry => {
+  const removed = [
+    ...REMOVED_COURT_RENDERER.map(entry => ['REMOVED_COURT_RENDERER', entry]),
+    ...REMOVED_LIVE_SCORES_RENDERER.map(entry => ['REMOVED_LIVE_SCORES_RENDERER', entry]),
+  ];
+  const cuts = removed.map(([list, entry]) => {
     if (typeof entry === 'object') {
       const at = oldScript.indexOf(entry.from);
-      if (at < 0 || oldScript.indexOf(entry.from, at + 1) >= 0) throw new Error(`REMOVED_COURT_RENDERER: ${entry.from} is not unique in the old script`);
+      if (at < 0 || oldScript.indexOf(entry.from, at + 1) >= 0) throw new Error(`${list}: ${entry.from} is not unique in the old script`);
       const end = oldScript.indexOf(entry.to, at);
-      if (end < 0) throw new Error(`REMOVED_COURT_RENDERER: no ${entry.to} after ${entry.from}`);
+      if (end < 0) throw new Error(`${list}: no ${entry.to} after ${entry.from}`);
       return { at, end: end + entry.to.length, what: entry.from };
     }
     const [, name, nth, body] = entry.match(/^([\w$]+)#(\d+)(:body)?$/);
     const starts = [...oldScript.matchAll(new RegExp(`(?:async\\s+)?function\\s+${name}\\s*\\(`, 'g'))].map(m => m.index);
     const at = starts[Number(nth) - 1];
-    if (at === undefined) throw new Error(`REMOVED_COURT_RENDERER: the old script has ${starts.length} declarations of ${name}, not ${nth}`);
+    if (at === undefined) throw new Error(`${list}: the old script has ${starts.length} declarations of ${name}, not ${nth}`);
     const fn = extractFunction(oldScript.slice(at), name, { occurrence: 'first' });
     if (body) return { at: at + fn.indexOf('{') + 1, end: at + fn.length - 1, what: entry };
     return { at, end: at + fn.length + (oldScript[at + fn.length] === '\n' ? 1 : 0), what: entry };
   }).sort((a, b) => a.at - b.at);
-  cuts.forEach((c, i) => { if (i && c.at < cuts[i - 1].end) throw new Error(`REMOVED_COURT_RENDERER: ${c.what} overlaps ${cuts[i - 1].what}`); });
+  cuts.forEach((c, i) => { if (i && c.at < cuts[i - 1].end) throw new Error(`removed renderers: ${c.what} overlaps ${cuts[i - 1].what}`); });
   for (const c of cuts.reverse()) oldScript = oldScript.slice(0, c.at) + oldScript.slice(c.end);
 }
 const headStyles = old.slice(old.indexOf('<style'), old.indexOf('</head>'));

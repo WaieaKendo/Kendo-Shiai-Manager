@@ -10,12 +10,13 @@ import { html, countDefinitions } from './lib/ksm-source.mjs';
 // declarations (renderScore 4->1, renderQueue 4->1, renderContext 7->1, legacyUpdateUndoButton
 // 4->0, setMatchBadge 2->0, allPoolResultsContextHtml 2->0, poolResultCardHtml 2->0,
 // singleElimRoundCardHtml 2->0; entries at 1 or 0 are dropped).
+// M.13 (feat/react-live-scores) removed the legacy Live Scores renderer: 27 -> 26 (renderPublic 2->1).
 const BASELINE = {
   alignedPointSlots: 2, audienceIndividualHero: 2, bracketHtml: 2,
   canCloudWrite: 2, cloudHeaders: 2, cloudSocketUrl: 2, initializeCloudRoleFromUrl: 2,
   installRoleBanner: 2, isReadOnlySession: 2, isSpectatorSession: 2, kachinukiSheetHtml: 2,
   list: 2, loadTournamentFromCloud: 2, openTournamentAccess: 2,
-  regTab: 2, renderProgress: 2, renderPublic: 2,
+  regTab: 2, renderProgress: 2,
   renderResultsAll: 2, renderTvDisplay: 2, sessionKey: 2,
   setSessionRole: 2, singleElimBracketHtml: 2, spectatorLink: 2, standardTeamAudienceHtml: 2, syncIndividualSingleElim: 2,
   teamResultsBracketHtml: 2, teamSheetHtml: 2,
