@@ -18,7 +18,9 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         court/ (the court screen: React islands inside index.html that draw
                         all of it, M.8; app/js/35-react-court.js publishes their data),
                         live-scores/ (the Live Scores screen #public, M.13;
-                        app/js/36-react-live-scores.js publishes its data)
+                        app/js/36-react-live-scores.js publishes its data),
+                        tv/ (the TV display #tvLive, ?view=tv, M.13;
+                        app/js/37-react-tv.js publishes its data)
   engine/             Pure tournament-engine modules, strict TypeScript (own tsconfig.json):
                         no DOM, no globals, explicit inputs/outputs. index.ts is bundled
                         into a classic script defining `KSMEngine`, loaded before app.js;

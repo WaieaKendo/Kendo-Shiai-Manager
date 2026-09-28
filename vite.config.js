@@ -19,7 +19,7 @@ self.addEventListener('activate', event => event.waitUntil(caches.keys().then(ke
 // Only index.html gets the classic bundle; extra pages (app/*.html) are ordinary Vite
 // entries with module scripts from app/react/.
 // index.html also gets one module script after app.js: the React screens' islands
-// (SCREENS_MODULE: the court screen and Live Scores), which Vite bundles like any page script.
+// (SCREENS_MODULE: the court screen, Live Scores and the TV display), which Vite bundles like any page script.
 // Its files join APP_SHELL, so an offline device has the same screens.
 const SCREENS_MODULE = '/react/main.tsx';
 const SCREENS_TAG = `<script type="module" src="${SCREENS_MODULE}"></script>`;

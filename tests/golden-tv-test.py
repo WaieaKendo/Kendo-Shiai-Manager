@@ -16,7 +16,9 @@ the court's own render (renderScore() -> renderPublic(), which redraws the TV on
 After every step the whole #tv view is serialized (golden_screen.PANEL_JS: elements, attributes,
 text, visibility, innerText, each element's page box per platform) and compared with the
 approved snapshot, together with the TV read-outs (KsmApp.tv_screen(), tv_upcoming()), the
-page's scroll size and the dialogs shown.
+page's scroll size and the dialogs shown. React must render every element in #tvLive (the Tv
+island, app/react/tv/; app/js/37-react-tv.js publishes its data), and every kind of TV content
+must be covered.
 
   tv-a-actions        no tournament yet (idle), then a round robin on Court A scored on the court
                       screen (points, hansoku, undo, redo, Fusen-gachi, Next Match), each seen on
@@ -42,7 +44,7 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 from golden_screen import (
-    ALL_COMPLETE_JS, ONLY, PANEL_JS, PLATFORM, PREPARE_JS, SPECTATOR_JS, UPDATE,
+    ALL_COMPLETE_JS, FIBER_JS, ONLY, PANEL_FIBERS_JS, PANEL_JS, PLATFORM, PREPARE_JS, SPECTATOR_JS, UPDATE,
     Golden, geometry_recorded, match_points, people, team,
 )
 from ksm_app import KsmApp
@@ -61,6 +63,25 @@ NEXT_JS = "() => nextMatch()"
 # The court screen's division select (CourtHeader -> selectScorekeeperDivision()).
 SWITCH_JS = "([court, division]) => { chooseCourt(court); selectScorekeeperDivision(division); }"
 SCROLL_JS = "() => [document.documentElement.scrollWidth, document.documentElement.scrollHeight]"
+LIVE = '#tv #tvLive'
+# Which kinds of TV content the React island was given.
+VARIANTS_JS = """() => {
+  const d = window.ksmTvInput, out = [];
+  if (!d || d.kind !== 'tv') return out;
+  const b = d.body;
+  out.push(`court ${d.court}: ${b.kind}`);
+  if (b.kind === 'idle') out.push(d.division === 'No active match' ? 'idle: no division' : 'idle: division');
+  if (b.kind !== 'results') d.upcoming.forEach(c => out.push(c ? (c.whiteSub || c.redSub ? 'upcoming: card with sub' : 'upcoming: card') : 'upcoming: empty'));
+  if (b.kind !== 'results' && d.upcoming.some(c => c && /^Winner/.test(c.white + ' ' + c.red))) out.push('upcoming: placeholder');
+  if (b.kind === 'results') out.push('results: ' + (b.complete.placements.length ? 'placements' : 'no placements'));
+  if (b.points && b.points.W.length + b.points.R.length) out.push(b.kind + ': points');
+  if (b.kind === 'team' && b.rows.some(r => r.points.W.length + r.points.R.length)) out.push('team: points');
+  if (b.kind === 'team') out.push(`team: ${b.rows.length <= 3 ? 'three' : 'five'} rows`, ...(b.rows.some(r => r.active) ? ['team: active bout'] : []));
+  if (b.kind === 'kachinuki' && (b.wIndex || b.rIndex)) out.push('kachinuki: eliminated');
+  return out;
+}"""
+VARIANTS_SEEN = set()
+ELEMENTS_SEEN = [0]  # most React-rendered elements seen in #tvLive
 
 
 def capture(app):
@@ -76,11 +97,23 @@ def capture(app):
     return entry, {'tv': panel['boxes']}
 
 
+def check_react(golden, step):
+    """React renders every element of the TV (#tvLive and all in it)."""
+    page = golden.app.page
+    total, owned = page.evaluate(PANEL_FIBERS_JS, LIVE)
+    assert total == owned, f'{golden.name}: {step}: {total - owned} of {total} TV elements are not rendered by React'
+    if total:
+        assert page.evaluate(FIBER_JS, f'{LIVE} > *'), f'{golden.name}: {step}: the TV is not rendered by React'
+    ELEMENTS_SEEN[0] = max(ELEMENTS_SEEN[0], owned)
+    VARIANTS_SEEN.update(page.evaluate(VARIANTS_JS))
+
+
 def open_tv(name, browser, errors, court, entries=None, react_check=None):
     app = KsmApp(browser.new_page(viewport=TV), name)
     load_app(app.page, query=f'?court={court}')
     golden = Golden(name, app, errors, GOLDEN_DIR, capture, react_check)
     assert app.page.evaluate('tvAssignedCourt()') == court, f'{name}: the TV is not assigned to Court {court}'
+    assert app.page.evaluate('window.ksmTvMounted === true'), f'{name}: the TV island did not mount'
     if entries:
         app.configure(entries)
     return golden
@@ -240,7 +273,25 @@ SCENARIOS = {
 }
 
 
-def main(react_check=None, checks=None, after=None):
+def covered():
+    """Every kind of TV content was drawn by React."""
+    assert ELEMENTS_SEEN[0], 'React never rendered anything on the TV'
+    # (Not reachable from these runs: Final Results without placements, which the TV shows only
+    # when the division has placements; an idle TV without a division, since even before a
+    # tournament exists the court has the default setup's division; an Upcoming card without a
+    # dojo or round under a name; a current match with a bracket placeholder, since a court only
+    # plays ready matches.)
+    expected = {
+        'court A: idle', 'court B: idle', 'court A: individual', 'court B: individual', 'court A: team', 'court B: team',
+        'court A: kachinuki', 'court A: results', 'court B: results', 'idle: division',
+        'upcoming: card with sub', 'upcoming: placeholder', 'upcoming: empty', 'results: placements',
+        'individual: points', 'team: points', 'kachinuki: points',
+        'team: three rows', 'team: five rows', 'team: active bout', 'kachinuki: eliminated',
+    }
+    assert expected <= VARIANTS_SEEN, f'TV variants not covered: {sorted(expected - VARIANTS_SEEN)}; seen {sorted(VARIANTS_SEEN)}'
+
+
+def main(react_check=check_react, checks=None, after=covered):
     started = time.time()
     chosen = [n for n in SCENARIOS if not ONLY or any(q in n for q in ONLY)]
     checks = {n: f for n, f in (checks or {}).items() if not UPDATE and (not ONLY or any(q in n for q in ONLY))}

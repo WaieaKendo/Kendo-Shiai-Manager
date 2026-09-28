@@ -60,6 +60,10 @@ function tv3ResultsFooter(){
   return `<div class="tv3-results-footer"><div>Division Complete</div></div>`;
 }
 function renderTvDisplay(){
+/* ksm:post-split-begin react-tv */
+  // The React TV display (app/react/tv/, 37-react-tv.js) draws #tvLive once it is mounted.
+  if(window.ksmTvMounted){ksmRenderTv();return}
+/* ksm:post-split-end */
   if(!window.tvLive)return;
   const vm=buildTV3ViewModel(tvAssignedCourt());
   const body=vm.empty?`<div class="tv3-body"></div>`:(vm.format==='results'?tv3Results(vm):vm.format==='individual'?tv3Individual(vm):vm.format==='kachinuki'?tv3Kachinuki(vm):tv3Team(vm));

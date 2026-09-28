@@ -96,6 +96,9 @@ const KNOWN_POST_SPLIT_EDITS = {
   // of ksmRenderLiveScores(), and app/js/36-react-live-scores.js publishes the screen as plain
   // data and shows a notice when the React module is missing.
   'react-live': 2,
+  // feat/react-tv (M.13): the TV display's React island. renderTvDisplay() (26) hands over to
+  // ksmRenderTv() while the island is mounted; app/js/37-react-tv.js publishes the TV as plain data.
+  'react-tv': 2,
   // feat/react-overlay: app/js/33-stream-overlay-links.js (TV menu "copy overlay link").
   'stream-overlay': 1,
 };
