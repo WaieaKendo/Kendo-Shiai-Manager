@@ -13,15 +13,17 @@ import { html, countDefinitions } from './lib/ksm-source.mjs';
 // M.13 (feat/react-live-scores) removed the legacy Live Scores renderer: 27 -> 26 (renderPublic 2->1).
 // M.13 (feat/react-tv) removed the legacy TV renderers and the never-called audience-hero helpers:
 // 26 -> 23 (renderTvDisplay 2->1, audienceIndividualHero 2->0, standardTeamAudienceHtml 2->0).
+// M.13 (feat/react-results) removed the legacy Results renderer and the unused team/kachinuki
+// sheets: 23 -> 18 (renderResultsAll 2->0, teamResultsBracketHtml 2->0, teamSheetHtml 2->0,
+// kachinukiSheetHtml 2->0 and the inner `list` of both kachinukiSheetHtml() 2->0).
 const BASELINE = {
   alignedPointSlots: 2, bracketHtml: 2,
   canCloudWrite: 2, cloudHeaders: 2, cloudSocketUrl: 2, initializeCloudRoleFromUrl: 2,
-  installRoleBanner: 2, isReadOnlySession: 2, isSpectatorSession: 2, kachinukiSheetHtml: 2,
-  list: 2, loadTournamentFromCloud: 2, openTournamentAccess: 2,
+  installRoleBanner: 2, isReadOnlySession: 2, isSpectatorSession: 2,
+  loadTournamentFromCloud: 2, openTournamentAccess: 2,
   regTab: 2, renderProgress: 2,
-  renderResultsAll: 2, sessionKey: 2,
+  sessionKey: 2,
   setSessionRole: 2, singleElimBracketHtml: 2, spectatorLink: 2, syncIndividualSingleElim: 2,
-  teamResultsBracketHtml: 2, teamSheetHtml: 2,
 };
 
 const names = [...new Set([...html.matchAll(/function\s+([A-Za-z_$][\w$]*)\s*\(/g)].map(m => m[1]))];

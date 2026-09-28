@@ -24,8 +24,8 @@
 // compares against the old declaration with its body emptied.
 //
 // Old code deliberately deleted (REMOVED_COURT_RENDERER: the legacy court renderer, M.8
-// step 5; REMOVED_LIVE_SCORES_RENDERER and REMOVED_TV_RENDERER: the legacy Live Scores and TV
-// renderers, M.13) is named piece by piece; the check deletes exactly those pieces from the old script before comparing, so every
+// step 5; REMOVED_LIVE_SCORES_RENDERER, REMOVED_TV_RENDERER and REMOVED_RESULTS_RENDERER: the
+// legacy Live Scores, TV and Results renderers, M.13) is named piece by piece; the check deletes exactly those pieces from the old script before comparing, so every
 // other difference, and any piece that no longer matches, still fails.
 import { execFileSync } from 'node:child_process';
 import { minify } from 'vite';
@@ -101,10 +101,11 @@ const KNOWN_POST_SPLIT_EDITS = {
   // app/js/37-react-tv.js publishes the TV as plain data and shows a notice when the React module
   // is missing.
   'react-tv': 2,
-  // feat/react-results (M.13): the Results screen's React islands. renderResultsDashboard() and
-  // openResultsBracket() (27) publish (ksmRenderResults(), ksmRenderResultsBracket()) and, while
-  // the islands are mounted, hand over; app/js/38-react-results.js publishes the screen as plain
-  // data.
+  // feat/react-results (M.13): the Results screen's React islands. With the legacy renderer
+  // removed (REMOVED_RESULTS_RENDERER) the bodies of renderResultsDashboard() and
+  // openResultsBracket() (27) are marked calls of ksmRenderResults() / ksmRenderResultsBracket(),
+  // and app/js/38-react-results.js publishes the screen as plain data and shows a notice when the
+  // React module is missing.
   'react-results': 3,
   // feat/react-overlay: app/js/33-stream-overlay-links.js (TV menu "copy overlay link").
   'stream-overlay': 1,
@@ -207,6 +208,27 @@ const REMOVED_TV_RENDERER = [
   'nextTeamPairText#1', 'standardTeamAudienceHtml#1', 'standardTeamAudienceHtml#2', 'kachinukiPlayerRows#1',
   'kachinukiAudienceHtml#1', 'audienceNameHtml#1',
 ];
+// feat/react-results (M.13): the legacy Results renderer, deleted. React draws the Results screen
+// (app/react/results/); tests/golden/results/*.json pin what this code drew. Same entry forms as
+// REMOVED_COURT_RENDERER. The Results decisions stay (resultPlacements(), the engine bridge, and
+// the awards actions addResultAward(), removeResultAward(), closeResultsBracket() in 27), and the
+// shared HTML helpers the Pools screen still draws with (bracketHtml(), singleElimBracketHtml(),
+// teamRoundRobinStandingsHtml(), alignedMatchRowHtml(), ... in 28).
+const REMOVED_RESULTS_RENDERER = [
+  // 09: the first Results renderer, overridden by renderResultsAll#2 (27) and never run, and what only it used.
+  'medalResultsHtml#1', 'teamFinalResultsHtml#1', 'renderResultsAll#1', 'renderAwards#1', 'addAward#1',
+  // 11, 16: team and kachinuki sheets, overridden by #2 (28); their last callers were the court and Live Scores renderers.
+  'teamSheetHtml#1', 'kachinukiSheetHtml#1',
+  // 27: the Results renderer.
+  'resultCardHtml#1', 'awardsEditorHtml#1',
+  'renderResultsDashboard#1:body',                               // 27: publishes Results (react-results)
+  'teamResultsBracketHtml#1',                                    // 27: overridden by #2 (28), never ran
+  'completedResultDetailHtml#1',
+  'openResultsBracket#1:body',                                   // 27: publishes the modal (react-results)
+  'renderResultsAll#2',                                          // 27: "the historical entry point", which nothing called
+  // 28: unused since the court and Live Scores renderers (sheets) and the Results modal (team results) moved to React.
+  'teamSheetHtml#2', 'kachinukiSheetHtml#2', 'teamResultsBracketHtml#2',
+];
 // fix/pre-event (M.12): data-testid attributes added to existing markup, as [old start tag, test ID];
 // the check takes each ` data-testid="<id>"` out again (it must appear exactly once, at the end
 // of that tag) and then compares byte for byte, so any other markup change still fails.
@@ -256,13 +278,14 @@ for (const name of MOVED_TO_ENGINE) {
   const at = oldScript.lastIndexOf(fn);
   oldScript = oldScript.slice(0, at) + fn.slice(0, fn.indexOf('{') + 1) + '}' + oldScript.slice(at + fn.length);
 }
-// Delete REMOVED_COURT_RENDERER, REMOVED_LIVE_SCORES_RENDERER and REMOVED_TV_RENDERER from the old script: find every
+// Delete REMOVED_COURT_RENDERER, REMOVED_LIVE_SCORES_RENDERER, REMOVED_TV_RENDERER and REMOVED_RESULTS_RENDERER from the old script: find every
 // piece first (positions in the old script as it is now), refuse overlaps, then cut from the end.
 {
   const removed = [
     ...REMOVED_COURT_RENDERER.map(entry => ['REMOVED_COURT_RENDERER', entry]),
     ...REMOVED_LIVE_SCORES_RENDERER.map(entry => ['REMOVED_LIVE_SCORES_RENDERER', entry]),
     ...REMOVED_TV_RENDERER.map(entry => ['REMOVED_TV_RENDERER', entry]),
+    ...REMOVED_RESULTS_RENDERER.map(entry => ['REMOVED_RESULTS_RENDERER', entry]),
   ];
   const cuts = removed.map(([list, entry]) => {
     if (typeof entry === 'object') {

@@ -55,7 +55,7 @@ export interface TeamStandingsInput {
   pairs: Array<{ title: string; row: AlignedRowInput }> | null;
 }
 
-/** What bracketHtml() and teamResultsBracketHtml() draw. */
+/** What bracketHtml() and teamResultsBracketHtml() (removed in M.13) draw. */
 export type BracketInput =
   /** Round cards (individual championship or single elimination); may be none. */
   | { kind: 'cards'; cards: BracketCardInput[] }
@@ -67,7 +67,7 @@ export type BracketInput =
   /** teamResultsBracketHtml(): each round's head (Wins/Points) and its pairings. */
   | { kind: 'team-bracket'; rounds: Array<{ round: string; rows: AlignedRowInput[] }> };
 
-/** kachinukiSheetHtml(m) (28-). */
+/** kachinukiSheetHtml(m) (28-, removed in M.13). */
 export interface KachinukiSheetInput {
   teamWhite: string;
   teamRed: string;
@@ -76,7 +76,7 @@ export interface KachinukiSheetInput {
   red: { lineup: string[]; index: number | null };
 }
 
-/** teamSheetHtml(div, pair, current) (28-). */
+/** teamSheetHtml(div, pair, current) (28-, removed in M.13). */
 export interface TeamSheetInput {
   teamWhite: string;
   teamRed: string;

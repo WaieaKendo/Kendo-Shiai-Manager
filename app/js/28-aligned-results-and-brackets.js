@@ -31,62 +31,7 @@ function alignedPlaceholderRowHtml(white,red,status='awaiting',compact=false){
   return alignedMatchRowHtml(null,{white,red,wp:[],rp:[],status,compact});
 }
 
-function teamSheetHtml(div,pair,currentMatch){
-  const matches=(state.allMatches[div]||[]).filter(m=>
-    m.teamPair===pair&&(m.type==='teamPosition'||m.type==='teamPlayoff')
-  );
-  const first=matches[0]||{};
-  const s=teamPairSummary(div,pair);
-  const rows=matches.map(match=>{
-    const pts=activeScoreArrays(match);
-    const status=match===currentMatch?'NOW':(match.done?'DONE':(match.position||'vs'));
-    return alignedMatchRowHtml(match,{
-      wp:pts.W,
-      rp:pts.R,
-      status,
-      current:match===currentMatch
-    });
-  }).join('');
-  return `<div class="team-sheet">
-    <div class="team-sheet-head">
-      <div>${esc(first.teamWhite||'White Team')}</div>
-      <div class="redHead">${esc(first.teamRed||'Red Team')}</div>
-    </div>
-    ${rows}
-    <div class="team-score-footer">
-      <div class="white">Wins ${s.wWins}<br><span class="small">Points ${s.wPts}</span></div>
-      <div></div>
-      <div class="red">Wins ${s.rWins}<br><span class="small">Points ${s.rPts}</span></div>
-    </div>
-  </div>`;
-}
 
-function kachinukiSheetHtml(m){
-  const pts=activeScoreArrays(m);
-  const white=m.lineupW||[];
-  const red=m.lineupR||[];
-  function list(arr,index){
-    return arr.map((name,i)=>`
-      <div class="competitor-line ${i<index?'small':''}">
-        <b>${esc(name)}</b>
-        <span class="small">${i<index?'eliminated':(i===index?'active':'waiting')}</span>
-      </div>`).join('');
-  }
-  return `<div class="team-sheet">
-    <div class="team-sheet-head">
-      <div>${esc(m.teamWhite)}</div>
-      <div class="redHead">${esc(m.teamRed)}</div>
-    </div>
-    <div class="kachinuki-current-result">
-      ${alignedMatchRowHtml(m,{wp:pts.W,rp:pts.R,status:'NOW',current:true})}
-    </div>
-    <div class="team-sheet-row">
-      <div>${list(white,m.wIndex)}</div>
-      <div></div>
-      <div>${list(red,m.rIndex)}</div>
-    </div>
-  </div>`;
-}
 
 function singleElimBracketHtml(div){
   const nodes=state.singleElimNodes?.[div]||[];
@@ -206,50 +151,6 @@ function teamRoundRobinStandingsHtml(div,options={}){
     return `<section class="results-team-round"><h3>${esc(summary.teamWhite)} vs ${esc(summary.teamRed)}</h3>${alignedMatchRowHtml(null,{white:summary.teamWhite,red:summary.teamRed,wp:[String(summary.wWins),String(summary.wPts)],rp:[String(summary.rWins),String(summary.rPts)],status:resolved?`Winner: ${winner}`:`${summary.done}/${summary.total}`,compact:true})}</section>`;
   }).join('');
   return `${status}${table}${note}<div class="results-team-bracket team-round-robin-pairs"><h2>Team Pair Results</h2>${pairs}</div>`;
-}
-function teamResultsBracketHtml(div){
-  if(isTeamRoundRobinDivision(div))return teamRoundRobinStandingsHtml(div,{includePairResults:true});
-  const nodes=state.teamBracketNodes?.[div]||[];
-  if(!nodes.length)return '<div class="results-empty">No team bracket is available.</div>';
-  const rounds=[...new Set(nodes.map(node=>node.round))];
-  const all=state.allMatches?.[div]||[];
-
-  return `<div class="results-team-bracket">${rounds.map(round=>`
-    <section class="results-team-round">
-      <div class="team-round-metric-head" data-testid="team-round-head">
-        <h3>${esc(round)}</h3>
-        <span class="metric-label white-wins">Wins</span>
-        <span class="metric-label white-points">Points</span>
-        <span class="metric-label red-wins">Wins</span>
-        <span class="metric-label red-points">Points</span>
-      </div>
-      ${nodes.filter(node=>node.round===round).map(node=>{
-        const matches=all.filter(match=>match.teamNodeId===node.id);
-        const completed=matches.filter(match=>match.done);
-        const first=matches[0];
-        const white=first?.teamWhite||teamSideLabel(node.right,div);
-        const red=first?.teamRed||teamSideLabel(node.left,div);
-
-        if(completed.length){
-          const summary=teamPairSummary(div,first.teamPair);
-          return alignedMatchRowHtml(null,{
-            white,
-            red,
-            wp:[String(summary.wWins),String(summary.wPts)],
-            rp:[String(summary.rWins),String(summary.rPts)],
-            status:'DONE',
-            compact:true
-          });
-        }
-
-        return alignedPlaceholderRowHtml(
-          white,
-          red,
-          node.winner?'DONE':'awaiting',
-          true
-        );
-      }).join('')}
-    </section>`).join('')}</div>`;
 }
 
 

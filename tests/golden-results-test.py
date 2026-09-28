@@ -23,10 +23,14 @@ handlers call saveAuto(), which the app does not define; see "Results quirks kep
 Results is hidden its innerText is its textContent, i.e. the legacy templates' source
 formatting, so the text is compared only while Results is shown (the tree always).
 
+Since M.13 Results is drawn only by React (app/react/results/; app/js/38-react-results.js
+publishes its data); the legacy renderer is removed, so this test pins the React-only screen.
 React must render every element of the Results islands (app/react/results/: #resultsBody,
 #resultsBracketBody; #resultsTournamentName and #resultsBracketTitle are React roots), and every
 kind of Results content must be covered. awards-typing-stability (no snapshot) redraws Results
 while an award is being typed: the input keeps its focus and text, the others show state.awards.
+Last, the app without the React module script must show the "Results could not load" notice
+instead of an empty screen (and a working page never shows it).
 
 Results is redrawn by opening it (show('results') -> renderResultsDashboard()) and by
 renderPools(), which every court action runs (the court's Next Match while Results is hidden),
@@ -53,6 +57,7 @@ Approve an intended change (review the JSON diff, commit it with the code change
 
     KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-results-test.py [scenario ...]
 """
+import re
 import time
 from pathlib import Path
 
@@ -62,7 +67,7 @@ from golden_screen import (
     Golden, geometry_recorded, match_points, people, team,
 )
 from ksm_app import KsmApp, _RESULTS_JS
-from ksm_browser import launch_chromium, load_app
+from ksm_browser import DIST, launch_chromium, load_app
 
 GOLDEN_DIR = Path(__file__).resolve().parent / 'golden' / 'results'
 ROOT = '#results'
@@ -157,6 +162,7 @@ def open_app(name, browser, errors, entries=None):
     app.page.add_style_tag(content=NO_TRANSITIONS)
     golden = Golden(name, app, app.page_errors, GOLDEN_DIR, capture, check_react)
     assert app.page.evaluate('window.ksmResultsMounted === true'), f'{name}: the Results islands did not mount'
+    assert app.page.locator('#resultsModuleMissing').count() == 0, f'{name}: "Results could not load" shown on a working page'
     if entries:
         app.configure(entries)
     return golden
@@ -327,8 +333,32 @@ def awards_typing_stability(browser, errors):
     page.close()
 
 
+def without_screens_module():
+    """dist/index.html without the React screens' module script (as a device whose copy lacks it)."""
+    html = (DIST / 'index.html').read_text(encoding='utf-8')
+    module = re.search(r'<script type="module"[^>]*src="/assets/index-[\w-]+\.js"></script>\n?', html)
+    assert module, 'dist/index.html: no module script'
+    return html.replace(module.group(0), '')
+
+
+def results_module_missing(browser, errors):
+    """Without the React module nothing draws Results: it says so instead."""
+    app = KsmApp(browser.new_page(viewport=DESKTOP), 'no React module')
+    page = app.page
+    page.on('pageerror', lambda e: errors.append(f'Results module missing: {e}'))
+    load_app(page, html=without_screens_module())
+    app.configure([{'name': 'Open', 'format': 'Round Robin', 'court': 'A', 'entrants': people('P', 3)}])
+    app.nav('results')
+    notice = page.locator('#results [data-testid="results-module-missing"]')
+    assert notice.is_visible(), 'no "Results could not load" notice without the React module'
+    assert 'Results could not load' in notice.inner_text(), notice.inner_text()
+    assert not page.locator('#resultsBody').is_visible(), 'the empty Results body is shown without the React module'
+    assert page.evaluate('window.ksmResultsInput.kind') == 'results', 'renderResultsDashboard() did not publish without the islands'
+    page.close()
+
+
 # Checks without a snapshot file.
-CHECKS = {'awards-typing-stability': awards_typing_stability}
+CHECKS = {'awards-typing-stability': awards_typing_stability, 'results-module-missing': results_module_missing}
 
 
 def main():

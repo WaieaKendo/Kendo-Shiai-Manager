@@ -6,7 +6,6 @@ function maybeCreateKachinukiNext(m){
   else{let idx=arr.indexOf(m);arr.splice(idx+1,0,/** @type {Match} */(plan.match));state.allMatches[div]=arr;}
   /* ksm:post-split-end */
 }
-function kachinukiSheetHtml(m){let pts=activeScoreArrays(m);let w=m.lineupW||[],r=m.lineupR||[];function list(arr,idx,side){return arr.map((name,i)=>`<div class="competitor-line ${i<idx?'small':''}"><b>${esc(name)}</b><span class="small">${i<idx?'eliminated':(i===idx?'active':'waiting')}</span></div>`).join('')}return `<div class="team-sheet"><div class="team-sheet-head"><div>${esc(m.teamWhite)}</div><div class="redHead">${esc(m.teamRed)}</div></div><div class="team-sheet-row gold"><div class="white"><b>${esc(m.white)}</b><div class="live-points">${pts.W.join(' ')}</div></div><div class="vs">NOW</div><div class="red"><b>${esc(m.red)}</b><div class="live-points">${pts.R.join(' ')}</div></div></div><div class="team-sheet-row"><div>${list(w,m.wIndex,'W')}</div><div></div><div>${list(r,m.rIndex,'R')}</div></div></div>`}
 
 function dragPoolPlayer(ev,poolLabel,idx){ev.dataTransfer.setData('text/plain',JSON.stringify({poolLabel,idx}));}
 function insertPoolPlayer(ev,toLabel,toIndex){

@@ -73,8 +73,8 @@ function ksmPublishCourtComplete(input){
 // queue/context renderers and read the same data (engine bridges: poolStandings,
 // teamPairSummary, teamStandings, seedNameForLabel, sourceLabelForRound, ...), and publish it as
 // plain data (ksm:court-queue, ksm:court-context). The comments name the legacy function each
-// part mirrors ("(removed)": deleted with the legacy court renderer in M.8 step 5; the others
-// still draw Results, Live Scores or print).
+// part mirrors ("(removed)": deleted with the legacy court, Live Scores, TV or Results renderer
+// (M.8, M.13); the others, bracketHtml() and its helpers in 28-, still draw the Pools screen).
 // Text is what esc() showed (String(x||'')); numbers the templates printed as is are String(x).
 function ksmPublishCourtQueue(input){
   window.ksmCourtQueueInput=input;
@@ -180,7 +180,7 @@ function ksmBracket(div){
   }
   return {kind:'message',text:'Championship bracket will appear after pools are generated.'};
 }
-// teamResultsBracketHtml() (28-).
+// teamResultsBracketHtml() (28-, removed in M.13: the Results modal was its last user).
 function ksmTeamResults(div){
   if(isTeamRoundRobinDivision(div))return ksmTeamStandings(div,{includePairResults:true});
   const nodes=state.teamBracketNodes?.[div]||[];
@@ -228,7 +228,7 @@ function ksmSingleElimContext(div){
   const cards=rounds=>(rounds||[]).map(round=>ksmSingleElimRoundCard(div,round)).filter(Boolean);
   return {kind:'single-elim',left:cards(layout.left),right:cards(layout.right)};
 }
-// teamSheetHtml() (28-).
+// teamSheetHtml() (11-/28-, removed in M.13).
 function ksmTeamSheet(div,pair,currentMatch){
   const matches=(state.allMatches[div]||[]).filter(m=>m.teamPair===pair&&(m.type==='teamPosition'||m.type==='teamPlayoff'));
   const first=matches[0]||{},s=teamPairSummary(div,pair);
@@ -240,7 +240,7 @@ function ksmTeamSheet(div,pair,currentMatch){
     }),
     totals:{wWins:String(s.wWins),wPts:String(s.wPts),rWins:String(s.rWins),rPts:String(s.rPts)}};
 }
-// kachinukiSheetHtml() (28-).
+// kachinukiSheetHtml() (16-/28-, removed in M.13).
 function ksmKachinukiSheet(m){
   const pts=activeScoreArrays(m);
   const side=(lineup,index)=>({lineup:(lineup||[]).map(ksmText),index:index??null});
@@ -277,7 +277,7 @@ function ksmContextPanelInput(){
 function ksmFinalResults(div){
   if(isTeamDivision(div)){
     if(!divisionComplete(div))return null;
-    // teamFinalResultsHtml() (09-)
+    // teamFinalResultsHtml() (09-, removed in M.13)
     const p=teamFinalPlacements(div);
     if(!p)return {kind:'results',results:null};
     const mode=state.teamAwardMode||'top2',lines=[{place:'🥇 1st',name:ksmText(p.first)}];

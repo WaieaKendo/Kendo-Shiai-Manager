@@ -21,7 +21,10 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         app/js/36-react-live-scores.js publishes its data),
                         tv/ (the TV display #tvLive, ?view=tv, M.13;
                         app/js/37-react-tv.js publishes its data; the Final Results
-                        reuse court/'s DivisionCompletePanel)
+                        reuse court/'s DivisionCompletePanel),
+                        results/ (the Results screen #results: cards, awards editor,
+                        bracket modal, M.13; app/js/38-react-results.js publishes its
+                        data; the modal reuses court/'s Bracket)
   engine/             Pure tournament-engine modules, strict TypeScript (own tsconfig.json):
                         no DOM, no globals, explicit inputs/outputs. index.ts is bundled
                         into a classic script defining `KSMEngine`, loaded before app.js;

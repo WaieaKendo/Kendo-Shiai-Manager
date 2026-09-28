@@ -44,7 +44,7 @@ function Row({ row }: { row: QueueRowItemView }) {
   );
 }
 
-/** As the legacy finalResultsHtml() (11-, removed) and teamFinalResultsHtml() (09-). */
+/** As the legacy finalResultsHtml() (11-, removed) and teamFinalResultsHtml() (09-, removed in M.13). */
 export function FinalResults({ results }: { results: FinalResultsInput | null }) {
   if (!results) return <div className="muted-card"><b>Completed</b></div>;
   return (
