@@ -50,8 +50,9 @@ function TeamStandings({ s }: { s: TeamStandingsView }) {
   );
 }
 
-/** bracketHtml() / teamResultsBracketHtml() (28-aligned-results-and-brackets.js). */
-function Bracket({ bracket }: { bracket: BracketView }) {
+/** bracketHtml() / teamResultsBracketHtml() (28-aligned-results-and-brackets.js); also the Results
+ * screen's bracket modal (app/react/results/). */
+export function Bracket({ bracket }: { bracket: BracketView }) {
   switch (bracket.kind) {
     case 'cards': return <Cards cards={bracket.cards} />;
     case 'message': return <div className="muted-card">{bracket.text}</div>;

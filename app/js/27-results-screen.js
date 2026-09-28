@@ -78,6 +78,8 @@ function removeResultAward(index){
 }
 function renderResultsDashboard(){
   if(!window.resultsBody)return;
+  /* ksm:post-split-begin react-results */ksmRenderResults();if(window.ksmResultsMounted)return;
+  /* ksm:post-split-end */
   if(window.resultsTournamentName){
     resultsTournamentName.textContent=(window.tName&&tName.value)?tName.value:'Kendo Tournament';
   }
@@ -153,6 +155,8 @@ function completedResultDetailHtml(div){
 function openResultsBracket(div){
   const modal=document.getElementById('resultsBracketModal');
   if(!modal)return;
+  /* ksm:post-split-begin react-results */ksmRenderResultsBracket(div);if(window.ksmResultsMounted){modal.classList.remove('hidden');return;}
+  /* ksm:post-split-end */
   resultsBracketTitle.textContent=div;
   resultsBracketBody.innerHTML=completedResultDetailHtml(div);
   modal.classList.remove('hidden');

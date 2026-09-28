@@ -4,3 +4,4 @@
 import './court/main.tsx';
 import './live-scores/main.tsx';
 import './tv/main.tsx';
+import './results/main.tsx';

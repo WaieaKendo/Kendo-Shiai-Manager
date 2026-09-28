@@ -19,7 +19,14 @@ box per platform) and compared with the approved snapshot, together with the Res
 (KsmApp.placements()'s rows, read without navigating), the awards editor's input values and
 which of them has the focus, state.awards, whether the modal is open, the page errors since the
 step before and the dialogs shown. (Page errors are part of the snapshot: the awards editor's
-handlers call saveAuto(), which the app does not define; see "Results quirks kept".)
+handlers call saveAuto(), which the app does not define; see "Results quirks kept".) While
+Results is hidden its innerText is its textContent, i.e. the legacy templates' source
+formatting, so the text is compared only while Results is shown (the tree always).
+
+React must render every element of the Results islands (app/react/results/: #resultsBody,
+#resultsBracketBody; #resultsTournamentName and #resultsBracketTitle are React roots), and every
+kind of Results content must be covered. awards-typing-stability (no snapshot) redraws Results
+while an award is being typed: the input keeps its focus and text, the others show state.awards.
 
 Results is redrawn by opening it (show('results') -> renderResultsDashboard()) and by
 renderPools(), which every court action runs (the court's Next Match while Results is hidden),
@@ -51,7 +58,7 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 from golden_screen import (
-    ALL_COMPLETE_JS, ONLY, PANEL_JS, PLATFORM, PREPARE_JS, SPECTATOR_JS, UPDATE,
+    ALL_COMPLETE_JS, ONLY, PANEL_FIBERS_JS, PANEL_JS, PLATFORM, PREPARE_JS, SPECTATOR_JS, UPDATE,
     Golden, geometry_recorded, match_points, people, team,
 )
 from ksm_app import KsmApp, _RESULTS_JS
@@ -87,17 +94,55 @@ NO_TRANSITIONS = '*, *::before, *::after { transition: none !important; animatio
 BUTTONS_JS = "() => [...document.querySelectorAll('#results [data-testid=\"result-card\"]')].filter(c => c.querySelector('.view-bracket-link')).map(c => c.querySelector('[data-testid=\"result-card-title\"]').textContent)"
 
 
+# The Results islands (app/react/results/main.tsx): React renders every element of the two
+# bodies, and the two text-only islands are React roots.
+ISLANDS = ['#results #resultsBody', '#resultsBracketModal #resultsBracketBody']
+ROOTS_JS = """() => ['#resultsBody', '#resultsTournamentName', '#resultsBracketTitle', '#resultsBracketBody']
+  .filter(s => !Object.keys(document.querySelector(s)).some(k => k.startsWith('__reactContainer')))"""
+# Which kinds of Results content the React islands were given.
+VARIANTS_JS = """() => {
+  const d = window.ksmResultsInput, b = window.ksmResultsBracketInput, out = [];
+  if (d && d.kind === 'results') {
+    if (d.noDivisions) out.push('results: no divisions');
+    [...d.completed, ...d.pending].forEach(c => out.push('card: ' + (c.placements ? `${c.placements.length} placements` : c.roundRobin ? 'round robin in progress' : 'in progress')));
+    out.push('awards: ' + (d.awards.length ? 'some' : 'none'));
+  }
+  if (b && b.kind === 'bracket') {
+    out.push('detail: ' + b.detail.kind + ' ' + b.detail.bracket.kind);
+    if (b.detail.bracket.kind === 'team-standings') out.push('team standings: ' + (b.detail.bracket.standings.pairs ? 'pairs' : 'no pairs'));
+  }
+  return out;
+}"""
+VARIANTS_SEEN = set()
+ELEMENTS_SEEN = [0]  # most React-rendered elements seen in the Results islands
+
+
+def check_react(golden, step):
+    """React renders every element of the Results islands."""
+    page = golden.app.page
+    for island in ISLANDS:
+        total, owned = page.evaluate(PANEL_FIBERS_JS, island)
+        assert total == owned, f'{golden.name}: {step}: {total - owned} of {total} elements in {island} are not rendered by React'
+        ELEMENTS_SEEN[0] = max(ELEMENTS_SEEN[0], owned)
+    missing = page.evaluate(ROOTS_JS)
+    assert not missing, f'{golden.name}: {step}: not React roots: {missing}'
+    VARIANTS_SEEN.update(page.evaluate(VARIANTS_JS))
+
+
 def capture(app):
     """Results: (serialization, element boxes)."""
     page = app.page
     panel = page.evaluate(PANEL_JS, ROOT)
     errors, app.page_errors[:] = list(app.page_errors), []
+    shown = page.evaluate(VIEW_JS)
     entry = {
         'placements': page.evaluate(_RESULTS_JS),
-        'shown': page.evaluate(VIEW_JS),
+        'shown': shown,
         'editor': page.evaluate(EDITOR_JS),
         'pageErrors': errors,
-        'results': {'tree': panel['tree'], 'text': panel['text']},
+        # innerText of a hidden view is its textContent: the source formatting of the legacy
+        # templates (whitespace between tags), not what a page shows. The tree has every text.
+        'results': {'tree': panel['tree'], 'text': panel['text'] if shown else None},
     }
     return entry, {'results': panel['boxes']}
 
@@ -110,7 +155,8 @@ def open_app(name, browser, errors, entries=None):
     # Buttons lift on hover with a transition (01-base.css); without transitions a box is where
     # the mouse left it, not somewhere in between.
     app.page.add_style_tag(content=NO_TRANSITIONS)
-    golden = Golden(name, app, app.page_errors, GOLDEN_DIR, capture)
+    golden = Golden(name, app, app.page_errors, GOLDEN_DIR, capture, check_react)
+    assert app.page.evaluate('window.ksmResultsMounted === true'), f'{name}: the Results islands did not mount'
     if entries:
         app.configure(entries)
     return golden
@@ -217,7 +263,8 @@ def play_through(browser, errors, name, entries, draws=False, award_modes=False)
         open_modal(g, div, 'complete: ')
     if award_modes:
         for mode in ('top1', 'dual3', 'top2'):
-            g.do(f'team award mode {mode}', lambda a, m=mode: a.page.evaluate(f"() => {{ state.teamAwardMode = '{m}'; KSMTest.show('results'); }}"))
+            # The Setup select (its change handler), then Results.
+            g.do(f'team award mode {mode}', lambda a, m=mode: a.page.evaluate(f"() => {{ teamAwardMode.value = '{m}'; teamAwardMode.dispatchEvent(new Event('change')); KSMTest.show('results'); }}"))
     phone_views(g, 'complete')
     g.do('spectator', lambda a: (a.page.evaluate(SPECTATOR_JS), a.page.evaluate(SHOW_RESULTS_JS)))
     g.finish()
@@ -246,8 +293,42 @@ SCENARIOS = {
     **{name: (lambda browser, errors, n=name, e=entries, d=draws, m=modes: play_through(browser, errors, n, e, d, m))
        for name, entries, draws, modes in PLAY_THROUGHS},
 }
+def awards_typing_stability(browser, errors):
+    """Results drawn again while an award is being typed: the input keeps its focus and text.
+
+    The legacy screen redrew #resultsBody with innerHTML, so a redraw (e.g. a spectator's live
+    update) replaced the input being typed in: focus and text were lost. (A staff device defers
+    live updates while an input has the focus, and nothing else redraws Results meanwhile.) The
+    React inputs are kept; the others show state.awards as a redrawn legacy input did.
+    """
+    app = KsmApp(browser.new_page(viewport=DESKTOP), 'awards typing')
+    page = app.page
+    page_errors = []
+    page.on('pageerror', lambda e: page_errors.append(str(e)))
+    load_app(page)
+    app.configure([{'name': 'Open', 'format': 'Round Robin', 'court': 'A', 'entrants': people('P', 3)}])
+    page.evaluate("() => { state.awards = [{award: 'Fighting Spirit', name: 'P 1', dojo: 'D 1'}, {award: 'Kantosho', name: '', dojo: ''}]; }")
+    app.nav('results')
+    award = AWARD_INPUT.format(row=1, label='Award name')
+    page.fill(award, 'Best Ki')
+    page.evaluate("() => { state.awards[0].name = 'P 2'; state.awards[1].dojo = 'Other Dojo'; renderResultsDashboard(); }")
+    got = page.evaluate(EDITOR_JS)
+    assert got['focus'] == 0 and got['values'][:3] == ['Best Ki', 'P 2', 'D 1'] and got['values'][5] == 'Other Dojo', \
+        f'a redraw while typing: {got}'
+    page.type(award, 'ai')
+    page.press(award, 'Tab')
+    got = page.evaluate(EDITOR_JS)
+    assert got['awards'][0]['award'] == 'Best Kiai' and got['focus'] == 1, f'the typed award after Tab: {got}'
+    # A redraw with nothing typed shows state.awards again (no stale text kept).
+    page.evaluate("() => { state.awards[0].award = 'Changed elsewhere'; document.activeElement.blur(); renderResultsDashboard(); }")
+    got = page.evaluate(EDITOR_JS)
+    assert got['values'][0] == 'Changed elsewhere' and got['focus'] is None, f'a redraw without focus: {got}'
+    assert page_errors == ['saveAuto is not defined'], f'page errors (the change handler, a kept quirk): {page_errors}'
+    page.close()
+
+
 # Checks without a snapshot file.
-CHECKS = {}
+CHECKS = {'awards-typing-stability': awards_typing_stability}
 
 
 def main():
@@ -265,6 +346,16 @@ def main():
         for name in checks:
             CHECKS[name](browser, errors)
             print(f'  {name}: ok')
+        if not ONLY and not UPDATE:
+            assert ELEMENTS_SEEN[0], 'React never rendered anything on Results'
+            expected = {
+                'results: no divisions', 'card: in progress', 'card: round robin in progress',
+                'card: 1 placements', 'card: 2 placements', 'card: 3 placements', 'card: 4 placements',
+                'awards: none', 'awards: some',
+                'detail: pools cards', 'detail: pools message', 'detail: bracket cards', 'detail: bracket team-bracket',
+                'detail: bracket team-standings', 'team standings: pairs',
+            }
+            assert expected <= VARIANTS_SEEN, f'Results variants not covered: {sorted(expected - VARIANTS_SEEN)}; seen {sorted(VARIANTS_SEEN)}'
         assert not errors, '\n'.join(errors)
         browser.close()
     note = f'; element boxes not recorded for {PLATFORM} in {len(missing_geometry)} scenario(s), compared without them' if missing_geometry else ''

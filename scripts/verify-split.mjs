@@ -101,6 +101,11 @@ const KNOWN_POST_SPLIT_EDITS = {
   // app/js/37-react-tv.js publishes the TV as plain data and shows a notice when the React module
   // is missing.
   'react-tv': 2,
+  // feat/react-results (M.13): the Results screen's React islands. renderResultsDashboard() and
+  // openResultsBracket() (27) publish (ksmRenderResults(), ksmRenderResultsBracket()) and, while
+  // the islands are mounted, hand over; app/js/38-react-results.js publishes the screen as plain
+  // data.
+  'react-results': 3,
   // feat/react-overlay: app/js/33-stream-overlay-links.js (TV menu "copy overlay link").
   'stream-overlay': 1,
 };

@@ -21,9 +21,9 @@ const modules = [...built.matchAll(/\n\s*<script type="module" crossorigin src="
 const court = modules[0]?.[1];
 // The screens' entry chunk and the chunks it imports (React, mountIsland), as Vite wrote them.
 const courtFiles = court ? [court, ...[...dist(court).matchAll(/^import .* from "\.\/([\w.-]+\.js)";$/gm)].map(m => `assets/${m[1]}`)] : [];
-check(modules.length === 1 && [...built.matchAll(/type="module"/g)].length === 1, 'one module script: the React screens (court, Live Scores, TV)');
-check(court && dist(court).includes('ksm:court-scoreboard') && dist(court).includes('ksm:live-scores') && dist(court).includes('ksm:tv') && courtFiles.every(f => fs.existsSync(path.join(DIST_DIR, f)) && !dist(f).includes('function performCourtAction(')),
-  `screens module bundled from app/react/court/, app/react/live-scores/ and app/react/tv/ without the classic app (${courtFiles.join(', ')})`);
+check(modules.length === 1 && [...built.matchAll(/type="module"/g)].length === 1, 'one module script: the React screens (court, Live Scores, TV, Results)');
+check(court && dist(court).includes('ksm:court-scoreboard') && dist(court).includes('ksm:live-scores') && dist(court).includes('ksm:tv') && dist(court).includes('ksm:results') && courtFiles.every(f => fs.existsSync(path.join(DIST_DIR, f)) && !dist(f).includes('function performCourtAction(')),
+  `screens module bundled from app/react/court/, app/react/live-scores/, app/react/tv/ and app/react/results/ without the classic app (${courtFiles.join(', ')})`);
 check(built.replace(modules[0]?.[0] ?? '', '') === indexHtml().replace(STYLE_TAG, `<link rel="stylesheet" href="/${css}">`).replace(SCRIPT_TAG, `<script src="/${engine}"></script>\n<script src="/${js}"></script>`),
   'dist/index.html = app/index.html apart from the bundle URLs and the screens module, with the engine script right before app.js');
 check(engine && dist(engine) === await engineScript() && /^var KSMEngine = /.test(dist(engine)), 'engine script = app/engine/index.ts as a classic IIFE defining KSMEngine');
