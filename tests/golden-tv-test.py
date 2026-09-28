@@ -1,12 +1,13 @@
 """Golden (snapshot) test of the TV display (?view=tv, body.ksm-tv; roadmap M.13).
 
-A TV device shows one court (the link's &court=, KSM_TV_ASSIGNED_COURT) on a fixed 1920x1080
+Since M.13 the TV is drawn only by React (the Tv island, app/react/tv/; app/js/37-react-tv.js
+publishes its data). A TV device shows one court (the link's &court=, KSM_TV_ASSIGNED_COURT) on a fixed 1920x1080
 canvas (#tvLive: tv-canvas with the header, current match and Upcoming Matches zones), follows
 the division its court is on and shows a completed division's final results. The approved
 snapshots in tests/golden/tv/*.json were recorded from the LEGACY renderer (renderTvDisplay() and
 the tv3 renderer in app/js/26-tv-display.js, with tvUpcomingMatches(), tvIndividualSideLabel() and
 tvTeamNodeEntries() of 25-live-scores.js), so they pin exactly what the legacy TV drew (quirks
-included, see docs/ROADMAP.md "TV quirks kept").
+included, see docs/ROADMAP.md "TV quirks kept"), before that renderer was removed.
 
 One offline copy of the app per scenario runs as a TV device: body.ksm-tv, show('tv'), and
 tvAssignedCourt() from the page URL (?court=A or ?court=B). The court is scored in the same page
@@ -18,7 +19,8 @@ text, visibility, innerText, each element's page box per platform) and compared 
 approved snapshot, together with the TV read-outs (KsmApp.tv_screen(), tv_upcoming()), the
 page's scroll size and the dialogs shown. React must render every element in #tvLive (the Tv
 island, app/react/tv/; app/js/37-react-tv.js publishes its data), and every kind of TV content
-must be covered.
+must be covered. Last, a TV without the React module script must show the "TV display could not
+load" notice instead of an empty screen (and a working TV never shows it).
 
   tv-a-actions        no tournament yet (idle), then a round robin on Court A scored on the court
                       screen (points, hansoku, undo, redo, Fusen-gachi, Next Match), each seen on
@@ -39,6 +41,7 @@ Approve an intended change (review the JSON diff, commit it with the code change
 
     KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-tv-test.py [scenario ...]
 """
+import re
 import time
 from pathlib import Path
 
@@ -48,7 +51,7 @@ from golden_screen import (
     Golden, geometry_recorded, match_points, people, team,
 )
 from ksm_app import KsmApp
-from ksm_browser import launch_chromium, load_app
+from ksm_browser import DIST, launch_chromium, load_app
 
 GOLDEN_DIR = Path(__file__).resolve().parent / 'golden' / 'tv'
 ROOT = '#tv'
@@ -114,6 +117,7 @@ def open_tv(name, browser, errors, court, entries=None, react_check=None):
     golden = Golden(name, app, errors, GOLDEN_DIR, capture, react_check)
     assert app.page.evaluate('tvAssignedCourt()') == court, f'{name}: the TV is not assigned to Court {court}'
     assert app.page.evaluate('window.ksmTvMounted === true'), f'{name}: the TV island did not mount'
+    assert app.page.locator('#tvModuleMissing').count() == 0, f'{name}: "TV display could not load" shown on a working page'
     if entries:
         app.configure(entries)
     return golden
@@ -138,6 +142,33 @@ def on_court(court, action):
         a.page.evaluate("() => document.body.classList.add('ksm-tv')")
         tv_update(a)
     return run
+
+
+def without_screens_module():
+    """dist/index.html without the React screens' module script (as a device whose copy lacks it)."""
+    html = (DIST / 'index.html').read_text(encoding='utf-8')
+    module = re.search(r'<script type="module"[^>]*src="/assets/index-[\w-]+\.js"></script>\n?', html)
+    assert module, 'dist/index.html: no module script'
+    return html.replace(module.group(0), '')
+
+
+def tv_module_missing(browser, errors):
+    """Without the React module nothing draws the TV: it says so instead."""
+    app = KsmApp(browser.new_page(viewport=TV), 'no React module')
+    page = app.page
+    page.on('pageerror', lambda e: errors.append(f'TV module missing: {e}'))
+    load_app(page, html=without_screens_module(), query='?court=A')
+    app.configure([{'name': 'Open', 'format': 'Round Robin', 'court': 'A', 'entrants': people('P', 3)}])
+    page.evaluate(TV_MODE_JS)
+    notice = page.locator('#tv [data-testid="tv-module-missing"]')
+    assert notice.is_visible(), 'no "TV display could not load" notice without the React module'
+    assert 'TV display could not load' in notice.inner_text(), notice.inner_text()
+    assert not page.locator('#tvLive').is_visible(), 'the empty TV markup is shown without the React module'
+    assert page.evaluate("window.ksmTvInput.kind") == 'tv', 'renderTvDisplay() did not publish without the island'
+    page.close()
+
+
+CHECKS = {'tv-module-missing': tv_module_missing}
 
 
 # ---------------------------------------------------------------------------------- scenarios
@@ -291,7 +322,7 @@ def covered():
     assert expected <= VARIANTS_SEEN, f'TV variants not covered: {sorted(expected - VARIANTS_SEEN)}; seen {sorted(VARIANTS_SEEN)}'
 
 
-def main(react_check=check_react, checks=None, after=covered):
+def main(react_check=check_react, checks=CHECKS, after=covered):
     started = time.time()
     chosen = [n for n in SCENARIOS if not ONLY or any(q in n for q in ONLY)]
     checks = {n: f for n, f in (checks or {}).items() if not UPDATE and (not ONLY or any(q in n for q in ONLY))}

@@ -25,7 +25,8 @@
 // The legacy court renderer (the DOM-writing renderScore/renderQueue/renderContext and their
 // HTML helpers) was removed in M.8 step 5; the functions below mirror its decisions, which
 // tests/golden/court/*.json (recorded from it) pin. HTML helpers that other screens share
-// (bracketHtml(), teamSheetHtml(), divisionCompletePanelHtml(), ...) stay. If the court module
+// (bracketHtml(), ...) stay (divisionCompletePanelHtml() went with the legacy TV renderer, M.13).
+// If the court module
 // does not load, the court screen shows a notice (the end of this file).
 // Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
@@ -56,7 +57,8 @@ function ksmPublishCourtActions(actions){
   window.ksmCourtActionsInput=actions;
   window.dispatchEvent(new CustomEvent('ksm:court-actions'));
 }
-// divisionCompletePanelHtml() (32-) as data: esc() text (String(x||'')).
+// divisionCompletePanelHtml() (32-; removed in M.13, the TV was its last user) as data: esc()
+// text (String(x||'')).
 function ksmDivisionCompleteInput(div,complete){
   if(!complete)return {complete:false,placements:[]};
   return {complete:true,placements:resultPlacements(div).map(p=>({place:ksmText(p.place),name:ksmText(p.name),tier:ksmText(p.tier)}))};

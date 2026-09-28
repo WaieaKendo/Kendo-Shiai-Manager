@@ -1,24 +1,28 @@
 /* ksm:post-split-begin react-tv */
 // ==========================================================
 // React TV display (app/react/tv/, roadmap M.13)
-// The TV display (?view=tv, body.ksm-tv, #tvLive) is drawn by React: one island (Tv), mounted by
-// app/react/tv/main.tsx. The legacy code still chooses what the TV shows:
+// The TV display (?view=tv, body.ksm-tv, #tvLive) is drawn only by React: one island (Tv), mounted
+// by app/react/tv/main.tsx. The legacy code still chooses what the TV shows:
 // buildTV3ViewModel() (26-tv-display.js) takes the TV court's match with courtCurrentMatch()
 // (which also moves the court on, as before), its upcoming matches (tvUpcomingMatches(), which
 // sorts the division's matches in place) and decides when a completed division's Final Results
 // show. renderTvDisplay() (26-) calls ksmRenderTv() below, which publishes what to draw as
-// plain data (ksm:tv, window.ksmTvInput) and never writes #tvLive. The functions below mirror
-// the tv3 renderer's reads (tv3Individual(), tv3Team(), tv3Kachinuki(), tv3Results(),
-// tv3Upcoming() in 26-), in the same order, which tests/golden/tv/*.json (recorded from it) pin;
-// text is what esc() showed (ksmText(), String(x||'')); the placements are the court screen's
-// division-complete data (ksmDivisionCompleteInput(), 35-react-court.js).
+// plain data (ksm:tv, window.ksmTvInput) and never writes #tvLive.
+// The legacy tv3 renderer (tv3Individual(), tv3Team(), tv3Kachinuki(), tv3Results(),
+// tv3Upcoming(), ... in 26-, and renderTvDisplay()'s body) and the first TV renderer that never
+// ran (25-: tvIndividualHtml(), tvTeamHtml(), ...) were removed in M.13; the functions below
+// mirror the tv3 renderer's reads, in the same order, which tests/golden/tv/*.json (recorded
+// from it) pin; text is what esc() showed (ksmText(), String(x||'')); the placements are the
+// court screen's division-complete data (ksmDivisionCompleteInput(), 35-react-court.js).
+// If the React module does not load, the TV shows a notice (the end of this file).
 // Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
 function ksmPublishTv(input){
   window.ksmTvInput=input;
   window.dispatchEvent(new CustomEvent('ksm:tv'));
 }
-// Point letters as Array.join() prints them (tvPointText() adds the '—' before the first point).
+// Point letters as Array.join() prints them (the view adds the '—' before the first point, as
+// tvPointText() did).
 function ksmTvLetters(arr){return (arr||[]).map(x=>x==null?'':String(x))}
 // tv3Upcoming(): up to two cards, null for an empty one.
 function ksmTvUpcoming(vm){
@@ -60,4 +64,21 @@ function ksmRenderTv(){
   if(!window.tvLive)return;
   ksmPublishTv(ksmTvDisplayInput(tvAssignedCourt()));
 }
+
+// If the React module (app/react/main.tsx, a module script after app.js) did not run, say so on
+// the TV instead of an empty screen, which nothing fills any more (e.g. an offline TV whose
+// cached copy lacks the module). Module scripts run before DOMContentLoaded, so a working page
+// never shows this. Existing styles only (.card, .sub).
+function ksmShowTvModuleMissing(){
+  if(window.ksmTvMounted)return;
+  const live=document.getElementById('tvLive');
+  if(!live||document.getElementById('tvModuleMissing'))return;
+  const notice=document.createElement('div');
+  notice.id='tvModuleMissing';notice.className='card';notice.setAttribute('role','alert');notice.setAttribute('data-testid','tv-module-missing');
+  notice.innerHTML='<h1>TV display could not load</h1><p class="sub">Reload the page. If this device is offline, reconnect once so it can download the current version of the app.</p>';
+  // The TV CSS sizes #tvLive with !important rules (the fixed canvas), so hide it the same way.
+  live.style.setProperty('display','none','important');
+  live.before(notice);
+}
+document.addEventListener('DOMContentLoaded',ksmShowTvModuleMissing);
 /* ksm:post-split-end */

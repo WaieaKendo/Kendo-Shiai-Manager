@@ -1,6 +1,6 @@
 // The court screen's division-complete presentation: the .division-complete class on the
 // scoreboard card and the .division-complete-panel as the card's last child, the same
-// elements, classes and test IDs as divisionCompletePanelHtml(), so the court CSS (which hides
+// elements, classes and test IDs as the legacy divisionCompletePanelHtml(), so the court CSS (which hides
 // the match display, score buttons, Fusen-gachi and Next Match; Undo/Redo stay, F2) and the
 // tests apply unchanged. The card
 // itself is legacy markup that holds the other islands, so the panel is a portal into it and
@@ -27,7 +27,7 @@ function subscribe(onChange: () => void): () => void {
 
 const snapshot = (): CourtCompleteInput => (window as unknown as CourtWindow).ksmCourtCompleteInput ?? NOT_COMPLETE;
 
-/** divisionCompletePanelHtml(): also the division-complete view of Live Scores. */
+/** divisionCompletePanelHtml() (legacy): also the division-complete view of Live Scores and the TV's Final Results. */
 export function DivisionCompletePanel({ view }: { view: CourtCompleteView }) {
   return (
     <div className="division-complete-panel" data-testid="division-complete">

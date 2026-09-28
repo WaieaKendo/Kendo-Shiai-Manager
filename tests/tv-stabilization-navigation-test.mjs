@@ -1,9 +1,14 @@
-import { html as appSource } from './lib/ksm-source.mjs';
+import { html as appSource, readRepoFile } from './lib/ksm-source.mjs';
 import fs from "node:fs";
 const html=appSource;
+// M.13: the TV display is React. app/js/37-react-tv.js publishes what buildTV3ViewModel() (26-)
+// chose, app/react/tv/ draws it (tests/golden/tv pins the result, recorded from the removed tv3
+// renderer). Checks of TV markup point at that code.
+const tvReact=readRepoFile('app/react/tv/Tv.tsx'),tvModel=readRepoFile('app/react/tv/tv-model.ts');
 const checks=[
  ["fixed 1920 canvas",html.includes("width:1920px;height:1080px")],
- ["scaled canvas wrapper",html.includes("class=\"tv-canvas\"")&&html.includes("fitTvCanvas")],
+ // The canvas wrapper is the tv3 root (the first renderer's scaled .tv-canvas and fitTvCanvas() never ran; removed in M.13).
+ ["canvas wrapper",tvReact.includes('<div className="tv3-root" data-testid="tv-canvas">')&&html.includes("width:1920px;height:1080px")],
  ["court URL lock",html.includes("KSM_TV_ASSIGNED_COURT")&&html.includes("function tvAssignedCourt(){return KSM_TV_ASSIGNED_COURT}")],
  ["no portrait gate markup",!html.includes("id=\"tvRotate\"")],
  ["spectator TV hidden",html.includes("body.ksm-spectator .tv-role-access{display:none!important}")],

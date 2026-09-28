@@ -12,8 +12,8 @@
 // M.13; the functions below mirror its decisions, which tests/golden/live-scores/*.json
 // (recorded from it) pin. Team and kachinuki sheets are the court screen's data
 // (ksmTeamSheet(), ksmKachinukiSheet(), 35-react-court.js), the placements its
-// division-complete data (ksmDivisionCompleteInput()). HTML helpers other screens share
-// (audienceMeta(), teamSheetHtml(), kachinukiSheetHtml(), divisionCompletePanelHtml(), ...) stay.
+// division-complete data (ksmDivisionCompleteInput()). audienceMeta() (25-) stays: the TV shares
+// it.
 // If the React module does not load, Live Scores shows a notice (the end of this file).
 // Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================

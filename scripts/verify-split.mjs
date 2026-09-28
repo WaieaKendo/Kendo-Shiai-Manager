@@ -24,8 +24,8 @@
 // compares against the old declaration with its body emptied.
 //
 // Old code deliberately deleted (REMOVED_COURT_RENDERER: the legacy court renderer, M.8
-// step 5; REMOVED_LIVE_SCORES_RENDERER: the legacy Live Scores renderer, M.13) is named piece by
-// piece; the check deletes exactly those pieces from the old script before comparing, so every
+// step 5; REMOVED_LIVE_SCORES_RENDERER and REMOVED_TV_RENDERER: the legacy Live Scores and TV
+// renderers, M.13) is named piece by piece; the check deletes exactly those pieces from the old script before comparing, so every
 // other difference, and any piece that no longer matches, still fails.
 import { execFileSync } from 'node:child_process';
 import { minify } from 'vite';
@@ -96,8 +96,10 @@ const KNOWN_POST_SPLIT_EDITS = {
   // of ksmRenderLiveScores(), and app/js/36-react-live-scores.js publishes the screen as plain
   // data and shows a notice when the React module is missing.
   'react-live': 2,
-  // feat/react-tv (M.13): the TV display's React island. renderTvDisplay() (26) hands over to
-  // ksmRenderTv() while the island is mounted; app/js/37-react-tv.js publishes the TV as plain data.
+  // feat/react-tv (M.13): the TV display's React island. With the legacy TV renderer removed
+  // (REMOVED_TV_RENDERER) renderTvDisplay()'s body (26) is a marked call of ksmRenderTv(), and
+  // app/js/37-react-tv.js publishes the TV as plain data and shows a notice when the React module
+  // is missing.
   'react-tv': 2,
   // feat/react-overlay: app/js/33-stream-overlay-links.js (TV menu "copy overlay link").
   'stream-overlay': 1,
@@ -179,6 +181,27 @@ const REMOVED_LIVE_SCORES_RENDERER = [
   // 32: the division-complete wrapper; ksmRenderLiveScores() (36) makes its decision.
   { from: 'const renderPublic_v3121=renderPublic;', to: '  renderPublic_v3121();\n};\n' },
 ];
+// feat/react-tv (M.13): the legacy TV renderer, deleted. React draws the TV display (app/react/tv/);
+// tests/golden/tv/*.json pin what this code drew. Same entry forms as REMOVED_COURT_RENDERER. The
+// TV's decisions stay (buildTV3ViewModel(), tv3UpcomingModel(), tv3Side() in 26;
+// tvUpcomingMatches(), tvIndividualSideLabel(), tvTeamNodeEntries(), tvAssignedCourt() in 25), and
+// audienceMeta() (Live Scores, TV).
+const REMOVED_TV_RENDERER = [
+  // 26: the tv3 renderer's DOM writing (only renderTvDisplay() used them).
+  'renderTvDisplay#2:body',                                      // 26: publishes the TV (react-tv)
+  'tv3Name#1', 'tv3Header#1', 'tv3Upcoming#1', 'tv3Player#1', 'tv3Individual#1', 'tv3Team#1', 'tv3KRow#1',
+  'tv3Kachinuki#1', 'tv3Results#1', 'tv3ResultsFooter#1',
+  'divisionCompletePanelHtml#1',                                 // 32: its last user was tv3Results()
+  // 25: the first TV renderer, which never ran (overridden by #2 in 26), and the helpers only it used.
+  'renderTvDisplay#1', 'fitTvCanvas#1', 'fitTvText#1', 'tvPointText#1', 'tvNameLines#1', 'tvNameHtml#1',
+  'tvUpcomingHtml#1', 'tvIndividualHtml#1', 'tvKachinukiStatusRow#1', 'tvKachinukiHtml#1', 'tvTeamHtml#1',
+  // 25, 31: the audience-hero helpers, which nothing called (Live Scores was drawn by
+  // liveScoresCourtCard(), the TV by the tv3 renderer).
+  'audienceTournamentName#1', 'audiencePenalties#1', 'audienceHeaderHtml#1', 'audienceScoreHtml#1',
+  'audienceIndividualHero#1', 'audienceIndividualHero#2', 'audienceNextIndividualHtml#1', 'teamPointSlots#1',
+  'nextTeamPairText#1', 'standardTeamAudienceHtml#1', 'standardTeamAudienceHtml#2', 'kachinukiPlayerRows#1',
+  'kachinukiAudienceHtml#1', 'audienceNameHtml#1',
+];
 // fix/pre-event (M.12): data-testid attributes added to existing markup, as [old start tag, test ID];
 // the check takes each ` data-testid="<id>"` out again (it must appear exactly once, at the end
 // of that tag) and then compares byte for byte, so any other markup change still fails.
@@ -228,12 +251,13 @@ for (const name of MOVED_TO_ENGINE) {
   const at = oldScript.lastIndexOf(fn);
   oldScript = oldScript.slice(0, at) + fn.slice(0, fn.indexOf('{') + 1) + '}' + oldScript.slice(at + fn.length);
 }
-// Delete REMOVED_COURT_RENDERER and REMOVED_LIVE_SCORES_RENDERER from the old script: find every
+// Delete REMOVED_COURT_RENDERER, REMOVED_LIVE_SCORES_RENDERER and REMOVED_TV_RENDERER from the old script: find every
 // piece first (positions in the old script as it is now), refuse overlaps, then cut from the end.
 {
   const removed = [
     ...REMOVED_COURT_RENDERER.map(entry => ['REMOVED_COURT_RENDERER', entry]),
     ...REMOVED_LIVE_SCORES_RENDERER.map(entry => ['REMOVED_LIVE_SCORES_RENDERER', entry]),
+    ...REMOVED_TV_RENDERER.map(entry => ['REMOVED_TV_RENDERER', entry]),
   ];
   const cuts = removed.map(([list, entry]) => {
     if (typeof entry === 'object') {
