@@ -10,7 +10,9 @@ One offline copy of the app runs each scenario with Live Scores on screen; after
 the whole #public view is serialized (golden_screen.PANEL_JS: elements, ids, classes, test IDs,
 every attribute, text, visibility, innerText, and each element's page box per platform) and
 compared with the approved snapshot, together with the Live Scores read-out of both courts
-(KsmApp.live_court()) and the dialogs shown.
+(KsmApp.live_court()) and the dialogs shown. React must render every element in #publicLive
+(the LiveScores island, app/react/live-scores/), and every kind of Live Scores content must be
+covered.
 
 Live Scores is redrawn by every court action (renderScore() calls renderPublic()) and by
 opening it (show() runs renderAll()), so the scenarios use both:
@@ -40,7 +42,7 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 from golden_screen import (
-    ALL_COMPLETE_JS, ONLY, PANEL_JS, PLATFORM, PREPARE_JS, SPECTATOR_JS, UPDATE,
+    ALL_COMPLETE_JS, FIBER_JS, ONLY, PANEL_FIBERS_JS, PANEL_JS, PLATFORM, PREPARE_JS, SPECTATOR_JS, UPDATE,
     Golden, geometry_recorded, match_points, people, team,
 )
 from ksm_app import KsmApp
@@ -58,6 +60,23 @@ SHOW_LIVE_JS = "() => KSMTest.show('public')"
 # (applyRemoteCloudRecord() in 21-: state.publicCourt from the local court).
 PUBLIC_COURT_B_JS = "() => { state.publicCourt = 'B'; KSMTest.show('public'); }"
 VIEW_JS = f"() => !document.querySelector('{ROOT}').classList.contains('hidden')"
+LIVE = '#public #publicLive'
+# Which kinds of Live Scores content the React island was given.
+VARIANTS_JS = """() => {
+  const d = window.ksmLiveScoresInput, out = [];
+  if (!d) return out;
+  out.push('live: ' + d.kind);
+  if (d.kind === 'complete') out.push('complete: ' + (d.complete.placements.length ? 'placements' : 'no placements'));
+  (d.courts || []).forEach(c => {
+    out.push(`court ${c.court}: ${c.kind}`);
+    if (c.kind !== 'idle') out.push(`${c.kind}: ${c.next ? 'next' : 'no next'}`);
+    if (c.kind === 'individual' && c.points.W.length + c.points.R.length) out.push('individual: points');
+    if (c.kind === 'team' && c.sheet.rows.length > 3) out.push('team: playoff row');
+  });
+  return out;
+}"""
+VARIANTS_SEEN = set()
+ELEMENTS_SEEN = [0]  # most React-rendered elements seen in #publicLive
 
 
 def capture(app):
@@ -72,10 +91,22 @@ def capture(app):
     return entry, {'live': panel['boxes']}
 
 
+def check_react(golden, step):
+    """React renders every element of Live Scores (#publicLive and all in it)."""
+    page = golden.app.page
+    total, owned = page.evaluate(PANEL_FIBERS_JS, LIVE)
+    assert total == owned, f'{golden.name}: {step}: {total - owned} of {total} Live Scores elements are not rendered by React'
+    if total:
+        assert page.evaluate(FIBER_JS, f'{LIVE} > *'), f'{golden.name}: {step}: Live Scores is not rendered by React'
+    ELEMENTS_SEEN[0] = max(ELEMENTS_SEEN[0], owned)
+    VARIANTS_SEEN.update(page.evaluate(VARIANTS_JS))
+
+
 def open_app(name, browser, errors, entries=None):
     app = KsmApp(browser.new_page(viewport=DESKTOP), name)
     load_app(app.page)
-    golden = Golden(name, app, errors, GOLDEN_DIR, capture)
+    golden = Golden(name, app, errors, GOLDEN_DIR, capture, check_react)
+    assert app.page.evaluate('window.ksmLiveScoresMounted === true'), f'{name}: the Live Scores island did not mount'
     if entries:
         app.configure(entries)
     return golden
@@ -221,6 +252,17 @@ def main():
         for name in chosen:
             SCENARIOS[name](browser, errors)
             print(f'  {name}: ok')
+        if not ONLY and not UPDATE:
+            assert ELEMENTS_SEEN[0], 'React never rendered anything on Live Scores'
+            # (Not reachable from these runs: a complete division without placements.)
+            expected = {
+                'live: courts', 'live: complete', 'complete: placements',
+                'court A: idle', 'court B: idle', 'court A: individual', 'court B: individual', 'court A: team', 'court B: team',
+                'court A: kachinuki', 'court B: kachinuki',
+                'individual: next', 'individual: no next', 'individual: points', 'team: next', 'team: no next', 'team: playoff row',
+                'kachinuki: next', 'kachinuki: no next',
+            }
+            assert expected <= VARIANTS_SEEN, f'Live Scores variants not covered: {sorted(expected - VARIANTS_SEEN)}'
         assert not errors, '\n'.join(errors)
         browser.close()
     note = f'; element boxes not recorded for {PLATFORM} in {len(missing_geometry)} scenario(s), compared without them' if missing_geometry else ''

@@ -75,6 +75,7 @@ renderScore=function(){
 };
 const renderPublic_v3121=renderPublic;
 renderPublic=function(){
+  /* ksm:post-split-begin react-live */if(ksmReactLiveScoresActive()){ksmRenderLiveScores();return;}/* ksm:post-split-end */
   const court=state.publicCourt||'A';
   const div=state.courtActiveDivision?.[court]||state.courtState?.[court]?.division||state.currentDivision;
   if(div&&divisionComplete(div)&&!courtCurrentMatch(court)){

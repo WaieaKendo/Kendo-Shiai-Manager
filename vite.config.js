@@ -18,11 +18,11 @@ self.addEventListener('activate', event => event.waitUntil(caches.keys().then(ke
 // `KSMEngine`; the plugin adds its tag right before app.js (app/index.html is unchanged).
 // Only index.html gets the classic bundle; extra pages (app/*.html) are ordinary Vite
 // entries with module scripts from app/react/.
-// index.html also gets one module script after app.js: the React court screen islands
-// (COURT_MODULE), which Vite bundles like any page script. Its files join APP_SHELL, so an
-// offline device has the same court screen.
-const COURT_MODULE = '/react/court/main.tsx';
-const COURT_TAG = `<script type="module" src="${COURT_MODULE}"></script>`;
+// index.html also gets one module script after app.js: the React screens' islands
+// (SCREENS_MODULE: the court screen and Live Scores), which Vite bundles like any page script.
+// Its files join APP_SHELL, so an offline device has the same screens.
+const SCREENS_MODULE = '/react/main.tsx';
+const SCREENS_TAG = `<script type="module" src="${SCREENS_MODULE}"></script>`;
 
 // The bundled files index.html's module scripts load: entry chunk, imported chunks, their CSS.
 function indexModuleFiles(bundle) {
@@ -71,11 +71,11 @@ function ksmClassicBundle() {
       handler(html, ctx) {
         if (ctx.path !== '/index.html') return html;
         if (!html.includes(STYLE_TAG) || !html.includes(SCRIPT_TAG)) throw new Error('app/index.html must contain the app.css and app.js tags');
-        if (ctx.server) return html.replace(SCRIPT_TAG, () => `<script src="${ENGINE_URL}"></script>\n${SCRIPT_TAG}\n${COURT_TAG}`);
+        if (ctx.server) return html.replace(SCRIPT_TAG, () => `<script src="${ENGINE_URL}"></script>\n${SCRIPT_TAG}\n${SCREENS_TAG}`);
         if (!built) return html;
         return html
           .replace(STYLE_TAG, () => `<link rel="stylesheet" href="/${built.cssFile}" vite-ignore>`)
-          .replace(SCRIPT_TAG, () => `<script src="/${built.engineFile}" vite-ignore></script>\n<script src="/${built.jsFile}" vite-ignore></script>\n${COURT_TAG}`);
+          .replace(SCRIPT_TAG, () => `<script src="/${built.engineFile}" vite-ignore></script>\n<script src="/${built.jsFile}" vite-ignore></script>\n${SCREENS_TAG}`);
       },
     },
     generateBundle(_options, bundle) {
@@ -84,9 +84,9 @@ function ksmClassicBundle() {
       this.emitFile({ type: 'asset', fileName: built.engineFile, source: built.engine });
       const sw = serviceWorker();
       if (!sw.includes(`'${STYLE_URL}', '${SCRIPT_URL}'`)) throw new Error('app/service-worker.js APP_SHELL must list /app.css and /app.js');
-      const court = indexModuleFiles(bundle);
-      if (!court.length) throw new Error(`index.html must load ${COURT_MODULE}`);
-      const shell = [built.cssFile, built.engineFile, built.jsFile, ...court].map(f => `'/${f}'`).join(', ');
+      const screens = indexModuleFiles(bundle);
+      if (!screens.length) throw new Error(`index.html must load ${SCREENS_MODULE}`);
+      const shell = [built.cssFile, built.engineFile, built.jsFile, ...screens].map(f => `'/${f}'`).join(', ');
       this.emitFile({ type: 'asset', fileName: 'service-worker.js', source: sw.replace(`'${STYLE_URL}', '${SCRIPT_URL}'`, shell) });
     },
   };

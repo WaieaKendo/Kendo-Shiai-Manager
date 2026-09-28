@@ -136,11 +136,16 @@ export interface KachinukiLineView {
   state: 'eliminated' | 'active' | 'waiting';
 }
 
+/** kachinukiSheetHtml(m) as drawn (also on Live Scores). */
+export interface KachinukiSheetView { teamWhite: string; teamRed: string; current: AlignedRowView; white: KachinukiLineView[]; red: KachinukiLineView[] }
+/** teamSheetHtml(div, pair, current) as drawn (also on Live Scores). */
+export interface TeamSheetView { teamWhite: string; teamRed: string; rows: AlignedRowView[]; totals: TeamSheetInput['totals'] }
+
 export type CourtContextView =
   | { kind: 'empty' }
   | { kind: 'message'; text: string }
-  | { kind: 'kachinuki'; teamWhite: string; teamRed: string; current: AlignedRowView; white: KachinukiLineView[]; red: KachinukiLineView[] }
-  | { kind: 'team-sheet'; teamWhite: string; teamRed: string; rows: AlignedRowView[]; totals: TeamSheetInput['totals'] }
+  | ({ kind: 'kachinuki' } & KachinukiSheetView)
+  | ({ kind: 'team-sheet' } & TeamSheetView)
   | { kind: 'single-elim'; left: BracketCardView[]; right: BracketCardView[] }
   | { kind: 'split-single-elim'; cards: BracketCardView[] }
   | { kind: 'pools'; inProgress: PoolCardView[]; bracket: BracketView; completed: PoolCardView[] }
@@ -190,18 +195,20 @@ export function kachinukiLines(lineup: readonly string[], index: number | null):
   });
 }
 
+export function kachinukiSheetView(s: KachinukiSheetInput): KachinukiSheetView {
+  return { teamWhite: s.teamWhite, teamRed: s.teamRed, current: alignedRowView(s.current), white: kachinukiLines(s.white.lineup, s.white.index), red: kachinukiLines(s.red.lineup, s.red.index) };
+}
+
+export function teamSheetView(s: TeamSheetInput): TeamSheetView {
+  return { teamWhite: s.teamWhite, teamRed: s.teamRed, rows: s.rows.map(alignedRowView), totals: s.totals };
+}
+
 export function courtContextView(input: CourtContextInput): CourtContextView {
   switch (input.kind) {
     case 'empty':
     case 'message': return input;
-    case 'kachinuki': {
-      const s = input.sheet;
-      return { kind: 'kachinuki', teamWhite: s.teamWhite, teamRed: s.teamRed, current: alignedRowView(s.current), white: kachinukiLines(s.white.lineup, s.white.index), red: kachinukiLines(s.red.lineup, s.red.index) };
-    }
-    case 'team-sheet': {
-      const s = input.sheet;
-      return { kind: 'team-sheet', teamWhite: s.teamWhite, teamRed: s.teamRed, rows: s.rows.map(alignedRowView), totals: s.totals };
-    }
+    case 'kachinuki': return { kind: 'kachinuki', ...kachinukiSheetView(input.sheet) };
+    case 'team-sheet': return { kind: 'team-sheet', ...teamSheetView(input.sheet) };
     case 'single-elim': return { kind: 'single-elim', left: input.left.map(bracketCardView), right: input.right.map(bracketCardView) };
     case 'split-single-elim': return { kind: 'split-single-elim', cards: input.cards.map(bracketCardView) };
     case 'pools': return { kind: 'pools', inProgress: input.inProgress.map(poolCardView), bracket: bracketView(input.bracket), completed: input.completed.map(poolCardView) };

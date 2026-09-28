@@ -27,7 +27,8 @@ function subscribe(onChange: () => void): () => void {
 
 const snapshot = (): CourtCompleteInput => (window as unknown as CourtWindow).ksmCourtCompleteInput ?? NOT_COMPLETE;
 
-function Panel({ view }: { view: CourtCompleteView }) {
+/** divisionCompletePanelHtml(): also the division-complete view of Live Scores. */
+export function DivisionCompletePanel({ view }: { view: CourtCompleteView }) {
   return (
     <div className="division-complete-panel" data-testid="division-complete">
       {view.rows === null
@@ -50,5 +51,5 @@ export function CourtComplete({ card }: { card: Element }) {
   useLayoutEffect(() => {
     card.classList.toggle(DIVISION_COMPLETE_CLASS, view.complete);
   }, [card, view.complete]);
-  return view.complete ? createPortal(<Panel view={view} />, card) : null;
+  return view.complete ? createPortal(<DivisionCompletePanel view={view} />, card) : null;
 }

@@ -1,7 +1,8 @@
 // The Vite build must ship the app exactly as written in app/ (see scripts/app-sources.mjs):
 // same markup, stylesheet and classic script, only moved into hashed files, and every
-// static file at its old URL. The one addition is the React court screen's module script
-// (app/react/court/main.tsx, see vite.config.js), whose files join the offline APP_SHELL.
+// static file at its old URL. The one addition is the module script of the React screens
+// (app/react/main.tsx: the court screen and Live Scores, see vite.config.js), whose files join
+// the offline APP_SHELL.
 // run-all.mjs builds dist/ before the tests run.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -18,20 +19,20 @@ const engine = built.match(/<script src="\/(assets\/engine-\w+\.js)"><\/script>/
 check(css && js && engine, 'dist/index.html links one hashed stylesheet and two classic (non-module) scripts: engine, app');
 const modules = [...built.matchAll(/\n\s*<script type="module" crossorigin src="\/(assets\/index-[\w-]+\.js)"><\/script>/g)];
 const court = modules[0]?.[1];
-// The court entry chunk and the chunks it imports (React, mountIsland), as Vite wrote them.
+// The screens' entry chunk and the chunks it imports (React, mountIsland), as Vite wrote them.
 const courtFiles = court ? [court, ...[...dist(court).matchAll(/^import .* from "\.\/([\w.-]+\.js)";$/gm)].map(m => `assets/${m[1]}`)] : [];
-check(modules.length === 1 && [...built.matchAll(/type="module"/g)].length === 1, 'one module script: the React court screen');
-check(court && dist(court).includes('ksm:court-scoreboard') && courtFiles.every(f => fs.existsSync(path.join(DIST_DIR, f)) && !dist(f).includes('function performCourtAction(')),
-  `court module bundled from app/react/court/ without the classic app (${courtFiles.join(', ')})`);
+check(modules.length === 1 && [...built.matchAll(/type="module"/g)].length === 1, 'one module script: the React screens (court, Live Scores)');
+check(court && dist(court).includes('ksm:court-scoreboard') && dist(court).includes('ksm:live-scores') && courtFiles.every(f => fs.existsSync(path.join(DIST_DIR, f)) && !dist(f).includes('function performCourtAction(')),
+  `screens module bundled from app/react/court/ and app/react/live-scores/ without the classic app (${courtFiles.join(', ')})`);
 check(built.replace(modules[0]?.[0] ?? '', '') === indexHtml().replace(STYLE_TAG, `<link rel="stylesheet" href="/${css}">`).replace(SCRIPT_TAG, `<script src="/${engine}"></script>\n<script src="/${js}"></script>`),
-  'dist/index.html = app/index.html apart from the bundle URLs and the court module, with the engine script right before app.js');
+  'dist/index.html = app/index.html apart from the bundle URLs and the screens module, with the engine script right before app.js');
 check(engine && dist(engine) === await engineScript() && /^var KSMEngine = /.test(dist(engine)), 'engine script = app/engine/index.ts as a classic IIFE defining KSMEngine');
 check(css && dist(css) === appStyles(), 'stylesheet = app/styles/*.css in order, untransformed');
 check(js && dist(js) === appScript(), 'script = app/js/*.js in order, untransformed');
 
 const sw = dist('service-worker.js');
 check(sw === serviceWorker().replace("'/app.css', '/app.js'", [css, engine, js, ...courtFiles].map(f => `'/${f}'`).join(', ')),
-  'service worker = app/service-worker.js with the bundle URLs (engine and court module included) in APP_SHELL');
+  'service worker = app/service-worker.js with the bundle URLs (engine and screens module included) in APP_SHELL');
 const shell = [...sw.match(/const APP_SHELL = \[([\s\S]*?)\];/)[1].matchAll(/'([^']+)'/g)].map(m => m[1]);
 const missing = shell.filter(url => url !== '/' && !fs.existsSync(path.join(DIST_DIR, url)));
 check(!missing.length, `every APP_SHELL file exists in dist/ (${shell.length} entries)${missing.length ? ': missing ' + missing.join(', ') : ''}`);

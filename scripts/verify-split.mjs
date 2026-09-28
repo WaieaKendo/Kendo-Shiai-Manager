@@ -90,6 +90,11 @@ const KNOWN_POST_SPLIT_EDITS = {
   // replacements; the helpers after it); Download Tournament File writes the tournament ID and
   // revision into the file (manualSaveTournament(), inline).
   'load-file-guard': 4,
+  // feat/react-live-scores (M.13): the Live Scores screen's React island. The live renderPublic()
+  // (the 32- wrapper) hands over to ksmRenderLiveScores() while the island is mounted, and
+  // app/js/36-react-live-scores.js publishes the screen as plain data. Listed here because the
+  // 32- hand-over is its first region (names in order of first appearance).
+  'react-live': 2,
   // feat/react-overlay: app/js/33-stream-overlay-links.js (TV menu "copy overlay link").
   'stream-overlay': 1,
 };

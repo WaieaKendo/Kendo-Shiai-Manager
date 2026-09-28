@@ -8,7 +8,7 @@ import { DEFAULT_COURT_PANEL_ICONS, type CourtPanelIcons } from './branding.ts';
 import { AlignedRow, BracketCard } from './MatchRows.tsx';
 import {
   EMPTY_CONTEXT, courtContextView,
-  type BracketCardView, type BracketView, type CourtContextInput, type KachinukiLineView, type PoolCardView, type TeamStandingsView,
+  type BracketCardView, type BracketView, type CourtContextInput, type CourtContextView, type KachinukiLineView, type PoolCardView, type TeamStandingsView,
 } from './context-model.ts';
 
 export const CONTEXT_EVENT = 'ksm:court-context';
@@ -104,7 +104,13 @@ function Lineup({ lines }: { lines: KachinukiLineView[] }) {
 
 /** The contents of #courtContext. icons: the tournament's (default: KSM's). */
 export function CourtContext({ icons = DEFAULT_COURT_PANEL_ICONS }: { icons?: CourtPanelIcons }) {
-  const view = courtContextView(useSyncExternalStore(subscribe, snapshot, () => EMPTY_CONTEXT));
+  return <ContextPanel view={courtContextView(useSyncExternalStore(subscribe, snapshot, () => EMPTY_CONTEXT))} icons={icons} />;
+}
+
+/** What the context panel draws for a view. Live Scores draws a team match's bout sheet and a
+ * kachinuki sheet with it (app/react/live-scores/), as the legacy screens shared
+ * teamSheetHtml() / kachinukiSheetHtml(). */
+export function ContextPanel({ view, icons = DEFAULT_COURT_PANEL_ICONS }: { view: CourtContextView; icons?: CourtPanelIcons }) {
   switch (view.kind) {
     case 'empty': return null;
     case 'message': return <div className="muted-card">{view.text}</div>;

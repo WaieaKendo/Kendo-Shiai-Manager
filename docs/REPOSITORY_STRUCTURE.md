@@ -12,10 +12,13 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         overlay.html = /overlay, the stream overlay
   react/              React + strict TypeScript ES modules (own tsconfig.json):
                         island.tsx (mountIsland), legacy-bridge.ts (useLegacyState),
+                        main.tsx (index.html's one module script: mounts the screens below),
                         live/ (useTournamentRecord: GET + spectator WebSocket),
                         overlay/ (stream overlay; court-match.ts = the TV's match selection),
                         court/ (the court screen: React islands inside index.html that draw
-                        all of it, M.8; app/js/35-react-court.js publishes their data)
+                        all of it, M.8; app/js/35-react-court.js publishes their data),
+                        live-scores/ (the Live Scores screen #public, M.13;
+                        app/js/36-react-live-scores.js publishes its data)
   engine/             Pure tournament-engine modules, strict TypeScript (own tsconfig.json):
                         no DOM, no globals, explicit inputs/outputs. index.ts is bundled
                         into a classic script defining `KSMEngine`, loaded before app.js;
@@ -26,7 +29,7 @@ app/                 Front-end source (built by Vite into dist/, which is not co
   service-worker.js   PWA service worker (the build adds the hashed bundle names)
 src-worker.js        Cloudflare Worker backend (API + Durable Object)
 scripts/             Build helpers (app-sources.mjs), verify-split.mjs, reset-cloud-data.mjs
-tests/               Maintained regression tests (golden/engine, golden/court: approved snapshots)
+tests/               Maintained regression tests (golden/engine, golden/court, golden/live-scores: approved snapshots)
 docs/                Maintained documentation
 README.md             Project overview
 CHANGELOG.md          Consolidated release history
