@@ -25,13 +25,14 @@ def launch_chromium(p):
     return p.chromium.launch(headless=not headed, slow_mo=slow_mo, executable_path=path, args=['--no-sandbox'])
 
 
-def load_app(page, html=None, wait_until='domcontentloaded', session='staff'):
+def load_app(page, html=None, wait_until='domcontentloaded', session='staff', query=''):
     """Open the app on a real http origin so localStorage/sessionStorage work.
 
     `page.set_content()` leaves the page on about:blank, where storage access throws
     during startup. Requests to APP_ORIGIN are served from the built app in dist/
     (built first if it is stale; `html` replaces index.html when given); /api/*
-    returns 503 so the app stays in local/offline mode.
+    returns 503 so the app stays in local/offline mode. `query` (e.g. '?court=B') is
+    added to the page URL, for code that reads location.search at start.
 
     Since v3.16 the app boots to the Tournament Library as a read-only spectator.
     session='staff' (default) leaves the home page and enables a local staff
@@ -53,7 +54,7 @@ def load_app(page, html=None, wait_until='domcontentloaded', session='staff'):
         return route.fulfill(status=404, body='')
 
     page.route(f'{APP_ORIGIN}/**', handle)
-    page.goto(f'{APP_ORIGIN}/', wait_until=wait_until)
+    page.goto(f'{APP_ORIGIN}/{query}', wait_until=wait_until)
     if session == 'staff':
         page.evaluate("""() => {
           document.body.classList.remove('ksm-home');
