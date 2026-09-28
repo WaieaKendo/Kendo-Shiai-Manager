@@ -1,6 +1,6 @@
 """Shared parts of the golden (snapshot) tests of whole screens: golden-court-screen-test.py
-(tests/golden/court/), golden-live-scores-test.py (tests/golden/live-scores/) and
-golden-tv-test.py (tests/golden/tv/).
+(tests/golden/court/), golden-live-scores-test.py (tests/golden/live-scores/),
+golden-tv-test.py (tests/golden/tv/) and golden-results-test.py (tests/golden/results/).
 
 A screen test runs scenarios on one offline copy of the app and, after every step, serializes
 the screen (elements, attributes, visible text, visibility) and compares it with an approved
