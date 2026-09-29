@@ -46,6 +46,49 @@
 
 Nothing has been pushed to GitHub yet; `main` is unchanged from the original repository.
 
+### Branch names (flattened 2026-09-28)
+
+The work is one straight line of commits. Only these names are kept (they are the pull-request boundaries, see "Publishing plan"): `main` (original), `develop`, `test/convert-source-checks` (end of PR 1), `feat/react-court-screen` (end of PR 2), `fix/pre-event` (end of PR 3), `feat/react` (the tip, end of PR 4). The branch log above keeps the history of each step.
+
+Retired checkpoint names, all contained in `feat/react` (recreate one with `git branch <name> <commit>`):
+
+| Name | Commit |
+|---|---|
+| `feat/court-side-setting` | `e0249cd` |
+| `feat/react-court-actions` | `ef84168` |
+| `feat/react-court-context` | `68f730c` |
+| `feat/react-court-finish` | `62c1c70` |
+| `feat/react-court-header` | `3a7a1e7` |
+| `feat/react-live-scores` | `8b7e298` |
+| `feat/react-overlay` | `5b2a37c` |
+| `feat/react-setup` | `59c1d49` |
+| `feat/react-tv` | `809bdfc` |
+| `feat/test-hooks` | `11b1f58` |
+| `fix/inline-handler-escaping` | `c9450fa` |
+| `fix/outbox-flush-local-changes` | `20d02ce` |
+| `fix/small-round-robin-results` | `25dc4e0` |
+| `fix/tiebreak-standings` | `5ea4699` |
+| `fix/tv-reload-restore-prompt` | `3f1d76d` |
+| `refactor/engine-bridge` | `a356af0` |
+| `refactor/engine-championship` | `8a6ed29` |
+| `refactor/engine-integrity` | `c1cbc76` |
+| `refactor/engine-pools` | `52e1806` |
+| `refactor/engine-settings` | `ef0a095` |
+| `refactor/engine-single-elim` | `d3931d8` |
+| `refactor/engine-standings` | `7431433` |
+| `refactor/engine-teams` | `e7312a6` |
+| `refactor/vite-typescript` | `022b922` |
+| `test-baseline` | `c80d956` |
+| `test/full-tournament-e2e` | `4aeb230` |
+
+Superseded fix branches, not in the line (their fixes were ported onto `fix/pre-event`); kept reachable as tags:
+
+| Name | Commit | Kept as |
+|---|---|---|
+| `fix/court-pin-after-reload` | `c4aa02d` | tag `archive/fix-court-pin-after-reload` |
+| `fix/setup-edit-conflict-merge` | `137fbbb` | tag `archive/fix-setup-edit-conflict-merge` |
+| `fix/undo-after-division-complete` | `4855e9f` | tag `archive/fix-undo-after-division-complete` |
+
 Status: ✅ done · 🔨 in progress · ⏳ ready to start · 🗣 needs a decision from the planning meeting first
 
 ## Phase 0: bug fixes (before the next tournament)
@@ -309,7 +352,7 @@ Then: **Export / Import tournament** stays as a deliberate admin tool (Setup / D
 Everything stays local until the planning meeting. If the plan is agreed:
 
 1. The owner creates `develop` on GitHub from `main`.
-2. The local branches are pushed and opened as two pull requests into `develop`, each a contiguous slice of the stack (no history rewriting): **PR 1, tests and bug fixes** (`test-baseline` … `test/convert-source-checks`: test suite, 0.1–0.4, test hooks, e2e, F1, converted grep checks; `develop` already holds the first part) together with `fix/pre-event` (0.5, M.12, F2–F4) reviewed in the same batch; **PR 2, Vite, TypeScript and React** (`refactor/vite-typescript` … `feat/react-court-screen`: build and types, React foundation, overlay, engine modules, F6, the React court screen, and any M.13 screens converted before the meeting). `fix/pre-event` sits on top of PR 2's tip, so it merges after it.
+2. The local branches are pushed and opened as four pull requests into `develop`, each a contiguous slice of the one line of commits (no history rewriting), merged in order: **PR 1, tests and early fixes** (`main` … `test/convert-source-checks`: test suite, 0.1–0.4, test hooks, e2e, F1, converted grep checks; `develop` already holds the first part); **PR 2, Vite, TypeScript, engine and the React court** (… `feat/react-court-screen`: build and types, React foundation, overlay, engine modules 2.0–2.7, F6, M.8); **PR 3, pre-event bug fixes** (… `fix/pre-event`: 0.5, M.12, F2, F3, F4, F7, F8, F9, F11, test time limit); **PR 4, React screens** (… `feat/react`: Live Scores, TV, Results and later M.13 screens). The bug batch sits between the two React parts because F2 changes the React court and the Results snapshots depend on F11; PRs 2 and 4 can be reviewed together, but PR 3 merges between them.
 3. Review, possibly by the creator's AI agent; CI runs `npm test` on every PR.
 4. `main` only moves at release points: `develop` is merged into `main` after sign-off.
 
