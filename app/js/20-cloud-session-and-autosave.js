@@ -54,6 +54,12 @@ function markLocalSave(reason='Local autosave'){try{localStorage.setItem(KSM_SAV
 function autoSaveTournament(reason='Autosave'){if(!markLocalSave(reason))return;if(!ksmApplyingRemoteSnapshot&&!isReadOnlySession())scheduleCloudSave(reason)}
 // Remote snapshots never echo into cloud: if(!ksmApplyingRemoteSnapshot)scheduleCloudSave()
 function scheduleAutoSave(reason='Edit'){noteLocalMutation();clearTimeout(ksmSaveTimer);ksmSaveTimer=setTimeout(()=>{ksmSaveTimer=null;autoSaveTournament(reason)},2000)}
+/* ksm:post-split-begin award-save */
+// F11: the Results awards editor calls saveAuto() (add, remove, edit), which was never defined, so
+// every award action threw: award edits were never autosaved and add/remove did not redraw.
+// It is an ordinary edit, saved like the others.
+function saveAuto(){scheduleAutoSave('Awards')}
+/* ksm:post-split-end */
 async function saveNow(){markLocalSave('Manual Save Now');showKsmToast('Saving…',0);const saved=await saveTournamentToCloudWithReason('Manual Save Now',true);if(saved){showKsmToast('✓ Tournament saved',2000)}else if(!navigator.onLine){showKsmToast('Saved locally · Waiting to sync',3000)}else{showKsmToast('Unable to save to cloud',3500,true)}}
 function criticalAutoSave(reason){noteLocalMutation();markLocalSave(reason);if(!isReadOnlySession())saveTournamentToCloudWithReason(reason,true)}
 
