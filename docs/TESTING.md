@@ -25,7 +25,7 @@ Requirements: Node 20+ and Python 3.10+. No Cloudflare account is needed; tests 
 | `npm run verify:split` | Proves `app/` is the pre-split `public/index.html` (def5010), moved: markup (apart from the test IDs listed in `MARKUP_TEST_IDS`), CSS and JS byte-identical, JS apart from added type comments, marked post-split code, functions moved to the engine and the listed removed legacy court renderer (`REMOVED_COURT_RENDERER`) | ~1 s |
 | `npm run testlab:smoke` / `testlab` / `testlab:exhaustive` | Tournament-engine simulation matrix (writes reports to `testlab-reports/`, git-ignored) | 5 s – minutes |
 
-`run-all.mjs` builds `dist/` once before any test (a build failure fails the run). `node tests/run-all.mjs <text>` runs only test files whose name contains `<text>` (e.g. `tiebreak`, `v3171`), and `-v` prints every test's output. Browser tests run 6 at a time on 8+ cores (4 otherwise; `KSM_TEST_JOBS=n` overrides), slowest first.
+`run-all.mjs` builds `dist/` once before any test (a build failure fails the run). `node tests/run-all.mjs <text>` runs only test files whose name contains `<text>` (e.g. `tiebreak`, `v3171`), and `-v` prints every test's output. Browser tests run 6 at a time on 8+ cores (4 otherwise; `KSM_TEST_JOBS=n` overrides), slowest first. A test is stopped after 180 s (`KSM_TEST_TIMEOUT_MS`), the `golden-*` snapshot tests after 420 s (`KSM_GOLDEN_TIMEOUT_MS`): they play whole tournaments on several screens next to the other browser tests, and under load the court one ran past 180 s.
 
 Run `npm test` before every commit or release. A failing test means either a regression or an intended behaviour change; for the latter, update the test in the same commit and explain why.
 
