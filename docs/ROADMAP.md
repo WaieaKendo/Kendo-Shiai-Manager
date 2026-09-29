@@ -142,7 +142,7 @@ The React TV display reproduces the legacy tv3 renderer exactly, including these
 
 The React Results screen reproduces the legacy screen exactly, including these quirks (pinned by `tests/golden/results/`). Each is a small, separate change once decided.
 
-- **The awards editor calls `saveAuto()`, which the app does not define.** Every award action throws a ReferenceError: "+ Add Award" and "×" change `state.awards` but throw before the screen is redrawn (the new or removed row shows only when Results is drawn again, e.g. opened again or after a court action); an edited field is written to `state.awards` when the input is left, but nothing is saved then: awards reach the local save and the cloud only with the next save something else triggers.
+- ~~**The awards editor calls `saveAuto()`, which the app does not define.**~~ Fixed as **F11** on `fix/pre-event` (`saveAuto()` is a scheduled autosave): add/remove redraw at once and award edits autosave; the Results snapshots were re-recorded for it (only `awards-rr-4.json` changed).
 - **Spectators get the awards editor**: a spectator's Results shows the same inputs and buttons (no role check, no CSS rule), and their edits change the spectator's own copy (never saved: a read-only session).
 - **A pool-only round robin's bracket modal** shows its pool standings next to "Championship Bracket" with "Championship bracket will appear after pools are generated.", although the division is complete and has no championship.
 - **The bracket modal is a snapshot**: it shows the division as it was when opened and is not updated while open (e.g. a team round robin's standings opened in progress).

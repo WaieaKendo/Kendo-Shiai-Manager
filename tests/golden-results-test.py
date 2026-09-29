@@ -18,8 +18,8 @@ hero, the cards, the awards editor and the bracket modal) is serialized
 box per platform) and compared with the approved snapshot, together with the Results read-out
 (KsmApp.placements()'s rows, read without navigating), the awards editor's input values and
 which of them has the focus, state.awards, whether the modal is open, the page errors since the
-step before and the dialogs shown. (Page errors are part of the snapshot: the awards editor's
-handlers call saveAuto(), which the app does not define; see "Results quirks kept".) While
+step before and the dialogs shown. (Page errors are part of the snapshot; the awards editor's
+handlers used to call an undefined saveAuto(), fixed as F11 on fix/pre-event.) While
 Results is hidden its innerText is its textContent, i.e. the legacy templates' source
 formatting, so the text is compared only while Results is shown (the tree always).
 
@@ -329,7 +329,7 @@ def awards_typing_stability(browser, errors):
     page.evaluate("() => { state.awards[0].award = 'Changed elsewhere'; document.activeElement.blur(); renderResultsDashboard(); }")
     got = page.evaluate(EDITOR_JS)
     assert got['values'][0] == 'Changed elsewhere' and got['focus'] is None, f'a redraw without focus: {got}'
-    assert page_errors == ['saveAuto is not defined'], f'page errors (the change handler, a kept quirk): {page_errors}'
+    assert page_errors == [], f'page errors in the awards editor (F11 fixed: saveAuto() is defined): {page_errors}'
     page.close()
 
 

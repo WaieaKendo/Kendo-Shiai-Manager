@@ -77,7 +77,8 @@ function ksmResultDetail(div){
 function ksmRenderResultsBracket(div){
   ksmPublishResultsBracket({kind:'bracket',title:div==null?'':String(div),detail:ksmResultDetail(div)});
 }
-// An award input's change (awardsEditorHtml()'s inline handler: state.awards[i].<field>=this.value;saveAuto()).
+// An award input's change (awardsEditorHtml()'s inline handler: state.awards[i].<field>=this.value;saveAuto();
+// saveAuto() is the scheduled autosave defined for F11 in 20-cloud-session-and-autosave.js).
 function ksmSetResultAward(index,field,value){
   state.awards[index][field]=value;saveAuto();
 }
