@@ -24,7 +24,9 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         reuse court/'s DivisionCompletePanel),
                         results/ (the Results screen #results: cards, awards editor,
                         bracket modal, M.13; app/js/38-react-results.js publishes its
-                        data; the modal reuses court/'s Bracket)
+                        data; the modal reuses court/'s Bracket),
+                        overview/ (the Overview screen #director, M.13;
+                        app/js/39-react-overview.js publishes its data)
   engine/             Pure tournament-engine modules, strict TypeScript (own tsconfig.json):
                         no DOM, no globals, explicit inputs/outputs. index.ts is bundled
                         into a classic script defining `KSMEngine`, loaded before app.js;
@@ -35,7 +37,7 @@ app/                 Front-end source (built by Vite into dist/, which is not co
   service-worker.js   PWA service worker (the build adds the hashed bundle names)
 src-worker.js        Cloudflare Worker backend (API + Durable Object)
 scripts/             Build helpers (app-sources.mjs), verify-split.mjs, reset-cloud-data.mjs
-tests/               Maintained regression tests (golden/engine, golden/court, golden/live-scores, golden/tv, golden/results: approved snapshots)
+tests/               Maintained regression tests (golden/engine, golden/court, golden/live-scores, golden/tv, golden/results, golden/overview: approved snapshots)
 docs/                Maintained documentation
 README.md             Project overview
 CHANGELOG.md          Consolidated release history

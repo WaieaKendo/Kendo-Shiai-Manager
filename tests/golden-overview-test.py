@@ -41,10 +41,14 @@ off in the test page.
                       variable overall total); phone portrait and landscape at the end; a
                       spectator's view.
 
-Since M.13 the Overview is drawn by React (app/react/overview/: one island, the contents of
-#director .director-dashboard; app/js/39-react-overview.js publishes its data): React must
-render every element of the island (and .director-dashboard must be its root), and every kind
-of Overview content must be covered.
+Since M.13 the Overview is drawn only by React (app/react/overview/: one island, the contents
+of #director .director-dashboard; app/js/39-react-overview.js publishes its data); the legacy
+renderer is removed, so this test pins the React-only screen. React must render every element
+of the island (and .director-dashboard must be its root), every kind of Overview content must
+be covered, and before the first publish the island must equal the static markup of
+app/index.html (overview-static-markup). Last, the app without the React module script must
+show the "Overview could not load" notice instead of the empty dashboard (and a working page
+never shows it).
 
 Approve an intended change (review the JSON diff, commit it with the code change):
 
@@ -150,6 +154,7 @@ def open_app(name, browser, errors, entries=None, react_check=check_react):
     app.page.add_style_tag(content=NO_TRANSITIONS)
     golden = Golden(name, app, app.page_errors, GOLDEN_DIR, capture, react_check)
     assert app.page.evaluate('window.ksmOverviewMounted === true'), f'{name}: the Overview island did not mount'
+    assert app.page.locator('#overviewModuleMissing').count() == 0, f'{name}: "Overview could not load" shown on a working page'
     if entries:
         app.configure(entries)
     return golden
@@ -288,6 +293,9 @@ def overview_static_markup(browser, errors):
         page = browser.new_page(viewport=DESKTOP)
         page.on('pageerror', lambda e, l=label: errors.append(f'{l}: {e}'))
         page.add_init_script(REFRESH_TIMER_INIT)
+        if html is not None:
+            # Without the module the notice would replace the dashboard; keep the static markup.
+            page.add_init_script('window.ksmOverviewMounted = true;')
         load_app(page, html=html)
         page.add_style_tag(content=NO_TRANSITIONS)
         page.evaluate(UNDRAWN_JS)
@@ -301,8 +309,25 @@ def overview_static_markup(browser, errors):
     assert seen[0] == seen[1], f'the island before the first publish differs from the static markup: {first_difference(seen[1], seen[0])}'
 
 
+def overview_module_missing(browser, errors):
+    """Without the React module nothing draws the Overview: it says so instead."""
+    app = KsmApp(browser.new_page(viewport=DESKTOP), 'no React module')
+    page = app.page
+    page.on('pageerror', lambda e: errors.append(f'Overview module missing: {e}'))
+    page.add_init_script(REFRESH_TIMER_INIT)
+    load_app(page, html=without_screens_module())
+    app.configure([{'name': 'Open', 'format': 'Round Robin', 'court': 'A', 'entrants': people('P', 3)}])
+    app.nav('overview')
+    notice = page.locator('#director [data-testid="overview-module-missing"]')
+    assert notice.is_visible(), 'no "Overview could not load" notice without the React module'
+    assert 'Overview could not load' in notice.inner_text(), notice.inner_text()
+    assert not page.locator('#director .director-dashboard').is_visible(), 'the empty Overview dashboard is shown without the React module'
+    assert page.evaluate('window.ksmOverviewInput.kind') == 'overview', 'renderDirector() did not publish without the island'
+    page.close()
+
+
 # Checks without a snapshot file.
-CHECKS = {'overview-static-markup': overview_static_markup}
+CHECKS = {'overview-static-markup': overview_static_markup, 'overview-module-missing': overview_module_missing}
 
 
 def main():

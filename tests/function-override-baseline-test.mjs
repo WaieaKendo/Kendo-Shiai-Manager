@@ -16,12 +16,14 @@ import { html, countDefinitions } from './lib/ksm-source.mjs';
 // M.13 (feat/react-results) removed the legacy Results renderer and the unused team/kachinuki
 // sheets: 23 -> 18 (renderResultsAll 2->0, teamResultsBracketHtml 2->0, teamSheetHtml 2->0,
 // kachinukiSheetHtml 2->0 and the inner `list` of both kachinukiSheetHtml() 2->0).
+// M.13 (feat/react-overview) removed the legacy Overview renderer and the first renderProgress()
+// (11-, overridden by the empty one in 23- and never run): 18 -> 17 (renderProgress 2->1).
 const BASELINE = {
   alignedPointSlots: 2, bracketHtml: 2,
   canCloudWrite: 2, cloudHeaders: 2, cloudSocketUrl: 2, initializeCloudRoleFromUrl: 2,
   installRoleBanner: 2, isReadOnlySession: 2, isSpectatorSession: 2,
   loadTournamentFromCloud: 2, openTournamentAccess: 2,
-  regTab: 2, renderProgress: 2,
+  regTab: 2,
   sessionKey: 2,
   setSessionRole: 2, singleElimBracketHtml: 2, spectatorLink: 2, syncIndividualSingleElim: 2,
 };

@@ -24,8 +24,8 @@
 // compares against the old declaration with its body emptied.
 //
 // Old code deliberately deleted (REMOVED_COURT_RENDERER: the legacy court renderer, M.8
-// step 5; REMOVED_LIVE_SCORES_RENDERER, REMOVED_TV_RENDERER and REMOVED_RESULTS_RENDERER: the
-// legacy Live Scores, TV and Results renderers, M.13) is named piece by piece; the check deletes exactly those pieces from the old script before comparing, so every
+// step 5; REMOVED_LIVE_SCORES_RENDERER, REMOVED_TV_RENDERER, REMOVED_RESULTS_RENDERER and
+// REMOVED_OVERVIEW_RENDERER: the legacy Live Scores, TV, Results and Overview renderers, M.13) is named piece by piece; the check deletes exactly those pieces from the old script before comparing, so every
 // other difference, and any piece that no longer matches, still fails.
 import { execFileSync } from 'node:child_process';
 import { minify } from 'vite';
@@ -107,9 +107,10 @@ const KNOWN_POST_SPLIT_EDITS = {
   // and app/js/38-react-results.js publishes the screen as plain data and shows a notice when the
   // React module is missing.
   'react-results': 3,
-  // feat/react-overview (M.13): the Overview screen's React island. renderDirector() (30) publishes
-  // the Overview and hands over to the island (a marked call of ksmRenderOverview() at its top),
-  // and app/js/39-react-overview.js publishes the screen as plain data.
+  // feat/react-overview (M.13): the Overview screen's React island. With the legacy renderer
+  // removed (REMOVED_OVERVIEW_RENDERER) renderDirector()'s body (30) is a marked call of
+  // ksmRenderOverview(), and app/js/39-react-overview.js publishes the screen as plain data and
+  // shows a notice when the React module is missing.
   'react-overview': 2,
   // feat/react-overlay: app/js/33-stream-overlay-links.js (TV menu "copy overlay link").
   'stream-overlay': 1,
@@ -233,6 +234,20 @@ const REMOVED_RESULTS_RENDERER = [
   // 28: unused since the court and Live Scores renderers (sheets) and the Results modal (team results) moved to React.
   'teamSheetHtml#2', 'kachinukiSheetHtml#2', 'teamResultsBracketHtml#2',
 ];
+// feat/react-overview (M.13): the legacy Overview renderer, deleted. React draws the Overview
+// (app/react/overview/); tests/golden/overview/*.json pin what this code drew. Same entry forms as
+// REMOVED_COURT_RENDERER. The Overview's decisions stay (tournamentSummary(), courtSummaryFor(),
+// directorDivisionProgress() and its helpers, directorMatchLabel(), startDirectorRefresh() /
+// stopDirectorRefresh() and the renderAll() wrapper in 30), and the empty renderProgress() (23),
+// which renderAll() and nextMatch() call.
+const REMOVED_OVERVIEW_RENDERER = [
+  // 11: the first progress renderer, overridden by renderProgress#2 (23, an empty function) and
+  // never run; it wrote #progActive and #progUpcoming, which the page never had.
+  'renderProgress#1',
+  // 30: the Overview renderer.
+  'directorMatchRow#1',                                          // only renderDirector() used it
+  'renderDirector#1:body',                                       // 30: publishes the Overview (react-overview)
+];
 // fix/pre-event (M.12): data-testid attributes added to existing markup, as [old start tag, test ID];
 // the check takes each ` data-testid="<id>"` out again (it must appear exactly once, at the end
 // of that tag) and then compares byte for byte, so any other markup change still fails.
@@ -282,7 +297,7 @@ for (const name of MOVED_TO_ENGINE) {
   const at = oldScript.lastIndexOf(fn);
   oldScript = oldScript.slice(0, at) + fn.slice(0, fn.indexOf('{') + 1) + '}' + oldScript.slice(at + fn.length);
 }
-// Delete REMOVED_COURT_RENDERER, REMOVED_LIVE_SCORES_RENDERER, REMOVED_TV_RENDERER and REMOVED_RESULTS_RENDERER from the old script: find every
+// Delete REMOVED_COURT_RENDERER, REMOVED_LIVE_SCORES_RENDERER, REMOVED_TV_RENDERER, REMOVED_RESULTS_RENDERER and REMOVED_OVERVIEW_RENDERER from the old script: find every
 // piece first (positions in the old script as it is now), refuse overlaps, then cut from the end.
 {
   const removed = [
@@ -290,6 +305,7 @@ for (const name of MOVED_TO_ENGINE) {
     ...REMOVED_LIVE_SCORES_RENDERER.map(entry => ['REMOVED_LIVE_SCORES_RENDERER', entry]),
     ...REMOVED_TV_RENDERER.map(entry => ['REMOVED_TV_RENDERER', entry]),
     ...REMOVED_RESULTS_RENDERER.map(entry => ['REMOVED_RESULTS_RENDERER', entry]),
+    ...REMOVED_OVERVIEW_RENDERER.map(entry => ['REMOVED_OVERVIEW_RENDERER', entry]),
   ];
   const cuts = removed.map(([list, entry]) => {
     if (typeof entry === 'object') {
