@@ -130,6 +130,8 @@ function directorMatchRow(label,m){
 }
 function renderDirector(){
   if(!window.directorCourtGrid)return;
+  /* ksm:post-split-begin react-overview */ksmRenderOverview();if(window.ksmOverviewMounted)return;
+  /* ksm:post-split-end */
   const t=tournamentSummary();
   const pct=t.total?Math.round((t.completed/t.total)*100):0;
   directorTournamentName.textContent=(window.tName&&tName.value)||'Kendo Tournament';

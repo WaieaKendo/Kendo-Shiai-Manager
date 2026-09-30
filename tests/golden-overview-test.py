@@ -41,20 +41,26 @@ off in the test page.
                       variable overall total); phone portrait and landscape at the end; a
                       spectator's view.
 
+Since M.13 the Overview is drawn by React (app/react/overview/: one island, the contents of
+#director .director-dashboard; app/js/39-react-overview.js publishes its data): React must
+render every element of the island (and .director-dashboard must be its root), and every kind
+of Overview content must be covered.
+
 Approve an intended change (review the JSON diff, commit it with the code change):
 
     KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-overview-test.py [scenario ...]
 """
+import re
 import time
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 from golden_screen import (
-    ALL_COMPLETE_JS, ONLY, PANEL_JS, PLATFORM, PREPARE_JS, SPECTATOR_JS, UPDATE,
-    Golden, geometry_recorded, match_points, people, team,
+    ALL_COMPLETE_JS, ONLY, PANEL_FIBERS_JS, PANEL_JS, PLATFORM, PREPARE_JS, SPECTATOR_JS, UPDATE,
+    Golden, first_difference, geometry_recorded, match_points, people, team,
 )
 from ksm_app import KsmApp
-from ksm_browser import launch_chromium, load_app
+from ksm_browser import DIST, launch_chromium, load_app
 
 GOLDEN_DIR = Path(__file__).resolve().parent / 'golden' / 'overview'
 ROOT = '#director'
@@ -84,6 +90,39 @@ TICK_JS = '() => window.__ksmOverviewTick()'
 SUMMARY_JS = '() => tournamentSummary()'
 SCROLL_JS = '() => [document.documentElement.scrollWidth, innerWidth]'
 
+# The Overview island (app/react/overview/main.tsx): React renders every element of the
+# dashboard, which is the island's root.
+ISLAND = '#director .director-dashboard'
+ROOT_JS = f"() => Object.keys(document.querySelector('{ISLAND}')).some(k => k.startsWith('__reactContainer'))"
+# Which kinds of Overview content the island was given.
+VARIANTS_JS = """() => {
+  const d = window.ksmOverviewInput, out = [];
+  if (!d || d.kind !== 'overview') return ['nothing published'];
+  out.push('overall: ' + (d.overall.variable ? 'variable' : d.overall.total ? 'fixed' : 'no matches'));
+  if (!d.overall.variable && d.overall.total && d.overall.completed === d.overall.total) out.push('overall: complete');
+  d.courts.forEach(c => {
+    out.push(`court ${c.court}: ` + (c.division === 'No active division' ? 'no division' : c.variable ? 'variable' : c.total ? 'fixed' : 'no matches'));
+    if (c.round) out.push('round');
+    [c.current, c.onDeck, c.following].forEach(m => {
+      out.push(m ? 'match' : 'no match');
+      if (m && (m.white === '—' || m.red === '—')) out.push('match without a name');
+    });
+  });
+  return out;
+}"""
+VARIANTS_SEEN = set()
+ELEMENTS_SEEN = [0]  # most React-rendered elements seen in the island
+
+
+def check_react(golden, step):
+    """React renders every element of the Overview island."""
+    page = golden.app.page
+    total, owned = page.evaluate(PANEL_FIBERS_JS, ISLAND)
+    assert total and total == owned, f'{golden.name}: {step}: {total - owned} of {total} elements in {ISLAND} are not rendered by React'
+    ELEMENTS_SEEN[0] = max(ELEMENTS_SEEN[0], owned)
+    assert page.evaluate(ROOT_JS), f'{golden.name}: {step}: {ISLAND} is not a React root'
+    VARIANTS_SEEN.update(page.evaluate(VARIANTS_JS))
+
 
 def capture(app):
     """The Overview: (serialization, element boxes)."""
@@ -102,7 +141,7 @@ def capture(app):
     return entry, {'overview': panel['boxes']}
 
 
-def open_app(name, browser, errors, entries=None, react_check=None):
+def open_app(name, browser, errors, entries=None, react_check=check_react):
     app = KsmApp(browser.new_page(viewport=DESKTOP), name)
     # Page errors are part of each step's snapshot (capture()), not failures.
     app.page_errors = []
@@ -110,6 +149,7 @@ def open_app(name, browser, errors, entries=None, react_check=None):
     load_app(app.page)
     app.page.add_style_tag(content=NO_TRANSITIONS)
     golden = Golden(name, app, app.page_errors, GOLDEN_DIR, capture, react_check)
+    assert app.page.evaluate('window.ksmOverviewMounted === true'), f'{name}: the Overview island did not mount'
     if entries:
         app.configure(entries)
     return golden
@@ -152,8 +192,8 @@ def play_all(g, name, label=''):
 
 
 # ---------------------------------------------------------------------------------- scenarios
-def overview_rr_4(browser, errors, react_check=None):
-    g = open_app('overview-rr-4', browser, errors, react_check=react_check)
+def overview_rr_4(browser, errors):
+    g = open_app('overview-rr-4', browser, errors)
     g.draws = False
     page = g.app.page
     g.do('no tournament yet', lambda a: a.nav('overview'))
@@ -161,7 +201,7 @@ def overview_rr_4(browser, errors, react_check=None):
     phone_views(g, 'no tournament')
     g.do('tournament name', lambda a: a.page.evaluate("() => { tName.value = 'Aiea <Taikai> & Co'; KSMTest.show('director'); }"))
     g.app.configure([{'name': 'Open', 'format': 'Round Robin', 'court': 'A', 'entrants': people('P', 4)}])
-    g.do('generated (Overview not redrawn)', lambda a: None)
+    g.do('generated (Overview hidden by Generate)', lambda a: None)
     g.do('generated: Overview opened', lambda a: a.nav('overview'))
     phone_views(g, 'generated')
     # A match finished while the Overview is shown: nothing redraws it until the timer or a live update.
@@ -190,9 +230,9 @@ def overview_rr_4(browser, errors, react_check=None):
     g.finish()
 
 
-def play_through(browser, errors, name, entries, draws=False, react_check=None):
+def play_through(browser, errors, name, entries, draws=False):
     """Play every division to the end with the Overview opened after every match."""
-    g = open_app(name, browser, errors, entries, react_check)
+    g = open_app(name, browser, errors, entries)
     g.draws = draws
     g.do('start', lambda a: a.nav('overview'))
     play_all(g, name)
@@ -225,11 +265,44 @@ PLAY_THROUGHS = [
 ]
 SCENARIOS = {
     'overview-rr-4': overview_rr_4,
-    **{name: (lambda browser, errors, react_check=None, n=name, e=entries, d=draws: play_through(browser, errors, n, e, d, react_check))
+    **{name: (lambda browser, errors, n=name, e=entries, d=draws: play_through(browser, errors, n, e, d))
        for name, entries, draws in PLAY_THROUGHS},
 }
+def without_screens_module():
+    """dist/index.html without the React screens' module script (as a device whose copy lacks it)."""
+    html = (DIST / 'index.html').read_text(encoding='utf-8')
+    module = re.search(r'<script type="module"[^>]*src="/assets/index-[\w-]+\.js"></script>\n?', html)
+    assert module, 'dist/index.html: no module script'
+    return html.replace(module.group(0), '')
+
+
+# The Overview shown without drawing it (no renderDirector()): what the page has before the
+# first publish.
+UNDRAWN_JS = "() => { document.querySelectorAll('.view').forEach(v => v.classList.add('hidden')); document.getElementById('director').classList.remove('hidden'); }"
+
+
+def overview_static_markup(browser, errors):
+    """Before renderDirector() first runs, the island draws the static markup of app/index.html."""
+    seen = []
+    for label, html in (('static markup', without_screens_module()), ('island', None)):
+        page = browser.new_page(viewport=DESKTOP)
+        page.on('pageerror', lambda e, l=label: errors.append(f'{l}: {e}'))
+        page.add_init_script(REFRESH_TIMER_INIT)
+        load_app(page, html=html)
+        page.add_style_tag(content=NO_TRANSITIONS)
+        page.evaluate(UNDRAWN_JS)
+        assert page.evaluate('window.ksmOverviewInput === undefined'), f'{label}: the Overview was published before it was opened'
+        seen.append(page.evaluate(PANEL_JS, ROOT))
+        if html is None:
+            total, owned = page.evaluate(PANEL_FIBERS_JS, ISLAND)
+            assert total and total == owned, f'island before the first publish: {total - owned} of {total} elements not rendered by React'
+            VARIANTS_SEEN.add('nothing published')
+        page.close()
+    assert seen[0] == seen[1], f'the island before the first publish differs from the static markup: {first_difference(seen[1], seen[0])}'
+
+
 # Checks without a snapshot file.
-CHECKS = {}
+CHECKS = {'overview-static-markup': overview_static_markup}
 
 
 def main():
@@ -247,6 +320,14 @@ def main():
         for name in checks:
             CHECKS[name](browser, errors)
             print(f'  {name}: ok')
+        if not ONLY and not UPDATE:
+            assert ELEMENTS_SEEN[0], 'React never rendered anything on the Overview'
+            expected = {
+                'nothing published', 'overall: no matches', 'overall: fixed', 'overall: complete', 'overall: variable',
+                'court A: fixed', 'court B: fixed', 'court A: variable', 'court B: variable', 'court A: no matches', 'court B: no matches',
+                'round', 'match', 'no match', 'match without a name',
+            }
+            assert expected <= VARIANTS_SEEN, f'Overview variants not covered: {sorted(expected - VARIANTS_SEEN)}; seen {sorted(VARIANTS_SEEN)}'
         assert not errors, '\n'.join(errors)
         browser.close()
     note = f'; element boxes not recorded for {PLATFORM} in {len(missing_geometry)} scenario(s), compared without them' if missing_geometry else ''

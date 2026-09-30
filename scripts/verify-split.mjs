@@ -107,6 +107,10 @@ const KNOWN_POST_SPLIT_EDITS = {
   // and app/js/38-react-results.js publishes the screen as plain data and shows a notice when the
   // React module is missing.
   'react-results': 3,
+  // feat/react-overview (M.13): the Overview screen's React island. renderDirector() (30) publishes
+  // the Overview and hands over to the island (a marked call of ksmRenderOverview() at its top),
+  // and app/js/39-react-overview.js publishes the screen as plain data.
+  'react-overview': 2,
   // feat/react-overlay: app/js/33-stream-overlay-links.js (TV menu "copy overlay link").
   'stream-overlay': 1,
 };
