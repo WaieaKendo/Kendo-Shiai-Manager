@@ -257,6 +257,7 @@ M.11 itself:
 | 1.3 | One-click PDF download of print sheets (today: browser Print → Save as PDF) | `feat/pdf-export` | ⏳ | e.g. to email sheets to dojos before the event |
 | 1.4 | Livestream overlay page | `feat/react-overlay` | ✅ | The first React page (M.6). See below; a real live-stream test is still to do |
 | 1.8 | Edit a match result directly (correct mistakes), separate from Undo | `feat/edit-match` | ⏳ | Undo only unwinds a court's history in order, so fixing a match three bouts back means undoing everything after it. Plan below |
+| 1.9 | Match timer, match-end confirmation and sound on the court screen | `feat/match-timer` | ⏳ | Needs 1.5 (match lengths per stage). Moved here from Phase 3; the timer rules (auto-pause on a point, hikiwake/encho) still go to the meeting. Plan below |
 
 ### 1.4 Livestream overlay page
 
@@ -296,6 +297,50 @@ One branch on top of `feat/react-court-screen` with the work that makes the next
 
 F2 was on the court quirks list for the meeting; its commit can be dropped (the quirk then returns). Still open from this work: F7–F10 (Findings) and the placeholder buttons (meeting).
 
+### 1.9 Match timer, match-end confirmation and sound: plan
+
+One feature, because the clock and the scoring both feed the same question: is this match decided? The engine already knows the rules (`winnerOf`, `matchRequiresWinner`); the screen asks it after every point, hansoku and time-up and never copies the rules.
+
+**Match timer**
+- Built on 1.5: each stage's match length, encho rule (unlimited or fixed) and tiebreak/representative bout length.
+- One clock per court, run by that court's scorekeeper device. TV and overlay receive "started at X with 2:31 left" / "paused at 2:31" and count down locally; one small sync message per start or stop, never a save per second (today's sync sends the whole tournament on every save).
+- Kendo rules: start/stop on yame; optional auto-pause when a point is scored (per tournament); a separate injury/time-out pause; at time-up the match-end confirmation below. Undoing a point also undoes its auto-pause; editing a match (1.8) can correct the recorded time.
+- Display: a large clock on the court screen, a smaller one on the TV and the overlay, colors from theme tokens (M.11).
+
+**Match-end confirmation** (in-app panel, not the browser's `confirm()`: it shows the name, points and next match with large tablet buttons, and works where native dialogs are blocked)
+
+| Situation | Confirmation |
+|---|---|
+| 2nd point | "*Name* wins (M, K)" |
+| 2nd hansoku gives the opponent their 2nd point | "*Name* wins (hansoku)" |
+| Time up, 1–0 | "*Name* wins, 1–0 on time" |
+| Time up, tied, draw allowed (pools, team bouts) | "Hikiwake: record a draw?" |
+| Time up, tied, winner required (elimination, playoffs) | "Encho: start overtime?" (starts the encho clock) |
+| Encho point | "*Name* wins in encho" |
+| Hantei | "Hantei: who won?" [White] [Red] |
+| Team bout decided | "Senpo: *Name* wins", then the next bout; at the end of the pairing "*Team A* wins 3–1" or the representative-match prompt |
+| Kachinuki | "*Name* wins and stays in" |
+| Fusen-gachi | Its existing dialog, unchanged |
+
+- Buttons: **Next match** (today's Next Match), **Undo last point** (the wrong-side mistake), **Keep scoring** (close). Nothing advances without a tap.
+- Optional per tournament (on by default?), for scorekeepers who prefer today's manual flow.
+- TV and overlay may show "WINNER: *Name*" briefly after the tap, before the next match.
+
+**Sound**
+- Time-up whistle/buzzer on the court device; optional cues (30 seconds left; a chime on the TV when a new match starts).
+- Browsers play sound only after a tap on the page: the court screen enables sound on its first tap (or a one-time "Tap to enable sound" at the start of the day). Sound on/off per device (a TV in a quiet hall may not want it). A visual flash at time-up in case sound is muted. Test iPad silent switch/volume and a Bluetooth speaker per court.
+
+**Order**
+1. 1.5 match timing settings (also used by the program, 1.7).
+2. Court timer, local only: clock, kendo rules, match-end confirmation (from scoring and from time-up).
+3. Timer on TV and overlay (start/stop messages), optional winner display.
+4. Sound on the court device, then optional TV cues.
+5. 1.1 / 1.2 auto-advance and running order (control-desk direction).
+
+Works with today's sync; when action-based sync lands (Phase 3), timer events become ordinary actions.
+
+Questions for the meeting: how timekeeping works at events today (separate timekeeper, stopwatch?); auto-pause on a point or not; encho unlimited or fixed; confirmation on by default.
+
 ## Phase 1b: tournament setup and the printed program
 
 | # | Task | Branch | Status | Notes |
@@ -329,7 +374,7 @@ Each engine step (2.1–2.7) moves functions with the pattern in docs/TESTING.md
 - Environments: `dev.tournaments.hawaiikendofederation.org` / `tournaments.hawaiikendofederation.org`, deploy freeze while Ready/Live
 - Backups and replacing Save/Load (see below)
 - Control desk (court queues, move/reorder, holds, running-late, guarded bracket edits)
-- Match timer, shinpan rotation (livestream overlay: 1.4)
+- Shinpan rotation (the match timer moved to 1.9; livestream overlay: 1.4)
 - HKF-wide people/dojo registry (D1); minors' data policy
 - Gradual React/TypeScript for new screens (groundwork: M.1–M.8 above)
 
