@@ -21,11 +21,13 @@ import { html, countDefinitions } from './lib/ksm-source.mjs';
 // M.13 (feat/react-library) removed none (17).
 // M.13 (feat/react-pools) removed the legacy Pools renderer with bracketHtml() and its helpers:
 // 17 -> 14 (alignedPointSlots 2->0, bracketHtml 2->0, singleElimBracketHtml 2->0).
+// M.13 (feat/react-setup-screen) removed none (14).
+// M.13 (feat/react-registration) removed the legacy players table renderer and the 03- regTab()
+// (overridden by 23-'s, never run): 14 -> 13 (regTab 2->1).
 const BASELINE = {
   canCloudWrite: 2, cloudHeaders: 2, cloudSocketUrl: 2, initializeCloudRoleFromUrl: 2,
   installRoleBanner: 2, isReadOnlySession: 2, isSpectatorSession: 2,
   loadTournamentFromCloud: 2, openTournamentAccess: 2,
-  regTab: 2,
   sessionKey: 2,
   setSessionRole: 2, spectatorLink: 2, syncIndividualSingleElim: 2,
 };

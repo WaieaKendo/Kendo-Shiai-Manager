@@ -25,8 +25,9 @@
 //
 // Old code deliberately deleted (REMOVED_COURT_RENDERER: the legacy court renderer, M.8
 // step 5; REMOVED_LIVE_SCORES_RENDERER, REMOVED_TV_RENDERER, REMOVED_RESULTS_RENDERER,
-// REMOVED_OVERVIEW_RENDERER, REMOVED_LIBRARY_RENDERER, REMOVED_POOLS_RENDERER and REMOVED_SETUP_RENDERER:
-// the legacy Live Scores, TV, Results, Overview, Tournament Library, Pools and Setup renderers, M.13) is named piece by piece; the check deletes exactly those pieces from the old script before comparing, so every
+// REMOVED_OVERVIEW_RENDERER, REMOVED_LIBRARY_RENDERER, REMOVED_POOLS_RENDERER, REMOVED_SETUP_RENDERER and
+// REMOVED_REGISTRATION_RENDERER: the legacy Live Scores, TV, Results, Overview, Tournament Library,
+// Pools, Setup and Registration players renderers, M.13) is named piece by piece; the check deletes exactly those pieces from the old script before comparing, so every
 // other difference, and any piece that no longer matches, still fails.
 import { execFileSync } from 'node:child_process';
 import { minify } from 'vite';
@@ -60,9 +61,10 @@ const KNOWN_POST_SPLIT_EDITS = {
   // region: the check compares names in order of first appearance.
   'react-court': 8,
   // feat/react-registration (M.13): Registration part 1's React islands (#regTable, the contents
-  // of #tournamentStatusCard). renderTournamentStatus() and renderReg() (03) publish (and hand over
-  // while the islands are mounted), and app/js/43-react-registration.js publishes the players table
-  // and the status card as plain data. Listed here because renderTournamentStatus() (03) is its
+  // of #tournamentStatusCard). With the legacy renderer removed (REMOVED_REGISTRATION_RENDERER)
+  // renderReg()'s body (03) is a marked publisher and renderTournamentStatus() (03) publishes in
+  // place of its card markup, and app/js/43-react-registration.js publishes the players table and
+  // the status card as plain data and shows a notice when the React module is missing. Listed here because renderTournamentStatus() (03) is its
   // first region: the check compares names in order of first appearance.
   'react-registration': 3,
   // fix/pre-event (M.12): test IDs on markup drawn by app/js (03: the exhibition rows and the
@@ -316,6 +318,18 @@ const REMOVED_SETUP_RENDERER = [
   'divisionSetupRow#1',                                          // 01: only renderDivisionSetup() used it
   'syncSetupHeader#1:body',                                      // 30: publishes the hero's name (react-setup)
 ];
+// feat/react-registration (M.13): the legacy players table and status card renderer, deleted. React
+// draws #regTable and the contents of #tournamentStatusCard (app/react/registration/);
+// tests/golden/registration/*.json pin what this code drew. Same entry forms as
+// REMOVED_COURT_RENDERER. The decisions and actions stay (03: renderReg() and
+// renderTournamentStatus() as publishers, validateTournament(), updateComp(), addRow(),
+// cycleCompetitorStatus(), loadSamples(), clearCompetitors(); the paste listener in 16; regTab() in
+// 23), and the tab bar, toolbars and filter are the static markup of app/index.html.
+const REMOVED_REGISTRATION_RENDERER = [
+  'regTab#1',                                                    // 03: overridden by #2 (23), never ran
+  { from: 'el.innerHTML=`<div class="tournament-status-head">', to: '</div>`;' }, // 03: renderTournamentStatus()'s card markup (react-registration publishes)
+  'renderReg#1:body',                                            // 03: publishes the table (react-registration)
+];
 // fix/pre-event (M.12): data-testid attributes added to existing markup, as [old start tag, test ID];
 // the check takes each ` data-testid="<id>"` out again (it must appear exactly once, at the end
 // of that tag) and then compares byte for byte, so any other markup change still fails.
@@ -365,7 +379,7 @@ for (const name of MOVED_TO_ENGINE) {
   const at = oldScript.lastIndexOf(fn);
   oldScript = oldScript.slice(0, at) + fn.slice(0, fn.indexOf('{') + 1) + '}' + oldScript.slice(at + fn.length);
 }
-// Delete REMOVED_COURT_RENDERER, REMOVED_LIVE_SCORES_RENDERER, REMOVED_TV_RENDERER, REMOVED_RESULTS_RENDERER, REMOVED_OVERVIEW_RENDERER, REMOVED_LIBRARY_RENDERER, REMOVED_POOLS_RENDERER and REMOVED_SETUP_RENDERER from the old script: find every
+// Delete REMOVED_COURT_RENDERER, REMOVED_LIVE_SCORES_RENDERER, REMOVED_TV_RENDERER, REMOVED_RESULTS_RENDERER, REMOVED_OVERVIEW_RENDERER, REMOVED_LIBRARY_RENDERER, REMOVED_POOLS_RENDERER, REMOVED_SETUP_RENDERER and REMOVED_REGISTRATION_RENDERER from the old script: find every
 // piece first (positions in the old script as it is now), refuse overlaps, then cut from the end.
 {
   const removed = [
@@ -377,6 +391,7 @@ for (const name of MOVED_TO_ENGINE) {
     ...REMOVED_LIBRARY_RENDERER.map(entry => ['REMOVED_LIBRARY_RENDERER', entry]),
     ...REMOVED_POOLS_RENDERER.map(entry => ['REMOVED_POOLS_RENDERER', entry]),
     ...REMOVED_SETUP_RENDERER.map(entry => ['REMOVED_SETUP_RENDERER', entry]),
+    ...REMOVED_REGISTRATION_RENDERER.map(entry => ['REMOVED_REGISTRATION_RENDERER', entry]),
   ];
   const cuts = removed.map(([list, entry]) => {
     if (typeof entry === 'object') {

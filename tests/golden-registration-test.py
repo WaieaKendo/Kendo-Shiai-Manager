@@ -55,18 +55,22 @@ stays legacy; app/js/43-react-registration.js publishes their data). React must 
 element of both islands (and both elements must be the islands' roots), and every kind of
 content must be covered. The tab bar, the toolbars and the filter stay legacy markup.
 reg-status-markup checks F19 for the players table: a pasted status with markup is escaped.
+The legacy renderer is removed, so this test pins the React-only table and card; last, the app
+without the React module script must show the "Players could not load" notice instead of the
+empty table (and a working page never shows it).
 
 Approve an intended change (review the JSON diff, commit it with the code change):
 
     KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-registration-test.py [scenario ...]
 """
+import re
 import time
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 from golden_screen import ONLY, PANEL_FIBERS_JS, PANEL_JS, PLATFORM, SPECTATOR_JS, UPDATE, Golden, geometry_recorded, people
 from ksm_app import KsmApp
-from ksm_browser import launch_chromium, load_app
+from ksm_browser import DIST, launch_chromium, load_app
 
 GOLDEN_DIR = Path(__file__).resolve().parent / 'golden' / 'registration'
 TOOLBAR = '#registration > .card:first-child'
@@ -196,6 +200,7 @@ def open_app(name, browser, react_check=None):
     app.page.evaluate(SAVES_INIT_JS)
     golden = Golden(name, app, app.page_errors, GOLDEN_DIR, capture, react_check)
     assert app.page.evaluate('window.ksmRegistrationMounted === true'), f'{name}: the Registration islands did not mount'
+    assert app.page.locator('#registrationModuleMissing').count() == 0, f'{name}: "Players could not load" shown on a working page'
     return golden
 
 
@@ -484,6 +489,37 @@ def reg_status_markup(browser):
     page.close()
 
 
+def without_screens_module():
+    """dist/index.html without the React screens' module script (as a device whose copy lacks it)."""
+    html = (DIST / 'index.html').read_text(encoding='utf-8')
+    module = re.search(r'<script type="module"[^>]*src="/assets/index-[\w-]+\.js"></script>\n?', html)
+    assert module, 'dist/index.html: no module script'
+    return html.replace(module.group(0), '')
+
+
+def reg_module_missing(browser):
+    """Without the React module nothing draws the players table: Registration says so instead; the
+    toolbars still work and the legacy code still publishes."""
+    app = KsmApp(browser.new_page(viewport=DESKTOP), 'no React module')
+    page = app.page
+    errors = []
+    page.on('pageerror', lambda e: errors.append(f'Registration module missing: {e}'))
+    load_app(page, html=without_screens_module())
+    page.evaluate("() => openRegistrationTab('individual')")
+    notice = page.locator('#indReg [data-testid="registration-module-missing"]')
+    assert notice.is_visible(), 'no "Players could not load" notice without the React module'
+    assert 'Players could not load' in notice.inner_text(), notice.inner_text()
+    assert not page.locator('#regTable').is_visible(), 'the empty players table is shown without the React module'
+    assert not page.locator('#tournamentStatusCard').is_visible(), 'the empty status card is shown without the React module'
+    page.locator(tid('reg-add-row')).dispatch_event('click')
+    assert page.locator('#regTable *').count() == 0, 'something drew the players table without the React module'
+    assert page.evaluate('window.ksmRegistrationPlayersInput.rows.length') == 1, 'renderReg() did not publish without the island'
+    assert page.evaluate('window.ksmRegistrationStatusInput') is not None, 'renderTournamentStatus() did not publish without the island'
+    assert page.locator(tid('reg-tab-team')).is_visible(), 'the tab bar is gone without the React module'
+    assert not errors, errors
+    page.close()
+
+
 SCENARIOS = {
     'reg-empty': reg_empty,
     'reg-rows': reg_rows,
@@ -491,7 +527,7 @@ SCENARIOS = {
     'reg-samples': reg_samples,
     'reg-live': reg_live,
 }
-CHECKS = {'reg-status-markup': reg_status_markup}
+CHECKS = {'reg-status-markup': reg_status_markup, 'reg-module-missing': reg_module_missing}
 REACT_CHECK = check_react
 
 

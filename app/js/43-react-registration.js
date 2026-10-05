@@ -16,6 +16,9 @@
 // Every other part of Registration stays legacy markup (app/index.html): the tab bar (regTab() in
 // 23- toggles its classes and the cards), the toolbars and their buttons, the filter (#regFilter,
 // read by renderReg() by id), the team, exhibition and Pools cards (part 2 / the Pools island).
+// The legacy renderer (the innerHTML of renderReg() and renderTournamentStatus(), and the 03- copy
+// of regTab(), overridden by 23-'s and never run) was removed in M.13. If the React module does not
+// load, Registration shows a notice in place of the players table (the end of this file).
 // Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
 function ksmPublishRegistration(event,key,input){
@@ -59,4 +62,23 @@ function ksmRenderTournamentStatus(valid,competitors,divisions,errors){
 }
 // × of a row: what its inline handler ran.
 function ksmRemoveCompetitor(i){state.competitors.splice(i,1);renderReg();renderTournamentStatus()}
+
+// If the React module (app/react/main.tsx, a module script after app.js) did not run, say so on
+// Individual Players instead of an empty table, which nothing fills any more (e.g. an offline
+// device whose cached copy lacks the module), and hide the empty status card. The tabs, the
+// toolbars and their buttons stay. Module scripts run before DOMContentLoaded, so a working page
+// never shows this. Existing styles only (.muted-card, .small).
+function ksmShowRegistrationModuleMissing(){
+  if(window.ksmRegistrationMounted)return;
+  const table=document.querySelector('#indReg #regTable')?.parentElement;
+  if(!table||document.getElementById('registrationModuleMissing'))return;
+  const notice=document.createElement('div');
+  notice.id='registrationModuleMissing';notice.className='muted-card';notice.setAttribute('role','alert');notice.setAttribute('data-testid','registration-module-missing');
+  notice.innerHTML='<b>Players could not load</b><div class="small">Reload the page. If this device is offline, reconnect once so it can download the current version of the app.</div>';
+  table.style.display='none';
+  table.before(notice);
+  const card=document.getElementById('tournamentStatusCard');
+  if(card)card.style.display='none';
+}
+document.addEventListener('DOMContentLoaded',ksmShowRegistrationModuleMissing);
 /* ksm:post-split-end */
