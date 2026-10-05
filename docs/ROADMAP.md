@@ -416,6 +416,17 @@ When M.13 is done, React draws every screen, but the legacy classic script still
 
 The command layer is a "service" in the sense of a single entry point for every change, not necessarily a separate server: it runs in the browser, and with Phase 3 the same commands can run on the server (the tournament's Durable Object) as the official copy, which makes conflicts and the outbox much simpler (actions are replayed, not whole snapshots merged).
 
+**Store options (decide with the framework question at the meeting).** The pattern is settled: commands become serializable actions, a reducer applies them using the engine, the store holds tournament data separate from device/screen state, React reads it through selectors. KSM is halfway there already (court actions are recorded as `patch-v1` changes with who/when; the engine is pure; the islands use `useSyncExternalStore`). The reducer must be framework-free so the same code can run on the server (the tournament's Durable Object) in Phase 3.
+
+| Option | For | Against |
+|---|---|---|
+| **React's own APIs: a plain reducer + store module outside the components, connected with `useSyncExternalStore`** (recommended) | Only React's official, supported mechanism (the one Redux and Zustand use underneath); no new dependency; legacy code can read and update it during the migration; the reducer runs on the server too; fits what the islands already do | We write and maintain the small store; no devtools out of the box |
+| `useReducer` + Context (state inside the React tree) | Also React-only | Legacy code and the server can't reach it; every consumer re-renders on each change (TVs, tablets); not suitable for the shared tournament state |
+| Redux Toolkit | Widely used, good docs and devtools (action log, time travel: "what happened on Court B?") | A separate project, not part of React; more ceremony; Immer-style updates must stay serializable for sync |
+| Zustand | Very small | Little structure for actions; the action log would be ours anyway |
+
+Recommendation: start 2.8 with the React-only option; actions and reducers carry over unchanged if Redux Toolkit's devtools are wanted later.
+
 Order (each step keeps the golden snapshot and behaviour tests green):
 1. Finish M.13 (Setup, Registration, shell/dialogs).
 2. 2.10 cleanup that doesn't wait for login (`regTab`, `syncIndividualSingleElim`, dead helpers).
