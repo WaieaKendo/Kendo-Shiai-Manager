@@ -9,3 +9,4 @@ import './overview/main.tsx';
 import './library/main.tsx';
 import './pools/main.tsx';
 import './setup/main.tsx';
+import './registration/main.tsx';

@@ -35,7 +35,11 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         its data; the preview reuses court/'s Bracket),
                         setup/ (the Setup screen's divisions table rows #divisionSetupRows
                         and hero name #setupTournamentName, M.13; app/js/42-react-setup.js
-                        publishes their data; the Setup fields stay legacy markup)
+                        publishes their data; the Setup fields stay legacy markup),
+                        registration/ (Registration part 1: the players table #regTable
+                        and the status card's contents #tournamentStatusCard, M.13;
+                        app/js/43-react-registration.js publishes their data; the tab
+                        bar, toolbars and filter stay legacy markup)
   engine/             Pure tournament-engine modules, strict TypeScript (own tsconfig.json):
                         no DOM, no globals, explicit inputs/outputs. index.ts is bundled
                         into a classic script defining `KSMEngine`, loaded before app.js;

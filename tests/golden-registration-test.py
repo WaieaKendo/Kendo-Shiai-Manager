@@ -49,6 +49,13 @@ transitions are off.
                    generation (a No Show taken out of a generated division; the alert once a
                    division has started).
 
+Since M.13 React draws the players table and the status card's contents
+(app/react/registration/: two islands, #regTable and #tournamentStatusCard; the card's class
+stays legacy; app/js/43-react-registration.js publishes their data). React must render every
+element of both islands (and both elements must be the islands' roots), and every kind of
+content must be covered. The tab bar, the toolbars and the filter stay legacy markup.
+reg-status-markup checks F19 for the players table: a pasted status with markup is escaped.
+
 Approve an intended change (review the JSON diff, commit it with the code change):
 
     KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-registration-test.py [scenario ...]
@@ -57,7 +64,7 @@ import time
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
-from golden_screen import ONLY, PANEL_JS, PLATFORM, SPECTATOR_JS, UPDATE, Golden, geometry_recorded, people
+from golden_screen import ONLY, PANEL_FIBERS_JS, PANEL_JS, PLATFORM, SPECTATOR_JS, UPDATE, Golden, geometry_recorded, people
 from ksm_app import KsmApp
 from ksm_browser import launch_chromium, load_app
 
@@ -119,6 +126,45 @@ STATE_JS = """() => {
 }"""
 
 
+# The Registration islands (app/react/registration/main.tsx): React renders every element of the
+# players table (#regTable, the island's root) and of the status card (#tournamentStatusCard).
+ISLANDS = ['#indReg #regTable', '#registration #tournamentStatusCard']
+ROOT_JS = "s => Object.keys(document.querySelector(s)).some(k => k.startsWith('__reactContainer'))"
+# Which kinds of content the islands were given.
+VARIANTS_JS = """() => {
+  const p = window.ksmRegistrationPlayersInput, st = window.ksmRegistrationStatusInput, out = [];
+  if (!p) out.push('players: nothing published');
+  else {
+    if (!p.rows.length) out.push('players: no rows');
+    if (p.divisions.some(d => d.includes('\\n'))) out.push('text: a line break');
+    p.rows.forEach(r => {
+      out.push('status: ' + (r.checked ? 'Checked' : r.noShow ? 'NoShow' : r.status === 'Registered' ? 'Registered' : 'other'));
+      out.push(r.selected.length ? 'division: offered' : 'division: not offered');
+      if (/[<>&"']/.test(r.name + r.dojo)) out.push('text: special characters');
+      if (r.name.includes('\\n') || r.status.includes('\\n')) out.push('text: a line break');
+    });
+  }
+  if (!st) out.push('status card: nothing published');
+  else out.push(st.valid ? 'status card: ready' : 'status card: needs attention');
+  return out;
+}"""
+VARIANTS_SEEN = set()
+ELEMENTS_SEEN = [0]  # most React-rendered elements seen in the players table
+
+
+def check_react(golden, step):
+    """React renders every element of the Registration islands."""
+    page = golden.app.page
+    for island in ISLANDS:
+        total, owned = page.evaluate(PANEL_FIBERS_JS, island)
+        assert total == owned, f'{golden.name}: {step}: {total - owned} of {total} elements in {island} are not rendered by React'
+        assert page.evaluate(ROOT_JS, island), f'{golden.name}: {step}: {island} is not a React root'
+        if island == ISLANDS[0]:
+            assert total, f'{golden.name}: {step}: nothing in {island}'
+            ELEMENTS_SEEN[0] = max(ELEMENTS_SEEN[0], owned)
+    VARIANTS_SEEN.update(page.evaluate(VARIANTS_JS))
+
+
 def capture(app):
     """Registration part 1: (serialization, element boxes)."""
     page = app.page
@@ -149,6 +195,7 @@ def open_app(name, browser, react_check=None):
     app.page.add_style_tag(content=NO_TRANSITIONS)
     app.page.evaluate(SAVES_INIT_JS)
     golden = Golden(name, app, app.page_errors, GOLDEN_DIR, capture, react_check)
+    assert app.page.evaluate('window.ksmRegistrationMounted === true'), f'{name}: the Registration islands did not mount'
     return golden
 
 
@@ -417,6 +464,26 @@ def reg_live(browser, react_check):
     g.finish()
 
 
+def reg_status_markup(browser):
+    """F19: the legacy row printed the status into its class unescaped, so a pasted status with
+    markup ran code. The React players table escapes it: the class holds the text, nothing runs."""
+    app = KsmApp(browser.new_page(viewport=DESKTOP), 'status markup')
+    page = app.page
+    errors = []
+    page.on('pageerror', lambda e: errors.append(f'status markup: {e}'))
+    load_app(page)
+    page.evaluate("() => { window.__pwned = 0; openRegistrationTab('individual'); }")
+    evil = 'x"><img src=x onerror="window.__pwned=1">'
+    page.evaluate(PASTE_JS, f'Evil\tDojo\t{WOMEN}\t\t{evil}')
+    page.wait_for_timeout(300)
+    assert page.evaluate('window.__pwned') == 0, 'a pasted status ran code (F19)'
+    assert page.locator('#regTable img').count() == 0, 'a pasted status injected markup into the players table (F19)'
+    assert page.locator(tid('reg-status')).get_attribute('class') == f'status {evil}', 'the status class is not the pasted text'
+    assert page.locator(tid('reg-status')).inner_text() == '○ Registered'
+    assert not errors, errors
+    page.close()
+
+
 SCENARIOS = {
     'reg-empty': reg_empty,
     'reg-rows': reg_rows,
@@ -424,8 +491,8 @@ SCENARIOS = {
     'reg-samples': reg_samples,
     'reg-live': reg_live,
 }
-CHECKS = {}
-REACT_CHECK = None
+CHECKS = {'reg-status-markup': reg_status_markup}
+REACT_CHECK = check_react
 
 
 def main():
@@ -442,6 +509,14 @@ def main():
         for name in checks:
             CHECKS[name](browser)
             print(f'  {name}: ok')
+        if not ONLY and not UPDATE:
+            assert ELEMENTS_SEEN[0], 'React never rendered anything in the players table'
+            expected = {
+                'players: no rows', 'status: Checked', 'status: NoShow', 'status: Registered', 'status: other',
+                'division: offered', 'division: not offered', 'text: special characters', 'text: a line break',
+                'status card: ready', 'status card: needs attention',
+            }
+            assert expected <= VARIANTS_SEEN, f'Registration variants not covered: {sorted(expected - VARIANTS_SEEN)}; seen {sorted(VARIANTS_SEEN)}'
         browser.close()
     note = f'; element boxes not recorded for {PLATFORM} in {len(missing_geometry)} scenario(s), compared without them' if missing_geometry else ''
     verb = 'UPDATED' if UPDATE else 'PASS'

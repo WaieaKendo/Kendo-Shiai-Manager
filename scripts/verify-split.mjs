@@ -59,6 +59,12 @@ const KNOWN_POST_SPLIT_EDITS = {
   // setCourtCompletePresentation() (32). Listed here because renderDivisions() (02) is its first
   // region: the check compares names in order of first appearance.
   'react-court': 8,
+  // feat/react-registration (M.13): Registration part 1's React islands (#regTable, the contents
+  // of #tournamentStatusCard). renderTournamentStatus() and renderReg() (03) publish (and hand over
+  // while the islands are mounted), and app/js/43-react-registration.js publishes the players table
+  // and the status card as plain data. Listed here because renderTournamentStatus() (03) is its
+  // first region: the check compares names in order of first appearance.
+  'react-registration': 3,
   // fix/pre-event (M.12): test IDs on markup drawn by app/js (03: the exhibition rows and the
   // Regenerate Single Division dialog), each line kept in its `was:` marker. Test IDs on the
   // static markup are listed in MARKUP_TEST_IDS instead.
