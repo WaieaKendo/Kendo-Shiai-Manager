@@ -1,7 +1,7 @@
 """Shared parts of the golden (snapshot) tests of whole screens: golden-court-screen-test.py
 (tests/golden/court/), golden-live-scores-test.py (tests/golden/live-scores/),
-golden-tv-test.py (tests/golden/tv/), golden-results-test.py (tests/golden/results/) and
-golden-overview-test.py (tests/golden/overview/).
+golden-tv-test.py (tests/golden/tv/), golden-results-test.py (tests/golden/results/),
+golden-overview-test.py (tests/golden/overview/) and golden-library-test.py (tests/golden/library/).
 
 A screen test runs scenarios on one offline copy of the app and, after every step, serializes
 the screen (elements, attributes, visible text, visibility) and compares it with an approved
@@ -183,7 +183,11 @@ class Golden:
             geometry = self.approved['geometry'].get(PLATFORM)
             self.approved_geometry = expand(geometry) if geometry else None
         app.page.on('pageerror', lambda e: errors.append(f'{name}: {e}'))
-        app.page.on('dialog', lambda d: (d.message in TIMING_DIALOGS or self.dialogs.append(d.message), d.accept()))
+        # answer(dialog), when set, answers the dialogs (a test's own prompt answers); otherwise accepted.
+        self.answer = None
+        self.timing_dialogs = TIMING_DIALOGS
+        app.page.on('dialog', lambda d: (d.message in self.timing_dialogs or self.dialogs.append(d.message),
+                                         self.answer(d) if self.answer else d.accept()))
 
     def path(self):
         return self.golden_dir / f'{self.name}.json'

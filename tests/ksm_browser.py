@@ -25,7 +25,7 @@ def launch_chromium(p):
     return p.chromium.launch(headless=not headed, slow_mo=slow_mo, executable_path=path, args=['--no-sandbox'])
 
 
-def load_app(page, html=None, wait_until='domcontentloaded', session='staff', query=''):
+def load_app(page, html=None, wait_until='domcontentloaded', session='staff', query='', api=None):
     """Open the app on a real http origin so localStorage/sessionStorage work.
 
     `page.set_content()` leaves the page on about:blank, where storage access throws
@@ -38,12 +38,16 @@ def load_app(page, html=None, wait_until='domcontentloaded', session='staff', qu
     session='staff' (default) leaves the home page and enables a local staff
     session, as createNewTournament() does minus the cloud round-trip.
     session=None keeps the real boot state (home page, spectator).
+    api(route, path), when given, answers the /api/* requests instead (e.g. a test's own
+    library responses, tests/golden-library-test.py).
     """
     ensure_built()
 
     def handle(route):
         path = route.request.url[len(APP_ORIGIN):].split('?', 1)[0].split('#', 1)[0]
         if path.startswith('/api/'):
+            if api is not None:
+                return api(route, path)
             return route.fulfill(status=503, content_type='application/json', body='{"error":"offline test harness"}')
         if path in ('', '/', '/index.html'):
             body = html if html is not None else (DIST / 'index.html').read_text(encoding='utf-8')
