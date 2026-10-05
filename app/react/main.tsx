@@ -6,3 +6,4 @@ import './live-scores/main.tsx';
 import './tv/main.tsx';
 import './results/main.tsx';
 import './overview/main.tsx';
+import './library/main.tsx';

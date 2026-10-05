@@ -43,6 +43,13 @@ are clicked with a dispatched click (no mouse move, so no :hover lift); transiti
   library-cached-phone  boot on a phone with tournaments cached: the cards at once while
                      discover is pending, then the cloud's list; landscape.
 
+Since M.13 the library is drawn by React (app/react/library/: one island, the contents of
+#home .home-shell; app/js/40-react-library.js publishes its data), and this test pins the island
+against the snapshots recorded from the legacy renderer. React must render every element of the
+island (and .home-shell must be its root), every kind of library content must be covered, and
+before anything is published the island must equal the static markup of app/index.html
+(library-static-markup).
+
 Approve an intended change (review the JSON diff, commit it with the code change):
 
     KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-library-test.py [scenario ...]
@@ -53,9 +60,9 @@ import time
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
-from golden_screen import ONLY, PANEL_JS, PLATFORM, UPDATE, Golden, geometry_recorded
+from golden_screen import ONLY, PANEL_FIBERS_JS, PANEL_JS, PLATFORM, UPDATE, Golden, first_difference, geometry_recorded
 from ksm_app import KsmApp, sel
-from ksm_browser import launch_chromium, load_app
+from ksm_browser import DIST, launch_chromium, load_app
 
 GOLDEN_DIR = Path(__file__).resolve().parent / 'golden' / 'library'
 ROOT = '#home'
@@ -107,6 +114,33 @@ def request_body(key, body):
     return json.dumps({'tournamentId': data.get('tournamentId'), 'revision': data.get('revision'),
                        'tName': data.get('payload', {}).get('setup', {}).get('tName'),
                        'staffPassword': data.get('staffPassword')})
+
+
+# The library island (app/react/library/main.tsx): React renders every element of the home page's
+# shell, which is the island's root.
+ISLAND = '#home .home-shell'
+ROOT_JS = f"() => Object.keys(document.querySelector('{ISLAND}')).some(k => k.startsWith('__reactContainer'))"
+# Which kinds of library content the island was given.
+VARIANTS_JS = """() => {
+  const d = window.ksmLibraryInput, out = [];
+  if (!d || d.kind !== 'library') return ['nothing published'];
+  if (!d.cards.length) out.push('message: ' + (d.message ? 'text' : 'empty'));
+  d.cards.forEach(c => out.push(c.name ? 'card' : 'card without a name'));
+  if (new Set(d.cards.map(c => c.id)).size < d.cards.length) out.push('duplicate ID');
+  return out;
+}"""
+VARIANTS_SEEN = set()
+ELEMENTS_SEEN = [0]  # most React-rendered elements seen in the island
+
+
+def check_react(golden, step):
+    """React renders every element of the library island."""
+    page = golden.app.page
+    total, owned = page.evaluate(PANEL_FIBERS_JS, ISLAND)
+    assert total and total == owned, f'{golden.name}: {step}: {total - owned} of {total} elements in {ISLAND} are not rendered by React'
+    ELEMENTS_SEEN[0] = max(ELEMENTS_SEEN[0], owned)
+    assert page.evaluate(ROOT_JS), f'{golden.name}: {step}: {ISLAND} is not a React root'
+    VARIANTS_SEEN.update(page.evaluate(VARIANTS_JS))
 
 
 class Api:
@@ -172,7 +206,7 @@ def capture(app):
     return entry, {'library': panel['boxes']}
 
 
-def open_app(name, browser, viewport=DESKTOP, cached=None, react_check=None):
+def open_app(name, browser, viewport=DESKTOP, cached=None, react_check=check_react):
     """A copy of the app on its home page (the real boot: spectator), its library list held."""
     context = browser.new_context(viewport=viewport, service_workers='block')
     page = context.new_page()
@@ -195,6 +229,7 @@ def open_app(name, browser, viewport=DESKTOP, cached=None, react_check=None):
     load_app(page, session=None, api=app.api)
     page.add_style_tag(content=NO_TRANSITIONS)
     page.wait_for_function('window.KSMTest && KSMTest.booted()')
+    assert page.evaluate('window.ksmLibraryMounted === true'), f'{name}: the library island did not mount'
     return golden
 
 
@@ -232,8 +267,8 @@ def library_opened(g, label, *replies):
 
 
 # ---------------------------------------------------------------------------------- scenarios
-def library_empty(browser, errors, react_check=None):
-    g = open_app('library-empty', browser, react_check=react_check)
+def library_empty(browser, errors):
+    g = open_app('library-empty', browser)
     api, page = g.app.api, g.app.page
     g.do('boot: library requested', lambda a: api.wait(a.page))
     g.do('boot: no tournaments', lambda a: api.answer(a.page, []))
@@ -253,8 +288,8 @@ def library_empty(browser, errors, react_check=None):
     g.finish()
 
 
-def library_cards(browser, errors, react_check=None):
-    g = open_app('library-cards', browser, react_check=react_check)
+def library_cards(browser, errors):
+    g = open_app('library-cards', browser)
     api, page = g.app.api, g.app.page
     g.do('boot: library requested', lambda a: api.wait(a.page))
     g.do('boot: several tournaments', lambda a: api.answer(a.page, SEVERAL))
@@ -293,14 +328,56 @@ def library_cards(browser, errors, react_check=None):
     g.finish()
 
 
-def library_cached_phone(browser, errors, react_check=None):
-    g = open_app('library-cached-phone', browser, viewport=PHONES[0][1], cached=SEVERAL[:4], react_check=react_check)
+def library_cached_phone(browser, errors):
+    g = open_app('library-cached-phone', browser, viewport=PHONES[0][1], cached=SEVERAL[:4])
     api = g.app.api
     g.do('boot: cached cards, discover pending', lambda a: api.wait(a.page))
     g.do('boot: discover answered', lambda a: api.answer(a.page, ONE + SEVERAL[:2]))
     g.do('landscape', lambda a: a.page.set_viewport_size(PHONES[1][1]))
     g.finish()
 
+
+def without_screens_module():
+    """dist/index.html without the React screens' module script (as a device whose copy lacks it)."""
+    html = (DIST / 'index.html').read_text(encoding='utf-8')
+    module = re.search(r'<script type="module"[^>]*src="/assets/index-[\w-]+\.js"></script>\n?', html)
+    assert module, 'dist/index.html: no module script'
+    return html.replace(module.group(0), '')
+
+
+# The library as if nothing had been published (the island before the first publish).
+UNPUBLISHED_JS = "() => { delete window.ksmLibraryInput; window.dispatchEvent(new CustomEvent('ksm:library')); }"
+
+
+def library_static_markup(browser, errors):
+    """Before anything is published, the island draws the static markup of app/index.html."""
+    seen = []
+    for label, html in (('static markup', without_screens_module()), ('island', None)):
+        context = browser.new_context(viewport=DESKTOP, service_workers='block')
+        page = context.new_page()
+        page.on('pageerror', lambda e, l=label: errors.append(f'{l}: {e}'))
+        page.add_init_script(SECURE_CONTEXT_INIT)
+        if html is not None:
+            # Without the module nothing may touch the static markup (no legacy drawing, no notice).
+            page.add_init_script('window.ksmLibraryMounted = true;')
+        api = Api()
+        load_app(page, html=html, session=None, api=api)
+        api.wait(page)  # the boot's library request: left pending, so nothing is drawn from it
+        page.add_style_tag(content=NO_TRANSITIONS)
+        if html is None:
+            page.evaluate(UNPUBLISHED_JS)
+            total, owned = page.evaluate(PANEL_FIBERS_JS, ISLAND)
+            assert total and total == owned, f'island before the first publish: {total - owned} of {total} elements not rendered by React'
+            VARIANTS_SEEN.add('nothing published')
+        seen.append(page.evaluate(PANEL_JS, ROOT))
+        for route in api.held:
+            route.abort()
+        context.close()
+    assert seen[0] == seen[1], f'the island before the first publish differs from the static markup: {first_difference(seen[1], seen[0])}'
+
+
+# Checks without a snapshot file.
+CHECKS = {'library-static-markup': library_static_markup}
 
 SCENARIOS = {
     'library-empty': library_empty,
@@ -312,7 +389,8 @@ SCENARIOS = {
 def main():
     started = time.time()
     chosen = [n for n in SCENARIOS if not ONLY or any(q in n for q in ONLY)]
-    assert chosen, f'no scenario matches {ONLY}'
+    checks = [n for n in CHECKS if not UPDATE and (not ONLY or any(q in n for q in ONLY))]
+    assert chosen or checks, f'no scenario matches {ONLY}'
     missing_geometry = [n for n in chosen if not UPDATE and not geometry_recorded(GOLDEN_DIR, n)]
     with sync_playwright() as p:
         browser = launch_chromium(p)
@@ -320,11 +398,19 @@ def main():
         for name in chosen:
             SCENARIOS[name](browser, errors)
             print(f'  {name}: ok')
+        for name in checks:
+            CHECKS[name](browser, errors)
+            print(f'  {name}: ok')
+        if not ONLY and not UPDATE:
+            assert ELEMENTS_SEEN[0], 'React never rendered anything on the library'
+            expected = {'nothing published', 'message: text', 'card', 'card without a name', 'duplicate ID'}
+            assert expected <= VARIANTS_SEEN, f'library variants not covered: {sorted(expected - VARIANTS_SEEN)}; seen {sorted(VARIANTS_SEEN)}'
         assert not errors, '\n'.join(errors)
         browser.close()
     note = f'; element boxes not recorded for {PLATFORM} in {len(missing_geometry)} scenario(s), compared without them' if missing_geometry else ''
     verb = 'UPDATED' if UPDATE else 'PASS'
-    print(f'{verb} Tournament Library = approved snapshots ({", ".join(chosen)}){note} in {time.time() - started:.0f}s')
+    print(f'{verb} Tournament Library = approved snapshots ({", ".join(chosen)}){note}'
+          f'{"; " + ", ".join(checks) if checks else ""} in {time.time() - started:.0f}s')
 
 
 if __name__ == '__main__':

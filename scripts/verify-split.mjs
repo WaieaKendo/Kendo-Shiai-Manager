@@ -112,6 +112,10 @@ const KNOWN_POST_SPLIT_EDITS = {
   // ksmRenderOverview(), and app/js/39-react-overview.js publishes the screen as plain data and
   // shows a notice when the React module is missing.
   'react-overview': 2,
+  // feat/react-library (M.13): the Tournament Library's React island. paintHomeTournamentLibrary()
+  // (33) publishes the library (ksmRenderLibrary()) and hands over while the island is mounted;
+  // app/js/40-react-library.js publishes it as plain data.
+  'react-library': 2,
   // feat/react-overlay: app/js/33-stream-overlay-links.js (TV menu "copy overlay link").
   'stream-overlay': 1,
 };

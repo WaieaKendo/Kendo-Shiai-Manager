@@ -1,5 +1,6 @@
-// Default branding assets the court islands render. One place, so a per-tournament logo can
-// replace them later (passed in as props); the values match the legacy markup (app/index.html).
+// Default branding assets the court islands and the Tournament Library (app/react/library/) render.
+// One place, so a per-tournament logo can replace them later (passed in as props); the values match
+// the legacy markup (app/index.html) and templates.
 // Colors come from the CSS custom properties in app/styles/02-branding.css, never from here.
 // (The .active-match-watermark image in #score .scoreboard-card is still legacy markup.)
 
@@ -35,3 +36,9 @@ export interface CourtPanelIcons {
 }
 
 export const DEFAULT_COURT_PANEL_ICONS: CourtPanelIcons = { poolComplete: '✓' };
+
+/** The KSM logo in the Tournament Library's brand (#home .home-brand), as the markup draws it. */
+export const DEFAULT_HOME_LOGO_SRC = '/assets/ksm-fuji-logo.svg';
+
+/** The mark on a Tournament Library card (.home-card-placeholder), until a tournament has a logo (M.11). */
+export const DEFAULT_LIBRARY_CARD_MARK = '🏆';

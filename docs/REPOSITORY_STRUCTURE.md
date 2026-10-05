@@ -26,7 +26,10 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         bracket modal, M.13; app/js/38-react-results.js publishes its
                         data; the modal reuses court/'s Bracket),
                         overview/ (the Overview screen #director, M.13;
-                        app/js/39-react-overview.js publishes its data)
+                        app/js/39-react-overview.js publishes its data),
+                        library/ (the Tournament Library, the home page #home, M.13;
+                        app/js/40-react-library.js publishes its data; logo and card
+                        mark from court/branding.ts)
   engine/             Pure tournament-engine modules, strict TypeScript (own tsconfig.json):
                         no DOM, no globals, explicit inputs/outputs. index.ts is bundled
                         into a classic script defining `KSMEngine`, loaded before app.js;
