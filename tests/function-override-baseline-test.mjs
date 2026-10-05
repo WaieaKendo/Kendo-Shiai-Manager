@@ -18,14 +18,16 @@ import { html, countDefinitions } from './lib/ksm-source.mjs';
 // kachinukiSheetHtml 2->0 and the inner `list` of both kachinukiSheetHtml() 2->0).
 // M.13 (feat/react-overview) removed the legacy Overview renderer and the first renderProgress()
 // (11-, overridden by the empty one in 23- and never run): 18 -> 17 (renderProgress 2->1).
+// M.13 (feat/react-library) removed none (17).
+// M.13 (feat/react-pools) removed the legacy Pools renderer with bracketHtml() and its helpers:
+// 17 -> 14 (alignedPointSlots 2->0, bracketHtml 2->0, singleElimBracketHtml 2->0).
 const BASELINE = {
-  alignedPointSlots: 2, bracketHtml: 2,
   canCloudWrite: 2, cloudHeaders: 2, cloudSocketUrl: 2, initializeCloudRoleFromUrl: 2,
   installRoleBanner: 2, isReadOnlySession: 2, isSpectatorSession: 2,
   loadTournamentFromCloud: 2, openTournamentAccess: 2,
   regTab: 2,
   sessionKey: 2,
-  setSessionRole: 2, singleElimBracketHtml: 2, spectatorLink: 2, syncIndividualSingleElim: 2,
+  setSessionRole: 2, spectatorLink: 2, syncIndividualSingleElim: 2,
 };
 
 const names = [...new Set([...html.matchAll(/function\s+([A-Za-z_$][\w$]*)\s*\(/g)].map(m => m[1]))];

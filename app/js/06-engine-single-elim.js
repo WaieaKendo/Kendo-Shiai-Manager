@@ -176,8 +176,3 @@ function specificMatchSideLabel(match,side){
   }
   return 'TBD';
 }
-function singleElimBracketHtml(div){
-  let nodes=state.singleElimNodes?.[div]||[];if(!nodes.length)return '<div class="muted-card">Single-elimination bracket will appear after generation.</div>';
-  let rounds=[...new Set(nodes.map(n=>n.round))];let html='';
-  rounds.forEach(round=>{html+=`<div class="bracket-card"><div class="bracket-round">${esc(round)}</div>`;nodes.filter(n=>n.round===round).forEach(node=>{let m=(state.allMatches[div]||[]).find(x=>x.singleElim&&x.elimNodeId===node.id);if(m){let w=winnerOf(m);html+=`<div class="bracket-match ${m.done?'':'gold'}"><div class="white ${w===m.white?'winner':''}"><b>${esc(specificMatchSideLabel(m,'white'))}</b><div class="small">${(m.wp||[]).join(' ')}</div></div><div class="bracket-status">${m.done?'DONE':'vs'}</div><div class="red ${w===m.red?'winner':''}"><b>${esc(specificMatchSideLabel(m,'red'))}</b><div class="small">${(m.rp||[]).join(' ')}</div></div></div>`;}else{html+=placeholderMatchHtml(sideLabelGeneric(node.left,div),sideLabelGeneric(node.right,div),(!node.left||!node.right)?'BYE':'vs');}});html+='</div>';});return html;
-}

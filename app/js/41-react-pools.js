@@ -15,7 +15,9 @@
 // dropPoolPlayer(), insertPoolPlayer(), toggleEditPools(), saveEditedPools() and renderPools()
 // (08, 16), as the inline handlers did. The division select (#poolDiv, written by
 // renderDivisions() in 02-, read synchronously by the pool functions), Regenerate and
-// #poolOutput's class stay legacy.
+// #poolOutput's class stay legacy. The legacy Pools renderer (the innerHTML of renderPools() and
+// toggleEditPools(), and bracketHtml() with its helpers in 06-/14-/28-/29-) was removed in M.13.
+// If the React module does not load, the Pools view shows a notice (the end of this file).
 // Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
 function ksmPublishPools(input){
@@ -44,4 +46,21 @@ function ksmRenderPoolEditor(div){
       players:p.players.map((x,idx)=>({slot:ksmText(poolPlayerSlotLetter(idx)),name:ksmText(x.name),dojo:ksmText(x.dojo||'')}))})),
     bracket:ksmBracket(div)});
 }
+
+// If the React module (app/react/main.tsx, a module script after app.js) did not run, say so in the
+// Pools view instead of an empty #poolOutput, which nothing fills any more (e.g. an offline device
+// whose cached copy lacks the module). The division select and Regenerate stay. Module scripts run
+// before DOMContentLoaded, so a working page never shows this. Existing styles only (.muted-card,
+// .small).
+function ksmShowPoolsModuleMissing(){
+  if(window.ksmPoolsMounted)return;
+  const output=document.getElementById('poolOutput');
+  if(!output||document.getElementById('poolsModuleMissing'))return;
+  const notice=document.createElement('div');
+  notice.id='poolsModuleMissing';notice.className='muted-card';notice.setAttribute('role','alert');notice.setAttribute('data-testid','pools-module-missing');
+  notice.innerHTML='<b>Pools could not load</b><div class="small">Reload the page. If this device is offline, reconnect once so it can download the current version of the app.</div>';
+  output.style.display='none';
+  output.before(notice);
+}
+document.addEventListener('DOMContentLoaded',ksmShowPoolsModuleMissing);
 /* ksm:post-split-end */

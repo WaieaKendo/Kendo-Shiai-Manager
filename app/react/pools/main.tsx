@@ -9,7 +9,7 @@ import { mountIsland } from '../island.tsx';
 import { PoolOutput } from './Pools.tsx';
 
 interface LegacyWindow {
-  /** Set here once the island is mounted; the legacy code checks it. */
+  /** Set here once the island is mounted; the legacy fallback notice checks it. */
   ksmPoolsMounted?: boolean;
 }
 

@@ -93,12 +93,12 @@ function selectScorekeeperDivision(div){
 }
 function makeMatches(div){state.allMatches[div]=buildPoolMatches(div,state.pools[div]||[]);setActiveDivision(div)}
 function renderPools(){
-  let div=poolDiv?.value||state.poolViewDivision||state.currentDivision;state.poolViewDivision=div;let pools=state.pools[div]||[];
-  /* ksm:post-split-begin react-pools */ksmRenderPools(div);if(window.ksmPoolsMounted){poolOutput.className='pools-layout';renderResultsDashboard();return}/* ksm:post-split-end */
-  let poolHtml=pools.length?pools.map(p=>`<div class="pool" data-testid="pool" ondragover="event.preventDefault();this.classList.add('drop-target')" ondragleave="this.classList.remove('drop-target')" ondrop="if(event.target===this)dropPoolPlayer(event,${jsArg(p.label)});this.classList.remove('drop-target')"><h3 data-testid="pool-title">${isTeamDivision(div)?'Team Pool':'Pool'} ${p.label}</h3>${p.players.map((x,idx)=>`<div class="drag-player" draggable="true" ondragstart="dragPoolPlayer(event,${jsArg(p.label)},${idx})"><span class="pool-slot-badge" data-testid="pool-slot">${esc(poolPlayerSlot(x,idx))}</span><b data-testid="pool-player">${esc(x.name)}</b><span class="small" style="float:right">${esc(x.dojo)}</span></div>`).join('')}</div>`).join(''):(isTeamDivision(div)&&state.allMatches[div]?.length?'<div class="muted-card">Single-elimination team bracket created. Team position matches are available in the Court queue.</div>':((state.divisionTypes[div]==='Single Elimination'&&state.allMatches[div]?.length)?'<div class="muted-card">Single-elimination bracket created. Matches are available in the Court queue.</div>':'<div class="muted-card">No pools generated yet.</div>'));
-  let edit=pools.length&&!isTeamRoundRobinDivision(div)?'<div class="toolbar"><button onclick="toggleEditPools()" data-testid="pool-edit">Edit Pool</button></div>':'';
-  let rightTitle=isTeamRoundRobinDivision(div)?'Team Standings':'Championship Preview';
+/* ksm:post-split-begin react-pools */
+  // The Pools view is React (app/react/pools/, 41-react-pools.js): #poolOutput's contents are
+  // published to it instead of written (M.13).
+  let div=poolDiv?.value||state.poolViewDivision||state.currentDivision;state.poolViewDivision=div;
   poolOutput.className='pools-layout';
-  poolOutput.innerHTML=`<div><h2>Pools</h2>${edit}<div class="pool-list">${poolHtml}</div></div><div><h2>${rightTitle}</h2>${bracketHtml(div)}</div>`;
+  ksmRenderPools(div);
   renderResultsDashboard();
+/* ksm:post-split-end */
 }

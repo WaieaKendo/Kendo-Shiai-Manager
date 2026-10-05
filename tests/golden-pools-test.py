@@ -57,15 +57,19 @@ with Playwright's real mouse drag (locator.drag_to) in Chromium.
                       Pools view opened after every match: RR 14 (pools + quarterfinals), SE 6
                       split, team RR 3, kachinuki RR 3.
 
-Since M.13 #poolOutput is drawn by React (app/react/pools/: one island, the contents of
-#poolOutput; app/js/41-react-pools.js publishes its data); the division select, Regenerate and
-#poolOutput's class stay legacy. React must render every element of the island (and #poolOutput
-must be its root) and every kind of Pools content must be covered.
+Since M.13 #poolOutput is drawn only by React (app/react/pools/: one island, the contents of
+#poolOutput; app/js/41-react-pools.js publishes its data); the legacy renderer is removed, so
+this test pins the React-only view. The division select, Regenerate and #poolOutput's class stay
+legacy. React must render every element of the island (and #poolOutput must be its root) and
+every kind of Pools content must be covered. Last, the app without the React module script must
+show the "Pools could not load" notice instead of the empty #poolOutput (and a working page never
+shows it).
 
 Approve an intended change (review the JSON diff, commit it with the code change):
 
     KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-pools-test.py [scenario ...]
 """
+import re
 import time
 from pathlib import Path
 
@@ -75,7 +79,7 @@ from golden_screen import (
     Golden, geometry_recorded, match_points, people, team,
 )
 from ksm_app import KsmApp
-from ksm_browser import launch_chromium, load_app
+from ksm_browser import DIST, launch_chromium, load_app
 
 GOLDEN_DIR = Path(__file__).resolve().parent / 'golden' / 'pools'
 ROOT = '#poolsReg'
@@ -205,6 +209,7 @@ def open_app(name, browser, errors, entries=None, react_check=None):
     app.page.evaluate(SAVES_INIT_JS)
     golden = Golden(name, app, app.page_errors, GOLDEN_DIR, capture, react_check)
     assert app.page.evaluate('window.ksmPoolsMounted === true'), f'{name}: the Pools island did not mount'
+    assert app.page.locator('#poolsModuleMissing').count() == 0, f'{name}: "Pools could not load" shown on a working page'
     if entries:
         app.configure(entries)
     return golden
@@ -456,8 +461,34 @@ SCENARIOS = {
     **{name: (lambda browser, errors, react_check, n=name, e=entries, d=draws: play_through(browser, errors, react_check, n, e, d))
        for name, entries, draws in PLAY_THROUGHS},
 }
+def without_screens_module():
+    """dist/index.html without the React screens' module script (as a device whose copy lacks it)."""
+    html = (DIST / 'index.html').read_text(encoding='utf-8')
+    module = re.search(r'<script type="module"[^>]*src="/assets/index-[\w-]+\.js"></script>\n?', html)
+    assert module, 'dist/index.html: no module script'
+    return html.replace(module.group(0), '')
+
+
+def pools_module_missing(browser, errors):
+    """Without the React module nothing draws #poolOutput: the Pools view says so instead."""
+    app = KsmApp(browser.new_page(viewport=DESKTOP), 'no React module')
+    page = app.page
+    page.on('pageerror', lambda e: errors.append(f'Pools module missing: {e}'))
+    load_app(page, html=without_screens_module())
+    app.configure([individual('Open', 'Round Robin', 'A', people('P', 4))])
+    open_pools(app)
+    notice = page.locator('#poolsReg [data-testid="pools-module-missing"]')
+    assert notice.is_visible(), 'no "Pools could not load" notice without the React module'
+    assert 'Pools could not load' in notice.inner_text(), notice.inner_text()
+    assert not page.locator('#poolOutput').is_visible(), 'the empty #poolOutput is shown without the React module'
+    assert page.locator('#poolOutput *').count() == 0, 'something drew #poolOutput without the React module'
+    assert page.locator('[data-testid="pool-division-select"]').is_visible(), 'the division select is gone without the React module'
+    assert page.evaluate('window.ksmPoolsInput.kind') == 'pools', 'renderPools() did not publish without the island'
+    page.close()
+
+
 # Checks without a snapshot file.
-CHECKS = {}
+CHECKS = {'pools-module-missing': pools_module_missing}
 REACT_CHECK = check_react
 
 

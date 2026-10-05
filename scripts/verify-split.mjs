@@ -25,8 +25,8 @@
 //
 // Old code deliberately deleted (REMOVED_COURT_RENDERER: the legacy court renderer, M.8
 // step 5; REMOVED_LIVE_SCORES_RENDERER, REMOVED_TV_RENDERER, REMOVED_RESULTS_RENDERER,
-// REMOVED_OVERVIEW_RENDERER and REMOVED_LIBRARY_RENDERER: the legacy Live Scores, TV, Results,
-// Overview and Tournament Library renderers, M.13) is named piece by piece; the check deletes exactly those pieces from the old script before comparing, so every
+// REMOVED_OVERVIEW_RENDERER, REMOVED_LIBRARY_RENDERER and REMOVED_POOLS_RENDERER: the legacy Live
+// Scores, TV, Results, Overview, Tournament Library and Pools renderers, M.13) is named piece by piece; the check deletes exactly those pieces from the old script before comparing, so every
 // other difference, and any piece that no longer matches, still fails.
 import { execFileSync } from 'node:child_process';
 import { minify } from 'vite';
@@ -64,9 +64,10 @@ const KNOWN_POST_SPLIT_EDITS = {
   // the team engine moved (2.6) and its bridges pass tournamentSettings() in; 3 after
   // division generation moved (2.7).
   'engine-settings': 3,
-  // feat/react-pools (M.13): the Pools view's React island (#poolOutput). renderPools() (08)
-  // publishes the view and toggleEditPools() (16) the editor; app/js/41-react-pools.js publishes
-  // them as plain data. Listed here because renderPools() (08) is its first region: the check
+  // feat/react-pools (M.13): the Pools view's React island (#poolOutput). With the legacy renderer
+  // removed (REMOVED_POOLS_RENDERER) the bodies of renderPools() (08) and toggleEditPools() (16)
+  // are marked publishers, and app/js/41-react-pools.js publishes the view and the editor as
+  // plain data and shows a notice when the React module is missing. Listed here because renderPools() (08) is its first region: the check
   // compares names in order of first appearance.
   'react-pools': 3,
   // fix/pre-event (F9): printPlacementsForDivision() uses resultPlacements() (comment + body).
@@ -228,8 +229,9 @@ const REMOVED_TV_RENDERER = [
 // (app/react/results/); tests/golden/results/*.json pin what this code drew. Same entry forms as
 // REMOVED_COURT_RENDERER. The Results decisions stay (resultPlacements(), the engine bridge, and
 // the awards actions addResultAward(), removeResultAward(), closeResultsBracket() in 27), and the
-// shared HTML helpers the Pools screen still draws with (bracketHtml(), singleElimBracketHtml(),
-// teamRoundRobinStandingsHtml(), alignedMatchRowHtml(), ... in 28).
+// shared HTML helpers the Pools screen still drew with (bracketHtml(), singleElimBracketHtml(),
+// teamRoundRobinStandingsHtml(), alignedMatchRowHtml(), ... in 28; removed with the Pools
+// renderer, REMOVED_POOLS_RENDERER).
 const REMOVED_RESULTS_RENDERER = [
   // 09: the first Results renderer, overridden by renderResultsAll#2 (27) and never run, and what only it used.
   'medalResultsHtml#1', 'teamFinalResultsHtml#1', 'renderResultsAll#1', 'renderAwards#1', 'addAward#1',
@@ -268,6 +270,26 @@ const REMOVED_OVERVIEW_RENDERER = [
 const REMOVED_LIBRARY_RENDERER = [
   'libraryCardMarkup#1',                                         // 33: only paintHomeTournamentLibrary() used it
   'paintHomeTournamentLibrary#1:body',                           // 33: publishes the library (react-library)
+];
+// feat/react-pools (M.13): the legacy Pools renderer, deleted. React draws #poolOutput, the Pools
+// view and the Edit Pool editor (app/react/pools/); tests/golden/pools/*.json pin what this code
+// drew. Same entry forms as REMOVED_COURT_RENDERER. The Pools decisions and actions stay:
+// renderPools()'s division choice and toggleEditPools()'s guard (now marked publishers),
+// dragPoolPlayer(), dropPoolPlayer(), insertPoolPlayer(), movePoolPlayer(), saveEditedPools() (16),
+// generatePools() (08), the select's options in renderDivisions() (02); the bracket's data comes
+// from ksmBracket() (35), which keeps the helpers it reads (expectedRoundCount(),
+// roundSequenceFromFirst(), champMatchBySlot(), previousRoundName(), sourceLabelForRound() in 14).
+const REMOVED_POOLS_RENDERER = [
+  'singleElimBracketHtml#1',                                     // 06: overridden by #2 (28), never ran
+  'renderPools#1:body',                                          // 08: publishes the view (react-pools)
+  'placeholderMatchHtml#1', 'futureRoundsHtml#1',                // 14: only bracketHtml() #1 and #2 used them
+  'bracketHtml#1',                                               // 14: overridden by #2 (28), never ran
+  'toggleEditPools#1:body',                                      // 16: publishes the editor (react-pools)
+  // 28: the Pools view's bracket (bracketHtml() was its last user since the Results modal moved
+  // to React) and the HTML helpers only it used.
+  'alignedPointSlots#1', 'alignedMatchRowHtml#1', 'alignedPlaceholderRowHtml#1', 'singleElimBracketHtml#2', 'bracketHtml#2',
+  'teamRoundRobinStandingsHtml#1',
+  'alignedPointSlots#2',                                         // 29: the live declaration, used only by alignedMatchRowHtml()
 ];
 // fix/pre-event (M.12): data-testid attributes added to existing markup, as [old start tag, test ID];
 // the check takes each ` data-testid="<id>"` out again (it must appear exactly once, at the end
@@ -318,7 +340,7 @@ for (const name of MOVED_TO_ENGINE) {
   const at = oldScript.lastIndexOf(fn);
   oldScript = oldScript.slice(0, at) + fn.slice(0, fn.indexOf('{') + 1) + '}' + oldScript.slice(at + fn.length);
 }
-// Delete REMOVED_COURT_RENDERER, REMOVED_LIVE_SCORES_RENDERER, REMOVED_TV_RENDERER, REMOVED_RESULTS_RENDERER, REMOVED_OVERVIEW_RENDERER and REMOVED_LIBRARY_RENDERER from the old script: find every
+// Delete REMOVED_COURT_RENDERER, REMOVED_LIVE_SCORES_RENDERER, REMOVED_TV_RENDERER, REMOVED_RESULTS_RENDERER, REMOVED_OVERVIEW_RENDERER, REMOVED_LIBRARY_RENDERER and REMOVED_POOLS_RENDERER from the old script: find every
 // piece first (positions in the old script as it is now), refuse overlaps, then cut from the end.
 {
   const removed = [
@@ -328,6 +350,7 @@ for (const name of MOVED_TO_ENGINE) {
     ...REMOVED_RESULTS_RENDERER.map(entry => ['REMOVED_RESULTS_RENDERER', entry]),
     ...REMOVED_OVERVIEW_RENDERER.map(entry => ['REMOVED_OVERVIEW_RENDERER', entry]),
     ...REMOVED_LIBRARY_RENDERER.map(entry => ['REMOVED_LIBRARY_RENDERER', entry]),
+    ...REMOVED_POOLS_RENDERER.map(entry => ['REMOVED_POOLS_RENDERER', entry]),
   ];
   const cuts = removed.map(([list, entry]) => {
     if (typeof entry === 'object') {

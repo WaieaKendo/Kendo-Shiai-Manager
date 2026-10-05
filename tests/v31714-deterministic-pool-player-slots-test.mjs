@@ -8,6 +8,11 @@ const sw=appServiceWorker;
 const worker=fs.readFileSync(new URL('../src-worker.js',import.meta.url),'utf8');
 // Pool building/slots/match generation moved to app/engine/pools.ts (roadmap 2.2).
 const enginePools=fs.readFileSync(new URL('../app/engine/pools.ts',import.meta.url),'utf8');
+// Since M.13 the Pools view and the Edit Pool editor are drawn by React (app/react/pools/); the
+// legacy renderer (renderPools(), toggleEditPools() in app/js) only publishes their data.
+const poolsReact=fs.readFileSync(new URL('../app/react/pools/Pools.tsx',import.meta.url),'utf8');
+const poolsModel=fs.readFileSync(new URL('../app/react/pools/pools-model.ts',import.meta.url),'utf8');
+const poolsPublisher=fs.readFileSync(new URL('../app/js/41-react-pools.js',import.meta.url),'utf8');
 
 function extractConstStatement(source,name){
   const start=source.indexOf(`const ${name}=`);
@@ -23,8 +28,9 @@ const staticChecks=[
   [enginePools.includes('whitePoolSlot: poolPlayerSlot(w, whiteIndex)'),'white Match Object slot metadata'],
   [enginePools.includes('redPoolSlot: poolPlayerSlot(r, redIndex)'),'red Match Object slot metadata'],
   [/const pools=assignPoolPlayerSlots\(state\.pools\[div\]\|\|\[\]\);\s*state\.pools\[div\]=pools;/.test(html),'edited pools are re-slotted before match rebuild'],
-  [html.includes('Top-to-bottom order is always A, B, C, D.'),'edit UI explains slot order'],
-  [html.includes('pool-slot-badge'),'generated pool UI shows slot badge'],
+  [poolsModel.includes("EDITOR_HELP = 'Drag players between pools or drop between names to insert into that position. Top-to-bottom order is always A, B, C, D.'")&&poolsReact.includes('<p className="sub">{EDITOR_HELP}</p>'),'edit UI explains slot order'],
+  [poolsReact.includes('<span className="pool-slot-badge" data-testid="pool-slot">{x.slot}</span>')&&poolsPublisher.includes('slot:ksmText(poolPlayerSlot(x,idx))'),'generated pool UI shows slot badge'],
+  [poolsReact.includes('<span className="pool-slot-badge">{row.player.slot}</span>')&&poolsPublisher.includes('slot:ksmText(poolPlayerSlotLetter(idx))'),'edit UI shows slot letters by position'],
   [html.includes('${esc(poolPlayerSlot(x,i))}</div>${printNameBlock(x.name,x.dojo)}'),'print pools show slot letters']
 ];
 let failed=false;
