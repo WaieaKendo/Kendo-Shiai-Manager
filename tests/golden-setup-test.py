@@ -50,11 +50,15 @@ Since M.13 React draws the divisions table's rows and the hero's name (app/react
 islands, #divisionSetupRows and #setupTournamentName; app/js/42-react-setup.js publishes their
 data). React must render every element of the rows (and both elements must be the islands'
 roots), and every kind of row and name must be covered. The Setup fields stay legacy markup.
+The legacy renderer is removed, so this test pins the React-only rows and name. Last, the app
+without the React module script must show the "Divisions could not load" notice instead of the
+empty table, with the fields still working (and a working page never shows it).
 
 Approve an intended change (review the JSON diff, commit it with the code change):
 
     KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-setup-test.py [scenario ...]
 """
+import re
 import time
 from pathlib import Path
 
@@ -63,7 +67,7 @@ from golden_screen import (
     ONLY, PANEL_FIBERS_JS, PANEL_JS, PLATFORM, SPECTATOR_JS, UPDATE, Golden, geometry_recorded, people, team,
 )
 from ksm_app import KsmApp
-from ksm_browser import launch_chromium, load_app
+from ksm_browser import DIST, launch_chromium, load_app
 
 GOLDEN_DIR = Path(__file__).resolve().parent / 'golden' / 'setup'
 ROOT = '#setup'
@@ -178,6 +182,7 @@ def open_app(name, browser, react_check=None):
     app.page.evaluate(SAVES_INIT_JS)
     golden = Golden(name, app, app.page_errors, GOLDEN_DIR, capture, react_check)
     assert app.page.evaluate('window.ksmSetupMounted === true'), f'{name}: the Setup islands did not mount'
+    assert app.page.locator('#setupModuleMissing').count() == 0, f'{name}: "Divisions could not load" shown on a working page'
     return golden
 
 
@@ -405,6 +410,39 @@ def setup_live(browser, react_check):
     g.finish()
 
 
+def without_screens_module():
+    """dist/index.html without the React screens' module script (as a device whose copy lacks it)."""
+    html = (DIST / 'index.html').read_text(encoding='utf-8')
+    module = re.search(r'<script type="module"[^>]*src="/assets/index-[\w-]+\.js"></script>\n?', html)
+    assert module, 'dist/index.html: no module script'
+    return html.replace(module.group(0), '')
+
+
+def setup_module_missing(browser):
+    """Without the React module nothing draws the divisions table: Setup says so instead; the
+    fields still work."""
+    app = KsmApp(browser.new_page(viewport=DESKTOP), 'no React module')
+    page = app.page
+    errors = []
+    page.on('pageerror', lambda e: errors.append(f'Setup module missing: {e}'))
+    load_app(page, html=without_screens_module())
+    notice = page.locator('#setup [data-testid="setup-module-missing"]')
+    assert notice.is_visible(), 'no "Divisions could not load" notice without the React module'
+    assert 'Divisions could not load' in notice.inner_text(), notice.inner_text()
+    assert not page.locator('#setup .setup-division-table-wrap').is_visible(), 'the empty divisions table is shown without the React module'
+    assert page.locator('#divisionSetupRows *').count() == 0, 'something drew the divisions table without the React module'
+    assert page.locator('#setupTournamentName').text_content() == 'Kendo Tournament', 'the hero changed without the React module'
+    assert page.evaluate('window.ksmSetupDivisionsInput.rows.length') == 7, 'renderDivisionSetup() did not publish without the island'
+    type_into(page, '#tName', 'Still Works')
+    assert page.evaluate('getSetupSnapshot().tName') == 'Still Works', 'the Setup fields do not work without the React module'
+    assert page.evaluate('window.ksmSetupHeaderInput.name') == 'Still Works', 'syncSetupHeader() did not publish without the island'
+    assert not errors, errors
+    page.close()
+
+
+# Checks without a snapshot file.
+CHECKS = {'setup-module-missing': setup_module_missing}
+
 SCENARIOS = {
     'setup-defaults': setup_defaults,
     'setup-details': setup_details,
@@ -417,12 +455,16 @@ REACT_CHECK = check_react
 def main():
     started = time.time()
     chosen = [n for n in SCENARIOS if not ONLY or any(q in n for q in ONLY)]
-    assert chosen, f'no scenario matches {ONLY}'
+    checks = [n for n in CHECKS if not UPDATE and (not ONLY or any(q in n for q in ONLY))]
+    assert chosen or checks, f'no scenario matches {ONLY}'
     missing_geometry = [n for n in chosen if not UPDATE and not geometry_recorded(GOLDEN_DIR, n)]
     with sync_playwright() as p:
         browser = launch_chromium(p)
         for name in chosen:
             SCENARIOS[name](browser, REACT_CHECK)
+            print(f'  {name}: ok')
+        for name in checks:
+            CHECKS[name](browser)
             print(f'  {name}: ok')
         if not ONLY and not UPDATE:
             assert ELEMENTS_SEEN[0], 'React never rendered anything in the Setup divisions table'
@@ -434,7 +476,8 @@ def main():
         browser.close()
     note = f'; element boxes not recorded for {PLATFORM} in {len(missing_geometry)} scenario(s), compared without them' if missing_geometry else ''
     verb = 'UPDATED' if UPDATE else 'PASS'
-    print(f'{verb} Setup = approved snapshots ({", ".join(chosen)}){note} in {time.time() - started:.0f}s')
+    print(f'{verb} Setup = approved snapshots ({", ".join(chosen)}){note}'
+          f'{"; " + ", ".join(checks) if checks else ""} in {time.time() - started:.0f}s')
 
 
 if __name__ == '__main__':

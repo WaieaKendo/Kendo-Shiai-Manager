@@ -25,8 +25,8 @@
 //
 // Old code deliberately deleted (REMOVED_COURT_RENDERER: the legacy court renderer, M.8
 // step 5; REMOVED_LIVE_SCORES_RENDERER, REMOVED_TV_RENDERER, REMOVED_RESULTS_RENDERER,
-// REMOVED_OVERVIEW_RENDERER, REMOVED_LIBRARY_RENDERER and REMOVED_POOLS_RENDERER: the legacy Live
-// Scores, TV, Results, Overview, Tournament Library and Pools renderers, M.13) is named piece by piece; the check deletes exactly those pieces from the old script before comparing, so every
+// REMOVED_OVERVIEW_RENDERER, REMOVED_LIBRARY_RENDERER, REMOVED_POOLS_RENDERER and REMOVED_SETUP_RENDERER:
+// the legacy Live Scores, TV, Results, Overview, Tournament Library, Pools and Setup renderers, M.13) is named piece by piece; the check deletes exactly those pieces from the old script before comparing, so every
 // other difference, and any piece that no longer matches, still fails.
 import { execFileSync } from 'node:child_process';
 import { minify } from 'vite';
@@ -39,8 +39,10 @@ const KNOWN_POST_SPLIT_EDITS = {
   // performCourtAction() and renderAll(), so React islands re-render with `state`.
   'react-bridge': 3,
   // feat/react-setup-screen (M.13): the Setup screen's React islands (#divisionSetupRows,
-  // #setupTournamentName). renderDivisionSetup() (01) publishes the divisions table and
-  // syncSetupHeader() (30) the hero's name; app/js/42-react-setup.js publishes them as plain data.
+  // #setupTournamentName). With the legacy renderer removed (REMOVED_SETUP_RENDERER) the bodies of
+  // renderDivisionSetup() (01) and syncSetupHeader() (30) are marked publishers, and
+  // app/js/42-react-setup.js publishes the rows and the name as plain data and shows a notice when
+  // the React module is missing.
   // Listed here because renderDivisionSetup() (01) is its first region: the check compares names
   // in order of first appearance.
   'react-setup': 3,
@@ -297,6 +299,17 @@ const REMOVED_POOLS_RENDERER = [
   'teamRoundRobinStandingsHtml#1',
   'alignedPointSlots#2',                                         // 29: the live declaration, used only by alignedMatchRowHtml()
 ];
+// feat/react-setup-screen (M.13): the legacy Setup renderer, deleted. React draws the divisions
+// table's rows and the hero's name (app/react/setup/); tests/golden/setup/*.json pin what this
+// code drew. Same entry forms as REMOVED_COURT_RENDERER. Setup's decisions and actions stay
+// (saveSetup(), addDivision(), addCustomDivision(), removeDivision(), toggleDivision(),
+// setDivisionFormat(), setDivisionCourt() in 01; the saveSetup() wrapper and the name's input
+// listener in 30), and every Setup field is the static markup of app/index.html.
+const REMOVED_SETUP_RENDERER = [
+  'renderDivisionSetup#1:body',                                  // 01: publishes the rows (react-setup)
+  'divisionSetupRow#1',                                          // 01: only renderDivisionSetup() used it
+  'syncSetupHeader#1:body',                                      // 30: publishes the hero's name (react-setup)
+];
 // fix/pre-event (M.12): data-testid attributes added to existing markup, as [old start tag, test ID];
 // the check takes each ` data-testid="<id>"` out again (it must appear exactly once, at the end
 // of that tag) and then compares byte for byte, so any other markup change still fails.
@@ -346,7 +359,7 @@ for (const name of MOVED_TO_ENGINE) {
   const at = oldScript.lastIndexOf(fn);
   oldScript = oldScript.slice(0, at) + fn.slice(0, fn.indexOf('{') + 1) + '}' + oldScript.slice(at + fn.length);
 }
-// Delete REMOVED_COURT_RENDERER, REMOVED_LIVE_SCORES_RENDERER, REMOVED_TV_RENDERER, REMOVED_RESULTS_RENDERER, REMOVED_OVERVIEW_RENDERER, REMOVED_LIBRARY_RENDERER and REMOVED_POOLS_RENDERER from the old script: find every
+// Delete REMOVED_COURT_RENDERER, REMOVED_LIVE_SCORES_RENDERER, REMOVED_TV_RENDERER, REMOVED_RESULTS_RENDERER, REMOVED_OVERVIEW_RENDERER, REMOVED_LIBRARY_RENDERER, REMOVED_POOLS_RENDERER and REMOVED_SETUP_RENDERER from the old script: find every
 // piece first (positions in the old script as it is now), refuse overlaps, then cut from the end.
 {
   const removed = [
@@ -357,6 +370,7 @@ for (const name of MOVED_TO_ENGINE) {
     ...REMOVED_OVERVIEW_RENDERER.map(entry => ['REMOVED_OVERVIEW_RENDERER', entry]),
     ...REMOVED_LIBRARY_RENDERER.map(entry => ['REMOVED_LIBRARY_RENDERER', entry]),
     ...REMOVED_POOLS_RENDERER.map(entry => ['REMOVED_POOLS_RENDERER', entry]),
+    ...REMOVED_SETUP_RENDERER.map(entry => ['REMOVED_SETUP_RENDERER', entry]),
   ];
   const cuts = removed.map(([list, entry]) => {
     if (typeof entry === 'object') {

@@ -1,12 +1,8 @@
 // ---------- KSM v3.9.1 Setup header synchronization ----------
-function syncSetupHeader(){
-  /* ksm:post-split-begin react-setup */ksmRenderSetupHeader();if(window.ksmSetupMounted)return;/* ksm:post-split-end */
-  if(window.setupTournamentName){
-    setupTournamentName.textContent=(window.tName&&tName.value)
-      ? tName.value
-      : 'Kendo Tournament';
-  }
-}
+function syncSetupHeader(){/* ksm:post-split-begin react-setup */
+  // The hero's name is React (app/react/setup/, 42-react-setup.js): the name field's value is
+  // published to it instead of written (M.13).
+  ksmRenderSetupHeader();/* ksm:post-split-end */}
 if(window.tName){
   tName.addEventListener('input',syncSetupHeader);
 }

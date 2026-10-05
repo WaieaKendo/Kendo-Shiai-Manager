@@ -3,7 +3,10 @@
 // APP_SHELL, so an offline device has them): the rows of the Individual Divisions table
 // (#divisionSetupRows) and the tournament name in the hero (#setupTournamentName). The legacy
 // code computes what is shown; renderDivisionSetup() and syncSetupHeader() publish it
-// (app/js/42-react-setup.js). Every Setup field stays legacy markup (read and written by id).
+// (app/js/42-react-setup.js) and never write these elements (M.13). Every Setup field stays legacy
+// markup (read and written by id). If this module does not load, the legacy code shows a
+// "Divisions could not load" notice in place of the divisions table (42-react-setup.js, on
+// DOMContentLoaded).
 import { mountIsland } from '../island.tsx';
 import { SetupDivisionRows, SetupHeader } from './Setup.tsx';
 

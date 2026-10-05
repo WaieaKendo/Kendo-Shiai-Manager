@@ -16,14 +16,17 @@
 // Every other part of Setup stays legacy markup (app/index.html): the fields are read and
 // written synchronously by id (getSetupSnapshot()/applySetupSnapshot() in 20-, tournamentSettings(),
 // saveSetup(), the test API's configure(), print and the header) and 30- adds the name's input
-// listener while app.js runs, before the React module.
+// listener while app.js runs, before the React module. The legacy Setup renderer (the innerHTML of
+// renderDivisionSetup(), divisionSetupRow(), syncSetupHeader()'s textContent) was removed in M.13.
+// If the React module does not load, Setup shows a notice in place of the divisions table (the end
+// of this file).
 // Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
 function ksmPublishSetup(event,key,input){
   window[key]=input;
   window.dispatchEvent(new CustomEvent(event));
 }
-// renderDivisionSetup() / divisionSetupRow() (01) as data: the presets in their order, then the
+// renderDivisionSetup() (01) as data, as the removed divisionSetupRow() read it: the presets in their order, then the
 // custom divisions (enabled ones only: a custom division is listed while it is in state.divisions).
 function ksmSetupDivisionsData(){
   const custom=state.divisions.filter(d=>!DIVISION_PRESETS.some(p=>p[0]===d));
@@ -41,4 +44,21 @@ function ksmRenderSetupHeader(){
 }
 // × of a custom division row: what its inline handler ran.
 function ksmRemoveSetupDivision(d){removeDivision(state.divisions.indexOf(d))}
+
+// If the React module (app/react/main.tsx, a module script after app.js) did not run, say so in
+// Setup instead of an empty divisions table, which nothing fills any more (e.g. an offline device
+// whose cached copy lacks the module). The Setup fields, Add Custom Division and Save Setup &
+// Continue stay; the hero keeps the static "Kendo Tournament". Module scripts run before
+// DOMContentLoaded, so a working page never shows this. Existing styles only (.muted-card, .small).
+function ksmShowSetupModuleMissing(){
+  if(window.ksmSetupMounted)return;
+  const table=document.querySelector('#setup .setup-division-table-wrap');
+  if(!table||document.getElementById('setupModuleMissing'))return;
+  const notice=document.createElement('div');
+  notice.id='setupModuleMissing';notice.className='muted-card';notice.setAttribute('role','alert');notice.setAttribute('data-testid','setup-module-missing');
+  notice.innerHTML='<b>Divisions could not load</b><div class="small">Reload the page. If this device is offline, reconnect once so it can download the current version of the app.</div>';
+  table.style.display='none';
+  table.before(notice);
+}
+document.addEventListener('DOMContentLoaded',ksmShowSetupModuleMissing);
 /* ksm:post-split-end */
