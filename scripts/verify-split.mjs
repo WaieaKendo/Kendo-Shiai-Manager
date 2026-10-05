@@ -24,8 +24,9 @@
 // compares against the old declaration with its body emptied.
 //
 // Old code deliberately deleted (REMOVED_COURT_RENDERER: the legacy court renderer, M.8
-// step 5; REMOVED_LIVE_SCORES_RENDERER, REMOVED_TV_RENDERER, REMOVED_RESULTS_RENDERER and
-// REMOVED_OVERVIEW_RENDERER: the legacy Live Scores, TV, Results and Overview renderers, M.13) is named piece by piece; the check deletes exactly those pieces from the old script before comparing, so every
+// step 5; REMOVED_LIVE_SCORES_RENDERER, REMOVED_TV_RENDERER, REMOVED_RESULTS_RENDERER,
+// REMOVED_OVERVIEW_RENDERER and REMOVED_LIBRARY_RENDERER: the legacy Live Scores, TV, Results,
+// Overview and Tournament Library renderers, M.13) is named piece by piece; the check deletes exactly those pieces from the old script before comparing, so every
 // other difference, and any piece that no longer matches, still fails.
 import { execFileSync } from 'node:child_process';
 import { minify } from 'vite';
@@ -112,9 +113,10 @@ const KNOWN_POST_SPLIT_EDITS = {
   // ksmRenderOverview(), and app/js/39-react-overview.js publishes the screen as plain data and
   // shows a notice when the React module is missing.
   'react-overview': 2,
-  // feat/react-library (M.13): the Tournament Library's React island. paintHomeTournamentLibrary()
-  // (33) publishes the library (ksmRenderLibrary()) and hands over while the island is mounted;
-  // app/js/40-react-library.js publishes it as plain data.
+  // feat/react-library (M.13): the Tournament Library's React island. With the legacy renderer
+  // removed (REMOVED_LIBRARY_RENDERER) paintHomeTournamentLibrary()'s body (33) is a marked call of
+  // ksmRenderLibrary(), and app/js/40-react-library.js publishes the library as plain data and
+  // shows a notice when the React module is missing.
   'react-library': 2,
   // feat/react-overlay: app/js/33-stream-overlay-links.js (TV menu "copy overlay link").
   'stream-overlay': 1,
@@ -252,6 +254,16 @@ const REMOVED_OVERVIEW_RENDERER = [
   'directorMatchRow#1',                                          // only renderDirector() used it
   'renderDirector#1:body',                                       // 30: publishes the Overview (react-overview)
 ];
+// feat/react-library (M.13): the legacy Tournament Library renderer, deleted. React draws the
+// library (app/react/library/); tests/golden/library/*.json pin what this code drew. Same entry
+// forms as REMOVED_COURT_RENDERER. The library's decisions stay in 33 (renderHomeTournamentLibrary():
+// the cache, the cloud list / discover and the loading, empty, error and offline lines;
+// showHomePage(), createNewTournament(), openTournamentFromHome(), read/writeTournamentLibrary(),
+// rememberTournament()).
+const REMOVED_LIBRARY_RENDERER = [
+  'libraryCardMarkup#1',                                         // 33: only paintHomeTournamentLibrary() used it
+  'paintHomeTournamentLibrary#1:body',                           // 33: publishes the library (react-library)
+];
 // fix/pre-event (M.12): data-testid attributes added to existing markup, as [old start tag, test ID];
 // the check takes each ` data-testid="<id>"` out again (it must appear exactly once, at the end
 // of that tag) and then compares byte for byte, so any other markup change still fails.
@@ -301,7 +313,7 @@ for (const name of MOVED_TO_ENGINE) {
   const at = oldScript.lastIndexOf(fn);
   oldScript = oldScript.slice(0, at) + fn.slice(0, fn.indexOf('{') + 1) + '}' + oldScript.slice(at + fn.length);
 }
-// Delete REMOVED_COURT_RENDERER, REMOVED_LIVE_SCORES_RENDERER, REMOVED_TV_RENDERER, REMOVED_RESULTS_RENDERER and REMOVED_OVERVIEW_RENDERER from the old script: find every
+// Delete REMOVED_COURT_RENDERER, REMOVED_LIVE_SCORES_RENDERER, REMOVED_TV_RENDERER, REMOVED_RESULTS_RENDERER, REMOVED_OVERVIEW_RENDERER and REMOVED_LIBRARY_RENDERER from the old script: find every
 // piece first (positions in the old script as it is now), refuse overlaps, then cut from the end.
 {
   const removed = [
@@ -310,6 +322,7 @@ for (const name of MOVED_TO_ENGINE) {
     ...REMOVED_TV_RENDERER.map(entry => ['REMOVED_TV_RENDERER', entry]),
     ...REMOVED_RESULTS_RENDERER.map(entry => ['REMOVED_RESULTS_RENDERER', entry]),
     ...REMOVED_OVERVIEW_RENDERER.map(entry => ['REMOVED_OVERVIEW_RENDERER', entry]),
+    ...REMOVED_LIBRARY_RENDERER.map(entry => ['REMOVED_LIBRARY_RENDERER', entry]),
   ];
   const cuts = removed.map(([list, entry]) => {
     if (typeof entry === 'object') {

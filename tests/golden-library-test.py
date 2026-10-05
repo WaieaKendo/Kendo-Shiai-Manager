@@ -43,12 +43,15 @@ are clicked with a dispatched click (no mouse move, so no :hover lift); transiti
   library-cached-phone  boot on a phone with tournaments cached: the cards at once while
                      discover is pending, then the cloud's list; landscape.
 
-Since M.13 the library is drawn by React (app/react/library/: one island, the contents of
+Since M.13 the library is drawn only by React (app/react/library/: one island, the contents of
 #home .home-shell; app/js/40-react-library.js publishes its data), and this test pins the island
 against the snapshots recorded from the legacy renderer. React must render every element of the
 island (and .home-shell must be its root), every kind of library content must be covered, and
 before anything is published the island must equal the static markup of app/index.html
-(library-static-markup).
+(library-static-markup). The legacy renderer is removed (M.13), so this test pins the React-only
+library; without the React module script the page must show the "Tournament Library could not
+load" notice instead of the empty grid, keeping the static ＋ New Tournament (and a working page
+never shows it).
 
 Approve an intended change (review the JSON diff, commit it with the code change):
 
@@ -230,6 +233,7 @@ def open_app(name, browser, viewport=DESKTOP, cached=None, react_check=check_rea
     page.add_style_tag(content=NO_TRANSITIONS)
     page.wait_for_function('window.KSMTest && KSMTest.booted()')
     assert page.evaluate('window.ksmLibraryMounted === true'), f'{name}: the library island did not mount'
+    assert page.locator('#libraryModuleMissing').count() == 0, f'{name}: "Tournament Library could not load" shown on a working page'
     return golden
 
 
@@ -376,8 +380,26 @@ def library_static_markup(browser, errors):
     assert seen[0] == seen[1], f'the island before the first publish differs from the static markup: {first_difference(seen[1], seen[0])}'
 
 
+def library_module_missing(browser, errors):
+    """Without the React module nothing draws the library: it says so instead."""
+    context = browser.new_context(viewport=DESKTOP, service_workers='block')
+    page = context.new_page()
+    page.on('pageerror', lambda e: errors.append(f'library module missing: {e}'))
+    page.add_init_script(SECURE_CONTEXT_INIT)
+    api = Api()
+    load_app(page, html=without_screens_module(), session=None, api=api)
+    api.answer(page, SEVERAL)
+    notice = page.locator('#home [data-testid="library-module-missing"]')
+    assert notice.is_visible(), 'no "Tournament Library could not load" notice without the React module'
+    assert 'Tournament Library could not load' in notice.inner_text(), notice.inner_text()
+    assert not page.locator('#homeTournamentLibrary').is_visible(), 'the empty library grid is shown without the React module'
+    assert page.locator(sel('home-new-tournament')).is_visible(), 'the static ＋ New Tournament is hidden without the React module'
+    assert page.evaluate('window.ksmLibraryInput.cards.length') == len(SEVERAL), 'the library was not published without the island'
+    context.close()
+
+
 # Checks without a snapshot file.
-CHECKS = {'library-static-markup': library_static_markup}
+CHECKS = {'library-static-markup': library_static_markup, 'library-module-missing': library_module_missing}
 
 SCENARIOS = {
     'library-empty': library_empty,

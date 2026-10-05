@@ -14,7 +14,9 @@
 // tests/golden/library/*.json (recorded from the legacy renderer) pin the result. Text is what
 // esc() showed (ksmText(), String(x||'')), the ID what jsArg() passed (String(x.id??'')).
 // The island's buttons call createNewTournament() and openTournamentFromHome(id) (33), as the
-// inline handlers did.
+// inline handlers did. The legacy library renderer (the DOM writing of
+// paintHomeTournamentLibrary(), libraryCardMarkup()) was removed in M.13.
+// If the React module does not load, the library shows a notice (the end of this file).
 // Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
 function ksmPublishLibrary(input){
@@ -30,4 +32,21 @@ function ksmRenderLibrary(list,message){
   const cards=list.length?list.map(ksmLibraryCard):[];
   ksmPublishLibrary({kind:'library',cards,message:ksmText(message)});
 }
+
+// If the React module (app/react/main.tsx, a module script after app.js) did not run, say so on
+// the home page instead of an empty library, which nothing fills any more (e.g. an offline device
+// whose cached copy lacks the module). The static brand and ＋ New Tournament of app/index.html
+// stay. Module scripts run before DOMContentLoaded, so a working page never shows this. Existing
+// styles only (.card, .sub).
+function ksmShowLibraryModuleMissing(){
+  if(window.ksmLibraryMounted)return;
+  const grid=document.getElementById('homeTournamentLibrary');
+  if(!grid||document.getElementById('libraryModuleMissing'))return;
+  const notice=document.createElement('div');
+  notice.id='libraryModuleMissing';notice.className='card';notice.setAttribute('role','alert');notice.setAttribute('data-testid','library-module-missing');
+  notice.innerHTML='<h1>Tournament Library could not load</h1><p class="sub">Reload the page. If this device is offline, reconnect once so it can download the current version of the app.</p>';
+  grid.style.display='none';
+  grid.before(notice);
+}
+document.addEventListener('DOMContentLoaded',ksmShowLibraryModuleMissing);
 /* ksm:post-split-end */
