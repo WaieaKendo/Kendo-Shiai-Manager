@@ -64,6 +64,11 @@ const KNOWN_POST_SPLIT_EDITS = {
   // the team engine moved (2.6) and its bridges pass tournamentSettings() in; 3 after
   // division generation moved (2.7).
   'engine-settings': 3,
+  // feat/react-pools (M.13): the Pools view's React island (#poolOutput). renderPools() (08)
+  // publishes the view and toggleEditPools() (16) the editor; app/js/41-react-pools.js publishes
+  // them as plain data. Listed here because renderPools() (08) is its first region: the check
+  // compares names in order of first appearance.
+  'react-pools': 3,
   // fix/pre-event (F9): printPlacementsForDivision() uses resultPlacements() (comment + body).
   'print-placements': 2,
   // fix/pre-event (F3, from fix/court-pin-after-reload): the pinned-court key no longer holds the

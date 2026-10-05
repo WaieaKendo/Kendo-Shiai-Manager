@@ -57,6 +57,11 @@ with Playwright's real mouse drag (locator.drag_to) in Chromium.
                       Pools view opened after every match: RR 14 (pools + quarterfinals), SE 6
                       split, team RR 3, kachinuki RR 3.
 
+Since M.13 #poolOutput is drawn by React (app/react/pools/: one island, the contents of
+#poolOutput; app/js/41-react-pools.js publishes its data); the division select, Regenerate and
+#poolOutput's class stay legacy. React must render every element of the island (and #poolOutput
+must be its root) and every kind of Pools content must be covered.
+
 Approve an intended change (review the JSON diff, commit it with the code change):
 
     KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-pools-test.py [scenario ...]
@@ -66,7 +71,7 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 from golden_screen import (
-    ALL_COMPLETE_JS, ONLY, PANEL_JS, PLATFORM, PREPARE_JS, UPDATE,
+    ALL_COMPLETE_JS, ONLY, PANEL_FIBERS_JS, PANEL_JS, PLATFORM, PREPARE_JS, UPDATE,
     Golden, geometry_recorded, match_points, people, team,
 )
 from ksm_app import KsmApp
@@ -133,6 +138,40 @@ DRAG_END_JS = """() => {
   window.__ksmDrag = null;
 }"""
 
+# The Pools island (app/react/pools/main.tsx): React renders every element of #poolOutput, which
+# is the island's root.
+ISLAND = '#poolsReg #poolOutput'
+ROOT_JS = f"() => Object.keys(document.querySelector('{ISLAND}')).some(k => k.startsWith('__reactContainer'))"
+# Which kinds of Pools content the island was given.
+VARIANTS_JS = """() => {
+  const d = window.ksmPoolsInput, out = [];
+  if (!d || d.kind === 'empty') return ['nothing published'];
+  out.push(d.kind);
+  if (d.kind === 'pools') {
+    out.push(d.message === null ? 'pools' : 'message: ' + d.message);
+    out.push(d.edit ? 'Edit Pool' : 'no Edit Pool');
+    out.push(d.rightTitle);
+    if (d.pools.some(p => p.title.startsWith('Team Pool'))) out.push('team pools');
+  }
+  if (d.pools.some(p => !p.players.length)) out.push('empty pool');
+  if (d.pools.some(p => p.players.some(x => !x.dojo))) out.push('player without a dojo');
+  out.push('bracket: ' + d.bracket.kind);
+  return out.map(v => `${d.kind}: ${v}`);
+}"""
+VARIANTS_SEEN = set()
+ELEMENTS_SEEN = [0]  # most React-rendered elements seen in the island
+
+
+def check_react(golden, step):
+    """React renders every element of the Pools island."""
+    page = golden.app.page
+    total, owned = page.evaluate(PANEL_FIBERS_JS, ISLAND)
+    assert total and total == owned, f'{golden.name}: {step}: {total - owned} of {total} elements in {ISLAND} are not rendered by React'
+    ELEMENTS_SEEN[0] = max(ELEMENTS_SEEN[0], owned)
+    assert page.evaluate(ROOT_JS), f'{golden.name}: {step}: {ISLAND} is not a React root'
+    VARIANTS_SEEN.update(page.evaluate(VARIANTS_JS))
+
+
 POOL = '#poolOutput .pool'
 PLAYER = '#poolOutput .drag-player'
 DROP_ZONE = '#poolOutput .drop-zone'
@@ -165,6 +204,7 @@ def open_app(name, browser, errors, entries=None, react_check=None):
     app.page.add_style_tag(content=NO_TRANSITIONS)
     app.page.evaluate(SAVES_INIT_JS)
     golden = Golden(name, app, app.page_errors, GOLDEN_DIR, capture, react_check)
+    assert app.page.evaluate('window.ksmPoolsMounted === true'), f'{name}: the Pools island did not mount'
     if entries:
         app.configure(entries)
     return golden
@@ -418,7 +458,7 @@ SCENARIOS = {
 }
 # Checks without a snapshot file.
 CHECKS = {}
-REACT_CHECK = None
+REACT_CHECK = check_react
 
 
 def main():
@@ -436,6 +476,17 @@ def main():
         for name in checks:
             CHECKS[name](browser, errors)
             print(f'  {name}: ok')
+        if not ONLY and not UPDATE:
+            assert ELEMENTS_SEEN[0], 'React never rendered anything in the Pools view'
+            expected = {
+                'pools: pools', 'pools: message: No pools generated yet.',
+                'pools: message: Single-elimination bracket created. Matches are available in the Court queue.',
+                'pools: message: Single-elimination team bracket created. Team position matches are available in the Court queue.',
+                'pools: Edit Pool', 'pools: no Edit Pool', 'pools: Championship Preview', 'pools: Team Standings', 'pools: team pools',
+                'pools: bracket: cards', 'pools: bracket: message', 'pools: bracket: team-standings', 'pools: empty pool',
+                'editor: editor', 'editor: empty pool', 'editor: bracket: cards',
+            }
+            assert expected <= VARIANTS_SEEN, f'Pools variants not covered: {sorted(expected - VARIANTS_SEEN)}; seen {sorted(VARIANTS_SEEN)}'
         assert not errors, '\n'.join(errors)
         browser.close()
     note = f'; element boxes not recorded for {PLATFORM} in {len(missing_geometry)} scenario(s), compared without them' if missing_geometry else ''
