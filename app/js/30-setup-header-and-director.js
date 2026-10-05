@@ -1,5 +1,6 @@
 // ---------- KSM v3.9.1 Setup header synchronization ----------
 function syncSetupHeader(){
+  /* ksm:post-split-begin react-setup */ksmRenderSetupHeader();if(window.ksmSetupMounted)return;/* ksm:post-split-end */
   if(window.setupTournamentName){
     setupTournamentName.textContent=(window.tName&&tName.value)
       ? tName.value

@@ -45,6 +45,15 @@ chosen with select_option(); transitions are off.
                       focus in the name, in a division select and in a referees field; an
                       applied live update (applyTournamentPayload()) with other setup values
                       and divisions; the test API's configure() (divisions, team settings).
+
+Since M.13 React draws the divisions table's rows and the hero's name (app/react/setup/: two
+islands, #divisionSetupRows and #setupTournamentName; app/js/42-react-setup.js publishes their
+data). React must render every element of the rows (and both elements must be the islands'
+roots), and every kind of row and name must be covered. The Setup fields stay legacy markup.
+
+Approve an intended change (review the JSON diff, commit it with the code change):
+
+    KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-setup-test.py [scenario ...]
 """
 import time
 from pathlib import Path
@@ -106,6 +115,40 @@ STATE_JS = """() => ({
 })"""
 
 
+# The Setup islands (app/react/setup/main.tsx): React renders every element of the divisions
+# table's rows (#divisionSetupRows, the island's root) and the hero's name (#setupTournamentName,
+# a root with text only).
+ISLANDS = ['#setup #divisionSetupRows', '#setup #setupTournamentName']
+ROOT_JS = "s => Object.keys(document.querySelector(s)).some(k => k.startsWith('__reactContainer'))"
+# Which kinds of Setup content the islands were given.
+VARIANTS_JS = """() => {
+  const d = window.ksmSetupDivisionsInput, h = window.ksmSetupHeaderInput, out = [];
+  if (!d) out.push('divisions: nothing published');
+  else d.rows.forEach(r => {
+    out.push(r.enabled ? 'row: enabled' : 'row: disabled');
+    if (r.custom) out.push('row: custom');
+    out.push('format: ' + r.format);
+    out.push('court: ' + r.court);
+  });
+  out.push(!h ? 'header: nothing published' : h.name ? 'header: a name' : 'header: empty (fallback)');
+  return out;
+}"""
+VARIANTS_SEEN = set()
+ELEMENTS_SEEN = [0]  # most React-rendered elements seen in the divisions table
+
+
+def check_react(golden, step):
+    """React renders every element of the Setup islands."""
+    page = golden.app.page
+    total, owned = page.evaluate(PANEL_FIBERS_JS, ISLANDS[0])
+    assert total and total == owned, f'{golden.name}: {step}: {total - owned} of {total} elements in {ISLANDS[0]} are not rendered by React'
+    ELEMENTS_SEEN[0] = max(ELEMENTS_SEEN[0], owned)
+    for island in ISLANDS:
+        assert page.evaluate(ROOT_JS, island), f'{golden.name}: {step}: {island} is not a React root'
+    assert page.evaluate(f"() => document.querySelector('{ISLANDS[1]}').children.length") == 0, f'{golden.name}: {step}: elements in {ISLANDS[1]}'
+    VARIANTS_SEEN.update(page.evaluate(VARIANTS_JS))
+
+
 def capture(app):
     """The Setup screen: (serialization, element boxes)."""
     page = app.page
@@ -133,7 +176,9 @@ def open_app(name, browser, react_check=None):
     load_app(app.page)  # a staff session on Setup
     app.page.add_style_tag(content=NO_TRANSITIONS)
     app.page.evaluate(SAVES_INIT_JS)
-    return Golden(name, app, app.page_errors, GOLDEN_DIR, capture, react_check)
+    golden = Golden(name, app, app.page_errors, GOLDEN_DIR, capture, react_check)
+    assert app.page.evaluate('window.ksmSetupMounted === true'), f'{name}: the Setup islands did not mount'
+    return golden
 
 
 def click(page, selector, index=0):
@@ -366,7 +411,7 @@ SCENARIOS = {
     'setup-divisions': setup_divisions,
     'setup-live': setup_live,
 }
-REACT_CHECK = None
+REACT_CHECK = check_react
 
 
 def main():
@@ -379,6 +424,13 @@ def main():
         for name in chosen:
             SCENARIOS[name](browser, REACT_CHECK)
             print(f'  {name}: ok')
+        if not ONLY and not UPDATE:
+            assert ELEMENTS_SEEN[0], 'React never rendered anything in the Setup divisions table'
+            expected = {
+                'row: enabled', 'row: disabled', 'row: custom', 'format: Round Robin', 'format: Single Elimination',
+                'court: A', 'court: B', 'court: split', 'header: a name', 'header: empty (fallback)',
+            }
+            assert expected <= VARIANTS_SEEN, f'Setup variants not covered: {sorted(expected - VARIANTS_SEEN)}; seen {sorted(VARIANTS_SEEN)}'
         browser.close()
     note = f'; element boxes not recorded for {PLATFORM} in {len(missing_geometry)} scenario(s), compared without them' if missing_geometry else ''
     verb = 'UPDATED' if UPDATE else 'PASS'

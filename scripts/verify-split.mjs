@@ -38,6 +38,12 @@ const KNOWN_POST_SPLIT_EDITS = {
   // feat/react-setup: app/js/00-react-bridge.js + the ksm:state-changed dispatch in
   // performCourtAction() and renderAll(), so React islands re-render with `state`.
   'react-bridge': 3,
+  // feat/react-setup-screen (M.13): the Setup screen's React islands (#divisionSetupRows,
+  // #setupTournamentName). renderDivisionSetup() (01) publishes the divisions table and
+  // syncSetupHeader() (30) the hero's name; app/js/42-react-setup.js publishes them as plain data.
+  // Listed here because renderDivisionSetup() (01) is its first region: the check compares names
+  // in order of first appearance.
+  'react-setup': 3,
   // feat/react-court-screen, feat/react-court-header (M.8): the court screen's React islands
   // (app/js/35-react-court.js); renderScore() hands the match display over (check at the top of
   // the last renderScore()); renderDivisions() and updateScoreTournamentName() publish the

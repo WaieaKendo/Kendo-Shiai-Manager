@@ -32,7 +32,10 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         mark from court/branding.ts),
                         pools/ (the Pools view's #poolOutput, Registration -> Pools, and
                         the Edit Pool editor, M.13; app/js/41-react-pools.js publishes
-                        its data; the preview reuses court/'s Bracket)
+                        its data; the preview reuses court/'s Bracket),
+                        setup/ (the Setup screen's divisions table rows #divisionSetupRows
+                        and hero name #setupTournamentName, M.13; app/js/42-react-setup.js
+                        publishes their data; the Setup fields stay legacy markup)
   engine/             Pure tournament-engine modules, strict TypeScript (own tsconfig.json):
                         no DOM, no globals, explicit inputs/outputs. index.ts is bundled
                         into a classic script defining `KSMEngine`, loaded before app.js;

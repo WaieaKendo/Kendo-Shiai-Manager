@@ -8,3 +8,4 @@ import './results/main.tsx';
 import './overview/main.tsx';
 import './library/main.tsx';
 import './pools/main.tsx';
+import './setup/main.tsx';

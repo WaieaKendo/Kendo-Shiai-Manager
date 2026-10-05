@@ -34,9 +34,11 @@ with sync_playwright() as p:
     page.wait_for_timeout(200)
 
     # Fire every court <select> handler for the hostile rows and confirm the exact name arrives.
+    # (Since M.13 the Setup rows are drawn by React, app/react/setup/: the court select's change
+    # listener calls setDivisionCourt() with the division as published, no inline handler.)
     fired = page.evaluate("""names => {
       const out = [];
-      document.querySelectorAll('select[onchange^="setDivisionCourt("]').forEach(sel => {
+      document.querySelectorAll('#divisionSetupRows [data-testid="setup-division-court"]').forEach(sel => {
         sel.value = 'B'; sel.dispatchEvent(new Event('change'));
       });
       return window.__calls.filter(n => names.includes(n));
