@@ -7,7 +7,8 @@
 // ksm:registration-tab).
 //
 // The controls run the inline handlers' code on the same native event: a text field's change
-// event (a native listener: React's onChange runs on every key) calls ksmSetTeamField(card,
+// event (a native listener: React's onChange runs on every key) calls, for the team or match the
+// card or row showed (F20), ksmSetTeamField(card,
 // key, value) / ksmSetExhibitionField(row, key, value), the status chips cycleTeamStatus(index) /
 // ksmCycleExhibitionStatus(index), × ksmRemoveTeam(index) / ksmRemoveExhibition(index)
 // (app/js/43-react-registration.js: what the inline handlers ran; `state` is not a window

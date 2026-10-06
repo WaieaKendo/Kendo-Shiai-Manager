@@ -124,36 +124,81 @@ function ksmTeamsData(){
   let slots=fmt==='3-Person Team'||fmt==='Kachinuki'?['senpo','chuken','taisho']:['senpo','jiho','chuken','fukusho','taisho'];
   return {
     format:ksmHtmlText(fmt),tournamentFormat:ksmHtmlText(teamTournamentFormat?.value||'Single Elimination'),slots,
-    cards:rows.map(c=>({index:c.i,team:ksmHtmlText(c.team),members:slots.map(k=>ksmHtmlText(c[k])),
+    cards:rows.map(c=>ksmBindRegistrationEntry(state.teams[c.i],{index:c.i,team:ksmHtmlText(c.team),members:slots.map(k=>ksmHtmlText(c[k])),
       // The class printed as `status ${esc(c.status)}` (F19) and the status as compared.
       status:ksmHtmlText(c.status),checked:c.status==='Checked',noShow:c.status==='NoShow'})),
   };
 }
 function ksmRenderTeams(){
-  const input=ksmTeamsData();
+  let input=ksmTeamsData();
+  ksmTeamsStale=false;
   ksmBlurRedrawn(document.querySelector('#teamReg #teamTable'));
+  // F20: the blur committed an edit into a team of the new list (ksmSetTeamField()).
+  if(ksmTeamsStale){ksmTeamsStale=false;input=ksmTeamsData()}
   ksmPublishRegistration('ksm:registration-teams','ksmRegistrationTeamsInput',input);
 }
 // renderExhibitions() (03) as data: a row per exhibition match.
 function ksmExhibitionsData(){
   let rows=state.exhibitions||[];
-  return {rows:rows.map((x,i)=>({index:i,white:ksmHtmlText(x.white),red:ksmHtmlText(x.red),
+  return {rows:rows.map((x,i)=>ksmBindRegistrationEntry(x,{index:i,white:ksmHtmlText(x.white),red:ksmHtmlText(x.red),
     status:ksmHtmlText(x.status),checked:x.status==='Checked',noShow:x.status==='NoShow'}))};
 }
 function ksmRenderExhibitions(){
   if(!window.exhibitionTable)return;
-  const input=ksmExhibitionsData();
+  let input=ksmExhibitionsData();
+  ksmExhibitionsStale=false;
   ksmBlurRedrawn(exhibitionTable);
+  // F20: the blur committed an edit into a match of the new list (ksmSetExhibitionField()).
+  if(ksmExhibitionsStale){ksmExhibitionsStale=false;input=ksmExhibitionsData()}
   ksmPublishRegistration('ksm:registration-exhibitions','ksmRegistrationExhibitionsInput',input);
 }
 // regTab() (23): the tab marked active.
 function ksmRenderRegistrationTab(mode){
   ksmPublishRegistration('ksm:registration-tab','ksmRegistrationTabInput',{mode:String(mode)});
 }
-// What the cards' and rows' inline handlers ran (`state` is not a window property).
-function ksmSetTeamField(card,key,value){state.teams[card.index][key]=value}
+// F20 (F17 on the team cards and exhibition rows): a card's or row's fields belong to the team or
+// match it showed, not to a place in the list. The redraw commits the field being edited (its
+// change event) after the new list is in place, so an applied live update used to write the typed
+// text into whichever team or match the new list had at that place (or threw for a shorter list).
+// The card / row remembers its entry (the object); a new list from another device has new
+// objects, so there the entry is the one with every field as it was shown. If there is none
+// (removed, or changed on the other device too) or more than one, the edit is dropped with a
+// notice. (var without a value, the map made on first use: renderTeams() runs at boot, before this part of
+// app.js, and a declaration with a value would drop that map when it runs.)
+var ksmRegistrationEntries,ksmTeamsStale,ksmExhibitionsStale;
+var KSM_TEAM_FIELDS=['team','division','type','senpo','jiho','chuken','fukusho','taisho','status'];
+var KSM_EXHIBITION_FIELDS=['white','red','division','status'];
+function ksmBindRegistrationEntry(entry,row){
+  if(!ksmRegistrationEntries)ksmRegistrationEntries=new WeakMap();
+  ksmRegistrationEntries.set(row,entry);return row;
+}
+// The entry's index in `list` now: its own place, the one equal entry of a new list, or -1.
+function ksmRegistrationEntryIndex(list,row,fields){
+  const entry=ksmRegistrationEntries?.get(row);
+  if(!entry)return row.index;
+  const own=list.indexOf(entry);
+  if(own>=0)return own;
+  const same=list.map((x,i)=>x&&fields.every(k=>String(x[k]??'')===String(entry[k]??''))?i:-1).filter(i=>i>=0);
+  return same.length===1?same[0]:-1;
+}
+function ksmEditDropped(what,list){
+  showKsmToast(`Your change to ${what} was not saved: the ${list} was updated from another device while you were typing. Enter it again.`,10000,true);
+}
+// What the cards' and rows' inline handlers ran (`state` is not a window property), for the
+// entry the card or row showed (F20).
+function ksmSetTeamField(card,key,value){
+  const index=ksmRegistrationEntryIndex(state.teams,card,KSM_TEAM_FIELDS);
+  if(index<0){ksmEditDropped(ksmRegistrationEntries.get(card).team||'a team','team list');return}
+  if(state.teams[index]!==ksmRegistrationEntries?.get(card))ksmTeamsStale=true;
+  state.teams[index][key]=value;
+}
 function ksmRemoveTeam(i){state.teams.splice(i,1);renderTeams();renderTournamentStatus()}
-function ksmSetExhibitionField(row,key,value){state.exhibitions[row.index][key]=value}
+function ksmSetExhibitionField(row,key,value){
+  const index=ksmRegistrationEntryIndex(state.exhibitions||[],row,KSM_EXHIBITION_FIELDS);
+  if(index<0){const x=ksmRegistrationEntries.get(row);ksmEditDropped(x.white||x.red?`the exhibition match ${x.white||'?'} vs ${x.red||'?'}`:'an exhibition match','exhibition list');return}
+  if(state.exhibitions[index]!==ksmRegistrationEntries?.get(row))ksmExhibitionsStale=true;
+  state.exhibitions[index][key]=value;
+}
 function ksmCycleExhibitionStatus(i){state.exhibitions[i].status=statusCycle(state.exhibitions[i].status);renderExhibitions()}
 function ksmRemoveExhibition(i){state.exhibitions.splice(i,1);renderExhibitions()}
 

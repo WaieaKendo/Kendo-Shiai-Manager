@@ -46,7 +46,10 @@ off.
   teams-live        a live update arriving while a team name is being typed (deferred), the
                     redraw of a live update (renderAll()) while typing a member and an exhibition
                     player, an applied live update (applyTournamentPayload()) while a team member
-                    and an exhibition player have the focus, the filter through a redraw, the test
+                    and an exhibition player have the focus (F20, fixed: neither entry is in the
+                    new lists, so the typed text is dropped with a notice; it used to land in the
+                    new list's team at that place, and the exhibition edit threw), the
+                    filter through a redraw, the test
                     API's configure() with a team division, team statuses after generation (a No
                     Show taken out of the bracket; the alert once the division has started).
 
