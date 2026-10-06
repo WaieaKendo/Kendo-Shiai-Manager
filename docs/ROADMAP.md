@@ -142,15 +142,23 @@ Goal: the React migration and the bug fixes ready as pull requests into `develop
 | 5 | Fix batch 2: F16, F10 | decided defaults, see Bug triage |
 | 6 | Path URLs (M.9) | without the login part |
 | 7 | Small-behaviour pass over the quirks lists | |
-| 8 | PR prep: full suite, CHANGELOG, a description and test checklist per review; **version 4.0.0** (see Versioning) | |
+| 8 | PR prep: full suite, CHANGELOG, a description and test checklist per review; first pre-release **4.0.0-rc.1** (see Versioning) | |
 
-About 8–9 agent steps; at the pacing rule that is 1–2 steps a day (~40–55% of a weekly limit). After the meeting: features for 11/21 in order of value (1.5 match timing → 1.9 timer, end-of-match confirmation and sound → 1.1/1.2 auto-advance and running order → 1.8 edit a match), each its own change, done by ~10/24 so the two weeks before the freeze are for testing; the meeting decides which go into the event version. Architecture (2.8 store and commands, 2.9 stable IDs), Phase 3 and theming come after the event.
+About 8–9 agent steps; at the pacing rule that is 1–2 steps a day (~40–55% of a weekly limit).
+
+**After PR-ready (plan changed 2026-10-06):** the event version (`4.0.0`, GitHub milestone 4.0.0, due at the ~11/7 freeze) now also takes the architecture, so features are never built on the legacy glue and a live mock tournament can run on the dev site sooner:
+
+1. **Test audit (issue #19)** first, as due diligence: list every edit path and the test covering it, then fill the gaps (engine edge cases, every kind of edit saving and reaching the other devices, two devices editing at once, offline/reconnect/failed saves/reloads/server restarts/late or duplicate messages), with tests reaching the app through stable test APIs so they keep guarding while the internals change.
+2. **2.8 store and commands, 2.9 stable IDs (issue #15)**, on top of that safety net.
+3. **Mock tournament on the dev site** (~11/1–2), fixes, freeze.
+
+Fallback: if the store isn't solid by the freeze, the event runs on the last good `4.0.0-rc.N` in `main`. Features (1.5 match timing, 1.9 timer and end-of-match confirmation, 1.1/1.2 auto-advance and running order, 1.8 edit a match), the rest of the architecture (2.10, TypeScript everywhere), Phase 3 and theming are **4.1.0** (milestone 4.1.0).
 
 ### Versioning and releases
 
 `package.json` `"version"` is the single source of truth; `version-consistency-test.mjs` checks the HTML badge and About text, the service worker cache name (a new version makes installed devices drop the old offline copy), `/api/health` and the top of `CHANGELOG.md` against it. `engineVersion` stays frozen (it marks the saved data format).
 
-- **The migration + fixes release is `4.0.0`** (decided 2026-10-06): new build, React screens, typed engine, many fixes; same behaviour and data format, but big enough for a major version.
+- **The event release is `4.0.0`** (decided 2026-10-06): new build, React screens, typed engine, many fixes, and (if solid by the freeze) the store and stable IDs; big enough for a major version. Releases to production on the way are pre-releases `4.0.0-rc.1`, `rc.2`, … (the first when the PR-ready package lands); the final `4.0.0` at the ~11/7 freeze. Features are `4.1.0`.
 - The version is bumped at each release to production (`develop` → `main` + deploy), never per PR; every production deploy must carry a new version, or installed devices can keep the old cached app. `develop` builds use a pre-release (`4.0.0-dev`), so the dev site's `/api/health` shows it is not production; production drops the old `-test` suffix.
 - Each release gets a git tag (`v4.0.0`) for the deploy workflow and rollbacks.
 - Planned with the deploy setup: `npm run release -- <version>` updates every place above, drafts a `CHANGELOG` section from the commits since the last tag, and runs the consistency test.
