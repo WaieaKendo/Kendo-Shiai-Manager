@@ -1,6 +1,7 @@
 /* ksm:post-split-begin react-registration */
 // ==========================================================
-// React Registration, part 1 (app/react/registration/, roadmap M.13)
+// React Registration, parts 1 and 2 (app/react/registration/, roadmap M.13; part 2, the team
+// cards, the exhibition table and the tab bar, is the second half of this file)
 // Registration draws two parts with React islands, mounted by app/react/registration/main.tsx:
 // the individual players table (#regTable) and the contents of the tournament status card
 // (#tournamentStatusCard). The legacy code still decides what is shown and runs every action:
@@ -14,9 +15,8 @@
 // below on their change event (updateComp() (03) for the competitor the row showed: F17), the
 // status chip cycleCompetitorStatus() (03) and × ksmRemoveCompetitor() below, as the inline
 // handlers did.
-// Every other part of Registration stays legacy markup (app/index.html): the tab bar (regTab() in
-// 23- toggles its classes and the cards), the toolbars and their buttons, the filter (#regFilter,
-// read by renderReg() by id), the team, exhibition and Pools cards (part 2 / the Pools island).
+// The toolbars and their buttons and the filter (#regFilter, read by renderReg() by id) stay
+// legacy markup (app/index.html).
 // The legacy renderer (the innerHTML of renderReg() and renderTournamentStatus(), and the 03- copy
 // of regTab(), overridden by 23-'s and never run) was removed in M.13. If the React module does not
 // load, Registration shows a notice in place of the players table (the end of this file).
@@ -100,10 +100,14 @@ function ksmRemoveCompetitor(i){state.competitors.splice(i,1);renderReg();render
 // ---------------------------------------------------------- Registration part 2
 // The team cards (the wrapper of #teamTable in #teamReg), the exhibition table (#exhibitionTable)
 // and the tab bar (the first row of the toolbar card) are React islands too
-// (app/react/registration/RegistrationTeams.tsx). renderTeams() and renderExhibitions() (03) call
-// the publishers below; regTab() (23) still shows and hides the cards and publishes the tab
-// (ksm:registration-tab). The toolbars and their buttons, the team filter (#teamFilter, read by id
-// on every key) and the hint line stay legacy markup.
+// (app/react/registration/RegistrationTeams.tsx). renderTeams() and renderExhibitions() (03) are
+// calls of the publishers below; regTab() (23) still sets state.regMode, shows and hides the cards
+// and redraws Pools, and publishes the tab (ksm:registration-tab) in place of toggling the tabs'
+// classes. tests/golden/registration-teams/*.json (recorded from the legacy renderer) pin the
+// result. The toolbars and their buttons, the team filter (#teamFilter, read by id on every key)
+// and the hint line stay legacy markup. The legacy renderer (renderTeams()'s outerHTML,
+// renderExhibitions()'s innerHTML, regTab()'s tab class toggles) was removed in M.13; without the
+// React module the cards say so (the end of this file).
 // A redraw replaced every card / row, so a field being edited lost the focus at that moment (its
 // change event, then blur and focusout, after the new cards had been computed); React replaces
 // them later, so the focus leaves the island here, as in ksmRenderRegistration().
@@ -171,4 +175,22 @@ function ksmShowRegistrationModuleMissing(){
   if(card)card.style.display='none';
 }
 document.addEventListener('DOMContentLoaded',ksmShowRegistrationModuleMissing);
+// The same for part 2: Team Registration and Exhibition say so in place of their (empty) tables;
+// the toolbars, the filter and the tabs stay usable (without the island the current tab is no
+// longer marked, regTab() still switches the cards).
+function ksmShowRegistrationTeamsModuleMissing(){
+  if(window.ksmRegistrationTeamsMounted)return;
+  [['#teamReg #teamTable','registrationTeamsModuleMissing','registration-teams-module-missing','Teams could not load'],
+   ['#exhibitionReg #exhibitionTable','registrationExhibitionsModuleMissing','registration-exhibitions-module-missing','Exhibitions could not load']]
+  .forEach(([selector,id,testId,title])=>{
+    const table=document.querySelector(selector)?.parentElement;
+    if(!table||document.getElementById(id))return;
+    const notice=document.createElement('div');
+    notice.id=id;notice.className='muted-card';notice.setAttribute('role','alert');notice.setAttribute('data-testid',testId);
+    notice.innerHTML=`<b>${title}</b><div class="small">Reload the page. If this device is offline, reconnect once so it can download the current version of the app.</div>`;
+    table.style.display='none';
+    table.before(notice);
+  });
+}
+document.addEventListener('DOMContentLoaded',ksmShowRegistrationTeamsModuleMissing);
 /* ksm:post-split-end */

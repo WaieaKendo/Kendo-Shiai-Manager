@@ -75,12 +75,7 @@ function regTab(mode){
   if(window.teamReg)teamReg.classList.toggle('hidden',mode!=='team');
   if(window.exhibitionReg)exhibitionReg.classList.toggle('hidden',mode!=='exhibition');
   if(window.poolsReg)poolsReg.classList.toggle('hidden',mode!=='pools');
-  /* ksm:post-split-begin react-registration */ksmRenderRegistrationTab(mode);if(!window.ksmRegistrationTeamsMounted){/* ksm:post-split-end */
-  if(window.indTab)indTab.classList.toggle('active',mode==='individual');
-  if(window.teamTab)teamTab.classList.toggle('active',mode==='team');
-  if(window.exhibitionTab)exhibitionTab.classList.toggle('active',mode==='exhibition');
-  if(window.poolsTab)poolsTab.classList.toggle('active',mode==='pools');
-  /* ksm:post-split-begin react-registration */}/* ksm:post-split-end */
+  /* ksm:post-split-begin react-registration */ksmRenderRegistrationTab(mode);/* ksm:post-split-end */
   if(mode==='pools')renderPools();
 }
 function renderProgress(){ return; }

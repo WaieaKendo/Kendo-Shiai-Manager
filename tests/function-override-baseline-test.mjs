@@ -24,6 +24,8 @@ import { html, countDefinitions } from './lib/ksm-source.mjs';
 // M.13 (feat/react-setup-screen) removed none (14).
 // M.13 (feat/react-registration) removed the legacy players table renderer and the 03- regTab()
 // (overridden by 23-'s, never run): 14 -> 13 (regTab 2->1).
+// M.13 (feat/react-registration-2) removed the team cards, exhibition table and tab class
+// renderers, none of them redeclared (13).
 const BASELINE = {
   canCloudWrite: 2, cloudHeaders: 2, cloudSocketUrl: 2, initializeCloudRoleFromUrl: 2,
   installRoleBanner: 2, isReadOnlySession: 2, isSpectatorSession: 2,

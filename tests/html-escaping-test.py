@@ -1,10 +1,12 @@
-"""User text is shown as text, never run as markup (F19), on the Registration cards still drawn by
-the legacy code: Team Registration (team cards) and Exhibition (exhibition rows).
+"""User text is shown as text, never run as markup (F19), on Team Registration (team cards) and
+Exhibition (exhibition rows).
 
-The team cards and exhibition rows printed the status into their class attribute unescaped
+The legacy team cards and exhibition rows printed the status into their class attribute unescaped
 (`class="status ${c.status}"`), so a status with markup broke out of the attribute and ran code
-on every staff device that opened the tab (statuses arrive from other devices, a file, a paste).
-The players table is drawn by React since M.13 (golden-registration-test.py, reg-status-markup).
+on every staff device that opened the tab (statuses arrive from other devices, a file, a paste);
+F19 escaped it. Since M.13 Registration part 2 React draws both (app/react/registration/
+RegistrationTeams.tsx), which escapes every text and attribute; this test pins it. The players
+table is drawn by React since M.13 part 1 (golden-registration-test.py, reg-status-markup).
 
 Offline, through the UI and test IDs: names with markup are typed into a team card (team name,
 members) and an exhibition row (both players); then a live update (test API) brings teams and

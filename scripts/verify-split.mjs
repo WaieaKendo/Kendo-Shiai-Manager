@@ -69,19 +69,20 @@ const KNOWN_POST_SPLIT_EDITS = {
   // place of its card markup, and app/js/43-react-registration.js publishes the players table and
   // the status card as plain data and shows a notice when the React module is missing.
   // feat/react-registration-2 (M.13, part 2): the team cards, the exhibition table and the tab bar
-  // are React islands too: renderTeams() and renderExhibitions() (03) call their publishers in 43
-  // and regTab() (23) publishes the tab (step B: hand-overs, the legacy drawing still runs without
-  // the islands). Listed here because renderTournamentStatus() (03) is its
+  // are React islands too. With their legacy renderer removed (REMOVED_REGISTRATION_RENDERER) the
+  // bodies of renderTeams() and renderExhibitions() (03) are marked calls of their publishers in
+  // 43, and regTab() (23) publishes the tab in place of the four class toggles.
+  // Listed here because renderTournamentStatus() (03) is its
   // first region: the check compares names in order of first appearance.
-  'react-registration': 7,
-  // fix/pre-event (M.12): test IDs on markup drawn by app/js (03: the exhibition rows and the
-  // Regenerate Single Division dialog), each line kept in its `was:` marker. Test IDs on the
-  // static markup are listed in MARKUP_TEST_IDS instead.
-  'test-ids': 4,
-  // fix/react-batch-1 (F19): the team cards print the status through esc() (03: renderTeams()).
-  // The exhibition rows' status got esc() too, inside their test-ids region (its `was:` keeps the
-  // old line).
-  'html-escape': 1,
+  'react-registration': 6,
+  // fix/pre-event (M.12): test IDs on markup drawn by app/js (03: the Regenerate Single Division
+  // dialog), each line kept in its `was:` marker. Test IDs on the static markup are listed in
+  // MARKUP_TEST_IDS instead. (The exhibition rows' region went with renderExhibitions()'s body in
+  // feat/react-registration-2: the React rows carry those test IDs; 4 -> 3.)
+  'test-ids': 3,
+  // fix/react-batch-1 (F19) escaped the status class of the team cards and exhibition rows
+  // (html-escape: 1, in renderTeams()); that code went with the legacy renderer in
+  // feat/react-registration-2 (React escapes it; html-escaping-test.py pins it).
   // fix/pre-event (F8): clearTeams()/clearExhibitions() confirm first (app/js/03).
   'clear-confirm': 1,
   // refactor/engine-bridge (roadmap 2.0+): one delegation per MOVED_TO_ENGINE function.
@@ -355,6 +356,14 @@ const REMOVED_REGISTRATION_RENDERER = [
   'regTab#1',                                                    // 03: overridden by #2 (23), never ran
   { from: 'el.innerHTML=`<div class="tournament-status-head">', to: '</div>`;' }, // 03: renderTournamentStatus()'s card markup (react-registration publishes)
   'renderReg#1:body',                                            // 03: publishes the table (react-registration)
+  // feat/react-registration-2 (M.13, part 2): React draws the team cards, the exhibition table and
+  // the tab bar's classes (app/react/registration/RegistrationTeams.tsx); tests/golden/registration-teams
+  // pins what this code drew. The actions stay (addTeamRow(), addAutoTeam(), cycleTeamStatus(),
+  // addExhibitionRow(), loadTeamSamples(), clearTeams(), clearExhibitions() in 03; regTab()'s
+  // state.regMode, the cards' visibility and the Pools redraw in 23).
+  'renderTeams#1:body',                                          // 03: publishes the cards (react-registration)
+  'renderExhibitions#1:body',                                    // 03: publishes the table (react-registration)
+  { from: "  if(window.indTab)indTab.classList.toggle('active',mode==='individual');\n", to: "if(window.poolsTab)poolsTab.classList.toggle('active',mode==='pools');\n" }, // 23: regTab()'s tab classes (react-registration publishes the tab)
 ];
 // fix/pre-event (M.12): data-testid attributes added to existing markup, as [old start tag, test ID];
 // the check takes each ` data-testid="<id>"` out again (it must appear exactly once, at the end

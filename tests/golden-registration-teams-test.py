@@ -55,19 +55,23 @@ Since M.13 React draws the team cards, the exhibition table and the tab bar
 #exhibitionTable and the toolbar card's first row; app/js/43-react-registration.js publishes their
 data). React must render every element of the three islands (and they must be the islands'
 roots), and every kind of content must be covered. The toolbars, the team filter and the cards'
-visibility (regTab()) stay legacy.
+visibility (regTab()) stay legacy. The legacy renderer is removed, so this test pins the React-only
+cards, table and tab bar; last, the app without the React module script must show the "Teams could
+not load" and "Exhibitions could not load" notices instead of the empty tables (and a working page
+never shows them).
 
 Approve an intended change (review the JSON diff, commit it with the code change):
 
     KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-registration-teams-test.py [scenario ...]
 """
+import re
 import time
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 from golden_screen import ONLY, PANEL_FIBERS_JS, PANEL_JS, PLATFORM, SPECTATOR_JS, UPDATE, Golden, geometry_recorded, people, team
 from ksm_app import KsmApp
-from ksm_browser import launch_chromium, load_app
+from ksm_browser import DIST, launch_chromium, load_app
 
 GOLDEN_DIR = Path(__file__).resolve().parent / 'golden' / 'registration-teams'
 TOOLBAR = '#registration > .card:first-child'
@@ -147,7 +151,12 @@ def open_app(name, browser, react_check=None):
     load_app(app.page)  # a staff session on Setup
     app.page.add_style_tag(content=NO_TRANSITIONS)
     app.page.evaluate(SAVES_INIT_JS)
-    return Golden(name, app, app.page_errors, GOLDEN_DIR, capture, react_check)
+    golden = Golden(name, app, app.page_errors, GOLDEN_DIR, capture, react_check)
+    if react_check:
+        assert app.page.evaluate('window.ksmRegistrationTeamsMounted === true'), f'{name}: the Registration part 2 islands did not mount'
+        assert app.page.locator('#registrationTeamsModuleMissing, #registrationExhibitionsModuleMissing').count() == 0, \
+            f'{name}: a "could not load" notice shown on a working page'
+    return golden
 
 
 def click(page, selector, index=0):
@@ -456,13 +465,50 @@ def check_react(golden, step):
     VARIANTS_SEEN.update(page.evaluate(VARIANTS_JS))
 
 
+def without_screens_module():
+    """dist/index.html without the React screens' module script (as a device whose copy lacks it)."""
+    html = (DIST / 'index.html').read_text(encoding='utf-8')
+    module = re.search(r'<script type="module"[^>]*src="/assets/index-[\w-]+\.js"></script>\n?', html)
+    assert module, 'dist/index.html: no module script'
+    return html.replace(module.group(0), '')
+
+
+def teams_module_missing(browser):
+    """Without the React module nothing draws the team cards or the exhibition table: both cards say
+    so instead; the toolbars and the tabs still work and the legacy code still publishes."""
+    app = KsmApp(browser.new_page(viewport=DESKTOP), 'no React module')
+    page = app.page
+    errors = []
+    page.on('pageerror', lambda e: errors.append(f'Registration part 2 module missing: {e}'))
+    load_app(page, html=without_screens_module())
+    for tab, card, testid, title, table in (
+            ('team', '#teamReg', 'registration-teams-module-missing', 'Teams could not load', '#teamTable'),
+            ('exhibition', '#exhibitionReg', 'registration-exhibitions-module-missing', 'Exhibitions could not load', '#exhibitionTable')):
+        page.evaluate(f"() => openRegistrationTab('{tab}')")
+        assert page.locator(card).is_visible(), f'{card}: regTab() did not show the card without the React module'
+        notice = page.locator(f'{card} {tid(testid)}')
+        assert notice.is_visible(), f'no "{title}" notice without the React module'
+        assert title in notice.inner_text(), notice.inner_text()
+        assert not page.locator(table).is_visible(), f'the empty {table} is shown without the React module'
+    page.locator(tid('team-add')).dispatch_event('click')
+    page.locator(tid('exhibition-add')).dispatch_event('click')
+    assert page.locator('#teamReg [data-testid="team-card"], #exhibitionTable *').count() == 0, 'something drew the cards without the React module'
+    assert page.evaluate('window.ksmRegistrationTeamsInput.cards.length') == 1, 'renderTeams() did not publish without the island'
+    assert page.evaluate('window.ksmRegistrationExhibitionsInput.rows.length') == 1, 'renderExhibitions() did not publish without the island'
+    page.locator(tid('reg-tab-pools')).click()
+    assert page.locator('#poolsReg').is_visible() and page.evaluate('state.regMode') == 'pools', 'the tabs do not switch without the React module'
+    assert page.evaluate('window.ksmRegistrationTabInput.mode') == 'pools', 'regTab() did not publish without the island'
+    assert not errors, errors
+    page.close()
+
+
 SCENARIOS = {
     'tabs-empty': tabs_empty,
     'teams-cards': teams_cards,
     'exhibitions': exhibitions,
     'teams-live': teams_live,
 }
-CHECKS = {}
+CHECKS = {'teams-module-missing': teams_module_missing}
 REACT_CHECK = check_react
 
 
