@@ -9,7 +9,7 @@ function saveSetup(){
   if(window.teamAwardMode)state.teamAwardMode=teamAwardMode.value||'top2';
   renderDivisionSetup();renderDivisions();renderReg();renderTournamentStatus();
 }
-function addDivision(v){v=v||customDivName?.value?.trim()||newDiv?.value?.trim();if(!v)return;if(!state.divisions.includes(v)){state.divisions.push(v);state.divisionTypes[v]=customDivFormat?.value||newDivType?.value||'Round Robin';state.divisionCourts[v]=customDivCourt?.value||'A'}if(window.customDivName)customDivName.value='';renderDivisionSetup();renderDivisions();renderReg()}
+function addDivision(v){v=v||customDivName?.value?.trim()||/* ksm:post-split-begin add-division was:newDiv?.value?.trim() */window.newDiv?.value?.trim()/* ksm:post-split-end */;if(!v)return;if(!state.divisions.includes(v)){state.divisions.push(v);state.divisionTypes[v]=customDivFormat?.value||/* ksm:post-split-begin add-division was:newDivType?.value */window.newDivType?.value/* ksm:post-split-end */||'Round Robin';state.divisionCourts[v]=customDivCourt?.value||'A'}if(window.customDivName)customDivName.value='';renderDivisionSetup();renderDivisions();renderReg()}
 function addCustomDivision(){addDivision()}
 function removeDivision(i){let d=state.divisions[i];state.divisions.splice(i,1);delete state.divisionTypes[d];delete state.divisionCourts[d];renderDivisionSetup();renderDivisions();renderReg()}
 function toggleDivision(d,on){if(on&&!state.divisions.includes(d)){state.divisions.push(d);let p=DIVISION_PRESETS.find(x=>x[0]===d);state.divisionTypes[d]=p?p[1]:'Round Robin';state.divisionCourts[d]=p?p[2]:'A'}if(!on&&state.divisions.includes(d)){state.divisions=state.divisions.filter(x=>x!==d)}renderDivisionSetup();renderDivisions();renderReg()}

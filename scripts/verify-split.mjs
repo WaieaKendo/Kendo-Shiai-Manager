@@ -39,6 +39,9 @@ const KNOWN_POST_SPLIT_EDITS = {
   // feat/react-setup: app/js/00-react-bridge.js + the ksm:state-changed dispatch in
   // performCourtAction() and renderAll(), so React islands re-render with `state`.
   'react-bridge': 3,
+  // fix/react-batch-1 (F13): addDivision() (01) reads the old #newDiv / #newDivType fallbacks as
+  // window properties (the page has no such fields; the bare names threw for an empty name).
+  'add-division': 2,
   // feat/react-setup-screen (M.13): the Setup screen's React islands (#divisionSetupRows,
   // #setupTournamentName). With the legacy renderer removed (REMOVED_SETUP_RENDERER) the bodies of
   // renderDivisionSetup() (01) and syncSetupHeader() (30) are marked publishers, and
