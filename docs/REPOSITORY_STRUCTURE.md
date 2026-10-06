@@ -25,7 +25,7 @@ app/                 Front-end source (built by Vite into dist/, which is not co
   public/             Icons, SVG assets and manifest, served at the site root unchanged
   service-worker.js   PWA service worker (the build adds the hashed bundle names)
 src-worker.js        Cloudflare Worker backend (API + Durable Object)
-scripts/             Build helpers (app-sources.mjs), verify-split.mjs, reset-cloud-data.mjs
+scripts/             Build helpers (app-sources.mjs), verify-split.mjs, reset-cloud-data.mjs, pages-proxy.mjs
 tests/               Maintained regression tests (golden/engine, golden/court: approved snapshots)
 docs/                Maintained documentation
 README.md             Project overview
@@ -34,6 +34,7 @@ package.json          Scripts and development dependency metadata
 vite.config.js        Front-end build (Vite)
 tsconfig.json         Type checking (`npm run typecheck`; also app/react, app/engine)
 wrangler.jsonc        Cloudflare deployment configuration (serves dist/)
+pages-proxy/          Custom-domain pass-through: a Pages project per site forwarding to its Worker (docs/DEPLOYMENT.md)
 .gitignore            Generated-file exclusions
 ```
 

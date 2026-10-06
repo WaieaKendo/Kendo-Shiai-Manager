@@ -96,6 +96,13 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       - name: Health check (version must equal package.json)
         run: node scripts/health-check.mjs "$DEV_URL"
+      - name: Custom-domain pass-through (Pages project ksm-tournament-dev)
+        # A Pages project that hands every request to the Worker above, so the site can have a
+        # custom domain while the domain's DNS stays at GoDaddy (docs/DEPLOYMENT.md, "Custom domains").
+        run: npm run proxy:dev
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
   production:
     name: Deploy production
@@ -135,3 +142,10 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       - name: Health check (version must equal package.json)
         run: node scripts/health-check.mjs "$PRODUCTION_URL"
+      - name: Custom-domain pass-through (Pages project ksm-tournament)
+        # A Pages project that hands every request to the Worker above, so the site can have a
+        # custom domain while the domain's DNS stays at GoDaddy (docs/DEPLOYMENT.md, "Custom domains").
+        run: npm run proxy:production
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

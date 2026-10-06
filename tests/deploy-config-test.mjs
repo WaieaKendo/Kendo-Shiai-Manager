@@ -43,6 +43,23 @@ const pkg = JSON.parse(readRepoFile('package.json'));
 check(pkg.scripts['deploy:dev'] === 'vite build && wrangler deploy --env dev' && pkg.scripts['deploy:production'] === 'vite build && wrangler deploy --env=""' && !pkg.scripts.deploy,
   'npm scripts build before deploying and always name the target (no bare `npm run deploy`)');
 
+// The custom-domain pass-through (pages-proxy/): one Pages project per site, bound to that site's
+// Worker, deployed after it (never production's Worker behind the dev address or the reverse).
+const proxy = site => JSON.parse(stripComments(readRepoFile(`pages-proxy/${site}.jsonc`)));
+const devProxy = proxy('dev'), productionProxy = proxy('production');
+const target = config => config.services?.length === 1 && config.services[0].binding === 'KSM' ? config.services[0].service : null;
+check(target(devProxy) === dev?.name && target(productionProxy) === wrangler.name,
+  'pages-proxy: the dev project binds KSM to the dev Worker, the production project to the production Worker');
+check(devProxy.name !== productionProxy.name && ![dev?.name, wrangler.name].includes(devProxy.name) && ![dev?.name, wrangler.name].includes(productionProxy.name),
+  'pages-proxy: two Pages projects, named apart from each other and from the Workers');
+check(devProxy.pages_build_output_dir === './public' && productionProxy.pages_build_output_dir === './public' && !devProxy.durable_objects && !productionProxy.durable_objects,
+  'pages-proxy: no Durable Objects or assets of its own (it only forwards)');
+check(/return env\.KSM\.fetch\(request\);/.test(readRepoFile('pages-proxy/_worker.js')), 'pages-proxy/_worker.js forwards the request unchanged');
+check(/npm run proxy:dev/.test(jobs.dev) && jobs.dev.indexOf('npm run proxy:dev') > jobs.dev.indexOf('health-check.mjs')
+  && /npm run proxy:production/.test(jobs.production) && jobs.production.indexOf('npm run proxy:production') > jobs.production.indexOf('health-check.mjs'),
+  'deploy.yml: each site\'s pass-through deploys after its Worker passed the health check');
+check(pkg.scripts['proxy:dev'] === 'node scripts/pages-proxy.mjs dev' && pkg.scripts['proxy:production'] === 'node scripts/pages-proxy.mjs production', 'npm scripts proxy:dev / proxy:production');
+
 let failed = 0;
 for (const [ok, name] of checks) { console.log(`${ok ? 'PASS' : 'FAIL'} ${name}`); if (!ok) failed++; }
 if (failed) process.exit(1);
