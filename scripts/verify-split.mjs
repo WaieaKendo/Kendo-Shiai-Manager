@@ -96,6 +96,9 @@ const KNOWN_POST_SPLIT_EDITS = {
   // the document-wide click listener (21) asks for no autosave for clicks in the editor (one).
   // toggleEditPools() reads the copy inside its react-pools region.
   'pool-edit': 5,
+  // fix/react-batch-1 (F18): Paste from Excel splits rows on CR LF, CR and LF and trims each cell
+  // (16: the document paste listener, two inline edits).
+  'paste-lines': 2,
   // fix/pre-event (F9): printPlacementsForDivision() uses resultPlacements() (comment + body).
   'print-placements': 2,
   // fix/pre-event (F3, from fix/court-pin-after-reload): the pinned-court key no longer holds the

@@ -39,7 +39,8 @@ transitions are off.
                    duplicate, invalid and duplicate seeds, too few players, a division switched
                    off in Setup, a split court with too few players, a valid registration;
   reg-samples      Load Sample Players, Clear Registration (Cancel, then OK), Load Sample
-                   Tournament, Paste from Excel (tab-separated rows pasted on Registration);
+                   Tournament, Paste from Excel (tab-separated rows pasted on Registration; CR LF
+                   line ends: F18, fixed), a live update with line breaks in a name and a dojo;
   reg-live         a live update arriving while a name is being typed (a staff device defers
                    it while a field is edited, then because of unsaved changes), the redraw of a
                    live update (renderAll()) while typing (the typed text is committed, the
@@ -403,7 +404,17 @@ def reg_samples(browser, react_check):
     g.do('Team Registration: a paste there (ignored)', lambda a: (click(a.page, tid('reg-tab-team')), a.page.evaluate(PASTE_JS, 'Gus\tOahu')))
     g.do('Individual Players', lambda a: click(a.page, tid('reg-tab-individual')))
     phone_views(g, 'pasted')
+    # Since F18 a paste no longer leaves a CR in a cell; synced data still can (another device, a file).
+    g.do('a live update with line breaks in a name and a dojo (CR LF, CR)', lambda a: a.page.evaluate(LINE_BREAK_JS))
     g.finish()
+
+
+LINE_BREAK_JS = """() => {
+  const p = tournamentPayload();
+  p.state.competitors.push({name: 'Line\\r\\nBreak', dojo: 'Cr\\rDojo', division: 'Women’s Open', seed: '', status: 'Checked'});
+  ksmApplyingRemoteSnapshot = true;
+  try { applyTournamentPayload(p, false, {source: 'live sync'}); } finally { ksmApplyingRemoteSnapshot = false; }
+}"""
 
 
 # A live update: the cloud copy with another competitor list (built from this page's own payload),
