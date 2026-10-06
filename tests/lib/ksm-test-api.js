@@ -22,6 +22,15 @@ window.KSMTest = {
   hasAutosave() { return !!localStorage.getItem(KSM_SAVE_KEY); },
   // Deliver a record as if it arrived on the live socket; returns whether it was applied.
   receive(record) { return applyRemoteCloudRecord(record, false, false); },
+  // This device's tournament as it would be saved (a copy: change it and hand it to applyLiveUpdate).
+  payload() { return tournamentPayload(); },
+  // Apply a tournament copy the way an applied live update does (applyRemoteCloudRecord(); also a
+  // 409 rebase, the cloud copy loaded, Staff Login with queued work): the state is replaced and
+  // every screen redrawn, without the staff device's while-editing deferral.
+  applyLiveUpdate(payload) {
+    ksmApplyingRemoteSnapshot = true;
+    try { applyTournamentPayload(payload, false, {source: 'live sync'}); } finally { ksmApplyingRemoteSnapshot = false; }
+  },
   clientId() { return cloudSession.clientId; },
   generated() { return !!state.generated && Object.keys(state.allMatches || {}).length > 0; },
   allMatches() { return state.allMatches; },

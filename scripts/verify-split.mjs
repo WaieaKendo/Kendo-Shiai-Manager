@@ -71,6 +71,10 @@ const KNOWN_POST_SPLIT_EDITS = {
   // Regenerate Single Division dialog), each line kept in its `was:` marker. Test IDs on the
   // static markup are listed in MARKUP_TEST_IDS instead.
   'test-ids': 4,
+  // fix/react-batch-1 (F19): the team cards print the status through esc() (03: renderTeams()).
+  // The exhibition rows' status got esc() too, inside their test-ids region (its `was:` keeps the
+  // old line).
+  'html-escape': 1,
   // fix/pre-event (F8): clearTeams()/clearExhibitions() confirm first (app/js/03).
   'clear-confirm': 1,
   // refactor/engine-bridge (roadmap 2.0+): one delegation per MOVED_TO_ENGINE function.

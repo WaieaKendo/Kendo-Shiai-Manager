@@ -222,6 +222,14 @@ class KsmApp:
         """(test API) Deliver a server record as if it came over the live socket; True if applied."""
         return self.page.evaluate('r => KSMTest.receive(r)', record)
 
+    def payload(self):
+        """(test API) This device's tournament as it would be saved (a copy, as a dict)."""
+        return self.page.evaluate('KSMTest.payload()')
+
+    def apply_live_update(self, payload):
+        """(test API) Apply a tournament copy as an applied live update does (state replaced, redrawn)."""
+        self.page.evaluate('p => KSMTest.applyLiveUpdate(p)', payload)
+
     def client_id(self):
         """(test API) This device's client ID (sent with every save)."""
         return self.page.evaluate('KSMTest.clientId()')
