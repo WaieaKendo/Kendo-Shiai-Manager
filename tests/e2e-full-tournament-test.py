@@ -90,7 +90,7 @@ class Scorekeeper:
             winner, pts = self.outcome(m)
             for side, letter in pts:
                 self.app.score_point(side, letter)
-            self.app.next_match()
+            self.app.next_match(settle=True)
             self.log.append({'court': self.court, 'division': m['division'], 'meta': m['meta'],
                              'white': m['white'], 'red': m['red'], 'winner': winner, 'points': pts})
             return True
