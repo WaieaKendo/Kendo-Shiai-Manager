@@ -32,3 +32,7 @@ jobs:
 
       - name: Run all tests
         run: npm test
+        env:
+          # GitHub's runners are slower than a laptop; the snapshot tests replay whole
+          # tournaments, so give each test up to 7 minutes here (180 s locally).
+          KSM_TEST_TIMEOUT_MS: '420000'
