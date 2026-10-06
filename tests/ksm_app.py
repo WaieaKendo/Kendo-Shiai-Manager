@@ -429,8 +429,15 @@ class KsmApp:
     def hansoku(self, side):
         self.click(f'hansoku-{SIDE[side]}')
 
-    def next_match(self):
+    def next_match(self, settle=False):
+        """Court screen -> Next Match. settle=True waits until the screen has moved on from the
+        match just finished: the court screen is React and redraws just after the click, so a
+        test that reads the screen right away could still see (and re-log) the old match."""
+        before = self.court_screen() if settle else None
         self.click('next-match')
+        if settle:
+            self.wait_for(lambda: self.court_screen() != before, timeout=15,
+                          message='the court screen to move on from the finished match')
 
     def undo(self):
         self.click('undo')

@@ -74,7 +74,7 @@ def main():
                 pts = POINTS if i % 2 else POINTS[:1]  # alternate 1-0 and 2-1 wins for White
                 for side, letter in pts:
                     court.score_point(side, letter)
-                court.next_match()
+                court.next_match(settle=True)
                 played[c].append({'white': m['white'], 'red': m['red'], 'wp': len([x for x in pts if x[0] == 'W']), 'rp': len([x for x in pts if x[0] == 'R'])})
 
         for c in 'AB':
