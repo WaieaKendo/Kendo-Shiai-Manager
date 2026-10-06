@@ -10,9 +10,10 @@
 // publishes its counts (ksm:registration-status, window.ksmRegistrationStatusInput).
 // tests/golden/registration/*.json (recorded from the legacy renderer) pin the result. Text is what
 // esc() showed after the HTML parser read it (ksmHtmlText()), a row's competitor is its index in
-// state.competitors as the inline handlers had it. The rows' fields call updateComp() (03) on their
-// change event, the status chip cycleCompetitorStatus() (03) and × ksmRemoveCompetitor() below,
-// as the inline handlers did.
+// state.competitors as the inline handlers had it. The rows' fields call ksmUpdateCompetitor()
+// below on their change event (updateComp() (03) for the competitor the row showed: F17), the
+// status chip cycleCompetitorStatus() (03) and × ksmRemoveCompetitor() below, as the inline
+// handlers did.
 // Every other part of Registration stays legacy markup (app/index.html): the tab bar (regTab() in
 // 23- toggles its classes and the cards), the toolbars and their buttons, the filter (#regFilter,
 // read by renderReg() by id), the team, exhibition and Pools cards (part 2 / the Pools island).
@@ -34,7 +35,7 @@ function ksmRegistrationData(){
   const rows=state.competitors.map((c,i)=>({...c,i})).filter(c=>!f||[c.name,c.dojo,c.division,c.status].join(' ').toLowerCase().includes(f));
   return {
     divisions:state.divisions.map(ksmHtmlText),
-    rows:rows.map(c=>({
+    rows:rows.map(c=>ksmBindRegistrationRow(state.competitors[c.i],{
       index:c.i,
       name:ksmHtmlText(c.name),dojo:ksmHtmlText(c.dojo),seed:ksmHtmlText(c.seed),
       // The class printed as `status ${c.status}` (not escaped; see F19) and the status as compared.
@@ -45,14 +46,47 @@ function ksmRegistrationData(){
     })),
   };
 }
+// F17: a row's fields belong to the competitor the row showed, not to a place in the list. The
+// redraw commits the field being edited (its change event) after the new list is in place, so an
+// applied live update (a 409 rebase, the cloud copy loaded, Staff Login with queued work) used to
+// write the typed text into whichever competitor the new list had at that row. The row remembers
+// its competitor (the object); a new list from another device has new objects, so there the
+// competitor is the one entry with every field as the row showed it. If there is none (removed,
+// or changed on the other device too) or more than one, the edit is dropped with a notice.
+// (var, the map made on first use: renderReg() runs at boot, before this part of app.js.)
+var ksmRegistrationRowCompetitors=null,ksmRegistrationRowsStale=false;
+function ksmBindRegistrationRow(competitor,row){
+  if(!ksmRegistrationRowCompetitors)ksmRegistrationRowCompetitors=new WeakMap();
+  ksmRegistrationRowCompetitors.set(row,competitor);return row;
+}
+function ksmSameCompetitor(a,b){return ['name','dojo','division','seed','status'].every(k=>String(a?.[k]??'')===String(b?.[k]??''))}
+// A row's field changed (its change event): what the inline onchange's updateComp(index,...) did,
+// for the competitor the row belongs to.
+function ksmUpdateCompetitor(row,key,value){
+  const competitor=ksmRegistrationRowCompetitors?.get(row);
+  let index=competitor?state.competitors.indexOf(competitor):row.index;
+  if(index<0){
+    const same=state.competitors.map((c,i)=>ksmSameCompetitor(c,competitor)?i:-1).filter(i=>i>=0);
+    if(same.length!==1){
+      showKsmToast(`Your change to ${competitor.name||'a player'} was not saved: the player list was updated from another device while you were typing. Enter it again.`,10000,true);
+      return;
+    }
+    // Found in a new list: the rows being published show its old value, so they are drawn again.
+    index=same[0];ksmRegistrationRowsStale=true;
+  }
+  updateComp(index,key,value);
+}
 function ksmRenderRegistration(){
-  const input=ksmRegistrationData();
+  let input=ksmRegistrationData();
   // The legacy innerHTML replaced every row, so a field being edited in the table lost the focus:
   // the browser committed it (its change event, then blur and focusout) while the old row was
   // removed, after the new rows had been computed. React replaces the rows later (at its render),
   // so the focus leaves the table here, at the same moment, with the same events.
   const active=document.activeElement;
+  ksmRegistrationRowsStale=false;
   if(window.ksmRegistrationMounted&&active&&active!==document.body&&window.regTable&&regTable.contains(active))active.blur();
+  // F17: the blur committed an edit into a competitor of the new list (ksmUpdateCompetitor()).
+  if(ksmRegistrationRowsStale){ksmRegistrationRowsStale=false;input=ksmRegistrationData()}
   ksmPublishRegistration('ksm:registration-players','ksmRegistrationPlayersInput',input);
 }
 // renderTournamentStatus() (03) as data: the validation result and the counts.

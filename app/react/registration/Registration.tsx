@@ -6,7 +6,8 @@
 //
 // The rows' controls run the inline handlers' code on the same native event: a field's change
 // event (a native listener: React's onChange runs on every key for a text field) calls
-// updateComp(index, key, value); the status chip's click cycleCompetitorStatus(index); ×'s click
+// ksmUpdateCompetitor(row, key, value): updateComp(index, key, value) for the competitor the row
+// showed, also when the list was replaced while the field was edited (F17); the status chip's click cycleCompetitorStatus(index); ×'s click
 // ksmRemoveCompetitor(index) (state.competitors.splice(index, 1); renderReg();
 // renderTournamentStatus(): `state` is not a window property).
 //
@@ -35,7 +36,8 @@ interface RegistrationWindow {
   ksmRegistrationPlayersInput?: PlayersInput;
   /** The status card as renderTournamentStatus() last published it. */
   ksmRegistrationStatusInput?: StatusInput;
-  updateComp?: (index: number, key: Field, value: string) => unknown;
+  /** updateComp(index, key, value) for the competitor the row belongs to (F17). */
+  ksmUpdateCompetitor?: (row: PlayerRowInput, key: Field, value: string) => unknown;
   cycleCompetitorStatus?: (index: number) => unknown;
   ksmRemoveCompetitor?: (index: number) => unknown;
 }
@@ -81,7 +83,7 @@ function useChange<T extends HTMLInputElement | HTMLSelectElement>(handler: (el:
 
 /** A text field of a row: <input value="..."> (the value attribute as printed). */
 function TextField({ row, field, value }: { row: PlayerRowInput; field: Exclude<Field, 'division'>; value: string }) {
-  const ref = useChange<HTMLInputElement>(el => regWindow().updateComp?.(row.index, field, el.value));
+  const ref = useChange<HTMLInputElement>(el => regWindow().ksmUpdateCompetitor?.(row, field, el.value));
   return <input ref={ref} defaultValue={value} data-testid={`reg-${field}`} />;
 }
 
@@ -89,7 +91,7 @@ function TextField({ row, field, value }: { row: PlayerRowInput; field: Exclude<
  * equal to the competitor's division are printed `selected`, set here on the elements as the
  * parser set them (the last one wins; none selects the first option). */
 function DivisionField({ row, divisions }: { row: PlayerRowInput; divisions: string[] }) {
-  const ref = useChange<HTMLSelectElement>(el => regWindow().updateComp?.(row.index, 'division', el.value));
+  const ref = useChange<HTMLSelectElement>(el => regWindow().ksmUpdateCompetitor?.(row, 'division', el.value));
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;

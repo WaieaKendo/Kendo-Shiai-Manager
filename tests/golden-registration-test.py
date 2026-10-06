@@ -44,7 +44,9 @@ transitions are off.
                    it while a field is edited, then because of unsaved changes), the redraw of a
                    live update (renderAll()) while typing (the typed text is committed, the
                    focus is lost), an applied live update (applyTournamentPayload()) while a
-                   field has the focus (the typed text lands in the row now at that place: F17),
+                   field has the focus (F17, fixed: the typed text's player is not in the new
+                   list, so the text is dropped with a notice; it used to land in the row now at
+                   that place),
                    the filter through a redraw, the test API's configure(), statuses after
                    generation (a No Show taken out of a generated division; the alert once a
                    division has started).
