@@ -193,8 +193,9 @@ def court_module_missing(browser, errors):
     page.on('pageerror', lambda e: errors.append(f'court module missing: {e}'))
     load_app(page, html=without_court_module())
     app.configure([{'name': 'Open', 'format': 'Round Robin', 'court': 'A', 'entrants': people('P', 3)}])
-    app.click('nav-courts')
-    app.click('nav-court-a')
+    # The Courts menu does not open without the module (the navigation bar is React too, and says
+    # so); its Court A item still runs chooseCourt('A').
+    page.locator('[data-testid="nav-court-a"]').dispatch_event('click')
     notice = page.locator('#score [data-testid="court-module-missing"]')
     assert notice.is_visible(), 'no "court screen could not load" notice without the court module'
     assert 'Court screen could not load' in notice.inner_text(), notice.inner_text()

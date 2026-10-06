@@ -5,8 +5,9 @@
 // the Fusen-gachi dialog (#fusenDialog), the generation check (#validationModal), Regenerate Single
 // Division (#regenerateModal) and the cloud modal (#ksmCloudModal, a portal into <body>, from a
 // root of its own outside the page). The legacy code computes what is shown;
-// app/js/44-react-shell.js publishes it. The brand, the spectator banner (a <body>-level element
-// before the header, see 44-) and the toast stay legacy.
+// app/js/44-react-shell.js publishes it (the legacy shell renderer was removed in M.13; without this
+// module the header says "Menus and dialogs could not load"). The brand, the spectator banner (a
+// <body>-level element before the header, see 44-) and the toast stay legacy.
 import { mountIsland } from '../island.tsx';
 import { CloudModal, FusenDialog, RegenerateDialog, ValidationDialog } from './Dialogs.tsx';
 import { Nav, StatusRow } from './Shell.tsx';

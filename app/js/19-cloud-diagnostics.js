@@ -14,7 +14,6 @@ function analyzeTournamentSnapshot(payload=tournamentPayload()){
   const setupBreakdown=Object.entries(payload?.setup||{}).map(([key,value])=>({key,bytes:payloadByteSize(value),summary:snapshotValueSummary(value)})).sort((a,b)=>b.bytes-a.bytes).slice(0,12);
   return {analyzedAt:new Date().toISOString(),totalBytes,largest,stateBreakdown,setupBreakdown};
 }
-function snapshotAnalysisHtml(analysis){if(!analysis)return '<p class="small">No snapshot analysis has been recorded yet. Make a change or press Save Now.</p>';const top=(analysis.stateBreakdown||[]).slice(0,16),deep=(analysis.largest||[]).slice(0,16);return `<div class="cloud-detail-grid"><div class="cloud-detail"><div class="small">Total snapshot</div><b>${esc(formatSnapshotBytes(analysis.totalBytes))}</b></div><div class="cloud-detail"><div class="small">Analyzed</div><b>${esc(formatDiagnosticTime(analysis.analyzedAt))}</b></div></div><h3 style="margin-top:18px">State breakdown</h3><div class="cloud-detail-grid">${top.map(x=>`<div class="cloud-detail"><div class="small">state.${esc(x.key)}</div><b>${esc(formatSnapshotBytes(x.bytes))}</b><div class="small">${esc(x.summary)}</div></div>`).join('')}</div><h3 style="margin-top:18px">Largest nested paths</h3><div class="cloud-detail-grid">${deep.map(x=>`<div class="cloud-detail"><div class="small" style="overflow-wrap:anywhere">${esc(x.path)}</div><b>${esc(formatSnapshotBytes(x.bytes))}</b><div class="small">${esc(x.summary)}</div></div>`).join('')}</div>`}
 function downloadSnapshotAnalysis(){const analysis=analyzeTournamentSnapshot();downloadJson({appVersion:'3.17.20-test',tournamentId:cloudSession.tournamentId||null,cloudRevision:cloudSession.revision||0,...analysis},`KSM_Snapshot_Analysis_${new Date().toISOString().replace(/[:.]/g,'-')}.json`)}
 function analyzeHistoryEntry(entry,index){
   const properties=Object.entries(entry||{}).map(([key,value])=>({key,bytes:payloadByteSize(value),summary:snapshotValueSummary(value)})).sort((a,b)=>b.bytes-a.bytes);
@@ -32,14 +31,6 @@ function analyzeCourtActionHistory(){
     courts[court]={entryCount:entries.length,totalBytes,averageBytes:entries.length?Math.round(totalBytes/entries.length):0,smallestBytes:sorted.length?sorted[sorted.length-1].totalBytes:0,largest:sorted[0]||null,first:analyzed[0]||null,latest:analyzed[analyzed.length-1]||null,entries:sorted.slice(0,12)};
   });
   return {analyzedAt:new Date().toISOString(),courts};
-}
-function historyEntryCard(title,item){
-  if(!item)return `<div class="cloud-detail"><div class="small">${esc(title)}</div><b>No entry</b></div>`;
-  const largestChanges=(item.changes||[]).slice(0,6).map(x=>`${x.key}: ${formatSnapshotBytes(x.bytes)}`).join(' • ');
-  return `<div class="cloud-detail"><div class="small">${esc(title)} • #${item.index+1}</div><b>${esc(item.label)} — ${esc(formatSnapshotBytes(item.totalBytes))}</b><div class="small" style="overflow-wrap:anywhere">${esc(largestChanges||'No changed state properties')}</div></div>`;
-}
-function actionHistoryAnalysisHtml(analysis=analyzeCourtActionHistory()){
-  return ['A','B'].map(court=>{const c=analysis.courts[court];return `<h3 style="margin-top:18px">Court ${court}</h3><div class="cloud-detail-grid"><div class="cloud-detail"><div class="small">Entries</div><b>${c.entryCount}</b></div><div class="cloud-detail"><div class="small">Total history</div><b>${esc(formatSnapshotBytes(c.totalBytes))}</b></div><div class="cloud-detail"><div class="small">Average entry</div><b>${esc(formatSnapshotBytes(c.averageBytes))}</b></div><div class="cloud-detail"><div class="small">Largest entry</div><b>${esc(formatSnapshotBytes(c.largest?.totalBytes||0))}</b></div>${historyEntryCard('First entry',c.first)}${historyEntryCard('Latest entry',c.latest)}${historyEntryCard('Largest entry',c.largest)}</div>`}).join('');
 }
 function historySampleEntry(entry,index){if(!entry)return null;return {analysis:analyzeHistoryEntry(entry,index),rawEntry:entry}}
 function downloadActionHistorySample(){

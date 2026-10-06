@@ -24,6 +24,9 @@
 // showed after the HTML parser read it (ksmHtmlText(), 43). What a redraw replaced (the dialogs'
 // innerHTML, a new cloud modal) lost the focus at that moment; React replaces it later, so the
 // focus leaves it here, at the same moment (ksmShellBlurIn()).
+// The legacy shell's DOM writing was removed in M.13 (the class and style writes of the menu
+// functions and of setActiveNavForView(), the status writers' text writes, openCloudModal() and
+// the dialogs' innerHTML); without the React module the header says so (the end of this part).
 // Stays legacy: the brand (static markup), the body classes (ksm-staff, ksm-spectator, ...,
 // read by the CSS and by code), the spectator banner (installRoleBanner() in 33: an element of
 // <body> before the header, sticky at the top, which the CSS selects as a child of <body>; a React
@@ -241,4 +244,20 @@ function ksmOpenDiagnostics(details,analysis,historyAnalysis,retry){
 function ksmOpenFileLoadModal(title,details,message,same){
   ksmOpenCloudModal(title,{kind:'file',same:!!same,details:details.map(([a,b,id])=>({label:ksmHtmlText(a),value:ksmHtmlText(b),testId:id})),message});
 }
+
+// If the React module (app/react/main.tsx, a module script after app.js) did not run, say so in the
+// header (e.g. an offline device whose cached copy lacks the module): nothing opens the menus or
+// shows the dialogs any more, and the status line is not updated. The bar's plain tiles and Staff
+// Login (static markup with their inline handlers) still work. Module scripts run before
+// DOMContentLoaded, so a working page never shows this. Existing styles only (.muted-card, .small).
+function ksmShowShellModuleMissing(){
+  if(window.ksmShellMounted)return;
+  const nav=document.querySelector('header.ksm-topbar nav.minimal-nav');
+  if(!nav||document.getElementById('shellModuleMissing'))return;
+  const notice=document.createElement('div');
+  notice.id='shellModuleMissing';notice.className='muted-card';notice.setAttribute('role','alert');notice.setAttribute('data-testid','shell-module-missing');
+  notice.innerHTML='<b>Menus and dialogs could not load</b><div class="small">Reload the page. If this device is offline, reconnect once so it can download the current version of the app.</div>';
+  nav.before(notice);
+}
+document.addEventListener('DOMContentLoaded',ksmShowShellModuleMissing);
 /* ksm:post-split-end */

@@ -25,9 +25,9 @@
 //
 // Old code deliberately deleted (REMOVED_COURT_RENDERER: the legacy court renderer, M.8
 // step 5; REMOVED_LIVE_SCORES_RENDERER, REMOVED_TV_RENDERER, REMOVED_RESULTS_RENDERER,
-// REMOVED_OVERVIEW_RENDERER, REMOVED_LIBRARY_RENDERER, REMOVED_POOLS_RENDERER, REMOVED_SETUP_RENDERER and
-// REMOVED_REGISTRATION_RENDERER: the legacy Live Scores, TV, Results, Overview, Tournament Library,
-// Pools, Setup and Registration players renderers, M.13) is named piece by piece; the check deletes exactly those pieces from the old script before comparing, so every
+// REMOVED_OVERVIEW_RENDERER, REMOVED_LIBRARY_RENDERER, REMOVED_POOLS_RENDERER, REMOVED_SETUP_RENDERER,
+// REMOVED_REGISTRATION_RENDERER and REMOVED_SHELL_RENDERER: the legacy Live Scores, TV, Results,
+// Overview, Tournament Library, Pools, Setup and Registration renderers and the legacy shell, M.13) is named piece by piece; the check deletes exactly those pieces from the old script before comparing, so every
 // other difference, and any piece that no longer matches, still fails.
 import { execFileSync } from 'node:child_process';
 import { minify } from 'vite';
@@ -65,17 +65,19 @@ const KNOWN_POST_SPLIT_EDITS = {
   'react-court': 8,
   // feat/react-shell (M.13, the last step): the shell's React islands (the navigation bar, the
   // header's status row, the Fusen-gachi, generation check, Regenerate Single Division and cloud
-  // dialogs). app/js/44-react-shell.js keeps what the legacy shell drew as plain data and publishes
-  // it; the legacy functions call it: closeManagementModal(), showValidationDialog(),
-  // openRegenerateDivisionDialog(), continueRegenerateDivision() (03), regenerateSingleDivision()
-  // (08), setConnectionStatus(), renderPersistentSaveStatus(), updateSaveStatus() (20),
-  // renderCloudPresence(), closeCloudModal(), cloudDiagnostics() (21), openFusenDialog(),
-  // closeFusenDialog() (22), setNavMenuState(), positionMobileNavMenu(), closeNavMenus(),
-  // toggleNavMenu() and the resize listener (23, two inline `was:` replacements of class reads),
-  // setActiveNavForView() (24), setSessionRole() (33, two `was:` lookups and the publish) and
+  // dialogs). app/js/44-react-shell.js keeps what the legacy shell drew as plain data, publishes it
+  // and shows a notice when the React module is missing. With the legacy shell renderer removed
+  // (REMOVED_SHELL_RENDERER) the legacy functions are marked publishers or call one:
+  // closeManagementModal(), showValidationDialog(), openRegenerateDivisionDialog(),
+  // continueRegenerateDivision() (03), regenerateSingleDivision() (08), setConnectionStatus(),
+  // renderPersistentSaveStatus(), updateSaveStatus() (20), renderCloudPresence(),
+  // closeCloudModal(), cloudDiagnostics() (21), openFusenDialog(), closeFusenDialog() (22),
+  // setNavMenuState(), positionMobileNavMenu(), closeNavMenus() and the resize listener (23, with
+  // two inline `was:` replacements: toggleNavMenu() and the listener read the open menu from a
+  // variable instead of the menus' classes), setActiveNavForView() (24), setSessionRole() and
   // openTournamentAccess() (33). Listed here because closeManagementModal() (03) is its first
   // region: the check compares names in order of first appearance.
-  'react-shell': 25,
+  'react-shell': 23,
   // feat/react-registration (M.13): Registration part 1's React islands (#regTable, the contents
   // of #tournamentStatusCard). With the legacy renderer removed (REMOVED_REGISTRATION_RENDERER)
   // renderReg()'s body (03) is a marked publisher and renderTournamentStatus() (03) publishes in
@@ -88,11 +90,12 @@ const KNOWN_POST_SPLIT_EDITS = {
   // Listed here because renderTournamentStatus() (03) is its
   // first region: the check compares names in order of first appearance.
   'react-registration': 6,
-  // fix/pre-event (M.12): test IDs on markup drawn by app/js (03: the Regenerate Single Division
-  // dialog), each line kept in its `was:` marker. Test IDs on the static markup are listed in
-  // MARKUP_TEST_IDS instead. (The exhibition rows' region went with renderExhibitions()'s body in
-  // feat/react-registration-2: the React rows carry those test IDs; 4 -> 3.)
-  'test-ids': 3,
+  // fix/pre-event (M.12) added test IDs to markup drawn by app/js in `test-ids` regions (each line
+  // kept in its `was:` marker): the exhibition rows' region went with renderExhibitions()'s body in
+  // feat/react-registration-2 (4 -> 3), the Regenerate Single Division dialog's three
+  // (openRegenerateDivisionDialog() x2, continueRegenerateDivision()) with the legacy shell in
+  // feat/react-shell (3 -> none): the React islands carry those test IDs. Test IDs on the static
+  // markup are listed in MARKUP_TEST_IDS.
   // fix/react-batch-1 (F19) escaped the status class of the team cards and exhibition rows
   // (html-escape: 1, in renderTeams()); that code went with the legacy renderer in
   // feat/react-registration-2 (React escapes it; html-escaping-test.py pins it).
@@ -378,6 +381,40 @@ const REMOVED_REGISTRATION_RENDERER = [
   'renderExhibitions#1:body',                                    // 03: publishes the table (react-registration)
   { from: "  if(window.indTab)indTab.classList.toggle('active',mode==='individual');\n", to: "if(window.poolsTab)poolsTab.classList.toggle('active',mode==='pools');\n" }, // 23: regTab()'s tab classes (react-registration publishes the tab)
 ];
+// feat/react-shell (M.13, the last step): the legacy shell renderer, deleted. React draws the
+// navigation bar, the header's status row and the pop-up dialogs (app/react/shell/);
+// tests/golden/shell/*.json pin what this code drew. Same entry forms as REMOVED_COURT_RENDERER.
+// The decisions and actions stay: toggleNavMenu(), navigateTo(), chooseCourt(), the document
+// listeners and the resize listener (23), setSessionRole()'s role and body classes (33),
+// installRoleBanner() (33: the banner stays legacy), the save and sync code that sets the status,
+// openFusenDialog()'s guard and confirmFusen() (22), validateTournament(),
+// requestTournamentGeneration(), divisionRegenerationStatus() (03), regenerateSingleDivision()
+// (08), cloudDiagnostics()'s details, openTournamentAccess()'s save first (33), copyTextValue(),
+// the downloads and retryQueuedCloudSave() (21), the Load Tournament File checks (21,
+// load-file-guard), the stream overlay links' functions (33-stream-overlay-links.js).
+const REMOVED_SHELL_RENDERER = [
+  'closeManagementModal#1:body',                                 // 03: publishes (react-shell); other ids keep the class write in the region
+  'showValidationDialog#1:body',                                 // 03: publishes the generation check
+  'openRegenerateDivisionDialog#1:body',                         // 03: publishes the division list
+  'continueRegenerateDivision#1:body',                           // 03: publishes the confirmation
+  { from: "regenerateModalTitle.textContent='Division Regenerated';", to: "OK</button>';" }, // 08: regenerateSingleDivision()'s result (publishes)
+  'snapshotAnalysisHtml#1', 'historyEntryCard#1', 'actionHistoryAnalysisHtml#1', // 19: only cloudDiagnostics() used them
+  'setConnectionStatus#1:body', 'renderPersistentSaveStatus#1:body', 'updateSaveStatus#1:body', // 20: publish the status line
+  { from: "const el=document.getElementById('cloudPresence');", to: "online`:''" }, // 21: renderCloudPresence()'s text (publishes)
+  'closeCloudModal#1:body',                                      // 21: publishes
+  'openCloudModal#1',                                            // 21: the modal's markup; its callers publish their content
+  'showQr#1', 'openTournamentAccess#1',                          // 21: overridden by openTournamentAccess#2 (33) and never run; showQr() was only its
+  // 21: cloudDiagnostics()'s markup (it publishes the details and analyses).
+  { from: 'const actions=`<div class="row" style="justify-content:flex-end;margin-top:18px;gap:10px;flex-wrap:wrap"><button class="secondary" onclick="downloadSnapshotAnalysis()">', to: '${actionHistoryAnalysisHtml(historyAnalysis)}${actions}`)' },
+  { from: "  const dlg=document.getElementById('fusenDialog');\n  if(dlg)dlg.classList.remove('hidden');", to: "dlg.classList.remove('hidden');" }, // 22: openFusenDialog() (publishes)
+  'closeFusenDialog#1:body',                                     // 22: publishes
+  'setNavMenuState#1:body', 'positionMobileNavMenu#1:body', 'closeNavMenus#1:body', // 23: publish the open menu and its placement
+  { from: "openMenu.style.removeProperty('top');", to: "openMenu.style.removeProperty('max-height');" }, // 23: the resize listener (publishes)
+  'setActiveNavForView#1:body',                                  // 24: publishes the screen's label
+  { from: "const el=document.getElementById('sessionRole');if(el){el.textContent=ksmSessionRole==='staff'?'Staff':'Spectator';", to: "el.dataset.role=ksmSessionRole}" }, // 33: setSessionRole()'s role text
+  { from: "const btn=document.getElementById('staffAuthButton');", to: "?'Logout':'Staff Login'" }, // 33: setSessionRole()'s button text (publishes both)
+  { from: "openCloudModal('Tournament Access',`<div class=\"access-link-box\"", to: "</div>`)" }, // 33: openTournamentAccess()'s markup (publishes)
+];
 // fix/pre-event (M.12): data-testid attributes added to existing markup, as [old start tag, test ID];
 // the check takes each ` data-testid="<id>"` out again (it must appear exactly once, at the end
 // of that tag) and then compares byte for byte, so any other markup change still fails.
@@ -427,7 +464,7 @@ for (const name of MOVED_TO_ENGINE) {
   const at = oldScript.lastIndexOf(fn);
   oldScript = oldScript.slice(0, at) + fn.slice(0, fn.indexOf('{') + 1) + '}' + oldScript.slice(at + fn.length);
 }
-// Delete REMOVED_COURT_RENDERER, REMOVED_LIVE_SCORES_RENDERER, REMOVED_TV_RENDERER, REMOVED_RESULTS_RENDERER, REMOVED_OVERVIEW_RENDERER, REMOVED_LIBRARY_RENDERER, REMOVED_POOLS_RENDERER, REMOVED_SETUP_RENDERER and REMOVED_REGISTRATION_RENDERER from the old script: find every
+// Delete REMOVED_COURT_RENDERER, REMOVED_LIVE_SCORES_RENDERER, REMOVED_TV_RENDERER, REMOVED_RESULTS_RENDERER, REMOVED_OVERVIEW_RENDERER, REMOVED_LIBRARY_RENDERER, REMOVED_POOLS_RENDERER, REMOVED_SETUP_RENDERER, REMOVED_REGISTRATION_RENDERER and REMOVED_SHELL_RENDERER from the old script: find every
 // piece first (positions in the old script as it is now), refuse overlaps, then cut from the end.
 {
   const removed = [
@@ -440,6 +477,7 @@ for (const name of MOVED_TO_ENGINE) {
     ...REMOVED_POOLS_RENDERER.map(entry => ['REMOVED_POOLS_RENDERER', entry]),
     ...REMOVED_SETUP_RENDERER.map(entry => ['REMOVED_SETUP_RENDERER', entry]),
     ...REMOVED_REGISTRATION_RENDERER.map(entry => ['REMOVED_REGISTRATION_RENDERER', entry]),
+    ...REMOVED_SHELL_RENDERER.map(entry => ['REMOVED_SHELL_RENDERER', entry]),
   ];
   const cuts = removed.map(([list, entry]) => {
     if (typeof entry === 'object') {

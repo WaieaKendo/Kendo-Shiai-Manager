@@ -294,8 +294,9 @@ def overview_static_markup(browser, errors):
         page.on('pageerror', lambda e, l=label: errors.append(f'{l}: {e}'))
         page.add_init_script(REFRESH_TIMER_INIT)
         if html is not None:
-            # Without the module the notice would replace the dashboard; keep the static markup.
-            page.add_init_script('window.ksmOverviewMounted = true;')
+            # Without the module the notice would replace the dashboard (and, since the shell is React
+            # too, another one would sit in the header above it); keep the static markup.
+            page.add_init_script('window.ksmOverviewMounted = true; window.ksmShellMounted = true;')
         load_app(page, html=html)
         page.add_style_tag(content=NO_TRANSITIONS)
         page.evaluate(UNDRAWN_JS)

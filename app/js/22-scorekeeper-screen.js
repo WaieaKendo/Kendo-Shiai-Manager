@@ -13,14 +13,10 @@ function matchDisplayMeta(m){
 function openFusenDialog(){
   const m=state.matches?.[state.current];
   if(!m){return;}
-  /* ksm:post-split-begin react-shell */ksmSetFusenOpen(true);if(window.ksmShellMounted)return;/* ksm:post-split-end */
-  const dlg=document.getElementById('fusenDialog');
-  if(dlg)dlg.classList.remove('hidden');
+  /* ksm:post-split-begin react-shell */ksmSetFusenOpen(true);/* ksm:post-split-end */
 }
 function closeFusenDialog(){
-  /* ksm:post-split-begin react-shell */ksmSetFusenOpen(false);if(window.ksmShellMounted)return;/* ksm:post-split-end */
-  const dlg=document.getElementById('fusenDialog');
-  if(dlg)dlg.classList.add('hidden');
+  /* ksm:post-split-begin react-shell */ksmSetFusenOpen(false);/* ksm:post-split-end */
 }
 function confirmFusen(side){
   closeFusenDialog();

@@ -73,7 +73,9 @@ Since M.13 React draws the shell (app/react/shell/: the navigation bar, the stat
 dialogs as islands with their roots, the cloud modal as a portal into <body>;
 app/js/44-react-shell.js publishes their data). React must render every element of the islands
 (and they must be the islands' roots) and of the cloud modal, and every kind of content must be
-covered. The brand, the banner and the toast stay legacy.
+covered. The brand, the banner and the toast stay legacy. The legacy shell renderer is removed,
+so this test pins the React-only shell; last, the app without the React module script must show
+the "Menus and dialogs could not load" notice in the header (and a working page never shows it).
 
 Approve an intended change (review the JSON diff, commit it with the code change):
 
@@ -598,6 +600,34 @@ def without_screens_module():
     return html.replace(module.group(0), '')
 
 
+def shell_module_missing(browser):
+    """Without the React module nothing opens the menus, shows the dialogs or updates the status
+    line: the header says so; the bar's plain tiles and Staff Login (static markup with their inline
+    handlers) still work, and the legacy code still publishes."""
+    page = browser.new_page(viewport=DESKTOP)
+    errors = []
+    page.on('pageerror', lambda e: errors.append(f'shell module missing: {e}'))
+    page.on('dialog', lambda d: d.dismiss())
+    load_app(page, html=without_screens_module())
+    notice = page.locator(f'header.ksm-topbar {tid("shell-module-missing")}')
+    assert notice.is_visible(), 'no "Menus and dialogs could not load" notice without the React module'
+    assert 'Menus and dialogs could not load' in notice.inner_text(), notice.inner_text()
+    page.locator(tid('nav-results')).dispatch_event('click')
+    assert page.evaluate(VIEW_JS) == ['results'], 'a plain tile does not work without the React module'
+    assert page.evaluate('window.ksmShellNavInput.active') == 'Results', 'setActiveNavForView() did not publish without the island'
+    page.locator(tid('nav-courts')).dispatch_event('click')
+    assert page.evaluate('window.ksmShellNavInput.open') == 'courtsMenu', 'toggleNavMenu() did not publish without the island'
+    assert page.locator('#courtsMenu').is_hidden(), 'something opened the menu without the React module'
+    page.evaluate('() => requestTournamentGeneration()')
+    assert page.evaluate('window.ksmShellDialogsInput.validation.open') and page.locator('#validationModal').is_hidden(), \
+        'showValidationDialog() did not publish, or something showed the dialog, without the React module'
+    page.evaluate('() => cloudDiagnostics()')
+    assert page.locator('#ksmCloudModal').count() == 0 and page.evaluate('window.ksmShellDialogsInput.cloud.title') == 'Developer Tools', \
+        'cloudDiagnostics() did not publish, or something drew the modal, without the React module'
+    assert not errors, errors
+    page.close()
+
+
 SCENARIOS = {
     'nav-staff': nav_staff,
     'nav-spectator': nav_spectator,
@@ -605,7 +635,7 @@ SCENARIOS = {
     'dialogs': dialogs,
     'cloud-modals': cloud_modals,
 }
-CHECKS = {}
+CHECKS = {'shell-module-missing': shell_module_missing}
 REACT_CHECK = check_react
 
 

@@ -1,34 +1,12 @@
 // ---------- KSM v3.9.1 Minimal navigation ----------
 function setNavMenuState(menu,open){
-  /* ksm:post-split-begin react-shell */ksmSetNavMenuState(menu,open);if(window.ksmShellMounted)return;/* ksm:post-split-end */
-  if(!menu)return;
-  menu.classList.toggle('hidden',!open);
-  menu.classList.toggle('is-open',open);
-  const trigger=document.querySelector(`[aria-controls="${menu.id}"]`);
-  if(trigger)trigger.setAttribute('aria-expanded',open?'true':'false');
-  if(!open){
-    menu.style.removeProperty('top');
-    menu.style.removeProperty('left');
-    menu.style.removeProperty('right');
-    menu.style.removeProperty('max-height');
-  }
+  /* ksm:post-split-begin react-shell */ksmSetNavMenuState(menu,open);/* ksm:post-split-end */
 }
 function positionMobileNavMenu(menu,trigger){
-  /* ksm:post-split-begin react-shell */ksmPositionNavMenu(menu,trigger);if(window.ksmShellMounted)return;/* ksm:post-split-end */
-  if(!menu||!trigger||!window.matchMedia('(max-width:900px)').matches)return;
-  const rect=trigger.getBoundingClientRect();
-  const margin=12;
-  const top=Math.min(window.innerHeight-80,Math.max(margin,rect.bottom+8));
-  menu.style.top=`${top}px`;
-  menu.style.left=`${margin}px`;
-  menu.style.right=`${margin}px`;
-  menu.style.maxHeight=`${Math.max(120,window.innerHeight-top-margin)}px`;
+  /* ksm:post-split-begin react-shell */ksmPositionNavMenu(menu,trigger);/* ksm:post-split-end */
 }
 function closeNavMenus(exceptId){
-  /* ksm:post-split-begin react-shell */ksmCloseNavMenus(exceptId);if(window.ksmShellMounted)return;/* ksm:post-split-end */
-  document.querySelectorAll('.nav-dropdown').forEach(menu=>{
-    if(menu.id!==exceptId)setNavMenuState(menu,false);
-  });
+  /* ksm:post-split-begin react-shell */ksmCloseNavMenus(exceptId);/* ksm:post-split-end */
 }
 function toggleNavMenu(id,event){
   if(event){event.preventDefault();event.stopPropagation();}
@@ -94,11 +72,7 @@ window.addEventListener('resize',function(){
   const trigger=document.querySelector(`[aria-controls="${openMenu.id}"]`);
   if(window.matchMedia('(max-width:900px)').matches)positionMobileNavMenu(openMenu,trigger);
   else {
-    /* ksm:post-split-begin react-shell */ksmUnplaceNavMenu();if(window.ksmShellMounted)return;/* ksm:post-split-end */
-    openMenu.style.removeProperty('top');
-    openMenu.style.removeProperty('left');
-    openMenu.style.removeProperty('right');
-    openMenu.style.removeProperty('max-height');
+    /* ksm:post-split-begin react-shell */ksmUnplaceNavMenu();/* ksm:post-split-end */
   }
 });
 

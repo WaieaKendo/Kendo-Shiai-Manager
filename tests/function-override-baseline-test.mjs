@@ -26,10 +26,14 @@ import { html, countDefinitions } from './lib/ksm-source.mjs';
 // (overridden by 23-'s, never run): 14 -> 13 (regTab 2->1).
 // M.13 (feat/react-registration-2) removed the team cards, exhibition table and tab class
 // renderers, none of them redeclared (13).
+// M.13 (feat/react-shell) removed the legacy shell renderer with the first openTournamentAccess()
+// (21-, overridden by 33-'s and never run) and showQr(), which only it used: 13 -> 12
+// (openTournamentAccess 2->1). The dead 21-/20- installRoleBanner(), setSessionRole() and
+// spectatorLink() stay for 2.10 (the banner stays legacy; the others are not renderer code).
 const BASELINE = {
   canCloudWrite: 2, cloudHeaders: 2, cloudSocketUrl: 2, initializeCloudRoleFromUrl: 2,
   installRoleBanner: 2, isReadOnlySession: 2, isSpectatorSession: 2,
-  loadTournamentFromCloud: 2, openTournamentAccess: 2,
+  loadTournamentFromCloud: 2,
   sessionKey: 2,
   setSessionRole: 2, spectatorLink: 2, syncIndividualSingleElim: 2,
 };
