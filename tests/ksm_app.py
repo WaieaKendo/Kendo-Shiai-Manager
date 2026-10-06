@@ -230,6 +230,14 @@ class KsmApp:
         """(test API) Apply a tournament copy as an applied live update does (state replaced, redrawn)."""
         self.page.evaluate('p => KSMTest.applyLiveUpdate(p)', payload)
 
+    def watch_saves(self):
+        """(test API) Start counting the saves this device asks for (see saves_asked)."""
+        self.page.evaluate('KSMTest.watchSaves()')
+
+    def saves_asked(self):
+        """(test API) Saves asked for (scheduled or immediate) since the last call."""
+        return self.page.evaluate('KSMTest.savesAsked()')
+
     def client_id(self):
         """(test API) This device's client ID (sent with every save)."""
         return self.page.evaluate('KSMTest.clientId()')

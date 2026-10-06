@@ -117,7 +117,7 @@ export function PoolOutput() {
         <div>
           <div className="toolbar">
             <button className="primary" onClick={() => { w.saveEditedPools?.(); }} data-testid="pool-edit-save">{SAVE_POOLS_TEXT}</button>
-            <button onClick={() => { w.renderPools?.(); }}>{CANCEL_TEXT}</button>
+            <button onClick={() => { w.renderPools?.(); }} data-testid="pool-edit-cancel">{CANCEL_TEXT}</button>
           </div>
           <p className="sub">{EDITOR_HELP}</p>
           <div className="pool-list">{view.pools.map((p, i) => <EditorPool key={i} pool={p} rows={p.rows} />)}</div>

@@ -36,6 +36,18 @@ window.KSMTest = {
   allMatches() { return state.allMatches; },
   pools() { return state.pools; },
   saveNow(label) { criticalAutoSave(label); },
+  // Count the saves this device asks for (every scheduleAutoSave()/criticalAutoSave(), also from the
+  // document-wide input/change/click listeners, which look them up at call time); savesAsked()
+  // returns how many since the last call.
+  watchSaves() {
+    if (window.__ksmTestSaves) return;
+    window.__ksmTestSaves = {count: 0};
+    ['scheduleAutoSave', 'criticalAutoSave'].forEach(f => {
+      const orig = window[f];
+      window[f] = function (...args) { window.__ksmTestSaves.count++; return orig.apply(this, args); };
+    });
+  },
+  savesAsked() { const n = window.__ksmTestSaves?.count || 0; if (window.__ksmTestSaves) window.__ksmTestSaves.count = 0; return n; },
   // Show a screen without re-running its menu action ('score' has no plain nav item).
   show(view) { navigateTo(view); },
   // Render the TV display in this page (a real TV device opens the ?view=tv link).

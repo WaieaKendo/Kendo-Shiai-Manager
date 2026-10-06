@@ -27,6 +27,8 @@ context.scheduleAutoSave=()=>{};
 context.setActiveDivision=()=>{};
 context.findNextForCourt=(court,div)=>({division:div,index:0});
 context.seedNameForLabel=()=>null;
+// F12: Save Pool Changes applies the editor's copy (ksmPoolEditToSave(), 41-); here the pools as given.
+context.ksmPoolEditToSave=div=>context.state.pools[div];
 vm.createContext(context);
 vm.runInContext(`${engine}
 const POOL_MATCH_TEMPLATES=Object.freeze({

@@ -36,11 +36,36 @@ function ksmPoolsViewInput(div){
   return {kind:'pools',pools:poolData,message,edit,rightTitle,bracket:ksmBracket(div)};
 }
 function ksmRenderPools(div){
+  // The view replaces the editor: an edit not saved is dropped (F12, see below).
+  ksmPoolEdit=null;
   ksmPublishPools(ksmPoolsViewInput(div));
+}
+// F12: Edit Pool works on a copy of the division's pools. The drops (dropPoolPlayer(),
+// insertPoolPlayer(), movePoolPlayer() in 16-) move players in the copy, which the editor shows;
+// state.pools changes only when Save Pool Changes applies it (saveEditedPools(), 16-). Leaving the
+// editor any other way - Cancel, the division select, a live update or any other redraw of the
+// view (renderPools()) - drops the copy, so the pools are exactly as before. Clicks in the editor
+// (Save, Cancel) do not ask for an autosave (the click listener, 21-): only an applied Save saves.
+var ksmPoolEdit=null;
+function ksmPoolEditPools(div){
+  if(!ksmPoolEdit||ksmPoolEdit.div!==div)ksmPoolEdit={div,pools:cloneJson(state.pools[div]||[])};
+  return ksmPoolEdit.pools;
+}
+function ksmPoolEditorClick(target){return !!ksmPoolEdit&&!!target?.closest?.('#poolOutput')}
+// Save Pool Changes: the edited pools to apply, or null (nothing to do). Without a move it only
+// closes the editor (nothing is rebuilt). With matches already played it asks first: rebuilding
+// the division's matches deletes their results; Cancel keeps them and the editor (nothing saved).
+function ksmPoolEditToSave(div){
+  const pools=ksmPoolEdit&&ksmPoolEdit.div===div?ksmPoolEdit.pools:null;
+  if(!pools||JSON.stringify(pools)===JSON.stringify(state.pools[div]||[])){renderPools();return null}
+  const played=(state.allMatches?.[div]||[]).filter(m=>m&&m.done).length;
+  if(played&&!confirm(`Delete the results of ${played} played ${played===1?'match':'matches'} in ${div}?\n\nSaving the new pools rebuilds the division's matches, so the results played so far are deleted. Cancel keeps the results and the editor open (nothing is saved).`))return null;
+  ksmPoolEdit=null;
+  return pools;
 }
 // toggleEditPools() (16) as data: the editor of the division's pools (slot letters by position).
 function ksmRenderPoolEditor(div){
-  const pools=state.pools[div]||[];
+  const pools=ksmPoolEditPools(div);
   ksmPublishPools({kind:'editor',
     pools:pools.map(p=>({label:String(p.label??''),title:`Pool ${ksmText(p.label)}`,
       players:p.players.map((x,idx)=>({slot:ksmText(poolPlayerSlotLetter(idx)),name:ksmText(x.name),dojo:ksmText(x.dojo||'')}))})),

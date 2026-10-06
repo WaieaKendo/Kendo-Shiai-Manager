@@ -45,7 +45,7 @@ EXHIBITION_ROW = ['exhibition-white', 'exhibition-red', 'exhibition-status', 'ex
 REGENERATE_OPTION = ['regenerate-option-name', 'regenerate-option-radio', 'regenerate-option-status']
 # Rendered only in a given state; checked where the flow below reaches that state.
 POOLS_VIEW = {'pool-edit': 1, 'pool-slot': 4}
-POOL_EDIT = {'pool-edit-pool': 1, 'pool-edit-player': 4, 'pool-edit-drop': 5, 'pool-edit-save': 1}  # a drop slot around each player
+POOL_EDIT = {'pool-edit-pool': 1, 'pool-edit-player': 4, 'pool-edit-drop': 5, 'pool-edit-save': 1, 'pool-edit-cancel': 1}  # a drop slot around each player
 COURT_POOL_CONTEXT = ['context-pool', 'context-pool-title']
 TV_SCREEN = ['tv-canvas', 'tv-header', 'tv-upcoming', 'tv-upcoming-card', 'tv-upcoming-white', 'tv-upcoming-red']
 # Also in the contract, exercised by the feature tests that need their state (docs/TESTING.md):

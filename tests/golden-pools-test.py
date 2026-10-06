@@ -46,11 +46,13 @@ with Playwright's real mouse drag (locator.drag_to) in Chromium.
                       Pool on a round robin of 14 and of 3: dragging a player onto
                       another pool, onto drop zones (first, middle, last, same pool down and
                       up), onto a heading and a player (nothing), a real mouse drag; the
-                      drop-target class mid-drag; Cancel (the moves stay); the select, a live
-                      update (renderAll()) and Edit Pool again during editing; emptying a pool;
-                      Save Pool Changes; phones while editing;
+                      drop-target class mid-drag; Cancel (the moves are undone: F12); the
+                      select, a live update (renderAll()) and Edit Pool again during editing
+                      (both cancel the edit); emptying a pool; Save Pool Changes; phones while
+                      editing;
   pools-started       a split round robin of 8 with matches played before Edit Pool and Save
-                      (the results are rebuilt away), and played through;
+                      (F12: a warning first; Cancel keeps the results and the editor, OK
+                      rebuilds them away), and played through;
   play-*              whole divisions played through on Courts A and B (the court's next ready
                       match chosen as the golden engine test does, points and Next Match called
                       as the court buttons do; renderPools() redraws the hidden view) with the
@@ -395,7 +397,7 @@ def pools_edit(browser, errors, react_check):
     # scrolled into view first.
     g.do('real mouse drag: pool D\'s first player onto pool C', lambda a: real_drag(a, 12, POOL, 2))
     g.do('real mouse drag: pool C\'s last player onto pool C\'s first drop zone', lambda a: real_drag(a, 12, DROP_ZONE, 11))
-    g.do('Cancel (the moves stay)', lambda a: click(a.page, f'{ROOT} #poolOutput .toolbar button', 1))
+    g.do('Cancel (the moves are undone)', lambda a: click(a.page, f'{ROOT} #poolOutput .toolbar button', 1))
     g.do('Edit Pool again', lambda a: click(a.page, '[data-testid="pool-edit"]'))
     drag(g, 'pool C\'s third player onto pool A', 11, (POOL, 0), over=False)
     g.do('a live update while editing (renderAll())', lambda a: a.page.evaluate('() => renderAll()'))
@@ -427,7 +429,11 @@ def pools_started(browser, errors, react_check):
     play_all(g, 'pools-started', limit=4)
     g.do('Edit Pool after matches started', lambda a: click(a.page, '[data-testid="pool-edit"]'))
     drag(g, 'A1 onto pool B', 0, (POOL, 1), over=False)
-    g.do('Save Pool Changes after matches started', lambda a: click(a.page, '[data-testid="pool-edit-save"]'))
+    # F12: the app asks before deleting the played results; Cancel keeps them and the editor.
+    g.answer = lambda d: d.dismiss() if d.type == 'confirm' else d.accept()
+    g.do('Save Pool Changes after matches started: the warning, Cancel', lambda a: click(a.page, '[data-testid="pool-edit-save"]'))
+    g.answer = None
+    g.do('Save Pool Changes after matches started: the warning, OK', lambda a: click(a.page, '[data-testid="pool-edit-save"]'))
     play_all(g, 'pools-started', label='after the edit: ')
     g.do('complete', lambda a: a.page.evaluate(SHOW_POOLS_JS))
     g.do('complete: Edit Pool', lambda a: click(a.page, '[data-testid="pool-edit"]'))

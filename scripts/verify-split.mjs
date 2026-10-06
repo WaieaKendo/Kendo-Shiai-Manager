@@ -90,6 +90,12 @@ const KNOWN_POST_SPLIT_EDITS = {
   // plain data and shows a notice when the React module is missing. Listed here because renderPools() (08) is its first region: the check
   // compares names in order of first appearance.
   'react-pools': 3,
+  // fix/react-batch-1 (F12): Edit Pool works on a copy (41-react-pools.js): the drop handlers
+  // insertPoolPlayer(), dropPoolPlayer() and movePoolPlayer() (16) move players in it (three inline
+  // replacements), saveEditedPools() (16) applies it after the played-results warning (one), and
+  // the document-wide click listener (21) asks for no autosave for clicks in the editor (one).
+  // toggleEditPools() reads the copy inside its react-pools region.
+  'pool-edit': 5,
   // fix/pre-event (F9): printPlacementsForDivision() uses resultPlacements() (comment + body).
   'print-placements': 2,
   // fix/pre-event (F3, from fix/court-pin-after-reload): the pinned-court key no longer holds the
