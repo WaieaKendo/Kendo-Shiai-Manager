@@ -116,7 +116,8 @@ export function overviewView(input: OverviewInput): OverviewView {
   const t = input.overall;
   return {
     tournamentName: input.tournamentName,
-    count: t.variable ? `${t.completed} Completed • fixed-format total ${t.total}` : `${t.completed} / ${t.total} Matches`,
+    // F15: with kachinuki the total holds the kachinuki bouts known so far (tournamentSummary(), 30-).
+    count: t.variable ? `${t.completed} / ${t.total} Matches so far` : `${t.completed} / ${t.total} Matches`,
     remaining: t.variable ? 'Kachinuki totals vary by result' : `${t.remaining} Remaining`,
     barWidth: `${percent(t.completed, t.total)}%`,
     courts: input.courts.map(overviewCourtView),

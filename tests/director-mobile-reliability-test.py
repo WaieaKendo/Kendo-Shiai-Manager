@@ -46,8 +46,10 @@ with sync_playwright() as p:
     summary=page.evaluate("tournamentSummary()")
     assert individual=={'completed':0,'total':3,'remaining':3,'variable':False},individual
     assert kach=={'completed':1,'total':None,'remaining':None,'variable':True},kach
-    assert summary['total']==10 or summary['total']==3, summary
-    # The known fixed-format total must remain present; exact total can include Direct8.
+    # The fixed-format total (Individual 3, with Direct8 7) plus the kachinuki bouts known so far
+    # (2; F15: counted in the total as in completed, so the bar stays within 100%).
+    assert summary['total']==12 or summary['total']==5, summary
+    assert summary['completed']<=summary['total'], summary
     assert summary['total']>=3 and summary['variable'] is True
 
     # Mobile date field matches the width of other Setup fields.

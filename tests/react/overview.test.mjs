@@ -34,12 +34,13 @@ test('overviewView: no matches at all is 0 / 0 with a 0% bar', () => {
   assert.equal(view.barWidth, '0%');
 });
 
-test('overviewView: a kachinuki division makes the overall line variable (its bouts counted, not in the total)', () => {
-  const view = overviewView({ kind: 'overview', tournamentName: 'T', overall: { completed: 18, total: 3, remaining: 1, variable: true }, courts: [] });
-  assert.equal(view.count, '18 Completed • fixed-format total 3');
+test('overviewView: a kachinuki division makes the overall line variable (its known bouts in the total, F15)', () => {
+  // tournamentSummary(): 3 fixed-format matches + 18 kachinuki bouts known so far, 18 completed.
+  const view = overviewView({ kind: 'overview', tournamentName: 'T', overall: { completed: 18, total: 21, remaining: 3, variable: true }, courts: [] });
+  assert.equal(view.count, '18 / 21 Matches so far');
   assert.equal(view.remaining, 'Kachinuki totals vary by result');
-  // The bar still follows completed / fixed total (legacy: Math.round(18 / 3 * 100)).
-  assert.equal(view.barWidth, '600%');
+  // The bar follows completed / total and so stays within 100% (it went to 600% before F15).
+  assert.equal(view.barWidth, '86%');
 });
 
 test('overviewCourtView: a fixed-format court card with its bar as the template printed it', () => {

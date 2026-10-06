@@ -1,8 +1,8 @@
 """Golden (snapshot) test of the Overview screen (#director, nav "Overview"; roadmap M.13).
 
 The Overview shows the tournament name, the overall progress (completed / total matches, the
-progress bar, remaining; with a kachinuki division "N Completed • fixed-format total T" and no
-remaining count) and a card per court (Court A, Court B: the court's division and round, the
+progress bar, remaining; with a kachinuki division "C / T Matches so far", its bouts known so far
+in the total (F15, fixed; was "N Completed • fixed-format total T") and no remaining count) and a card per court (Court A, Court B: the court's division and round, the
 division's progress on that court with its bar, remaining, and the Current / On Deck /
 Following matches). The approved snapshots in tests/golden/overview/*.json were recorded from
 the LEGACY renderer (renderDirector() and directorMatchRow() in

@@ -143,6 +143,9 @@ const KNOWN_POST_SPLIT_EDITS = {
   // and app/js/38-react-results.js publishes the screen as plain data and shows a notice when the
   // React module is missing.
   'react-results': 3,
+  // fix/react-batch-1 (F15): tournamentSummary() (30) adds a kachinuki division's known bouts to
+  // the total, as its completed count does.
+  'overview-kachinuki': 1,
   // feat/react-overview (M.13): the Overview screen's React island. With the legacy renderer
   // removed (REMOVED_OVERVIEW_RENDERER) renderDirector()'s body (30) is a marked call of
   // ksmRenderOverview(), and app/js/39-react-overview.js publishes the screen as plain data and

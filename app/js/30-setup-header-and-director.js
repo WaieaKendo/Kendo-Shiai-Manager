@@ -115,7 +115,12 @@ function tournamentSummary(){
   return divisions.reduce((sum,div)=>{
     const x=directorDivisionProgress(div,null);
     sum.completed+=x.completed||0;
-    if(x.total==null){sum.variable=true;return sum;}
+    if(x.total==null){sum.variable=true;/* ksm:post-split-begin overview-kachinuki */
+      // F15: a kachinuki division adds the bouts known so far (played and created) to the total, the
+      // same bouts its completed count is taken from, so the overall bar never passes 100%.
+      const known=(state.allMatches?.[div]||[]).filter(m=>m.type==='kachinuki'||m.type==='teamPlayoff').length;
+      sum.total+=Math.max(known,x.completed||0);sum.remaining+=Math.max(0,known-(x.completed||0));
+      /* ksm:post-split-end */return sum;}
     sum.total+=x.total;
     sum.remaining+=x.remaining||0;
     return sum;
