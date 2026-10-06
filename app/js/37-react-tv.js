@@ -81,4 +81,13 @@ function ksmShowTvModuleMissing(){
   live.before(notice);
 }
 document.addEventListener('DOMContentLoaded',ksmShowTvModuleMissing);
+
+// F14: the TV CSS (13-tv.css, tv-fit) scales the 1920x1080 canvas by --ksm-tv-fit to fit the
+// window, centred. Set here (CSS cannot divide lengths) and on every resize; harmless off the TV.
+function ksmFitTv(){
+  const root=typeof document!=='undefined'&&document.documentElement;
+  if(!root||!root.style||typeof window==='undefined')return;
+  root.style.setProperty('--ksm-tv-fit',String(Math.min(window.innerWidth/1920,window.innerHeight/1080)||1));
+}
+if(typeof window!=='undefined'&&window.addEventListener){ksmFitTv();window.addEventListener('resize',ksmFitTv);}
 /* ksm:post-split-end */

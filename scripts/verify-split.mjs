@@ -161,6 +161,9 @@ const KNOWN_POST_SPLIT_CSS_EDITS = {
   // fix/pre-event (F2): Undo/Redo stay on the division-complete court screen (08); only
   // Fusen-gachi and Next Match are hidden there.
   'undo-after-complete': 1,
+  // fix/react-batch-1 (F14): the TV canvas scales to fit the window, centred (end of 13-tv.css;
+  // the factor --ksm-tv-fit comes from ksmFitTv() in app/js/37-react-tv.js, react-tv region).
+  'tv-fit': 1,
 };
 // Old functions whose body now lives in app/engine/*.ts (parameter lists without braces).
 const MOVED_TO_ENGINE = [
