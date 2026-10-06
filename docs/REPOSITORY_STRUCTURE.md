@@ -50,7 +50,7 @@ app/                 Front-end source (built by Vite into dist/, which is not co
   service-worker.js   PWA service worker (the build adds the hashed bundle names)
 src-worker.js        Cloudflare Worker backend (API + Durable Object)
 scripts/             Build helpers (app-sources.mjs), verify-split.mjs, reset-cloud-data.mjs
-tests/               Maintained regression tests (golden/engine, golden/court, golden/live-scores, golden/tv, golden/results, golden/overview, golden/library, golden/pools, golden/setup, golden/registration: approved snapshots)
+tests/               Maintained regression tests (golden/engine, golden/court, golden/live-scores, golden/tv, golden/results, golden/overview, golden/library, golden/pools, golden/setup, golden/registration, golden/registration-teams: approved snapshots)
 docs/                Maintained documentation
 README.md             Project overview
 CHANGELOG.md          Consolidated release history
