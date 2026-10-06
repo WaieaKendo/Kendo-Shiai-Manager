@@ -8,7 +8,6 @@
     "build": "vite build",
     "dev": "vite build && wrangler dev",
     "dev:vite": "vite",
-    "deploy": "vite build && wrangler deploy",
     "typecheck": "tsc --noEmit -p . && tsc --noEmit -p app/react && tsc --noEmit -p app/engine",
     "verify:split": "node scripts/verify-split.mjs",
     "test": "node tests/run-all.mjs",
@@ -55,7 +54,9 @@
     "test:v31719": "node tests/v31719-tv-court-follow-sync-test.mjs",
     "test:v31720": "node tests/v31720-pool-local-tiebreak-order-test.mjs",
     "release": "node scripts/release.mjs",
-    "backup": "node scripts/backup-tournaments.mjs"
+    "backup": "node scripts/backup-tournaments.mjs",
+    "deploy:dev": "vite build && wrangler deploy --env dev",
+    "deploy:production": "vite build && wrangler deploy --env=\"\""
   },
   "devDependencies": {
     "@types/react": "^19.3.0",
