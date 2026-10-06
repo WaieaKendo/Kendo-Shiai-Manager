@@ -97,6 +97,62 @@ function ksmRenderTournamentStatus(valid,competitors,divisions,errors){
 // × of a row: what its inline handler ran.
 function ksmRemoveCompetitor(i){state.competitors.splice(i,1);renderReg();renderTournamentStatus()}
 
+// ---------------------------------------------------------- Registration part 2
+// The team cards (the wrapper of #teamTable in #teamReg), the exhibition table (#exhibitionTable)
+// and the tab bar (the first row of the toolbar card) are React islands too
+// (app/react/registration/RegistrationTeams.tsx). renderTeams() and renderExhibitions() (03) call
+// the publishers below; regTab() (23) still shows and hides the cards and publishes the tab
+// (ksm:registration-tab). The toolbars and their buttons, the team filter (#teamFilter, read by id
+// on every key) and the hint line stay legacy markup.
+// A redraw replaced every card / row, so a field being edited lost the focus at that moment (its
+// change event, then blur and focusout, after the new cards had been computed); React replaces
+// them later, so the focus leaves the island here, as in ksmRenderRegistration().
+function ksmBlurRedrawn(island){
+  const active=document.activeElement;
+  if(window.ksmRegistrationTeamsMounted&&active&&active!==document.body&&island&&island.contains(active))active.blur();
+}
+// renderTeams() (03) as data: the format line and positions of the Setup team format, then a card
+// per team the filter lets through.
+function ksmTeamsData(){
+  let f=(teamFilter?.value||'').toLowerCase();
+  let rows=state.teams.map((c,i)=>({...c,i})).filter(c=>!f||[c.team,c.type,c.senpo,c.jiho,c.chuken,c.fukusho,c.taisho].join(' ').toLowerCase().includes(f));
+  let fmt=teamFormat?.value||'5-Person Team';
+  let slots=fmt==='3-Person Team'||fmt==='Kachinuki'?['senpo','chuken','taisho']:['senpo','jiho','chuken','fukusho','taisho'];
+  return {
+    format:ksmHtmlText(fmt),tournamentFormat:ksmHtmlText(teamTournamentFormat?.value||'Single Elimination'),slots,
+    cards:rows.map(c=>({index:c.i,team:ksmHtmlText(c.team),members:slots.map(k=>ksmHtmlText(c[k])),
+      // The class printed as `status ${esc(c.status)}` (F19) and the status as compared.
+      status:ksmHtmlText(c.status),checked:c.status==='Checked',noShow:c.status==='NoShow'})),
+  };
+}
+function ksmRenderTeams(){
+  const input=ksmTeamsData();
+  ksmBlurRedrawn(document.querySelector('#teamReg #teamTable'));
+  ksmPublishRegistration('ksm:registration-teams','ksmRegistrationTeamsInput',input);
+}
+// renderExhibitions() (03) as data: a row per exhibition match.
+function ksmExhibitionsData(){
+  let rows=state.exhibitions||[];
+  return {rows:rows.map((x,i)=>({index:i,white:ksmHtmlText(x.white),red:ksmHtmlText(x.red),
+    status:ksmHtmlText(x.status),checked:x.status==='Checked',noShow:x.status==='NoShow'}))};
+}
+function ksmRenderExhibitions(){
+  if(!window.exhibitionTable)return;
+  const input=ksmExhibitionsData();
+  ksmBlurRedrawn(exhibitionTable);
+  ksmPublishRegistration('ksm:registration-exhibitions','ksmRegistrationExhibitionsInput',input);
+}
+// regTab() (23): the tab marked active.
+function ksmRenderRegistrationTab(mode){
+  ksmPublishRegistration('ksm:registration-tab','ksmRegistrationTabInput',{mode:String(mode)});
+}
+// What the cards' and rows' inline handlers ran (`state` is not a window property).
+function ksmSetTeamField(card,key,value){state.teams[card.index][key]=value}
+function ksmRemoveTeam(i){state.teams.splice(i,1);renderTeams();renderTournamentStatus()}
+function ksmSetExhibitionField(row,key,value){state.exhibitions[row.index][key]=value}
+function ksmCycleExhibitionStatus(i){state.exhibitions[i].status=statusCycle(state.exhibitions[i].status);renderExhibitions()}
+function ksmRemoveExhibition(i){state.exhibitions.splice(i,1);renderExhibitions()}
+
 // If the React module (app/react/main.tsx, a module script after app.js) did not run, say so on
 // Individual Players instead of an empty table, which nothing fills any more (e.g. an offline
 // device whose cached copy lacks the module), and hide the empty status card. The tabs, the

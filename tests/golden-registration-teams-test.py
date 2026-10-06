@@ -50,6 +50,13 @@ off.
                     API's configure() with a team division, team statuses after generation (a No
                     Show taken out of the bracket; the alert once the division has started).
 
+Since M.13 React draws the team cards, the exhibition table and the tab bar
+(app/react/registration/RegistrationTeams.tsx: three islands, the wrapper of #teamTable,
+#exhibitionTable and the toolbar card's first row; app/js/43-react-registration.js publishes their
+data). React must render every element of the three islands (and they must be the islands'
+roots), and every kind of content must be covered. The toolbars, the team filter and the cards'
+visibility (regTab()) stay legacy.
+
 Approve an intended change (review the JSON diff, commit it with the code change):
 
     KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-registration-teams-test.py [scenario ...]
@@ -58,7 +65,7 @@ import time
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
-from golden_screen import ONLY, PANEL_JS, PLATFORM, SPECTATOR_JS, UPDATE, Golden, geometry_recorded, people, team
+from golden_screen import ONLY, PANEL_FIBERS_JS, PANEL_JS, PLATFORM, SPECTATOR_JS, UPDATE, Golden, geometry_recorded, people, team
 from ksm_app import KsmApp
 from ksm_browser import launch_chromium, load_app
 
@@ -406,6 +413,49 @@ def teams_live(browser, react_check):
     g.finish()
 
 
+# The Registration part 2 islands (app/react/registration/main.tsx): React renders every element of
+# the team cards (the wrapper of #teamTable, the island's root), the exhibition table
+# (#exhibitionTable) and the tab bar (the toolbar card's first row).
+ISLANDS = ['#teamReg div:has(> #teamTable)', '#exhibitionReg #exhibitionTable', '#registration > .card:first-child > .toolbar > .row:first-child']
+ROOT_JS = "s => Object.keys(document.querySelector(s)).some(k => k.startsWith('__reactContainer'))"
+# Which kinds of content the islands were given.
+VARIANTS_JS = """() => {
+  const t = window.ksmRegistrationTeamsInput, x = window.ksmRegistrationExhibitionsInput, tab = window.ksmRegistrationTabInput, out = [];
+  const status = r => 'status: ' + (r.checked ? 'Checked' : r.noShow ? 'NoShow' : r.status === 'Registered' ? 'Registered' : 'other');
+  if (!t) out.push('teams: nothing published');
+  else {
+    out.push(t.cards.length ? 'teams: cards' : 'teams: no cards');
+    out.push('slots: ' + t.slots.length);
+    t.cards.forEach(c => {
+      out.push('team ' + status(c));
+      if (/[<>&"']/.test(c.team + c.members.join(''))) out.push('team text: special characters');
+    });
+  }
+  if (!x) out.push('exhibitions: nothing published');
+  else {
+    out.push(x.rows.length ? 'exhibitions: rows' : 'exhibitions: no rows');
+    x.rows.forEach(r => {
+      out.push('exhibition ' + status(r));
+      if (/[<>&"']/.test(r.white + r.red)) out.push('exhibition text: special characters');
+    });
+  }
+  out.push('tab: ' + (tab ? tab.mode : 'nothing published'));
+  return out;
+}"""
+VARIANTS_SEEN = set()
+
+
+def check_react(golden, step):
+    """React renders every element of the Registration part 2 islands."""
+    page = golden.app.page
+    for island in ISLANDS:
+        total, owned = page.evaluate(PANEL_FIBERS_JS, island)
+        assert total == owned, f'{golden.name}: {step}: {total - owned} of {total} elements in {island} are not rendered by React'
+        assert page.evaluate(ROOT_JS, island), f'{golden.name}: {step}: {island} is not a React root'
+        assert total, f'{golden.name}: {step}: nothing in {island}'
+    VARIANTS_SEEN.update(page.evaluate(VARIANTS_JS))
+
+
 SCENARIOS = {
     'tabs-empty': tabs_empty,
     'teams-cards': teams_cards,
@@ -413,7 +463,7 @@ SCENARIOS = {
     'teams-live': teams_live,
 }
 CHECKS = {}
-REACT_CHECK = None
+REACT_CHECK = check_react
 
 
 def main():
@@ -430,6 +480,15 @@ def main():
         for name in checks:
             CHECKS[name](browser)
             print(f'  {name}: ok')
+        if not ONLY and not UPDATE:
+            expected = {
+                'teams: cards', 'teams: no cards', 'slots: 3', 'slots: 5', 'team status: Checked', 'team status: NoShow',
+                'team status: Registered', 'team text: special characters', 'exhibitions: rows', 'exhibitions: no rows',
+                'exhibition status: Checked', 'exhibition status: NoShow', 'exhibition status: Registered',
+                'exhibition text: special characters',
+                'tab: individual', 'tab: team', 'tab: exhibition', 'tab: pools', 'tab: bogus',
+            }
+            assert expected <= VARIANTS_SEEN, f'Registration part 2 variants not covered: {sorted(expected - VARIANTS_SEEN)}; seen {sorted(VARIANTS_SEEN)}'
         browser.close()
     note = f'; element boxes not recorded for {PLATFORM} in {len(missing_geometry)} scenario(s), compared without them' if missing_geometry else ''
     verb = 'UPDATED' if UPDATE else 'PASS'

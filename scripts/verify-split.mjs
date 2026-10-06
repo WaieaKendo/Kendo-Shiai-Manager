@@ -67,9 +67,13 @@ const KNOWN_POST_SPLIT_EDITS = {
   // of #tournamentStatusCard). With the legacy renderer removed (REMOVED_REGISTRATION_RENDERER)
   // renderReg()'s body (03) is a marked publisher and renderTournamentStatus() (03) publishes in
   // place of its card markup, and app/js/43-react-registration.js publishes the players table and
-  // the status card as plain data and shows a notice when the React module is missing. Listed here because renderTournamentStatus() (03) is its
+  // the status card as plain data and shows a notice when the React module is missing.
+  // feat/react-registration-2 (M.13, part 2): the team cards, the exhibition table and the tab bar
+  // are React islands too: renderTeams() and renderExhibitions() (03) call their publishers in 43
+  // and regTab() (23) publishes the tab (step B: hand-overs, the legacy drawing still runs without
+  // the islands). Listed here because renderTournamentStatus() (03) is its
   // first region: the check compares names in order of first appearance.
-  'react-registration': 3,
+  'react-registration': 7,
   // fix/pre-event (M.12): test IDs on markup drawn by app/js (03: the exhibition rows and the
   // Regenerate Single Division dialog), each line kept in its `was:` marker. Test IDs on the
   // static markup are listed in MARKUP_TEST_IDS instead.
