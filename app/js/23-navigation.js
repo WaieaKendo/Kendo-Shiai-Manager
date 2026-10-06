@@ -1,5 +1,6 @@
 // ---------- KSM v3.9.1 Minimal navigation ----------
 function setNavMenuState(menu,open){
+  /* ksm:post-split-begin react-shell */ksmSetNavMenuState(menu,open);if(window.ksmShellMounted)return;/* ksm:post-split-end */
   if(!menu)return;
   menu.classList.toggle('hidden',!open);
   menu.classList.toggle('is-open',open);
@@ -13,6 +14,7 @@ function setNavMenuState(menu,open){
   }
 }
 function positionMobileNavMenu(menu,trigger){
+  /* ksm:post-split-begin react-shell */ksmPositionNavMenu(menu,trigger);if(window.ksmShellMounted)return;/* ksm:post-split-end */
   if(!menu||!trigger||!window.matchMedia('(max-width:900px)').matches)return;
   const rect=trigger.getBoundingClientRect();
   const margin=12;
@@ -23,6 +25,7 @@ function positionMobileNavMenu(menu,trigger){
   menu.style.maxHeight=`${Math.max(120,window.innerHeight-top-margin)}px`;
 }
 function closeNavMenus(exceptId){
+  /* ksm:post-split-begin react-shell */ksmCloseNavMenus(exceptId);if(window.ksmShellMounted)return;/* ksm:post-split-end */
   document.querySelectorAll('.nav-dropdown').forEach(menu=>{
     if(menu.id!==exceptId)setNavMenuState(menu,false);
   });
@@ -32,7 +35,7 @@ function toggleNavMenu(id,event){
   const menu=document.getElementById(id);
   if(!menu)return false;
   const trigger=(event&&event.currentTarget)||document.querySelector(`[aria-controls="${id}"]`);
-  const opening=menu.classList.contains('hidden');
+  const opening=/* ksm:post-split-begin react-shell was:menu.classList.contains('hidden') */ksmNavOpenMenu!==id/* ksm:post-split-end */;
   closeNavMenus(id);
   setNavMenuState(menu,opening);
   if(opening)positionMobileNavMenu(menu,trigger);
@@ -86,11 +89,12 @@ document.addEventListener('keydown',function(event){
   if(event.key==='Escape')closeNavMenus();
 });
 window.addEventListener('resize',function(){
-  const openMenu=document.querySelector('.nav-dropdown:not(.hidden)');
+  const openMenu=/* ksm:post-split-begin react-shell was:document.querySelector('.nav-dropdown:not(.hidden)') */ksmNavOpenMenu?document.getElementById(ksmNavOpenMenu):null/* ksm:post-split-end */;
   if(!openMenu)return;
   const trigger=document.querySelector(`[aria-controls="${openMenu.id}"]`);
   if(window.matchMedia('(max-width:900px)').matches)positionMobileNavMenu(openMenu,trigger);
   else {
+    /* ksm:post-split-begin react-shell */ksmUnplaceNavMenu();if(window.ksmShellMounted)return;/* ksm:post-split-end */
     openMenu.style.removeProperty('top');
     openMenu.style.removeProperty('left');
     openMenu.style.removeProperty('right');

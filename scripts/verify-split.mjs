@@ -63,6 +63,19 @@ const KNOWN_POST_SPLIT_EDITS = {
   // setCourtCompletePresentation() (32). Listed here because renderDivisions() (02) is its first
   // region: the check compares names in order of first appearance.
   'react-court': 8,
+  // feat/react-shell (M.13, the last step): the shell's React islands (the navigation bar, the
+  // header's status row, the Fusen-gachi, generation check, Regenerate Single Division and cloud
+  // dialogs). app/js/44-react-shell.js keeps what the legacy shell drew as plain data and publishes
+  // it; the legacy functions call it: closeManagementModal(), showValidationDialog(),
+  // openRegenerateDivisionDialog(), continueRegenerateDivision() (03), regenerateSingleDivision()
+  // (08), setConnectionStatus(), renderPersistentSaveStatus(), updateSaveStatus() (20),
+  // renderCloudPresence(), closeCloudModal(), cloudDiagnostics() (21), openFusenDialog(),
+  // closeFusenDialog() (22), setNavMenuState(), positionMobileNavMenu(), closeNavMenus(),
+  // toggleNavMenu() and the resize listener (23, two inline `was:` replacements of class reads),
+  // setActiveNavForView() (24), setSessionRole() (33, two `was:` lookups and the publish) and
+  // openTournamentAccess() (33). Listed here because closeManagementModal() (03) is its first
+  // region: the check compares names in order of first appearance.
+  'react-shell': 25,
   // feat/react-registration (M.13): Registration part 1's React islands (#regTable, the contents
   // of #tournamentStatusCard). With the legacy renderer removed (REMOVED_REGISTRATION_RENDERER)
   // renderReg()'s body (03) is a marked publisher and renderTournamentStatus() (03) publishes in

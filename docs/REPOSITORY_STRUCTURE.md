@@ -41,7 +41,13 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         part 2 (RegistrationTeams.tsx, teams-model.ts): the team cards
                         #teamTable, the exhibition table #exhibitionTable and the tab
                         bar; app/js/43-react-registration.js publishes their data; the
-                        toolbars, filters and the cards' visibility stay legacy)
+                        toolbars, filters and the cards' visibility stay legacy),
+                        shell/ (the shell, M.13's last step: the navigation bar
+                        nav.minimal-nav and the header's status row .cloud-status-wrap,
+                        the Fusen-gachi, generation check and Regenerate Single Division
+                        dialogs, the cloud modal #ksmCloudModal as a portal into <body>;
+                        app/js/44-react-shell.js publishes their data; the brand, the
+                        spectator banner and the toast stay legacy)
   engine/             Pure tournament-engine modules, strict TypeScript (own tsconfig.json):
                         no DOM, no globals, explicit inputs/outputs. index.ts is bundled
                         into a classic script defining `KSMEngine`, loaded before app.js;

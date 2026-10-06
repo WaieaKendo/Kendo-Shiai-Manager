@@ -14,7 +14,8 @@
 // * score buttons and action row: the score buttons have no writer; updateUndoButton()
 //   (10-court-scoring-and-history.js) publishes whether Undo/Redo may be pressed
 //   (ksm:court-actions). Every button calls the legacy global (point, hansoku, undo, redo,
-//   openFusenDialog, nextMatch); the Fusen-gachi dialog (#fusenDialog) stays legacy markup.
+//   openFusenDialog, nextMatch); the Fusen-gachi dialog (#fusenDialog) is a shell island
+//   (app/react/shell/, app/js/44-react-shell.js).
 //   A spectator and a completed division hide them through CSS only (F2 stays, ROADMAP.md).
 // * queue and context panels: renderQueue() and renderContext() (32-split-court-templates.js)
 //   publish ksmQueuePanelInput() / ksmContextPanelInput() below (ksm:court-queue,

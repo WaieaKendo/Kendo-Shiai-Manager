@@ -52,15 +52,28 @@ pressed with the keyboard; transitions are off.
   nav-phones      phone portrait and landscape and two tablet sizes: every menu opened (placed
                   under its tile), a resize while a menu is open, back to desktop with a menu open,
                   a spectator on a phone;
-  dialogs         the generation check (nobody registered, issues, Close, Cancel, Generate), the
+  dialogs         the generation check (nobody registered, issues, Close, Cancel, Escape, drawn
+                  afresh while Close has the focus, Close by keyboard, Generate), the
                   Fusen-gachi dialog (Cancel, Escape, White, Red), Regenerate Single Division
-                  (x, Cancel, Continue, Regenerate, OK, a division that fails the check, no
-                  division ready);
+                  (x, Cancel, Continue, Regenerate, OK, Continue and Cancel by keyboard, a division
+                  that fails the check, no division ready);
   cloud-modals    Tournament Access (Copy Link, Close, the backdrop), Developer Tools with work
-                  queued (Retry queued save) and as a spectator, Load Tournament File (an invalid
-                  file, a recovery file, the open tournament's file: Cancel, the backdrop, Replace;
-                  another tournament's file and an older file: Cancel, Load as new tournament; no
-                  cloud tournament open), Load Recovery File with an invalid file.
+                  queued (Retry queued save; opened again while its Close has the focus) and as a
+                  spectator, Load Tournament File (an invalid file, a recovery file, the open
+                  tournament's file: Cancel, the backdrop, Replace; another tournament's file and an
+                  older file: Cancel, Load as new tournament; no cloud tournament open), Load
+                  Recovery File with an invalid file.
+
+The steps where a dialog is drawn afresh while one of its buttons has the focus (the generation
+check, Regenerate's Continue by keyboard, Developer Tools opened again) were added with step B and
+recorded from the legacy shell too (the build without app/react/shell/, whose legacy code still
+drew then; the other steps' snapshots came out unchanged).
+
+Since M.13 React draws the shell (app/react/shell/: the navigation bar, the status row, the three
+dialogs as islands with their roots, the cloud modal as a portal into <body>;
+app/js/44-react-shell.js publishes their data). React must render every element of the islands
+(and they must be the islands' roots) and of the cloud modal, and every kind of content must be
+covered. The brand, the banner and the toast stay legacy.
 
 Approve an intended change (review the JSON diff, commit it with the code change):
 
@@ -416,6 +429,9 @@ def dialogs(browser, react_check):
     g.do('Generate with issues again', lambda a: click(a.page, tid('generate-button')))
     g.do('the check: Escape (stays open)', lambda a: a.page.keyboard.press('Escape'))
     g.do('the check: Close again', lambda a: click(a.page, tid('validation-close')))
+    g.do('Generate with issues, Close focused', lambda a: (click(a.page, tid('generate-button')), a.page.locator(tid('validation-close')).focus()))
+    g.do('the check drawn afresh while Close has the focus (code)', lambda a: a.page.evaluate('() => requestTournamentGeneration()'))
+    g.do('the check: Close with the keyboard', lambda a: (a.page.locator(tid('validation-close')).focus(), a.page.keyboard.press('Enter'), leave(a.page)))
     g.do('a tournament generated (test API configure())', lambda a: a.configure([
         {'name': 'Open <A>', 'format': 'Round Robin', 'court': 'A', 'entrants': people('O', 4)},
         {'name': 'Women & "B"', 'format': 'Round Robin', 'court': 'B', 'entrants': people('W', 3)},
@@ -445,6 +461,10 @@ def dialogs(browser, react_check):
     g.do('Regenerate: Continue', lambda a: click(a.page, tid('regenerate-continue')))
     g.do('Regenerate: Regenerate', lambda a: click(a.page, tid('regenerate-confirm')))
     g.do('Regenerate: OK', lambda a: click(a.page, '#regenerateModalActions button:text-is("OK")'))
+    g.do('Regenerate opened (keyboard)', lambda a: click(a.page, tid('regenerate-division-button')))
+    g.do('Regenerate: Continue with the keyboard (focus, Enter)', lambda a: (a.page.locator(tid('regenerate-continue')).focus(), a.page.keyboard.press('Enter')))
+    g.do('Regenerate: Cancel with the keyboard', lambda a: (
+        a.page.locator('#regenerateModalActions button:text-is("Cancel")').focus(), a.page.keyboard.press('Enter'), leave(a.page)))
     g.do('Women down to one player (code)', lambda a: a.page.evaluate(
         "() => { state.competitors = state.competitors.filter(c => !c.division.startsWith('Women') || c.name === 'W 1'); }"))
     g.do('Regenerate opened (Women fails the check)', lambda a: click(a.page, tid('regenerate-division-button')))
@@ -494,6 +514,8 @@ def cloud_modals(browser, react_check):
     g.do('Tournament Access: the backdrop', lambda a: click(a.page, '#ksmCloudModal'))
     g.do('work queued for the cloud (code)', lambda a: a.page.evaluate("() => writeOutbox(tournamentPayload(), 'Golden queued work')"))
     menu_item(g, 'save-load', 'cloud-diagnostics', 'Developer Tools with work queued')
+    g.do('Developer Tools: Close focused, Developer Tools opened again (code)', lambda a: (
+        a.page.locator(tid('cloud-modal-close')).focus(), a.page.evaluate('() => cloudDiagnostics()')))
     g.do('Developer Tools: Close (queued)', lambda a: click(a.page, tid('cloud-modal-close')))
     g.do('a spectator (code)', lambda a: a.page.evaluate("() => { setSessionRole('spectator'); installRoleBanner('spectator'); }"))
     g.do('spectator: Developer Tools from the status line', lambda a: click(a.page, '.cloud-status-wrap > div[role="button"]'))
@@ -527,8 +549,7 @@ def cloud_modals(browser, react_check):
 
 # The shell islands (app/react/shell/main.tsx): React renders every element of the navigation
 # (nav.minimal-nav, the island's root), the status row (.cloud-status-wrap) and the dialogs' cards.
-ISLANDS = ['header.ksm-topbar nav.minimal-nav', 'header.ksm-topbar .cloud-status-wrap',
-           '#fusenDialog', '#validationModal > .management-modal-card', '#regenerateModal > .management-modal-card']
+ISLANDS = ['header.ksm-topbar nav.minimal-nav', 'header.ksm-topbar .cloud-status-wrap', '#fusenDialog', '#validationModal', '#regenerateModal']
 ROOT_JS = "s => Object.keys(document.querySelector(s)).some(k => k.startsWith('__reactContainer'))"
 # Which kinds of content the islands were given.
 VARIANTS_JS = """() => {
@@ -540,14 +561,14 @@ VARIANTS_JS = """() => {
   }
   if (h) {
     out.push('staff button: ' + h.staffLabel);
-    if (h.connection) out.push('connection: ' + h.connection.mode);
+    out.push('connection: ' + (h.connection.mode || 'none'));
     if (h.presence) out.push('devices online');
   }
   if (d) {
-    if (d.fusen) out.push('fusen');
-    if (d.validation) out.push('validation: ' + (d.validation.valid ? 'valid' : 'issues'));
-    if (d.regenerate) out.push('regenerate: ' + d.regenerate.view);
-    if (d.cloud) out.push('cloud: ' + d.cloud.kind + (d.cloud.kind === 'file' ? (d.cloud.same ? ' replace' : ' new') : '') + (d.cloud.retry ? ' retry' : ''));
+    if (d.fusen.open) out.push('fusen');
+    if (d.validation.open) out.push('validation: ' + (d.validation.content.valid ? 'valid' : 'issues'));
+    if (d.regenerate.open) out.push('regenerate: ' + d.regenerate.content.view);
+    if (d.cloud) out.push('cloud: ' + d.cloud.body.kind + (d.cloud.body.kind === 'file' ? (d.cloud.body.same ? ' replace' : ' new') : '') + (d.cloud.body.retry ? ' retry' : ''));
   }
   return out;
 }"""
@@ -585,8 +606,7 @@ SCENARIOS = {
     'cloud-modals': cloud_modals,
 }
 CHECKS = {}
-# Recorded from the legacy shell: no React islands yet.
-REACT_CHECK = None
+REACT_CHECK = check_react
 
 
 def main():
@@ -603,6 +623,17 @@ def main():
         for name in checks:
             CHECKS[name](browser)
             print(f'  {name}: ok')
+        if not ONLY and not UPDATE:
+            expected = {
+                'menu: none', 'menu: courtsMenu', 'menu: tvMenu', 'menu: exportMenu', 'menu: saveLoadMenu', 'menu placed',
+                'active: none', 'active: Setup', 'active: Registration', 'active: Courts', 'active: Live Scores', 'active: Overview',
+                'active: Results', 'active: Export', 'staff button: Staff Login', 'staff button: Logout',
+                'connection: online', 'connection: offline', 'connection: connecting', 'connection: error', 'connection: local',
+                'connection: bogus', 'devices online', 'fusen', 'validation: valid', 'validation: issues', 'regenerate: list',
+                'regenerate: confirm', 'regenerate: done', 'cloud: access', 'cloud: diagnostics', 'cloud: diagnostics retry',
+                'cloud: file replace', 'cloud: file new',
+            }
+            assert expected <= VARIANTS_SEEN, f'shell variants not covered: {sorted(expected - VARIANTS_SEEN)}; seen {sorted(VARIANTS_SEEN)}'
         browser.close()
     note = f'; element boxes not recorded for {PLATFORM} in {len(missing_geometry)} scenario(s), compared without them' if missing_geometry else ''
     verb = 'UPDATED' if UPDATE else 'PASS'

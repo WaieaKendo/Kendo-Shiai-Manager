@@ -70,6 +70,7 @@ function setCourtSupportMode(mode){
 
 // ---------- KSM v3.9.1 Active navigation state ----------
 function setActiveNavForView(viewId){
+  /* ksm:post-split-begin react-shell */ksmSetActiveNav(viewId);if(window.ksmShellMounted)return;/* ksm:post-split-end */
   document.querySelectorAll('.icon-nav .nav-tile').forEach(btn=>{
     btn.classList.remove('active');
     btn.removeAttribute('aria-current');
