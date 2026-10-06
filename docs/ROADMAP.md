@@ -507,7 +507,8 @@ Order (each step keeps the golden snapshot and behaviour tests green):
 3. **2.8 store + command layer**: move device/screen state out of tournament data, put each user action behind a command, let React read the store; the `3N-react-*.js` publishers and the inline `onclick` globals go away.
 4. **2.9 stable IDs** for people and matches (name typos / duplicate names, on the meeting agenda).
 5. **Phase 3**: action-based sync with the server as the official copy, login and device identity (removes the 11 session/cloud duplicates), backups.
-6. Retire the classic script and `verify:split` (nothing left to compare with the original single file); the app becomes ordinary ES modules.
+6. Retire the classic script and `verify:split` (nothing left to compare with the original single file); the app becomes ordinary **TypeScript** modules.
+7. **TypeScript everywhere** (goal set 2026-10-06: no hand-written JavaScript left): `app/js/` (45 files) ends as TypeScript through steps 3–6; `src-worker.js` → TypeScript with the Phase 3 sync work (Wrangler builds TypeScript directly); `app/service-worker.js`, `vite.config.js` and `scripts/*.mjs` → TypeScript (Vite and Node run it directly), any time; the 85 `tests/**/*.mjs`: the grep-only checks of legacy code retire with it, the rest move to `.ts`. The Playwright browser tests stay Python. Strict type checking (`npm run typecheck`) covers every converted file.
 
 Tests after M.13: the golden snapshots pin today's behaviour including quirks, which is right while migrating. As quirks are fixed and the layers above land, convert the most change-prone snapshot checks into behaviour tests (e.g. "Undo is visible after the last match") so intended changes need less re-recording.
 
