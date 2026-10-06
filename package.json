@@ -54,7 +54,8 @@
     "test:v31718": "node tests/v31718-pool-edit-championship-preservation-test.mjs",
     "test:v31719": "node tests/v31719-tv-court-follow-sync-test.mjs",
     "test:v31720": "node tests/v31720-pool-local-tiebreak-order-test.mjs",
-    "release": "node scripts/release.mjs"
+    "release": "node scripts/release.mjs",
+    "backup": "node scripts/backup-tournaments.mjs"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",
