@@ -9,7 +9,7 @@ import vm from 'node:vm';
 import { eligibleIndividuals, eligibleTeams, generateDivision } from '../../app/engine/generation.ts';
 import { readSettings } from '../../app/engine/settings.ts';
 import { html, withDependencies, extractFunction } from '../lib/ksm-source.mjs';
-import { gitShow } from '../lib/git-show.mjs';
+import { gitShow, gitListAppJs } from '../lib/git-show.mjs';
 
 const OLD = 'e7312a6';
 const people = (n, div = 'Open') => Array.from({ length: n }, (_, i) => ({ name: `P${String(i + 1).padStart(2, '0')}`, dojo: `Dojo ${'ABC'[i % 3]}`, seed: '', status: 'Checked', division: div }));
@@ -81,7 +81,8 @@ test('F21: generateDivisionState keeps later team bracket bouts on the Setup tea
 });
 
 test('generateDivisionState equals the pre-move legacy code on every golden scenario', t => {
-  const files = fs.readdirSync(new URL('../../app/js/', import.meta.url)).filter(f => f.endsWith('.js')).sort();
+  const files = gitListAppJs(OLD);
+  if (!files) return t.skip(`${OLD} not in this clone`);
   const oldFiles = files.map(f => gitShow(OLD, `app/js/${f}`));
   if (oldFiles.includes(null)) return t.skip(`${OLD} not in this clone`);
   const oldSrc = oldFiles.join('\n');
