@@ -8,6 +8,13 @@ const APP_SHELL = [
   '/assets/nav-icons/live-scores.svg', '/assets/nav-icons/search.svg', '/assets/nav-icons/results.svg',
   '/assets/nav-icons/export.svg', '/assets/nav-icons/save-load.svg'
 ];
+// F22: install caches /index.html through the host's redirect to / (Cloudflare's asset server), so
+// that copy is a redirected response, which a browser refuses for a navigation (net::ERR_FAILED):
+// an offline device got no app until an online navigation had replaced the copy. Serve its body.
+function offlineCopy(cached) {
+  if (!cached || !cached.redirected) return cached;
+  return new Response(cached.body, { status: cached.status, statusText: cached.statusText, headers: cached.headers });
+}
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));
   self.skipWaiting();
@@ -29,7 +36,7 @@ self.addEventListener('fetch', event => {
       const copy = response.clone();
       event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.put('/index.html', copy)));
       return response;
-    }).catch(() => caches.match('/index.html')));
+    }).catch(() => caches.match('/index.html').then(offlineCopy)));
     return;
   }
   event.respondWith(caches.match(event.request).then(cached => {
