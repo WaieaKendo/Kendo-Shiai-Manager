@@ -97,6 +97,12 @@ _LIVE_JS = """(court) => {
   return out;
 }"""
 
+_POOL_DRAG_JS = """([player, pool, index]) => {
+  const dt = new DataTransfer(), source = document.querySelector(player), target = document.querySelectorAll(pool)[index];
+  const fire = (el, type) => el.dispatchEvent(new DragEvent(type, {bubbles: true, cancelable: true, dataTransfer: dt}));
+  fire(source, 'dragstart'); fire(target, 'dragover'); fire(target, 'drop'); fire(source, 'dragend');
+}"""
+
 # Live Scores showing one division's placements instead of the courts: the rows, or None.
 _LIVE_PLACEMENTS_JS = """() => {
   const live = document.querySelector('[data-testid="live-scores"]');
@@ -438,6 +444,13 @@ class KsmApp:
         return page.evaluate("""() => Object.fromEntries([...document.querySelectorAll('[data-testid="pool"]')].map(p => [
           p.querySelector('[data-testid="pool-title"]').textContent.replace(/^(Team )?Pool\\s*/, '').trim(),
           [...p.querySelectorAll('[data-testid="pool-player"]')].map(x => x.textContent.trim())]))""")
+
+    def pool_edit_move(self, to_pool=1):
+        """Edit Pool (open on the Pools view): drag the editor's first player onto pool `to_pool`.
+
+        The drag events a mouse drag fires, sharing one DataTransfer, dispatched (Chromium's
+        headless mouse drag is unreliable here); as pool-edit-safety-test.py does."""
+        self.page.evaluate(_POOL_DRAG_JS, [sel('pool-edit-player'), sel('pool-edit-pool'), to_pool])
 
     # ---------------------------------------------------------- court (scorekeeper)
     def court_screen(self):

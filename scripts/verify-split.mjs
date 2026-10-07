@@ -138,6 +138,10 @@ const KNOWN_POST_SPLIT_EDITS = {
   // inside its outbox-flush-rebase region); 33: performCloudSave() takes, passes on and
   // remembers it, loadTournamentFromCloud() remembers it.
   'edit-merge': 15,
+  // fix/react-batch-2 (F10): a structural edit (generate, regenerate, Edit Pool) is replayed onto
+  // the server copy on a save conflict, or the director is asked (18: the replay helpers; the
+  // merge base, the registration gate and the rebase's call are in edit-merge regions).
+  'structural-replay': 1,
   // fix/pre-event (F11): saveAuto(), called by the awards editor but never defined (app/js/20).
   'award-save': 1,
   // fix/outbox-flush-local-changes (F6): mergeQueuedStaffWork() and its call at staff login;
