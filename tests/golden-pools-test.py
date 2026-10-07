@@ -260,7 +260,9 @@ def real_drag(a, source, selector, index):
     target = a.page.locator(selector).nth(index)
     box = target.bounding_box()
     position = {'x': box['width'] / 2, 'y': box['height'] - 3 if selector == POOL else box['height'] / 2}
-    a.page.locator(PLAYER).nth(source).drag_to(target, target_position=position)
+    # In steps, as a hand moves: with one jump Chromium on Linux (CI) sometimes never started the
+    # drag when source and target were close, so the move silently did not happen there.
+    a.page.locator(PLAYER).nth(source).drag_to(target, target_position=position, steps=10)
     # Off the view again: a button that comes under the resting mouse after a redraw would get
     # its :hover lift (depending on when Chromium updates the hover state).
     a.page.mouse.move(0, 0)
