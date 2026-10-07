@@ -181,6 +181,8 @@ function ksmBracket(div){
     const first=firstRoundName(labels.length);
     return {kind:'cards',cards:[{round:ksmText(first),rows:labels.map(pair=>ksmSeedPlaceholderRow(div,pair))},...ksmFutureRoundCards(nextRoundFromName(first),labels.length)]};
   }
+  // A round robin of 3-5 (one pool, no championship) has no bracket to wait for (quirk pass).
+  if(isPoolOnlyDivision(div))return {kind:'message',text:'No championship bracket: places come from the pool standings.'};
   return {kind:'message',text:'Championship bracket will appear after pools are generated.'};
 }
 // teamResultsBracketHtml() (28-, removed in M.13: the Results modal was its last user).
