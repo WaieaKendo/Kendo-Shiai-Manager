@@ -6,6 +6,7 @@ import {
   APP_DIR, DIST_DIR, STYLE_TAG, SCRIPT_TAG, STYLE_URL, SCRIPT_URL, ENGINE_URL,
   appStyles, appScript, engineScript, serviceWorker, styleFiles, scriptFiles, engineFiles, extraPages,
 } from './scripts/app-sources.mjs';
+import { servesOverlay } from './app/engine/routes.ts';
 
 const DEV_SERVICE_WORKER = `self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => self.clients.claim())));
@@ -57,6 +58,9 @@ function ksmClassicBundle() {
         if (url === '/service-worker.js') return send('text/javascript; charset=utf-8', DEV_SERVICE_WORKER);
         // Extra pages at their clean URL (/overlay), as Cloudflare's asset server does.
         if (pages.includes(`${url.slice(1)}.html`)) req.url = req.url.replace(url, `${url}.html`);
+        // Path URLs (M.9): /t/<id>/overlay/a is the overlay page, as src-worker.js answers it; other
+        // /t/... paths get index.html from Vite's single-page fallback, as from Cloudflare's.
+        else if (url.startsWith('/t/') && servesOverlay(url)) req.url = req.url.replace(url, '/overlay.html');
         next();
       });
     },

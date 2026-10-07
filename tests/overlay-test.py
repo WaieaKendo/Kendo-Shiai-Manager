@@ -13,7 +13,7 @@
 import time
 
 from playwright.sync_api import sync_playwright
-from ksm_app import KsmApp, sel
+from ksm_app import KsmApp, sel, app_path
 from ksm_browser import launch_chromium
 from ksm_server import local_worker
 
@@ -21,14 +21,14 @@ PLAYERS = ['Aoki Ken', 'Baba Jun', 'Chiba Rei', 'Doi Sho']
 UPDATE_SECONDS = 10  # a point reaches the server after the app's save debounce (~3 s)
 
 
-def overlay_page(browser, base, query, writes, viewport=None, screen=None):
+def overlay_page(browser, base, path, writes, viewport=None, screen=None):
     opts = {'viewport': viewport or {'width': 1920, 'height': 1080}, 'service_workers': 'block'}
     if screen:
         opts['screen'] = screen
     ctx = browser.new_context(**opts)
     page = ctx.new_page()
     page.on('request', lambda r: writes.append(f'{r.method} {r.url}') if r.method not in ('GET', 'HEAD', 'OPTIONS') else None)
-    page.goto(f'{base}/overlay?{query}', wait_until='domcontentloaded')
+    page.goto(f'{base}{path}', wait_until='domcontentloaded')
     page.wait_for_function("document.querySelector('[data-testid=overlay]')?.dataset.state !== 'loading'", timeout=15000)
     return page
 
@@ -67,7 +67,7 @@ def main():
         director.wait_idle()
 
         # --- Idle before the tournament is generated; transparent page ----------------
-        ov_a = overlay_page(browser, base, f'tournament={tid}&court=A', writes)
+        ov_a = overlay_page(browser, base, app_path(tid, 'overlay', 'A'), writes)
         o = wait_overlay(ov_a, lambda o: o['state'] == 'idle', 'idle state')
         assert o['court'] == 'Court A', o
         bg = ov_a.evaluate("() => [getComputedStyle(document.documentElement).backgroundColor, getComputedStyle(document.body).backgroundColor]")
@@ -100,7 +100,7 @@ def main():
         assert o['white_sub'].startswith('Dojo') and o['red_sub'].startswith('Dojo') and o['next'], o
         assert o['sides'] == ['overlay-white', 'overlay-red'], o
 
-        court = KsmApp.open_device(browser, base, 'Court A', problems, f'/?tournament={tid}&court=A',
+        court = KsmApp.open_device(browser, base, 'Court A', problems, app_path(tid, 'court', 'A'),
                                    before_load=lambda pg: pg.add_init_script(
                                        "window.__ksmChanges=0;addEventListener('ksm:state-changed',()=>window.__ksmChanges++)"))
         court.wait_generated()
@@ -128,7 +128,7 @@ def main():
         # --- Court B: team match, Red on the left ---------------------------------------
         tv_b = KsmApp.open_device(browser, base, 'TV B', problems, director.tv_link('B').replace(base, ''))
         tv_b.wait_for(lambda: tv_b.tv_screen()['live'], message='TV B current match')
-        ov_b = overlay_page(browser, base, f'tournament={tid}&court=B&red=left', writes)
+        ov_b = overlay_page(browser, base, app_path(tid, 'overlay', 'B') + '?red=left', writes)
         tb = tv_b.tv_screen()
         o = wait_overlay(ov_b, lambda o: o['state'] == 'match' and o['white_sub'] == tb['white_team'], 'Court B team match')
         assert o['court'] == 'Court B' and o['red_sub'] == tb['red_team'], (o, tb)
@@ -141,12 +141,12 @@ def main():
         court.click('nav-tv')
         court.click('nav-overlay-a')
         link = court.page.wait_for_function('window.__copied').json_value()
-        assert link == f'{base}/overlay?tournament={tid}&court=A', link
+        assert link == f'{base}{app_path(tid, "overlay", "A")}', link
         court.click('nav-tv')
         assert court.page.is_visible(sel('nav-overlay-b')), 'no Court B overlay link'
 
         # --- Band mode: PRISM portrait widget on a landscape phone ----------------------
-        band = overlay_page(browser, base, f'tournament={tid}&court=A&debug=1', writes,
+        band = overlay_page(browser, base, app_path(tid, 'overlay', 'A') + '?debug=1', writes,
                             viewport={'width': 733, 'height': 1303}, screen={'width': 2340, 'height': 1080})
         o = wait_overlay(band, lambda o: o['state'] == 'match', 'band-mode match')
         assert o['mode'] == 'band', o
@@ -155,7 +155,7 @@ def main():
         assert abs(box['y'] - 0.74 * 1303) < 2 and box['height'] < 1303 * 0.1, box
         debug = band.inner_text(sel('overlay-debug'))
         assert '733×1303' in debug and 'page portrait' in debug and 'device landscape' in debug and 'band y=74%' in debug, debug
-        custom = overlay_page(browser, base, f'tournament={tid}&court=A&y=50', writes,
+        custom = overlay_page(browser, base, app_path(tid, 'overlay', 'A') + '?y=50', writes,
                               viewport={'width': 733, 'height': 1303}, screen={'width': 2340, 'height': 1080})
         wait_overlay(custom, lambda o: o['state'] == 'match', 'y=50 match')
         assert abs(custom.locator(sel('overlay-bar')).bounding_box()['y'] - 0.5 * 1303) < 2

@@ -36,6 +36,12 @@ import { ROOT, STYLE_TAG, SCRIPT_TAG, indexHtml, appStyles, appScript } from './
 
 const commit = process.argv[2] || 'def5010';
 const KNOWN_POST_SPLIT_EDITS = {
+  // feat/path-urls (M.9): app/js/00-path-urls.js (an old query link becomes its path before the
+  // app reads it; ksmLinkParams(), ksmLinkUrl()), and the old address reads and link builders
+  // switched to them: isTvSession(), roleLink(), tvLink(), restoreAutoSaveIfWanted() (21),
+  // KSM_TV_ASSIGNED_COURT (25), spectatorLink(), initializeCloudRoleFromUrl() (33). The court-pin,
+  // load-file-guard and stream-overlay regions read and write the address through them too.
+  'path-urls': 8,
   // feat/react-setup: app/js/00-react-bridge.js + the ksm:state-changed dispatch in
   // performCourtAction() and renderAll(), so React islands re-render with `state`.
   'react-bridge': 3,

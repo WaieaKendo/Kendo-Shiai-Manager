@@ -1,6 +1,6 @@
 """The TV display's 1920x1080 canvas fits any screen (F14).
 
-The TV (?view=tv) is designed as one fixed 1920x1080 picture. It used to sit at the top left at its
+The TV (/t/<id>/tv/a, before M.9 ?view=tv) is designed as one fixed 1920x1080 picture. It used to sit at the top left at its
 own size: on a 1280x720 screen the right and bottom were cut off (and the page could not scroll),
 on 4K it was small at the top. Now it is scaled uniformly to fit the window, centred, letterboxed in
 the TV background.

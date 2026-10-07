@@ -1,4 +1,4 @@
-// Pure logic of the stream overlay page (/overlay): URL options, what the bar shows,
+// Pure logic of the stream overlay page (/t/<id>/overlay/a|b, app/overlay.html): URL options, what the bar shows,
 // and where it sits (normal lower third, or "band mode" for PRISM's portrait widgets).
 import { courtDivision, individualSideLabel, matchMetaLine, selectCourtMatch } from './court-match.ts';
 

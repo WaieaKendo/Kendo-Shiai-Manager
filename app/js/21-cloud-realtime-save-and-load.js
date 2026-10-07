@@ -8,7 +8,7 @@ function cloudSocketUrl(id){
   return url.toString();
 }
 const ksmTvRealtimeDiagnostics={status:'Not connected',messages:0,ignored:0,lastMessageAt:null,lastReceivedRevision:0,lastAppliedRevision:0,lastVerifiedRevision:0,lastVerifiedAt:null,refreshes:0,lastReason:'Waiting'};
-function isTvSession(){return document.body.classList.contains('ksm-tv')||new URLSearchParams(location.search).get('view')==='tv'}
+function isTvSession(){return document.body.classList.contains('ksm-tv')||/* ksm:post-split-begin path-urls was:new URLSearchParams(location.search) */ksmLinkParams()/* ksm:post-split-end */.get('view')==='tv'}
 function preserveLocalDivisionForRemoteSync(){
   // v3.17.17 intentionally made the scorekeeper-selected division local so a
   // remote court could not switch it back. That rule must NOT apply to a
@@ -237,8 +237,8 @@ async function loadTournamentFromCloud(tournamentId,options={}){
 }
 function showKsmToast(message,duration=2000,isError=false){let toast=document.getElementById('ksmToast');if(!toast){toast=document.createElement('div');toast.id='ksmToast';toast.className='ksm-toast';toast.dataset.testid='toast';document.body.appendChild(toast)}clearTimeout(showKsmToast.timer);toast.textContent=message;toast.classList.toggle('error',Boolean(isError));requestAnimationFrame(()=>toast.classList.add('show'));if(duration>0)showKsmToast.timer=setTimeout(()=>toast.classList.remove('show'),duration)}
 async function copyTextValue(value,success,closeAfter=false){try{await navigator.clipboard.writeText(value);showKsmToast('✓ '+success,1200);if(closeAfter)setTimeout(closeCloudModal,850);return true}catch(_){prompt(success,value);return false}}
-function roleLink(role,court=''){if(!cloudSession.tournamentId)return '';const url=new URL(location.href);url.search='';url.hash='';url.searchParams.set('role',role);url.searchParams.set('tournament',cloudSession.tournamentId);const key=cloudSession.credentials?.[role];if(key)url.searchParams.set('key',key);if(court)url.searchParams.set('court',court);return url.toString()}
-function tvLink(court){const url=new URL(roleLink('spectator',court));if(!url.href||!cloudSession.tournamentId)return '';url.searchParams.set('view','tv');url.searchParams.set('court',court);return url.toString()}
+function roleLink(role,court=''){/* ksm:post-split-begin path-urls was:if(!cloudSession.tournamentId)return '';const url=new URL(location.href);url.search='';url.hash='';url.searchParams.set('role',role);url.searchParams.set('tournament',cloudSession.tournamentId);const key=cloudSession.credentials?.[role];if(key)url.searchParams.set('key',key);if(court)url.searchParams.set('court',court);return url.toString() */if(!cloudSession.tournamentId)return '';const id=cloudSession.tournamentId;return ksmLinkUrl(court?{screen:'court',id,court:normalizeCourt(court)}:{screen:'tournament',id},[['role',role==='spectator'?'':role],['key',cloudSession.credentials?.[role]]])/* ksm:post-split-end */}
+function tvLink(court){/* ksm:post-split-begin path-urls was:const url=new URL(roleLink('spectator',court));if(!url.href||!cloudSession.tournamentId)return '';url.searchParams.set('view','tv');url.searchParams.set('court',court);return url.toString() */if(!cloudSession.tournamentId)return '';return ksmLinkUrl({screen:'tv',id:cloudSession.tournamentId,court:normalizeCourt(court)},[['key',cloudSession.credentials?.spectator]])/* ksm:post-split-end */}
 function spectatorLink(){return roleLink('spectator')}
 function directorLink(){return roleLink('director')}
 async function copySpectatorLink(){if(!cloudSession.tournamentId)await saveTournamentToCloud();const link=spectatorLink();if(!link){alert('Create the cloud tournament while online first.');return}await copyTextValue(link,'Spectator link copied')}
@@ -364,9 +364,9 @@ async function loadTournamentFileAsNew(){
   sessionStorage.setItem(KSM_V316_STAFF_SESSION,password);setSessionRole('staff');installRoleBanner('staff');document.body.classList.remove('ksm-home');
   if(!applyTournamentFilePayload(pending.payload,false)){Object.assign(cloudSession,previous.session);persistCloudSession();if(previous.password)sessionStorage.setItem(KSM_V316_STAFF_SESSION,previous.password);else sessionStorage.removeItem(KSM_V316_STAFF_SESSION);setSessionRole(previous.role);if(cloudSession.tournamentId)connectCloudSocket();return}
   // A tournament link in the address bar would reopen the old tournament after a reload.
-  const linked=Boolean(new URLSearchParams(location.search).get('tournament'));if(linked)history.replaceState(null,'',location.pathname);
+  const linked=Boolean(ksmLinkParams().get('tournament'));if(linked)ksmReplaceUrl('/');
   markLocalSave('Tournament file loaded as new tournament');updateSaveStatus('Loaded '+pending.fileName);showKsmToast('Creating tournament in cloud…',0);
-  try{await performCloudSave(tournamentPayload(),0);if(linked&&cloudSession.tournamentId)history.replaceState(null,'',`${location.pathname}?tournament=${encodeURIComponent(cloudSession.tournamentId)}`);showKsmToast('✓ Loaded as a new tournament',2200)}
+  try{await performCloudSave(tournamentPayload(),0);if(linked&&cloudSession.tournamentId)ksmReplaceUrl(KSMEngine.routePath({screen:'tournament',id:cloudSession.tournamentId}));showKsmToast('✓ Loaded as a new tournament',2200)}
   catch(err){console.error(err);writeOutbox(tournamentPayload(),'Tournament file loaded as new tournament');showKsmToast(navigator.onLine?'Unable to create tournament in cloud':'Offline · Tournament will sync when connected',3500,true)}
 }
 /* ksm:post-split-end */
@@ -440,7 +440,7 @@ function restoreAutoSaveIfWanted(){
   try{
     // A tournament link (spectator, TV, court device) always loads the cloud copy, which would
     // replace anything restored here. Unsynced staff work is kept in the outbox instead.
-    const params=new URLSearchParams(location.search);
+    const params=/* ksm:post-split-begin path-urls was:new URLSearchParams(location.search) */ksmLinkParams()/* ksm:post-split-end */;
     if(params.get('tournament')||params.get('spectator'))return false;
     const raw=localStorage.getItem(KSM_SAVE_KEY);
     if(!raw) return false;

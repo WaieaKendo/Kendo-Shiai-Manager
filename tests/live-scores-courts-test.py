@@ -20,7 +20,7 @@ golden-live-scores-test.py ("complete, as a Court B device").
 import time
 
 from playwright.sync_api import sync_playwright
-from ksm_app import KsmApp
+from ksm_app import KsmApp, app_path
 from ksm_browser import launch_chromium
 from ksm_server import local_worker
 
@@ -55,13 +55,13 @@ def main():
         director.wait_idle()
         courts = {}
         for c in 'AB':
-            court = KsmApp.open_device(browser, base, f'Court {c}', problems, f'/?tournament={tid}&court={c}')
+            court = KsmApp.open_device(browser, base, f'Court {c}', problems, app_path(tid, 'court', c))
             court.wait_generated()
             court.staff_login()
             court.open_court(c)
             court.wait_for(court.current_match, message=f'a match on Court {c}')
             courts[c] = court
-        spectator = KsmApp.open_device(browser, base, 'Spectator', problems, f'/?tournament={tid}')
+        spectator = KsmApp.open_device(browser, base, 'Spectator', problems, app_path(tid))
         spectator.wait_generated()
         devices = [spectator, courts['A'], courts['B']]
 

@@ -1,4 +1,4 @@
-"""Golden (snapshot) test of the TV display (?view=tv, body.ksm-tv; roadmap M.13).
+"""Golden (snapshot) test of the TV display (/t/<id>/tv/a|b, before M.9 ?view=tv; body.ksm-tv; roadmap M.13).
 
 Since M.13 the TV is drawn only by React (the Tv island, app/react/tv/; app/js/37-react-tv.js
 publishes its data). A TV device shows one court (the link's &court=, KSM_TV_ASSIGNED_COURT) on a fixed 1920x1080
@@ -60,7 +60,7 @@ GOLDEN_DIR = Path(__file__).resolve().parent / 'golden' / 'tv'
 ROOT = '#tv'
 TV = {'width': 1920, 'height': 1080}
 OTHER_SIZES = [('1280x720', {'width': 1280, 'height': 720}), ('3840x2160', {'width': 3840, 'height': 2160})]
-# A TV device as initializeCloudRoleFromUrl() (33-) sets it up for ?view=tv.
+# A TV device as initializeCloudRoleFromUrl() (33-) sets it up for a TV link (/t/<id>/tv/a|b).
 TV_MODE_JS = "() => { document.body.classList.add('ksm-tv'); renderTvDisplay(); show('tv'); }"
 # What a live update does on a TV device (applyRemoteCloudRecord(), 21-): redraw the TV.
 TV_UPDATE_JS = "() => { renderTvDisplay(); show('tv'); }"

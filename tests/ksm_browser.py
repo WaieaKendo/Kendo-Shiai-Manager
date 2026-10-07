@@ -25,14 +25,15 @@ def launch_chromium(p):
     return p.chromium.launch(headless=not headed, slow_mo=slow_mo, executable_path=path, args=['--no-sandbox'])
 
 
-def load_app(page, html=None, wait_until='domcontentloaded', session='staff', query='', api=None):
+def load_app(page, html=None, wait_until='domcontentloaded', session='staff', query='', api=None, page_path='/'):
     """Open the app on a real http origin so localStorage/sessionStorage work.
 
     `page.set_content()` leaves the page on about:blank, where storage access throws
     during startup. Requests to APP_ORIGIN are served from the built app in dist/
     (built first if it is stale; `html` replaces index.html when given); /api/*
     returns 503 so the app stays in local/offline mode. `query` (e.g. '?court=B') is
-    added to the page URL, for code that reads location.search at start.
+    added to the page URL, for code that reads location.search at start; `page_path` (default /) is
+    the page's path, e.g. a path URL /t/<id>/tv/b (served the app, as the host does).
 
     Since v3.16 the app boots to the Tournament Library as a read-only spectator.
     session='staff' (default) leaves the home page and enables a local staff
@@ -49,7 +50,8 @@ def load_app(page, html=None, wait_until='domcontentloaded', session='staff', qu
             if api is not None:
                 return api(route, path)
             return route.fulfill(status=503, content_type='application/json', body='{"error":"offline test harness"}')
-        if path in ('', '/', '/index.html'):
+        # The app's pages, as the host answers them: /, /index.html and the path URLs /t/... (M.9).
+        if path in ('', '/', '/index.html', '/t') or path.startswith('/t/'):
             body = html if html is not None else (DIST / 'index.html').read_text(encoding='utf-8')
             return route.fulfill(status=200, content_type='text/html; charset=utf-8', body=body)
         file = (DIST / path.lstrip('/')).resolve()
@@ -58,7 +60,7 @@ def load_app(page, html=None, wait_until='domcontentloaded', session='staff', qu
         return route.fulfill(status=404, body='')
 
     page.route(f'{APP_ORIGIN}/**', handle)
-    page.goto(f'{APP_ORIGIN}/{query}', wait_until=wait_until)
+    page.goto(f'{APP_ORIGIN}{page_path}{query}', wait_until=wait_until)
     if session == 'staff':
         page.evaluate("""() => {
           document.body.classList.remove('ksm-home');

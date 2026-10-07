@@ -1,0 +1,29 @@
+/* ksm:post-split-begin path-urls */
+// ==========================================================
+// Path URLs (roadmap M.9; the scheme is app/engine/routes.ts, KSMEngine.*)
+// /t/<id>, /t/<id>/live, /t/<id>/court/a|b, /t/<id>/tv/a|b (and /t/<id>/overlay/a|b, the
+// overlay page). This file runs first in app.js: an old link (?tournament=<id>&court=A,
+// &role=spectator&view=tv, ...) is replaced by its path (history.replaceState, so it works
+// offline and adds no history entry) before any other code reads the address, and a /t/...
+// path that is not a route goes to / (the Tournament Library, as an unknown tournament does).
+// The code that read the old parameters (initializeCloudRoleFromUrl(), KSM_TV_ASSIGNED_COURT,
+// isTvSession(), pinnedCourt(), courtPinStorageKey(), restoreAutoSaveIfWanted(), the Load
+// Tournament File guard) reads them through ksmLinkParams(): the same names and values, from
+// the path. The links the app makes (Tournament Access and its QR code, the TV menu, the
+// stream overlay links, roleLink()) are built by ksmLinkUrl(). In-app navigation does not
+// change the address (it never did).
+// Post-split code: scripts/verify-split.mjs removes the marked region before it compares.
+// ==========================================================
+function ksmResolvedUrl(){return KSMEngine.resolveUrl(location.pathname||'/',location.search||'')}
+// The page's link parameters by their old names (tournament, court, view; key= and others as
+// they are), as new URLSearchParams(location.search) gave them for an old link.
+function ksmLinkParams(){return new URLSearchParams(KSMEngine.legacyQuery(ksmResolvedUrl().route,location.search||''))}
+// An absolute link to a route (KSMEngine.routeUrl(): path plus query pairs; empty ones left out).
+function ksmLinkUrl(route,query){return new URL(KSMEngine.routeUrl(route,query||[]),location.href).toString()}
+function ksmReplaceUrl(path){try{history.replaceState(history.state,'',path)}catch(err){console.warn('KSM could not update the address',err)}}
+(function ksmApplyPathRoute(){
+  if(typeof location==='undefined'||typeof history==='undefined'||typeof KSMEngine==='undefined')return;
+  const resolved=ksmResolvedUrl();
+  if(resolved.redirect!==null)ksmReplaceUrl(resolved.redirect+(resolved.route.screen==='invalid'?'':location.hash));
+})();
+/* ksm:post-split-end */

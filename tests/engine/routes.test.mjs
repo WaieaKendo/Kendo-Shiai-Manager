@@ -2,6 +2,8 @@
 // the old link parameters the classic code reads, and which page a path gets.
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
 import {
   routePath, routeUrl, parseRoutePath, parseLegacyLink, resolveUrl, legacyQuery, servesAppShell, servesOverlay,
 } from '../../app/engine/routes.ts';
@@ -143,4 +145,35 @@ test('servesAppShell / servesOverlay: which page each path gets', () => {
   for (const p of app) assert.deepEqual([servesAppShell(p), servesOverlay(p)], [true, false], p);
   for (const p of overlay) assert.deepEqual([servesAppShell(p), servesOverlay(p)], [false, true], p);
   for (const p of neither) assert.deepEqual([servesAppShell(p), servesOverlay(p)], [false, false], p);
+});
+
+// The Worker and the service worker are plain scripts with their own copy of the rule; they must
+// agree with routes.ts for every path.
+const PATHS = ['/', '/index.html', '/overlay', '/overlay.html', '/app.js', '/api/tournaments', '/tv', '/t', '/t/', `/t/${ID}`, `/t/${ID}/`,
+  `/t/${ID}/live`, `/t/${ID}/court/a`, `/t/${ID}/court/B`, `/t/${ID}/court`, `/t/${ID}/tv/b`, `/t/${ID}/tv`, `/t/${ID}/results`,
+  `/t/${ID}/overlay/a`, `/t/${ID}/overlay/b/`, `/t/${ID}/overlay`, `/t/${ID}/Overlay/A`, `/t/${ID}/overlay/c`, `/t/${ID}/overlay/a/b`,
+  '/t/%E0%A4%A/overlay/a', '/t//overlay/a', '/t/a%20b/overlay/b'];
+const rule = (file, from, to) => {
+  const source = fs.readFileSync(new URL(`../../${file}`, import.meta.url), 'utf8');
+  const code = source.slice(source.indexOf(from), source.indexOf(to));
+  assert.ok(code.includes('function isOverlayPath'), `${file}: the overlay path rule`);
+  const ctx = vm.createContext({});
+  vm.runInContext(`${code}\nthis.isOverlayPath = isOverlayPath; this.servesAppShell = typeof servesAppShell === 'function' ? servesAppShell : null;`, ctx);
+  return ctx;
+};
+
+test('src-worker.js serves the overlay page exactly for servesOverlay() paths under /t/', () => {
+  const { isOverlayPath } = rule('src-worker.js', 'const OVERLAY_PATH', 'function safeRole');
+  for (const p of PATHS) assert.equal(isOverlayPath(p), p.startsWith('/t') && servesOverlay(p), p);
+});
+
+test('app/service-worker.js serves the offline app exactly for servesAppShell() paths', () => {
+  const { servesAppShell: sw } = rule('app/service-worker.js', 'const OVERLAY_PATH', "self.addEventListener('install'");
+  for (const p of PATHS) assert.equal(sw(p), servesAppShell(p), p);
+});
+
+test('wrangler.jsonc sends /t/* to the Worker first (overlay paths), /api/* as before', () => {
+  const wrangler = fs.readFileSync(new URL('../../wrangler.jsonc', import.meta.url), 'utf8');
+  assert.match(wrangler, /"run_worker_first": \["\/api\/\*", "\/t\/\*"\]/);
+  assert.match(wrangler, /"not_found_handling": "single-page-application"/);
 });

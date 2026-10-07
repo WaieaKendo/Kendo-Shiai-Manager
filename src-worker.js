@@ -5,6 +5,16 @@ function json(body, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(body), { status, headers: { ...JSON_HEADERS, ...extraHeaders } });
 }
 async function passwordHash(value) { const data = new TextEncoder().encode(String(value || '')); const digest = await crypto.subtle.digest('SHA-256', data); return [...new Uint8Array(digest)].map(v => v.toString(16).padStart(2, '0')).join(''); }
+// Path URLs (M.9, the scheme in app/engine/routes.ts): /t/<id>/overlay[/a|b] is the stream overlay
+// page (app/overlay.html, which the assets serve at /overlay); every other /t/... path is the app
+// (the assets' single-page fallback: index.html). wrangler.jsonc sends /t/* here first.
+// tests/engine/routes.test.mjs checks this rule against routes.ts servesOverlay().
+const OVERLAY_PATH = /^\/t\/([^/]+)\/overlay(?:\/[ab])?\/?$/i;
+function isOverlayPath(pathname) {
+  const match = OVERLAY_PATH.exec(pathname);
+  if (!match) return false;
+  try { return Boolean(decodeURIComponent(match[1])); } catch (_) { return false; }
+}
 function safeRole(value) { return VALID_ROLES.has(value) ? value : 'spectator'; }
 function sanitizePayload(payload) {
   if (!payload || typeof payload !== 'object') return payload;
@@ -280,6 +290,7 @@ export default {
       }
       return json({ error: 'Method not allowed' }, 405);
     }
+    if (isOverlayPath(url.pathname)) return env.ASSETS.fetch(new Request(new URL('/overlay', url), request));
     return env.ASSETS.fetch(request);
     } catch (error) {
       console.error('KSM Worker request failed', { path:url.pathname, method:request.method, error });

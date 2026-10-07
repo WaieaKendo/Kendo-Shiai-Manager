@@ -25,6 +25,21 @@ STATUS_CLICKS = {'Registered': 0, 'Checked': 1, 'NoShow': 2}  # Registered -> Ch
 DEFAULT_PASSWORD = 'e2e-staff-pass'
 
 
+def app_path(tid, screen=None, court=None):
+    """The app's path URL for a tournament (roadmap M.9, the scheme in app/engine/routes.ts).
+
+    app_path(tid) = /t/<id> (Live Scores, the device's court), app_path(tid, 'live'),
+    app_path(tid, 'court', 'B') = /t/<id>/court/b (a court device), app_path(tid, 'tv', 'A'),
+    app_path(tid, 'overlay', 'A') (the stream overlay page).
+    """
+    path = f'/t/{tid}'
+    if screen:
+        path += f'/{screen}'
+    if court:
+        path += f'/{court.lower()}'
+    return path
+
+
 def sel(testid):
     return f'[data-testid="{testid}"]'
 
@@ -137,15 +152,16 @@ class KsmApp:
 
     @classmethod
     def open_device(cls, browser, base, name, problems, path='/', password=DEFAULT_PASSWORD,
-                    tournament_name='KSM E2E Cup', viewport=None, clock=False, before_load=None):
+                    tournament_name='KSM E2E Cup', viewport=None, clock=False, before_load=None, service_workers='block'):
         """A separate device (own browser context) opening `path` on a live backend.
 
         Answers the app's prompts (tournament name, staff password, device name);
         any other dialog, or a page error, is recorded in `problems`.
         clock=True installs Playwright's clock first, so a test can fast-forward time;
         before_load(page) runs before the page opens (e.g. to route its live socket).
+        service_workers='allow' lets the app's service worker run (the offline checks).
         """
-        ctx = browser.new_context(viewport=viewport or {'width': 1280, 'height': 900}, service_workers='block')
+        ctx = browser.new_context(viewport=viewport or {'width': 1280, 'height': 900}, service_workers=service_workers)
         page = ctx.new_page()
         app = cls(page, name, problems)
         app.answers = {
@@ -203,6 +219,20 @@ class KsmApp:
         """Reload the page (power cut, browser restart) and wait for the app to boot again."""
         self.page.reload(wait_until='domcontentloaded')
         self.page.wait_for_function('window.KSMTest && KSMTest.booted()')
+
+    def goto(self, path):
+        """Open `path` (e.g. app_path(tid, 'tv', 'B'), or an old ?tournament= link) in this device's page."""
+        origin = self.page.url.split('/', 3)[:3]
+        self.page.goto('/'.join(origin) + path, wait_until='domcontentloaded')
+        self.page.wait_for_function('window.KSMTest && KSMTest.booted()')
+
+    def address(self):
+        """The page's address without the origin: path, query and hash (e.g. /t/<id>/court/b)."""
+        return '/' + self.page.url.split('/', 3)[3]
+
+    def visible_view(self):
+        """The screens (main > .view ids) shown: ['public'] for Live Scores, ['home'], ['tv'], ..."""
+        return self.page.evaluate("() => [...document.querySelectorAll('main > .view')].filter(v => getComputedStyle(v).display !== 'none').map(v => v.id)")
 
     # --------------------------------------------------------- cloud / sync status
     def tournament_id(self):
@@ -333,7 +363,7 @@ class KsmApp:
         def grab(route):
             captured.append(route.request.url)
             route.fulfill(status=200, content_type='text/html', body='')
-        is_tv = lambda url: 'view=tv' in url
+        is_tv = lambda url: '/tv/' in url
         ctx.route(is_tv, grab)
         try:
             self.click('nav-tv')
@@ -541,7 +571,7 @@ class KsmApp:
         self.page.evaluate('KSMTest.renderTv()')
 
     def tv_screen(self):
-        """TV display (?view=tv): court, division, meta, current names or completion, scores, team summaries."""
+        """TV display (/t/<id>/tv/a|b): court, division, meta, current names or completion, scores, team summaries."""
         return self.page.evaluate(_TV_JS)
 
     def tv_upcoming(self):

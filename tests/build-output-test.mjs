@@ -5,6 +5,7 @@
 // the offline APP_SHELL.
 // run-all.mjs builds dist/ before the tests run.
 import fs from 'node:fs';
+import vm from 'node:vm';
 import path from 'node:path';
 import { APP_DIR, DIST_DIR, STYLE_TAG, SCRIPT_TAG, indexHtml, appStyles, appScript, engineScript, serviceWorker, extraPages } from '../scripts/app-sources.mjs';
 
@@ -49,8 +50,18 @@ for (const page of pages) {
     `dist/${page}: built, only bundled module scripts (${scripts.length})`);
   check(html && !html.includes('/assets/app-') && !html.includes('/assets/engine-') && modules.every(f => f && !dist(f).includes('function performCourtAction(')), `dist/${page}: does not load the classic app bundle`);
 }
-check(/mode === 'navigate' && url\.pathname !== '\/' && url\.pathname !== '\/index\.html'\) return;/.test(sw),
-  `service worker leaves navigations to extra pages to the network (${pages.length ? pages.join(', ') : 'none yet'})`);
+// Path URLs (M.9): the app shell answers /, /index.html and /t/... (servesAppShell(), checked
+// against app/engine/routes.ts in tests/engine/routes.test.mjs), never an extra page's URL.
+const swShell = (() => {
+  const code = sw.slice(sw.indexOf('const OVERLAY_PATH'), sw.indexOf("self.addEventListener('install'"));
+  const ctx = vm.createContext({});
+  try { vm.runInContext(`${code}\nthis.servesAppShell = servesAppShell;`, ctx); } catch (_) { return null; }
+  return ctx.servesAppShell;
+})();
+const extraUrls = pages.flatMap(page => [`/${page}`, `/${page.replace(/\.html$/, '')}`]).concat(['/t/x/overlay/a']);
+check(/mode === 'navigate' && !servesAppShell\(url\.pathname\)\) return;/.test(sw) && swShell
+  && ['/', '/index.html', '/t/x', '/t/x/court/a', '/t/x/tv/b'].every(swShell) && !extraUrls.some(swShell),
+  `service worker leaves navigations to extra pages to the network (${pages.length ? pages.join(', ') : 'none yet'}; /t/<id>/overlay/a) and serves the app for /t/ paths`);
 
 const walk = dir => fs.readdirSync(dir, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]);
 const publicDir = path.join(APP_DIR, 'public');

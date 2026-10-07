@@ -18,7 +18,7 @@ Before F10 the rebase kept the server's pools and matches in all three, without 
 import time
 
 from playwright.sync_api import sync_playwright
-from ksm_app import KsmApp, fetch_record, put_record, sel
+from ksm_app import KsmApp, fetch_record, put_record, sel, app_path
 from ksm_browser import launch_chromium
 from ksm_server import local_worker
 
@@ -48,7 +48,7 @@ def main():
         ])
         director.save_now()
         director.wait_idle()
-        court = KsmApp.open_device(browser, base, 'Court B', problems, f'/?tournament={tid}&court=B')
+        court = KsmApp.open_device(browser, base, 'Court B', problems, app_path(tid, 'court', 'B'))
         court.wait_generated()
         court.staff_login()
         court.open_court('B')
