@@ -96,6 +96,10 @@ const KNOWN_POST_SPLIT_EDITS = {
   // Listed here because renderTournamentStatus() (03) is its
   // first region: the check compares names in order of first appearance.
   'react-registration': 6,
+  // fix/quirks-pass (Registration): renderReg(), renderTeams() and renderExhibitions() (03) also
+  // refresh the tournament status card, so it is never stale after + Add Row, samples, Clear,
+  // a paste or a team/exhibition edit.
+  'quirks-registration': 3,
   // fix/pre-event (M.12) added test IDs to markup drawn by app/js in `test-ids` regions (each line
   // kept in its `was:` marker): the exhibition rows' region went with renderExhibitions()'s body in
   // feat/react-registration-2 (4 -> 3), the Regenerate Single Division dialog's three
@@ -464,6 +468,9 @@ const MARKUP_TEST_IDS = [
   // F4 (fix/setup-edit-conflict-merge): Setup fields its conflict test edits.
   ['<input id="tHost" value="Aiea Taiheiji Kendo Club">', 'setup-host'],
   ['<input id="tLocation" value="Halawa District Park">', 'setup-location'],
+  // fix/quirks-pass: the sample buttons registration-status-card-test.py presses.
+  ['<button onclick="loadSamples()">', 'reg-load-samples'],
+  ['<button onclick="loadTeamSamples()">', 'team-load-samples'],
 ];
 const old = execFileSync('git', ['show', `${commit}:public/index.html`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64e6 });
 let failed = 0;
