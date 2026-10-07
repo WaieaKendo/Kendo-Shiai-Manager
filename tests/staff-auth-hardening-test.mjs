@@ -133,4 +133,78 @@ await test('attempt limit: tournaments count separately', async () => {
   assert.equal((await login(b.id, PASSWORD)).status, 200);
 });
 
+// ------------------------------------------------------------------------------ salted slow hash
+const PBKDF2_FORMAT = /^pbkdf2-sha256\$(\d+)\$([A-Za-z0-9+/=]+)\$([A-Za-z0-9+/=]+)$/;
+const sha256Hex = async text => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)))].map(v => v.toString(16).padStart(2, '0')).join('');
+async function pbkdf2(password, salt, iterations) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
+  return Buffer.from(await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations }, key, 256)).toString('base64');
+}
+const storedHash = id => api.storage(id).get('staffPasswordHash');
+
+await test('salted hash: a new tournament stores PBKDF2-SHA256, 100,000 iterations, its own 16-byte salt', async () => {
+  const a = await create(), b = await create();
+  const [ha, hb] = [await storedHash(a.id), await storedHash(b.id)];
+  for (const stored of [ha, hb]) {
+    const [, iterations, salt, hash] = stored.match(PBKDF2_FORMAT) || assert.fail(`not the PBKDF2 format: ${stored}`);
+    assert.equal(Number(iterations), 100000);
+    assert.equal(Buffer.from(salt, 'base64').length, 16);
+    assert.equal(hash, await pbkdf2(PASSWORD, Buffer.from(salt, 'base64'), 100000), 'an independent PBKDF2 of the password gives the stored hash');
+  }
+  assert.notEqual(ha.split('$')[2], hb.split('$')[2], 'each tournament has its own salt');
+  assert.notEqual(ha, hb, 'the same password hashes differently in two tournaments');
+  assert.ok(!ha.includes(await sha256Hex(PASSWORD)), 'no unsalted SHA-256 stored');
+  assert.equal((await login(a.id, PASSWORD)).status, 200);
+  assert.equal((await login(a.id, 'wrong')).status, 403);
+});
+
+await test('salted hash: an old SHA-256 tournament logs in, is upgraded to PBKDF2, then still logs in', async () => {
+  const { id } = await create();
+  clock(id);
+  const legacy = await sha256Hex(PASSWORD);
+  await api.storage(id).put('staffPasswordHash', legacy); // as stored before this change (production)
+  assert.equal((await login(id, 'wrong')).status, 403);
+  assert.equal(await storedHash(id), legacy, 'a wrong password does not touch the old hash');
+  assert.equal((await login(id, PASSWORD)).status, 200, 'the old hash still accepts the password');
+  const upgraded = await storedHash(id);
+  assert.match(upgraded, PBKDF2_FORMAT, 'upgraded at the correct password');
+  assert.equal((await login(id, PASSWORD)).status, 200, 'logs in after the upgrade');
+  assert.equal((await login(id, 'wrong')).status, 403);
+  assert.equal(await storedHash(id), upgraded, 'not re-hashed at every login');
+});
+
+await test('salted hash: an old tournament is also upgraded by a staff save or live connection with the password', async () => {
+  for (const use of ['save', 'socket']) {
+    const { id } = await create();
+    await api.storage(id).put('staffPasswordHash', await sha256Hex(PASSWORD));
+    if (use === 'save') assert.equal((await save(id, PASSWORD)).status, 200);
+    else { const socket = await api.openSocket(id, { role: 'staff', key: PASSWORD }); assert.equal(socket.status, 101); await socket.close(); }
+    assert.match(await storedHash(id), PBKDF2_FORMAT, use);
+    assert.equal((await login(id, PASSWORD)).status, 200, use);
+  }
+});
+
+await test('salted hash: fewer iterations than today are upgraded at the next correct password', async () => {
+  const { id } = await create();
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  await api.storage(id).put('staffPasswordHash', `pbkdf2-sha256$1000$${Buffer.from(salt).toString('base64')}$${await pbkdf2(PASSWORD, salt, 1000)}`);
+  assert.equal((await login(id, PASSWORD)).status, 200);
+  assert.equal((await storedHash(id)).match(PBKDF2_FORMAT)[1], '100000');
+});
+
+await test('salted hash: a missing or malformed hash behaves as before (403, never an error, no upgrade)', async () => {
+  const { id } = await create();
+  clock(id);
+  const cases = [undefined, '', 'not-a-hash', 'pbkdf2-sha256$', 'pbkdf2-sha256$abc$AAAA$AAAA', 'pbkdf2-sha256$100000$!!!$@@@',
+    'pbkdf2-sha256$100000$AAAAAAAAAAAAAAAAAAAAAA==$AAAA', 'pbkdf2-sha256$999999999$AAAAAAAAAAAAAAAAAAAAAA==$' + 'A'.repeat(43) + '=', 'pbkdf2-sha256$1$a$b$c', 42];
+  for (const stored of cases) {
+    if (stored === undefined) await api.storage(id).delete('staffPasswordHash');
+    else await api.storage(id).put('staffPasswordHash', stored);
+    await api.storage(id).delete('staffAuthFailures');
+    assert.equal((await login(id, PASSWORD)).status, 403, `stored ${JSON.stringify(stored)}`);
+    assert.equal((await save(id, PASSWORD)).status, 403, `save, stored ${JSON.stringify(stored)}`);
+    assert.equal(await storedHash(id), stored, `left as it was: ${JSON.stringify(stored)}`);
+  }
+});
+
 console.log(`${passed} staff password hardening checks passed`);

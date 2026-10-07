@@ -4,7 +4,39 @@ const VALID_ROLES = new Set(['spectator', 'staff']);
 function json(body, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(body), { status, headers: { ...JSON_HEADERS, ...extraHeaders } });
 }
-async function passwordHash(value) { const data = new TextEncoder().encode(String(value || '')); const digest = await crypto.subtle.digest('SHA-256', data); return [...new Uint8Array(digest)].map(v => v.toString(16).padStart(2, '0')).join(''); }
+async function sha256Hex(value) { const data = new TextEncoder().encode(String(value || '')); const digest = await crypto.subtle.digest('SHA-256', data); return [...new Uint8Array(digest)].map(v => v.toString(16).padStart(2, '0')).join(''); }
+// Staff password hash (issue #9): PBKDF2-SHA256 with a random 16-byte salt per tournament, stored
+// as "pbkdf2-sha256$<iterations>$<salt base64>$<hash base64>". 100,000 iterations is the most
+// Workers' WebCrypto allows (it refuses more); its cost is in docs/DEPLOYMENT.md.
+// Tournaments created before this stored an unsalted SHA-256 hex digest: it is still accepted
+// and replaced by the PBKDF2 format at the next correct password.
+const PBKDF2_PREFIX = 'pbkdf2-sha256';
+const PBKDF2_ITERATIONS = 100000;
+const PBKDF2_MAX_ITERATIONS = 100000;
+function toBase64(bytes) { let text = ''; for (const byte of bytes) text += String.fromCharCode(byte); return btoa(text); }
+function fromBase64(text) { const raw = atob(text); return Uint8Array.from(raw, c => c.charCodeAt(0)); }
+function sameBytes(a, b) { if (a.length !== b.length) return false; let diff = 0; for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i]; return diff === 0; }
+async function pbkdf2(password, salt, iterations) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
+  return new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations }, key, 256));
+}
+async function hashStaffPassword(password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  return `${PBKDF2_PREFIX}$${PBKDF2_ITERATIONS}$${toBase64(salt)}$${toBase64(await pbkdf2(String(password), salt, PBKDF2_ITERATIONS))}`;
+}
+// Checks a password against the stored hash. { ok, rehash }: rehash when the stored format is the
+// old SHA-256 one (or fewer iterations than today's). A missing or malformed hash never matches.
+async function checkStaffPasswordHash(password, stored) {
+  if (!password || !stored || typeof stored !== 'string') return { ok: false };
+  if (!stored.startsWith(`${PBKDF2_PREFIX}$`)) return { ok: await sha256Hex(password) === stored, rehash: true };
+  const [, count, saltText, hashText, extra] = stored.split('$');
+  const iterations = Number(count);
+  if (extra !== undefined || !Number.isInteger(iterations) || iterations < 1 || iterations > PBKDF2_MAX_ITERATIONS) return { ok: false };
+  let salt, expected;
+  try { salt = fromBase64(saltText || ''); expected = fromBase64(hashText || ''); } catch (_) { return { ok: false }; }
+  if (!salt.length || expected.length !== 32) return { ok: false };
+  return { ok: sameBytes(await pbkdf2(password, salt, iterations), expected), rehash: iterations < PBKDF2_ITERATIONS };
+}
 // Path URLs (M.9, the scheme in app/engine/routes.ts): /t/<id>/overlay[/a|b] is the stream overlay
 // page (app/overlay.html, which the assets serve at /overlay); every other /t/... path is the app
 // (the assets' single-page fallback: index.html). wrangler.jsonc sends /t/* here first.
@@ -86,7 +118,13 @@ export class TournamentState {
 
   async staffPasswordHash() { return (await this.state.storage.get('staffPasswordHash')) || ''; }
   now() { return Date.now(); }
-  async verifyStaffPassword(password) { const stored = await this.staffPasswordHash(); return Boolean(password && stored && await passwordHash(password) === stored); }
+  async verifyStaffPassword(password) {
+    const stored = await this.staffPasswordHash();
+    const result = await checkStaffPasswordHash(password, stored);
+    // The transparent upgrade: an old SHA-256 hash is replaced by a PBKDF2 one of the same password.
+    if (result.ok && result.rehash) await this.state.storage.put('staffPasswordHash', await hashStaffPassword(password));
+    return result.ok;
+  }
   // One staff password attempt, counted against the attempt limit. Attempts run one at a time
   // (this.staffAttempts chains them): checks of the slow hash would otherwise overlap and all read
   // the same count, so a burst of parallel guesses would get past the limit.
@@ -202,7 +240,7 @@ export class TournamentState {
       if (!incoming.staffPassword || String(incoming.staffPassword).length < 4) return json({ error: 'Staff password required' }, 400);
       const integrityError = validateTournamentPayload(incoming.payload);
       if (integrityError) return json({ error: 'Invalid tournament state', integrityError }, 422);
-      await this.state.storage.put('staffPasswordHash', await passwordHash(incoming.staffPassword));
+      await this.state.storage.put('staffPasswordHash', await hashStaffPassword(incoming.staffPassword));
       const now = new Date().toISOString();
       const record = { schemaVersion: '1.2', tournamentId: incoming.tournamentId, engineVersion: incoming.engineVersion || 'unknown', revision: 1, createdAt: now, updatedAt: now, updatedBy: { role: 'staff', clientId: '', name: 'Tournament creator', court: '' }, payload: sanitizePayload(incoming.payload) };
       await this.state.storage.put('record', record);
