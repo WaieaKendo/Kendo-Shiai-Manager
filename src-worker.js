@@ -6,12 +6,13 @@ function json(body, status = 200, extraHeaders = {}) {
 }
 async function sha256Hex(value) { const data = new TextEncoder().encode(String(value || '')); const digest = await crypto.subtle.digest('SHA-256', data); return [...new Uint8Array(digest)].map(v => v.toString(16).padStart(2, '0')).join(''); }
 // Staff password hash (issue #9): PBKDF2-SHA256 with a random 16-byte salt per tournament, stored
-// as "pbkdf2-sha256$<iterations>$<salt base64>$<hash base64>". 100,000 iterations is the most
-// Workers' WebCrypto allows (it refuses more); its cost is in docs/DEPLOYMENT.md.
+// as "pbkdf2-sha256$<iterations>$<salt base64>$<hash base64>". 20,000 iterations (about 2 ms) keep a
+// login well inside the Workers Free plan's 10 ms CPU budget; 100,000 is the most Workers' WebCrypto
+// allows (it refuses more) and is still accepted from storage. Cost: docs/DEPLOYMENT.md.
 // Tournaments created before this stored an unsalted SHA-256 hex digest: it is still accepted
 // and replaced by the PBKDF2 format at the next correct password.
 const PBKDF2_PREFIX = 'pbkdf2-sha256';
-const PBKDF2_ITERATIONS = 100000;
+const PBKDF2_ITERATIONS = 20000;
 const PBKDF2_MAX_ITERATIONS = 100000;
 function toBase64(bytes) { let text = ''; for (const byte of bytes) text += String.fromCharCode(byte); return btoa(text); }
 function fromBase64(text) { const raw = atob(text); return Uint8Array.from(raw, c => c.charCodeAt(0)); }

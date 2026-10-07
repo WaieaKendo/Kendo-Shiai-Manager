@@ -4,7 +4,7 @@
 // - attempt limit: 5 wrong staff passwords (login, staff live connection, staff saves) lock the
 //   tournament's password checks with HTTP 429 + Retry-After, growing (30 s, doubling, 15 min cap);
 //   a correct password resets the count; spectators are unaffected;
-// - salted slow hash: new tournaments store PBKDF2-SHA256 (own salt, 100,000 iterations); an old
+// - salted slow hash: new tournaments store PBKDF2-SHA256 (own salt, 20,000 iterations); an old
 //   SHA-256 tournament logs in and is upgraded; missing/malformed hashes behave as before;
 // - session tokens: Staff Login and tournament creation return a token (only its hash stored, 24 h
 //   sliding expiry, at most 50), accepted for saves, deletes and the staff live connection;
@@ -149,14 +149,14 @@ async function pbkdf2(password, salt, iterations) {
 }
 const storedHash = id => api.storage(id).get('staffPasswordHash');
 
-await test('salted hash: a new tournament stores PBKDF2-SHA256, 100,000 iterations, its own 16-byte salt', async () => {
+await test('salted hash: a new tournament stores PBKDF2-SHA256, 20,000 iterations, its own 16-byte salt', async () => {
   const a = await create(), b = await create();
   const [ha, hb] = [await storedHash(a.id), await storedHash(b.id)];
   for (const stored of [ha, hb]) {
     const [, iterations, salt, hash] = stored.match(PBKDF2_FORMAT) || assert.fail(`not the PBKDF2 format: ${stored}`);
-    assert.equal(Number(iterations), 100000);
+    assert.equal(Number(iterations), 20000);
     assert.equal(Buffer.from(salt, 'base64').length, 16);
-    assert.equal(hash, await pbkdf2(PASSWORD, Buffer.from(salt, 'base64'), 100000), 'an independent PBKDF2 of the password gives the stored hash');
+    assert.equal(hash, await pbkdf2(PASSWORD, Buffer.from(salt, 'base64'), 20000), 'an independent PBKDF2 of the password gives the stored hash');
   }
   assert.notEqual(ha.split('$')[2], hb.split('$')[2], 'each tournament has its own salt');
   assert.notEqual(ha, hb, 'the same password hashes differently in two tournaments');
@@ -196,7 +196,7 @@ await test('salted hash: fewer iterations than today are upgraded at the next co
   const salt = crypto.getRandomValues(new Uint8Array(16));
   await api.storage(id).put('staffPasswordHash', `pbkdf2-sha256$1000$${Buffer.from(salt).toString('base64')}$${await pbkdf2(PASSWORD, salt, 1000)}`);
   assert.equal((await login(id, PASSWORD)).status, 200);
-  assert.equal((await storedHash(id)).match(PBKDF2_FORMAT)[1], '100000');
+  assert.equal((await storedHash(id)).match(PBKDF2_FORMAT)[1], '20000');
 });
 
 await test('salted hash: a missing or malformed hash behaves as before (403, never an error, no upgrade)', async () => {
