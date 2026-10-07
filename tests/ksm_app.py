@@ -345,6 +345,29 @@ class KsmApp:
         self.click('staff-auth')
         self.page.wait_for_function(f"document.querySelector('{sel('staff-auth')}').textContent.trim() === 'Logout'", timeout=10000)
 
+    def staff_login_attempt(self, password, timeout=10):
+        """Staff Login answered with `password` (this attempt only): returns the alert the app shows
+        ('Incorrect Staff password.', or the server's attempt-limit message), or '' once logged in."""
+        alerts = ('Incorrect Staff password', 'Too many incorrect Staff passwords')
+        for prefix in alerts:
+            self.expect_dialog(prefix)
+        seen, answer = len(self.seen_dialogs), self.answers.get('Enter Staff password')
+        self.answers['Enter Staff password'] = password
+        try:
+            self.click('staff-auth')
+            deadline = time.time() + timeout
+            while len(self.seen_dialogs) == seen:
+                if self.page.evaluate(f"document.querySelector('{sel('staff-auth')}').textContent.trim() === 'Logout'"):
+                    return ''
+                if time.time() > deadline:
+                    raise AssertionError(f'{self.name}: Staff Login neither logged in nor alerted')
+                self.page.wait_for_timeout(50)
+            return self.seen_dialogs[seen]
+        finally:
+            self.answers['Enter Staff password'] = answer
+            for prefix in alerts:
+                self.expected.pop(prefix, None)
+
     def staff_logout(self):
         self.click('staff-auth')
         self.page.wait_for_function(f"document.querySelector('{sel('staff-auth')}').textContent.trim() === 'Staff Login'", timeout=10000)

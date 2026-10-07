@@ -15,6 +15,28 @@ function isOverlayPath(pathname) {
   if (!match) return false;
   try { return Boolean(decodeURIComponent(match[1])); } catch (_) { return false; }
 }
+// Staff password attempt limit (issue #9): wrong staff passwords count per tournament; from the
+// 5th in a row the tournament refuses password attempts for 30 s, doubling with every further
+// wrong one up to 15 min (HTTP 429 with Retry-After). A correct password resets the count.
+// Spectators never send a password and are not affected.
+const STAFF_LOCKOUT_THRESHOLD = 5;
+const STAFF_LOCKOUT_BASE_MS = 30 * 1000;
+const STAFF_LOCKOUT_MAX_MS = 15 * 60 * 1000;
+function staffLockoutMs(failures) {
+  if (failures < STAFF_LOCKOUT_THRESHOLD) return 0;
+  return Math.min(STAFF_LOCKOUT_BASE_MS * 2 ** Math.min(failures - STAFF_LOCKOUT_THRESHOLD, 20), STAFF_LOCKOUT_MAX_MS);
+}
+function waitText(seconds) {
+  if (seconds < 90) return `${seconds} second${seconds === 1 ? '' : 's'}`;
+  const minutes = Math.ceil(seconds / 60);
+  return `${minutes} minutes`;
+}
+function lockedOut(retryAfterMs) {
+  const retryAfter = Math.max(1, Math.ceil(retryAfterMs / 1000));
+  return { ok: false, status: 429, headers: { 'retry-after': String(retryAfter) },
+    body: { error: `Too many incorrect Staff passwords. Try again in ${waitText(retryAfter)}.`, code: 'staff-locked', retryAfter } };
+}
+function denied(result) { return json(result.body, result.status, result.headers || {}); }
 function safeRole(value) { return VALID_ROLES.has(value) ? value : 'spectator'; }
 function sanitizePayload(payload) {
   if (!payload || typeof payload !== 'object') return payload;
@@ -63,7 +85,35 @@ export class TournamentState {
   constructor(state, env) { this.state = state; this.env = env; }
 
   async staffPasswordHash() { return (await this.state.storage.get('staffPasswordHash')) || ''; }
-  async authorize(role, suppliedKey) { if (role === 'spectator') return true; const stored = await this.staffPasswordHash(); return Boolean(suppliedKey && stored && await passwordHash(suppliedKey) === stored); }
+  now() { return Date.now(); }
+  async verifyStaffPassword(password) { const stored = await this.staffPasswordHash(); return Boolean(password && stored && await passwordHash(password) === stored); }
+  // One staff password attempt, counted against the attempt limit. Attempts run one at a time
+  // (this.staffAttempts chains them): checks of the slow hash would otherwise overlap and all read
+  // the same count, so a burst of parallel guesses would get past the limit.
+  checkStaffPassword(password) {
+    const attempt = async () => {
+      const failures = (await this.state.storage.get('staffAuthFailures')) || { count: 0, lockedUntil: 0 };
+      const now = this.now();
+      if (failures.lockedUntil > now) return lockedOut(failures.lockedUntil - now);
+      if (await this.verifyStaffPassword(password)) {
+        if (failures.count || failures.lockedUntil) await this.state.storage.delete('staffAuthFailures');
+        return { ok: true };
+      }
+      const count = Number(failures.count || 0) + 1;
+      const lockMs = staffLockoutMs(count);
+      await this.state.storage.put('staffAuthFailures', { count, lockedUntil: lockMs ? now + lockMs : 0 });
+      return lockMs ? lockedOut(lockMs) : { ok: false, status: 403, body: { error: 'Incorrect password' } };
+    };
+    const result = (this.staffAttempts || Promise.resolve()).then(attempt, attempt);
+    this.staffAttempts = result.catch(() => {});
+    return result;
+  }
+  // Staff access for a save, a delete or the staff live connection. An empty key is no attempt.
+  async staffAccess(suppliedKey, error = 'Session authorization required') {
+    if (!suppliedKey) return { ok: false, status: 403, body: { error } };
+    const result = await this.checkStaffPassword(suppliedKey);
+    return result.ok || result.status === 429 ? result : { ok: false, status: 403, body: { error } };
+  }
   presence() {
     const rows = [];
     for (const socket of this.state.getWebSockets()) {
@@ -86,8 +136,10 @@ export class TournamentState {
     if (request.method === 'GET' && url.pathname === '/live') {
       if ((request.headers.get('Upgrade') || '').toLowerCase() !== 'websocket') return json({ error: 'WebSocket upgrade required' }, 426);
       const role = safeRole(url.searchParams.get('role') || 'spectator');
-      const key = url.searchParams.get('key') || '';
-      if (!(await this.authorize(role, key))) return json({ error: 'Session authorization required' }, 403);
+      if (role === 'staff') {
+        const access = await this.staffAccess(url.searchParams.get('key') || '');
+        if (!access.ok) return denied(access);
+      }
       const pair = new WebSocketPair();
       const [client, server] = Object.values(pair);
       const attachment = {
@@ -120,7 +172,9 @@ export class TournamentState {
       const existing = await this.state.storage.get('record');
       const role = safeRole(request.headers.get('x-ksm-role') || 'director');
       const suppliedKey = request.headers.get('x-ksm-session-key') || request.headers.get('x-ksm-director-key') || '';
-      if (role !== 'staff' || !(await this.authorize(role, suppliedKey))) return json({ error: 'Write authorization required' }, 403);
+      if (role !== 'staff') return json({ error: 'Write authorization required' }, 403);
+      const access = await this.staffAccess(suppliedKey, 'Write authorization required');
+      if (!access.ok) return denied(access);
       const expectedRevision = Number(incoming.revision || 0);
       const currentRevision = Number(existing?.revision || 0);
       if (existing && expectedRevision !== currentRevision) return json({ error: 'Revision conflict', record: publicRecord(existing) }, 409);
@@ -156,13 +210,16 @@ export class TournamentState {
     }
 
     if (request.method === 'POST' && url.pathname === '/auth') {
-      const body = await request.json();
-      return (await this.authorize('staff', body.password || '')) ? json({ ok: true }) : json({ error: 'Incorrect password' }, 403);
+      const body = await request.json().catch(() => ({}));
+      const password = typeof body?.password === 'string' ? body.password : '';
+      if (!password) return json({ error: 'Incorrect password' }, 403);
+      const result = await this.checkStaffPassword(password);
+      return result.ok ? json({ ok: true }) : denied(result);
     }
 
     if (request.method === 'DELETE' && url.pathname === '/snapshot') {
-      const suppliedKey = request.headers.get('x-ksm-session-key') || '';
-      if (!(await this.authorize('staff', suppliedKey))) return json({ error: 'Staff authorization required' }, 403);
+      const access = await this.staffAccess(request.headers.get('x-ksm-session-key') || '', 'Staff authorization required');
+      if (!access.ok) return denied(access);
       await this.state.storage.deleteAll();
       this.broadcast({ type: 'deleted' });
       for (const socket of this.state.getWebSockets()) try { socket.close(1000, 'Tournament deleted'); } catch (_) {}
