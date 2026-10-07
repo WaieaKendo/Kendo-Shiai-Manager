@@ -48,6 +48,9 @@ const KNOWN_POST_SPLIT_EDITS = {
   // fix/react-batch-1 (F13): addDivision() (01) reads the old #newDiv / #newDivType fallbacks as
   // window properties (the page has no such fields; the bare names threw for an empty name).
   'add-division': 2,
+  // fix/quirks-pass (Setup): toggleDivision() (01) switching a preset back on keeps the format and
+  // court it had (still in state), the preset's only when it has none.
+  'quirks-setup': 1,
   // feat/react-setup-screen (M.13): the Setup screen's React islands (#divisionSetupRows,
   // #setupTournamentName). With the legacy renderer removed (REMOVED_SETUP_RENDERER) the bodies of
   // renderDivisionSetup() (01) and syncSetupHeader() (30) are marked publishers, and
