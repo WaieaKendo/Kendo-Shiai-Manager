@@ -7,7 +7,7 @@
 // The rows' controls run the inline handlers' code on the same native event: a field's change
 // event (a native listener: React's onChange runs on every key for a text field) calls
 // ksmUpdateCompetitor(row, key, value): updateComp(index, key, value) for the competitor the row
-// showed, also when the list was replaced while the field was edited (F17); the status chip's click cycleCompetitorStatus(index); ×'s click
+// showed, also when the list was replaced while the field was edited (F17); the status chip's click cycleCompetitorStatus(index) (a role="button" with a tab stop: Enter and Space click it, quirk pass); ×'s click
 // ksmRemoveCompetitor(index) (state.competitors.splice(index, 1); renderReg();
 // renderTournamentStatus(): `state` is not a window property).
 //
@@ -25,6 +25,7 @@ import {
   statusClass, statusText, statusView,
   type PlayerRowInput, type PlayersInput, type StatusInput,
 } from './registration-model.ts';
+import { pressOnKey } from '../keyboard.ts';
 
 export const PLAYERS_EVENT = 'ksm:registration-players';
 export const STATUS_EVENT = 'ksm:registration-status';
@@ -115,7 +116,7 @@ function PlayerRow({ row, divisions }: { row: PlayerRowInput; divisions: string[
       <td><TextField row={row} field="dojo" value={row.dojo} /></td>
       <td><DivisionField row={row} divisions={divisions} /></td>
       <td><TextField row={row} field="seed" value={row.seed} /></td>
-      <td><span className={statusClass(row)} onClick={() => regWindow().cycleCompetitorStatus?.(row.index)} data-testid="reg-status">{statusText(row)}</span></td>
+      <td><span className={statusClass(row)} role="button" tabIndex={0} onClick={() => regWindow().cycleCompetitorStatus?.(row.index)} onKeyDown={pressOnKey} data-testid="reg-status">{statusText(row)}</span></td>
       <td><button onClick={() => regWindow().ksmRemoveCompetitor?.(row.index)} data-testid="reg-remove">{REMOVE_TEXT}</button></td>
     </tr>
   );

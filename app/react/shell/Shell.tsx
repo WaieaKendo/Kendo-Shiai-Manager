@@ -27,6 +27,7 @@ import {
   type NavAction, type NavFileInput, type NavInput, type NavMenu, type NavMenuEntry, type NavTile,
 } from './nav-model.ts';
 import { rawStyle, shellWindow, subscribeTo, useNativeClick } from './shell-dom.ts';
+import { pressOnKey } from '../keyboard.ts';
 
 export const NAV_EVENT = 'ksm:shell-nav';
 export const HEADER_EVENT = 'ksm:shell-header';
@@ -123,7 +124,7 @@ export function StatusRow() {
   return (
     <>
       <button ref={staff} id="staffAuthButton" className="secondary" type="button" data-testid="staff-auth">{h.staffLabel}</button>
-      <div ref={status} role="button" tabIndex={0} title={STATUS_TITLE}>
+      <div ref={status} role="button" tabIndex={0} title={STATUS_TITLE} onKeyDown={pressOnKey}>
         <span id="sessionRole" hidden data-role={h.role.dataRole ?? undefined}>{h.role.text}</span>
         <span id="connectionStatus" className="small nav-save-status" data-testid="connection-status"
           data-mode={h.connection.mode ?? undefined} title={h.connection.title ?? undefined}>{h.connection.text}</span>
