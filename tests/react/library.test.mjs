@@ -31,7 +31,7 @@ test('rows: a card each, in order, labelled "Open <name>"; the message is not sh
   assert.equal(view.message, null);
   assert.deepEqual(view.cards, [
     { id: 'b', name: 'Aiea <Taikai> & "Co"', label: 'Open Aiea <Taikai> & "Co"' },
-    { id: 'a', name: '', label: 'Open ' },
+    { id: 'a', name: 'Untitled tournament', label: 'Open Untitled tournament' },
     { id: 'a', name: 'Duplicate ID', label: 'Open Duplicate ID' },
   ]);
 });

@@ -55,9 +55,15 @@ export interface LibraryView {
   message: string | null;
 }
 
+/** A card's name when the tournament has none (the legacy card showed nothing, label "Open "; quirk pass). */
+export const UNTITLED_NAME = 'Untitled tournament';
+
 /** paintHomeTournamentLibrary(list, message): the cards, or the message when there are none. */
 export function libraryView(input: LibraryInput): LibraryView {
   if (input.kind === 'empty') return { cards: [], message: null };
   if (!input.cards.length) return { cards: [], message: input.message };
-  return { cards: input.cards.map(card => ({ id: card.id, name: card.name, label: `Open ${card.name}` })), message: null };
+  return {
+    cards: input.cards.map(card => { const name = card.name.trim() ? card.name : UNTITLED_NAME; return { id: card.id, name, label: `Open ${name}` }; }),
+    message: null,
+  };
 }
