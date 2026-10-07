@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { alignedRow } from '../../app/react/court/rows-model.ts';
 import {
-  COMPLETE_LINE, EMPTY_LIVE_SCORES, IDLE_META, IDLE_TEXT, LIVE_SCORES_HEADING, NO_NEXT_TEXT, liveCourtView, liveScoresView, pointText,
+  COMPLETE_LINE, EMPTY_LIVE_SCORES, IDLE_META, IDLE_TEXT, LIVE_SCORES_HEADING, NO_NEXT_TEXT, WAITING_TEXT, liveCourtView, liveScoresView, pointText,
 } from '../../app/react/live-scores/live-scores-model.ts';
 
 const meta = { division: 'Open', line: 'Pool A' };
@@ -89,4 +89,10 @@ test('liveCourtView: a court whose division is complete shows its placements in 
     body: { kind: 'complete', complete: { complete: true, rows: [{ place: '1st', name: 'W 2', placeClass: 'gold' }] } }, next: null,
   });
   assert.equal(COMPLETE_LINE, 'Final Results');
+});
+
+test('liveCourtView: an idle court still waiting for a match of its division says so (quirk pass)', () => {
+  assert.deepEqual(liveCourtView({ court: 'A', kind: 'idle', waiting: true }).body, { kind: 'idle', waiting: true });
+  assert.equal(WAITING_TEXT, 'Waiting for the next match');
+  assert.deepEqual(liveCourtView({ court: 'A', kind: 'idle' }).body, { kind: 'idle' });
 });

@@ -12,7 +12,7 @@ import { useSyncExternalStore } from 'react';
 import { DivisionCompletePanel } from '../court/CourtComplete.tsx';
 import { ContextPanel } from '../court/CourtContext.tsx';
 import {
-  EMPTY_LIVE_SCORES, IDLE_TEXT, LIVE_SCORES_HEADING, NO_NEXT_TEXT, liveScoresView,
+  EMPTY_LIVE_SCORES, IDLE_TEXT, WAITING_TEXT, LIVE_SCORES_HEADING, NO_NEXT_TEXT, liveScoresView,
   type LiveCourtBodyView, type LiveCourtView, type LivePlayerInput, type LiveScoresInput,
 } from './live-scores-model.ts';
 
@@ -42,7 +42,7 @@ function Player({ side, player }: { side: 'white' | 'red'; player: LivePlayerInp
 
 function Body({ body }: { body: LiveCourtBodyView }) {
   switch (body.kind) {
-    case 'idle': return <div className="live-empty">{IDLE_TEXT}</div>;
+    case 'idle': return <div className="live-empty">{body.waiting ? WAITING_TEXT : IDLE_TEXT}</div>;
     case 'individual':
       return (
         <div className="live-match-row">

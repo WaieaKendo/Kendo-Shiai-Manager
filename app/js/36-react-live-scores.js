@@ -29,6 +29,10 @@ function ksmLiveScoresCourt(court){
   if(!data){
     const div=ksmLiveScoresFinishedDivision(court);
     if(div)return {court:ksmText(court),kind:'complete',division:ksmText(div),complete:ksmDivisionCompleteInput(div,true)};
+    // Quirk pass: "Waiting for the next match" (not "...division") while the court's division
+    // still has an unplayed match on this court that is not ready yet.
+    const own=state.courtActiveDivision?.[court]||state.courtState?.[court]?.division;
+    if(own&&(state.allMatches?.[own]||[]).some(m=>isValidMatchObject(m)&&!m.done&&matchBelongsToCourt(m,court)))return {court:ksmText(court),kind:'idle',waiting:true};
     return {court:ksmText(court),kind:'idle'};
   }
   const m=data.match,next=data.next,meta=audienceMeta(m);
