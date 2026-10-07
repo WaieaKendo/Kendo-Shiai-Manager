@@ -149,6 +149,8 @@ Goal: the React migration and the bug fixes ready as pull requests into `develop
 
 About 8–9 agent steps; at the pacing rule that is 1–2 steps a day (~40–55% of a weekly limit).
 
+**Owner decisions (2026-10-07):** all recommendations below accepted, except: **3** → the Pools "Regenerate" regenerates the division in the dropdown (opens Regenerate Single Division with it preselected); **4** → rename the displayed "Fusen-gachi" to **Fusen-sho** everywhere (display text only; stored values unchanged) and disable it with no match on the court; **6** → "Waiting for the next match" with the reason, plus an "Up next on this court" preview; **7** → when a division completes, the court screen shows a box ("<Division> is complete. Final results are showing on the Court X TV." → [Close results and continue] / [Keep showing results]); while kept, a "Close TV results" control stays on the court screen; no timer. Deferred: 1 and 21 (with #9 login), 11 and 13 (later), Next Match disabling (1.1). Implemented in `fix/owner-decisions` (queued after the 10/12 weekly reset).
+
 **Quirk pass: decisions for the owners** (details, options and recommendations next to each item in the screens' "quirks kept" lists; nothing here was changed):
 1. Developer Tools: everyone, staff only, or a reduced spectator view (rec.: staff only, with #9).
 2. Generate with nobody registered: refuse in the generation check (rec.) or keep the alert.
@@ -592,7 +594,15 @@ Tests after M.13: the golden snapshots pin today's behaviour including quirks, w
 - HKF-wide people/dojo registry (D1); minors' data policy
 - Gradual React/TypeScript for new screens (groundwork: M.1–M.8 above)
 
-### Login and permissions: proposal (for the meeting)
+### Login and permissions: decided (2026-10-07; issue #9)
+
+- **For 11/21 (4.0.0):** harden the shared staff password: limited wrong attempts, salted slow hash (PBKDF2, upgraded on the next correct login), short-lived session key instead of the password on every save (the password still accepted for one release during rollout). Browser pop-up login unchanged. Branch `fix/staff-password-hardening`.
+- **Sign-in provider: Auth0** (free plan), target **4.0.1** (before the ~11/7 freeze if it fits, otherwise right after 11/21). Auth0 only says who someone is; **roles live in KSM** and the Worker checks them on every save, so the provider can be replaced. Tenant `ksm-hkf.us.auth0.com`, SPA client `sTMmr5wsfajTBUVfapD5DjIs5SoM9z2G`, API `https://api.kendoshiaimanager` (RS256), open sign-ups off, Google via our own Google OAuth client (Google app in Testing until a privacy page exists). Launch checklist on #9 (privacy page + publish the Google app, environment tag → Production, admin emails as a Worker secret, two-factor for admins).
+- **Roles:** admins (Kenton, Braxton): everything; **directors per tournament** (invited by email by an admin): full control of that tournament only; **court tablets: device pairing**, no accounts (the director shows a QR / 6-digit code, single use ~5 min; the tablet gets a key for "Court A of this tournament": scores that court only, no Setup/Registration/Regenerate/other court/delete; offline after pairing; listed in a Devices list with Remove; expires after the event day; also the device's identity for sync); **spectators/TVs:** no login, "follow a player/division" saved on the phone, optional web push (iPhone: app on the home screen).
+- **Role UI:** a consistent strip showing a device's role: spectator/TV neutral (no badge); court tablet a court-coloured strip "COURT A · SCORING" (A and B different); director amber "Director · <tournament>"; admin purple "Admin". Colour **and** text/icon, reserved theme tokens that tournament theming can't override, compact on phones; mock-ups for the owners first.
+- **Order:** hardening (4.0.0) → Auth0 + roles + role UI (4.0.1) → device pairing → spectator follow → accounts tied to people only if wanted (needs #11 first). Cloudflare Access is ruled out while HKF's DNS is at GoDaddy.
+
+### Login and permissions: proposal (original, for the meeting)
 
 Today: one shared staff password per tournament (4 characters minimum), stored as an unsalted SHA-256 hash in the Durable Object, sent with every save (`x-ksm-session-key`) and kept in `sessionStorage`; no limit on login attempts; the login is a browser `prompt()` (some embedded/kiosk browsers block it, e.g. the Claude browser pane).
 
