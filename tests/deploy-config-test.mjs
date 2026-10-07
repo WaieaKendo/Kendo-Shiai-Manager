@@ -1,7 +1,8 @@
 // The deploy setup's safety rules (docs/DEPLOYMENT.md), checked on the config files:
 // wrangler.jsonc keeps production at the top level and gives dev its own Worker and Durable
 // Object binding; .github/workflows/deploy.yml never deploys from a pull request, deploys dev only
-// from `develop`, production only by hand from `main`, and both only after the test suite.
+// from `develop`, production only from `main` (a release, i.e. a new version, or by hand), and
+// both only after the test suite.
 import { readRepoFile } from './lib/ksm-source.mjs';
 
 const checks = [];
@@ -21,14 +22,20 @@ check(Object.keys(wrangler.env).join() === 'dev', 'dev is the only environment')
 
 const deploy = readRepoFile('.github/workflows/deploy.yml');
 const on = deploy.slice(deploy.indexOf('\non:'), deploy.indexOf('\nrun-name:'));
-check(!/pull_request/.test(on) && /push:\n\s+branches: \[develop\]/.test(on) && /workflow_dispatch:/.test(on),
-  'deploy.yml triggers: push to develop and workflow_dispatch only (never pull requests)');
+check(!/pull_request/.test(on) && /push:\n\s+branches: \[develop, main\]/.test(on) && /workflow_dispatch:/.test(on),
+  'deploy.yml triggers: pushes to develop and main, and workflow_dispatch (never pull requests)');
 const jobs = Object.fromEntries(deploy.slice(deploy.indexOf('\njobs:')).split(/\n  (?=[\w-]+:\n)/).slice(1).map(block => [block.match(/^([\w-]+):/)[1], block]));
 check(/name: Deploy dev/.test(jobs.dev) && /needs: test/.test(jobs.dev) && /if: github.event_name == 'push' && github.ref == 'refs\/heads\/develop'/.test(jobs.dev) && /npm run deploy:dev/.test(jobs.dev) && /health-check\.mjs "\$DEV_URL"/.test(jobs.dev),
   'Deploy dev: after the tests, only on a push to develop, then the health check');
-check(/name: Deploy production/.test(jobs.production) && /needs: test/.test(jobs.production) && /if: github.event_name == 'workflow_dispatch' && github.ref == 'refs\/heads\/main'/.test(jobs.production)
+check(/name: Deploy production/.test(jobs.production) && /needs: \[release-check, test\]/.test(jobs.production)
+  && /needs\.test\.result == 'success' && github\.ref == 'refs\/heads\/main' && \(/.test(jobs.production)
+  && /github\.event_name == 'workflow_dispatch' \|\|/.test(jobs.production) && /\(github\.event_name == 'push' && needs\.release-check\.outputs\.deploy == 'true'\)\)/.test(jobs.production)
   && /"\$GITHUB_REF" != "refs\/heads\/main"/.test(jobs.production) && /npm run deploy:production/.test(jobs.production) && /health-check\.mjs "\$PRODUCTION_URL"/.test(jobs.production),
-  'Deploy production: by hand from main only (job condition and a guard step), after the tests, then the health check');
+  'Deploy production: only from main (job condition and a guard step), by hand or on a push carrying a new version, only after the tests passed, then the health check');
+check(/if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'/.test(jobs['release-check']) && /if \[ "\$live" = "\$want" \]; then\n\s+echo "deploy=false"/.test(jobs['release-check']) && /echo "deploy=true"/.test(jobs['release-check']),
+  'a push to main deploys production only when package.json has a version production does not report');
+check(/\(github\.event_name == 'push' && github\.ref == 'refs\/heads\/develop'\) \|\|/.test(jobs.test) && /needs\.release-check\.outputs\.deploy == 'true'\)/.test(jobs.test),
+  'the tests run for a dev deploy, a manual production deploy and a release pushed to main');
 check(/github.event_name == 'workflow_dispatch' && github.ref != 'refs\/heads\/main'/.test(jobs.refuse) && /exit 1/.test(jobs.refuse), 'a manual run from another branch fails visibly');
 check(/uses: \.\/\.github\/workflows\/test\.yml/.test(jobs.test) && /workflow_call:/.test(readRepoFile('.github/workflows/test.yml')), 'the tests are the shared test.yml workflow');
 

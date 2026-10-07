@@ -8,7 +8,7 @@ KSM runs as a Cloudflare Worker (`src-worker.js`) that serves the built app (`di
 | URL | https://kendoshiaimanager-dev.samanthakodamaworkersdev.workers.dev | https://kendoshiaimanager-cloud-staging.samanthakodamaworkersdev.workers.dev |
 | Data | its own test tournaments | **the real tournaments** (11th AHKC and later) |
 | `wrangler.jsonc` | `env.dev` | the top level |
-| Deployed by | **Deploy dev**: every push to `develop` | **Deploy production**: by hand, from `main` only |
+| Deployed by | **Deploy dev**: every push to `develop` | **Deploy production**: a release merged into `main` (new version), or by hand from `main` |
 
 Both go through `.github/workflows/deploy.yml`: the full test suite (`test.yml`, the same as on every push) → build → `wrangler deploy` with the repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` → a health check that waits until `/api/health` reports the version in `package.json` (`scripts/health-check.mjs`, retries for about two minutes). Nothing is ever deployed from a pull request.
 
@@ -16,14 +16,14 @@ Both go through `.github/workflows/deploy.yml`: the full test suite (`test.yml`,
 
 Merging a pull request into `develop` (or pushing to it) starts **Deploy dev**. When it is green, the dev site runs exactly that commit. The first dev deploy creates the `kendoshiaimanager-dev` Worker and its empty Durable Object namespace (migration `v1` in `env.dev`). Use dev for trying a change on phones and TVs before it goes to production; its tournaments are throwaway.
 
-## Production: the "Deploy production" button
+## Production: a release merged into `main`
 
-Production changes only at a release (see [Versions and releases](#versions-and-releases)), after `develop` has been merged into `main`:
+Production changes only at a release (see [Versions and releases](#versions-and-releases)). A push to `main` deploys production **only when `package.json` has a version production does not already report**; any other push to `main` (a docs fix, a merge without a release) deploys nothing (the run's "New version for production?" job says so). There is no approval pause (see below), so **merging a release into `main` is the decision to deploy it**:
 
 1. Prepare the release on `develop`: `npm run release -- <version>`, edit the CHANGELOG draft, commit, merge `develop` into `main`, tag `v<version>` on `main` and push the tag.
 2. Before a risky release (data-format change, Durable Object change, the first deploy after a long break) take a backup: `npm run backup -- <production URL>` (see [Backups](#backups)).
-3. GitHub → **Actions** → **Deploy** → **Run workflow** → Branch: **`main`** → **Run workflow**. Any other branch is refused (the run fails with "Deploy production only runs from main").
-4. The run shows **Tests**, then **Deploy production**. Its "Version already live?" step warns if production already runs this version (installed devices would keep their old offline copy; a re-deploy of the same version is otherwise fine).
+3. The push to `main` starts **Deploy**: **New version for production?** → **Tests** → **Deploy production** → the health check. Nothing is deployed if the tests fail.
+4. **By hand** (a re-deploy, e.g. after a rollback, or if the automatic run failed for a passing reason): GitHub → **Actions** → **Deploy** → **Run workflow** → Branch: **`main`** → **Run workflow**. Any other branch is refused ("Deploy production only runs from main"). Its "Version already live?" step warns if production already runs this version (installed devices would keep their old offline copy; a re-deploy of the same version is otherwise fine).
 5. When it is green, do the checks below.
 
 ### After a production deploy
@@ -34,13 +34,9 @@ Production changes only at a release (see [Versions and releases](#versions-and-
 4. Open a spectator link in a private window and check that it updates live.
 5. Open Court A and Court B scorekeeper links on two devices; check Cloud Diagnostics for connected devices and revisions.
 
-### Later: approval on `main` (once the owner has repo admin)
+### No approval pause, and the event freeze
 
-Today there are no GitHub environments (they need repo admin). When the owner has admin:
-
-1. Settings → Environments → **New environment** `production`: Required reviewers = the owner; Deployment branches = `main` only. Optionally move the two Cloudflare secrets into it.
-2. In `deploy.yml`: add `main` to `on.push.branches`, change the production job's `if:` to also run on a push to `main`, and add `environment: production` to that job.
-3. From then on every merge to `main` starts **Deploy production**, which pauses at "Review deployments" until the owner approves. Keep `workflow_dispatch` as the fallback (e.g. to re-deploy `main` after a rollback).
+GitHub's approval gate (an environment with required reviewers) is not available here: the repository belongs to a personal account, whose owner can give collaborators Write but not Admin, and required reviewers on a private repository need GitHub Enterprise (Free, Pro and Team: public repositories only). Branch protection for private repositories is not on the free plan either. So nothing technical stops a push to `main`; the protections are the version rule above, the full test suite before every deploy, the health check after it, and [Rollback](#rollback). Agreed practice: changes reach `main` only through a reviewed pull request from `develop`, and **no merges into `main` from the event freeze until after the event** (for 11/21: from ~11/7). Revisit if the repository moves to an organization or becomes public.
 
 ## Rollback
 

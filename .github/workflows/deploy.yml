@@ -1,27 +1,25 @@
 name: Deploy
 
-# Two ways in, never from a pull request (docs/DEPLOYMENT.md):
+# Never from a pull request (docs/DEPLOYMENT.md):
 #
 #   Deploy dev         every push to `develop`: npm test -> wrangler deploy --env dev
 #                      -> the dev URL's /api/health must report package.json's version.
-#   Deploy production  ONLY by hand: Actions -> Deploy -> "Run workflow" with branch `main`
-#                      (any other branch is refused) -> npm test -> wrangler deploy (top level of
-#                      wrangler.jsonc) -> the production /api/health must report the version.
+#   Deploy production  a push to `main` whose package.json version differs from the version
+#                      production reports (a release: npm run release -- <version>), or by hand:
+#                      Actions -> Deploy -> "Run workflow" with branch `main` (any other branch is
+#                      refused; a re-deploy, e.g. after a rollback) -> npm test -> wrangler deploy
+#                      (top level of wrangler.jsonc) -> the production /api/health must report the
+#                      version. A push to `main` without a new version deploys nothing.
 #
-# LATER, once the owner has repo admin (until then there are no GitHub environments):
-#   1. Settings -> Environments -> New environment `production`; Required reviewers: the owner;
-#      Deployment branches: `main` only. Move CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID into it
-#      (or keep them as repository secrets).
-#   2. Here: add `main` to on.push.branches, let the production job run on a push to main too
-#      (see its `if:`), and give it `environment: production`. Every merge to main then deploys
-#      production after the reviewer approves (the run waits on "Review deployments").
-#   3. Keep workflow_dispatch as the fallback (re-deploy main, e.g. after a rollback).
+# There is no approval pause: the repository belongs to a personal account (collaborators get
+# Write, not Admin) and required reviewers on a private repository need GitHub Enterprise. Merging
+# a release into `main` is the decision to deploy it.
 on:
   push:
-    branches: [develop]
+    branches: [develop, main]
   workflow_dispatch:
 
-run-name: ${{ github.event_name == 'workflow_dispatch' && 'Deploy production' || 'Deploy dev' }} (${{ github.ref_name }})
+run-name: ${{ (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main') && 'Deploy production' || 'Deploy dev' }} (${{ github.ref_name }})
 
 permissions:
   contents: read
@@ -42,9 +40,37 @@ jobs:
           echo "::error::Deploy production only runs from main (this run is on ${GITHUB_REF}). Choose 'Branch: main' under Run workflow."
           exit 1
 
+  release-check:
+    name: New version for production?
+    # A push to main deploys production only when it carries a new version (a release).
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      deploy: ${{ steps.compare.outputs.deploy }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: compare
+        run: |
+          want=$(node -p "require('./package.json').version")
+          live=$(node -e "fetch(process.env.PRODUCTION_URL + '/api/health').then(r => r.json()).then(b => console.log(b.version)).catch(() => console.log('unreachable'))")
+          echo "production now: $live; main has: $want"
+          if [ "$live" = "$want" ]; then
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::main has the version production already runs ($want): nothing to deploy. Release with npm run release -- <version>, or use Run workflow to re-deploy."
+          else
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          fi
+
   test:
     name: Tests
-    if: github.event_name == 'push' || github.ref == 'refs/heads/main'
+    needs: release-check
+    # release-check is skipped except on a push to main; !cancelled() lets the tests run anyway.
+    if: >-
+      !cancelled() && (
+      (github.event_name == 'push' && github.ref == 'refs/heads/develop') ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      needs.release-check.outputs.deploy == 'true')
     uses: ./.github/workflows/test.yml
 
   dev:
@@ -73,8 +99,11 @@ jobs:
 
   production:
     name: Deploy production
-    needs: test
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    needs: [release-check, test]
+    if: >-
+      !cancelled() && needs.test.result == 'success' && github.ref == 'refs/heads/main' && (
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && needs.release-check.outputs.deploy == 'true'))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     concurrency:
