@@ -29,6 +29,7 @@ def main():
         app.register('Mei', 'Hilo', "Women’s Open")
         assert 'Ready to Generate' in card(page) and '2 competitors' in card(page), card(page)
 
+        app.expect_dialog('Replace all individual', accept=True)  # the sample loaders ask (F24)
         app.click('reg-add-row')  # a row without a name: a validation issue
         assert 'Needs Attention' in card(page), f'+ Add Row: the card is stale: {card(page)!r}'
         app.click('reg-load-samples')

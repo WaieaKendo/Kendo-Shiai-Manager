@@ -24,7 +24,7 @@ SINGLETONS = [
     'reg-tab-individual', 'reg-tab-team', 'reg-tab-pools', 'generate-button', 'tournament-status',
     'reg-add-row', 'reg-filter', 'team-add', 'validation-modal', 'pool-division-select',
     'reg-tab-exhibition', 'regenerate-division-button', 'reg-import-csv', 'reg-export-csv', 'reg-paste-excel',
-    'reg-clear', 'team-clear', 'exhibition-add', 'exhibition-add-3', 'exhibition-clear', 'reg-load-samples', 'team-load-samples',
+    'reg-clear', 'team-clear', 'exhibition-add', 'exhibition-add-3', 'exhibition-clear', 'reg-load-samples', 'team-load-samples', 'reg-load-sample-tournament',
     'regenerate-modal', 'regenerate-modal-title', 'regenerate-modal-close',
     # print / export
     'print-full-packet', 'print-body',
