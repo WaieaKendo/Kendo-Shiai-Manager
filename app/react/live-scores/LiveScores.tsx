@@ -53,6 +53,9 @@ function Body({ body }: { body: LiveCourtBodyView }) {
       );
     case 'team': return <ContextPanel view={{ kind: 'team-sheet', ...body.sheet }} />;
     case 'kachinuki': return <ContextPanel view={{ kind: 'kachinuki', ...body.sheet }} />;
+    // F16: a finished division's placements in its court's card, drawn as the full-screen
+    // placements are (the dark audience panel, so the placement colors stay legible).
+    case 'complete': return <div className="audience-hero"><DivisionCompletePanel view={body.complete} /></div>;
   }
 }
 

@@ -4,7 +4,7 @@
 // The Live Scores screen (#public) is drawn only by React: one island (LiveScores), mounted by
 // app/react/live-scores/main.tsx. The legacy code still chooses each court's match
 // (courtCurrentMatch(), which also moves a court on to its next match, as before) and decides
-// when the Live Scores court's division is complete; renderPublic() (25-live-scores.js) calls
+// when a court's division is complete (F16); renderPublic() (25-live-scores.js) calls
 // ksmRenderLiveScores() below, which publishes what to show as plain data (ksm:live-scores,
 // window.ksmLiveScoresInput) and never writes #publicLive.
 // The legacy Live Scores renderer (the 32-split-court-templates.js wrapper around renderPublic(),
@@ -22,9 +22,15 @@ function ksmPublishLiveScores(input){
   window.dispatchEvent(new CustomEvent('ksm:live-scores'));
 }
 // liveScoresCourtCard(court) (25-, removed) as data: text is what esc() showed (String(x||'')).
+// F16: a court with no match whose division is complete shows that division's placements in
+// its card (kind 'complete'), on every device, instead of "No active match".
 function ksmLiveScoresCourt(court){
   const data=courtCurrentMatch(court);
-  if(!data)return {court:ksmText(court),kind:'idle'};
+  if(!data){
+    const div=ksmLiveScoresFinishedDivision(court);
+    if(div)return {court:ksmText(court),kind:'complete',division:ksmText(div),complete:ksmDivisionCompleteInput(div,true)};
+    return {court:ksmText(court),kind:'idle'};
+  }
   const m=data.match,next=data.next,meta=audienceMeta(m);
   const base={court:ksmText(court),meta:{division:ksmText(meta.division),line:ksmText(meta.line)}};
   if(m.type==='teamPosition'||m.type==='teamPlayoff'||m.type==='kachinuki'){
@@ -39,20 +45,37 @@ function ksmLiveScoresCourt(court){
     points:{W:letters(pts.W),R:letters(pts.R)},
     next:next?{white:ksmText(next.white||'TBD'),red:ksmText(next.red||'TBD')}:null};
 }
-// renderPublic() as the legacy renderer drew it (the 32- wrapper, then 25-; removed), in the
-// same order, so courtCurrentMatch() moves the courts on as it did: the Live Scores court's
-// division complete and no match on it -> its placements instead of the courts; otherwise
-// Court A and Court B.
+// The court's division when it is complete and played on this court (F16): the court's own
+// division (courtActiveDivision / courtState, which the scorekeepers publish, so every device
+// knows both courts'); for the Live Scores court also this device's current division, as the
+// legacy renderer read it. A division played only on the other court (a court with nothing
+// left falls back to such a division) is not this court's.
+function ksmLiveScoresFinishedDivision(court){
+  const div=state.courtActiveDivision?.[court]||state.courtState?.[court]?.division||(court===(state.publicCourt||'A')?state.currentDivision:null);
+  if(!div||!divisionComplete(div))return null;
+  return (state.allMatches?.[div]||[]).some(m=>isValidMatchObject(m)&&matchBelongsToCourt(m,court))?div:null;
+}
+// renderPublic(): Court A and Court B (courtCurrentMatch() moves each court on, as before).
+// F16 (was: the Live Scores court's complete division, with no match on that court, replaced the
+// whole screen and hid the other court's live match): both courts stay while either has a
+// match, a finished division's placements in its court's card; only when neither court has a
+// match do a finished division's placements fill the screen: the Live Scores court's if it has
+// one, else the other court's.
 // A TV device (body.ksm-tv) redraws its TV display after the courts, as before.
 function ksmRenderLiveScores(){
-  const court=state.publicCourt||'A';
-  const div=state.courtActiveDivision?.[court]||state.courtState?.[court]?.division||state.currentDivision;
-  if(div&&divisionComplete(div)&&!courtCurrentMatch(court)){
-    ksmPublishLiveScores({kind:'complete',complete:ksmDivisionCompleteInput(div,true)});
-    return;
+  const publicCourt=state.publicCourt||'A';
+  const courts=[ksmLiveScoresCourt('A'),ksmLiveScoresCourt('B')];
+  const playing=courts.some(c=>c.kind!=='idle'&&c.kind!=='complete');
+  const finished=courts.filter(c=>c.kind==='complete').sort((a,b)=>Number(b.court===publicCourt)-Number(a.court===publicCourt))[0];
+  if(!playing&&finished){
+    ksmPublishLiveScores({kind:'complete',complete:finished.complete});
+    // The TV is not redrawn when the Live Scores court's own division fills the screen, as before
+    // (where the legacy renderer showed placements instead of the courts).
+    if(finished.court===publicCourt)return;
+  }else{
+    if(!window.publicLive)return;
+    ksmPublishLiveScores({kind:'courts',courts});
   }
-  if(!window.publicLive)return;
-  ksmPublishLiveScores({kind:'courts',courts:[ksmLiveScoresCourt('A'),ksmLiveScoresCourt('B')]});
   if(document.body.classList.contains('ksm-tv'))renderTvDisplay();
 }
 

@@ -7,7 +7,10 @@ the division its court is on and shows a completed division's final results. The
 snapshots in tests/golden/tv/*.json were recorded from the LEGACY renderer (renderTvDisplay() and
 the tv3 renderer in app/js/26-tv-display.js, with tvUpcomingMatches(), tvIndividualSideLabel() and
 tvTeamNodeEntries() of 25-live-scores.js), so they pin exactly what the legacy TV drew (quirks
-included, see docs/ROADMAP.md "TV quirks kept"), before that renderer was removed.
+included, see docs/ROADMAP.md "TV quirks kept"), before that renderer was removed. Approved
+since, among others: F16 (Live Scores keeps both courts while either plays,
+so the court's own render also redraws the TV in those steps: play-three-divisions-a/-b,
+tv-a-follow and tv-b-follow re-recorded; the TV was stale there before).
 
 One offline copy of the app per scenario runs as a TV device: body.ksm-tv, show('tv'), and
 tvAssignedCourt() from the page URL (?court=A or ?court=B). The court is scored in the same page

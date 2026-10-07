@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { alignedRow } from '../../app/react/court/rows-model.ts';
 import {
-  EMPTY_LIVE_SCORES, IDLE_META, IDLE_TEXT, LIVE_SCORES_HEADING, NO_NEXT_TEXT, liveCourtView, liveScoresView, pointText,
+  COMPLETE_LINE, EMPTY_LIVE_SCORES, IDLE_META, IDLE_TEXT, LIVE_SCORES_HEADING, NO_NEXT_TEXT, liveCourtView, liveScoresView, pointText,
 } from '../../app/react/live-scores/live-scores-model.ts';
 
 const meta = { division: 'Open', line: 'Pool A' };
@@ -80,4 +80,13 @@ test('liveScoresView: a complete division shows its placements (the court\'s div
   const view = liveScoresView({ kind: 'complete', complete: { complete: true, placements: [{ place: '1st', name: 'P 2', tier: 'gold' }] } });
   assert.deepEqual(view, { kind: 'complete', complete: { complete: true, rows: [{ place: '1st', name: 'P 2', placeClass: 'gold' }] } });
   assert.deepEqual(liveScoresView({ kind: 'complete', complete: { complete: true, placements: [] } }).complete, { complete: true, rows: null });
+});
+
+test('liveCourtView: a court whose division is complete shows its placements in its card (F16)', () => {
+  const view = liveCourtView({ court: 'B', kind: 'complete', division: 'Women', complete: { complete: true, placements: [{ place: '1st', name: 'W 2', tier: 'gold' }] } });
+  assert.deepEqual(view, {
+    testId: 'live-court-B', className: 'live-court-card', title: 'Court B', meta: 'Women • Final Results',
+    body: { kind: 'complete', complete: { complete: true, rows: [{ place: '1st', name: 'W 2', placeClass: 'gold' }] } }, next: null,
+  });
+  assert.equal(COMPLETE_LINE, 'Final Results');
 });

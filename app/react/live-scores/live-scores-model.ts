@@ -1,6 +1,7 @@
 // The Live Scores screen (#public, data-testid live-scores): where spectators land. The current
-// match of Court A and Court B side by side, or, once the Live Scores court's division is
-// complete, that division's placements.
+// match of Court A and Court B side by side (a court whose division is complete shows its
+// placements in its card), or, once neither court has a match, a finished division's placements
+// (F16).
 //
 // The legacy app still decides what is shown: renderPublic() (app/js) chooses each court's match
 // with courtCurrentMatch() (which also moves the court on, as before), audienceMeta() gives the
@@ -47,14 +48,20 @@ export type LiveCourtInput =
   }
   /** A team bout or representative playoff: the pairing's bout sheet. */
   | { court: string; kind: 'team'; meta: LiveMetaInput; sheet: TeamSheetInput; next: LiveNextInput | null }
-  | { court: string; kind: 'kachinuki'; meta: LiveMetaInput; sheet: KachinukiSheetInput; next: LiveNextInput | null };
+  | { court: string; kind: 'kachinuki'; meta: LiveMetaInput; sheet: KachinukiSheetInput; next: LiveNextInput | null }
+  /** No match on the court and its division is complete (F16): the division's placements in the card. */
+  | { court: string; kind: 'complete'; division: string; complete: CourtCompleteInput };
 
 export type LiveScoresInput =
   /** Nothing published yet: the static markup (an empty #publicLive). */
   | { kind: 'empty' }
   /** Court A and Court B, in that order. */
   | { kind: 'courts'; courts: LiveCourtInput[] }
-  /** The Live Scores court's division is complete and the court has no match: its placements, instead of the courts. */
+  /**
+   * Neither court has a match and a court's division is complete (the Live Scores court's
+   * first): its placements, instead of the courts (F16; before, whenever the Live Scores
+   * court's division was complete and that court had no match).
+   */
   | { kind: 'complete'; complete: CourtCompleteInput };
 
 // ------------------------------------------------------------------------------- view
@@ -63,7 +70,8 @@ export type LiveCourtBodyView =
   | { kind: 'idle' }
   | { kind: 'individual'; white: LivePlayerInput; red: LivePlayerInput; whitePoints: string; redPoints: string }
   | { kind: 'team'; sheet: TeamSheetView }
-  | { kind: 'kachinuki'; sheet: KachinukiSheetView };
+  | { kind: 'kachinuki'; sheet: KachinukiSheetView }
+  | { kind: 'complete'; complete: CourtCompleteView };
 
 export interface LiveCourtView {
   testId: string;
@@ -87,6 +95,8 @@ export const LIVE_SCORES_HEADING = { eyebrow: 'Live Tournament', title: 'Live Sc
 export const IDLE_META = 'No active match';
 export const IDLE_TEXT = 'Waiting for the next division';
 export const NO_NEXT_TEXT = 'No match queued';
+/** The meta line's match part on a court card showing its finished division's placements (F16). */
+export const COMPLETE_LINE = 'Final Results';
 
 /** liveScorePoints(): the letters with spaces, '—' before the first point. */
 export function pointText(points: readonly string[]): string {
@@ -96,6 +106,12 @@ export function pointText(points: readonly string[]): string {
 export function liveCourtView(input: LiveCourtInput): LiveCourtView {
   const base = { testId: `live-court-${input.court}`, title: `Court ${input.court}` };
   if (input.kind === 'idle') return { ...base, className: 'live-court-card', meta: IDLE_META, body: { kind: 'idle' }, next: null };
+  if (input.kind === 'complete') {
+    return {
+      ...base, className: 'live-court-card', meta: `${input.division} • ${COMPLETE_LINE}`,
+      body: { kind: 'complete', complete: courtCompleteView(input.complete) }, next: null,
+    };
+  }
   const meta = `${input.meta.division} • ${input.meta.line}`;
   const next = { match: input.next };
   switch (input.kind) {

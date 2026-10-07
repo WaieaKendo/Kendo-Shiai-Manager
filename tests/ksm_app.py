@@ -88,8 +88,21 @@ _LIVE_JS = """(court) => {
   const card = document.querySelector(`[data-testid="live-scores"] [data-testid="live-court-${court}"]`);
   const text = id => (card?.querySelector(`[data-testid="${id}"]`)?.textContent || '').trim();
   // Team matches show a team sheet; its current bout carries the names.
-  return card ? {meta: text('live-meta'), white: text('live-white-name') || text('current-bout-white-name'),
-                 red: text('live-red-name') || text('current-bout-red-name')} : null;
+  if (!card) return null;
+  const out = {meta: text('live-meta'), white: text('live-white-name') || text('current-bout-white-name'),
+               red: text('live-red-name') || text('current-bout-red-name')};
+  // A court whose division is complete shows its placements in the card (F16).
+  const rows = [...card.querySelectorAll('[data-testid="division-complete-row"]')];
+  if (card.querySelector('[data-testid="division-complete"]')) out.placements = rows.map(r => r.innerText.trim().split(/\\s*\\n\\s*/));
+  return out;
+}"""
+
+# Live Scores showing one division's placements instead of the courts: the rows, or None.
+_LIVE_PLACEMENTS_JS = """() => {
+  const live = document.querySelector('[data-testid="live-scores"]');
+  if (!live || live.querySelector('[data-testid^="live-court-"]')) return null;
+  const panel = live.querySelector('[data-testid="division-complete"]');
+  return panel ? [...panel.querySelectorAll('[data-testid="division-complete-row"]')].map(r => r.innerText.trim().split(/\\s*\\n\\s*/)) : null;
 }"""
 
 
@@ -525,8 +538,13 @@ class KsmApp:
           return w ? [w.innerText.trim(), r.innerText.trim()] : null; })""")
 
     def live_court(self, court):
-        """Live Scores card for a court: {meta, white, red} (the page must be showing Live Scores)."""
+        """Live Scores card for a court: {meta, white, red}, plus `placements` [[place, name]] when the
+        card shows its finished division's placements (the page must be showing Live Scores)."""
         return self.page.evaluate(_LIVE_JS, court)
+
+    def live_placements(self):
+        """Live Scores showing a division's placements instead of the courts: [[place, name]], else None."""
+        return self.page.evaluate(_LIVE_PLACEMENTS_JS)
 
     def wait_for(self, predicate, timeout=15, interval=0.1, message='condition'):
         """Poll a Python predicate (e.g. lambda: app.tv_screen()['white'] == 'X')."""

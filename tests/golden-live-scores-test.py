@@ -5,7 +5,10 @@ island, app/react/live-scores/; app/js/36-react-live-scores.js publishes its dat
 snapshots in tests/golden/live-scores/*.json were recorded from the LEGACY renderer
 (renderPublic() and liveScoresCourtCard() in app/js/25-live-scores.js, the division-complete
 wrapper in 32-split-court-templates.js) before it was removed, so they pin exactly what the
-legacy screen drew (quirks included, see docs/ROADMAP.md "Live Scores quirks kept").
+legacy screen drew (quirks included, see docs/ROADMAP.md "Live Scores quirks kept"), apart from
+the intended changes approved since (F16: both courts stay while either plays, a finished
+division's placements in its court's card; play-three-divisions, play-rr-4-court-b and
+play-team5-se-2-court-b re-recorded).
 
 One offline copy of the app runs each scenario with Live Scores on screen; after every step
 the whole #public view is serialized (golden_screen.PANEL_JS: elements, ids, classes, test IDs,
@@ -295,6 +298,7 @@ def main():
                 'court A: kachinuki', 'court B: kachinuki',
                 'individual: next', 'individual: no next', 'individual: points', 'team: next', 'team: no next', 'team: playoff row',
                 'kachinuki: next', 'kachinuki: no next',
+                'court A: complete',  # F16: a finished division's placements in its court's card
             }
             assert expected <= VARIANTS_SEEN, f'Live Scores variants not covered: {sorted(expected - VARIANTS_SEEN)}'
         assert not errors, '\n'.join(errors)
