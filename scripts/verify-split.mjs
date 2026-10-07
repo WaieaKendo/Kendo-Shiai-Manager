@@ -196,6 +196,9 @@ const KNOWN_POST_SPLIT_EDITS = {
   // ksmRenderOverview(), and app/js/39-react-overview.js publishes the screen as plain data and
   // shows a notice when the React module is missing.
   'react-overview': 2,
+  // fix/quirks-pass (court): the renderScore() wrapper (32) publishes the completed division's
+  // title and "Division complete" as the header's match line (it kept the last match's).
+  'quirks-court': 1,
   // feat/react-library (M.13): the Tournament Library's React island. With the legacy renderer
   // removed (REMOVED_LIBRARY_RENDERER) paintHomeTournamentLibrary()'s body (33) is a marked call of
   // ksmRenderLibrary(), and app/js/40-react-library.js publishes the library as plain data and
