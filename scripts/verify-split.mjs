@@ -153,6 +153,9 @@ const KNOWN_POST_SPLIT_EDITS = {
   // fix/outbox-flush-local-changes (F6): mergeQueuedStaffWork() and its call at staff login;
   // the outbox flush also replays court actions taken before it started (comment + condition).
   'outbox-flush-rebase': 4,
+  // fix/quirks-pass (shell): copyTextValue() (21) without the clipboard titles its prompt "<what>
+  // (copy it from here):" instead of "<what> copied" (nothing was copied).
+  'quirks-shell': 1,
   // fix/pre-event (F7): Load Recovery File asks first and refuses while work is queued
   // (confirmRecoveryFileLoad() + its call in loadRecoveryFile()).
   'recovery-guard': 2,
