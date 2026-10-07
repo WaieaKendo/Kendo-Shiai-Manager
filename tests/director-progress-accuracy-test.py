@@ -93,7 +93,7 @@ with sync_playwright() as p:
     k=page.evaluate("directorDivisionProgress('Team Tournament','A')")
     assert k=={'completed':1,'total':None,'remaining':None,'variable':True},k
     first=page.locator('.director-court-card').first
-    assert '1 Matches Completed' in first.inner_text()
+    assert '1 Match Completed' in first.inner_text()  # singular since the quirk pass
     assert first.locator('.director-progress-track').count()==0
 
     assert not errors,errors

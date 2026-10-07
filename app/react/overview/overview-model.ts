@@ -98,7 +98,7 @@ export function overviewCourtView(x: OverviewCourtInput): OverviewCourtView {
     title: `Court ${x.court}`,
     division: x.division,
     round: x.round,
-    progress: x.variable ? `${x.completed} Matches Completed` : `${x.completed} / ${x.total} Matches`,
+    progress: x.variable ? `${x.completed} ${x.completed === 1 ? 'Match' : 'Matches'} Completed` : `${x.completed} / ${x.total} Matches`,
     remaining: x.variable ? 'Total varies by wins and ties' : `${x.remaining} Remaining`,
     barStyle: x.variable ? null : `width:${percent(x.completed, x.total)}%`,
     rows: [

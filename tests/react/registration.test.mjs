@@ -30,11 +30,11 @@ test('the status chip: text from the status, class with the stored status as is'
   assert.equal(statusClass(row({ status: 'undefined' })), 'status undefined');
 });
 
-test('the status card: verdict, counts (never singular) and the issue line', () => {
+test('the status card: verdict, counts (singular for 1) and the issue line', () => {
   assert.deepEqual(statusView(status()), {
     verdict: 'Ready to Generate', counts: '0 competitors • 0 divisions • 2 courts', message: 'No blocking validation issues.',
   });
   assert.deepEqual(statusView(status({ valid: false, competitors: 1, divisions: 1, courts: '3', errors: 1 })), {
-    verdict: 'Needs Attention', counts: '1 competitors • 1 divisions • 3 courts', message: '1 validation issue(s). Generate Tournament to review.',
+    verdict: 'Needs Attention', counts: '1 competitor • 1 division • 3 courts', message: '1 validation issue(s). Generate Tournament to review.',
   });
 });

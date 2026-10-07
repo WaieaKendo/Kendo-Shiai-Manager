@@ -68,6 +68,7 @@ test('overviewCourtView: a kachinuki court has no bar and no fixed total', () =>
   assert.equal(view.progress, '4 Matches Completed');
   assert.equal(view.remaining, 'Total varies by wins and ties');
   assert.equal(view.barStyle, null);
+  assert.equal(overviewCourtView(court({ completed: 1, total: null, remaining: null, variable: true })).progress, '1 Match Completed');
 });
 
 test('overviewView: the courts in the published order', () => {
