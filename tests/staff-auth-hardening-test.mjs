@@ -3,7 +3,14 @@
 // Runs the real src-worker.js in-process (tests/lib/worker-runtime.mjs) with a controllable clock:
 // - attempt limit: 5 wrong staff passwords (login, staff live connection, staff saves) lock the
 //   tournament's password checks with HTTP 429 + Retry-After, growing (30 s, doubling, 15 min cap);
-//   a correct password resets the count; spectators are unaffected.
+//   a correct password resets the count; spectators are unaffected;
+// - salted slow hash: new tournaments store PBKDF2-SHA256 (own salt, 100,000 iterations); an old
+//   SHA-256 tournament logs in and is upgraded; missing/malformed hashes behave as before;
+// - session tokens: Staff Login and tournament creation return a token (only its hash stored, 24 h
+//   sliding expiry, at most 50), accepted for saves, deletes and the staff live connection;
+//   expired/revoked tokens get 401 without counting as attempts; the password itself is still
+//   accepted as the key for one release (compatibility).
+// The app side (prompts, alerts, the token in the requests) is staff-login-hardening-test.py.
 import assert from 'node:assert/strict';
 import { createInProcessApi } from './lib/worker-runtime.mjs';
 
@@ -205,6 +212,140 @@ await test('salted hash: a missing or malformed hash behaves as before (403, nev
     assert.equal((await save(id, PASSWORD)).status, 403, `save, stored ${JSON.stringify(stored)}`);
     assert.equal(await storedHash(id), stored, `left as it was: ${JSON.stringify(stored)}`);
   }
+});
+
+// ------------------------------------------------------------------------ session tokens
+const HOUR = 60 * 60 * 1000;
+const STAFF_REFRESH_MS = 10 * 60 * 1000;
+const TOKEN = /^ksmst_[A-Za-z0-9_-]{43}$/;
+async function tokenFor(id, password = PASSWORD) {
+  const res = await login(id, password);
+  assert.equal(res.status, 200);
+  const info = await body(res);
+  assert.match(info.token, TOKEN);
+  return info;
+}
+const sessions = async id => (await api.storage(id).get('staffSessions')) || {};
+
+await test('tokens: Staff Login returns a random token with its expiry; only its hash is stored', async () => {
+  const { id } = await create();
+  const time = clock(id);
+  const a = await tokenFor(id), b = await tokenFor(id);
+  assert.notEqual(a.token, b.token);
+  assert.equal(Date.parse(a.expiresAt), time.now + 24 * HOUR);
+  const stored = JSON.stringify(await api.storage(id).get('staffSessions'));
+  assert.ok(!stored.includes(a.token) && !stored.includes(a.token.slice(6)), 'the token itself is not stored');
+  assert.ok(stored.includes(await sha256Hex(a.token)), 'its SHA-256 is');
+  assert.equal(Object.keys(await sessions(id)).length, 3, 'the creator token and these two');
+});
+
+await test('tokens: creating a tournament logs the creator in (token in a header, not in the record)', async () => {
+  const { id, res } = await create();
+  const token = res.headers.get('x-ksm-session-token');
+  assert.match(token, TOKEN);
+  assert.ok(Date.parse(res.headers.get('x-ksm-session-expires')) > Date.now());
+  const record = await body(await api.call('GET', `/api/tournaments/${id}`));
+  assert.ok(!JSON.stringify(record).includes(token));
+  assert.equal((await save(id, token)).status, 200);
+});
+
+await test('tokens: accepted for saves, deletes and the staff live connection', async () => {
+  const { id } = await create();
+  clock(id);
+  const { token } = await tokenFor(id);
+  assert.equal((await save(id, token)).status, 200);
+  const socket = await api.openSocket(id, { role: 'staff', key: token, clientId: 'court-a' });
+  assert.equal(socket.status, 101);
+  await socket.close();
+  assert.equal((await api.call('DELETE', `/api/tournaments/${id}`, { headers: { 'x-ksm-session-key': token } })).status, 200);
+});
+
+await test('tokens: expire 24 h after their last use (sliding), then 401 session-expired', async () => {
+  const { id } = await create();
+  const time = clock(id);
+  const idle = (await tokenFor(id)).token, busy = (await tokenFor(id)).token;
+  for (let i = 0; i < 3; i++) { time.advance(20 * HOUR); assert.equal((await save(id, busy)).status, 200, `busy token after ${20 * (i + 1)} h`); }
+  const res = await save(id, idle);
+  assert.equal(res.status, 401, 'unused for 60 h');
+  assert.equal((await body(res)).code, 'session-expired');
+  assert.equal((await api.openSocket(id, { role: 'staff', key: idle })).status, 401);
+  assert.equal(Object.keys(await sessions(id)).length, 1, 'the expired token is dropped');
+  time.advance(24 * HOUR + 1);
+  assert.equal((await save(id, busy)).status, 401, 'unused for 24 h');
+});
+
+await test('tokens: revoked when the password is set again', async () => {
+  const { id } = await create();
+  clock(id);
+  const { token } = await tokenFor(id);
+  assert.equal((await save(id, token)).status, 200);
+  await api.durableObject(id).setStaffPassword('a-new-password');
+  assert.equal((await save(id, token)).status, 401);
+  assert.equal((await api.openSocket(id, { role: 'staff', key: token })).status, 401);
+  assert.equal((await login(id, PASSWORD)).status, 403, 'the old password no longer works');
+  assert.equal((await save(id, PASSWORD)).status, 403, 'nor as a key (the remembered password is forgotten)');
+  assert.match((await tokenFor(id, 'a-new-password')).token, TOKEN);
+});
+
+await test('tokens: at most 50 kept per tournament; the least recently used goes first', async () => {
+  const { id } = await create();
+  const time = clock(id);
+  const first = (await tokenFor(id)).token;
+  time.advance(1000);
+  const second = (await tokenFor(id)).token;
+  time.advance(STAFF_REFRESH_MS);
+  assert.equal((await save(id, first)).status, 200, 'first used again: now more recent than second');
+  for (let i = 0; i < 49; i++) { time.advance(1000); await tokenFor(id); }
+  assert.equal(Object.keys(await sessions(id)).length, 50);
+  assert.equal((await save(id, second)).status, 401, 'least recently used dropped');
+  assert.equal((await save(id, first)).status, 200);
+});
+
+await test('tokens: unknown or expired tokens are not password attempts (no lockout from stale devices)', async () => {
+  const { id } = await create();
+  clock(id);
+  for (let i = 0; i < 12; i++) {
+    const fake = 'ksmst_' + 'A'.repeat(43);
+    assert.equal((await save(id, fake)).status, 401);
+    assert.equal((await api.openSocket(id, { role: 'staff', key: fake })).status, 401);
+  }
+  assert.equal(await api.storage(id).get('staffAuthFailures'), undefined);
+  assert.equal((await login(id, PASSWORD)).status, 200);
+});
+
+await test('tokens: a valid token still works while password attempts are locked out', async () => {
+  const { id } = await create();
+  clock(id);
+  const { token } = await tokenFor(id);
+  for (let i = 1; i <= 5; i++) await login(id, `wrong-${i}`);
+  assert.equal((await login(id, PASSWORD)).status, 429);
+  assert.equal((await save(id, token)).status, 200, 'logged-in devices keep scoring');
+});
+
+await test('compatibility (one release): the password itself is still accepted as the key', async () => {
+  const { id } = await create();
+  clock(id);
+  assert.equal((await save(id, PASSWORD)).status, 200);
+  const socket = await api.openSocket(id, { role: 'staff', key: PASSWORD });
+  assert.equal(socket.status, 101);
+  await socket.close();
+  assert.equal((await save(id, PASSWORD)).status, 200, 'again (remembered, no slow hash)');
+  assert.equal((await save(id, 'wrong')).status, 403);
+  // An old-format tournament with an old app: the password keeps working and upgrades the hash.
+  await api.storage(id).put('staffPasswordHash', await sha256Hex(PASSWORD));
+  assert.equal((await save(id, PASSWORD)).status, 200);
+  assert.match(await storedHash(id), PBKDF2_FORMAT);
+});
+
+await test('tokens: spectators need none and are unaffected', async () => {
+  const { id } = await create();
+  const spectator = await api.openSocket(id, { role: 'spectator', clientId: 'tv' });
+  assert.equal(spectator.status, 101);
+  const { token } = await tokenFor(id);
+  assert.equal((await save(id, token)).status, 200);
+  await spectator.waitFor(m => m.type === 'snapshot');
+  await spectator.close();
+  assert.equal((await api.call('PUT', `/api/tournaments/${id}`, { headers: { ...staffHeaders(token), 'x-ksm-role': 'spectator' }, body: { tournamentId: id, revision: 2, payload: payload() } })).status, 403, 'a token does not make a spectator save');
 });
 
 console.log(`${passed} staff password hardening checks passed`);

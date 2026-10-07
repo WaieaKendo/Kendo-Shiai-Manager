@@ -50,11 +50,29 @@ def fetch_record(base, tid):
         return json.load(r)
 
 
-def put_record(base, tid, payload, revision, password=DEFAULT_PASSWORD, client_id='test-harness', name='Test harness'):
-    """Save a tournament payload straight to the server, as another staff device (or an older app version) would."""
+_STAFF_TOKENS = {}
+
+
+def staff_token(base, tid, password=DEFAULT_PASSWORD):
+    """Staff Login over the API (POST /api/tournaments/{id}/auth): the session token it returns."""
+    key = (base, tid, password)
+    if key not in _STAFF_TOKENS:
+        req = urllib.request.Request(f'{base}/api/tournaments/{tid}/auth', data=json.dumps({'password': password}).encode(),
+                                     method='POST', headers={'content-type': 'application/json'})
+        with urllib.request.urlopen(req) as r:
+            _STAFF_TOKENS[key] = json.load(r)['token']
+    return _STAFF_TOKENS[key]
+
+
+def put_record(base, tid, payload, revision, password=DEFAULT_PASSWORD, client_id='test-harness', name='Test harness',
+               legacy_password=False):
+    """Save a tournament payload straight to the server, as another staff device would: logged in
+    (its session token), or with legacy_password=True as the app before issue #9's hardening did
+    (the password itself as the key, accepted for one release)."""
     body = json.dumps({'tournamentId': tid, 'revision': revision, 'payload': payload}).encode()
+    key = password if legacy_password else staff_token(base, tid, password)
     req = urllib.request.Request(f'{base}/api/tournaments/{tid}', data=body, method='PUT', headers={
-        'content-type': 'application/json', 'x-ksm-role': 'staff', 'x-ksm-session-key': password,
+        'content-type': 'application/json', 'x-ksm-role': 'staff', 'x-ksm-session-key': key,
         'x-ksm-client-id': client_id, 'x-ksm-client-name': name})
     with urllib.request.urlopen(req) as r:
         return json.load(r)
@@ -245,6 +263,10 @@ class KsmApp:
     def revision(self):
         """(test API) Last cloud revision this device has seen."""
         return self.page.evaluate('KSMTest.revision()')
+
+    def staff_session(self):
+        """(test API) What this device sends as its staff key: a session token once logged in, '' when not."""
+        return self.page.evaluate('KSMTest.staffSession()')
 
     def wait_idle(self, timeout=30):
         """(test API) Wait until every local change is confirmed by the server."""

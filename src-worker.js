@@ -68,6 +68,19 @@ function lockedOut(retryAfterMs) {
   return { ok: false, status: 429, headers: { 'retry-after': String(retryAfter) },
     body: { error: `Too many incorrect Staff passwords. Try again in ${waitText(retryAfter)}.`, code: 'staff-locked', retryAfter } };
 }
+// Staff session tokens (issue #9): a correct Staff Login (POST /auth) or creating a tournament
+// returns a random token; devices send it instead of the password (x-ksm-session-key, the live
+// connection's key). Only its SHA-256 is stored, with an expiry 24 h after its last use (sliding;
+// refreshed at most every 10 min); at most 50 are kept per tournament (the least recently used
+// goes first). Setting the password revokes them all. A token-shaped key that is unknown or
+// expired gets 401 session-expired and is not a password attempt.
+const STAFF_TOKEN_PREFIX = 'ksmst_';
+const STAFF_SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+const STAFF_SESSION_REFRESH_MS = 10 * 60 * 1000;
+const STAFF_SESSION_MAX = 50;
+function newStaffToken() {
+  return STAFF_TOKEN_PREFIX + toBase64(crypto.getRandomValues(new Uint8Array(32))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
 function denied(result) { return json(result.body, result.status, result.headers || {}); }
 function safeRole(value) { return VALID_ROLES.has(value) ? value : 'spectator'; }
 function sanitizePayload(payload) {
@@ -120,10 +133,54 @@ export class TournamentState {
   now() { return Date.now(); }
   async verifyStaffPassword(password) {
     const stored = await this.staffPasswordHash();
+    // Devices on the previous app send the password with every save (the rollout fallback): the
+    // last correct one is remembered in memory (a digest bound to the stored hash), so those saves
+    // do not each pay the slow hash.
+    if (password && stored && this.verifiedPassword === await sha256Hex(`${stored}\n${password}`)) return true;
     const result = await checkStaffPasswordHash(password, stored);
+    if (!result.ok) return false;
+    let current = stored;
     // The transparent upgrade: an old SHA-256 hash is replaced by a PBKDF2 one of the same password.
-    if (result.ok && result.rehash) await this.state.storage.put('staffPasswordHash', await hashStaffPassword(password));
-    return result.ok;
+    if (result.rehash) { current = await hashStaffPassword(password); await this.state.storage.put('staffPasswordHash', current); }
+    this.verifiedPassword = await sha256Hex(`${current}\n${password}`);
+    return true;
+  }
+  // Sets the staff password (tournament creation; any future password change): revokes every
+  // staff session token.
+  async setStaffPassword(password) {
+    this.verifiedPassword = null;
+    await this.state.storage.put('staffPasswordHash', await hashStaffPassword(password));
+    await this.state.storage.delete('staffSessions');
+  }
+  async issueStaffSession() {
+    const token = newStaffToken();
+    const id = await sha256Hex(token);
+    const now = this.now();
+    const sessions = (await this.state.storage.get('staffSessions')) || {};
+    const kept = Object.entries(sessions)
+      .filter(([, entry]) => entry && entry.expiresAt > now)
+      .sort((a, b) => b[1].lastUsedAt - a[1].lastUsedAt)
+      .slice(0, STAFF_SESSION_MAX - 1);
+    const next = Object.fromEntries(kept);
+    next[id] = { createdAt: now, lastUsedAt: now, expiresAt: now + STAFF_SESSION_TTL_MS };
+    await this.state.storage.put('staffSessions', next);
+    return { token, expiresAt: new Date(now + STAFF_SESSION_TTL_MS).toISOString() };
+  }
+  async checkStaffSession(token) {
+    const id = await sha256Hex(token);
+    const now = this.now();
+    const sessions = (await this.state.storage.get('staffSessions')) || {};
+    const entry = sessions[id];
+    if (!entry || !(entry.expiresAt > now)) {
+      // An expired token is dropped, with every other expired one.
+      if (entry) await this.state.storage.put('staffSessions', Object.fromEntries(Object.entries(sessions).filter(([, other]) => other && other.expiresAt > now)));
+      return false;
+    }
+    if (now - entry.lastUsedAt >= STAFF_SESSION_REFRESH_MS) {
+      sessions[id] = { ...entry, lastUsedAt: now, expiresAt: now + STAFF_SESSION_TTL_MS };
+      await this.state.storage.put('staffSessions', sessions);
+    }
+    return true;
   }
   // One staff password attempt, counted against the attempt limit. Attempts run one at a time
   // (this.staffAttempts chains them): checks of the slow hash would otherwise overlap and all read
@@ -147,8 +204,14 @@ export class TournamentState {
     return result;
   }
   // Staff access for a save, a delete or the staff live connection. An empty key is no attempt.
+  // The key is a staff session token or, during the rollout (devices still on the previous app),
+  // the password itself: that fallback is removed one release after 4.0.0 (docs/DEPLOYMENT.md).
   async staffAccess(suppliedKey, error = 'Session authorization required') {
     if (!suppliedKey) return { ok: false, status: 403, body: { error } };
+    if (suppliedKey.startsWith(STAFF_TOKEN_PREFIX)) {
+      if (await this.checkStaffSession(suppliedKey)) return { ok: true };
+      return { ok: false, status: 401, body: { error: 'Staff session expired. Use Staff Login again.', code: 'session-expired' } };
+    }
     const result = await this.checkStaffPassword(suppliedKey);
     return result.ok || result.status === 429 ? result : { ok: false, status: 403, body: { error } };
   }
@@ -240,11 +303,13 @@ export class TournamentState {
       if (!incoming.staffPassword || String(incoming.staffPassword).length < 4) return json({ error: 'Staff password required' }, 400);
       const integrityError = validateTournamentPayload(incoming.payload);
       if (integrityError) return json({ error: 'Invalid tournament state', integrityError }, 422);
-      await this.state.storage.put('staffPasswordHash', await hashStaffPassword(incoming.staffPassword));
+      await this.setStaffPassword(incoming.staffPassword);
       const now = new Date().toISOString();
       const record = { schemaVersion: '1.2', tournamentId: incoming.tournamentId, engineVersion: incoming.engineVersion || 'unknown', revision: 1, createdAt: now, updatedAt: now, updatedBy: { role: 'staff', clientId: '', name: 'Tournament creator', court: '' }, payload: sanitizePayload(incoming.payload) };
       await this.state.storage.put('record', record);
-      return json(publicRecord(record));
+      // The creator is logged in: the session token comes in a header, so it never sits in the record.
+      const session = await this.issueStaffSession();
+      return json(publicRecord(record), 200, { 'x-ksm-session-token': session.token, 'x-ksm-session-expires': session.expiresAt });
     }
 
     if (request.method === 'POST' && url.pathname === '/auth') {
@@ -252,7 +317,8 @@ export class TournamentState {
       const password = typeof body?.password === 'string' ? body.password : '';
       if (!password) return json({ error: 'Incorrect password' }, 403);
       const result = await this.checkStaffPassword(password);
-      return result.ok ? json({ ok: true }) : denied(result);
+      if (!result.ok) return denied(result);
+      return json({ ok: true, ...(await this.issueStaffSession()) });
     }
 
     if (request.method === 'DELETE' && url.pathname === '/snapshot') {
