@@ -25,11 +25,12 @@ The cloud layer stores the existing KSM tournament payload as an opaque snapshot
 
 ## Stream overlay (OBS / PRISM)
 
-`/overlay?tournament=<id>&court=A` is a read-only, transparent lower third for a livestream: the court's current match exactly as its TV display shows it (names and dojos, or teams and the current position for team matches; division · pool/round; points and hansoku; the next match), updated live over the spectator WebSocket. It needs no login and never writes. Staff copy the link from the **TV** menu (**Copy Court A/B overlay link**).
+`/t/<id>/overlay/a` (or `/b`; the old `/overlay?tournament=<id>&court=A` still works) is a read-only, transparent lower third for a livestream: the court's current match exactly as its TV display shows it (names and dojos, or teams and the current position for team matches; division · pool/round; points and hansoku; the next match), updated live over the spectator WebSocket. It needs no login and never writes. Staff copy the link from the **TV** menu (**Copy Court A/B overlay link**).
+
+The court is in the path (`/overlay/a` or `/overlay/b`); the options are query parameters, e.g. `/t/<id>/overlay/b?red=left`:
 
 | Option | Default | |
 |---|---|---|
-| `court=A\|B` | `A` | Which court |
 | `red=left\|right` | `right` | Side of the bar Red is on |
 | `pos=top\|bottom` | `bottom` | Bar position on a landscape page |
 | `y=NN` | `74` in band mode | Band mode: the bar's top edge at NN % of the page height (setting it turns band mode on) |
@@ -44,7 +45,7 @@ The front end lives in `app/` and is built with Vite into `dist/`, which the Wor
 
 ```bash
 npm install
-npm run dev          # build, then wrangler dev: app + API on http://localhost:8787 (overlay: /overlay?tournament=<id>)
+npm run dev          # build, then wrangler dev: app + API on http://localhost:8787 (overlay: /t/<id>/overlay/a)
 npm run build        # build only (dist/)
 npm run typecheck    # TypeScript: classic files marked // @ts-check, and app/react/ (strict)
 ```

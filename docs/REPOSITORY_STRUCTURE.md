@@ -7,9 +7,11 @@ app/                 Front-end source (built by Vite into dist/, which is not co
   index.html          Markup
   styles/NN-*.css     Stylesheet, concatenated in file-name order
   js/NN-*.js          App code, concatenated in file-name order into ONE classic script
-                      (00-react-bridge.js: the ksm:state-changed event for React islands)
+                      (00-path-urls.js: path URLs, M.9: an old ?tournament= link becomes its
+                      path first, ksmLinkParams()/ksmLinkUrl(); 00-react-bridge.js: the
+                      ksm:state-changed event for React islands)
   *.html              Extra pages other than index.html (Vite entries, React, no app.js):
-                        overlay.html = /overlay, the stream overlay
+                        overlay.html = /t/<id>/overlay/a|b (and /overlay), the stream overlay
   react/              React + strict TypeScript ES modules (own tsconfig.json):
                         island.tsx (mountIsland), legacy-bridge.ts (useLegacyState),
                         main.tsx (index.html's one module script: mounts the screens below),
@@ -52,11 +54,14 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         no DOM, no globals, explicit inputs/outputs. index.ts is bundled
                         into a classic script defining `KSMEngine`, loaded before app.js;
                         app/js functions delegate to it, app/react imports the .ts files.
-                        pools.ts: poolSizes
+                        pools.ts: poolSizes; routes.ts: the path URL scheme (M.9), shared
+                        by the classic app, the overlay page and the tests
   types/*.d.ts        Tournament data types and globals for `npm run typecheck`
   public/             Icons, SVG assets and manifest, served at the site root unchanged
-  service-worker.js   PWA service worker (the build adds the hashed bundle names)
-src-worker.js        Cloudflare Worker backend (API + Durable Object)
+  service-worker.js   PWA service worker (the build adds the hashed bundle names); serves the
+                      offline app for /, /index.html and the path URLs /t/... (not the overlay)
+src-worker.js        Cloudflare Worker backend (API + Durable Object); answers /t/<id>/overlay/...
+                      with overlay.html (wrangler.jsonc run_worker_first: /api/*, /t/*)
 scripts/             Build helpers (app-sources.mjs), verify-split.mjs, reset-cloud-data.mjs
 tests/               Maintained regression tests (golden/engine, golden/court, golden/live-scores, golden/tv, golden/results, golden/overview, golden/library, golden/pools, golden/setup, golden/registration, golden/registration-teams, golden/shell: approved snapshots)
 docs/                Maintained documentation
