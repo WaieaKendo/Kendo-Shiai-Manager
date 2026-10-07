@@ -202,6 +202,15 @@ function ksmContinueRegenerateDivision(){
 function ksmRegenerateDone(div){
   ksmShowRegenerate('Division Regenerated',{view:'done',division:ksmHtmlText(div)});
 }
+// Escape closes the generation check, Regenerate Single Division and the cloud modal (Tournament
+// Access, Developer Tools, the Load Tournament File confirmation) as their Close / Cancel button
+// or the backdrop does, like the open menu, Fusen-gachi and the Results bracket (quirk pass).
+document.addEventListener('keydown',function(e){
+  if(e.key!=='Escape'||!ksmShellDialogs)return;
+  if(ksmShellDialogs.cloud)closeCloudModal();
+  if(ksmShellDialogs.validation.open)closeManagementModal('validationModal');
+  if(ksmShellDialogs.regenerate.open)closeManagementModal('regenerateModal');
+});
 // openCloudModal(title,body) (21): a new cloud modal at the end of <body> (the one open closed
 // first).
 function ksmOpenCloudModal(title,body){
