@@ -5,7 +5,7 @@
 // WebSocket snapshot/presence broadcasts, the tournament library, and deletion.
 //
 // Default: runs in-process against an in-memory stand-in for the Cloudflare
-// runtime (Durable Objects, storage, WebSocketPair, static assets). No network.
+// runtime (Durable Objects, storage, WebSocketPair, static assets; tests/lib/worker-runtime.mjs). No network.
 //
 // Live mode: KSM_BASE_URL=http://localhost:8787 node tests/worker-api-test.mjs
 // runs the same contract over real HTTP/WebSockets (e.g. against `npm run dev`,
@@ -13,118 +13,11 @@
 // test tournaments and skips the in-process-only admin reset check.
 import assert from 'node:assert/strict';
 import { pkg } from './lib/ksm-source.mjs';
+import { createInProcessApi, waitFor } from './lib/worker-runtime.mjs';
 
 const BASE = (process.env.KSM_BASE_URL || '').replace(/\/$/, '');
 const LIVE = Boolean(BASE);
 const RESET_KEY = 'test-reset-key';
-
-// ---------------------------------------------------------------------------
-// In-memory Cloudflare runtime
-// ---------------------------------------------------------------------------
-function installCloudflareShims() {
-  // Workers allow `new Response(null,{status:101,webSocket})`; undici rejects status 101.
-  const NativeResponse = globalThis.Response;
-  globalThis.Response = class extends NativeResponse {
-    constructor(body, init = {}) {
-      if (init.status === 101) {
-        super(null, { status: 200 });
-        Object.defineProperty(this, 'status', { value: 101 });
-        this.webSocket = init.webSocket;
-      } else super(body, init);
-    }
-  };
-  // Workers accept a ReadableStream body without `duplex`; undici requires it.
-  const NativeRequest = globalThis.Request;
-  globalThis.Request = class extends NativeRequest {
-    constructor(input, init) {
-      if (init?.body && typeof init.body.getReader === 'function' && !init.duplex) init = { ...init, duplex: 'half' };
-      super(input, init);
-    }
-  };
-  globalThis.WebSocketPair = function WebSocketPair() {
-    const client = { messages: [], closed: null, listeners: [] };
-    const server = {
-      attachment: null,
-      serializeAttachment(value) { this.attachment = structuredClone(value); },
-      deserializeAttachment() { return this.attachment; },
-      send(message) { if (client.closed) throw new Error('socket closed'); client.messages.push(JSON.parse(message)); client.listeners.forEach(fn => fn()); },
-      close(code, reason) { client.closed = { code, reason }; },
-    };
-    client.peer = server;
-    return { 0: client, 1: server };
-  };
-}
-
-class MemoryStorage {
-  constructor() { this.map = new Map(); }
-  async get(key) { return this.map.has(key) ? structuredClone(this.map.get(key)) : undefined; }
-  async put(key, value) { this.map.set(key, structuredClone(value)); }
-  async delete(key) { return this.map.delete(key); }
-  async deleteAll() { this.map.clear(); }
-}
-
-async function createInProcessApi() {
-  installCloudflareShims();
-  const { default: workerEntry, TournamentState } = await import('../src-worker.js');
-  const objects = new Map();
-  // A Durable Object handles one request at a time here. (Real DOs use input
-  // gates; see the concurrent-save check, which should also be run in live mode.)
-  const queues = new Map();
-  const namespace = {
-    idFromName: name => name,
-    get(id) {
-      if (!objects.has(id)) {
-        const sockets = new Set();
-        const state = {
-          storage: new MemoryStorage(),
-          acceptWebSocket: ws => sockets.add(ws),
-          getWebSockets: () => [...sockets].filter(ws => !ws.closedByTest),
-        };
-        objects.set(id, { instance: new TournamentState(state, env), sockets });
-      }
-      const { instance } = objects.get(id);
-      return {
-        fetch(input, init) {
-          const request = input instanceof Request ? input : new Request(input, init);
-          const run = () => instance.fetch(request);
-          const prev = queues.get(id) || Promise.resolve();
-          const next = prev.then(run, run);
-          queues.set(id, next.catch(() => {}));
-          return next;
-        },
-      };
-    },
-  };
-  const env = {
-    TOURNAMENTS: namespace,
-    ASSETS: { fetch: async () => new Response('static asset', { status: 200 }) },
-    KSM_RESET_KEY: RESET_KEY,
-  };
-  const call = async (method, path, { headers = {}, body } = {}) => {
-    const init = { method, headers: { ...headers } };
-    if (body !== undefined) { init.body = JSON.stringify(body); init.headers['content-type'] = 'application/json'; }
-    return workerEntry.fetch(new Request(`http://ksm.test${path}`, init), env);
-  };
-  return {
-    call,
-    async openSocket(id, params = {}) {
-      const qs = new URLSearchParams(params).toString();
-      const response = await call('GET', `/api/tournaments/${id}/live?${qs}`, { headers: { Upgrade: 'websocket' } });
-      if (response.status !== 101) return { status: response.status };
-      const client = response.webSocket;
-      return {
-        status: 101,
-        messages: client.messages,
-        waitFor: pred => waitFor(client.messages, pred, fn => client.listeners.push(fn)),
-        async close() {
-          client.peer.closedByTest = true;
-          const obj = objects.get(id);
-          await obj.instance.webSocketClose(client.peer, 1000, 'test done');
-        },
-      };
-    },
-  };
-}
 
 // ---------------------------------------------------------------------------
 // Live HTTP/WebSocket client
@@ -154,15 +47,6 @@ function createLiveApi() {
   };
 }
 
-function waitFor(messages, pred, subscribe, timeoutMs = 3000) {
-  return new Promise((resolve, reject) => {
-    const hit = () => messages.find(pred);
-    if (hit()) return resolve(hit());
-    const timer = setTimeout(() => reject(new Error('Timed out waiting for WebSocket message')), timeoutMs);
-    subscribe(() => { const m = hit(); if (m) { clearTimeout(timer); resolve(m); } });
-  });
-}
-
 // ---------------------------------------------------------------------------
 // Fixtures
 // ---------------------------------------------------------------------------
@@ -184,7 +68,7 @@ const final = patch => ({ division: 'Open', type: 'individual', championship: tr
 // ---------------------------------------------------------------------------
 // Contract
 // ---------------------------------------------------------------------------
-const api = LIVE ? createLiveApi() : await createInProcessApi();
+const api = LIVE ? createLiveApi() : await createInProcessApi({ resetKey: RESET_KEY });
 let passed = 0;
 const created = [];
 async function test(name, fn) {
