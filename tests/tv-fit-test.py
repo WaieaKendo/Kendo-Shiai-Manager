@@ -30,8 +30,17 @@ MEASURE_JS = """() => {
 
 
 def check(page, w, h, label):
-    m = page.evaluate(MEASURE_JS)
     scale = min(w / 1920, h / 1080)
+    # The fallback factor follows the window's resize event, which headless Chromium on Linux can
+    # deliver well after set_viewport_size() returns (CI saw the previous size's factor); give it
+    # time, then check everything. A factor that never updates still fails below.
+    try:
+        page.wait_for_function(
+            "s => Math.abs(Number(getComputedStyle(document.documentElement).getPropertyValue('--ksm-tv-fit')) - s) < 0.001",
+            arg=scale, timeout=3000)
+    except Exception:
+        pass
+    m = page.evaluate(MEASURE_JS)
     where = f'{label} {w}x{h}: {m}'
     assert abs(m['w'] - 1920 * scale) <= 1 and abs(m['h'] - 1080 * scale) <= 1, f'not scaled to fit (F14): {where}'
     assert m['x'] >= -0.5 and m['y'] >= -0.5 and m['x'] + m['w'] <= w + 0.5 and m['y'] + m['h'] <= h + 0.5, f'cut off (F14): {where}'

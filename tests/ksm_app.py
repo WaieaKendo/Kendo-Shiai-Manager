@@ -16,7 +16,7 @@ import time
 import urllib.request
 from pathlib import Path
 
-from ksm_browser import load_app
+from ksm_browser import load_app, wait_for_react
 
 API_JS = (Path(__file__).resolve().parent / 'lib' / 'ksm-test-api.js').read_text(encoding='utf-8')
 SIDE = {'W': 'white', 'R': 'red', 'white': 'white', 'red': 'red'}
@@ -179,6 +179,7 @@ class KsmApp:
             before_load(page)
         page.goto(base + path, wait_until='domcontentloaded')
         page.wait_for_function('window.KSMTest && KSMTest.booted()')
+        wait_for_react(page)
         return app
 
     def expect_dialog(self, prefix, accept=False):
@@ -219,12 +220,14 @@ class KsmApp:
         """Reload the page (power cut, browser restart) and wait for the app to boot again."""
         self.page.reload(wait_until='domcontentloaded')
         self.page.wait_for_function('window.KSMTest && KSMTest.booted()')
+        wait_for_react(self.page)
 
     def goto(self, path):
         """Open `path` (e.g. app_path(tid, 'tv', 'B'), or an old ?tournament= link) in this device's page."""
         origin = self.page.url.split('/', 3)[:3]
         self.page.goto('/'.join(origin) + path, wait_until='domcontentloaded')
         self.page.wait_for_function('window.KSMTest && KSMTest.booted()')
+        wait_for_react(self.page)
 
     def address(self):
         """The page's address without the origin: path, query and hash (e.g. /t/<id>/court/b)."""

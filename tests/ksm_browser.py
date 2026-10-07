@@ -25,6 +25,29 @@ def launch_chromium(p):
     return p.chromium.launch(headless=not headed, slow_mo=slow_mo, executable_path=path, args=['--no-sandbox'])
 
 
+# React draws its islands a moment after the page's scripts run (createRoot renders in a later
+# task), so a test that reads the page right after load can still see index.html's static markup
+# (e.g. the TV menu without its overlay items). Ready = the header islands have committed: the
+# navigation's first element is a React element. Pages without the React module (a build or html
+# without it, the overlay page) have nothing to wait for.
+REACT_READY_JS = """() => {
+  if (!document.querySelector('script[type=module]')) return true;
+  const nav = document.querySelector('header.ksm-topbar nav.minimal-nav');
+  if (!nav) return true;
+  const first = nav.firstElementChild;
+  return !!window.ksmShellMounted && !!first && Object.keys(first).some(k => k.startsWith('__reactFiber'));
+}"""
+
+
+def wait_for_react(page, timeout=15000):
+    """Wait until the React islands have drawn (see REACT_READY_JS). A page whose module failed
+    to load is left for the test's own checks to report."""
+    try:
+        page.wait_for_function(REACT_READY_JS, timeout=timeout)
+    except Exception:
+        pass
+
+
 def load_app(page, html=None, wait_until='domcontentloaded', session='staff', query='', api=None, page_path='/'):
     """Open the app on a real http origin so localStorage/sessionStorage work.
 
@@ -61,6 +84,7 @@ def load_app(page, html=None, wait_until='domcontentloaded', session='staff', qu
 
     page.route(f'{APP_ORIGIN}/**', handle)
     page.goto(f'{APP_ORIGIN}{page_path}{query}', wait_until=wait_until)
+    wait_for_react(page)
     if session == 'staff':
         page.evaluate("""() => {
           document.body.classList.remove('ksm-home');
