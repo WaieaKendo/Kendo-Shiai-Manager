@@ -78,16 +78,19 @@ export function statusClass(row: Pick<PlayerRowInput, 'status'>): string {
 export interface StatusView {
   /** 'Ready to Generate' / 'Needs Attention'. */
   verdict: string;
-  /** "N competitors • N divisions • N courts" (never singular). */
+  /** "N competitors • N divisions • N courts" (singular for 1). */
   counts: string;
   /** The line under the head. */
   message: string;
 }
 
+/** "1 court", "2 courts" (the count may be the Setup field's text). */
+const countOf = (n: number | string, word: string): string => `${n} ${Number(n) === 1 ? word : `${word}s`}`;
+
 export function statusView(input: StatusInput): StatusView {
   return {
     verdict: input.valid ? 'Ready to Generate' : 'Needs Attention',
-    counts: `${input.competitors} competitors • ${input.divisions} divisions • ${input.courts} courts`,
+    counts: `${countOf(input.competitors, 'competitor')} • ${countOf(input.divisions, 'division')} • ${countOf(input.courts, 'court')}`,
     message: input.valid ? 'No blocking validation issues.' : `${input.errors} validation issue(s). Generate Tournament to review.`,
   };
 }

@@ -64,7 +64,7 @@ renderScore=function(){
   const div=state.currentDivision;
   const current=state.matches?.[state.current];
   if(div&&divisionComplete(div)&&(!current||current.done||!matchBelongsToCourt(current,state.currentCourt||'A'))){
-    updateScoreTournamentName();setCourtCompletePresentation(div,true);renderQueue();renderPublic();renderContext();return;
+    updateScoreTournamentName();/* ksm:post-split-begin quirks-court */ksmPublishCourtHeader({divisionTitle:div,matchLine:'Division complete'});/* ksm:post-split-end */setCourtCompletePresentation(div,true);renderQueue();renderPublic();renderContext();return;
   }
   setCourtCompletePresentation(div,false);renderScore_v3121();
 };

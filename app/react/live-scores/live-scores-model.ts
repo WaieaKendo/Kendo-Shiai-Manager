@@ -38,8 +38,11 @@ export interface LivePlayerInput {
 }
 
 export type LiveCourtInput =
-  /** No match on the court. */
-  | { court: string; kind: 'idle' }
+  /**
+   * No match on the court. waiting: its division still has an unplayed match on this court that
+   * is not ready yet (e.g. a split final waiting for the other court's semifinal; quirk pass).
+   */
+  | { court: string; kind: 'idle'; waiting?: true }
   | {
     court: string; kind: 'individual'; meta: LiveMetaInput; white: LivePlayerInput; red: LivePlayerInput;
     /** The point letters so far (the live score for the match being scored). */
@@ -67,7 +70,7 @@ export type LiveScoresInput =
 // ------------------------------------------------------------------------------- view
 
 export type LiveCourtBodyView =
-  | { kind: 'idle' }
+  | { kind: 'idle'; waiting?: true }
   | { kind: 'individual'; white: LivePlayerInput; red: LivePlayerInput; whitePoints: string; redPoints: string }
   | { kind: 'team'; sheet: TeamSheetView }
   | { kind: 'kachinuki'; sheet: KachinukiSheetView }
@@ -94,6 +97,8 @@ export const EMPTY_LIVE_SCORES: LiveScoresInput = { kind: 'empty' };
 export const LIVE_SCORES_HEADING = { eyebrow: 'Live Tournament', title: 'Live Scores' };
 export const IDLE_META = 'No active match';
 export const IDLE_TEXT = 'Waiting for the next division';
+/** An idle court whose division still has a match to play here (quirk pass). */
+export const WAITING_TEXT = 'Waiting for the next match';
 export const NO_NEXT_TEXT = 'No match queued';
 /** The meta line's match part on a court card showing its finished division's placements (F16). */
 export const COMPLETE_LINE = 'Final Results';
@@ -105,7 +110,7 @@ export function pointText(points: readonly string[]): string {
 
 export function liveCourtView(input: LiveCourtInput): LiveCourtView {
   const base = { testId: `live-court-${input.court}`, title: `Court ${input.court}` };
-  if (input.kind === 'idle') return { ...base, className: 'live-court-card', meta: IDLE_META, body: { kind: 'idle' }, next: null };
+  if (input.kind === 'idle') return { ...base, className: 'live-court-card', meta: IDLE_META, body: input.waiting ? { kind: 'idle', waiting: true } : { kind: 'idle' }, next: null };
   if (input.kind === 'complete') {
     return {
       ...base, className: 'live-court-card', meta: `${input.division} • ${COMPLETE_LINE}`,

@@ -13,7 +13,7 @@ import {
 } from '../../app/engine/integrity.ts';
 import { completedResultSnapshotValid } from '../../app/engine/standings.ts';
 import { html, extractFunction, withDependencies } from '../lib/ksm-source.mjs';
-import { gitShow } from '../lib/git-show.mjs';
+import { gitShow, gitListAppJs } from '../lib/git-show.mjs';
 
 const AT = '2026-01-01T00:00:00.000Z';
 const champ = over => ({ division: 'Open', type: 'individual', championship: true, position: 'Final', white: 'A', red: 'B', done: true, wp: [], rp: [], ...over });
@@ -78,7 +78,8 @@ test('sync identities', () => {
 
 test('integrity helpers equal the pre-move legacy code on golden final matches', t => {
   const OLD = 'e7312a6';
-  const names = fs.readdirSync(new URL('../../app/js/', import.meta.url)).filter(f => f.endsWith('.js')).sort();
+  const names = gitListAppJs(OLD);
+  if (!names) return t.skip(`${OLD} not in this clone`);
   const files = names.map(f => gitShow(OLD, `app/js/${f}`));
   if (files.includes(null)) return t.skip(`${OLD} not in this clone`);
   const NAMES = ['repairCompletedMatchResults', 'completedResultSnapshot', 'individualLogicalMatchKey', 'enforceUniqueIndividualMatches', 'matchSyncIdentity', 'matchHasSyncIdentity'];

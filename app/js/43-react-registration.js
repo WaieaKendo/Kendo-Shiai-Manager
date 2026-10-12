@@ -29,10 +29,14 @@ function ksmPublishRegistration(event,key,input){
 // A text as the legacy markup showed it: esc() (String(x||'')) and then the HTML parser, which
 // turns CR LF and a lone CR into LF (in text and attribute values alike).
 function ksmHtmlText(s){return ksmText(s).replace(/\r\n?/g,'\n')}
+// The status as the chip shows it ('Checked In', 'No Show', 'Registered'), for the filter.
+function ksmStatusLabel(status){return status==='Checked'?'Checked In':status==='NoShow'?'No Show':'Registered'}
 // renderReg() (03) as data: the filter as it read it, then a row per competitor it let through.
+// The filter also matches the status as shown ("checked in", "no show"; quirk pass), not only
+// the stored word ("NoShow").
 function ksmRegistrationData(){
   const f=(regFilter?.value||'').toLowerCase();
-  const rows=state.competitors.map((c,i)=>({...c,i})).filter(c=>!f||[c.name,c.dojo,c.division,c.status].join(' ').toLowerCase().includes(f));
+  const rows=state.competitors.map((c,i)=>({...c,i})).filter(c=>!f||[c.name,c.dojo,c.division,c.status,ksmStatusLabel(c.status)].join(' ').toLowerCase().includes(f));
   return {
     divisions:state.divisions.map(ksmHtmlText),
     rows:rows.map(c=>ksmBindRegistrationRow(state.competitors[c.i],{

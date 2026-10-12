@@ -29,12 +29,19 @@ function ksmLiveScoresCourt(court){
   if(!data){
     const div=ksmLiveScoresFinishedDivision(court);
     if(div)return {court:ksmText(court),kind:'complete',division:ksmText(div),complete:ksmDivisionCompleteInput(div,true)};
+    // Quirk pass: "Waiting for the next match" (not "...division") while the court's division
+    // still has an unplayed match on this court that is not ready yet.
+    const own=state.courtActiveDivision?.[court]||state.courtState?.[court]?.division;
+    if(own&&(state.allMatches?.[own]||[]).some(m=>isValidMatchObject(m)&&!m.done&&matchBelongsToCourt(m,court)))return {court:ksmText(court),kind:'idle',waiting:true};
     return {court:ksmText(court),kind:'idle'};
   }
   const m=data.match,next=data.next,meta=audienceMeta(m);
   const base={court:ksmText(court),meta:{division:ksmText(meta.division),line:ksmText(meta.line)}};
   if(m.type==='teamPosition'||m.type==='teamPlayoff'||m.type==='kachinuki'){
-    const nextTeams=next?{white:ksmText(next.teamWhite||next.white||'TBD'),red:ksmText(next.teamRed||next.red||'TBD')}:null;
+    // Quirk pass: "Next" is the court's next pairing, as the TV's Upcoming shows it
+    // (tvUpcomingMatches(), 25-), not the next bout of the pairing being fought.
+    const up=tvUpcomingMatches(court,m,true)[0]||null;
+    const nextTeams=up?{white:ksmText(up.teamWhite||up.white||'TBD'),red:ksmText(up.teamRed||up.red||'TBD')}:null;
     if(m.type==='kachinuki')return {...base,kind:'kachinuki',sheet:ksmKachinukiSheet(m),next:nextTeams};
     return {...base,kind:'team',sheet:ksmTeamSheet(m.division,m.teamPair,m),next:nextTeams};
   }

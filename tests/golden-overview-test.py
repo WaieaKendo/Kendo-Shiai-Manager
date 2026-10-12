@@ -261,7 +261,7 @@ PLAY_THROUGHS = [
     ('play-team-se-4-both', [team('3-Person Team', 'Single Elimination', 4, 'Both')], False),
     ('play-team-rr-3', [team('3-Person Team', 'Round Robin', 3, 'A')], False),
     ('play-kachinuki-se-4', [team('Kachinuki', 'Single Elimination', 4, 'A')], False),
-    ('play-kachinuki-rr-3', [team('Kachinuki', 'Round Robin', 3, 'A')], False),
+    ('play-kachinuki-rr-3', [team('Kachinuki', 'Round Robin', 3, 'Both')], False),
     ('play-team5-se-2-court-b', [team('5-Person Team', 'Single Elimination', 2, 'B')], False),
     ('play-rr-and-kachinuki', [
         {'name': 'Open', 'format': 'Round Robin', 'court': 'B', 'entrants': people('P', 3)},

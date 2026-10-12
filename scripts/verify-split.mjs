@@ -48,6 +48,9 @@ const KNOWN_POST_SPLIT_EDITS = {
   // fix/react-batch-1 (F13): addDivision() (01) reads the old #newDiv / #newDivType fallbacks as
   // window properties (the page has no such fields; the bare names threw for an empty name).
   'add-division': 2,
+  // fix/quirks-pass (Setup): toggleDivision() (01) switching a preset back on keeps the format and
+  // court it had (still in state), the preset's only when it has none.
+  'quirks-setup': 1,
   // feat/react-setup-screen (M.13): the Setup screen's React islands (#divisionSetupRows,
   // #setupTournamentName). With the legacy renderer removed (REMOVED_SETUP_RENDERER) the bodies of
   // renderDivisionSetup() (01) and syncSetupHeader() (30) are marked publishers, and
@@ -96,6 +99,11 @@ const KNOWN_POST_SPLIT_EDITS = {
   // Listed here because renderTournamentStatus() (03) is its
   // first region: the check compares names in order of first appearance.
   'react-registration': 6,
+  // fix/quirks-pass (Registration): renderReg(), renderTeams() and renderExhibitions() (03) also
+  // refresh the tournament status card, so it is never stale after + Add Row, samples, Clear,
+  // a paste or a team/exhibition edit; Load Sample Players, Load Sample Teams and Load Sample
+  // Tournament (03) ask before replacing existing entries.
+  'quirks-registration': 6,
   // fix/pre-event (M.12) added test IDs to markup drawn by app/js in `test-ids` regions (each line
   // kept in its `was:` marker): the exhibition rows' region went with renderExhibitions()'s body in
   // feat/react-registration-2 (4 -> 3), the Regenerate Single Division dialog's three
@@ -153,6 +161,9 @@ const KNOWN_POST_SPLIT_EDITS = {
   // fix/outbox-flush-local-changes (F6): mergeQueuedStaffWork() and its call at staff login;
   // the outbox flush also replays court actions taken before it started (comment + condition).
   'outbox-flush-rebase': 4,
+  // fix/quirks-pass (shell): copyTextValue() (21) without the clipboard titles its prompt "<what>
+  // (copy it from here):" instead of "<what> copied" (nothing was copied).
+  'quirks-shell': 1,
   // fix/pre-event (F7): Load Recovery File asks first and refuses while work is queued
   // (confirmRecoveryFileLoad() + its call in loadRecoveryFile()).
   'recovery-guard': 2,
@@ -185,6 +196,9 @@ const KNOWN_POST_SPLIT_EDITS = {
   // ksmRenderOverview(), and app/js/39-react-overview.js publishes the screen as plain data and
   // shows a notice when the React module is missing.
   'react-overview': 2,
+  // fix/quirks-pass (court): the renderScore() wrapper (32) publishes the completed division's
+  // title and "Division complete" as the header's match line (it kept the last match's).
+  'quirks-court': 1,
   // feat/react-library (M.13): the Tournament Library's React island. With the legacy renderer
   // removed (REMOVED_LIBRARY_RENDERER) paintHomeTournamentLibrary()'s body (33) is a marked call of
   // ksmRenderLibrary(), and app/js/40-react-library.js publishes the library as plain data and
@@ -461,6 +475,11 @@ const MARKUP_TEST_IDS = [
   // F4 (fix/setup-edit-conflict-merge): Setup fields its conflict test edits.
   ['<input id="tHost" value="Aiea Taiheiji Kendo Club">', 'setup-host'],
   ['<input id="tLocation" value="Halawa District Park">', 'setup-location'],
+  // fix/quirks-pass: the sample buttons registration-status-card-test.py and
+  // sample-load-confirm-test.py press.
+  ['<button onclick="loadSamples()">', 'reg-load-samples'],
+  ['<button onclick="loadTeamSamples()">', 'team-load-samples'],
+  ['<button onclick="loadFullTournament()">', 'reg-load-sample-tournament'],
 ];
 // infra/deploy: the release version is written only in package.json. Where the old file had its
 // version, the sources now hold the placeholder __KSM_VERSION__, which the build fills in from

@@ -9,7 +9,7 @@ import vm from 'node:vm';
 import { eligibleIndividuals, eligibleTeams, generateDivision } from '../../app/engine/generation.ts';
 import { readSettings } from '../../app/engine/settings.ts';
 import { html, withDependencies, extractFunction } from '../lib/ksm-source.mjs';
-import { gitShow } from '../lib/git-show.mjs';
+import { gitShow, gitListAppJs } from '../lib/git-show.mjs';
 
 const OLD = 'e7312a6';
 const people = (n, div = 'Open') => Array.from({ length: n }, (_, i) => ({ name: `P${String(i + 1).padStart(2, '0')}`, dojo: `Dojo ${'ABC'[i % 3]}`, seed: '', status: 'Checked', division: div }));
@@ -43,8 +43,46 @@ test('plan per format', () => {
   assert.equal(generateDivision({ ...base, division: 'Exhibition Matches', exhibitions: [ex[1]], settings: settings({ exhibitionEnabled: 'Enabled' }) }).generated, false);
 });
 
+test('F21: the Setup team court A or B puts every team bout on that court; Both keeps the split', () => {
+  const base = { competitors: [], teams: makeTeams(6), division: 'Team Tournament' };
+  for (const tournament of ['Round Robin', 'Single Elimination']) for (const format of ['3-Person Team', 'Kachinuki']) {
+    const s = settings({ teamTournamentFormat: tournament, teamFormat: format });
+    const both = generateDivision({ ...base, settings: s, courtMode: 'Both' });
+    const courtsOf = p => [...new Set([...p.matches, ...(p.teamBracketNodes || [])].map(x => x.court))].sort();
+    assert.deepEqual(courtsOf(both), ['A', 'B'], `${tournament} ${format}: Both uses both courts`);
+    assert.deepEqual(generateDivision({ ...base, settings: s }), both, 'nothing saved = Both');
+    for (const court of ['A', 'B']) {
+      const one = generateDivision({ ...base, settings: s, courtMode: court });
+      assert.deepEqual(courtsOf(one), [court], `${tournament} ${format}: everything on Court ${court}`);
+      assert.equal(one.divisionCourt, court);
+      // Only the courts differ from Both.
+      const strip = p => JSON.parse(JSON.stringify({ ...p, divisionCourt: null }), (k, v) => k === 'court' ? null : v);
+      assert.deepEqual(strip(one), strip(both));
+    }
+  }
+});
+
+test('F21: generateDivisionState keeps later team bracket bouts on the Setup team court', () => {
+  const exclude = ['state', 'alert', 'console', 'tournamentSettings'];
+  const code = withDependencies(html, extractFunction(html, 'generateDivisionState'), { exclude });
+  for (const court of ['A', 'B']) {
+    const ctx = vm.createContext({ alert() {}, console: { warn() {}, error() {}, info() {}, log() {} } });
+    vm.runInContext(code, ctx);
+    ctx.tournamentSettings = () => settings({ teamTournamentFormat: 'Single Elimination', teamFormat: '3-Person Team' });
+    ctx.state = { competitors: [], teams: makeTeams(5), exhibitions: [], divisions: [], divisionTypes: {}, divisionCourts: { 'Team Tournament': court },
+      pools: {}, teamPools: {}, allMatches: {}, teamBracketNodes: {}, singleElimNodes: {}, singleElimComps: {}, teamElimTeams: {}, brackets: {}, championshipNodes: {}, byeWinners: {}, currentByDivision: {} };
+    assert.equal(ctx.generateDivisionState('Team Tournament'), true);
+    const st = ctx.state, ms = st.allMatches['Team Tournament'];
+    assert.ok(ms.length, 'bye-advanced nodes created bouts');
+    assert.deepEqual([...new Set(ms.map(m => m.court))], [court]);
+    assert.deepEqual([...new Set(st.teamBracketNodes['Team Tournament'].map(n => n.court))], [court]);
+    assert.equal(st.divisionCourts['Team Tournament'], court);
+  }
+});
+
 test('generateDivisionState equals the pre-move legacy code on every golden scenario', t => {
-  const files = fs.readdirSync(new URL('../../app/js/', import.meta.url)).filter(f => f.endsWith('.js')).sort();
+  const files = gitListAppJs(OLD);
+  if (!files) return t.skip(`${OLD} not in this clone`);
   const oldFiles = files.map(f => gitShow(OLD, `app/js/${f}`));
   if (oldFiles.includes(null)) return t.skip(`${OLD} not in this clone`);
   const oldSrc = oldFiles.join('\n');
@@ -87,7 +125,14 @@ test('generateDivisionState equals the pre-move legacy code on every golden scen
   for (const [name, setup] of cases) {
     const over = { exhibitionEnabled: name === 'exhibitions' ? 'Enabled' : 'Disabled' };
     const current = run(currentCode, setup, { ...over });
-    assert.equal(current, run(legacyCode, setup, { ...over }), name);
+    // F21 (intended change): a team event set to Court A or B now has every bout and
+    // bracket node on that court; everything else is still the pre-move code's output.
+    const legacy = JSON.parse(run(legacyCode, setup, { ...over }));
+    const teamCourt = setup.find(d => d.team)?.court;
+    if (teamCourt === 'A' || teamCourt === 'B') {
+      for (const x of [...(legacy.state.allMatches['Team Tournament'] || []), ...(legacy.state.teamBracketNodes['Team Tournament'] || [])]) x.court = teamCourt;
+    }
+    assert.equal(current, JSON.stringify(legacy), name);
     const { results, state } = JSON.parse(current);
     assert.ok(results.some(Boolean) && Object.values(state.allMatches).every(a => a.length), `${name} generated matches`);
     scenarios++;

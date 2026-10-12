@@ -25,6 +25,7 @@
 // No colors or images of its own: the Registration CSS and theme tokens.
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { statusClass, statusText, REMOVE_TEXT } from './registration-model.ts';
+import { pressOnKey } from '../keyboard.ts';
 import {
   EMPTY_EXHIBITIONS, EMPTY_TABS, EMPTY_TEAMS, EXHIBITION_HEADERS, TAB_BUTTONS, TEAM_NAME_LABEL,
   tabButtonClass, teamFormatLine,
@@ -123,7 +124,7 @@ function TeamCard({ card, input }: { card: TeamCardInput; input: TeamsInput }) {
         </div>
       ))}
       <div ref={rawStyle('margin-top:10px')}>
-        <span className={statusClass(card)} onClick={() => teamsWindow().cycleTeamStatus?.(card.index)} data-testid="team-status">{statusText(card)}</span>
+        <span className={statusClass(card)} role="button" tabIndex={0} onClick={() => teamsWindow().cycleTeamStatus?.(card.index)} onKeyDown={pressOnKey} data-testid="team-status">{statusText(card)}</span>
       </div>
     </div>
   );
@@ -153,7 +154,7 @@ function ExhibitionRow({ row }: { row: ExhibitionRowInput }) {
     <tr data-testid="exhibition-row">
       <td><ExhibitionField row={row} field="white" value={row.white} /></td>
       <td><ExhibitionField row={row} field="red" value={row.red} /></td>
-      <td><span className={statusClass(row)} onClick={() => teamsWindow().ksmCycleExhibitionStatus?.(row.index)} data-testid="exhibition-status">{statusText(row)}</span></td>
+      <td><span className={statusClass(row)} role="button" tabIndex={0} onClick={() => teamsWindow().ksmCycleExhibitionStatus?.(row.index)} onKeyDown={pressOnKey} data-testid="exhibition-status">{statusText(row)}</span></td>
       <td><button onClick={() => teamsWindow().ksmRemoveExhibition?.(row.index)} data-testid="exhibition-remove">{REMOVE_TEXT}</button></td>
     </tr>
   );

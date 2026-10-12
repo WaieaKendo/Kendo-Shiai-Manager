@@ -72,9 +72,15 @@ export function generateDivision(input: GenerationInput): DivisionPlan | null {
     if (fmt === 'Round Robin') { pools = [{ label: 'A', size: teams.length, players: teams.map(t => ({ name: t.team, dojo: '', team: true as const })) }]; teamPools = pools; }
     else { pools = []; teamPools = []; }
     const plan = buildTeamMatches(div, teams, input.settings);
+    // F21: Setup's team court A or B puts every team bout on that court (round robin
+    // pairings and every bracket node, so the bouts syncTeamBracket adds later follow);
+    // 'Both' (or nothing saved) keeps the alternating pairings and the template's courts.
+    const only = input.courtMode === 'A' || input.courtMode === 'B' ? input.courtMode : null;
+    const nodes = plan.singleElim ? nodesFor(teams.length) : null;
+    const matches = only ? plan.matches.map(m => ({ ...m, court: only })) : plan.matches;
     return {
       kind: 'team', generated: true, pools, teamPools, teamElimTeams: [...teams], singleElim: plan.singleElim,
-      teamBracketNodes: plan.singleElim ? nodesFor(teams.length) : null, matches: plan.matches,
+      teamBracketNodes: nodes && only ? nodes.map(n => ({ ...n, court: only })) : nodes, matches,
       divisionCourt: input.courtMode || 'Both',
     };
   }

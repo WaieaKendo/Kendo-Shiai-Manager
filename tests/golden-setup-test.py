@@ -317,7 +317,7 @@ def setup_divisions(browser, react_check):
                                                          a.page.select_option(in_row(YONENBU, 'setup-division-court'), value='split')))
     leave(page)
     g.do('Yonenbu off (its format and court kept in state)', lambda a: click(a.page, in_row(YONENBU, 'setup-division-enabled')))
-    g.do('Yonenbu on (the preset format and court again)', lambda a: click(a.page, in_row(YONENBU, 'setup-division-enabled')))
+    g.do('Yonenbu on (keeps its format and court, since the quirk pass)', lambda a: click(a.page, in_row(YONENBU, 'setup-division-enabled')))
     # Add Custom Division.
     g.do('custom: name typed', lambda a: type_into(a.page, tid('custom-division-name'), 'Open <A> & "B"'))
     g.do('custom: Single Elimination', lambda a: a.page.select_option(tid('custom-division-format'), label='Single Elimination'))

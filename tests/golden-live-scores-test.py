@@ -260,7 +260,7 @@ PLAY_THROUGHS = [
     ('play-team-se-4-both', [team('3-Person Team', 'Single Elimination', 4, 'Both')], False, False),
     ('play-team-rr-3', [team('3-Person Team', 'Round Robin', 3, 'A')], False, False),
     ('play-kachinuki-se-4', [team('Kachinuki', 'Single Elimination', 4, 'A')], False, False),
-    ('play-kachinuki-rr-3', [team('Kachinuki', 'Round Robin', 3, 'A')], False, False),
+    ('play-kachinuki-rr-3', [team('Kachinuki', 'Round Robin', 3, 'Both')], False, False),
     ('play-rr-4-court-b', [{'name': 'Juniors', 'format': 'Round Robin', 'court': 'B', 'entrants': people('J', 4)}], False, True),
     ('play-team5-se-2-court-b', [team('5-Person Team', 'Single Elimination', 2, 'B')], False, True),
 ]
