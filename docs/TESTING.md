@@ -180,6 +180,8 @@ Generated reports, screenshots, ZIP archives and temporary build folders should 
 
 ## Test coverage map
 
+Every place the app changes tournament data, with the tests that follow each edit to the server, a second device, a reload and a save conflict, and the gaps ranked by risk: **docs/TEST-AUDIT.md** (issue #19). The map below is per test file.
+
 What every test protects, how it works, and what happens to it as the front end moves to Vite/TypeScript modules and screens move to React. Step one (M.5, `refactor/vite-typescript`) is done: `index.html` is split into `app/` files that still run as one classic script, and every test below runs unchanged against the built app and the source read as one text (see "How tests find the app").
 
 **Ground rule: no test is deleted without a replacement that checks the same thing.** "Retire" below is only allowed because the named test already checks the same behaviour; everything marked "convert" needs its replacement first.
