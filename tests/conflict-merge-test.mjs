@@ -15,7 +15,8 @@
 //     without the structure keeps the server copy, with a notice;
 //   * F32 (fixed): the registration entries of a replayed division are saved with its structure
 //     (this device's), the other divisions' entries merge three-way; when the other device changed
-//     a replayed division's entries the director is asked, as for F10. No orphaned matches.
+//     a replayed division's entries the director is asked, as for F10. No orphaned matches. Teams
+//     (no division field) belong to 'Team Tournament'.
 import vm from 'node:vm';
 import { extractFunction, withDependencies, html } from './lib/ksm-source.mjs';
 
@@ -272,6 +273,44 @@ const courtPlayedOpen = () => {
   check(outside.saved.state.competitors.find(c => c.name === 'P 1').dojo === 'Edited Dojo' && outside.saved.state.competitors.find(c => c.name === 'P 2').status === 'Checked',
     'F32: Open\'s entries: the server\'s version');
   check(outside.toasts.length === 1 && outside.toasts[0].message.includes('Registration'), `F32: and the Registration conflict is reported: ${JSON.stringify(outside.toasts)}`);
+}
+
+// F32 for teams (found in the second external review): teams have no division field (sample-loaded
+// teams, as the engine reads them all for the team event), so they belong to 'Team Tournament'. The
+// director renames a team and regenerates the team event while another device edits a team member:
+// the saved tournament never has team matches for a team its registration does not list.
+{
+  const T = 'Team Tournament';
+  const team = (name, senpo) => ({ team: name, senpo, chuken: 'C', taisho: 'T', status: 'Checked' });
+  const teamMatch = (w, r) => ({ division: T, type: 'team', teamWhite: w, teamRed: r, bouts: [], done: false });
+  const teamBase = () => {
+    const p = payload();
+    p.state.teams = [team('Aiea A', 'Sato'), team('Waipahu A', 'Kato')];
+    p.state.teamPools = { [T]: [{ label: 'A', players: [{ name: 'Aiea A' }, { name: 'Waipahu A' }] }] };
+    p.state.allMatches[T] = [teamMatch('Aiea A', 'Waipahu A')];
+    return p;
+  };
+  const renamed = () => {
+    const p = teamBase();
+    p.state.managementRevision = 2;
+    p.state.teams[0].team = 'Aiea B';
+    p.state.teamPools[T] = [{ label: 'A', players: [{ name: 'Aiea B' }, { name: 'Waipahu A' }] }];
+    p.state.allMatches[T] = [teamMatch('Aiea B', 'Waipahu A')];
+    return p;
+  };
+  const memberEdit = () => { const p = teamBase(); p.state.teams[1].senpo = 'Edited'; return p; };
+  const teamOrphans = st => (st.allMatches?.[T] || []).flatMap(m => [m.teamWhite, m.teamRed])
+    .filter(n => n && !(st.teams || []).some(t => t.team === n));
+
+  const cancel = await run({ base: teamBase(), local: renamed(), conflicts: [memberEdit()], confirmAnswer: false });
+  check(cancel.confirms.length === 1 && cancel.confirms[0].startsWith(`Re-apply your change to ${T}?`),
+    `F32 teams: a team member edited on the other device: the director is asked: ${JSON.stringify(cancel.confirms)}`);
+  check(teamOrphans(cancel.saved.state).length === 0 && cancel.saved.state.teams.some(t => t.team === 'Aiea A') && cancel.saved.state.teams[1].senpo === 'Edited',
+    `F32 teams Cancel: the old name and the other device's edit, with matching team matches: ${JSON.stringify({ orphans: teamOrphans(cancel.saved.state), teams: cancel.saved.state.teams.map(t => t.team) })}`);
+
+  const ok = await run({ base: teamBase(), local: renamed(), conflicts: [memberEdit()], confirmAnswer: true });
+  check(teamOrphans(ok.saved.state).length === 0 && ok.saved.state.teams.some(t => t.team === 'Aiea B') && ok.saved.state.allMatches[T][0].teamWhite === 'Aiea B',
+    `F32 teams OK: the renamed team is saved in registration and in the matches: ${JSON.stringify({ orphans: teamOrphans(ok.saved.state), teams: ok.saved.state.teams.map(t => t.team) })}`);
 }
 
 if (failed) process.exit(1);
