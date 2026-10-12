@@ -1,0 +1,65 @@
+/* Stream overlay. Everything is sized in design px (1920-wide) times --u, so the bar
+   keeps its proportions at any page width. The page itself stays transparent. */
+html, body { margin: 0; padding: 0; background: transparent !important; overflow: hidden; }
+body { font-family: "Helvetica Neue", Arial, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+
+.ov-frame { position: fixed; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 10); pointer-events: none; }
+.ov-bottom { bottom: calc(var(--u) * 56); flex-direction: column-reverse; }
+.ov-top { top: calc(var(--u) * 48); }
+.ov-band { /* top: y% set inline */ }
+
+.ov-bar {
+  width: calc(var(--u) * 1680); min-height: calc(var(--u) * 118); box-sizing: border-box;
+  display: grid; grid-template-columns: calc(var(--u) * 150) 1fr calc(var(--u) * 360) 1fr; align-items: stretch;
+  background: rgba(12, 17, 28, 0.9); color: #fff; border-radius: calc(var(--u) * 14); overflow: hidden;
+  box-shadow: 0 calc(var(--u) * 8) calc(var(--u) * 28) rgba(0, 0, 0, 0.35);
+}
+.ov-court {
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  background: #1f2a44; font-weight: 800; font-size: calc(var(--u) * 30); letter-spacing: 0.04em; text-transform: uppercase; line-height: 1.05;
+  padding: 0 calc(var(--u) * 12);
+}
+.ov-side { display: flex; align-items: center; gap: calc(var(--u) * 18); padding: calc(var(--u) * 12) calc(var(--u) * 24); position: relative; min-width: 0; }
+.ov-align-right { flex-direction: row-reverse; text-align: right; }
+.ov-stripe { position: absolute; top: 0; bottom: 0; width: calc(var(--u) * 10); }
+.ov-align-left .ov-stripe { left: 0; }
+.ov-align-right .ov-stripe { right: 0; }
+.ov-white .ov-stripe { background: #f4f4f4; }
+.ov-red .ov-stripe { background: #d8283a; }
+.ov-who { flex: 1; min-width: 0; }
+.ov-name { font-weight: 800; font-size: calc(var(--u) * 40); line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ov-sub { font-size: calc(var(--u) * 24); opacity: 0.78; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: calc(var(--u) * 4); }
+.ov-score { display: flex; align-items: center; gap: calc(var(--u) * 10); flex-direction: inherit; }
+.ov-points { font-weight: 900; font-size: calc(var(--u) * 52); letter-spacing: 0.08em; min-width: calc(var(--u) * 40); text-align: center; }
+.ov-red .ov-points { color: #ff6b78; }
+.ov-hansoku { color: #ffcc33; font-size: calc(var(--u) * 26); }
+.ov-center {
+  display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+  background: rgba(255, 255, 255, 0.06); padding: 0 calc(var(--u) * 14); min-width: 0;
+}
+.ov-division { font-weight: 700; font-size: calc(var(--u) * 26); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.ov-meta { font-size: calc(var(--u) * 24); opacity: 0.8; margin-top: calc(var(--u) * 4); }
+
+.ov-idle { grid-template-columns: calc(var(--u) * 150) 1fr; width: calc(var(--u) * 900); min-height: calc(var(--u) * 80); }
+.ov-idle-text { display: flex; align-items: center; gap: calc(var(--u) * 20); padding: 0 calc(var(--u) * 28); font-size: calc(var(--u) * 28); }
+.ov-idle .ov-meta { margin: 0; }
+
+.ov-next {
+  align-self: flex-end; margin-right: calc((100% - var(--u) * 1680) / 2);
+  background: rgba(12, 17, 28, 0.82); color: #fff; border-radius: calc(var(--u) * 10);
+  font-size: calc(var(--u) * 24); padding: calc(var(--u) * 8) calc(var(--u) * 18); max-width: calc(var(--u) * 900);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ov-next b { color: #ffcc33; font-weight: 800; margin-right: calc(var(--u) * 6); }
+
+.ov-status {
+  position: absolute; right: calc((100% - var(--u) * 1680) / 2 + var(--u) * 12); top: calc(var(--u) * -30);
+  font-size: calc(var(--u) * 18); color: #fff; background: rgba(160, 110, 0, 0.85);
+  border-radius: calc(var(--u) * 8); padding: calc(var(--u) * 3) calc(var(--u) * 10); opacity: 0.9;
+}
+.ov-frame[data-status="reconnecting"] .ov-bar { opacity: 0.85; }
+
+.ov-debug {
+  position: fixed; left: 8px; top: 8px; z-index: 10; font: 12px/1.3 ui-monospace, Menlo, monospace;
+  color: #0f0; background: rgba(0, 0, 0, 0.7); padding: 4px 8px; border-radius: 4px;
+}

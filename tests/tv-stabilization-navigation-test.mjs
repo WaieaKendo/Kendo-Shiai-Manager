@@ -1,5 +1,6 @@
+import { html as appSource } from './lib/ksm-source.mjs';
 import fs from "node:fs";
-const html=fs.readFileSync("public/index.html","utf8");
+const html=appSource;
 const checks=[
  ["fixed 1920 canvas",html.includes("width:1920px;height:1080px")],
  ["scaled canvas wrapper",html.includes("class=\"tv-canvas\"")&&html.includes("fitTvCanvas")],

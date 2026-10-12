@@ -1,0 +1,514 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#222831">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="KSM">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icons/icon-192.png" sizes="192x192">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<title>Kendo Shiai Manager v3.17.20-test</title>
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<header class="ksm-topbar">
+  <div class="brand nav-brand" role="button" tabindex="0" title="Tournament Library" onclick="showHomePage()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showHomePage()}">
+    <img class="nav-brand-logo" src="/assets/ksm-fuji-logo-nav.svg" alt="">
+    <div class="nav-brand-copy">
+      <span class="nav-brand-name">KSM</span>
+      <span class="nav-brand-subtitle">Kendo Shiai Manager</span>
+      <span class="version-badge">v3.17.20-test</span>
+    </div>
+  </div>
+
+  <nav class="minimal-nav icon-nav" aria-label="Primary navigation">
+    <button class="nav-tile director-only setup-nav-tile" onclick="navigateTo('setup')" title="Setup" data-testid="nav-setup">
+      <img src="/assets/nav-icons/setup.svg" alt="">
+      <span>Setup</span>
+    </button>
+
+    <button class="nav-tile director-only" onclick="openRegistrationTab('individual')" title="Registration" data-testid="nav-registration">
+      <img src="/assets/nav-icons/registration.svg" alt="">
+      <span>Registration</span>
+    </button>
+
+    <div class="nav-menu nav-tile-wrap role-court-access">
+      <button class="nav-tile nav-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="courtsMenu" onclick="toggleNavMenu('courtsMenu',event)" title="Courts" data-testid="nav-courts">
+        <img src="/assets/nav-icons/courts.svg" alt="">
+        <span>Courts <b aria-hidden="true">▾</b></span>
+      </button>
+      <div id="courtsMenu" role="menu" class="nav-dropdown hidden">
+        <button onclick="chooseCourt('A')" data-testid="nav-court-a">Court A</button>
+        <button onclick="chooseCourt('B')" data-testid="nav-court-b">Court B</button>
+      </div>
+    </div>
+
+    <button class="nav-tile" onclick="navigateTo('public')" title="Live Scores" data-testid="nav-live-scores">
+      <img src="/assets/nav-icons/live-scores.svg" alt="">
+      <span>Live Scores</span>
+    </button>
+
+    <div class="nav-menu nav-tile-wrap role-court-access tv-role-access">
+      <button class="nav-tile nav-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="tvMenu" onclick="toggleNavMenu('tvMenu',event)" title="TV Display" data-testid="nav-tv">
+        <img src="/assets/nav-icons/live-scores.svg" alt="">
+        <span>TV <b aria-hidden="true">▾</b></span>
+      </button>
+      <div id="tvMenu" role="menu" class="nav-dropdown hidden">
+        <button onclick="launchTvDisplay('A')" data-testid="nav-tv-a">Court A TV</button>
+        <button onclick="launchTvDisplay('B')" data-testid="nav-tv-b">Court B TV</button>
+      </div>
+    </div>
+
+    <button class="nav-tile role-court-access" onclick="navigateTo('director')" title="Tournament Overview" data-testid="nav-overview">
+      <img src="/assets/nav-icons/live-scores.svg" alt="">
+      <span>Overview</span>
+    </button>
+
+
+    <button class="nav-tile" onclick="navigateTo('results')" title="Results" data-testid="nav-results">
+      <img src="/assets/nav-icons/results.svg" alt="">
+      <span>Results</span>
+    </button>
+
+    <div class="nav-menu nav-tile-wrap director-only">
+      <button class="nav-tile nav-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="exportMenu" onclick="toggleNavMenu('exportMenu',event)" title="Export" data-testid="nav-export">
+        <img src="/assets/nav-icons/export.svg" alt="">
+        <span>Export <b aria-hidden="true">▾</b></span>
+      </button>
+      <div id="exportMenu" role="menu" class="nav-dropdown nav-dropdown-wide hidden">
+        <button onclick="exportTournamentBrackets()" data-testid="nav-export-brackets">Tournament Brackets</button>
+        <button onclick="exportResultsAwards()">Results &amp; Awards</button>
+        <button onclick="closeNavMenus();alert('Referee assignment export will be added with the Referee Assignment module.')">Referee Assignments</button>
+        <button onclick="closeNavMenus();alert('Tournament Archive export will be added with the archive module.')">Tournament Archive</button>
+      </div>
+    </div>
+
+    <div class="nav-menu nav-tile-wrap director-only">
+      <button class="nav-tile nav-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="saveLoadMenu" onclick="toggleNavMenu('saveLoadMenu',event)" title="Save or Load" data-testid="nav-save-load">
+        <img src="/assets/nav-icons/save-load.svg" alt="">
+        <span>Save / Load <b aria-hidden="true">▾</b></span>
+      </button>
+      <div id="saveLoadMenu" role="menu" class="nav-dropdown nav-dropdown-wide hidden">
+        <div class="menu-heading">Tournament</div>
+        <button onclick="closeNavMenus();createNewTournament()" data-testid="nav-new-tournament">New Tournament</button>
+        <button onclick="closeNavMenus();saveNow()" data-testid="nav-save-now">Save Now</button>
+        <button onclick="closeNavMenus();showHomePage()" data-testid="nav-library">Tournament Library</button>
+        <button onclick="closeNavMenus();manualSaveTournament()">Download Tournament File</button>
+        <button onclick="closeNavMenus();triggerLoadTournament()">Load Tournament File</button>
+        <div class="menu-divider"></div><div class="menu-heading">Recovery</div>
+        <button onclick="closeNavMenus();downloadRecoveryFile()" data-testid="nav-download-recovery">Download Recovery File</button>
+        <button onclick="closeNavMenus();triggerLoadRecoveryFile()" data-testid="nav-load-recovery">Load Recovery File</button>
+        <div class="menu-divider"></div><div class="menu-heading">Sharing</div>
+        <button onclick="closeNavMenus();copyTournamentId()">Copy Tournament ID</button>
+        <button onclick="closeNavMenus();openTournamentAccess()" data-testid="nav-tournament-access">Tournament Access</button>
+        <div class="menu-divider"></div><div class="menu-heading">Cloud</div>
+        <button onclick="closeNavMenus();cloudDiagnostics()" data-testid="nav-cloud-diagnostics">Cloud Diagnostics</button>
+      </div>
+    </div>
+
+    <input id="ksmLoadFile" type="file" accept=".ksm,application/json" style="display:none" onchange="loadTournamentFromFile(event)">
+    <input id="ksmRecoveryFile" data-testid="recovery-file-input" type="file" accept=".ksm,application/json" style="display:none" onchange="loadRecoveryFile(event)">
+  </nav>
+
+  <div class="row cloud-status-wrap"><button id="staffAuthButton" class="secondary" type="button" onclick="toggleStaffSession()" data-testid="staff-auth">Staff Login</button><div onclick="cloudDiagnostics()" role="button" tabindex="0" title="Open Cloud Diagnostics"><span id="sessionRole" hidden>Spectator</span><span id="connectionStatus" class="small nav-save-status" data-testid="connection-status">Local</span><span id="cloudPresence" hidden></span><span id="saveStatus" class="small nav-save-status" data-testid="save-status">Not saved yet</span></div></div>
+</header>
+<main>
+
+<section id="home" class="view hidden" aria-labelledby="homeTitle">
+  <div class="home-shell">
+    <div class="home-brand">
+      <img src="/assets/ksm-fuji-logo.svg" alt="">
+      <div><h1 id="homeTitle">Kendo Shiai Manager</h1><p>Tournament Library</p></div>
+    </div>
+    <div class="home-head">
+      <div><h2>Your Tournaments</h2><p>Create a new tournament or open an existing tournament in Spectator mode.</p></div>
+      <button class="home-new-button" type="button" data-testid="home-new-tournament" onclick="createNewTournament()">＋ New Tournament</button>
+    </div>
+    <div id="homeTournamentLibrary" class="home-library-grid"></div>
+  </div>
+</section>
+
+<section id="setup" class="view">
+  <div class="setup-page">
+    <div class="setup-hero">
+      <img class="setup-hero-mark" src="/assets/ksm-fuji-logo.svg" alt="" aria-hidden="true">
+      <div>
+        <div class="setup-kicker" id="setupTournamentName">Kendo Tournament</div>
+        <h1>Setup</h1>
+        <div class="setup-gold-rule"></div>
+        <p class="setup-subtitle">Tournament configuration and divisions</p>
+      </div>
+    </div>
+
+    <div class="setup-layout">
+      <section class="setup-panel setup-panel-wide">
+        <div class="setup-panel-head">
+          <div>
+            <div class="setup-panel-eyebrow">Tournament</div>
+            <h2>Tournament Details</h2>
+          </div>
+        </div>
+        <div class="setup-form-grid">
+          <div class="field">
+            <label>Tournament Name</label>
+            <input id="tName" value="Aiea Taiheiji Kendo Tournament" data-testid="setup-tournament-name">
+          </div>
+          <div class="field">
+            <label>Host Organization</label>
+            <input id="tHost" value="Aiea Taiheiji Kendo Club">
+          </div>
+          <div class="field">
+            <label>Date</label>
+            <input id="tDate" type="date">
+          </div>
+          <div class="field">
+            <label>Location</label>
+            <input id="tLocation" value="Halawa District Park">
+          </div>
+          <div class="field">
+            <label>Courts</label>
+            <input id="tCourts" type="number" min="1" value="2">
+          </div>
+          <div class="field">
+            <label>Tournament Type</label>
+            <select id="tType">
+              <option>Individual + Team</option>
+              <option>Individual</option>
+              <option>Team</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section class="setup-panel setup-panel-wide">
+        <div class="setup-panel-head">
+          <div>
+            <div class="setup-panel-eyebrow">Competition Structure</div>
+            <h2>Individual Divisions</h2>
+            <p>Enable the divisions you will use, then assign format and court.</p>
+          </div>
+        </div>
+
+        <div class="setup-division-table-wrap">
+          <table class="setup-division-table">
+            <thead>
+              <tr>
+                <th>Use</th>
+                <th>Division</th>
+                <th>Format</th>
+                <th>Court Assignment</th>
+              </tr>
+            </thead>
+            <tbody id="divisionSetupRows" data-testid="setup-division-rows"></tbody>
+          </table>
+        </div>
+
+        <div class="custom-division-box">
+          <div class="custom-division-title">Add Custom Division</div>
+          <div class="custom-division-row">
+            <input id="customDivName" placeholder="Division name" data-testid="custom-division-name">
+            <select id="customDivFormat" data-testid="custom-division-format">
+              <option>Round Robin</option>
+              <option>Single Elimination</option>
+            </select>
+            <select id="customDivCourt" data-testid="custom-division-court">
+              <option value="A">Court A</option>
+              <option value="B">Court B</option>
+              <option value="split">Split Between Courts</option>
+            </select>
+            <button onclick="addCustomDivision()" data-testid="custom-division-add">+ Add Division</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="setup-panel">
+        <div class="setup-panel-head">
+          <div>
+            <div class="setup-panel-eyebrow">Team Competition</div>
+            <h2>Team Tournament</h2>
+          </div>
+        </div>
+        <div class="setup-stack">
+          <div class="field">
+            <label>Enable Team Tournament</label>
+            <select id="teamEnabled" onchange="saveSetup()" data-testid="team-enabled">
+              <option>Enabled</option>
+              <option>Disabled</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Team Match Format</label>
+            <select id="teamFormat" onchange="saveSetup();renderTeams()" data-testid="team-format">
+              <option selected>3-Person Team</option>
+              <option>5-Person Team</option>
+              <option>Kachinuki</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Tournament Format</label>
+            <select id="teamTournamentFormat" onchange="saveSetup()" data-testid="team-tournament-format">
+              <option selected>Single Elimination</option>
+              <option>Round Robin</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Court Assignment</label>
+            <select id="teamCourt" onchange="state.divisionCourts['Team Tournament']=this.value;saveSetup()" data-testid="team-court">
+              <option>A</option>
+              <option>B</option>
+              <option selected>Both</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Team Awards to Display</label>
+            <select id="teamAwardMode" onchange="state.teamAwardMode=this.value;saveSetup()">
+              <option value="top1">Champion only</option>
+              <option value="top2" selected>Champion + Runner-up</option>
+              <option value="dual3">Champion + Runner-up + 3rd place(s)</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section class="setup-panel">
+        <div class="setup-panel-head">
+          <div>
+            <div class="setup-panel-eyebrow">Additional Matches</div>
+            <h2>Exhibition Matches</h2>
+          </div>
+        </div>
+        <div class="setup-stack">
+          <div class="field">
+            <label>Enable Exhibition Matches</label>
+            <select id="exhibitionEnabled" onchange="saveSetup();renderReg()">
+              <option>Disabled</option>
+              <option>Enabled</option>
+            </select>
+          </div>
+          <p class="setup-helper">Enabling this adds an Exhibition tab in Registration. Exhibition matches do not affect standings.</p>
+        </div>
+      </section>
+
+      <section class="setup-panel setup-panel-wide">
+        <div class="setup-panel-head">
+          <div>
+            <div class="setup-panel-eyebrow">Operations</div>
+            <h2>Referees</h2>
+          </div>
+        </div>
+        <div class="setup-form-grid">
+          <div class="field">
+            <label>Court A Referees</label>
+            <textarea id="court1Refs" rows="4" placeholder="Names only"></textarea>
+          </div>
+          <div class="field">
+            <label>Court B Referees</label>
+            <textarea id="court2Refs" rows="4" placeholder="Names only"></textarea>
+          </div>
+          <div class="field">
+            <label>Court A — Red side (as seen from the scoring table)</label>
+            <select id="court1RedSide" onchange="saveSetup();applyCourtSides();renderAll()"><option value="right">Red on the right</option><option value="left">Red on the left</option></select>
+          </div>
+          <div class="field">
+            <label>Court B — Red side (as seen from the scoring table)</label>
+            <select id="court2RedSide" onchange="saveSetup();applyCourtSides();renderAll()"><option value="right">Red on the right</option><option value="left">Red on the left</option></select>
+          </div>
+        </div>
+      </section>
+
+      <div class="setup-action-row">
+        <button class="setup-primary-action" onclick="saveSetup();show('registration')" data-testid="setup-save-continue">Save Setup &amp; Continue</button>
+      </div>
+    </div>
+  </div>
+</section>
+<section id="registration" class="view hidden"><div class="card wide"><div class="toolbar"><div class="row"><button id="indTab" class="tab active" onclick="regTab('individual')" data-testid="reg-tab-individual">Individual Players</button><button id="teamTab" class="tab" onclick="regTab('team')" data-testid="reg-tab-team">Team Registration</button><button id="exhibitionTab" class="tab" onclick="regTab('exhibition')">Exhibition</button><button id="poolsTab" class="tab" onclick="regTab('pools')" data-testid="reg-tab-pools">Pools</button><button id="generateBtn" class="primary" onclick="requestTournamentGeneration()" data-testid="generate-button">Generate Tournament</button><button id="regenerateDivisionBtn" onclick="openRegenerateDivisionDialog()">Regenerate Single Division</button></div><div class="row"><button onclick="alert('CSV import will be added in the production build.')">Import CSV</button><button onclick="exportCSV()">Export CSV</button><button onclick="alert('Paste rows directly into the table from Excel.')">Paste from Excel</button><button onclick="loadFullTournament()">Load Sample Tournament</button><button class="danger" onclick="clearCompetitors()">Clear Registration</button></div></div><div id="tournamentStatusCard" class="tournament-status-card" data-testid="tournament-status"></div></div><div id="indReg" class="card wide"><div class="toolbar"><div class="row"><button class="primary" onclick="addRow()" data-testid="reg-add-row">+ Add Row</button><button onclick="addRow(5)">+ 5 Rows</button><button onclick="loadSamples()">Load Sample Players</button></div><div class="row"><input id="regFilter" placeholder="Filter players..." oninput="renderReg()" data-testid="reg-filter"></div></div><div style="overflow:auto"><table id="regTable"></table></div></div><div id="teamReg" class="card wide hidden"><div class="toolbar"><div class="row"><button class="primary" onclick="addTeamRow()" data-testid="team-add">+ Add Team</button><button onclick="addTeamRow(3)">+ 3 Teams</button><button onclick="loadTeamSamples()">Load Sample Teams</button><button onclick="addAutoTeam()">+ Auto Test Team</button><button class="danger" onclick="state.teams=[];renderTeams()">Clear Teams</button></div><div class="row"><input id="teamFilter" placeholder="Filter teams..." oninput="renderTeams()"></div></div><p class="sub">Use vertical team cards. Team name is the only team identifier required.</p><div style="overflow:auto"><table id="teamTable"></table></div></div><div id="exhibitionReg" class="card wide hidden"><div class="toolbar"><div class="row"><button class="primary" onclick="addExhibitionRow()">+ Add Exhibition Match</button><button onclick="addExhibitionRow(3)">+ 3 Matches</button><button class="danger" onclick="state.exhibitions=[];renderExhibitions()">Clear Exhibitions</button></div></div><div style="overflow:auto"><table id="exhibitionTable"></table></div></div><div id="poolsReg" class="card wide hidden"><h1>Generated Pools</h1><p class="sub">Pools are generated from registered or checked-in individual competitors. No-show competitors are excluded.</p><div class="row"><select id="poolDiv" onchange="state.poolViewDivision=this.value;renderPools()" data-testid="pool-division-select"></select><button onclick="generatePools()">Regenerate</button></div><div id="poolOutput" class="pool-wrap" style="margin-top:16px"></div></div></section><section id="score" class="view hidden">
+  <div class="scorekeeper-shell">
+    <div class="card scorekeeper-main scoreboard-card">
+      <img class="active-match-watermark" src="/assets/KSM-Background-watermark.svg" alt="" aria-hidden="true">
+      <div class="sk-header scoreboard-header">
+        <div class="scoreboard-tournament">
+          <img src="/assets/ksm-fuji-logo.svg" alt="" aria-hidden="true">
+          <div id="scoreTournamentName" data-testid="court-tournament-name">Kendo Tournament</div>
+        </div>
+        <div class="scoreboard-heading-center">
+          <h1 id="courtTitle" data-testid="court-title">Court A</h1>
+          <div class="sk-division-row">
+            <select id="scoreDiv" class="division-select" onchange="selectScorekeeperDivision(this.value)" data-testid="court-division-select"></select>
+          </div>
+          <div class="sk-division-title" id="scoreDivisionTitle" data-testid="court-division-title">—</div>
+          <div class="sk-match-line" id="matchMeta" data-testid="court-match-meta">No active match</div>
+        </div>
+        <div class="scoreboard-heading-spacer" aria-hidden="true"></div>
+      </div>
+
+      <div class="scoreboard-match">
+        <div class="scoreboard-side scoreboard-white">
+          <div class="competitor-head">
+            <span class="side-dot white-dot" aria-hidden="true"></span>
+            <div>
+              <h2 id="whiteName" data-testid="court-white-name">—</h2>
+              <div class="sk-dojo" id="whiteDojo">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="scoreboard-score-row">
+          <div class="score-stack white-score-stack">
+            <div class="points white-score" id="whitePts" data-testid="court-white-points"></div>
+            <div class="tri" id="whiteTri" data-testid="court-white-hansoku"></div>
+          </div>
+          <div class="score-vs">vs</div>
+          <div class="score-stack red-score-stack">
+            <div class="points red-score" id="redPts" data-testid="court-red-points"></div>
+            <div class="tri" id="redTri" data-testid="court-red-hansoku"></div>
+          </div>
+        </div>
+
+        <div class="scoreboard-side scoreboard-red">
+          <div class="competitor-head red-head">
+            <div class="red-identity">
+              <h2 id="redName" data-testid="court-red-name">—</h2>
+              <div class="sk-dojo" id="redDojo">—</div>
+            </div>
+            <span class="side-dot red-dot" aria-hidden="true"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="score-controls-grid">
+        <div class="control-panel white-control-panel">
+          <div class="score-buttons sk-score-buttons">
+            <button onclick="point('W','M')" data-testid="point-white-M"><span class="point-letter">M</span><span class="point-name">Men</span></button>
+            <button onclick="point('W','K')" data-testid="point-white-K"><span class="point-letter">K</span><span class="point-name">Kote</span></button>
+            <button onclick="point('W','D')" data-testid="point-white-D"><span class="point-letter">D</span><span class="point-name">Do</span></button>
+            <button onclick="point('W','T')" data-testid="point-white-T"><span class="point-letter">T</span><span class="point-name">Tsuki</span></button>
+            <button onclick="hansoku('W')" data-testid="hansoku-white"><span class="point-letter">H</span><span class="point-name">Hansoku</span></button>
+          </div>
+        </div>
+
+        <div class="control-panel red-control-panel">
+          <div class="score-buttons sk-score-buttons">
+            <button onclick="point('R','M')" data-testid="point-red-M"><span class="point-letter">M</span><span class="point-name">Men</span></button>
+            <button onclick="point('R','K')" data-testid="point-red-K"><span class="point-letter">K</span><span class="point-name">Kote</span></button>
+            <button onclick="point('R','D')" data-testid="point-red-D"><span class="point-letter">D</span><span class="point-name">Do</span></button>
+            <button onclick="point('R','T')" data-testid="point-red-T"><span class="point-letter">T</span><span class="point-name">Tsuki</span></button>
+            <button onclick="hansoku('R')" data-testid="hansoku-red"><span class="point-letter">H</span><span class="point-name">Hansoku</span></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-row sk-action-row bottom-action-row">
+        <button id="undoBtn" class="action-btn undo-action" onclick="undo()" data-testid="undo">
+      <svg class="action-svg undo-svg" viewBox="0 0 64 64" aria-hidden="true">
+        <path d="M24 14H10v14" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M11 27c4-10 14-17 26-17 15 0 27 12 27 27S52 64 37 64c-11 0-21-7-25-17" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
+      </svg>
+      <span class="action-label">Undo</span>
+    </button>
+        <button id="redoBtn" class="action-btn redo-action" onclick="redo()" disabled data-testid="redo">
+      <svg class="action-svg undo-svg" viewBox="0 0 64 64" aria-hidden="true" style="transform:scaleX(-1)">
+        <path d="M24 14H10v14" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M11 27c4-10 14-17 26-17 15 0 27 12 27 27S52 64 37 64c-11 0-21-7-25-17" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
+      </svg>
+      <span class="action-label">Redo</span>
+    </button>
+        <button class="action-btn fusen-action" onclick="openFusenDialog()" data-testid="fusen-gachi">
+      <span class="action-symbol flag-symbol" aria-hidden="true">⚑</span>
+      <span>Fusen-gachi</span>
+    </button>
+        <button class="primary next-match-btn action-btn" onclick="nextMatch()" data-testid="next-match">
+      <span class="action-symbol next-symbol" aria-hidden="true">»</span>
+      <span>Next Match</span>
+    </button>
+      </div>
+    </div>
+
+    <div class="sk-support-grid">
+      <div class="card sk-context-card scoreboard-support-card">
+        <div class="toolbar"><h1>Court Context</h1></div>
+        <div id="courtContext" data-testid="court-context"></div>
+      </div>
+      <div class="card sk-queue-card scoreboard-support-card">
+        <h1>Court Queue</h1>
+        <div id="queue" data-testid="court-queue"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="fusenDialog" class="ksm-modal hidden" role="dialog" aria-modal="true" aria-labelledby="fusenTitle">
+    <div class="ksm-modal-card">
+      <h2 id="fusenTitle">Fusen-gachi</h2>
+      <p class="sub">Which side forfeited?</p>
+      <div class="modal-actions">
+        <button onclick="confirmFusen('W')" data-testid="fusen-white">White</button>
+        <button onclick="confirmFusen('R')" data-testid="fusen-red">Red</button>
+        <button onclick="closeFusenDialog()" data-testid="fusen-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+</section>
+<section id="director" class="view hidden">
+  <div class="director-dashboard">
+    <section class="director-overall-card">
+      <div class="director-kicker">Tournament Overview</div>
+      <h1 id="directorTournamentName">Kendo Tournament</h1>
+      <div class="director-progress-label"><span>Overall Progress</span><strong id="directorOverallCount" data-testid="overview-progress">0 / 0 Matches</strong></div>
+      <div class="director-progress-track"><div id="directorOverallBar" class="director-progress-fill"></div></div>
+      <div id="directorOverallRemaining" class="director-remaining">0 Remaining</div>
+    </section>
+    <div id="directorCourtGrid" class="director-court-grid" data-testid="overview-courts"></div>
+  </div>
+</section>
+<section id="public" class="view hidden">
+  <div id="publicLive" class="live-scores-overview" data-testid="live-scores"></div>
+</section>
+<section id="tv" class="view hidden" aria-label="TV Court Display">
+  <div id="tvLive" class="tv-court-display" data-testid="tv-display"></div>
+</section>
+<section id="results" class="view hidden">
+  <div class="results-page">
+    <div class="results-hero">
+      <img class="results-hero-mark" src="/assets/ksm-fuji-logo.svg" alt="" aria-hidden="true">
+      <div>
+        <div class="results-kicker" id="resultsTournamentName">Kendo Tournament</div>
+        <h1>Results</h1>
+        <div class="results-gold-rule"></div>
+        <p class="results-subtitle">Final placements and special awards</p>
+      </div>
+      <button class="results-export-button" onclick="exportResultsAwards()">Export Results</button>
+    </div>
+
+    <div id="resultsBody" class="results-dashboard" data-testid="results"></div>
+  </div>
+
+  <div id="resultsBracketModal" class="ksm-modal hidden" role="dialog" aria-modal="true" aria-labelledby="resultsBracketTitle">
+    <div class="results-modal-card">
+      <div class="results-modal-head">
+        <h2 id="resultsBracketTitle">Completed Bracket</h2>
+        <button onclick="closeResultsBracket()" aria-label="Close bracket">×</button>
+      </div>
+      <div id="resultsBracketBody" class="results-bracket-body"></div>
+    </div>
+  </div>
+</section>
+
+<div id="validationModal" class="ksm-modal hidden" role="dialog" aria-modal="true" aria-labelledby="validationModalTitle" data-testid="validation-modal">
+  <div class="results-modal-card management-modal-card">
+    <h2 id="validationModalTitle" class="validation-modal-title">Tournament Validation</h2>
+    <div id="validationModalBody"></div><div class="action-row validation-modal-actions" id="validationModalActions"></div>
+  </div>
+</div>
+<div id="regenerateModal" class="ksm-modal hidden" role="dialog" aria-modal="true" aria-labelledby="regenerateModalTitle">
+  <div class="results-modal-card management-modal-card">
+    <div class="results-modal-head"><h2 id="regenerateModalTitle">Regenerate Division</h2><button onclick="closeManagementModal('regenerateModal')" aria-label="Close">×</button></div>
+    <div id="regenerateModalBody"></div><div class="action-row" id="regenerateModalActions"></div>
+  </div>
+</div>
+<section id="print" class="view hidden"><div class="card wide"><div class="no-print"><h1>Print / PDF Export</h1><p class="sub">Read-only print sheets. Use your browser print dialog to print or save as PDF.</p><div class="print-controls"><select id="printDivSelect"></select><button onclick="previewSelectedDivisionSheet()">Preview Selected Division</button><button onclick="previewAllDivisionSheets()">Preview All Divisions</button><button onclick="previewResultsSheet()">Preview Results Page</button><button class="primary" onclick="previewFullPrintPacket()">Preview Full Packet</button><button onclick="window.print()">Print / Save PDF</button></div></div><div id="printBody" class="print-body"></div></div></section>
+</main>
+<script src="/app.js"></script>
+</body></html>

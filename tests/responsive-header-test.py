@@ -1,8 +1,9 @@
 from pathlib import Path
+from ksm_source import app_source
 import re
 
 root=Path(__file__).resolve().parents[1]
-html=(root/'public/index.html').read_text()
+html=app_source()
 checks={
   'shared brand selectors':'.scoreboard-tournament,\n.audience-tournament' in html,
   'smaller header font':'font-size:12px !important' in html,

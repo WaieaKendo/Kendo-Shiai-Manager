@@ -55,8 +55,9 @@ with sync_playwright() as p:
     assert not errors, errors; checks += 1
 
     # No inline handler still wraps an esc() value in quotes.
-    import re, pathlib
-    html = (pathlib.Path(__file__).resolve().parents[1] / 'public' / 'index.html').read_text()
+    import re
+    from ksm_source import app_source
+    html = app_source()
     assert not re.search(r"""on\w+="[^"]*'\$\{esc\(""", html); checks += 1
     browser.close()
 print(f'PASS inline handler injection ({checks} checks)')

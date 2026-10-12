@@ -1,5 +1,6 @@
+import { html as appSource } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
-const html=fs.readFileSync(new URL('../public/index.html', import.meta.url),'utf8');
+const html=appSource;
 const checks=[
  ['shared current zone',html.includes('.tv-kachinuki-main')&&html.includes('top:226px!important')],
  ['persistent upcoming footer',html.includes('top:748px!important')&&html.includes('grid-template-rows:114px 114px')],

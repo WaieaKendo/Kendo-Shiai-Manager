@@ -1,7 +1,8 @@
+import { html as appSource } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
 
-const html = fs.readFileSync('public/index.html', 'utf8');
-const icon = fs.readFileSync('public/assets/nav-icons/registration.svg', 'utf8');
+const html = appSource;
+const icon = fs.readFileSync('app/public/assets/nav-icons/registration.svg', 'utf8');
 
 const checks = [
   ['supplied registration icon', icon.includes('id="Registration"') && icon.includes('rgb(202,53,53)')],

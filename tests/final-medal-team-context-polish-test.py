@@ -1,5 +1,6 @@
 from pathlib import Path
-html=Path('public/index.html').read_text()
+from ksm_source import app_source
+html=app_source()
 checks={
  'medal badge background removed':'.division-complete-row b.gold,.division-complete-row b.silver,.division-complete-row b.bronze{background:transparent!important' in html,
  'team metric header present':'team-round-metric-head' in html,

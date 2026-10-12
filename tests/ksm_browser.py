@@ -9,9 +9,8 @@ a test, e.g. `npm run test:e2e:watch`.
 """
 import mimetypes
 import os
-from pathlib import Path
+from ksm_source import DIST, ensure_built
 
-PUBLIC = Path(__file__).resolve().parents[1] / 'public'
 APP_ORIGIN = 'http://ksm.test'
 
 
@@ -30,24 +29,26 @@ def load_app(page, html=None, wait_until='domcontentloaded', session='staff'):
     """Open the app on a real http origin so localStorage/sessionStorage work.
 
     `page.set_content()` leaves the page on about:blank, where storage access throws
-    during startup. Requests to APP_ORIGIN are served from public/ (with `html`
-    replacing index.html when given); /api/* returns 503 so the app stays in
-    local/offline mode.
+    during startup. Requests to APP_ORIGIN are served from the built app in dist/
+    (built first if it is stale; `html` replaces index.html when given); /api/*
+    returns 503 so the app stays in local/offline mode.
 
     Since v3.16 the app boots to the Tournament Library as a read-only spectator.
     session='staff' (default) leaves the home page and enables a local staff
     session, as createNewTournament() does minus the cloud round-trip.
     session=None keeps the real boot state (home page, spectator).
     """
+    ensure_built()
+
     def handle(route):
         path = route.request.url[len(APP_ORIGIN):].split('?', 1)[0].split('#', 1)[0]
         if path.startswith('/api/'):
             return route.fulfill(status=503, content_type='application/json', body='{"error":"offline test harness"}')
         if path in ('', '/', '/index.html'):
-            body = html if html is not None else (PUBLIC / 'index.html').read_text(encoding='utf-8')
+            body = html if html is not None else (DIST / 'index.html').read_text(encoding='utf-8')
             return route.fulfill(status=200, content_type='text/html; charset=utf-8', body=body)
-        file = (PUBLIC / path.lstrip('/')).resolve()
-        if PUBLIC in file.parents and file.is_file():
+        file = (DIST / path.lstrip('/')).resolve()
+        if DIST in file.parents and file.is_file():
             return route.fulfill(status=200, content_type=mimetypes.guess_type(file.name)[0] or 'application/octet-stream', body=file.read_bytes())
         return route.fulfill(status=404, body='')
 

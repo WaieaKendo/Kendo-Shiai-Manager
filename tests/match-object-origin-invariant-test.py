@@ -1,8 +1,9 @@
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 from ksm_browser import launch_chromium, load_app
+from ksm_source import app_html, app_source
 
-HTML=(Path(__file__).resolve().parents[1]/'public'/'index.html').read_text()
+HTML=app_html()
 
 with sync_playwright() as p:
     browser=launch_chromium(p)
@@ -50,7 +51,7 @@ with sync_playwright() as p:
     assert page.evaluate("state.allMatches.Test.find(m=>m.dynamicType==='INDIVIDUAL_POOL_TIEBREAK').origin==='TIEBREAK'")
 
     # Static source contract: championship synchronizer contains no array insertion.
-    source=HTML
+    source=app_source()
     section=source[source.index('function recomputeChampionshipAdvancement'):source.index('function firstRoundName',source.index('function recomputeChampionshipAdvancement'))]
     assert '.push(' not in section and '.splice(' not in section, section
 

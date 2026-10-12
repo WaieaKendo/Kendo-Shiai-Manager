@@ -1,6 +1,6 @@
 const CACHE_NAME = 'ksm-shell-v3.17.20-test';
 const APP_SHELL = [
-  '/', '/index.html', '/manifest.webmanifest',
+  '/', '/index.html', '/app.css', '/app.js', '/manifest.webmanifest',
   '/icons/icon-192.png', '/icons/icon-512.png', '/icons/apple-touch-icon.png',
   '/assets/ksm-fuji-logo.svg', '/assets/ksm-fuji-logo-nav.svg',
   '/assets/KSM-Background-watermark.svg', '/assets/ksm-seigaiha-light.svg', '/assets/ksm-seigaiha-dark.svg',
@@ -20,6 +20,9 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
+  // Only the app itself is the offline shell. Other pages (e.g. /overlay) are live-only:
+  // the network answers them, so they are never cached as /index.html.
+  if (event.request.mode === 'navigate' && url.pathname !== '/' && url.pathname !== '/index.html') return;
   if (event.request.mode === 'navigate') {
     event.respondWith(fetch(event.request).then(response => {
       if (!response.ok) return response;

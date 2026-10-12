@@ -1,0 +1,347 @@
+/* =========================================================
+   KSM v3.11.3 — mobile landscape Results and Live Scores
+   Presentation only.
+   ========================================================= */
+@media (orientation:landscape) and (max-height:560px) and (max-width:980px){
+  /* Results should retain the desktop two-column reading rhythm on phones. */
+  #results .results-card-grid{
+    columns:2 280px !important;
+    column-gap:12px !important;
+  }
+  #results .result-award-card,
+  #results .result-progress-card{
+    margin-bottom:12px !important;
+    padding:16px !important;
+    border-radius:16px !important;
+  }
+  #results .result-card-title{font-size:18px !important;}
+  #results .placement-row{min-height:46px !important;padding:6px 8px 6px 0 !important;}
+  #results .placement-name{font-size:15px !important;}
+  #results .placement-label{font-size:9px !important;}
+  #results .results-section-heading{margin-top:16px !important;margin-bottom:9px !important;font-size:13px !important;}
+
+  /* Keep the complete Live Scores canvas centered in the usable viewport. */
+  #public{
+    width:calc(100% - 20px) !important;
+    max-width:calc(100% - 20px) !important;
+    margin:10px auto 0 !important;
+    padding:0 0 14px !important;
+  }
+  #public .audience-canvas{
+    width:100% !important;
+    max-width:100% !important;
+    margin-left:auto !important;
+    margin-right:auto !important;
+  }
+
+  /* A compact desktop-like active-match composition for phone landscape. */
+  #public .audience-hero{
+    width:100% !important;
+    margin:0 auto !important;
+    padding:8px 14px 9px !important;
+    border-radius:16px !important;
+  }
+  #public .audience-header{
+    grid-template-columns:minmax(110px,.62fr) minmax(250px,1.35fr) minmax(64px,.34fr) !important;
+    gap:8px !important;
+    min-height:48px !important;
+  }
+  #public .audience-tournament{font-size:8px !important;gap:5px !important;line-height:1.08 !important;}
+  #public .audience-tournament img{width:24px !important;height:20px !important;}
+  #public .audience-court{font-size:19px !important;gap:10px !important;}
+  #public .audience-division{font-size:12px !important;line-height:1.05 !important;margin-top:3px !important;}
+  #public .audience-match-meta{font-size:8px !important;margin-top:2px !important;}
+  #public .audience-match-grid{
+    grid-template-columns:minmax(0,1fr) minmax(118px,.48fr) minmax(0,1fr) !important;
+    gap:10px !important;
+    padding:3px 0 0 !important;
+    align-items:center !important;
+  }
+  #public .audience-player-name{font-size:clamp(14px,2.6vw,21px) !important;line-height:1 !important;}
+  #public .audience-dojo{font-size:9px !important;margin-top:2px !important;}
+  #public .audience-player-head{gap:8px !important;}
+  #public .audience-side-dot{width:12px !important;height:12px !important;margin-top:2px !important;}
+  #public .audience-white-dot{border-width:2px !important;}
+  #public .audience-red-dot{box-shadow:0 0 0 2px rgba(202,53,53,.17) !important;}
+  #public .audience-score-center{gap:4px !important;min-width:118px !important;}
+  #public .audience-score-stack{grid-template-rows:34px 11px !important;}
+  #public .audience-points{height:34px !important;min-width:42px !important;font-size:31px !important;line-height:.9 !important;}
+  #public .audience-vs{font-size:10px !important;padding-top:12px !important;}
+  #public .audience-triangles{height:11px !important;font-size:9px !important;}
+  #public .audience-next-card{margin-top:5px !important;padding:6px 13px !important;border-radius:12px !important;}
+  #public .audience-next-label{margin-bottom:3px !important;font-size:8px !important;}
+  #public .audience-next-row{gap:12px !important;}
+  #public .audience-next-name{font-size:13px !important;line-height:1.02 !important;}
+  #public .audience-next-dojo{font-size:8px !important;margin-top:1px !important;}
+  #public .audience-next-vs{font-size:10px !important;}
+
+  /* Team active rows remain emphasized but use less height in landscape. */
+  #public .team-audience-head{margin:2px 0 6px !important;gap:16px !important;}
+  #public .team-name-block{font-size:16px !important;gap:7px !important;}
+  #public .team-live-row{min-height:28px !important;padding:2px 7px !important;}
+  #public .team-live-row.current{min-height:42px !important;padding:5px 7px !important;margin:2px !important;}
+  #public .team-live-row.current .team-live-player{font-size:13px !important;}
+  #public .team-live-row.current .team-point-slot{width:27px !important;height:27px !important;font-size:15px !important;}
+  #public .team-total-summary{margin-top:4px !important;padding:4px 10px !important;}
+  #public .team-total-number{font-size:22px !important;}
+  #public .team-total-label{font-size:8px !important;}
+}
+/* =========================================================
+   KSM v3.11.4 — final mobile landscape alignment and Court compaction
+   Presentation only.
+   ========================================================= */
+@media (orientation:landscape) and (max-height:560px) and (max-width:980px){
+  /* Live Scores: center the title against the viewport, not asymmetric side columns. */
+  #public .audience-header{
+    position:relative !important;
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) minmax(220px,.95fr) minmax(0,1fr) !important;
+    align-items:start !important;
+  }
+  #public .audience-title{
+    grid-column:2 !important;
+    width:100% !important;
+    min-width:0 !important;
+    justify-self:center !important;
+    text-align:center !important;
+  }
+  #public .audience-court,
+  #public .audience-division,
+  #public .audience-match-meta{
+    width:100% !important;
+    margin-left:auto !important;
+    margin-right:auto !important;
+    text-align:center !important;
+  }
+  #public .audience-court{justify-content:center !important;}
+
+  /* Results: deterministic two-column grid with aligned top edges. */
+  #results .results-card-grid{
+    display:grid !important;
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    align-items:start !important;
+    gap:12px !important;
+    columns:auto !important;
+  }
+  #results .result-award-card,
+  #results .result-progress-card{
+    width:100% !important;
+    margin:0 !important;
+    break-inside:auto !important;
+    align-self:start !important;
+  }
+
+  /* Court Scorekeeper: compact, Live-Scores-like landscape composition. */
+  #score{
+    width:calc(100% - 20px) !important;
+    max-width:calc(100% - 20px) !important;
+    margin:8px auto 0 !important;
+  }
+  #score .scorekeeper-shell{gap:8px !important;}
+  #score .scoreboard-card{
+    padding:8px 12px 9px !important;
+    border-radius:16px !important;
+  }
+  #score .scoreboard-header{
+    grid-template-columns:minmax(110px,.7fr) minmax(250px,1.15fr) minmax(110px,.7fr) !important;
+    gap:8px !important;
+    margin-bottom:2px !important;
+    min-height:38px !important;
+  }
+  #score .scoreboard-tournament{font-size:8px !important;line-height:1.08 !important;gap:5px !important;}
+  #score .scoreboard-tournament img{width:25px !important;height:23px !important;}
+  #score .scoreboard-heading-center h1{font-size:19px !important;margin:0 0 1px !important;}
+  #score .scoreboard-heading-center .sk-division-row{margin:0 !important;max-width:230px !important;}
+  #score .scoreboard-heading-center #scoreDiv{font-size:12px !important;line-height:1 !important;min-height:24px !important;padding:1px 20px 1px 6px !important;}
+  #score .scoreboard-heading-center .sk-division-title{font-size:12px !important;line-height:1.02 !important;margin:1px 0 !important;}
+  #score .scoreboard-heading-center .sk-match-line{font-size:8px !important;line-height:1 !important;margin-top:1px !important;}
+
+  #score .scoreboard-match{
+    grid-template-columns:minmax(0,1fr) minmax(118px,.42fr) minmax(0,1fr) !important;
+    gap:10px !important;
+    min-height:54px !important;
+    padding:2px 0 4px !important;
+    align-items:center !important;
+  }
+  #score .scoreboard-side{min-width:0 !important;}
+  #score .competitor-head{gap:7px !important;align-items:center !important;}
+  #score .side-dot{width:13px !important;height:13px !important;margin-top:0 !important;}
+  #score .white-dot{border-width:2px !important;}
+  #score .red-dot{box-shadow:0 0 0 2px rgba(202,53,53,.18) !important;}
+  #score .scoreboard-side h2{font-size:clamp(14px,2.5vw,20px) !important;line-height:1 !important;white-space:nowrap !important;overflow:hidden !important;text-overflow:ellipsis !important;}
+  #score .scoreboard-side .sk-dojo{font-size:8px !important;line-height:1 !important;margin-top:2px !important;white-space:nowrap !important;overflow:hidden !important;text-overflow:ellipsis !important;}
+  #score .scoreboard-score-row{min-height:48px !important;gap:5px !important;}
+  #score .score-stack{min-height:46px !important;display:grid !important;grid-template-rows:34px 10px !important;}
+  #score .scoreboard-score-row .points{height:34px !important;min-height:34px !important;font-size:31px !important;line-height:.9 !important;gap:.07em !important;}
+  #score .scoreboard-score-row .tri{height:10px !important;min-height:10px !important;margin-top:0 !important;font-size:9px !important;line-height:1 !important;}
+  #score .score-vs{font-size:10px !important;}
+
+  /* White and Red controls share one horizontal band: ten portrait-sized buttons. */
+  #score .score-controls-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    gap:8px !important;
+    padding-top:6px !important;
+  }
+  #score .control-panel{padding:5px !important;border-radius:12px !important;}
+  #score .control-panel .sk-score-buttons{grid-template-columns:repeat(5,minmax(0,1fr)) !important;gap:4px !important;}
+  #score .control-panel .sk-score-buttons button{
+    min-width:0 !important;
+    width:100% !important;
+    min-height:48px !important;
+    height:48px !important;
+    padding:4px 1px !important;
+    border-radius:10px !important;
+    gap:1px !important;
+  }
+  #score .point-letter{font-size:21px !important;}
+  #score .point-name{font-size:8px !important;white-space:nowrap !important;}
+
+  #score .bottom-action-row{
+    display:grid !important;
+    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+    gap:7px !important;
+    margin-top:6px !important;
+    padding-top:6px !important;
+  }
+  #score .bottom-action-row button,
+  #score .bottom-action-row .primary,
+  #score .bottom-action-row .next-match-btn{
+    width:100% !important;
+    min-width:0 !important;
+    max-width:none !important;
+    min-height:38px !important;
+    height:38px !important;
+    padding:3px 8px !important;
+    border-radius:11px !important;
+    font-size:10px !important;
+    gap:5px !important;
+  }
+  #score .bottom-action-row .action-svg{width:16px !important;height:16px !important;flex-basis:16px !important;}
+  #score .bottom-action-row .action-symbol{font-size:19px !important;line-height:1 !important;}
+  #score .sk-support-grid{margin-top:0 !important;gap:8px !important;}
+}
+/* =========================================================
+   KSM v3.11.6 — Court landscape density and context cleanup
+   Presentation only.
+   ========================================================= */
+@media (orientation:landscape) and (max-height:560px) and (max-width:980px){
+  /* Keep the complete Court heading stack on the true visual center line. */
+  #score .scoreboard-header{position:relative !important;}
+  #score .scoreboard-heading-center{
+    position:absolute !important;
+    inset:0 auto auto 50% !important;
+    transform:translateX(-50%) !important;
+    width:min(54vw,520px) !important;
+    max-width:calc(100% - 260px) !important;
+    justify-self:auto !important;
+  }
+  #score .scoreboard-heading-center .sk-division-row{
+    width:100% !important;
+    max-width:100% !important;
+    margin:0 auto !important;
+    display:flex !important;
+    justify-content:center !important;
+  }
+  #score .scoreboard-heading-center #scoreDiv{
+    width:auto !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    margin:0 auto !important;
+    padding:1px 18px 1px 8px !important;
+    text-align:center !important;
+    text-align-last:center !important;
+  }
+
+  /* Score control cards should hug the buttons instead of reserving desktop height. */
+  #score .score-controls-grid{
+    min-height:0 !important;
+    height:auto !important;
+    align-items:start !important;
+    padding-top:5px !important;
+  }
+  #score .control-panel{
+    min-height:0 !important;
+    height:auto !important;
+    padding:5px !important;
+  }
+  #score .control-panel .sk-score-buttons{height:auto !important;align-items:stretch !important;}
+  #score .control-panel .sk-score-buttons button{margin:0 !important;}
+}
+
+/* Team Court Context is self-explanatory: the sheet itself is the heading. */
+#courtContext > .team-sheet:first-child,
+#courtContext > .kachinuki-sheet:first-child{margin-top:0 !important;}
+/* =========================================================
+   KSM v3.11.6 — shared header and navigation polish
+   Presentation only.
+   ========================================================= */
+/* Align the Live Scores navigation glyph with the shared icon baseline. */
+.icon-nav .nav-menu-trigger[aria-controls="liveScoresMenu"] img{
+  transform:translateY(2px);
+}
+
+/* Shared tournament-brand treatment for Court and Live Scores. */
+.scoreboard-tournament,
+.audience-tournament{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-start !important;
+  gap:9px !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  text-align:left !important;
+}
+.scoreboard-tournament img,
+.audience-tournament img{
+  width:46px !important;
+  height:40px !important;
+  flex:0 0 46px !important;
+}
+#scoreTournamentName,
+.audience-tournament span{
+  display:block !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  white-space:normal !important;
+  overflow-wrap:break-word !important;
+  word-break:normal !important;
+  line-height:1.08 !important;
+  text-align:left !important;
+}
+#scoreTournamentName{
+  font-size:14px !important;
+}
+.audience-tournament span{
+  font-size:14px !important;
+}
+
+/* Match the Court title rules to the balanced Live Scores divider lengths. */
+.scoreboard-heading-center h1{
+  display:grid !important;
+  grid-template-columns:minmax(36px,1fr) auto minmax(36px,1fr) !important;
+  align-items:center !important;
+  width:100% !important;
+  gap:14px !important;
+}
+.scoreboard-heading-center h1::before,
+.scoreboard-heading-center h1::after{
+  width:100% !important;
+  max-width:none !important;
+  height:2px !important;
+}
+.scoreboard-heading-center h1::before{
+  background:linear-gradient(90deg,transparent,#d5a03d) !important;
+}
+.scoreboard-heading-center h1::after{
+  background:linear-gradient(90deg,#d5a03d,transparent) !important;
+}
+
+@media(max-width:760px){
+  .scoreboard-tournament,
+  .audience-tournament{gap:6px !important;}
+  .scoreboard-tournament img,
+  .audience-tournament img{width:34px !important;height:29px !important;flex-basis:34px !important;}
+  #scoreTournamentName,
+  .audience-tournament span{font-size:10px !important;line-height:1.05 !important;}
+  .scoreboard-heading-center h1{gap:8px !important;}
+}

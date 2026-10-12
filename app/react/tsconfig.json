@@ -1,0 +1,24 @@
+{
+  // React/TSX code (ES modules, bundled by Vite): strict TypeScript, unlike the classic
+  // app/js files (../../tsconfig.json). `npm run typecheck` checks both projects.
+  // Pure logic uses only erasable syntax and .ts import extensions, so Node can run its
+  // unit tests directly (tests/react-logic-test.mjs, --experimental-strip-types).
+  "compilerOptions": {
+    "target": "es2022",
+    "lib": ["es2023", "dom", "dom.iterable"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "types": []
+  },
+  // tournament.d.ts: the global tournament data types (CloudRecord, Match, ...).
+  "include": ["./**/*.ts", "./**/*.tsx", "../types/tournament.d.ts"]
+}

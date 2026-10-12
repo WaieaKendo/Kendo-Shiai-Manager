@@ -1,6 +1,7 @@
 from pathlib import Path
+from ksm_source import app_source
 
-html = Path("public/index.html").read_text(encoding="utf-8")
+html = app_source()
 checks = {
     "complete heading removed from renderer": '<h2>Division Complete</h2>' not in html,
     "tier class applied": "p.tier||''" in html and "division-complete-row" in html,

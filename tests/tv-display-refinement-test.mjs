@@ -1,5 +1,6 @@
+import { html as appSource } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
-const html=fs.readFileSync('public/index.html','utf8');
+const html=appSource;
 const checks=[
  ['tournament name removed from TV renderer',!html.includes('<div class="tv-tournament">${esc(audienceTournamentName())}</div>')],
  ['court is primary heading',html.includes('tv-court-label')&&html.includes('Court ${esc(court)}')],

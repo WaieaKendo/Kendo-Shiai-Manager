@@ -1,5 +1,6 @@
+import { html as appSource } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
-const html=fs.readFileSync(new URL('../public/index.html', import.meta.url),'utf8');
+const html=appSource;
 const checks=[
  ['clean root',html.includes('class="tv3-root"')],
  ['single fixed grid',html.includes('grid-template-rows:210px 610px 260px!important')],

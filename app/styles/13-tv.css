@@ -1,0 +1,474 @@
+/* KSM v3.15.8 — landscape full-screen TV display and upcoming matches */
+.live-scores-overview{max-width:1320px;margin:0 auto;padding:12px 0 22px}
+.live-scores-heading{max-width:1320px;margin:0 auto 14px;padding:14px 18px;text-align:left;background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:0 8px 22px rgba(29,35,42,.06)}.live-scores-heading h1{margin:2px 0 0;font-size:clamp(24px,3vw,34px)}
+.live-courts-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.live-court-card{min-width:0;background:#fff;border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:0 8px 22px rgba(29,35,42,.06);display:grid;gap:12px}
+.live-court-head{text-align:center;border-bottom:1px solid var(--line);padding-bottom:10px}.live-court-head h2{font-size:clamp(22px,3vw,30px);margin:0}.live-court-head span{display:block;color:var(--muted);font-size:12px;font-weight:800;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.live-team-line{text-align:center;font-size:12px;font-weight:850;color:#8b6500}
+.live-match-row{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:center;min-height:92px}
+.live-player{min-width:0}.live-player.red{text-align:right}.live-side-label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:900}.live-player strong{display:block;font-size:clamp(17px,2.6vw,25px);line-height:1.08;overflow-wrap:break-word}.live-player small{display:block;color:var(--muted);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.live-score-pair{display:grid;grid-template-columns:minmax(30px,auto) 20px minmax(30px,auto);gap:5px;align-items:center;text-align:center}.live-score-pair b{font-size:clamp(24px,4vw,38px);color:#8f1018;min-width:36px}.live-score-pair b:first-child{color:#071f33}.live-score-pair span{font-size:11px;color:var(--muted);font-weight:900}
+.live-next{border-top:1px solid var(--line);padding-top:10px;display:grid;grid-template-columns:auto minmax(0,1fr) auto minmax(0,1fr);gap:7px;align-items:center;text-align:center;font-size:12px}.live-next>span{text-transform:uppercase;letter-spacing:.08em;color:#8b6500;font-weight:900}.live-next b{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.live-next i{font-style:normal;color:var(--muted)}.live-next em{grid-column:2/5;color:var(--muted);font-style:normal}
+.live-empty{text-align:center;color:var(--muted);padding:45px 12px}
+@media(max-width:560px) and (orientation:portrait){.live-scores-overview{padding-top:4px}.live-scores-heading{margin-bottom:8px}.live-courts-grid{grid-template-columns:1fr;gap:9px}.live-court-card{padding:11px 12px;border-radius:16px;gap:8px}.live-court-head{padding-bottom:7px}.live-court-head h2{font-size:20px}.live-match-row{min-height:68px;gap:6px}.live-player strong{font-size:16px}.live-player small{font-size:10px}.live-score-pair b{font-size:24px}.live-next{padding-top:7px}.live-scores-heading h1{font-size:24px}}
+.live-team-card .team-sheet{margin:0;box-shadow:none;border-radius:14px}.live-team-card .team-sheet-row{min-height:34px;padding:5px 8px}.live-team-card .team-sheet-head{font-size:clamp(13px,1.7vw,18px)}.live-team-card .team-score-footer{padding:7px 9px}.live-team-card .live-points{font-size:13px}
+.tv-court-display{width:100dvw;height:100dvh;min-height:0;overflow:hidden;background:#061b2c;color:#fff;display:flex;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.tv-shell,.tv-empty{width:100%;height:100%;min-height:0;overflow:hidden;box-sizing:border-box;padding:clamp(10px,1.3vmin,24px) clamp(20px,2.2vmin,44px) clamp(8px,1vmin,18px);display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:clamp(4px,.65vmin,10px)}
+.tv-shell header{all:unset;display:block;text-align:center;min-width:0;background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;margin:0!important}.tv-court-label{font-size:clamp(68px,9.2vw,150px);font-weight:900;letter-spacing:.02em;line-height:.82;color:#fff;text-transform:uppercase}.tv-context{margin-top:clamp(4px,.6vh,9px);font-size:clamp(34px,3.8vw,62px);line-height:1;color:#e3bd5b;font-weight:850;white-space:nowrap;overflow:hidden}.tv-context-meta{margin-top:clamp(4px,.5vh,8px);font-size:clamp(21px,2vw,34px);line-height:1;font-weight:750;color:#fff;opacity:.9}
+.tv-individual-match{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto minmax(0,1fr);align-items:center;gap:clamp(8px,1vw,18px);min-height:0;padding:clamp(2px,.6vh,8px) 0}
+.tv-individual-name-side{min-width:0;align-self:stretch;display:flex;align-items:center;position:relative;border-top:clamp(11px,1vw,18px) solid #fff;padding:clamp(10px,1.2vh,20px) clamp(12px,1.5vw,26px)}.tv-individual-name-side.white{border-left:clamp(11px,1vw,18px) solid #fff}.tv-individual-name-side.red{border-top-color:#d92f38;border-right:clamp(11px,1vw,18px) solid #d92f38;text-align:right;justify-content:flex-end}
+.tv-name-block{min-width:0;width:100%}.tv-player-name{font-size:clamp(52px,6vw,100px);font-weight:820;line-height:.88;color:#fff;display:flex;flex-direction:column;max-width:100%;letter-spacing:-.02em}.tv-player-name span{display:block;white-space:nowrap;overflow:hidden}.tv-player-dojo{font-size:clamp(20px,2vw,36px);font-weight:650;opacity:.74;margin-top:clamp(8px,1vh,15px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tv-point-string{font-size:clamp(52px,6.1vw,104px);font-weight:850;letter-spacing:.08em;line-height:1;color:#fff;white-space:nowrap;min-width:clamp(70px,8vw,150px);text-align:center}.tv-vs{display:grid;place-items:center;font-size:clamp(25px,2.5vw,42px);font-weight:850;color:#e3bd5b;text-transform:uppercase;padding:0 clamp(2px,.4vw,8px)}
+.tv-next{border-top:2px solid rgba(255,255,255,.25);padding-top:clamp(7px,.8vmin,12px);padding-bottom:0;text-align:center;min-width:0;align-self:end}.tv-next-label{color:#e3bd5b;text-transform:uppercase;font-size:clamp(28px,3vmin,50px);font-weight:850;letter-spacing:.08em;line-height:1}.tv-upcoming-list{margin-top:clamp(5px,.55vmin,9px);display:grid;grid-template-rows:repeat(2,minmax(0,1fr));gap:clamp(3px,.45vmin,7px)}.tv-next-pair{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:clamp(14px,1.8vmin,30px);align-items:center;min-height:0}.tv-next-player{min-width:0}.tv-next-player strong{display:block;color:#fff;font-size:clamp(34px,4.1vmin,68px);font-weight:800;white-space:nowrap;line-height:.95}.tv-next-player small{display:block;font-size:clamp(16px,1.6vmin,27px);opacity:.72;margin-top:3px}.tv-next-pair>span{font-size:clamp(30px,3.2vmin,52px);font-weight:850;color:#e3bd5b}
+.tv-team-main{display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:clamp(5px,.7vh,11px);min-height:0}.tv-team-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(32px,4vw,70px)}.tv-team-name{border-top:clamp(11px,1vw,18px) solid #fff;padding-top:clamp(7px,.8vh,13px);font-size:clamp(34px,4vw,68px);font-weight:850;color:#fff;white-space:nowrap;overflow:hidden;line-height:1}.tv-team-name.red{border-top-color:#d92f38;text-align:right}.tv-team-roster{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(32px,4vw,70px);min-height:0}.tv-team-column{display:grid;grid-template-rows:repeat(5,minmax(0,1fr));gap:clamp(3px,.45vh,7px);min-width:0}.tv-team-cell{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:clamp(8px,1vw,17px);padding:clamp(5px,.65vh,10px) clamp(10px,1vw,18px);border:2px solid rgba(255,255,255,.13);border-radius:10px;min-width:0}.tv-team-column.red .tv-team-cell{grid-template-columns:auto minmax(0,1fr);text-align:right}.tv-team-cell.current{border:clamp(4px,.35vw,7px) solid #e3bd5b;box-shadow:0 0 0 2px rgba(227,189,91,.1) inset}.tv-team-cell .position{font-size:clamp(14px,1.2vw,21px);font-weight:800;color:#e3bd5b;margin-right:8px}.tv-team-cell-name{font-size:clamp(23px,2.65vw,46px);font-weight:780;color:#fff;white-space:nowrap;min-width:0}.tv-team-cell-points{font-size:clamp(23px,2.8vw,48px);font-weight:850;letter-spacing:.08em;color:#fff;white-space:nowrap}.tv-team-name-wrap{min-width:0;display:flex;align-items:center}.tv-team-column.red .tv-team-name-wrap{justify-content:flex-end}.tv-team-summary{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;text-align:center;border-top:1px solid rgba(255,255,255,.22);padding-top:clamp(5px,.7vh,10px);font-size:clamp(20px,2vw,34px);font-weight:800}.tv-team-summary .white{text-align:left}.tv-team-summary .red{text-align:right}.tv-team-summary .label{color:#e3bd5b;font-size:.72em;text-transform:uppercase;letter-spacing:.08em}.tv-team-summary b{font-size:1.25em}.tv-team-empty{opacity:.34}
+
+.tv-rotate-message{display:none;width:100dvw;height:100dvh;background:#061b2c;color:#fff;place-items:center;text-align:center;padding:28px;box-sizing:border-box}.tv-rotate-message h1{font-size:clamp(34px,10vw,72px);margin:0 0 12px}.tv-rotate-message p{font-size:clamp(18px,5vw,30px);margin:0;color:#e3bd5b}
+@media(orientation:portrait){body.ksm-tv .tv-court-display{display:none!important}body.ksm-tv .tv-rotate-message{display:grid!important}}
+
+.tv-empty{place-items:center;text-align:center;grid-template-rows:1fr}.tv-empty .tv-court-label{margin-bottom:24px}.tv-empty h1{font-size:clamp(42px,7vw,100px);font-weight:800}
+@media(max-width:780px) and (orientation:landscape){.tv-shell{padding:12px 16px 9px}.tv-court-label{font-size:clamp(52px,14vw,90px)}.tv-context{font-size:clamp(25px,6.4vw,38px)}.tv-context-meta{font-size:clamp(17px,4vw,24px)}.tv-individual-match{grid-template-columns:minmax(0,1fr) auto auto auto minmax(0,1fr);gap:4px}.tv-player-name{font-size:clamp(32px,7vw,50px)}.tv-point-string{font-size:clamp(31px,7vw,50px);min-width:45px}.tv-team-head,.tv-team-roster{gap:10px}.tv-team-cell{padding:5px 7px;border-radius:7px}.tv-team-cell-name{font-size:clamp(17px,4vw,28px)}.tv-team-cell-points{font-size:clamp(17px,4vw,28px)}}
+/* KSM v3.15.8 — fixed 16:9 TV canvas and simplified role navigation */
+body.ksm-spectator .tv-role-access{display:none!important}
+body.ksm-tv,body.ksm-tv html{min-height:100%;height:auto;overflow:auto!important;background:#061b2c}
+body.ksm-tv main{width:100%;height:auto;min-height:100vh;overflow:visible!important;padding:0!important;display:flex;justify-content:center;align-items:flex-start;background:#061b2c}
+body.ksm-tv #tv{width:100%;height:auto;min-height:100vh;overflow:visible!important;display:flex!important;justify-content:center;align-items:flex-start;background:#061b2c}
+body.ksm-tv .tv-rotate-message{display:none!important}
+.tv-court-display{--tv-scale:1;position:relative;flex:0 0 auto;overflow:hidden;background:#061b2c;color:#fff;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.tv-canvas{width:1920px;height:1080px;transform:scale(var(--tv-scale));transform-origin:top left;background:#061b2c;overflow:hidden}
+.tv-shell,.tv-empty{width:1920px;height:1080px;box-sizing:border-box;padding:28px 54px 24px;display:grid;grid-template-rows:190px 600px 238px;gap:0;overflow:hidden}
+.tv-shell header{all:unset;display:block;text-align:center;padding:0!important;margin:0!important;background:transparent!important;border:0!important;box-shadow:none!important}
+.tv-court-label{font-size:132px;line-height:.82;font-weight:900;letter-spacing:.02em;color:#fff;text-transform:uppercase}
+.tv-context{margin-top:18px;font-size:58px;line-height:1;font-weight:850;color:#e3bd5b;white-space:nowrap;overflow:hidden}
+.tv-context-meta{margin-top:10px;font-size:31px;line-height:1;font-weight:750;color:#fff;opacity:.9}
+.tv-individual-match{display:grid;grid-template-columns:minmax(0,1fr) 170px 74px 170px minmax(0,1fr);align-items:center;gap:18px;min-height:0;padding:28px 0 18px}
+.tv-individual-name-side{min-width:0;height:420px;box-sizing:border-box;display:flex;align-items:center;border-top:17px solid #fff;padding:28px 34px}.tv-individual-name-side.white{border-left:17px solid #fff}.tv-individual-name-side.red{border-top-color:#d92f38;border-right:17px solid #d92f38;text-align:right;justify-content:flex-end}
+.tv-name-block{width:100%;min-width:0}.tv-player-name{font-size:92px;line-height:.9;font-weight:820;color:#fff;display:flex;flex-direction:column;letter-spacing:-.02em}.tv-player-name span{display:block;white-space:nowrap;overflow:hidden}.tv-player-dojo{font-size:31px;font-weight:650;opacity:.74;margin-top:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tv-point-string{font-size:94px;font-weight:850;letter-spacing:.08em;line-height:1;color:#fff;white-space:nowrap;text-align:center}.tv-vs{font-size:38px;font-weight:850;color:#e3bd5b;text-transform:uppercase;text-align:center}
+.tv-next{border-top:2px solid rgba(255,255,255,.25);padding-top:16px;text-align:center;overflow:hidden}.tv-next-label{font-size:44px;line-height:1;font-weight:850;letter-spacing:.08em;color:#e3bd5b;text-transform:uppercase}.tv-upcoming-list{margin-top:12px;display:grid;grid-template-rows:repeat(2,1fr);gap:8px}.tv-next-pair{display:grid;grid-template-columns:minmax(0,1fr) 90px minmax(0,1fr);align-items:center;gap:28px}.tv-next-player strong{display:block;font-size:52px;line-height:.95;font-weight:800;color:#fff;white-space:nowrap}.tv-next-player small{display:block;font-size:22px;opacity:.72;margin-top:5px}.tv-next-pair>span{font-size:40px;font-weight:850;color:#e3bd5b}
+.tv-team-main{display:grid;grid-template-rows:84px 438px 62px;gap:8px;min-height:0}.tv-team-head{display:grid;grid-template-columns:1fr 1fr;gap:64px}.tv-team-name{border-top:17px solid #fff;padding-top:12px;font-size:58px;line-height:1;font-weight:850;color:#fff;white-space:nowrap;overflow:hidden}.tv-team-name.red{border-top-color:#d92f38;text-align:right}.tv-team-roster{display:grid;grid-template-columns:1fr 1fr;gap:64px;min-height:0}.tv-team-column{display:grid;grid-template-rows:repeat(5,1fr);gap:7px}.tv-team-cell{display:grid;grid-template-columns:minmax(0,1fr) 126px;align-items:center;gap:16px;padding:8px 16px;border:2px solid rgba(255,255,255,.13);border-radius:10px;min-width:0}.tv-team-column.red .tv-team-cell{grid-template-columns:126px minmax(0,1fr);text-align:right}.tv-team-cell.current{border:6px solid #e3bd5b}.tv-team-cell .position{font-size:20px;font-weight:800;color:#e3bd5b;margin-right:10px}.tv-team-cell-name{font-size:39px;font-weight:780;color:#fff;white-space:nowrap;min-width:0}.tv-team-cell-points{font-size:39px;font-weight:850;letter-spacing:.08em;color:#fff;white-space:nowrap}.tv-team-summary{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;border-top:1px solid rgba(255,255,255,.22);padding-top:8px;font-size:29px;font-weight:800}.tv-team-summary .white{text-align:left}.tv-team-summary .red{text-align:right}.tv-team-summary .label{color:#e3bd5b;font-size:.72em;text-transform:uppercase;letter-spacing:.08em}.tv-team-summary b{font-size:1.25em}
+.tv-empty{place-items:center;text-align:center;grid-template-rows:1fr}.tv-empty h1{font-size:86px;font-weight:800}
+@media print{body.ksm-tv{overflow:visible!important}}
+/* KSM v3.15.8 — isolated fixed-coordinate TV presentation canvas */
+html:has(body.ksm-tv),body.ksm-tv{
+  width:100%;height:100%;margin:0!important;padding:0!important;
+  overflow:hidden!important;background:#061b2c!important;
+}
+body.ksm-tv>.ksm-topbar,
+body.ksm-tv>.spectator-readonly-banner{display:none!important}
+body.ksm-tv main{
+  position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;
+  min-width:0!important;min-height:0!important;max-width:none!important;
+  margin:0!important;padding:0!important;overflow:hidden!important;
+  display:block!important;background:#061b2c!important;transform:none!important;
+}
+body.ksm-tv main>.view{display:none!important}
+body.ksm-tv main>#tv{
+  display:block!important;position:fixed!important;inset:0!important;
+  width:100vw!important;height:100vh!important;min-height:0!important;
+  margin:0!important;padding:0!important;overflow:hidden!important;
+  background:#061b2c!important;transform:none!important;
+}
+body.ksm-tv #tvLive.tv-court-display{
+  --tv-scale:1;display:block!important;position:fixed!important;inset:0!important;
+  width:100vw!important;height:100vh!important;margin:0!important;padding:0!important;
+  overflow:hidden!important;background:#061b2c!important;transform:none!important;
+}
+body.ksm-tv .tv-canvas{
+  position:absolute!important;left:50%!important;top:50%!important;
+  width:1920px!important;height:1080px!important;margin:0!important;
+  transform:translate(-50%,-50%) scale(var(--tv-scale))!important;
+  transform-origin:center center!important;overflow:hidden!important;background:#061b2c!important;
+}
+body.ksm-tv .tv-shell,body.ksm-tv .tv-empty{
+  position:relative!important;display:block!important;width:1920px!important;height:1080px!important;
+  margin:0!important;padding:0!important;overflow:hidden!important;box-sizing:border-box!important;
+  background:#061b2c!important;
+}
+body.ksm-tv .tv-shell>header{
+  all:unset!important;display:block!important;position:absolute!important;
+  left:80px!important;right:80px!important;top:34px!important;height:184px!important;
+  text-align:center!important;overflow:hidden!important;box-sizing:border-box!important;
+}
+body.ksm-tv .tv-court-label{font-size:126px!important;line-height:.84!important;margin:0!important}
+body.ksm-tv .tv-context{font-size:55px!important;line-height:1!important;margin-top:14px!important}
+body.ksm-tv .tv-context-meta{font-size:30px!important;line-height:1!important;margin-top:8px!important}
+body.ksm-tv .tv-individual-match{
+  position:absolute!important;left:64px!important;right:64px!important;top:244px!important;height:500px!important;
+  display:grid!important;grid-template-columns:minmax(0,1fr) 170px 76px 170px minmax(0,1fr)!important;
+  align-items:center!important;gap:18px!important;margin:0!important;padding:0!important;overflow:hidden!important;
+}
+body.ksm-tv .tv-individual-name-side{height:420px!important;padding:28px 34px!important;box-sizing:border-box!important}
+body.ksm-tv .tv-player-name{font-size:92px!important;line-height:.9!important}
+body.ksm-tv .tv-point-string{font-size:94px!important;min-width:0!important}
+body.ksm-tv .tv-vs{font-size:38px!important}
+body.ksm-tv .tv-next{
+  position:absolute!important;left:64px!important;right:64px!important;top:776px!important;height:270px!important;
+  margin:0!important;padding:18px 0 0!important;box-sizing:border-box!important;overflow:hidden!important;
+}
+body.ksm-tv .tv-next-label{font-size:44px!important}
+body.ksm-tv .tv-upcoming-list{height:190px!important;margin-top:14px!important;grid-template-rows:1fr 1fr!important;gap:8px!important}
+body.ksm-tv .tv-next-pair{grid-template-columns:minmax(0,1fr) 90px minmax(0,1fr)!important;gap:28px!important}
+body.ksm-tv .tv-next-player strong{font-size:52px!important}
+body.ksm-tv .tv-next-player small{font-size:22px!important}
+body.ksm-tv .tv-next-pair>span{font-size:40px!important}
+body.ksm-tv .tv-team-main{
+  position:absolute!important;left:64px!important;right:64px!important;top:238px!important;height:520px!important;
+  display:grid!important;grid-template-rows:84px 430px 62px!important;gap:8px!important;
+  margin:0!important;padding:0!important;overflow:hidden!important;
+}
+body.ksm-tv .tv-team-head,body.ksm-tv .tv-team-roster{gap:64px!important}
+body.ksm-tv .tv-team-name{font-size:58px!important}
+body.ksm-tv .tv-team-cell-name,body.ksm-tv .tv-team-cell-points{font-size:39px!important}
+body.ksm-tv .tv-team-summary{font-size:29px!important}
+body.ksm-tv .tv-empty{display:grid!important;place-items:center!important;text-align:center!important}
+@media print{html:has(body.ksm-tv),body.ksm-tv{overflow:visible!important}}
+/* KSM v3.15.9 — fixed picture-like TV canvas and court action history controls */
+.bottom-action-row{grid-template-columns:repeat(4,minmax(0,1fr)) !important}
+.bottom-action-row .redo-action{background:#fffdf8 !important;color:#071f33 !important;border-color:rgba(255,255,255,.42) !important;box-shadow:none !important}
+.bottom-action-row .redo-action:disabled,.bottom-action-row .undo-action:disabled{opacity:.42 !important;cursor:not-allowed !important}
+
+/* TV is a fixed 1920×1080 picture. Browser zoom scales the whole picture naturally. */
+html:has(body.ksm-tv),body.ksm-tv{width:100%;height:auto;min-height:100%;margin:0!important;padding:0!important;overflow:auto!important;background:#061b2c!important}
+body.ksm-tv main{position:static!important;width:1920px!important;height:1080px!important;min-width:1920px!important;min-height:1080px!important;max-width:none!important;margin:0 auto!important;padding:0!important;overflow:visible!important;display:block!important;background:#061b2c!important}
+body.ksm-tv main>#tv{position:static!important;width:1920px!important;height:1080px!important;min-width:1920px!important;min-height:1080px!important;margin:0!important;padding:0!important;overflow:visible!important;display:block!important;background:#061b2c!important}
+body.ksm-tv #tvLive.tv-court-display{position:static!important;width:1920px!important;height:1080px!important;min-width:1920px!important;min-height:1080px!important;margin:0!important;padding:0!important;overflow:hidden!important;background:#061b2c!important;transform:none!important}
+body.ksm-tv .tv-canvas{position:relative!important;left:auto!important;top:auto!important;width:1920px!important;height:1080px!important;margin:0!important;transform:none!important;transform-origin:top left!important;overflow:hidden!important;background:#061b2c!important}
+body.ksm-tv .tv-individual-match{display:block!important;position:absolute!important;left:64px!important;top:244px!important;width:1792px!important;height:500px!important;margin:0!important;padding:0!important;overflow:hidden!important}
+body.ksm-tv .tv-individual-name-side{position:absolute!important;top:40px!important;width:650px!important;height:420px!important;margin:0!important}
+body.ksm-tv .tv-individual-name-side.white{left:0!important}
+body.ksm-tv .tv-individual-name-side.red{left:1142px!important;right:auto!important}
+body.ksm-tv .tv-individual-match>.tv-point-string{position:absolute!important;top:198px!important;width:180px!important;margin:0!important}
+body.ksm-tv .tv-individual-match>.tv-point-string:nth-of-type(1){left:680px!important}
+body.ksm-tv .tv-individual-match>.tv-vs{position:absolute!important;left:866px!important;top:218px!important;width:60px!important;margin:0!important}
+body.ksm-tv .tv-individual-match>.tv-point-string:nth-of-type(2){left:932px!important}
+body.ksm-tv .tv-shell>header,body.ksm-tv .tv-next,body.ksm-tv .tv-team-main{position:absolute!important}
+@media(max-width:1919px){html:has(body.ksm-tv),body.ksm-tv{overflow:auto!important}body.ksm-tv main{margin:0!important}}
+/* KSM v3.15.10 — deterministic TV zones and stacked upcoming-match cards */
+body.ksm-tv .tv-shell>header{
+  left:80px!important;right:80px!important;top:28px!important;height:205px!important;
+}
+body.ksm-tv .tv-court-label{font-size:126px!important;line-height:.84!important}
+body.ksm-tv .tv-context{font-size:55px!important;margin-top:14px!important}
+body.ksm-tv .tv-context-meta{display:block!important;font-size:30px!important;margin-top:10px!important;color:#fff!important;opacity:.92!important}
+
+/* Individual layout: five fixed horizontal zones. */
+body.ksm-tv .tv-individual-match{
+  display:block!important;position:absolute!important;left:64px!important;top:244px!important;
+  width:1792px!important;height:480px!important;margin:0!important;padding:0!important;overflow:hidden!important;
+}
+body.ksm-tv .tv-individual-name-side{position:absolute!important;top:30px!important;width:650px!important;height:410px!important;margin:0!important}
+body.ksm-tv .tv-individual-name-side.white{left:0!important}
+body.ksm-tv .tv-individual-name-side.red{left:1142px!important;right:auto!important}
+body.ksm-tv .tv-individual-match>.tv-point-string{position:absolute!important;top:184px!important;width:160px!important;margin:0!important;min-width:0!important;text-align:center!important}
+body.ksm-tv .tv-individual-match>.tv-white-points{left:676px!important}
+body.ksm-tv .tv-individual-match>.tv-vs{position:absolute!important;left:866px!important;top:205px!important;width:60px!important;margin:0!important;text-align:center!important}
+body.ksm-tv .tv-individual-match>.tv-red-points{left:956px!important}
+
+/* Team composition centered and expanded across the canvas. */
+body.ksm-tv .tv-team-main{
+  position:absolute!important;left:80px!important;top:238px!important;width:1760px!important;height:500px!important;
+  display:grid!important;grid-template-rows:82px 410px 62px!important;gap:8px!important;margin:0!important;padding:0!important;overflow:hidden!important;
+}
+body.ksm-tv .tv-team-head,body.ksm-tv .tv-team-roster{
+  width:1760px!important;grid-template-columns:830px 830px!important;column-gap:100px!important;margin:0!important;
+}
+body.ksm-tv .tv-team-column{width:830px!important}
+body.ksm-tv .tv-team-name{width:830px!important;box-sizing:border-box!important}
+body.ksm-tv .tv-team-cell{width:830px!important;box-sizing:border-box!important}
+body.ksm-tv .tv-team-summary{width:1760px!important;grid-template-columns:830px 100px 830px!important}
+
+/* Upcoming Matches always occupies the footer and each match has its own box. */
+body.ksm-tv .tv-next{
+  position:absolute!important;left:96px!important;top:770px!important;width:1728px!important;height:286px!important;
+  margin:0!important;padding:0!important;border-top:0!important;box-sizing:border-box!important;overflow:hidden!important;text-align:center!important;
+}
+body.ksm-tv .tv-next-label{height:56px!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:44px!important}
+body.ksm-tv .tv-upcoming-list{height:218px!important;margin-top:8px!important;display:grid!important;grid-template-rows:105px 105px!important;gap:8px!important}
+body.ksm-tv .tv-next-pair{
+  width:100%!important;height:105px!important;box-sizing:border-box!important;padding:9px 34px!important;
+  display:grid!important;grid-template-columns:minmax(0,1fr) 90px minmax(0,1fr)!important;gap:28px!important;align-items:center!important;
+  border:2px solid rgba(255,255,255,.32)!important;border-radius:12px!important;background:rgba(255,255,255,.025)!important;
+}
+body.ksm-tv .tv-next-empty{grid-template-columns:1fr!important}
+body.ksm-tv .tv-next-player strong{font-size:48px!important;line-height:.95!important}
+body.ksm-tv .tv-next-player small{font-size:21px!important;margin-top:4px!important}
+body.ksm-tv .tv-next-pair>span{font-size:38px!important}
+/* KSM v3.15.14 — shared TV zones, centered team context, persistent upcoming cards */
+body.ksm-tv .tv-shell{
+  position:relative!important;
+  width:1920px!important;
+  height:1080px!important;
+  padding:0!important;
+  display:block!important;
+  overflow:hidden!important;
+}
+body.ksm-tv .tv-shell>header{
+  position:absolute!important;
+  left:90px!important;
+  top:24px!important;
+  width:1740px!important;
+  height:190px!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+}
+body.ksm-tv .tv-court-label{font-size:118px!important;line-height:.84!important}
+body.ksm-tv .tv-context{font-size:52px!important;margin-top:12px!important;line-height:1!important}
+body.ksm-tv .tv-context-meta{font-size:28px!important;margin-top:8px!important;line-height:1!important}
+
+/* Current-match zone: always below the header and above upcoming matches. */
+body.ksm-tv .tv-individual-match,
+body.ksm-tv .tv-team-main,
+body.ksm-tv .tv-kachinuki-main{
+  position:absolute!important;
+  left:90px!important;
+  top:226px!important;
+  width:1740px!important;
+  height:500px!important;
+  margin:0!important;
+  padding:0!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+}
+
+/* Individual fixed five-zone layout. */
+body.ksm-tv .tv-individual-match{display:block!important}
+body.ksm-tv .tv-individual-name-side{top:24px!important;width:620px!important;height:430px!important}
+body.ksm-tv .tv-individual-name-side.white{left:0!important}
+body.ksm-tv .tv-individual-name-side.red{left:1120px!important;right:auto!important}
+body.ksm-tv .tv-individual-match>.tv-white-points{left:654px!important;top:188px!important;width:170px!important}
+body.ksm-tv .tv-individual-match>.tv-vs{left:842px!important;top:208px!important;width:56px!important}
+body.ksm-tv .tv-individual-match>.tv-red-points{left:916px!important;top:188px!important;width:170px!important}
+
+/* Standard 3/5-person team context: one centered composition. */
+body.ksm-tv .tv-team-main{
+  display:grid!important;
+  grid-template-rows:74px 354px 56px!important;
+  row-gap:8px!important;
+}
+body.ksm-tv .tv-team-head,
+body.ksm-tv .tv-team-roster{
+  width:1740px!important;
+  display:grid!important;
+  grid-template-columns:820px 820px!important;
+  column-gap:100px!important;
+  margin:0!important;
+  padding:0!important;
+}
+body.ksm-tv .tv-team-column,
+body.ksm-tv .tv-team-name,
+body.ksm-tv .tv-team-cell{width:820px!important;box-sizing:border-box!important}
+body.ksm-tv .tv-team-summary{
+  width:1740px!important;
+  grid-template-columns:820px 100px 820px!important;
+  margin:0!important;
+}
+
+/* Kachinuki: current match above the exact three-person lineup context. */
+body.ksm-tv .tv-kachinuki-main{
+  display:grid!important;
+  grid-template-rows:190px 292px!important;
+  row-gap:12px!important;
+}
+body.ksm-tv .tv-kachinuki-current{
+  display:grid!important;
+  grid-template-columns:620px 170px 56px 170px 620px!important;
+  column-gap:26px!important;
+  align-items:center!important;
+  box-sizing:border-box!important;
+  padding:8px 0 10px!important;
+}
+body.ksm-tv .tv-kachinuki-current .tv-current-player{
+  min-width:0!important;
+  height:170px!important;
+  display:flex!important;
+  align-items:center!important;
+  box-sizing:border-box!important;
+  border-top:14px solid #fff!important;
+  padding:18px 28px!important;
+}
+body.ksm-tv .tv-kachinuki-current .tv-current-player.white{border-left:14px solid #fff!important}
+body.ksm-tv .tv-kachinuki-current .tv-current-player.red{
+  border-top-color:#d92f38!important;
+  border-right:14px solid #d92f38!important;
+  justify-content:flex-end!important;
+  text-align:right!important;
+}
+body.ksm-tv .tv-kachinuki-current .tv-current-name{font-size:66px!important;line-height:.94!important;color:#fff!important;font-weight:820!important}
+body.ksm-tv .tv-kachinuki-current .tv-point-string{font-size:72px!important;min-width:0!important;width:170px!important}
+body.ksm-tv .tv-kachinuki-current .tv-vs{font-size:34px!important;width:56px!important}
+body.ksm-tv .tv-kachinuki-lineups{
+  display:grid!important;
+  grid-template-columns:820px 820px!important;
+  column-gap:100px!important;
+  min-height:0!important;
+}
+body.ksm-tv .tv-kachinuki-team{
+  display:grid!important;
+  grid-template-rows:58px repeat(3,1fr)!important;
+  gap:6px!important;
+  min-width:0!important;
+}
+body.ksm-tv .tv-kachinuki-team-name{
+  border-top:14px solid #fff!important;
+  padding-top:8px!important;
+  color:#fff!important;
+  font-size:44px!important;
+  line-height:1!important;
+  font-weight:850!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+}
+body.ksm-tv .tv-kachinuki-team.red .tv-kachinuki-team-name{border-top-color:#d92f38!important;text-align:right!important}
+body.ksm-tv .tv-kachinuki-row{
+  height:66px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  padding:0 18px!important;
+  box-sizing:border-box!important;
+  border:2px solid rgba(255,255,255,.14)!important;
+  border-radius:9px!important;
+  color:#fff!important;
+}
+body.ksm-tv .tv-kachinuki-row.active{background:#e3bd5b!important;color:#071f33!important;border-color:#e3bd5b!important}
+body.ksm-tv .tv-kachinuki-row.eliminated{opacity:.36!important;text-decoration:line-through!important}
+body.ksm-tv .tv-kachinuki-row .name{font-size:34px!important;font-weight:780!important;white-space:nowrap!important;overflow:hidden!important}
+body.ksm-tv .tv-kachinuki-row .status{font-size:18px!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.06em!important;text-decoration:none!important}
+
+/* Upcoming Matches is a permanent footer with two independent cards. */
+body.ksm-tv .tv-next{
+  position:absolute!important;
+  left:110px!important;
+  top:748px!important;
+  width:1700px!important;
+  height:300px!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+  border:0!important;
+}
+body.ksm-tv .tv-next-label{height:52px!important;font-size:42px!important}
+body.ksm-tv .tv-upcoming-list{
+  height:236px!important;
+  margin-top:10px!important;
+  display:grid!important;
+  grid-template-rows:114px 114px!important;
+  gap:8px!important;
+}
+body.ksm-tv .tv-next-pair{
+  height:114px!important;
+  padding:10px 32px!important;
+  border:3px solid rgba(255,255,255,.34)!important;
+  border-radius:12px!important;
+  background:rgba(255,255,255,.025)!important;
+}
+body.ksm-tv .tv-next-player strong{font-size:46px!important}
+body.ksm-tv .tv-next-player small{font-size:20px!important}
+/* KSM v3.15.16 — final TV typography and safe-area polish.
+   Every selector is isolated under .tv3-root and every major region participates
+   in one fixed 1920×1080 grid. No legacy TV markup or app semantic element styles. */
+body.ksm-tv #tvLive.tv-court-display{
+  width:1920px!important;height:1080px!important;min-width:1920px!important;min-height:1080px!important;
+  margin:0!important;padding:0!important;overflow:hidden!important;background:#061b2c!important;
+  display:block!important;position:relative!important;transform:none!important;
+}
+body.ksm-tv .tv3-root,
+body.ksm-tv .tv3-root *{box-sizing:border-box!important}
+body.ksm-tv .tv3-root .white,body.ksm-tv .tv3-root .red{border-left:0!important;border-right:0!important}
+body.ksm-tv .tv3-root .tv3-score.white{padding-left:0!important;padding-right:42px!important}
+body.ksm-tv .tv3-root .tv3-score.red{padding-right:0!important;padding-left:42px!important}
+body.ksm-tv .tv3-root{
+  width:1920px!important;height:1080px!important;overflow:hidden!important;
+  display:grid!important;grid-template-rows:210px 610px 260px!important;
+  margin:0!important;padding:0 90px!important;background:#061b2c!important;color:#fff!important;
+  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  position:relative!important;isolation:isolate!important;
+}
+body.ksm-tv .tv3-head{
+  min-width:0!important;min-height:0!important;overflow:hidden!important;
+  display:grid!important;grid-template-rows:108px 58px 40px!important;
+  place-items:center!important;text-align:center!important;margin:0!important;padding:4px 0 0!important;
+  position:relative!important;background:transparent!important;border:0!important;
+}
+body.ksm-tv .tv3-court{font-size:100px!important;line-height:.92!important;font-weight:900!important;letter-spacing:.02em!important;text-transform:uppercase!important;white-space:nowrap!important}
+body.ksm-tv .tv3-division{max-width:1650px!important;color:#e3bd5b!important;font-size:48px!important;line-height:1!important;font-weight:850!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+body.ksm-tv .tv3-meta{font-size:28px!important;line-height:1.12!important;font-weight:760!important;color:#fff!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+body.ksm-tv .tv3-body{
+  min-width:0!important;min-height:0!important;overflow:hidden!important;
+  position:relative!important;margin:0!important;padding:10px 0 10px!important;
+  background:transparent!important;border:0!important;
+}
+body.ksm-tv .tv3-top-rule{height:14px!important;width:100%!important;background:#fff!important;margin:0 0 16px!important;border:0!important}
+body.ksm-tv .tv3-top-rule.red{background:#d92f38!important}
+body.ksm-tv .tv3-name{font-size:76px!important;line-height:1!important;font-weight:850!important;letter-spacing:-.025em!important;color:#fff!important;min-width:0!important}
+body.ksm-tv .tv3-name span{display:block!important;line-height:1.02!important;padding-bottom:6px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+body.ksm-tv .tv3-sub{margin-top:18px!important;font-size:29px!important;line-height:1!important;font-weight:650!important;color:rgba(255,255,255,.72)!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+body.ksm-tv .tv3-individual{
+  height:100%!important;display:grid!important;
+  grid-template-columns:520px 280px 120px 280px 520px!important;
+  align-items:center!important;margin:0!important;padding:0!important;overflow:hidden!important;
+}
+body.ksm-tv .tv3-player{height:390px!important;min-width:0!important;display:flex!important;flex-direction:column!important;justify-content:flex-start!important;padding:0 34px!important;overflow:hidden!important}
+body.ksm-tv .tv3-player.red{text-align:right!important;align-items:stretch!important}
+body.ksm-tv .tv3-player-copy{flex:1!important;display:flex!important;flex-direction:column!important;justify-content:center!important;min-width:0!important;overflow:hidden!important}
+body.ksm-tv .tv3-score{font-size:78px!important;line-height:1!important;font-weight:870!important;letter-spacing:.10em!important;color:#fff!important;white-space:nowrap!important;overflow:hidden!important}
+body.ksm-tv .tv3-score.white{text-align:right!important;padding-right:42px!important}
+body.ksm-tv .tv3-score.red{text-align:left!important;padding-left:42px!important}
+body.ksm-tv .tv3-versus{text-align:center!important;color:#e3bd5b!important;font-size:38px!important;line-height:1!important;font-weight:900!important;text-transform:lowercase!important;white-space:nowrap!important}
+body.ksm-tv .tv3-team-grid{
+  width:100%!important;height:100%!important;display:grid!important;
+  grid-template-columns:minmax(0,1fr) 110px minmax(0,1fr)!important;
+  align-items:start!important;gap:0!important;margin:0!important;padding:0!important;overflow:hidden!important;
+}
+body.ksm-tv .tv3-team-col{min-width:0!important;height:100%!important;overflow:hidden!important}
+body.ksm-tv .tv3-team-col.red{text-align:right!important}
+body.ksm-tv .tv3-team-name{height:66px!important;font-size:48px!important;line-height:1!important;font-weight:850!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+body.ksm-tv .tv3-roster{display:grid!important;gap:7px!important;margin-top:4px!important;overflow:hidden!important}
+body.ksm-tv .tv3-roster.three{grid-template-rows:repeat(3,88px)!important}
+body.ksm-tv .tv3-roster.five{grid-template-rows:repeat(5,58px)!important}
+body.ksm-tv .tv3-team-row{display:grid!important;grid-template-columns:minmax(0,1fr) 190px!important;align-items:center!important;gap:12px!important;padding:0 18px!important;border:2px solid rgba(255,255,255,.14)!important;border-radius:9px!important;background:transparent!important;overflow:hidden!important}
+body.ksm-tv .tv3-team-col.red .tv3-team-row{grid-template-columns:190px minmax(0,1fr)!important}
+body.ksm-tv .tv3-team-row.active{border:5px solid #e3bd5b!important;background:rgba(227,189,91,.09)!important}
+body.ksm-tv .tv3-person{min-width:0!important;font-size:34px!important;line-height:1!important;font-weight:790!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+body.ksm-tv .tv3-pos{color:#e3bd5b!important;font-size:19px!important;margin-right:9px!important}.tv3-team-col.red .tv3-pos{margin:0 0 0 9px!important}
+body.ksm-tv .tv3-row-score{font-size:36px!important;line-height:1!important;font-weight:860!important;letter-spacing:.08em!important;white-space:nowrap!important;overflow:hidden!important}
+body.ksm-tv .tv3-team-col:not(.red) .tv3-row-score{text-align:right!important}.tv3-team-col.red .tv3-row-score{text-align:left!important}
+body.ksm-tv .tv3-summary{margin-top:10px!important;padding-top:10px!important;border-top:2px solid rgba(255,255,255,.18)!important;font-size:25px!important;line-height:1!important;font-weight:800!important;white-space:nowrap!important}
+body.ksm-tv .tv3-summary .label{color:#e3bd5b!important;font-size:19px!important;text-transform:uppercase!important;letter-spacing:.05em!important}
+body.ksm-tv .tv3-k-wrap{height:100%!important;display:grid!important;grid-template-rows:190px 390px!important;gap:10px!important;overflow:hidden!important}
+body.ksm-tv .tv3-k-current{display:grid!important;grid-template-columns:520px 280px 120px 280px 520px!important;align-items:center!important;overflow:hidden!important}
+body.ksm-tv .tv3-k-current .tv3-player{height:170px!important}.tv3-k-current .tv3-name{font-size:56px!important}
+body.ksm-tv .tv3-k-lineups{display:grid!important;grid-template-columns:minmax(0,1fr) 110px minmax(0,1fr)!important;overflow:hidden!important}
+body.ksm-tv .tv3-k-team{min-width:0!important;overflow:hidden!important}.tv3-k-team.red{text-align:right!important}
+body.ksm-tv .tv3-k-title{font-size:38px!important;line-height:1!important;font-weight:850!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+body.ksm-tv .tv3-k-rows{display:grid!important;grid-template-rows:repeat(3,72px)!important;gap:8px!important;margin-top:10px!important;padding-bottom:10px!important}
+body.ksm-tv .tv3-k-row{display:flex!important;align-items:center!important;justify-content:space-between!important;padding:0 18px!important;border:2px solid rgba(255,255,255,.14)!important;border-radius:9px!important;font-size:31px!important;line-height:1!important;font-weight:780!important;overflow:hidden!important}
+body.ksm-tv .tv3-k-row.active{background:#e3bd5b!important;color:#071f33!important;border-color:#e3bd5b!important}.tv3-k-row.eliminated{opacity:.35!important;text-decoration:line-through!important}
+body.ksm-tv .tv3-k-state{font-size:16px!important;font-weight:850!important;text-transform:uppercase!important;letter-spacing:.06em!important;text-decoration:none!important;white-space:nowrap!important}
+body.ksm-tv .tv3-upcoming{
+  min-width:0!important;min-height:0!important;overflow:hidden!important;
+  display:grid!important;grid-template-rows:40px 80px 80px!important;gap:8px!important;
+  margin:0!important;padding:4px 0 40px!important;background:transparent!important;border:0!important;
+}
+body.ksm-tv .tv3-upcoming-title{display:flex!important;align-items:center!important;justify-content:center!important;color:#e3bd5b!important;font-size:38px!important;line-height:1!important;font-weight:880!important;letter-spacing:.08em!important;text-transform:uppercase!important;white-space:nowrap!important}
+body.ksm-tv .tv3-up-card{display:grid!important;grid-template-columns:minmax(0,1fr) 110px minmax(0,1fr)!important;align-items:center!important;gap:18px!important;padding:8px 36px!important;border:3px solid rgba(227,189,91,.75)!important;border-radius:12px!important;background:rgba(255,255,255,.025)!important;text-align:center!important;overflow:hidden!important}
+body.ksm-tv .tv3-up-card.empty{grid-template-columns:1fr!important}
+body.ksm-tv .tv3-up-name{font-size:38px!important;line-height:.96!important;font-weight:830!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+body.ksm-tv .tv3-up-sub{margin-top:4px!important;font-size:18px!important;line-height:1!important;color:rgba(255,255,255,.72)!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+body.ksm-tv .tv3-up-vs{color:#e3bd5b!important;font-size:32px!important;font-weight:900!important}
+body.ksm-tv .tv3-results-body{display:flex!important;align-items:center!important;justify-content:center!important;padding:12px 120px 22px!important}
+body.ksm-tv .tv3-results-body .division-complete-panel{width:100%!important;max-width:1320px!important;margin:0!important;padding:0!important;text-align:left!important}
+body.ksm-tv .tv3-results-body .division-complete-list{display:grid!important;gap:18px!important;max-width:none!important;margin:0!important}
+body.ksm-tv .tv3-results-body .division-complete-row{display:grid!important;grid-template-columns:190px minmax(0,1fr)!important;align-items:center!important;min-height:94px!important;padding:0 34px!important;border:3px solid rgba(255,255,255,.2)!important;border-radius:14px!important;background:rgba(255,255,255,.035)!important;overflow:hidden!important}
+body.ksm-tv .tv3-results-body .division-complete-row b{font-size:36px!important;line-height:1!important;font-weight:900!important;text-transform:uppercase!important;letter-spacing:.05em!important;color:#e3bd5b!important;white-space:nowrap!important}
+body.ksm-tv .tv3-results-body .division-complete-row b.silver{color:#d8dde4!important}
+body.ksm-tv .tv3-results-body .division-complete-row b.bronze{color:#d79a65!important}
+body.ksm-tv .tv3-results-body .division-complete-row span{min-width:0!important;font-size:52px!important;line-height:1!important;font-weight:850!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+body.ksm-tv .tv3-results-footer{display:flex!important;align-items:flex-start!important;justify-content:center!important;padding-top:28px!important;color:#e3bd5b!important;font-size:42px!important;line-height:1!important;font-weight:900!important;letter-spacing:.1em!important;text-transform:uppercase!important}
+#staffAuthButton{white-space:nowrap;min-height:40px}
+.tournament-library-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:14px;margin-top:14px}
+.tournament-card{aspect-ratio:1/1;border:1px solid var(--line);border-radius:18px;background:#fff;padding:14px;font-weight:850;text-align:center;overflow-wrap:anywhere}
+.tournament-card.active{outline:3px solid #b88a17;outline-offset:2px}
+.access-link-box{padding:12px;border:1px solid var(--line);border-radius:12px;background:#f8f6f1;overflow-wrap:anywhere}
+.access-qr{text-align:center;margin-top:16px}.access-qr img{width:min(320px,75vw);height:auto}
+body.ksm-staff .director-only{display:flex!important}
+

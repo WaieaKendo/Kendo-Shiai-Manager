@@ -11,8 +11,9 @@ from ksm_browser import launch_chromium
 SINGLETONS = [
     # header / navigation
     'nav-setup', 'nav-registration', 'nav-courts', 'nav-court-a', 'nav-court-b', 'nav-live-scores',
-    'nav-tv', 'nav-tv-a', 'nav-tv-b', 'nav-overview', 'nav-results', 'nav-export', 'nav-save-load',
+    'nav-tv', 'nav-tv-a', 'nav-tv-b', 'nav-overlay-a', 'nav-overlay-b', 'nav-overview', 'nav-results', 'nav-export', 'nav-save-load',
     'nav-new-tournament', 'nav-save-now', 'nav-library', 'nav-tournament-access',
+    'nav-export-brackets', 'nav-cloud-diagnostics', 'nav-download-recovery', 'nav-load-recovery', 'recovery-file-input',
     'staff-auth', 'connection-status', 'save-status', 'home-new-tournament',
     # setup
     'setup-tournament-name', 'setup-division-rows', 'custom-division-name', 'custom-division-format',
@@ -22,7 +23,7 @@ SINGLETONS = [
     'reg-tab-individual', 'reg-tab-team', 'reg-tab-pools', 'generate-button', 'tournament-status',
     'reg-add-row', 'reg-filter', 'team-add', 'validation-modal', 'pool-division-select',
     # court screen
-    'court-title', 'court-division-select', 'court-division-title', 'court-match-meta',
+    'court-title', 'court-tournament-name', 'court-division-select', 'court-division-title', 'court-match-meta',
     'court-white-name', 'court-red-name', 'court-white-points', 'court-red-points',
     'court-white-hansoku', 'court-red-hansoku', 'court-context', 'court-queue',
     *[f'point-{side}-{letter}' for side in ('white', 'red') for letter in 'MKDT'],
@@ -34,6 +35,15 @@ SINGLETONS = [
 REG_ROW = ['reg-name', 'reg-dojo', 'reg-division', 'reg-seed', 'reg-status', 'reg-remove']
 TEAM_CARD = ['team-name', 'team-remove', 'team-status', 'team-member-senpo', 'team-member-chuken', 'team-member-taisho']
 SETUP_ROW = ['setup-division-enabled', 'setup-division-name', 'setup-division-format', 'setup-division-court']
+# Rendered only in a given state; checked where the flow below reaches that state.
+POOLS_VIEW = {'pool-edit': 1, 'pool-slot': 4}
+POOL_EDIT = {'pool-edit-pool': 1, 'pool-edit-player': 4, 'pool-edit-drop': 5, 'pool-edit-save': 1}  # a drop slot around each player
+COURT_POOL_CONTEXT = ['context-pool', 'context-pool-title']
+TV_SCREEN = ['tv-canvas', 'tv-header', 'tv-upcoming', 'tv-upcoming-card', 'tv-upcoming-white', 'tv-upcoming-red']
+# Also in the contract, exercised by the feature tests that need their state (docs/TESTING.md):
+# access-link/-copy/-qr, cloud-modal(-title/-close), diagnostics-retry, home-tournament(-name),
+# print-pool(-player), print-slot, representative-select/-readonly, team-round-head,
+# context-bracket, context-pool-complete, tv-kachinuki-*, tv-white-/tv-red-summary.
 
 COUNT_JS = """(ids) => Object.fromEntries(ids.map(id => [id, document.querySelectorAll(`[data-testid="${id}"]`).length]))"""
 PER_ROW_JS = """([row, ids]) => [...document.querySelectorAll(`[data-testid="${row}"]`)].map(r =>
@@ -70,6 +80,12 @@ def main():
         pools = app.pools('Open')
         if sorted(sum(pools.values(), [])) != ['P1', 'P2', 'P3', 'P4']:
             errors.append(f'pools view: {pools}')
+        if (found := page.evaluate(COUNT_JS, list(POOLS_VIEW))) != POOLS_VIEW:
+            errors.append(f'pools view IDs: {found}, expected {POOLS_VIEW}')
+        app.click('pool-edit')
+        if (found := page.evaluate(COUNT_JS, list(POOL_EDIT))) != POOL_EDIT:
+            errors.append(f'pool editor IDs: {found}, expected {POOL_EDIT}')
+        app.pools('Open')  # leave the editor without saving
         app.nav('setup')
         setup_rows = page.evaluate(PER_ROW_JS, ['setup-division-row', SETUP_ROW])
         if not setup_rows or any(set(r.values()) != {1} for r in setup_rows):
@@ -82,6 +98,7 @@ def main():
             errors.append(f'court screen: {m}')
         if 'Open' not in app.division_options():
             errors.append(f'court division options: {app.division_options()}')
+        errors += [f'court context {k}: not shown' for k, n in page.evaluate(COUNT_JS, COURT_POOL_CONTEXT).items() if n < 1]
 
         # Live Scores and TV show the current match on Court A.
         app.nav('live-scores')
@@ -92,6 +109,7 @@ def main():
         tv = app.tv_screen()
         if not tv['live'] or tv['white'] != m['white'] or tv['red'] != m['red']:
             errors.append(f'tv (court A): {tv}')
+        errors += [f'tv {k}: not shown' for k, n in page.evaluate(COUNT_JS, TV_SCREEN).items() if n < 1]
 
         # Finish the individual division; Results then lists its placements.
         app.open_court('A')

@@ -9,7 +9,8 @@
 //   node tests/run-all.mjs -v           print each test's output, not just failures
 //
 // Python tests use .venv/bin/python when present, otherwise KSM_PYTHON or python3.
-import { spawn } from 'node:child_process';
+// The app is built into dist/ first (`npm run build`); browser tests load the built app.
+import { spawn, execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -32,6 +33,15 @@ const files = fs.readdirSync(testsDir)
   .filter(f => !(onlyNode && f.endsWith('.py')) && !(onlyPy && f.endsWith('.mjs')))
   .filter(f => !filters.length || filters.some(q => f.includes(q)))
   .sort();
+
+if (files.length) {
+  try {
+    execFileSync(process.execPath, [path.join(root, 'node_modules', 'vite', 'bin', 'vite.js'), 'build', '--logLevel', 'error'], { cwd: root, stdio: 'inherit' });
+  } catch {
+    console.log('FAIL  build (npm run build)');
+    process.exit(1);
+  }
+}
 
 function run(file) {
   const cmd = file.endsWith('.py') ? python : process.execPath;
@@ -68,7 +78,7 @@ async function runPool(list, concurrency) {
 
 const nodeFiles = files.filter(f => f.endsWith('.mjs'));
 // Start the slowest browser tests first so they overlap with the many short ones.
-const SLOW = ['golden-engine', 'court-actions', 'e2e-full', 'sync-saving', 'tv-display', 'sync-remote', 'e2e-two', 'reload-restore', 'roles-access'];
+const SLOW = ['golden-engine', 'golden-court', 'court-actions', 'e2e-full', 'sync-saving', 'tv-display', 'sync-remote', 'e2e-two', 'reload-restore', 'roles-access'];
 const slowRank = f => { const i = SLOW.findIndex(s => f.startsWith(s)); return i < 0 ? SLOW.length : i; };
 const pyFiles = files.filter(f => f.endsWith('.py')).sort((a, b) => slowRank(a) - slowRank(b));
 const results = [...await runPool(nodeFiles, 8), ...await runPool(pyFiles, PY_JOBS)];

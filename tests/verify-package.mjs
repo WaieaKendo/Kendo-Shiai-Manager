@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
-const root = path.resolve('public');
+// Run after `npm run build`: checks the built site in dist/.
+const root = path.resolve('dist');
 const pkg = JSON.parse(fs.readFileSync(path.resolve('package.json'),'utf8'));
 const appVersion = pkg.version;
 const required = [
@@ -17,7 +18,9 @@ for (const rel of required) {
     console.error(`MISSING: ${rel}`); failed = true;
   }
 }
-const html = fs.readFileSync(path.join(root,'index.html'),'utf8');
+// index.html plus the app stylesheet and script it references.
+const indexHtml = fs.readFileSync(path.join(root,'index.html'),'utf8');
+const html = indexHtml + [...indexHtml.matchAll(/(?:href|src)="\/(assets\/app-[\w]+\.(?:css|js))"/g)].map(m => fs.readFileSync(path.join(root, m[1]),'utf8')).join('');
 for (const rel of required.filter(x=>x.startsWith('assets/'))) {
   if (!html.includes('/'+rel) && !fs.readFileSync(path.join(root,'service-worker.js'),'utf8').includes('/'+rel)) {
     console.error(`UNREFERENCED: ${rel}`); failed = true;

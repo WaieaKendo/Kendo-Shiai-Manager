@@ -1,0 +1,125 @@
+/* KSM v3.9.1 — uniform placement rows */
+.placement-row.champion{
+  background:transparent !important;
+  box-shadow:none !important;
+}
+
+
+/* KSM v3.12.0 — Tournament Management Engine */
+/* KSM v3.12.4 — Split-Court Stabilization: routing-only queues, shared tiebreak flow, logical match uniqueness */
+.tournament-status-card{margin-top:16px;border:1px solid var(--line);border-radius:16px;padding:16px;background:#fbfaf7}
+.tournament-status-card.ready{border-color:#bce5c8;background:var(--greenbg)}
+.tournament-status-card.attention{border-color:#ead9bd;background:var(--ivory)}
+.tournament-status-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.validation-list{display:grid;gap:8px;margin-top:12px}.validation-issue{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff}.validation-issue.error{border-left:4px solid var(--red)}.validation-issue.warning{border-left:4px solid #c89532}
+.regenerate-list{display:grid;gap:8px;max-height:50vh;overflow:auto}.regenerate-option{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:12px;background:#fff}.regenerate-option.disabled{opacity:.55}.regenerate-status{font-size:12px;font-weight:900}.regenerate-status.ready{color:var(--green)}.regenerate-status.started{color:var(--red)}.regenerate-status.not-generated{color:var(--muted)}
+.management-modal-card{width:min(620px,calc(100vw - 28px));max-height:86vh;overflow:auto}
+@media(max-width:760px){.tournament-status-card{margin-top:12px}.regenerate-option{grid-template-columns:auto 1fr}.regenerate-status{grid-column:2}}
+
+/* KSM v3.12.4 — split-court template consolidation */
+@media (min-width:761px){
+  .single-elim-context-grid.split-template-context{display:grid;grid-template-columns:1fr;gap:14px}
+  .single-elim-context-grid.split-template-context .single-elim-context-column{min-width:0}
+}
+.scoreboard-card.division-complete .scoreboard-match,
+.scoreboard-card.division-complete .score-controls-grid,
+.scoreboard-card.division-complete .bottom-action-row{display:none!important}
+.division-complete-panel{padding:18px 20px 22px;text-align:center}
+.division-complete-panel h2{margin:0 0 12px}.division-complete-list{display:grid;gap:8px;max-width:620px;margin:0 auto}
+.division-complete-row{display:grid;grid-template-columns:82px minmax(0,1fr);gap:16px;align-items:baseline;padding:8px 0;border:0;border-radius:0;background:transparent;text-align:left}
+.division-complete-row b{font-size:14px;letter-spacing:.06em;text-transform:uppercase}
+.division-complete-row b.gold{color:#c99b38}
+.division-complete-row b.silver{color:#aeb4bd}
+.division-complete-row b.bronze{color:#b67b4a}
+ .division-complete-row b.gold,.division-complete-row b.silver,.division-complete-row b.bronze{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important}
+.division-complete-row span{font-size:26px;line-height:1.12;font-weight:950;color:#fff;overflow-wrap:anywhere}
+.division-complete-row{background:none!important;box-shadow:none!important;border:0!important}
+/* Team Court Context uses one chronological column; Results retains its responsive grid. */
+#courtContext .results-team-bracket{grid-template-columns:minmax(0,1fr)!important}
+
+/* KSM v3.15.4 — consolidated interface polish */
+#validationModal .management-modal-card{
+  padding:28px 30px 26px;
+  text-align:left;
+}
+#validationModal .validation-modal-title{
+  margin:0 0 16px;
+  color:var(--ksm-navy,#071f33);
+  font-size:22px;
+}
+#validationModal .validation-modal-actions{
+  justify-content:flex-end;
+  gap:12px;
+  margin:22px 0 0;
+  padding:0 2px;
+}
+#validationModal .validation-modal-actions button{
+  min-width:112px;
+}
+#results .summary-like{
+  padding:10px 16px;
+  min-height:0;
+}
+#results .summary-like > b{
+  display:block;
+  width:100%;
+  font-size:16px;
+  line-height:1.2;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+#results .result-section{
+  margin:9px 0;
+}
+#results .result-section > details > summary{
+  padding:11px 16px;
+}
+.bottom-action-row .next-match-btn,
+#score .bottom-action-row .next-match-btn{
+  background:linear-gradient(180deg,#f1bd58 0%,#dfa13a 100%) !important;
+  color:#071f33 !important;
+  border-color:#e0a640 !important;
+  box-shadow:0 10px 22px rgba(214,151,42,.22) !important;
+}
+body.ksm-spectator .restricted-nav-extra,
+body.ksm-scorekeeper .restricted-nav-extra{display:none !important;}
+body.ksm-spectator #setup,
+body.ksm-spectator #registration,
+body.ksm-spectator #print,
+body.ksm-spectator #search{display:none !important;}
+body.ksm-scorekeeper #setup,
+body.ksm-scorekeeper #registration,
+body.ksm-scorekeeper #print,
+body.ksm-scorekeeper #search{display:none !important;}
+@media(max-width:600px){
+  #validationModal{padding:18px;}
+  #validationModal .management-modal-card{padding:24px 20px 20px;}
+  #validationModal .validation-modal-actions{display:grid;grid-template-columns:1fr 1fr;width:100%;}
+  #validationModal .validation-modal-actions button{min-width:0;width:100%;}
+  #results .summary-like > b{font-size:15px;}
+}
+
+/* KSM v3.16.2 — Pool Division Selection Stability */
+body.ksm-home .ksm-topbar,body.ksm-home>.spectator-readonly-banner{display:none!important}
+body.ksm-home main{max-width:none;margin:0;padding:0;min-height:100vh}
+#home{min-height:100vh;padding:clamp(28px,6vw,72px) clamp(18px,5vw,64px);background:linear-gradient(180deg,#fbfaf7 0%,#f3eee5 100%)}
+.home-shell{max-width:1120px;margin:0 auto}
+.home-brand{display:flex;align-items:center;gap:18px;margin-bottom:clamp(34px,7vw,72px)}
+.home-brand img{width:74px;height:74px}
+.home-brand h1{margin:0;font-size:clamp(30px,5vw,52px);line-height:1}
+.home-brand p{margin:8px 0 0;color:var(--muted);font-weight:700}
+.home-head{display:flex;justify-content:space-between;align-items:end;gap:18px;flex-wrap:wrap;margin-bottom:22px}
+.home-head h2{font-size:clamp(24px,3vw,34px);margin:0}
+.home-head p{margin:6px 0 0;color:var(--muted)}
+.home-new-button{padding:14px 20px;min-height:52px;background:var(--ink);color:#fff;border-color:var(--ink)}
+.home-library-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:18px}
+.home-tournament-card{min-height:168px;padding:22px;text-align:left;display:flex;flex-direction:column;justify-content:space-between;background:#fff;border:1px solid var(--line);box-shadow:var(--shadow);border-radius:18px}
+.home-tournament-card:hover{transform:translateY(-2px);border-color:#cdbd9f}
+.home-tournament-card .home-card-name{font-size:20px;line-height:1.25;font-weight:900}
+.home-tournament-card .home-card-meta{font-size:12px;color:var(--muted);font-weight:700}
+.home-empty{padding:44px 24px;text-align:center;background:rgba(255,255,255,.72);border:1px dashed #d8cdbb;border-radius:18px;color:var(--muted)}
+.nav-brand{cursor:pointer}
+@media(max-width:640px){.home-brand{margin-bottom:42px}.home-library-grid{grid-template-columns:1fr 1fr}.home-tournament-card{min-height:140px;padding:16px}.home-tournament-card .home-card-name{font-size:17px}}
+@media(max-width:420px){.home-library-grid{grid-template-columns:1fr}}
+

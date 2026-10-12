@@ -1,0 +1,53 @@
+// The court screen header: tournament name, court title, division select, division title
+// and match line.
+//
+// The legacy app still computes everything the header shows (app/js/35-react-court.js):
+// updateScoreTournamentName() publishes the tournament name, renderDivisions() the court and
+// the divisions this court may select (its selection rules stay legacy), and renderScore()
+// the division title and match line (matchDisplayMeta()). Each writer publishes only its own
+// fields, as each legacy writer only wrote its own elements: when a division completes,
+// renderScore() updates the tournament name alone and the rest keeps what it showed before.
+// courtHeaderView() turns that into what CourtHeader renders.
+
+export interface CourtHeaderInput {
+  /** tName.value or "Kendo Tournament". */
+  tournamentName: string;
+  /** state.currentCourt ('A' / 'B'). */
+  court: string;
+  /** The division select's options, in order (renderDivisions()). */
+  divisions: string[];
+  /** state.currentDivision when renderDivisions() last ran ('' when none). */
+  currentDivision: string;
+  divisionTitle: string;
+  matchLine: string;
+}
+
+export interface CourtHeaderView {
+  tournamentName: string;
+  title: string;
+  divisions: string[];
+  /**
+   * What the select shows, as the legacy renderDivisions() left it: the current division
+   * (assigned to select.value, so a division that is not an option selects nothing), or,
+   * with no current division, null: the first option.
+   */
+  selectValue: string | null;
+  divisionTitle: string;
+  matchLine: string;
+}
+
+/** The static markup (app/index.html), before any legacy writer ran. */
+export const EMPTY_HEADER: CourtHeaderInput = {
+  tournamentName: 'Kendo Tournament', court: 'A', divisions: [], currentDivision: '', divisionTitle: '—', matchLine: 'No active match',
+};
+
+export function courtHeaderView(input: CourtHeaderInput): CourtHeaderView {
+  return {
+    tournamentName: input.tournamentName,
+    title: `Court ${input.court}`,
+    divisions: [...input.divisions],
+    selectValue: input.currentDivision ? input.currentDivision : null,
+    divisionTitle: input.divisionTitle,
+    matchLine: input.matchLine,
+  };
+}

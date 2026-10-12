@@ -5,8 +5,12 @@
   "type": "module",
   "description": "Kendo Shiai Manager hosted mobile/PWA application",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "build": "vite build",
+    "dev": "vite build && wrangler dev",
+    "dev:vite": "vite",
+    "deploy": "vite build && wrangler deploy",
+    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p app/react && tsc --noEmit -p app/engine",
+    "verify:split": "node scripts/verify-split.mjs",
     "test": "node tests/run-all.mjs",
     "test:node": "node tests/run-all.mjs --node",
     "test:browser": "node tests/run-all.mjs --py",
@@ -14,7 +18,7 @@
     "test:e2e": "node tests/run-all.mjs e2e-",
     "test:e2e:watch": "KSM_HEADED=1 KSM_SLOWMO=${KSM_SLOWMO:-300} .venv/bin/python tests/e2e-full-tournament-test.py",
     "test:golden": "node tests/run-all.mjs golden-",
-    "test:golden:update": "KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-engine-test.py",
+    "test:golden:update": "KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-engine-test.py && KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-court-screen-test.py",
     "test:setup": "python3 -m venv .venv && .venv/bin/pip install -q playwright && .venv/bin/python -m playwright install chromium",
     "check": "node tests/run-all.mjs",
     "check:cloud": "node tests/run-all.mjs --node cloud realtime role worker-api",
@@ -52,6 +56,16 @@
     "test:v31720": "node tests/v31720-pool-local-tiebreak-order-test.mjs"
   },
   "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "rolldown": "^1.2.9",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0",
     "wrangler": "^4.11.0"
+  },
+  "dependencies": {
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
   }
 }

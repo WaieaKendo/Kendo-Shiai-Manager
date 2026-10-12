@@ -1,8 +1,9 @@
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 from ksm_browser import launch_chromium, load_app
+from ksm_source import app_html
 
-HTML=(Path(__file__).resolve().parents[1]/'public'/'index.html').read_text()
+HTML=app_html()
 
 with sync_playwright() as p:
     browser=launch_chromium(p)
@@ -80,8 +81,10 @@ with sync_playwright() as p:
       ]};state.brackets={Test:championshipTemplateForTotal(8)};state.championshipNodes={};state.allMatches={Test:buildChampionshipTemplateMatches('Test',state.brackets.Test)};state.byeWinners={Test:[]};
       poolPositionsResolved=()=>false;
     """)
-    groups_a=page.evaluate("poolChampionshipQueueGroups('Test','A').map(g=>[g.label,g.rows.length])")
-    groups_b=page.evaluate("poolChampionshipQueueGroups('Test','B').map(g=>[g.label,g.rows.length])")
+    # (The court queue's championship groups: ksmChampionshipQueueGroups(), 35-react-court.js, in
+    # place of the legacy poolChampionshipQueueGroups() removed in M.8 step 5.)
+    groups_a=page.evaluate("ksmChampionshipQueueGroups('Test','A').map(g=>[g.label,g.rows.length])")
+    groups_b=page.evaluate("ksmChampionshipQueueGroups('Test','B').map(g=>[g.label,g.rows.length])")
     assert groups_a==[['Semifinal',1],['Final',1]],groups_a
     assert groups_b==[['Semifinal',1]],groups_b
 

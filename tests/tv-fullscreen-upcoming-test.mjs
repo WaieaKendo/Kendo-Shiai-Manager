@@ -1,5 +1,6 @@
+import { html as appSource } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
-const html=fs.readFileSync('public/index.html','utf8');
+const html=appSource;
 const checks=[
  ['TV court locked from URL',html.includes('function tvAssignedCourt()')&&html.includes("new URLSearchParams(location.search).get('court')")],
  ['TV render uses assigned court',html.includes('const court=tvAssignedCourt(),data=courtCurrentMatch(court);')],
