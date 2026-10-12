@@ -650,11 +650,16 @@ class KsmApp:
     def next_match(self, settle=False):
         """Court screen -> Next Match. settle=True waits until the screen has moved on from the
         match just finished: the court screen is React and redraws just after the click, so a
-        test that reads the screen right away could still see (and re-log) the old match."""
-        before = self.court_screen() if settle else None
+        test that reads the screen right away could still see (and re-log) the old match.
+
+        It waits for another match (division, match line or names), not just any redraw: the
+        screen may still be drawing the last point when Next Match is clicked, and that redraw
+        alone once let an e2e run log the finished match twice ("played 28, server has 27")."""
+        ident = lambda s: (s['division'], s['meta'], s['white'], s['red'], s['complete'])
+        before = ident(self.court_screen()) if settle else None
         self.click('next-match')
         if settle:
-            self.wait_for(lambda: self.court_screen() != before, timeout=15,
+            self.wait_for(lambda: ident(self.court_screen()) != before, timeout=15,
                           message='the court screen to move on from the finished match')
 
     def undo(self):
