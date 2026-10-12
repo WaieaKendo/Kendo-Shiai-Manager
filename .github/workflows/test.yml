@@ -1,9 +1,11 @@
 name: Tests
 
 # Runs the full regression suite (npm test: builds dist/ first) on every push and pull request.
+# Also called by deploy.yml (workflow_call), so nothing deploys without a green suite.
 on:
   push:
   pull_request:
+  workflow_call:
 
 jobs:
   test:

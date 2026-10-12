@@ -1,3 +1,7 @@
+// The release version is written only in package.json; wrangler (esbuild) bundles it in at deploy
+// time, Node reads it directly in the tests. Only .version is used (/api/health).
+import packageJson from './package.json' with { type: 'json' };
+const APP_VERSION = packageJson.version;
 const JSON_HEADERS = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' };
 const VALID_ROLES = new Set(['spectator', 'staff']);
 
@@ -371,7 +375,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     try {
-    if (url.pathname === '/api/health') return json({ ok: true, service: 'ksm-cloud', version: '3.17.20-test', realtime: true, roles: ['spectator', 'staff'], offlineOutbox: true });
+    if (url.pathname === '/api/health') return json({ ok: true, service: 'ksm-cloud', version: APP_VERSION, realtime: true, roles: ['spectator', 'staff'], offlineOutbox: true });
 
     const libraryStub = () => env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName('__ksm_library__'));
     const updateLibrary = async (record) => {
