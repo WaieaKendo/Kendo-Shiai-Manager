@@ -137,6 +137,8 @@ const KNOWN_POST_SPLIT_EDITS = {
   // fix/react-batch-1 (F18): Paste from Excel splits rows on CR LF, CR and LF and trims each cell
   // (16: the document paste listener, two inline edits).
   'paste-lines': 2,
+  // test/audit (F31): Paste from Excel asks for an autosave like every other registration edit (app/js/16).
+  'paste-save': 1,
   // fix/pre-event (F9): printPlacementsForDivision() uses resultPlacements() (comment + body).
   'print-placements': 2,
   // fix/pre-event (F3, from fix/court-pin-after-reload): the pinned-court key no longer holds the
@@ -162,6 +164,12 @@ const KNOWN_POST_SPLIT_EDITS = {
   'staff-outbox': 1,
   // fix/pre-event (F11): saveAuto(), called by the awards editor but never defined (app/js/20).
   'award-save': 1,
+  // fix/stuck-pending (F35, test audit N1), 21 and 33: a failed save queued in the outbox is retried
+  // with backoff (scheduleQueuedSaveRetry(), from saveTournamentToCloudWithReason() and
+  // flushCloudOutbox()), the local changes a queued snapshot carries are confirmed when it is sent
+  // (noteQueuedMutation()/confirmQueuedMutation()), and performCloudSave() gives up on a save to an
+  // existing tournament after KSM_CLOUD_SAVE_TIMEOUT_MS (cloudSaveTimeoutSignal()).
+  'save-retry': 6,
   // fix/outbox-flush-local-changes (F6): mergeQueuedStaffWork() and its call at staff login;
   // the outbox flush also replays court actions taken before it started (comment + condition).
   'outbox-flush-rebase': 4,
@@ -467,6 +475,10 @@ const MARKUP_TEST_IDS = [
   ['<button onclick="closeNavMenus();triggerLoadTournament()">', 'nav-load-file'],
   ['<input id="ksmLoadFile" type="file" accept=".ksm,application/json" style="display:none" onchange="loadTournamentFromFile(event)">', 'load-file-input'],
   ['<select id="exhibitionEnabled" onchange="saveSetup();renderReg()">', 'exhibition-enabled'],
+  // Test audit (issue #19): the referees' red side per court and the team awards, for edit-sync-test.py.
+  ['<select id="court1RedSide" onchange="saveSetup();applyCourtSides();renderAll()">', 'setup-red-side-a'],
+  ['<select id="court2RedSide" onchange="saveSetup();applyCourtSides();renderAll()">', 'setup-red-side-b'],
+  ['<select id="teamAwardMode" onchange="state.teamAwardMode=this.value;saveSetup()">', 'team-award-mode'],
   ['<button id="exhibitionTab" class="tab" onclick="regTab(\'exhibition\')">', 'reg-tab-exhibition'],
   ['<button id="regenerateDivisionBtn" onclick="openRegenerateDivisionDialog()">', 'regenerate-division-button'],
   ['<button onclick="alert(\'CSV import will be added in the production build.\')">', 'reg-import-csv'],

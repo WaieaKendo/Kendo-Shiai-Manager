@@ -64,7 +64,7 @@ async function performCloudSave(payload=tournamentPayload(),baseRevision=cloudSe
     response=await fetch(existing?`/api/tournaments/${encodeURIComponent(existing)}`:'/api/tournaments',{
       method:existing?'PUT':'POST',
       headers:cloudHeaders(),
-      body
+      /* ksm:post-split-begin save-retry */signal:cloudSaveTimeoutSignal(existing),/* ksm:post-split-end */body
     });
   }catch(err){
     writeCloudDiagnosticsState({attemptId,stage:'Network request failed',errorMessage:String(err?.message||err),lastFailureAt:new Date().toISOString()});

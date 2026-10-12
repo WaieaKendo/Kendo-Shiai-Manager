@@ -261,7 +261,13 @@ def main():
             f'expected one tiebreak between {sorted(draw_pair)}, got {[(m["white"], m["red"]) for m in tiebreaks]}'
         assert (tiebreaks[0].get('completedResult') or {}).get('winner') == stronger(*draw_pair), f'tiebreak result: {tiebreaks[0]}'
         scheduled = sum(len(server[d]) for d in (RR, SE, TEAM)) - len(empty_slots)
-        assert len(log) == scheduled, f'played {len(log)} matches, server has {scheduled}'
+        seen, repeats = set(), []
+        for e in log:
+            key = (e['court'], e['division'], e['meta'], e['white'], e['red'])
+            if key in seen:
+                repeats.append(key)
+            seen.add(key)
+        assert len(log) == scheduled, f'played {len(log)} matches, server has {scheduled}; logged twice: {repeats}'
 
         # Results page placements follow from the scripted results.
         expected = {div: expected_placements(log, div) for div in (RR, SE, TEAM)}

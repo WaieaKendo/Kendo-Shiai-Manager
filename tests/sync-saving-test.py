@@ -18,6 +18,7 @@ throwaway `wrangler dev`:
     the stored choice; a TV link keeps its own court whatever the device chose for scoring.
 """
 import json
+from datetime import datetime
 import time
 
 from playwright.sync_api import sync_playwright
@@ -97,6 +98,9 @@ def main():
         page.route('**/api/tournaments/**', reject)
         app.score_point('W', 'D')
         app.wait_for(app.outbox, message='the rejected save to be queued')
+        # The queue is retried by itself after 2 s (F35, save-retry-test.py): hold the clock so the
+        # diagnostics still show this rejection and Retry queued save is what sends it.
+        page.clock.pause_at(datetime.fromtimestamp(page.evaluate('Date.now()') / 1000 + 0.01))
         page.unroute('**/api/tournaments/**', reject)
         app.click('save-status')  # the status area opens Cloud Diagnostics
         page.wait_for_selector(sel('cloud-modal'))
@@ -112,6 +116,7 @@ def main():
         page.wait_for_selector(sel('cloud-modal'))
         text = page.inner_text(sel('cloud-modal'))
         assert 'Save completed' in text and 'Pending offline changes\nNone' in text, text[:1500]
+        page.clock.resume()
         app.click('cloud-modal-close')
         app.wait_idle()
         assert [m['wp'] for m in server()['payload']['state']['allMatches']['Open'] if m.get('wp')] == [['M', 'D']]

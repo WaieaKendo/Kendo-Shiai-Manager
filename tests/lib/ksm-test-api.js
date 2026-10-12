@@ -19,6 +19,24 @@ window.KSMTest = {
   // after Staff Login; issue #9).
   staffSession() { return sessionKey(); },
   pending() { return localChangesPending(); },
+  // Why pending() is true (what wait_idle reports when it times out): each thing that keeps the
+  // device "unsaved", plus the last save attempt as the cloud diagnostics recorded it.
+  pendingReason() {
+    const d = readCloudDiagnosticsState(), socket = typeof ksmCloudSocket === 'object' && ksmCloudSocket;
+    return {
+      pending: localChangesPending(),
+      mutationVersion: ksmLocalMutationVersion, confirmedVersion: ksmConfirmedMutationVersion,
+      autosaveTimer: !!ksmSaveTimer, cloudSaveTimer: !!ksmCloudTimer, saveInFlight: ksmCloudSaveInFlight,
+      queuedSave: ksmCloudSavePending ? {reason: ksmCloudSavePending.reason, force: !!ksmCloudSavePending.force} : null,
+      outbox: KSMTest.outbox(), applyingRemote: ksmApplyingRemoteSnapshot,
+      role: ksmSessionRole, revision: KSMTest.revision(), online: navigator.onLine,
+      socket: socket ? ['connecting', 'open', 'closing', 'closed'][socket.readyState] : 'none',
+      saveStatus: ksmSaveStatusMode,
+      lastSave: {attemptId: d.attemptId, stage: d.stage, at: d.lastAttemptAt, httpStatus: d.httpStatus,
+                 error: d.errorMessage || '', body: String(d.errorBody || '').slice(0, 200), lastSuccessAt: d.lastSuccessAt, serverRevision: d.serverRevision},
+      now: new Date().toISOString(),
+    };
+  },
   diagnostics() { return readCloudDiagnosticsState(); },
   // Snapshot queued for the cloud (offline, failed save, reload before a save): who queued it, for which tournament.
   outbox() { const o = readOutbox(); return o ? {tournamentId: o.tournamentId, role: o.role, baseRevision: o.baseRevision, reason: o.actions?.[0]?.reason || ''} : null; },
@@ -35,6 +53,19 @@ window.KSMTest = {
     try { applyTournamentPayload(payload, false, {source: 'live sync'}); } finally { ksmApplyingRemoteSnapshot = false; }
   },
   clientId() { return cloudSession.clientId; },
+  // Count the save conflicts this device meets (HTTP 409 answers to its saves, each followed by
+  // a rebase); conflicts() returns the total since watchConflicts().
+  watchConflicts() {
+    if (window.__ksmTestConflicts) return;
+    window.__ksmTestConflicts = {count: 0};
+    const orig = window.fetch;
+    window.fetch = async function (...args) {
+      const response = await orig.apply(this, args);
+      if (response.status === 409) window.__ksmTestConflicts.count++;
+      return response;
+    };
+  },
+  conflicts() { return window.__ksmTestConflicts?.count || 0; },
   generated() { return !!state.generated && Object.keys(state.allMatches || {}).length > 0; },
   allMatches() { return state.allMatches; },
   pools() { return state.pools; },

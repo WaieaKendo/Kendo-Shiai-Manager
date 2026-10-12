@@ -19,7 +19,7 @@ SINGLETONS = [
     # setup
     'setup-tournament-name', 'setup-host', 'setup-location', 'setup-division-rows', 'custom-division-name', 'custom-division-format',
     'custom-division-court', 'custom-division-add', 'team-enabled', 'team-format', 'team-tournament-format',
-    'team-court', 'setup-save-continue', 'exhibition-enabled',
+    'team-court', 'setup-save-continue', 'exhibition-enabled', 'setup-red-side-a', 'setup-red-side-b', 'team-award-mode',
     # registration
     'reg-tab-individual', 'reg-tab-team', 'reg-tab-pools', 'generate-button', 'tournament-status',
     'reg-add-row', 'reg-filter', 'team-add', 'validation-modal', 'pool-division-select',
