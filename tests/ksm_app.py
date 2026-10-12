@@ -320,6 +320,53 @@ class KsmApp:
         """(test API) Cloud diagnostics state (rebase attempts etc.)."""
         return self.page.evaluate('KSMTest.diagnostics()')
 
+    def watch_conflicts(self):
+        """(test API) Start counting the save conflicts (HTTP 409 answers) this device meets (see conflicts)."""
+        self.page.evaluate('KSMTest.watchConflicts()')
+
+    def conflicts(self):
+        """(test API) Save conflicts (409 answers, each followed by a rebase) since watch_conflicts()."""
+        return self.page.evaluate('KSMTest.conflicts()')
+
+    _SAVE_URL = '**/api/tournaments/*'
+
+    def hold_next_save(self):
+        """Hold this device's next save (PUT /api/tournaments/<id>) at the network until release_save().
+
+        Makes a save race deterministic: hold it, let another device save first, release it, and
+        it meets a conflict (409) and is rebased, as when two devices save at the same moment.
+        Other requests pass; later saves wait in the app's own queue while this one is in flight.
+        """
+        self._held, self._hold_done = [], False
+
+        def hold(route):
+            if route.request.method == 'PUT' and not self._held and not self._hold_done:
+                self._held.append(route)
+            else:
+                route.continue_()
+        self._hold_handler = hold
+        self.page.route(self._SAVE_URL, hold)
+
+    def wait_held_save(self, timeout=15):
+        """Wait until the save held by hold_next_save() was sent; returns the payload it carries."""
+        deadline = time.time() + timeout
+        while not self._held:
+            if time.time() > deadline:
+                raise AssertionError(f'{self.name}: no save was sent to hold')
+            self.page.wait_for_timeout(50)
+        return json.loads(self._held[0].request.post_data)['payload']
+
+    def release_save(self):
+        """Send the held save on (it now meets whatever the server got meanwhile) and stop holding."""
+        self._hold_done = True
+        self._held.pop().continue_()
+        self.page.unroute(self._SAVE_URL, self._hold_handler)
+
+    def blur(self):
+        """Leave the field that has the focus (as a tap elsewhere does); a staff device applies
+        live updates held while a field was being edited."""
+        self.page.evaluate('() => document.activeElement && document.activeElement.blur()')
+
     # ----------------------------------------------------------- engine (test API)
     def configure(self, entries):
         """(test API) Set up divisions/competitors/teams and generate, without the UI.
@@ -502,6 +549,34 @@ class KsmApp:
         for _ in range(STATUS_CLICKS[status]):
             page.locator(sel('team-card')).last.locator(sel('team-status')).click()
 
+    def set_competitor_field(self, name, field, value):
+        """Registration -> Individual: change `field` ('name', 'dojo', 'seed') of the row of `name`."""
+        page = self.page
+        if not page.is_visible(sel('reg-add-row')):
+            self.nav('registration')
+            self.click('reg-tab-individual')
+        rows = page.locator(sel('reg-row'))
+        for i in range(rows.count()):
+            if rows.nth(i).locator(sel('reg-name')).input_value() == name:
+                box = rows.nth(i).locator(sel(f'reg-{field}'))
+                box.fill(str(value))
+                box.press('Tab')
+                return
+        raise AssertionError(f'{self.name}: no registration row for {name!r}')
+
+    def regenerate_division(self, division):
+        """Registration -> Regenerate Single Division -> `division` -> Continue -> Regenerate -> Close."""
+        page = self.page
+        self.nav('registration')
+        self.click('regenerate-division-button')
+        page.wait_for_selector(f'{sel("regenerate-modal")}:not(.hidden)')
+        page.locator(sel('regenerate-option'), has=page.locator(sel('regenerate-option-name'), has_text=division)) \
+            .locator(sel('regenerate-option-radio')).check()
+        self.click('regenerate-continue')
+        self.click('regenerate-confirm')
+        page.wait_for_function(f"document.querySelector('{sel('regenerate-modal-title')}')?.textContent.trim() === 'Division Regenerated'")
+        self.click('regenerate-modal-close')
+
     def generate(self):
         """Registration -> Generate Tournament -> confirm in the validation dialog."""
         page = self.page
@@ -613,6 +688,26 @@ class KsmApp:
         """Results page: {division: [(place, name), ...]} for every division card."""
         self.nav('results')
         return {div: [tuple(r) for r in rows] for div, rows in self.page.evaluate(_RESULTS_JS).items()}
+
+    def add_award(self, award, name='', dojo=''):
+        """Results -> Special Awards: + Add Award and fill in the new row (each field committed by Tab)."""
+        self.nav('results')
+        editor = self.page.locator('#results .results-awards-card')
+        rows = editor.get_by_role('textbox', name='Award name')
+        before = rows.count()
+        editor.get_by_role('button', name='+ Add Award').click()
+        self.wait_for(lambda: rows.count() == before + 1, message='the new award row')
+        for label, value in (('Award name', award), ('Recipient name', name), ('Dojo', dojo)):
+            field = editor.get_by_role('textbox', name=label).nth(before)
+            field.fill(value)
+            field.press('Tab')
+
+    def awards(self):
+        """Results -> Special Awards: [(award, recipient, dojo)] as the editor shows them."""
+        self.nav('results')
+        editor = self.page.locator('#results .results-awards-card')
+        col = lambda label: [x.input_value() for x in editor.get_by_role('textbox', name=label).all()]
+        return list(zip(col('Award name'), col('Recipient name'), col('Dojo')))
 
     def render_tv(self):
         """(test API) Render the TV display inside this page (offline tests; a TV device uses tv_link())."""

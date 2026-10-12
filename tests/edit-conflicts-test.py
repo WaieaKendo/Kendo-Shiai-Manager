@@ -1,0 +1,197 @@
+"""Two devices editing at the same time: every kind of edit through a save conflict (test audit, issue #19).
+
+Director, Court A, Court B and a registration desk (a second staff device) against a throwaway
+`wrangler dev`. Each race is made deterministic: the second device's save is held at the network
+(KsmApp.hold_next_save()) while the first device's edit is saved, then released, so it meets a
+conflict (HTTP 409) and is rebased onto the first device's save, as when two devices save at the
+same moment. After each race the server copy must hold both edits and both devices must show
+them; at the end a fresh device and a reloaded court device must still show them.
+
+  1. a court point vs a Setup edit saved first (the reverse of F4's race);
+  2. a Registration edit vs a court point saved first;
+  3. a court point vs a Registration edit saved first;
+  4. two Registration edits (two desks): F29, expected-failure check: the list changed on both
+     sides, so the second save's change is dropped with a notice;
+  5. a Special Award vs a court point saved first;
+  6. a structural edit (Regenerate Single Division) vs a Registration edit saved first;
+  7. a Registration edit vs a structural edit saved first;
+  8. Undo vs another court's point saved first: F30, expected-failure check: the undo is lost
+     (the undone point comes back) because an undo is not an action the rebase replays.
+
+Court vs court (both courts scoring) is e2e-two-court-sync-test.py; a Setup edit vs a court point
+saved first (F4) is sync-remote-updates-test.py; a structural edit vs a court point is
+structural-edit-conflict-test.py.
+"""
+import time
+
+from playwright.sync_api import sync_playwright
+from ksm_app import KsmApp, fetch_record, sel, app_path
+from ksm_browser import launch_chromium
+from ksm_server import local_worker
+
+OPEN_A, OPEN_B, KIDS = 'Open A', 'Open B', 'Kids'
+
+
+def people(prefix, n):
+    return [{'name': f'{prefix} {i + 1}', 'dojo': f'{prefix} Dojo', 'seed': '', 'status': 'Checked'} for i in range(n)]
+
+
+def main():
+    problems = []
+    started = time.time()
+    with local_worker() as base, sync_playwright() as p:
+        browser = launch_chromium(p)
+        director = KsmApp.open_device(browser, base, 'Director', problems, tournament_name='Conflict Cup')
+        tid = director.create_tournament()
+        director.configure([
+            {'name': OPEN_A, 'format': 'Round Robin', 'court': 'A', 'entrants': people('A', 4)},
+            {'name': OPEN_B, 'format': 'Round Robin', 'court': 'B', 'entrants': people('B', 4)},
+            {'name': KIDS, 'format': 'Round Robin', 'court': 'A', 'entrants': people('K', 3)},
+        ])
+        director.save_now()
+        director.wait_idle()
+        devices = [director]
+        for court in 'AB':
+            app = KsmApp.open_device(browser, base, f'Court {court}', problems, app_path(tid, 'court', court))
+            app.wait_generated()
+            app.staff_login()
+            app.open_court(court)
+            devices.append(app)
+        court_a, court_b = devices[1], devices[2]
+        desk = KsmApp.open_device(browser, base, 'Desk', problems, app_path(tid))
+        desk.wait_generated()
+        desk.staff_login()
+        devices.append(desk)
+        for app in devices:
+            app.watch_conflicts()
+
+        def server():
+            return fetch_record(base, tid)
+
+        def settle():
+            """Every device idle and on the server's latest revision."""
+            for app in devices:
+                app.blur()
+                app.wait_idle()
+            rev = server()['revision']
+            for app in devices:
+                app.wait_revision(rev)
+            return rev
+
+        def race(second, second_edit, first, first_edit):
+            """`second` edits but its save is held; `first` edits and saves; then `second`'s save
+            goes on, meets the conflict and is rebased. Returns the server record afterwards."""
+            rev = settle()
+            seen = second.conflicts()
+            second.hold_next_save()
+            second_edit()
+            second.wait_held_save()
+            first_edit()
+            first.blur()
+            first.wait_idle()
+            assert server()['revision'] > rev, f'{first.name}: its save did not reach the server first'
+            second.release_save()
+            second.wait_for(lambda: second.conflicts() > seen, message='the held save to meet the conflict')
+            settle()
+            return server()
+
+        state = lambda record: record['payload']['state']
+        competitor = lambda record, name: next((c for c in state(record)['competitors'] if c['name'] == name), None)
+        dojo_on = lambda app, name: next((c['dojo'] for c in app.payload()['state']['competitors'] if c['name'] == name), None)
+        scored = lambda record, div, side, letter: any(letter in (m.get(side) or []) for m in state(record)['allMatches'][div])
+
+        # 1. A court point vs a Setup edit saved first.
+        def rename():
+            director.nav('setup')
+            director.page.fill(sel('setup-tournament-name'), 'Renamed Cup')
+            director.page.press(sel('setup-tournament-name'), 'Tab')
+        record = race(court_a, lambda: court_a.score_point('W', 'M'), director, rename)
+        assert record['payload']['setup']['tName'] == 'Renamed Cup', '1: the Setup edit was lost'
+        assert scored(record, OPEN_A, 'wp', 'M'), '1: the court point was lost'
+        court_a.wait_for(lambda: court_a.page.input_value(sel('setup-tournament-name')) == 'Renamed Cup', message='1: the rename on Court A')
+        director.wait_for(lambda: scored({'payload': director.payload()}, OPEN_A, 'wp', 'M'), message='1: the point on the director device')
+
+        # 2. A Registration edit vs a court point saved first.
+        record = race(director, lambda: director.register('K 4', 'K Dojo', KIDS), court_b, lambda: court_b.score_point('R', 'K'))
+        assert competitor(record, 'K 4'), '2: the new player was lost'
+        assert scored(record, OPEN_B, 'rp', 'K'), '2: the court point was lost'
+        court_b.wait_for(lambda: dojo_on(court_b, 'K 4') == 'K Dojo', message='2: the new player on Court B')
+
+        # 3. A court point vs a Registration edit saved first.
+        desk.nav('registration')
+        record = race(court_b, lambda: court_b.score_point('W', 'D'), desk, lambda: desk.set_competitor_field('A 2', 'dojo', 'New Dojo'))
+        assert competitor(record, 'A 2')['dojo'] == 'New Dojo', '3: the Registration edit was lost'
+        assert scored(record, OPEN_B, 'wp', 'D'), '3: the court point was lost'
+        court_b.wait_for(lambda: dojo_on(court_b, 'A 2') == 'New Dojo', message='3: the edit on Court B')
+
+        # 4. Two Registration edits (two desks), different players: the list changed on both sides.
+        director.nav('registration')
+        record = race(desk, lambda: desk.register('K 5', 'K Dojo', KIDS), director, lambda: director.set_competitor_field('A 3', 'dojo', 'Other Dojo'))
+        assert competitor(record, 'A 3')['dojo'] == 'Other Dojo', '4: the edit saved first was lost'
+        notice = desk.page.inner_text(sel('toast'))
+        # F29 (open): the desk's new player is dropped (the server's list is kept, with a notice).
+        # When F29 is fixed (entries merged one by one), K 5 is kept: assert that and mark F29 fixed.
+        assert competitor(record, 'K 5') is None, 'F29 fixed? K 5 survived the conflict: assert it is kept and mark F29 fixed'
+        assert 'Registration' in notice and 'another device' in notice, f'4: the dropped edit is not reported: {notice!r}'
+        desk.wait_for(lambda: dojo_on(desk, 'K 5') is None, message='4: the desk to show the kept list')
+
+        # 5. A Special Award vs a court point saved first.
+        record = race(director, lambda: director.add_award('Best Kiai', 'A 1', 'A Dojo'), court_a, lambda: court_a.score_point('R', 'M'))
+        assert [(a.get('award'), a.get('name'), a.get('dojo')) for a in state(record).get('awards') or []] == [('Best Kiai', 'A 1', 'A Dojo')], \
+            f'5: the award was lost: {state(record).get("awards")}'
+        assert scored(record, OPEN_A, 'rp', 'M'), '5: the court point was lost'
+        assert director.awards() == [('Best Kiai', 'A 1', 'A Dojo')], director.awards()
+        court_a.wait_for(lambda: (court_a.payload()['state'].get('awards') or [{}])[0].get('award') == 'Best Kiai', message='5: the award on Court A')
+
+        # 6. A structural edit (Regenerate Single Division, now with K 4) vs a Registration edit saved first.
+        desk.nav('registration')
+        record = race(director, lambda: director.regenerate_division(KIDS), desk, lambda: desk.set_competitor_field('B 2', 'dojo', 'Desk Dojo'))
+        kids = [x['name'] if isinstance(x, dict) else x for pool in state(record)['pools'][KIDS] for x in pool['players']]
+        assert 'K 4' in kids, f'6: the regenerated division was lost: {kids}'
+        assert competitor(record, 'B 2')['dojo'] == 'Desk Dojo', '6: the Registration edit was lost'
+        assert not director.seen_dialogs, director.seen_dialogs
+        desk.wait_for(lambda: any('K 4' in pool['players'] for pool in desk.structure()[KIDS]['pools']),
+                      message='6: the regenerated division on the desk')
+
+        # 7. A Registration edit vs a structural edit saved first.
+        revision_before = state(record).get('managementRevision', 0)
+        record = race(desk, lambda: desk.set_competitor_field('B 3', 'dojo', 'Late Dojo'), director, lambda: director.regenerate_division(KIDS))
+        assert competitor(record, 'B 3')['dojo'] == 'Late Dojo', '7: the Registration edit was lost'
+        assert state(record).get('managementRevision', 0) > revision_before, '7: the regenerate was lost'
+
+        # 8. Undo vs another court's point saved first.
+        court_a.score_point('W', 'K')
+        settle()
+        assert scored(server(), OPEN_A, 'wp', 'K'), '8: the point to undo was not saved'
+        record = race(court_a, court_a.undo, court_b, lambda: court_b.score_point('R', 'D'))
+        assert scored(record, OPEN_B, 'rp', 'D'), '8: the other court\'s point was lost'
+        # F30 (open): the undo is lost: the rebase replays only this device's new court actions, and
+        # an undo is not one, so the undone point comes back from the server copy (and on Court A).
+        # When F30 is fixed, the K is gone: assert that and mark F30 fixed.
+        assert scored(record, OPEN_A, 'wp', 'K'), 'F30 fixed? the undo survived the conflict: assert the point is gone and mark F30 fixed'
+        court_a.wait_for(lambda: 'K' in court_a.court_screen()['white_points'], message='8: F30, the undone point back on Court A')
+
+        # Survives a reload: a fresh device and Court A reloaded show the saved edits.
+        final = server()
+        fresh = KsmApp.open_device(browser, base, 'Fresh', problems, app_path(tid))
+        fresh.wait_revision(final['revision'])
+        court_a.reload()
+        court_a.wait_revision(final['revision'])
+        for app in (fresh, court_a):
+            pl = app.payload()
+            assert pl['setup']['tName'] == 'Renamed Cup', f'{app.name}: {pl["setup"]["tName"]}'
+            got = {c['name']: c['dojo'] for c in pl['state']['competitors']}
+            assert (got.get('K 4'), got.get('A 2'), got.get('A 3'), got.get('B 2'), got.get('B 3')) == \
+                ('K Dojo', 'New Dojo', 'Other Dojo', 'Desk Dojo', 'Late Dojo'), f'{app.name}: {got}'
+            assert (pl['state'].get('awards') or [{}])[0].get('award') == 'Best Kiai', f'{app.name}: awards'
+            assert pl['state']['allMatches'] == final['payload']['state']['allMatches'], f'{app.name}: matches differ from the server'
+
+        assert not problems, '\n'.join(problems)
+        print(f'PASS edit conflicts: court vs Setup, Registration vs court (both ways), awards vs court, structural vs Registration '
+              f'(both ways) kept both edits; two Registration edits (F29) and Undo vs another court (F30) pinned '
+              f'({time.time() - started:.0f}s)')
+        browser.close()
+
+
+if __name__ == '__main__':
+    main()

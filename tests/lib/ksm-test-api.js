@@ -35,6 +35,19 @@ window.KSMTest = {
     try { applyTournamentPayload(payload, false, {source: 'live sync'}); } finally { ksmApplyingRemoteSnapshot = false; }
   },
   clientId() { return cloudSession.clientId; },
+  // Count the save conflicts this device meets (HTTP 409 answers to its saves, each followed by
+  // a rebase); conflicts() returns the total since watchConflicts().
+  watchConflicts() {
+    if (window.__ksmTestConflicts) return;
+    window.__ksmTestConflicts = {count: 0};
+    const orig = window.fetch;
+    window.fetch = async function (...args) {
+      const response = await orig.apply(this, args);
+      if (response.status === 409) window.__ksmTestConflicts.count++;
+      return response;
+    };
+  },
+  conflicts() { return window.__ksmTestConflicts?.count || 0; },
   generated() { return !!state.generated && Object.keys(state.allMatches || {}).length > 0; },
   allMatches() { return state.allMatches; },
   pools() { return state.pools; },
