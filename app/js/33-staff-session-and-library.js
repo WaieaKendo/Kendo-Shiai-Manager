@@ -2,6 +2,16 @@
 const KSM_V316_STAFF_SESSION='ksm.staff.session.v3_16';
 const KSM_V316_LIBRARY='ksm.tournament.library.v3_16';
 function v316StaffPassword(){return sessionStorage.getItem(KSM_V316_STAFF_SESSION)||''}
+/* ksm:post-split-begin staff-hardening */
+// Staff session (issue #9): KSM_V316_STAFF_SESSION holds the session token the server returned at
+// Staff Login or tournament creation (sent as x-ksm-session-key and the live connection's key),
+// or, only between New Tournament and the server's answer, the new password to create it with.
+function ksmStaffToken(value){return typeof value==='string'&&value.startsWith('ksmst_')}
+// F33: work queued by staff stays staff work. A device logged out (a 401, Staff Logout) holds no
+// staff work of its own, so it never replaces a queued staff snapshot of this tournament (by one
+// stamped as spectator, which the next live update would discard) before Staff Login sends it.
+function ksmKeepStaffOutbox(){if(!isReadOnlySession()||!cloudSession.tournamentId)return false;const queued=readOutbox();return queued?.role==='staff'&&queued.tournamentId===cloudSession.tournamentId}
+/* ksm:post-split-end */
 function setSessionRole(role){ksmSessionRole=role==='staff'?'staff':'spectator';document.body.classList.toggle('ksm-spectator',ksmSessionRole==='spectator');document.body.classList.toggle('ksm-staff',ksmSessionRole==='staff');document.body.classList.remove('ksm-scorekeeper','ksm-admin');/* ksm:post-split-begin react-shell */ksmRenderSessionRole();/* ksm:post-split-end */}
 function isReadOnlySession(){return ksmSessionRole!=='staff'}
 function isSpectatorSession(){return isReadOnlySession()}
@@ -10,7 +20,7 @@ function sessionKey(){return v316StaffPassword()}
 function cloudHeaders(){return {'content-type':'application/json','x-ksm-role':ksmSessionRole==='staff'?'staff':'spectator','x-ksm-session-key':sessionKey(),'x-ksm-client-id':cloudSession.clientId||'','x-ksm-client-name':cloudSession.clientName||'KSM Device','x-ksm-court':cloudSession.court||''}}
 function cloudSocketUrl(id){const protocol=location.protocol==='https:'?'wss:':'ws:';const url=new URL(`${protocol}//${location.host}/api/tournaments/${encodeURIComponent(id)}/live`);url.searchParams.set('role',ksmSessionRole==='staff'?'staff':'spectator');if(sessionKey())url.searchParams.set('key',sessionKey());url.searchParams.set('clientId',cloudSession.clientId||'');url.searchParams.set('name',cloudSession.clientName||'KSM Device');if(cloudSession.court)url.searchParams.set('court',cloudSession.court);return url.toString()}
 function promptNewStaffPassword(){const a=prompt('Create Staff password');if(!a)return '';if(a.length<4){alert('Staff password must be at least 4 characters.');return ''}const b=prompt('Confirm Staff password');if(a!==b){alert('Passwords do not match.');return ''}return a}
-async function toggleStaffSession(){if(ksmSessionRole==='staff'){sessionStorage.removeItem(KSM_V316_STAFF_SESSION);setSessionRole('spectator');installRoleBanner('spectator');disconnectCloudSocket();connectCloudSocket();navigateTo('public');return}if(!cloudSession.tournamentId){alert('Create or load a tournament before Staff Login.');return}const password=prompt('Enter Staff password');if(!password)return;try{const response=await fetch(`/api/tournaments/${encodeURIComponent(cloudSession.tournamentId)}/auth`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password})});if(!response.ok)throw new Error();sessionStorage.setItem(KSM_V316_STAFF_SESSION,password);setSessionRole('staff');installRoleBanner('staff');/* ksm:post-split-begin outbox-flush-rebase */mergeQueuedStaffWork();/* ksm:post-split-end */disconnectCloudSocket();connectCloudSocket();showKsmToast('✓ Staff access enabled',1500)}catch(_){alert('Incorrect Staff password.')}}
+async function toggleStaffSession(){if(ksmSessionRole==='staff'){sessionStorage.removeItem(KSM_V316_STAFF_SESSION);setSessionRole('spectator');installRoleBanner('spectator');disconnectCloudSocket();connectCloudSocket();navigateTo('public');return}if(!cloudSession.tournamentId){alert('Create or load a tournament before Staff Login.');return}const password=prompt('Enter Staff password');if(!password)return;try{const response=await fetch(`/api/tournaments/${encodeURIComponent(cloudSession.tournamentId)}/auth`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password})});/* ksm:post-split-begin staff-hardening was:if(!response.ok)throw new Error();sessionStorage.setItem(KSM_V316_STAFF_SESSION,password); */const info=await response.json().catch(()=>null);if(!response.ok){if(response.status===429&&info?.error){alert(info.error);return}throw new Error()}sessionStorage.setItem(KSM_V316_STAFF_SESSION,info?.token||password);/* ksm:post-split-end */setSessionRole('staff');installRoleBanner('staff');/* ksm:post-split-begin outbox-flush-rebase */mergeQueuedStaffWork();/* ksm:post-split-end */disconnectCloudSocket();connectCloudSocket();showKsmToast('✓ Staff access enabled',1500)}catch(_){alert('Incorrect Staff password.')}}
 function installRoleBanner(role){document.querySelector('.spectator-readonly-banner')?.remove();if(role!=='spectator')return;const banner=document.createElement('div');banner.className='spectator-readonly-banner';banner.textContent='LIVE SPECTATOR VIEW • READ ONLY';document.body.prepend(banner)}
 function readTournamentLibrary(){try{return JSON.parse(localStorage.getItem(KSM_V316_LIBRARY)||'[]')}catch(_){return []}}
 function writeTournamentLibrary(list){localStorage.setItem(KSM_V316_LIBRARY,JSON.stringify((list||[]).slice(0,100)))}
@@ -28,7 +38,7 @@ async function performCloudSave(payload=tournamentPayload(),baseRevision=cloudSe
   const attemptId=++ksmCloudAttemptCounter;
   let envelope={...cloudEnvelope(payload),revision:baseRevision};
   if(!existing){
-    const password=v316StaffPassword()||promptNewStaffPassword();
+    const password=/* ksm:post-split-begin staff-hardening was:v316StaffPassword() */(ksmStaffToken(v316StaffPassword())?'':v316StaffPassword())/* ksm:post-split-end */||promptNewStaffPassword();
     if(!password)throw new Error('Staff password required');
     sessionStorage.setItem(KSM_V316_STAFF_SESSION,password);
     setSessionRole('staff');
@@ -75,6 +85,16 @@ async function performCloudSave(payload=tournamentPayload(),baseRevision=cloudSe
     writeCloudDiagnosticsState({attemptId,stage:'Authorization rejected',errorMessage:'Session authorization required'});
     throw new Error('Session authorization required');
   }
+  /* ksm:post-split-begin staff-hardening */
+  // The staff session token expired (24 h unused) or was revoked: the device becomes a spectator,
+  // so Staff Login asks for the password again; the unsaved work stays queued for after it.
+  if(response.status===401){
+    writeCloudDiagnosticsState({attemptId,stage:'Staff session expired',errorMessage:(parsed&&parsed.error)||'Staff session expired'});
+    // F33: queue the unsaved work as staff work before the role changes (writeOutbox() stamps the role).
+    if(ksmStaffToken(v316StaffPassword())){writeOutbox(payload,'Staff session expired');sessionStorage.removeItem(KSM_V316_STAFF_SESSION);setSessionRole('spectator');installRoleBanner('spectator');disconnectCloudSocket();connectCloudSocket();showKsmToast('Staff session expired · use Staff Login again',4000,true)}
+    throw new Error('Session authorization required');
+  }
+  /* ksm:post-split-end */
   if(response.status===409){
     const conflict=parsed||{},serverRecord=conflict.record;
     if(serverRecord&&existing&&rebaseAttempt<KSM_CLOUD_REBASE_MAX_ATTEMPTS){
@@ -132,6 +152,10 @@ async function performCloudSave(payload=tournamentPayload(),baseRevision=cloudSe
   persistCloudSession();
   /* ksm:post-split-begin edit-merge */rememberCloudBase(record);/* ksm:post-split-end */
   rememberTournament(record);
+  /* ksm:post-split-begin staff-hardening */
+  // Creating the tournament logged this device in: keep the session token instead of the password.
+  if(!existing){const token=response.headers.get('x-ksm-session-token');if(ksmStaffToken(token))sessionStorage.setItem(KSM_V316_STAFF_SESSION,token)}
+  /* ksm:post-split-end */
   setSessionRole(v316StaffPassword()?'staff':'spectator');
   clearOutbox();
   ksmLastSuccessfulSaveAt=Date.parse(record.updatedAt)||Date.now();

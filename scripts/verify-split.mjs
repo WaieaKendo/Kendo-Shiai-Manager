@@ -156,6 +156,10 @@ const KNOWN_POST_SPLIT_EDITS = {
   // the server copy on a save conflict, or the director is asked (18: the replay helpers; the
   // merge base, the registration gate and the rebase's call are in edit-merge regions).
   'structural-replay': 1,
+  // fix/staff-password-hardening (F33): writeOutbox() (20) leaves a queued staff snapshot alone on a
+  // logged-out device (ksmKeepStaffOutbox() in 33's staff-hardening region), so a 401 keeps the
+  // unsaved work as staff work until Staff Login.
+  'staff-outbox': 1,
   // fix/pre-event (F11): saveAuto(), called by the awards editor but never defined (app/js/20).
   'award-save': 1,
   // fix/outbox-flush-local-changes (F6): mergeQueuedStaffWork() and its call at staff login;
@@ -199,6 +203,12 @@ const KNOWN_POST_SPLIT_EDITS = {
   // fix/quirks-pass (court): the renderScore() wrapper (32) publishes the completed division's
   // title and "Division complete" as the header's match line (it kept the last match's).
   'quirks-court': 1,
+  // fix/staff-password-hardening (issue #9), all in 33: ksmStaffToken(); Staff Login
+  // (toggleStaffSession()) shows the server's message when the tournament refuses password
+  // attempts (HTTP 429, attempt limit) and keeps the session token it returns instead of the
+  // password; performCloudSave() creates a tournament with the new password (never a token), keeps
+  // the token the creation returns, and turns the device into a spectator on 401 (session expired).
+  'staff-hardening': 5,
   // feat/react-library (M.13): the Tournament Library's React island. With the legacy renderer
   // removed (REMOVED_LIBRARY_RENDERER) paintHomeTournamentLibrary()'s body (33) is a marked call of
   // ksmRenderLibrary(), and app/js/40-react-library.js publishes the library as plain data and

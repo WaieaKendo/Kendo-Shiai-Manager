@@ -15,6 +15,9 @@ window.KSMTest = {
   tournamentId() { return cloudSession.tournamentId || null; },
   revision() { return Number(cloudSession.revision) || 0; },
   role() { return ksmSessionRole; },
+  // What the device keeps for its staff session and sends as x-ksm-session-key (a session token
+  // after Staff Login; issue #9).
+  staffSession() { return sessionKey(); },
   pending() { return localChangesPending(); },
   diagnostics() { return readCloudDiagnosticsState(); },
   // Snapshot queued for the cloud (offline, failed save, reload before a save): who queued it, for which tournament.
