@@ -18,7 +18,10 @@ from ksm_browser import launch_chromium
 from ksm_server import local_worker
 
 PLAYERS = ['Aoki Ken', 'Baba Jun', 'Chiba Rei', 'Doi Sho']
-UPDATE_SECONDS = 10  # a point reaches the server after the app's save debounce (~3 s)
+# A point reaches the server after the app's save debounce (~3 s), then the overlay through the live
+# connection. 10 s was too tight once on a busy GitHub runner (a save that met a conflict and was
+# replayed); 20 s still catches an update that never arrives, and the failure message says where it is.
+UPDATE_SECONDS = 20
 
 
 def overlay_page(browser, base, path, writes, viewport=None, screen=None):
@@ -48,14 +51,21 @@ def overlay(page):
     }""")
 
 
-def wait_overlay(page, predicate, message, timeout=UPDATE_SECONDS):
+def wait_overlay(page, predicate, message, timeout=UPDATE_SECONDS, source=None):
+    """`source`: the scoring device's KsmApp, for its save state in the failure message."""
     deadline, last = time.time() + timeout, None
     while time.time() < deadline:
         last = overlay(page)
         if predicate(last):
             return last
         time.sleep(0.1)
-    raise AssertionError(f'overlay: timed out waiting for {message}; last={last}')
+    where = ''
+    if source is not None:
+        try:
+            where = f'; scoring device: revision {source.page.evaluate("KSMTest.revision()")}, pending {source.page.evaluate("KSMTest.pending()")}'
+        except Exception as error:  # the page may be gone
+            where = f'; scoring device unreadable: {error}'
+    raise AssertionError(f'overlay: timed out waiting for {message}; last={last}{where}')
 
 
 def main():
@@ -111,11 +121,11 @@ def main():
 
         started = time.time()
         court.score_point('W', 'M')
-        wait_overlay(ov_a, lambda o: o['white_points'] == 'M', 'White Men on the overlay')
+        wait_overlay(ov_a, lambda o: o['white_points'] == 'M', 'White Men on the overlay', source=court)
         point_s = time.time() - started
         assert court.page.evaluate('window.__ksmChanges') > 0, 'no ksm:state-changed event after a court action'
         court.hansoku('R')
-        wait_overlay(ov_a, lambda o: o['red_hansoku'] == 1, 'Red hansoku indicator')
+        wait_overlay(ov_a, lambda o: o['red_hansoku'] == 1, 'Red hansoku indicator', source=court)
 
         first = (o['white'], o['red'])
         started = time.time()
