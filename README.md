@@ -65,9 +65,6 @@ See `docs/TESTING.md` for the individual suites, TestLab profiles, and how to ru
 
 ## Deployment
 
-```bash
-npx wrangler login
-npm run deploy       # builds dist/ first, then wrangler deploy
-```
+GitHub Actions deploys: every push to `develop` goes to the dev site, production is deployed when a release (a new version) is merged into `main`, or by hand from `main` (Actions → Deploy → Run workflow). Releases: `npm run release -- <version>` (the version lives only in `package.json`). Backups: `npm run backup -- <site URL>`.
 
-See `docs/DEPLOYMENT.md` and `docs/CLOUD_OPERATIONS.md` before production use.
+See `docs/DEPLOYMENT.md` (dev and production, rollback, emergency deploy, backups, releases) and `docs/CLOUD_OPERATIONS.md`.

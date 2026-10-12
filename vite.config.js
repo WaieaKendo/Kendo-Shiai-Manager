@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react';
 import {
   APP_DIR, DIST_DIR, STYLE_TAG, SCRIPT_TAG, STYLE_URL, SCRIPT_URL, ENGINE_URL,
   appStyles, appScript, engineScript, serviceWorker, styleFiles, scriptFiles, engineFiles, extraPages,
+  ROOT, withVersion,
 } from './scripts/app-sources.mjs';
 
 const DEV_SERVICE_WORKER = `self.addEventListener('install', () => self.skipWaiting());
@@ -21,6 +22,8 @@ self.addEventListener('activate', event => event.waitUntil(caches.keys().then(ke
 // index.html also gets one module script after app.js: the React court screen islands
 // (COURT_MODULE), which Vite bundles like any page script. Its files join APP_SHELL, so an
 // offline device has the same court screen.
+// The version: package.json "version" replaces __KSM_VERSION__ (withVersion) in every page, in
+// app.js and in the service worker (its CACHE_NAME), in dev and in the build.
 const COURT_MODULE = '/react/court/main.tsx';
 const COURT_TAG = `<script type="module" src="${COURT_MODULE}"></script>`;
 
@@ -51,7 +54,7 @@ function ksmClassicBundle() {
         const url = req.url.split('?')[0];
         const send = (type, body) => { res.setHeader('Content-Type', type); res.setHeader('Cache-Control', 'no-store'); res.end(body); };
         if (url === STYLE_URL) return send('text/css; charset=utf-8', appStyles());
-        if (url === SCRIPT_URL) return send('text/javascript; charset=utf-8', appScript());
+        if (url === SCRIPT_URL) return send('text/javascript; charset=utf-8', withVersion(appScript()));
         if (url === ENGINE_URL) return send('text/javascript; charset=utf-8', await engineScript());
         // No offline cache in dev, so edits show on reload: this worker only clears old caches.
         if (url === '/service-worker.js') return send('text/javascript; charset=utf-8', DEV_SERVICE_WORKER);
@@ -61,14 +64,15 @@ function ksmClassicBundle() {
       });
     },
     async buildStart() {
-      for (const file of [...styleFiles(), ...scriptFiles(), ...engineFiles()]) this.addWatchFile(file);
-      const css = appStyles(), js = appScript(), engine = await engineScript();
+      for (const file of [...styleFiles(), ...scriptFiles(), ...engineFiles(), path.join(ROOT, 'package.json')]) this.addWatchFile(file);
+      const css = appStyles(), js = withVersion(appScript()), engine = await engineScript();
       built = { css, js, engine, cssFile: hashed('app', '.css', css), jsFile: hashed('app', '.js', js), engineFile: hashed('engine', '.js', engine) };
     },
     transformIndexHtml: {
       // Before Vite parses the page, so it does not try to bundle the two tags itself.
       order: 'pre',
       handler(html, ctx) {
+        html = withVersion(html);
         if (ctx.path !== '/index.html') return html;
         if (!html.includes(STYLE_TAG) || !html.includes(SCRIPT_TAG)) throw new Error('app/index.html must contain the app.css and app.js tags');
         if (ctx.server) return html.replace(SCRIPT_TAG, () => `<script src="${ENGINE_URL}"></script>\n${SCRIPT_TAG}\n${COURT_TAG}`);
@@ -82,7 +86,7 @@ function ksmClassicBundle() {
       this.emitFile({ type: 'asset', fileName: built.cssFile, source: built.css });
       this.emitFile({ type: 'asset', fileName: built.jsFile, source: built.js });
       this.emitFile({ type: 'asset', fileName: built.engineFile, source: built.engine });
-      const sw = serviceWorker();
+      const sw = withVersion(serviceWorker());
       if (!sw.includes(`'${STYLE_URL}', '${SCRIPT_URL}'`)) throw new Error('app/service-worker.js APP_SHELL must list /app.css and /app.js');
       const court = indexModuleFiles(bundle);
       if (!court.length) throw new Error(`index.html must load ${COURT_MODULE}`);

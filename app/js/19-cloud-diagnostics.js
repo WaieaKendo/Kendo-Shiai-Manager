@@ -15,7 +15,7 @@ function analyzeTournamentSnapshot(payload=tournamentPayload()){
   return {analyzedAt:new Date().toISOString(),totalBytes,largest,stateBreakdown,setupBreakdown};
 }
 function snapshotAnalysisHtml(analysis){if(!analysis)return '<p class="small">No snapshot analysis has been recorded yet. Make a change or press Save Now.</p>';const top=(analysis.stateBreakdown||[]).slice(0,16),deep=(analysis.largest||[]).slice(0,16);return `<div class="cloud-detail-grid"><div class="cloud-detail"><div class="small">Total snapshot</div><b>${esc(formatSnapshotBytes(analysis.totalBytes))}</b></div><div class="cloud-detail"><div class="small">Analyzed</div><b>${esc(formatDiagnosticTime(analysis.analyzedAt))}</b></div></div><h3 style="margin-top:18px">State breakdown</h3><div class="cloud-detail-grid">${top.map(x=>`<div class="cloud-detail"><div class="small">state.${esc(x.key)}</div><b>${esc(formatSnapshotBytes(x.bytes))}</b><div class="small">${esc(x.summary)}</div></div>`).join('')}</div><h3 style="margin-top:18px">Largest nested paths</h3><div class="cloud-detail-grid">${deep.map(x=>`<div class="cloud-detail"><div class="small" style="overflow-wrap:anywhere">${esc(x.path)}</div><b>${esc(formatSnapshotBytes(x.bytes))}</b><div class="small">${esc(x.summary)}</div></div>`).join('')}</div>`}
-function downloadSnapshotAnalysis(){const analysis=analyzeTournamentSnapshot();downloadJson({appVersion:'3.17.20-test',tournamentId:cloudSession.tournamentId||null,cloudRevision:cloudSession.revision||0,...analysis},`KSM_Snapshot_Analysis_${new Date().toISOString().replace(/[:.]/g,'-')}.json`)}
+function downloadSnapshotAnalysis(){const analysis=analyzeTournamentSnapshot();downloadJson({appVersion:'__KSM_VERSION__',tournamentId:cloudSession.tournamentId||null,cloudRevision:cloudSession.revision||0,...analysis},`KSM_Snapshot_Analysis_${new Date().toISOString().replace(/[:.]/g,'-')}.json`)}
 function analyzeHistoryEntry(entry,index){
   const properties=Object.entries(entry||{}).map(([key,value])=>({key,bytes:payloadByteSize(value),summary:snapshotValueSummary(value)})).sort((a,b)=>b.bytes-a.bytes);
   const changes=Object.entries(entry?.changes||{}).map(([key,value])=>({key,bytes:payloadByteSize(value),beforeBytes:payloadByteSize(value?.before),afterBytes:payloadByteSize(value?.after),summary:snapshotValueSummary(value)})).sort((a,b)=>b.bytes-a.bytes);
@@ -45,7 +45,7 @@ function historySampleEntry(entry,index){if(!entry)return null;return {analysis:
 function downloadActionHistorySample(){
   ensureCourtHistory();const courts={};
   ['A','B'].forEach(court=>{const entries=state.courtActionHistory?.[court]||[],sizes=entries.map((entry,index)=>({entry,index,bytes:payloadByteSize(entry)})),largest=sizes.sort((a,b)=>b.bytes-a.bytes)[0]||null;courts[court]={entryCount:entries.length,first:historySampleEntry(entries[0],0),latest:historySampleEntry(entries[entries.length-1],entries.length-1),largest:largest?historySampleEntry(largest.entry,largest.index):null}});
-  downloadJson({appVersion:'3.17.20-test',tournamentId:cloudSession.tournamentId||null,cloudRevision:cloudSession.revision||0,analyzedAt:new Date().toISOString(),courts},`KSM_Action_History_Sample_${new Date().toISOString().replace(/[:.]/g,'-')}.json`)
+  downloadJson({appVersion:'__KSM_VERSION__',tournamentId:cloudSession.tournamentId||null,cloudRevision:cloudSession.revision||0,analyzedAt:new Date().toISOString(),courts},`KSM_Action_History_Sample_${new Date().toISOString().replace(/[:.]/g,'-')}.json`)
 }
 
 const KSM_V3173_RESET_MARKER='ksm.local.reset.v3_17_3';
