@@ -137,6 +137,8 @@ const KNOWN_POST_SPLIT_EDITS = {
   // fix/react-batch-1 (F18): Paste from Excel splits rows on CR LF, CR and LF and trims each cell
   // (16: the document paste listener, two inline edits).
   'paste-lines': 2,
+  // test/audit (F31): Paste from Excel asks for an autosave like every other registration edit (app/js/16).
+  'paste-save': 1,
   // fix/pre-event (F9): printPlacementsForDivision() uses resultPlacements() (comment + body).
   'print-placements': 2,
   // fix/pre-event (F3, from fix/court-pin-after-reload): the pinned-court key no longer holds the

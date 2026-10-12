@@ -1,4 +1,4 @@
-"""Paste from Excel reads spreadsheet rows whatever their line ends (F18).
+"""Paste from Excel reads spreadsheet rows whatever their line ends (F18) and is autosaved (F31).
 
 Excel (and most spreadsheets) copy rows with CR LF line ends; the paste split them on LF only, so
 the last column of each row kept a CR: a row ending in its division went into a new division
@@ -40,8 +40,13 @@ def main():
         app.click('reg-tab-individual')
         divisions = app.payload()['state']['divisions']
         assert WOMEN in divisions, divisions
+        app.watch_saves()
+        app.saves_asked()
         page.evaluate(PASTE_JS, ROWS)
         page.wait_for_timeout(100)
+        # F31 (fixed): the paste asks for an autosave like every other registration edit (it was
+        # never saved until something else saved; edit-sync-test.py follows it to the server).
+        assert app.saves_asked() >= 1, 'F31: the paste asked for no save'
 
         state = app.payload()['state']
         assert state['divisions'] == divisions, f'the paste added a division (F18): {[d for d in state["divisions"] if d not in divisions]!r}'
@@ -55,7 +60,7 @@ def main():
         assert page.locator(sel('reg-status')).all_inner_texts() == ['○ Registered', '● Checked In', '● Checked In', '● Checked In', '● No Show']
         assert not problems, problems
         browser.close()
-    print('PASS registration paste: CR LF / CR / LF rows, trailing division and "Checked In", trimmed cells (F18)')
+    print('PASS registration paste: CR LF / CR / LF rows, trailing division and "Checked In", trimmed cells (F18); autosaved (F31)')
 
 
 if __name__ == '__main__':
