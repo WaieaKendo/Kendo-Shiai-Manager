@@ -52,11 +52,6 @@ function renderContext(){
 }
 /* ksm:post-split-end */
 
-function divisionCompletePanelHtml(div){
-  const placements=resultPlacements(div);
-  if(!placements.length)return `<div class="division-complete-panel" data-testid="division-complete"><div class="small">Final results are available in Results.</div></div>`;
-  return `<div class="division-complete-panel" data-testid="division-complete"><div class="division-complete-list">${placements.map(p=>`<div class="division-complete-row" data-testid="division-complete-row"><b class="${esc(p.tier||'')}">${esc(p.place)}</b><span>${esc(p.name)}</span></div>`).join('')}</div></div>`;
-}
 function setCourtCompletePresentation(div,complete){
 /* ksm:post-split-begin react-court */
   // The React court screen (CourtComplete, 35-react-court.js) sets .division-complete on
@@ -72,16 +67,6 @@ renderScore=function(){
     updateScoreTournamentName();setCourtCompletePresentation(div,true);renderQueue();renderPublic();renderContext();return;
   }
   setCourtCompletePresentation(div,false);renderScore_v3121();
-};
-const renderPublic_v3121=renderPublic;
-renderPublic=function(){
-  const court=state.publicCourt||'A';
-  const div=state.courtActiveDivision?.[court]||state.courtState?.[court]?.division||state.currentDivision;
-  if(div&&divisionComplete(div)&&!courtCurrentMatch(court)){
-    if(window.publicLive)publicLive.innerHTML=`<div class="audience-hero">${divisionCompletePanelHtml(div)}</div>`;
-    return;
-  }
-  renderPublic_v3121();
 };
 
 if(!restoreAutoSaveIfWanted()) renderAll();

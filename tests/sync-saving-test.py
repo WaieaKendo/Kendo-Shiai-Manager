@@ -14,14 +14,14 @@ throwaway `wrangler dev`:
   * the Recovery file downloads the device's latest snapshot, and loading it on a
     fresh device restores that snapshot into a new cloud tournament;
   * the court a device chose comes back after a reload (F3, fixed): a plain tournament link
-    and a Court B link both return on Court B; an explicit &court=A in the link wins over
+    and a Court B link both return on Court B; an explicit /court/a in the link wins over
     the stored choice; a TV link keeps its own court whatever the device chose for scoring.
 """
 import json
 import time
 
 from playwright.sync_api import sync_playwright
-from ksm_app import KsmApp, fetch_record, sel
+from ksm_app import KsmApp, fetch_record, sel, app_path
 from ksm_browser import launch_chromium
 from ksm_server import local_worker
 
@@ -150,7 +150,7 @@ def main():
         fresh.close()
 
         # --- Court restored after reload ----------------------------------------------------------
-        keeper = KsmApp.open_device(browser, base, 'Court B keeper', problems, f'/?tournament={tid}')
+        keeper = KsmApp.open_device(browser, base, 'Court B keeper', problems, app_path(tid))
         keeper.wait_generated()
         keeper.staff_login()
         keeper.open_court('B')
@@ -165,21 +165,21 @@ def main():
             app.wait_generated()
 
         # An explicit court in the link wins over the court stored on the device.
-        goto(keeper, f'/?tournament={tid}&court=A')
+        goto(keeper, app_path(tid, 'court', 'A'))
         keeper.show_screen('score')
         assert keeper.court_screen()['court'] == 'A', f'&court=A did not override the stored Court B: {keeper.court_screen()}'
         # A TV link keeps its fixed court, before and after a reload, whatever the device chose for scoring.
         keeper.staff_login()
         keeper.open_court('B')
-        goto(keeper, f'/?role=spectator&tournament={tid}&court=A&view=tv')
+        goto(keeper, app_path(tid, 'tv', 'A'))
         keeper.wait_for(lambda: keeper.tv_screen()['court'] == 'A', message='the Court A TV display')
         keeper.reload()
         keeper.wait_for(lambda: keeper.tv_screen()['court'] == 'A', message='the Court A TV display after reload')
-        goto(keeper, f'/?tournament={tid}')
+        goto(keeper, app_path(tid))
         keeper.show_screen('score')
         assert keeper.court_screen()['court'] == 'B', f'the TV link changed the scoring court: {keeper.court_screen()}'
         keeper.close()
-        link_keeper = KsmApp.open_device(browser, base, 'Court B link', problems, f'/?tournament={tid}&court=B')
+        link_keeper = KsmApp.open_device(browser, base, 'Court B link', problems, app_path(tid, 'court', 'B'))
         link_keeper.wait_generated()
         link_keeper.staff_login()
         link_keeper.open_court('B')

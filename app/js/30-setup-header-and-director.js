@@ -1,11 +1,8 @@
 // ---------- KSM v3.9.1 Setup header synchronization ----------
-function syncSetupHeader(){
-  if(window.setupTournamentName){
-    setupTournamentName.textContent=(window.tName&&tName.value)
-      ? tName.value
-      : 'Kendo Tournament';
-  }
-}
+function syncSetupHeader(){/* ksm:post-split-begin react-setup */
+  // The hero's name is React (app/react/setup/, 42-react-setup.js): the name field's value is
+  // published to it instead of written (M.13).
+  ksmRenderSetupHeader();/* ksm:post-split-end */}
 if(window.tName){
   tName.addEventListener('input',syncSetupHeader);
 }
@@ -118,25 +115,20 @@ function tournamentSummary(){
   return divisions.reduce((sum,div)=>{
     const x=directorDivisionProgress(div,null);
     sum.completed+=x.completed||0;
-    if(x.total==null){sum.variable=true;return sum;}
+    if(x.total==null){sum.variable=true;/* ksm:post-split-begin overview-kachinuki */
+      // F15: a kachinuki division adds the bouts known so far (played and created) to the total, the
+      // same bouts its completed count is taken from, so the overall bar never passes 100%.
+      const known=(state.allMatches?.[div]||[]).filter(m=>m.type==='kachinuki'||m.type==='teamPlayoff').length;
+      sum.total+=Math.max(known,x.completed||0);sum.remaining+=Math.max(0,known-(x.completed||0));
+      /* ksm:post-split-end */return sum;}
     sum.total+=x.total;
     sum.remaining+=x.remaining||0;
     return sum;
   },{completed:0,total:0,remaining:0,variable:false});
 }
-function directorMatchRow(label,m){
-  if(!m)return `<div class="director-match-row"><div class="director-match-label">${label}</div><div class="director-empty">No match scheduled</div></div>`;
-  return `<div class="director-match-row"><div class="director-match-label">${label}</div><div class="director-match-grid"><div class="director-player white">${esc(m.white||'—')}</div><div class="director-vs">vs</div><div class="director-player red">${esc(m.red||'—')}</div></div></div>`;
-}
 function renderDirector(){
-  if(!window.directorCourtGrid)return;
-  const t=tournamentSummary();
-  const pct=t.total?Math.round((t.completed/t.total)*100):0;
-  directorTournamentName.textContent=(window.tName&&tName.value)||'Kendo Tournament';
-  directorOverallCount.textContent=t.variable?`${t.completed} Completed • fixed-format total ${t.total}`:`${t.completed} / ${t.total} Matches`;
-  directorOverallRemaining.textContent=t.variable?'Kachinuki totals vary by result':`${t.remaining} Remaining`;
-  directorOverallBar.style.width=`${pct}%`;
-  directorCourtGrid.innerHTML=['A','B'].map(c=>{const x=courtSummaryFor(c);const cp=x.total?Math.round((x.completed/x.total)*100):0;const progress=x.variable?`${x.completed} Matches Completed`:`${x.completed} / ${x.total} Matches`;const remaining=x.variable?'Total varies by wins and ties':`${x.remaining} Remaining`;const bar=x.variable?'':`<div class="director-progress-track"><div class="director-progress-fill" style="width:${cp}%"></div></div>`;return `<section class="director-court-card"><div class="director-court-head"><h2>Court ${c}</h2><div class="director-division">${esc(x.division||'No active division')}</div><div class="director-round">${esc(x.round||'')}</div></div><div class="director-progress-label"><span>Division Progress</span><strong>${progress}</strong></div>${bar}<div class="director-remaining">${remaining}</div><div class="director-match-list">${directorMatchRow('Current',x.current)}${directorMatchRow('On Deck',x.onDeck)}${directorMatchRow('Following',x.following)}</div></section>`}).join('');
+  /* ksm:post-split-begin react-overview */ksmRenderOverview();
+  /* ksm:post-split-end */
 }
 function startDirectorRefresh(){stopDirectorRefresh();renderDirector();directorRefreshTimer=setInterval(()=>{if(!document.getElementById('director')?.classList.contains('hidden'))renderDirector();},5000)}
 function stopDirectorRefresh(){if(directorRefreshTimer){clearInterval(directorRefreshTimer);directorRefreshTimer=null}}

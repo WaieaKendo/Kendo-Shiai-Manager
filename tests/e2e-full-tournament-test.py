@@ -27,7 +27,7 @@ Watch it run: `npm run test:e2e:watch` (KSM_HEADED=1, KSM_SLOWMO=ms).
 import time
 
 from playwright.sync_api import sync_playwright
-from ksm_app import KsmApp, fetch_record
+from ksm_app import KsmApp, fetch_record, app_path
 from ksm_browser import launch_chromium, watch_mode
 from ksm_server import local_worker
 
@@ -184,8 +184,8 @@ def main():
 
         # --- Followers: spectator link and Court A TV link -------------------------------
         tv_url = director.tv_link('A')
-        assert 'view=tv' in tv_url and tid in tv_url, tv_url
-        spectator = KsmApp.open_device(browser, base, 'Spectator', problems, f'/?tournament={tid}')
+        assert tv_url == f'{base}{app_path(tid, "tv", "A")}', tv_url
+        spectator = KsmApp.open_device(browser, base, 'Spectator', problems, app_path(tid))
         spectator.wait_generated()
         tv = KsmApp.open_device(browser, base, 'TV Court A', problems, tv_url[tv_url.index('/', 8):],
                                 viewport={'width': 1600, 'height': 900})
@@ -194,7 +194,7 @@ def main():
         # --- Scorekeepers join from the tournament link ----------------------------------
         log, courts = [], {}
         for c in 'AB':
-            app = KsmApp.open_device(browser, base, f'Court {c}', problems, f'/?tournament={tid}&court={c}')
+            app = KsmApp.open_device(browser, base, f'Court {c}', problems, app_path(tid, 'court', c))
             app.wait_generated()
             app.staff_login()
             app.open_court(c)

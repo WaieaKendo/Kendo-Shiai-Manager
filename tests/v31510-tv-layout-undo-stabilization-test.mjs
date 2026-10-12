@@ -1,9 +1,14 @@
-import { html as appSource } from './lib/ksm-source.mjs';
+import { html as appSource, readRepoFile } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
 const html=appSource;
+// M.13: the TV display is React. app/js/37-react-tv.js publishes what buildTV3ViewModel() (26-)
+// chose, app/react/tv/ draws it (tests/golden/tv pins the result, recorded from the removed tv3
+// renderer). Checks of TV markup point at that code.
+const tvReact=readRepoFile('app/react/tv/Tv.tsx'),tvModel=readRepoFile('app/react/tv/tv-model.ts');
 const checks=[
- ['white point class',html.includes('tv-point-string tv-white-points')],
- ['red point class',html.includes('tv-point-string tv-red-points')],
+ // The tv3 point classes (the first renderer's tv-point-string tv-white/red-points never ran; removed in M.13).
+ ['white point class',tvReact.includes('<div className="tv3-score white" data-testid="tv-white-score">')],
+ ['red point class',tvReact.includes('<div className="tv3-score red" data-testid="tv-red-score">')],
  ['fixed medial white zone',html.includes('.tv-white-points{left:676px!important}')],
  ['fixed medial red zone',html.includes('.tv-red-points{left:956px!important}')],
  ['centered team width',html.includes('width:1760px!important') && html.includes('grid-template-columns:830px 830px!important')],

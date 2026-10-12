@@ -16,7 +16,7 @@ Against a throwaway `wrangler dev`:
 import time
 
 from playwright.sync_api import sync_playwright
-from ksm_app import KsmApp, sel
+from ksm_app import KsmApp, sel, app_path
 from ksm_browser import launch_chromium
 from ksm_server import local_worker
 
@@ -92,7 +92,7 @@ def main():
         spectator.nav('live-scores')
 
         # --- TV: display only ----------------------------------------------------------------
-        tv = KsmApp.open_device(browser, base, 'TV', problems, f'/?role=spectator&tournament={tid}&court=A&view=tv',
+        tv = KsmApp.open_device(browser, base, 'TV', problems, app_path(tid, 'tv', 'A'),
                                 viewport={'width': 1600, 'height': 900})
         tv_writes = record_writes(tv)
         tv.wait_generated()
@@ -141,7 +141,7 @@ def main():
         dpage.wait_for_selector(sel('access-link'))
         assert dpage.inner_text(sel('cloud-modal-title')).strip() == 'Tournament Access'
         link = dpage.inner_text(sel('access-link')).strip()
-        assert link == f'{base}/?tournament={tid}', f'access link: {link}'
+        assert link == f'{base}{app_path(tid)}', f'access link: {link}'
         assert 'key' not in link and 'e2e-staff-pass' not in dpage.inner_text(sel('cloud-modal')), 'access modal shows a key'
         assert tid in (dpage.get_attribute(sel('access-qr'), 'src') or ''), 'QR code does not carry the link'
         director.click('access-copy')

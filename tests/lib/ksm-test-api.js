@@ -22,11 +22,32 @@ window.KSMTest = {
   hasAutosave() { return !!localStorage.getItem(KSM_SAVE_KEY); },
   // Deliver a record as if it arrived on the live socket; returns whether it was applied.
   receive(record) { return applyRemoteCloudRecord(record, false, false); },
+  // This device's tournament as it would be saved (a copy: change it and hand it to applyLiveUpdate).
+  payload() { return tournamentPayload(); },
+  // Apply a tournament copy the way an applied live update does (applyRemoteCloudRecord(); also a
+  // 409 rebase, the cloud copy loaded, Staff Login with queued work): the state is replaced and
+  // every screen redrawn, without the staff device's while-editing deferral.
+  applyLiveUpdate(payload) {
+    ksmApplyingRemoteSnapshot = true;
+    try { applyTournamentPayload(payload, false, {source: 'live sync'}); } finally { ksmApplyingRemoteSnapshot = false; }
+  },
   clientId() { return cloudSession.clientId; },
   generated() { return !!state.generated && Object.keys(state.allMatches || {}).length > 0; },
   allMatches() { return state.allMatches; },
   pools() { return state.pools; },
   saveNow(label) { criticalAutoSave(label); },
+  // Count the saves this device asks for (every scheduleAutoSave()/criticalAutoSave(), also from the
+  // document-wide input/change/click listeners, which look them up at call time); savesAsked()
+  // returns how many since the last call.
+  watchSaves() {
+    if (window.__ksmTestSaves) return;
+    window.__ksmTestSaves = {count: 0};
+    ['scheduleAutoSave', 'criticalAutoSave'].forEach(f => {
+      const orig = window[f];
+      window[f] = function (...args) { window.__ksmTestSaves.count++; return orig.apply(this, args); };
+    });
+  },
+  savesAsked() { const n = window.__ksmTestSaves?.count || 0; if (window.__ksmTestSaves) window.__ksmTestSaves.count = 0; return n; },
   // Show a screen without re-running its menu action ('score' has no plain nav item).
   show(view) { navigateTo(view); },
   // Render the TV display in this page (a real TV device opens the ?view=tv link).

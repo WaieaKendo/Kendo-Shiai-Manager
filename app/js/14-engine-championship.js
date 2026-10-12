@@ -198,27 +198,6 @@ function nextRoundFromName(name){
  * @returns {RoundName|null}
  */
 function previousRoundName(name){if(name==='Quarterfinal')return 'Round of 16';if(name==='Semifinal')return 'Quarterfinal';if(name==='Final')return 'Semifinal';return null}
-function placeholderMatchHtml(red,white,status='vs',extra=''){
-  // Visual order is always White on the left and Red on the right.
-  return `<div class="bracket-match"><div class="white"><b>${esc(white)}</b></div><div class="bracket-status">${esc(status)}</div><div class="red"><b>${esc(red)}</b></div></div>${extra}`;
-}
-function futureRoundsHtml(startRound,matchCount,div=null){
-  let html='',round=startRound,count=matchCount;
-  while(round && count>=1){
-    let prev=previousRoundName(round)||'Previous Round';
-    let nextCount=Math.ceil(count/2);
-    html+=`<div class="bracket-card"><div class="bracket-round">${esc(round)}</div>`;
-    for(let i=1;i<=nextCount;i++){
-      let red=`Winner of ${prev} Match ${2*i-1}`;
-      let white=(2*i<=count)?`Winner of ${prev} Match ${2*i}`:'Bye';
-      html+=placeholderMatchHtml(red,white,white==='Bye'?'BYE':'vs');
-    }
-    html+='</div>';
-    if(round==='Final')break;
-    round=nextRoundFromName(round);count=nextCount;
-  }
-  return html;
-}
 function expectedRoundCount(div,round){
   let labels=championshipLabels(div);let first=firstRoundName(labels.length);let count=labels.length;
   if(round===first)return count;
@@ -241,39 +220,4 @@ function champMatchBySlot(div,round,slot){return (state.allMatches[div]||[]).fin
 function sourceLabelForRound(div,prevRound,slot){
   /* ksm:post-split-begin engine-bridge */return KSMEngine.sourceLabelForRound(state.allMatches[div]||[],prevRound,slot);
   /* ksm:post-split-end */
-}
-function bracketHtml(div){
-  if(state.singleElimNodes&&state.singleElimNodes[div])return singleElimBracketHtml(div);
-  let labels=championshipLabels(div);
-  let champ=(state.allMatches[div]||[]).filter(m=>m.championship);
-  if(champ.length){
-    let first=firstRoundName(labels.length||champ.length);let seq=roundSequenceFromFirst(first);let html='';
-    seq.forEach(round=>{
-      let expected=expectedRoundCount(div,round); if(!expected)return;
-      let ms=[];for(let i=0;i<expected;i++)ms.push(champMatchBySlot(div,round,i));
-      let complete=ms.every(Boolean)&&ms.every(m=>m.done);
-      html+=`<div class="bracket-card"><div class="bracket-round">${esc(complete&&round!=='Final'?round+' Complete':round)}</div>`;
-      for(let i=0;i<expected;i++){
-        let m=ms[i];
-        if(m){
-          let w=winnerOf(m);
-          html+=`<div class="bracket-match ${m.done?'':'gold'}"><div class="white ${w===m.white?'winner':''}"><b>${esc(specificMatchSideLabel(m,'white'))}</b><div class="small">${(m.wp||[]).join(' ')}</div></div><div class="bracket-status">${m.done?'DONE':'vs'}</div><div class="red ${w===m.red?'winner':''}"><b>${esc(specificMatchSideLabel(m,'red'))}</b><div class="small">${(m.rp||[]).join(' ')}</div></div></div>`;
-        }else if(round===first){
-          let pair=labels[i]||[];let rLabel=pair[0],wLabel=pair[1];let r=seedNameForLabel(div,rLabel,true),w=seedNameForLabel(div,wLabel,true);let red=r?r.name:rLabel,white=w?w.name:wLabel;let status=(String(wLabel).toUpperCase()==='BYE'||!wLabel)?'BYE':'vs';html+=placeholderMatchHtml(red,white,status);
-        }else{
-          let prev=previousRoundName(round);let red=sourceLabelForRound(div,prev,i*2),white=sourceLabelForRound(div,prev,i*2+1);
-          html+=placeholderMatchHtml(red.name,white.name,white.name==='Bye'?'BYE':'vs');
-        }
-      }
-      html+='</div>';
-    });
-    return html;
-  }
-  let html='';
-  if(labels.length){
-    let first=firstRoundName(labels.length);
-    html+=`<div class="bracket-card"><div class="bracket-round">${esc(first)}</div>`+labels.map(([rLabel,wLabel],i)=>{let r=seedNameForLabel(div,rLabel,true),w=seedNameForLabel(div,wLabel,true);let red=r?r.name:rLabel,white=w?w.name:wLabel;let status=(String(wLabel).toUpperCase()==='BYE'||!wLabel)?'BYE':'vs';return `<div class="bracket-match"><div class="white"><b>${esc(white)}</b><div class="small">${esc(w? wLabel : (status==='BYE'?'bye':'pending'))}</div></div><div class="bracket-status">${status}</div><div class="red"><b>${esc(red)}</b><div class="small">${esc(r? rLabel : 'pending')}</div></div></div>`}).join('')+`</div>`;
-    html+=futureRoundsHtml(nextRoundFromName(first),labels.length);
-  }
-  return html||'<div class="muted-card">Championship bracket will appear after pools are generated.</div>';
 }

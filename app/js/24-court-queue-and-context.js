@@ -70,33 +70,7 @@ function setCourtSupportMode(mode){
 
 // ---------- KSM v3.9.1 Active navigation state ----------
 function setActiveNavForView(viewId){
-  document.querySelectorAll('.icon-nav .nav-tile').forEach(btn=>{
-    btn.classList.remove('active');
-    btn.removeAttribute('aria-current');
-  });
-
-  const mapping={
-    setup:"Setup",
-    registration:"Registration",
-    score:"Courts",
-    public:"Live Scores",
-    director:"Overview",
-    tv:"TV Display",
-    results:"Results",
-    print:"Export"
-  };
-
-  const label=mapping[viewId];
-  if(!label)return;
-
-  const btn=[...document.querySelectorAll('.icon-nav .nav-tile')].find(el=>
-    (el.textContent||'').trim().startsWith(label)
-  );
-
-  if(btn){
-    btn.classList.add('active');
-    btn.setAttribute('aria-current','page');
-  }
+  /* ksm:post-split-begin react-shell */ksmSetActiveNav(viewId);/* ksm:post-split-end */
 }
 
 const originalShowForNav=show;

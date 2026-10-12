@@ -1,10 +1,12 @@
 // The Vite build must ship the app exactly as written in app/ (see scripts/app-sources.mjs):
 // same markup, stylesheet and classic script, only moved into hashed files, and every
-// static file at its old URL. The one addition is the React court screen's module script
-// (app/react/court/main.tsx, see vite.config.js), whose files join the offline APP_SHELL.
+// static file at its old URL. The one addition is the module script of the React screens
+// (app/react/main.tsx: the court screen and Live Scores, see vite.config.js), whose files join
+// the offline APP_SHELL.
 // The one transform: package.json "version" fills in the __KSM_VERSION__ placeholders (withVersion).
 // run-all.mjs builds dist/ before the tests run.
 import fs from 'node:fs';
+import vm from 'node:vm';
 import path from 'node:path';
 import { APP_DIR, DIST_DIR, STYLE_TAG, SCRIPT_TAG, VERSION_PLACEHOLDER, withVersion, indexHtml, appStyles, appScript, engineScript, serviceWorker, extraPages } from '../scripts/app-sources.mjs';
 
@@ -19,20 +21,20 @@ const engine = built.match(/<script src="\/(assets\/engine-\w+\.js)"><\/script>/
 check(css && js && engine, 'dist/index.html links one hashed stylesheet and two classic (non-module) scripts: engine, app');
 const modules = [...built.matchAll(/\n\s*<script type="module" crossorigin src="\/(assets\/index-[\w-]+\.js)"><\/script>/g)];
 const court = modules[0]?.[1];
-// The court entry chunk and the chunks it imports (React, mountIsland), as Vite wrote them.
+// The screens' entry chunk and the chunks it imports (React, mountIsland), as Vite wrote them.
 const courtFiles = court ? [court, ...[...dist(court).matchAll(/^import .* from "\.\/([\w.-]+\.js)";$/gm)].map(m => `assets/${m[1]}`)] : [];
-check(modules.length === 1 && [...built.matchAll(/type="module"/g)].length === 1, 'one module script: the React court screen');
-check(court && dist(court).includes('ksm:court-scoreboard') && courtFiles.every(f => fs.existsSync(path.join(DIST_DIR, f)) && !dist(f).includes('function performCourtAction(')),
-  `court module bundled from app/react/court/ without the classic app (${courtFiles.join(', ')})`);
+check(modules.length === 1 && [...built.matchAll(/type="module"/g)].length === 1, 'one module script: the React screens (court, Live Scores, TV, Results, Overview, Tournament Library, Pools, Setup, Registration, the shell)');
+check(court && dist(court).includes('ksm:court-scoreboard') && dist(court).includes('ksm:live-scores') && dist(court).includes('ksm:tv') && dist(court).includes('ksm:results') && dist(court).includes('ksm:overview') && dist(court).includes('ksm:library') && dist(court).includes('ksm:pools') && dist(court).includes('ksm:setup-divisions') && dist(court).includes('ksm:setup-header') && dist(court).includes('ksm:registration-players') && dist(court).includes('ksm:registration-status') && dist(court).includes('ksm:registration-teams') && dist(court).includes('ksm:registration-exhibitions') && dist(court).includes('ksm:registration-tab') && dist(court).includes('ksm:shell-nav') && dist(court).includes('ksm:shell-header') && dist(court).includes('ksm:shell-dialogs') && courtFiles.every(f => fs.existsSync(path.join(DIST_DIR, f)) && !dist(f).includes('function performCourtAction(')),
+  `screens module bundled from app/react/court/, app/react/live-scores/, app/react/tv/, app/react/results/, app/react/overview/, app/react/library/, app/react/pools/, app/react/setup/, app/react/registration/ and app/react/shell/ without the classic app (${courtFiles.join(', ')})`);
 check(built.replace(modules[0]?.[0] ?? '', '') === withVersion(indexHtml()).replace(STYLE_TAG, `<link rel="stylesheet" href="/${css}">`).replace(SCRIPT_TAG, `<script src="/${engine}"></script>\n<script src="/${js}"></script>`),
-  'dist/index.html = app/index.html apart from the bundle URLs, the court module and the version, with the engine script right before app.js');
+  'dist/index.html = app/index.html apart from the bundle URLs, the screens module and the version, with the engine script right before app.js');
 check(engine && dist(engine) === await engineScript() && /^var KSMEngine = /.test(dist(engine)), 'engine script = app/engine/index.ts as a classic IIFE defining KSMEngine');
 check(css && dist(css) === appStyles(), 'stylesheet = app/styles/*.css in order, untransformed');
 check(js && dist(js) === withVersion(appScript()), 'script = app/js/*.js in order, untransformed apart from the version');
 
 const sw = dist('service-worker.js');
 check(sw === withVersion(serviceWorker()).replace("'/app.css', '/app.js'", [css, engine, js, ...courtFiles].map(f => `'/${f}'`).join(', ')),
-  'service worker = app/service-worker.js with the version and the bundle URLs (engine and court module included) in APP_SHELL');
+  'service worker = app/service-worker.js with the version and the bundle URLs (engine and screens module included) in APP_SHELL');
 const shell = [...sw.match(/const APP_SHELL = \[([\s\S]*?)\];/)[1].matchAll(/'([^']+)'/g)].map(m => m[1]);
 const missing = shell.filter(url => url !== '/' && !fs.existsSync(path.join(DIST_DIR, url)));
 check(!missing.length, `every APP_SHELL file exists in dist/ (${shell.length} entries)${missing.length ? ': missing ' + missing.join(', ') : ''}`);
@@ -49,8 +51,18 @@ for (const page of pages) {
     `dist/${page}: built, only bundled module scripts (${scripts.length})`);
   check(html && !html.includes('/assets/app-') && !html.includes('/assets/engine-') && modules.every(f => f && !dist(f).includes('function performCourtAction(')), `dist/${page}: does not load the classic app bundle`);
 }
-check(/mode === 'navigate' && url\.pathname !== '\/' && url\.pathname !== '\/index\.html'\) return;/.test(sw),
-  `service worker leaves navigations to extra pages to the network (${pages.length ? pages.join(', ') : 'none yet'})`);
+// Path URLs (M.9): the app shell answers /, /index.html and /t/... (servesAppShell(), checked
+// against app/engine/routes.ts in tests/engine/routes.test.mjs), never an extra page's URL.
+const swShell = (() => {
+  const code = sw.slice(sw.indexOf('const OVERLAY_PATH'), sw.indexOf("self.addEventListener('install'"));
+  const ctx = vm.createContext({});
+  try { vm.runInContext(`${code}\nthis.servesAppShell = servesAppShell;`, ctx); } catch (_) { return null; }
+  return ctx.servesAppShell;
+})();
+const extraUrls = pages.flatMap(page => [`/${page}`, `/${page.replace(/\.html$/, '')}`]).concat(['/t/x/overlay/a']);
+check(/mode === 'navigate' && !servesAppShell\(url\.pathname\)\) return;/.test(sw) && swShell
+  && ['/', '/index.html', '/t/x', '/t/x/court/a', '/t/x/tv/b'].every(swShell) && !extraUrls.some(swShell),
+  `service worker leaves navigations to extra pages to the network (${pages.length ? pages.join(', ') : 'none yet'}; /t/<id>/overlay/a) and serves the app for /t/ paths`);
 
 const leftover = fs.readdirSync(DIST_DIR, { recursive: true }).filter(f => /\.(html|js|css)$/.test(f) && dist(f).includes(VERSION_PLACEHOLDER));
 check(!leftover.length, `no ${VERSION_PLACEHOLDER} left in dist/${leftover.length ? ': ' + leftover.join(', ') : ''}`);

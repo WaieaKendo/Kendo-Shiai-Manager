@@ -211,15 +211,30 @@ test('round robin standings, progress and placements', () => {
   assert.deepEqual(teamStandings(lvl, makeTeams(2)).map(r => r.played), [0, 0]);
 });
 
+// The award-mode rule lived in teamFinalResultsHtml() (09-), removed with the legacy Results
+// renderer in M.13 (it only ran for the removed court queue's final results). The same rule is
+// implemented by resultPlacements() (27-: Results, the division-complete panels, print) and by
+// ksmFinalResults() (35-: the court queue's team results, which mirrors teamFinalResultsHtml()).
 test('award mode: top1 / top2 / dual3 rows from the team placements', () => {
-  const ctx = vm.createContext({ state: {}, esc: s => String(s), teamFinalPlacements: () => ({ first: 'A', second: 'B', thirds: ['C', 'D'], roundRobin: false }) });
-  vm.runInContext(extractFunction(html, 'teamFinalResultsHtml'), ctx);
-  const rows = mode => { ctx.state.teamAwardMode = mode; return [...ctx.teamFinalResultsHtml('D').matchAll(/<span>([^<]*)<\/span>/g)].map(m => m[1]); };
+  const placements = { first: 'A', second: 'B', thirds: ['C', 'D'], roundRobin: false };
+  const ctx = vm.createContext({ state: {}, KSMEngine: {}, teamFinalPlacements: () => placements,
+    divisionComplete: () => true, isTeamDivision: () => true });
+  vm.runInContext(['resultPlacements', 'ksmFinalResults', 'ksmText'].map(n => extractFunction(html, n)).join('\n'), ctx);
+  const plain = v => JSON.parse(JSON.stringify(v));  // out of the vm realm, for deepEqual
+  const rows = mode => { ctx.state.teamAwardMode = mode; return plain(ctx.resultPlacements('D').map(r => r.name)); };
+  const lines = mode => { ctx.state.teamAwardMode = mode; return plain(ctx.ksmFinalResults('D').results.lines.map(l => `${l.place} ${l.name}`)); };
   assert.deepEqual(rows('top1'), ['A']);
   assert.deepEqual(rows(undefined), ['A', 'B'], 'default top2');
   assert.deepEqual(rows('dual3'), ['A', 'B', 'C', 'D']);
+  assert.deepEqual(plain(ctx.resultPlacements('D').map(r => [r.place, r.tier])), [['1st', 'gold'], ['2nd', 'silver'], ['3rd', 'bronze'], ['3rd', 'bronze']]);
+  assert.deepEqual(lines('top1'), ['🥇 1st A']);
+  assert.deepEqual(lines(undefined), ['🥇 1st A', '🥈 2nd B'], 'default top2');
+  assert.deepEqual(lines('dual3'), ['🥇 1st A', '🥈 2nd B', '🥉 3rd C', '🥉 3rd D']);
+  assert.equal(ctx.ksmFinalResults('D').results.title, 'Team Results');
   ctx.teamFinalPlacements = () => null;
-  assert.match(ctx.teamFinalResultsHtml('D'), /Completed/);
+  assert.deepEqual(plain(ctx.resultPlacements('D')), []);
+  // teamFinalResultsHtml() drew "Completed" without placements: the court queue's results: null.
+  assert.deepEqual(plain(ctx.ksmFinalResults('D')), { kind: 'results', results: null });
 });
 
 test('team engine equals the pre-move legacy code over the golden team scenarios', t => {

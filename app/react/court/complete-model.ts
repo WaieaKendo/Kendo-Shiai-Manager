@@ -8,8 +8,8 @@
 // wrapper in app/js/32-split-court-templates.js) and computes the placements
 // (resultPlacements(), from the engine); setCourtCompletePresentation() publishes them
 // (ksm:court-complete) instead of writing the card. courtCompleteView() turns that into what
-// CourtComplete renders: the markup of divisionCompletePanelHtml(), which Live Scores and the
-// TV still use.
+// CourtComplete renders: the markup of the legacy divisionCompletePanelHtml() (removed in M.13),
+// which Live Scores and the TV draw with the same component (DivisionCompletePanel).
 
 export interface PlacementInput {
   /** '1st', '2nd', '3rd' ... as resultPlacements() gives them. */

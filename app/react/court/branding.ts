@@ -1,5 +1,7 @@
-// Default branding assets the court islands render. One place, so a per-tournament logo can
-// replace them later (passed in as props); the values match the legacy markup (app/index.html).
+// Default branding assets the court islands, the Tournament Library (app/react/library/) and the
+// navigation bar (app/react/shell/) render.
+// One place, so a per-tournament logo can replace them later (passed in as props); the values match
+// the legacy markup (app/index.html) and templates.
 // Colors come from the CSS custom properties in app/styles/02-branding.css, never from here.
 // (The .active-match-watermark image in #score .scoreboard-card is still legacy markup.)
 
@@ -35,3 +37,31 @@ export interface CourtPanelIcons {
 }
 
 export const DEFAULT_COURT_PANEL_ICONS: CourtPanelIcons = { poolComplete: '✓' };
+
+/** The KSM logo in the Tournament Library's brand (#home .home-brand), as the markup draws it. */
+export const DEFAULT_HOME_LOGO_SRC = '/assets/ksm-fuji-logo.svg';
+
+/** The mark on a Tournament Library card (.home-card-placeholder), until a tournament has a logo (M.11). */
+export const DEFAULT_LIBRARY_CARD_MARK = '🏆';
+
+/** The navigation tiles' icons (header.ksm-topbar .icon-nav), as the markup draws them. Live
+ * Scores, TV and Overview share one. (The bar's KSM brand logo is static markup.) */
+export interface NavIcons {
+  setup: string;
+  registration: string;
+  courts: string;
+  liveScores: string;
+  results: string;
+  export: string;
+  saveLoad: string;
+}
+
+export const DEFAULT_NAV_ICONS: NavIcons = {
+  setup: '/assets/nav-icons/setup.svg',
+  registration: '/assets/nav-icons/registration.svg',
+  courts: '/assets/nav-icons/courts.svg',
+  liveScores: '/assets/nav-icons/live-scores.svg',
+  results: '/assets/nav-icons/results.svg',
+  export: '/assets/nav-icons/export.svg',
+  saveLoad: '/assets/nav-icons/save-load.svg',
+};

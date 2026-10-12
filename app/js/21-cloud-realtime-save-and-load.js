@@ -8,7 +8,7 @@ function cloudSocketUrl(id){
   return url.toString();
 }
 const ksmTvRealtimeDiagnostics={status:'Not connected',messages:0,ignored:0,lastMessageAt:null,lastReceivedRevision:0,lastAppliedRevision:0,lastVerifiedRevision:0,lastVerifiedAt:null,refreshes:0,lastReason:'Waiting'};
-function isTvSession(){return document.body.classList.contains('ksm-tv')||new URLSearchParams(location.search).get('view')==='tv'}
+function isTvSession(){return document.body.classList.contains('ksm-tv')||/* ksm:post-split-begin path-urls was:new URLSearchParams(location.search) */ksmLinkParams()/* ksm:post-split-end */.get('view')==='tv'}
 function preserveLocalDivisionForRemoteSync(){
   // v3.17.17 intentionally made the scorekeeper-selected division local so a
   // remote court could not switch it back. That rule must NOT apply to a
@@ -64,7 +64,7 @@ function beginTvInitialSync(){
 function reconnectTvRealtime(){updateTvRealtimeDiagnostics({status:'Reconnecting',lastReason:'Manual reconnect requested'});disconnectCloudSocket();connectCloudSocket()}
 function disconnectCloudSocket(){clearTimeout(ksmCloudReconnectTimer);ksmCloudReconnectTimer=null;clearTvSyncTimers();if(ksmCloudSocket){const socket=ksmCloudSocket;ksmCloudSocket=null;try{socket.close(1000,'Reconnect')}catch(_){}}}
 function scheduleCloudReconnect(){clearTimeout(ksmCloudReconnectTimer);if(!cloudSession.tournamentId||location.protocol==='file:')return;ksmCloudReconnectTimer=setTimeout(()=>connectCloudSocket(),2000)}
-function renderCloudPresence(clients=[]){cloudSession.presence=clients;const el=document.getElementById('cloudPresence');if(el)el.textContent=clients.length?`${clients.length} online`:''}
+function renderCloudPresence(clients=[]){cloudSession.presence=clients;/* ksm:post-split-begin react-shell */ksmRenderPresence(clients);/* ksm:post-split-end */}
 function connectCloudSocket(){
   if(!cloudSession.tournamentId||location.protocol==='file:'||!location.host)return;
   if(ksmCloudSocket&&(ksmCloudSocket.readyState===WebSocket.OPEN||ksmCloudSocket.readyState===WebSocket.CONNECTING))return;
@@ -237,8 +237,8 @@ async function loadTournamentFromCloud(tournamentId,options={}){
 }
 function showKsmToast(message,duration=2000,isError=false){let toast=document.getElementById('ksmToast');if(!toast){toast=document.createElement('div');toast.id='ksmToast';toast.className='ksm-toast';toast.dataset.testid='toast';document.body.appendChild(toast)}clearTimeout(showKsmToast.timer);toast.textContent=message;toast.classList.toggle('error',Boolean(isError));requestAnimationFrame(()=>toast.classList.add('show'));if(duration>0)showKsmToast.timer=setTimeout(()=>toast.classList.remove('show'),duration)}
 async function copyTextValue(value,success,closeAfter=false){try{await navigator.clipboard.writeText(value);showKsmToast('✓ '+success,1200);if(closeAfter)setTimeout(closeCloudModal,850);return true}catch(_){prompt(success,value);return false}}
-function roleLink(role,court=''){if(!cloudSession.tournamentId)return '';const url=new URL(location.href);url.search='';url.hash='';url.searchParams.set('role',role);url.searchParams.set('tournament',cloudSession.tournamentId);const key=cloudSession.credentials?.[role];if(key)url.searchParams.set('key',key);if(court)url.searchParams.set('court',court);return url.toString()}
-function tvLink(court){const url=new URL(roleLink('spectator',court));if(!url.href||!cloudSession.tournamentId)return '';url.searchParams.set('view','tv');url.searchParams.set('court',court);return url.toString()}
+function roleLink(role,court=''){/* ksm:post-split-begin path-urls was:if(!cloudSession.tournamentId)return '';const url=new URL(location.href);url.search='';url.hash='';url.searchParams.set('role',role);url.searchParams.set('tournament',cloudSession.tournamentId);const key=cloudSession.credentials?.[role];if(key)url.searchParams.set('key',key);if(court)url.searchParams.set('court',court);return url.toString() */if(!cloudSession.tournamentId)return '';const id=cloudSession.tournamentId;return ksmLinkUrl(court?{screen:'court',id,court:normalizeCourt(court)}:{screen:'tournament',id},[['role',role==='spectator'?'':role],['key',cloudSession.credentials?.[role]]])/* ksm:post-split-end */}
+function tvLink(court){/* ksm:post-split-begin path-urls was:const url=new URL(roleLink('spectator',court));if(!url.href||!cloudSession.tournamentId)return '';url.searchParams.set('view','tv');url.searchParams.set('court',court);return url.toString() */if(!cloudSession.tournamentId)return '';return ksmLinkUrl({screen:'tv',id:cloudSession.tournamentId,court:normalizeCourt(court)},[['key',cloudSession.credentials?.spectator]])/* ksm:post-split-end */}
 function spectatorLink(){return roleLink('spectator')}
 function directorLink(){return roleLink('director')}
 async function copySpectatorLink(){if(!cloudSession.tournamentId)await saveTournamentToCloud();const link=spectatorLink();if(!link){alert('Create the cloud tournament while online first.');return}await copyTextValue(link,'Spectator link copied')}
@@ -246,12 +246,9 @@ async function copyDirectorLink(){const link=directorLink();if(!link||!cloudSess
 // Court access helpers remain available: copyScorekeeperLink('A') copyScorekeeperLink('B')
 async function copyScorekeeperLink(court){const link=roleLink('scorekeeper',court);if(!link||!cloudSession.credentials?.scorekeeper){alert('This device does not have the scorekeeper credential.');return}await copyTextValue(link,`Court ${court} scorekeeper link copied`)}
 async function copyAdminLink(){const link=roleLink('admin');if(!link||!cloudSession.credentials?.admin){alert('This device does not have admin access.');return}await copyTextValue(link,'Admin link copied')}
-function closeCloudModal(){document.getElementById('ksmCloudModal')?.remove()}
-function openCloudModal(title,body){closeCloudModal();const wrap=document.createElement('div');wrap.id='ksmCloudModal';wrap.className='cloud-modal-backdrop';wrap.innerHTML=`<div class="cloud-modal" role="dialog" aria-modal="true" data-testid="cloud-modal"><div class="cloud-modal-head"><div><div class="setup-panel-eyebrow">KSM Cloud</div><h2 data-testid="cloud-modal-title">${esc(title)}</h2></div><button class="secondary" onclick="closeCloudModal()" data-testid="cloud-modal-close">Close</button></div>${body}</div>`;wrap.addEventListener('click',e=>{if(e.target===wrap)closeCloudModal()});document.body.appendChild(wrap)}
-function showQr(label,link){if(!link)return;const qr=`https://api.qrserver.com/v1/create-qr-code/?size=440x440&data=${encodeURIComponent(link)}`;openCloudModal(`${label} QR Code`,`<img class="cloud-qr" src="${qr}" alt="${label} QR code"><p class="small" style="text-align:center">Scan this code to open ${label}.</p><div class="row" style="justify-content:center"><button class="secondary" onclick="openTournamentAccess()">Back</button></div>`)}
-async function openTournamentAccess(){if(!cloudSession.tournamentId)await saveNow();if(!cloudSession.tournamentId){alert('Connect to the internet and save the tournament first.');return}const rows=[['Spectator View',spectatorLink(),true],['Court A Scorekeeper',roleLink('scorekeeper','A'),Boolean(cloudSession.credentials?.scorekeeper)],['Court B Scorekeeper',roleLink('scorekeeper','B'),Boolean(cloudSession.credentials?.scorekeeper)],['TV Display — Court A',tvLink('A'),true],['TV Display — Court B',tvLink('B'),true],['Admin Access',roleLink('admin'),Boolean(cloudSession.credentials?.admin)]];const html=`<p class="small">Spectator access is public. Court and Admin links are private.</p>${rows.map(([label,link,allowed])=>`<div class="cloud-access-row"><div><b>${esc(label)}</b>${allowed?'':`<div class="small">Not available on this device</div>`}</div><div class="cloud-access-actions">${allowed?`<button onclick='copyTextValue(${jsArg(link)},${jsArg(label+' link copied')},true)'>Copy Link</button><button class="secondary" onclick='showQr(${jsArg(label)},${jsArg(link)})'>QR Code</button>`:''}</div></div>`).join('')}`;openCloudModal('Tournament Access',html)}
+function closeCloudModal(){/* ksm:post-split-begin react-shell */ksmCloseCloudModal();/* ksm:post-split-end */}
 function installRoleBanner(role){document.querySelector('.spectator-readonly-banner')?.remove();if(!['spectator','scorekeeper'].includes(role))return;const banner=document.createElement('div');banner.className='spectator-readonly-banner';banner.textContent=role==='spectator'?'LIVE SPECTATOR VIEW • READ ONLY':`COURT ${cloudSession.court||'—'} SCOREKEEPER • LIVE SYNC`;document.body.prepend(banner)}
-function cloudDiagnostics(){const outbox=readOutbox(),presence=cloudSession.presence||[],diag=readCloudDiagnosticsState(),currentAnalysis=analyzeTournamentSnapshot(),analysis=diag.snapshotAnalysis||currentAnalysis,historyAnalysis=analyzeCourtActionHistory();const details=[['Connection',navigator.onLine?'Online':'Offline'],['Realtime',ksmCloudSocket?.readyState===1?'Connected':'Not connected'],['Last successful save',ksmLastSuccessfulSaveAt?new Date(ksmLastSuccessfulSaveAt).toLocaleString():'None'],['Pending offline changes',outbox?'1 queued snapshot':'None'],['Tournament ID',cloudSession.tournamentId||'None'],['Role',ksmSessionRole],['Pinned court',pinnedCourt()||'—'],['Displayed court',state.currentCourt||'—'],['Local changes pending',localChangesPending()?'Yes':'No'],['Court',cloudSession.court||state.currentCourt||'—'],['Connected devices',String(presence.length)],['Cloud revision',String(cloudSession.revision||0)],['Last save stage',diag.stage||'No diagnostic attempt recorded'],['Last attempt',formatDiagnosticTime(diag.lastAttemptAt)],['HTTP status',diag.httpStatus==null?'None':String(diag.httpStatus)],['Last error',diag.errorMessage||'None'],['Server response',diag.errorBody||'None'],['Retry count',String(diag.retryCount||0)],['Queued base revision',outbox?String(outbox.baseRevision||0):'None'],['Queued since',outbox?formatDiagnosticTime(outbox.queuedAt):'None'],['Snapshot size',formatSnapshotBytes(outbox?payloadByteSize(outbox.payload):(diag.snapshotBytes||currentAnalysis.totalBytes))]];const actions=`<div class="row" style="justify-content:flex-end;margin-top:18px;gap:10px;flex-wrap:wrap"><button class="secondary" onclick="downloadSnapshotAnalysis()">Download snapshot analysis</button><button class="secondary" onclick="downloadActionHistorySample()">Download action history sample</button>${outbox&&!isReadOnlySession()?'<button class="secondary" onclick="retryQueuedCloudSave()" data-testid="diagnostics-retry">Retry queued save</button>':''}</div>`;openCloudModal('Developer Tools',`<div class="cloud-detail-grid">${details.map(([a,b])=>`<div class="cloud-detail"><div class="small">${esc(a)}</div><b style="overflow-wrap:anywhere">${esc(b)}</b></div>`).join('')}</div><h2 style="margin-top:24px">Snapshot Analysis</h2>${snapshotAnalysisHtml(analysis)}<h2 style="margin-top:24px">Action History Analysis</h2><p class="small">Read-only diagnostics. Scoring, undo, redo, saving, and synchronization are unchanged.</p>${actionHistoryAnalysisHtml(historyAnalysis)}${actions}`)}
+function cloudDiagnostics(){const outbox=readOutbox(),presence=cloudSession.presence||[],diag=readCloudDiagnosticsState(),currentAnalysis=analyzeTournamentSnapshot(),analysis=diag.snapshotAnalysis||currentAnalysis,historyAnalysis=analyzeCourtActionHistory();const details=[['Connection',navigator.onLine?'Online':'Offline'],['Realtime',ksmCloudSocket?.readyState===1?'Connected':'Not connected'],['Last successful save',ksmLastSuccessfulSaveAt?new Date(ksmLastSuccessfulSaveAt).toLocaleString():'None'],['Pending offline changes',outbox?'1 queued snapshot':'None'],['Tournament ID',cloudSession.tournamentId||'None'],['Role',ksmSessionRole],['Pinned court',pinnedCourt()||'—'],['Displayed court',state.currentCourt||'—'],['Local changes pending',localChangesPending()?'Yes':'No'],['Court',cloudSession.court||state.currentCourt||'—'],['Connected devices',String(presence.length)],['Cloud revision',String(cloudSession.revision||0)],['Last save stage',diag.stage||'No diagnostic attempt recorded'],['Last attempt',formatDiagnosticTime(diag.lastAttemptAt)],['HTTP status',diag.httpStatus==null?'None':String(diag.httpStatus)],['Last error',diag.errorMessage||'None'],['Server response',diag.errorBody||'None'],['Retry count',String(diag.retryCount||0)],['Queued base revision',outbox?String(outbox.baseRevision||0):'None'],['Queued since',outbox?formatDiagnosticTime(outbox.queuedAt):'None'],['Snapshot size',formatSnapshotBytes(outbox?payloadByteSize(outbox.payload):(diag.snapshotBytes||currentAnalysis.totalBytes))]];/* ksm:post-split-begin react-shell */ksmOpenDiagnostics(details,analysis,historyAnalysis,outbox&&!isReadOnlySession());/* ksm:post-split-end */}
 async function initializeCloudRoleFromUrl(){ensureClientIdentity();const params=new URLSearchParams(location.search);let role=params.get('role'),id=params.get('tournament'),key=params.get('key'),court=params.get('court')||'',requestedView=params.get('view')||'';
   if(!role){if(params.get('spectator')){role='spectator';id=params.get('spectator')}else if(params.get('director')){role='director';id=params.get('director');key=params.get('key')}}
   if(role&&id){role=['spectator','scorekeeper','director','admin'].includes(role)?role:'spectator';cloudSession.clientName=promptDeviceName(role,cloudSession.clientName);await loadTournamentFromCloud(id,role==='spectator'?{spectator:true,role,court}:{role,key,court});installRoleBanner(role);if(requestedView==='tv'){document.body.classList.add('ksm-tv');cloudSession.court=(court||'A').toUpperCase()==='B'?'B':'A';persistCloudSession();renderTvDisplay();renderTvRealtimeDiagnostics();show('tv')}else if(role==='spectator'){navigateTo('public')}else if(role==='scorekeeper'){chooseCourt(court||'A')}else navigateTo('director');return true}
@@ -324,10 +321,11 @@ function tournamentFileProblem(payload){
   if(payload.setup!=null&&(typeof payload.setup!=='object'||Array.isArray(payload.setup)))return 'its setup data is damaged';
   return '';
 }
-function tournamentFileSummaryHtml(payload){
+// The details the confirmation shows: [label, value, test ID] (the React shell draws them,
+// app/js/44-react-shell.js).
+function tournamentFileDetails(payload){
   const saved=payload.savedAt&&!isNaN(new Date(payload.savedAt))?new Date(payload.savedAt).toLocaleString():'Unknown';
-  const rows=[['File',payload.setup?.tName||'Unnamed tournament','file-load-name'],['Saved',saved,'file-load-saved'],['Revision',payload.revision==null?'Unknown':String(payload.revision),'file-load-revision'],['Tournament ID',payload.tournamentId||'None (older file)','file-load-id'],['Open tournament',`${(window.tName&&tName.value)||'Kendo Tournament'} · revision ${Number(cloudSession.revision)||0}`,'file-load-open']];
-  return `<div class="cloud-detail-grid">${rows.map(([a,b,id])=>`<div class="cloud-detail"><div class="small">${esc(a)}</div><b style="overflow-wrap:anywhere" data-testid="${id}">${esc(b)}</b></div>`).join('')}</div>`;
+  return [['File',payload.setup?.tName||'Unnamed tournament','file-load-name'],['Saved',saved,'file-load-saved'],['Revision',payload.revision==null?'Unknown':String(payload.revision),'file-load-revision'],['Tournament ID',payload.tournamentId||'None (older file)','file-load-id'],['Open tournament',`${(window.tName&&tName.value)||'Kendo Tournament'} · revision ${Number(cloudSession.revision)||0}`,'file-load-open']];
 }
 let ksmPendingTournamentFile=null;
 function confirmTournamentFileLoad(payload,fileName){
@@ -335,11 +333,12 @@ function confirmTournamentFileLoad(payload,fileName){
   if(problem){alert(`Unable to load ${fileName}: ${problem}. Nothing was changed.`);return}
   ksmPendingTournamentFile={payload,fileName};
   const same=Boolean(cloudSession.tournamentId&&payload.tournamentId===cloudSession.tournamentId);
-  const note=same
-    ?'<p data-testid="file-load-message">This file is a copy of the open tournament. Replacing makes the file the tournament on every device: changes made after it was saved are lost.</p>'
-    :`<p data-testid="file-load-message">This file is ${cloudSession.tournamentId?'not the open tournament':'not an open cloud tournament'}, so it will not replace ${cloudSession.tournamentId?'it':'anything'}. It can be loaded as a new tournament with its own Staff password; the open tournament stays unchanged.</p>`;
-  const actions=`<div class="row" style="justify-content:flex-end;margin-top:18px;gap:10px;flex-wrap:wrap"><button class="secondary" onclick="closeCloudModal()" data-testid="file-load-cancel">Cancel</button>${same?'<button class="primary" onclick="replaceTournamentFromFile()" data-testid="file-load-replace">Replace open tournament</button>':'<button class="primary" onclick="loadTournamentFileAsNew()" data-testid="file-load-new">Load as new tournament</button>'}</div>`;
-  openCloudModal(same?'Replace the open tournament?':'Load as a new tournament?',`${tournamentFileSummaryHtml(payload)}${note}${actions}`);
+  const message=same
+    ?'This file is a copy of the open tournament. Replacing makes the file the tournament on every device: changes made after it was saved are lost.'
+    :`This file is ${cloudSession.tournamentId?'not the open tournament':'not an open cloud tournament'}, so it will not replace ${cloudSession.tournamentId?'it':'anything'}. It can be loaded as a new tournament with its own Staff password; the open tournament stays unchanged.`;
+  const title=same?'Replace the open tournament?':'Load as a new tournament?';
+  // The React shell (app/js/44-react-shell.js) draws the confirmation.
+  ksmOpenFileLoadModal(title,tournamentFileDetails(payload),message,same);
 }
 function applyTournamentFilePayload(payload,saveAfter){
   const before=tournamentPayload();
@@ -365,9 +364,9 @@ async function loadTournamentFileAsNew(){
   sessionStorage.setItem(KSM_V316_STAFF_SESSION,password);setSessionRole('staff');installRoleBanner('staff');document.body.classList.remove('ksm-home');
   if(!applyTournamentFilePayload(pending.payload,false)){Object.assign(cloudSession,previous.session);persistCloudSession();if(previous.password)sessionStorage.setItem(KSM_V316_STAFF_SESSION,previous.password);else sessionStorage.removeItem(KSM_V316_STAFF_SESSION);setSessionRole(previous.role);if(cloudSession.tournamentId)connectCloudSocket();return}
   // A tournament link in the address bar would reopen the old tournament after a reload.
-  const linked=Boolean(new URLSearchParams(location.search).get('tournament'));if(linked)history.replaceState(null,'',location.pathname);
+  const linked=Boolean(ksmLinkParams().get('tournament'));if(linked)ksmReplaceUrl('/');
   markLocalSave('Tournament file loaded as new tournament');updateSaveStatus('Loaded '+pending.fileName);showKsmToast('Creating tournament in cloud…',0);
-  try{await performCloudSave(tournamentPayload(),0);if(linked&&cloudSession.tournamentId)history.replaceState(null,'',`${location.pathname}?tournament=${encodeURIComponent(cloudSession.tournamentId)}`);showKsmToast('✓ Loaded as a new tournament',2200)}
+  try{await performCloudSave(tournamentPayload(),0);if(linked&&cloudSession.tournamentId)ksmReplaceUrl(KSMEngine.routePath({screen:'tournament',id:cloudSession.tournamentId}));showKsmToast('✓ Loaded as a new tournament',2200)}
   catch(err){console.error(err);writeOutbox(tournamentPayload(),'Tournament file loaded as new tournament');showKsmToast(navigator.onLine?'Unable to create tournament in cloud':'Offline · Tournament will sync when connected',3500,true)}
 }
 /* ksm:post-split-end */
@@ -441,7 +440,7 @@ function restoreAutoSaveIfWanted(){
   try{
     // A tournament link (spectator, TV, court device) always loads the cloud copy, which would
     // replace anything restored here. Unsynced staff work is kept in the outbox instead.
-    const params=new URLSearchParams(location.search);
+    const params=/* ksm:post-split-begin path-urls was:new URLSearchParams(location.search) */ksmLinkParams()/* ksm:post-split-end */;
     if(params.get('tournament')||params.get('spectator'))return false;
     const raw=localStorage.getItem(KSM_SAVE_KEY);
     if(!raw) return false;
@@ -464,7 +463,7 @@ window.addEventListener('beforeunload', queueUnsyncedStaffWorkBeforeUnload);
 window.addEventListener('beforeunload', autoSaveTournament);
 document.addEventListener('input', scheduleAutoSave, true);
 document.addEventListener('change', scheduleAutoSave, true);
-document.addEventListener('click', function(e){ if(e.target.closest('button,.status,.search-item,.tab,.seg,.x')) scheduleAutoSave(); }, true);
+document.addEventListener('click', function(e){ if(e.target.closest('button,.status,.search-item,.tab,.seg,.x')/* ksm:post-split-begin pool-edit */&&!ksmPoolEditorClick(e.target)/* ksm:post-split-end */) scheduleAutoSave(); }, true);
 setInterval(()=>autoSaveTournament('10-minute safety autosave'),600000);
 setInterval(renderPersistentSaveStatus,60000);
 

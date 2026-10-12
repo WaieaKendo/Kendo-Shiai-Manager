@@ -53,3 +53,7 @@ export {
 export type { CompletedResult, CompletedResultRepair, IdentityMatch } from './integrity.ts';
 export { eligibleIndividuals, eligibleTeams, generateDivision, TEAM_DIVISION, EXHIBITION_DIVISION } from './generation.ts';
 export type { CompetitorRow, TeamRow, ExhibitionRow, GenerationInput, DivisionPlan, RoundRobinPool, ExhibitionMatch } from './generation.ts';
+export {
+  routePath, routeUrl, parseRoutePath, parseLegacyLink, resolveUrl, legacyQuery, servesAppShell, servesOverlay,
+} from './routes.ts';
+export type { Route, RouteCourt, ResolvedUrl } from './routes.ts';

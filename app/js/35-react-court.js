@@ -14,7 +14,8 @@
 // * score buttons and action row: the score buttons have no writer; updateUndoButton()
 //   (10-court-scoring-and-history.js) publishes whether Undo/Redo may be pressed
 //   (ksm:court-actions). Every button calls the legacy global (point, hansoku, undo, redo,
-//   openFusenDialog, nextMatch); the Fusen-gachi dialog (#fusenDialog) stays legacy markup.
+//   openFusenDialog, nextMatch); the Fusen-gachi dialog (#fusenDialog) is a shell island
+//   (app/react/shell/, app/js/44-react-shell.js).
 //   A spectator and a completed division hide them through CSS only (F2 stays, ROADMAP.md).
 // * queue and context panels: renderQueue() and renderContext() (32-split-court-templates.js)
 //   publish ksmQueuePanelInput() / ksmContextPanelInput() below (ksm:court-queue,
@@ -25,7 +26,9 @@
 // The legacy court renderer (the DOM-writing renderScore/renderQueue/renderContext and their
 // HTML helpers) was removed in M.8 step 5; the functions below mirror its decisions, which
 // tests/golden/court/*.json (recorded from it) pin. HTML helpers that other screens share
-// (bracketHtml(), teamSheetHtml(), divisionCompletePanelHtml(), ...) stay. If the court module
+// went with the screens' legacy renderers (divisionCompletePanelHtml() with the TV's, bracketHtml() and
+// its helpers with the Pools view's, M.13).
+// If the court module
 // does not load, the court screen shows a notice (the end of this file).
 // Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
@@ -56,7 +59,8 @@ function ksmPublishCourtActions(actions){
   window.ksmCourtActionsInput=actions;
   window.dispatchEvent(new CustomEvent('ksm:court-actions'));
 }
-// divisionCompletePanelHtml() (32-) as data: esc() text (String(x||'')).
+// divisionCompletePanelHtml() (32-; removed in M.13, the TV was its last user) as data: esc()
+// text (String(x||'')).
 function ksmDivisionCompleteInput(div,complete){
   if(!complete)return {complete:false,placements:[]};
   return {complete:true,placements:resultPlacements(div).map(p=>({place:ksmText(p.place),name:ksmText(p.name),tier:ksmText(p.tier)}))};
@@ -71,8 +75,8 @@ function ksmPublishCourtComplete(input){
 // queue/context renderers and read the same data (engine bridges: poolStandings,
 // teamPairSummary, teamStandings, seedNameForLabel, sourceLabelForRound, ...), and publish it as
 // plain data (ksm:court-queue, ksm:court-context). The comments name the legacy function each
-// part mirrors ("(removed)": deleted with the legacy court renderer in M.8 step 5; the others
-// still draw Results, Live Scores or print).
+// part mirrors ("(removed)": deleted with the legacy court, Live Scores, TV or Results renderer
+// (M.8, M.13), bracketHtml() and its helpers with the legacy Pools renderer (M.13)).
 // Text is what esc() showed (String(x||'')); numbers the templates printed as is are String(x).
 function ksmPublishCourtQueue(input){
   window.ksmCourtQueueInput=input;
@@ -83,7 +87,7 @@ function ksmPublishCourtContext(input){
   window.dispatchEvent(new CustomEvent('ksm:court-context'));
 }
 function ksmText(s){return String(s||'')}
-// alignedMatchRowHtml(match,options) (28-) with its option defaults resolved.
+// alignedMatchRowHtml(match,options) (28-, removed) with its option defaults resolved.
 function ksmAlignedRow(match,options={}){
   const white=options.white ?? (match?specificMatchSideLabel(match,'white'):'TBD');
   const red=options.red ?? (match?specificMatchSideLabel(match,'red'):'TBD');
@@ -93,16 +97,16 @@ function ksmAlignedRow(match,options={}){
   const slots=points=>[...(points||[])].slice(0,2).map(v=>v?String(v):'');
   return {kind:'aligned',white:ksmText(white),red:ksmText(red),wp:slots(wp),rp:slots(rp),status:ksmText(status),current:!!options.current,compact:!!options.compact};
 }
-// alignedPlaceholderRowHtml() (28-).
+// alignedPlaceholderRowHtml() (28-, removed).
 function ksmPlaceholderRow(white,red,status='awaiting',compact=false){return ksmAlignedRow(null,{white,red,wp:[],rp:[],status,compact})}
-// A first-round championship slot before its match exists (bracketHtml(), 28-).
+// A first-round championship slot before its match exists (bracketHtml(), 28-, removed).
 function ksmSeedPlaceholderRow(div,pair){
   const redLabel=pair[0],whiteLabel=pair[1];
   const redSeed=seedNameForLabel(div,redLabel,true),whiteSeed=seedNameForLabel(div,whiteLabel,true);
   return ksmPlaceholderRow(whiteSeed?whiteSeed.name:(whiteLabel||'BYE'),redSeed?redSeed.name:(redLabel||'TBD'),
     (String(whiteLabel).toUpperCase()==='BYE'||!whiteLabel)?'BYE':'awaiting',true);
 }
-// futureRoundsHtml() (14-): placeholder rounds after a first round that has no matches yet.
+// futureRoundsHtml() (14-, removed): placeholder rounds after a first round that has no matches yet.
 function ksmFutureRoundCards(startRound,matchCount){
   const cards=[];let round=startRound,count=matchCount;
   while(round&&count>=1){
@@ -127,7 +131,7 @@ function ksmSingleElimRoundCard(div,round){
     return ksmPlaceholderRow(sideLabelGeneric(node.right,div),sideLabelGeneric(node.left,div),(!node.left||!node.right)?'BYE':'awaiting',true);
   })};
 }
-// teamRoundRobinStandingsHtml() (28-).
+// teamRoundRobinStandingsHtml() (28-, removed).
 function ksmTeamStandings(div,options={}){
   const rows=teamStandings(div),progress=teamRoundRobinProgress(div),complete=divisionComplete(div);
   if(!rows.length)return {kind:'results-empty',text:'No team standings are available.'};
@@ -141,11 +145,12 @@ function ksmTeamStandings(div,options={}){
   });
   return {kind:'team-standings',standings};
 }
-// bracketHtml() (28-).
+// bracketHtml() (28-, removed in M.13: the Pools view was its last user); also the Pools view's
+// Championship Preview / Team Standings (41-react-pools.js) and the Results modal.
 function ksmBracket(div){
   if(isTeamRoundRobinDivision(div))return ksmTeamStandings(div,{compact:true,includePairResults:false});
   if(state.singleElimNodes&&state.singleElimNodes[div]){
-    // singleElimBracketHtml() (28-)
+    // singleElimBracketHtml() (28-, removed)
     const nodes=state.singleElimNodes?.[div]||[];
     if(!nodes.length)return {kind:'message',text:'Single-elimination bracket will appear after generation.'};
     return {kind:'cards',cards:[...new Set(nodes.map(node=>node.round))].map(round=>ksmSingleElimRoundCard(div,round))};
@@ -178,7 +183,7 @@ function ksmBracket(div){
   }
   return {kind:'message',text:'Championship bracket will appear after pools are generated.'};
 }
-// teamResultsBracketHtml() (28-).
+// teamResultsBracketHtml() (28-, removed in M.13: the Results modal was its last user).
 function ksmTeamResults(div){
   if(isTeamRoundRobinDivision(div))return ksmTeamStandings(div,{includePairResults:true});
   const nodes=state.teamBracketNodes?.[div]||[];
@@ -226,7 +231,7 @@ function ksmSingleElimContext(div){
   const cards=rounds=>(rounds||[]).map(round=>ksmSingleElimRoundCard(div,round)).filter(Boolean);
   return {kind:'single-elim',left:cards(layout.left),right:cards(layout.right)};
 }
-// teamSheetHtml() (28-).
+// teamSheetHtml() (11-/28-, removed in M.13).
 function ksmTeamSheet(div,pair,currentMatch){
   const matches=(state.allMatches[div]||[]).filter(m=>m.teamPair===pair&&(m.type==='teamPosition'||m.type==='teamPlayoff'));
   const first=matches[0]||{},s=teamPairSummary(div,pair);
@@ -238,7 +243,7 @@ function ksmTeamSheet(div,pair,currentMatch){
     }),
     totals:{wWins:String(s.wWins),wPts:String(s.wPts),rWins:String(s.rWins),rPts:String(s.rPts)}};
 }
-// kachinukiSheetHtml() (28-).
+// kachinukiSheetHtml() (16-/28-, removed in M.13).
 function ksmKachinukiSheet(m){
   const pts=activeScoreArrays(m);
   const side=(lineup,index)=>({lineup:(lineup||[]).map(ksmText),index:index??null});
@@ -275,7 +280,7 @@ function ksmContextPanelInput(){
 function ksmFinalResults(div){
   if(isTeamDivision(div)){
     if(!divisionComplete(div))return null;
-    // teamFinalResultsHtml() (09-)
+    // teamFinalResultsHtml() (09-, removed in M.13)
     const p=teamFinalPlacements(div);
     if(!p)return {kind:'results',results:null};
     const mode=state.teamAwardMode||'top2',lines=[{place:'🥇 1st',name:ksmText(p.first)}];

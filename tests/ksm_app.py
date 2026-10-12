@@ -16,13 +16,28 @@ import time
 import urllib.request
 from pathlib import Path
 
-from ksm_browser import load_app
+from ksm_browser import load_app, wait_for_react
 
 API_JS = (Path(__file__).resolve().parent / 'lib' / 'ksm-test-api.js').read_text(encoding='utf-8')
 SIDE = {'W': 'white', 'R': 'red', 'white': 'white', 'red': 'red'}
 STATUS_CLICKS = {'Registered': 0, 'Checked': 1, 'NoShow': 2}  # Registered -> Checked In -> No Show
 
 DEFAULT_PASSWORD = 'e2e-staff-pass'
+
+
+def app_path(tid, screen=None, court=None):
+    """The app's path URL for a tournament (roadmap M.9, the scheme in app/engine/routes.ts).
+
+    app_path(tid) = /t/<id> (Live Scores, the device's court), app_path(tid, 'live'),
+    app_path(tid, 'court', 'B') = /t/<id>/court/b (a court device), app_path(tid, 'tv', 'A'),
+    app_path(tid, 'overlay', 'A') (the stream overlay page).
+    """
+    path = f'/t/{tid}'
+    if screen:
+        path += f'/{screen}'
+    if court:
+        path += f'/{court.lower()}'
+    return path
 
 
 def sel(testid):
@@ -88,8 +103,27 @@ _LIVE_JS = """(court) => {
   const card = document.querySelector(`[data-testid="live-scores"] [data-testid="live-court-${court}"]`);
   const text = id => (card?.querySelector(`[data-testid="${id}"]`)?.textContent || '').trim();
   // Team matches show a team sheet; its current bout carries the names.
-  return card ? {meta: text('live-meta'), white: text('live-white-name') || text('current-bout-white-name'),
-                 red: text('live-red-name') || text('current-bout-red-name')} : null;
+  if (!card) return null;
+  const out = {meta: text('live-meta'), white: text('live-white-name') || text('current-bout-white-name'),
+               red: text('live-red-name') || text('current-bout-red-name')};
+  // A court whose division is complete shows its placements in the card (F16).
+  const rows = [...card.querySelectorAll('[data-testid="division-complete-row"]')];
+  if (card.querySelector('[data-testid="division-complete"]')) out.placements = rows.map(r => r.innerText.trim().split(/\\s*\\n\\s*/));
+  return out;
+}"""
+
+_POOL_DRAG_JS = """([player, pool, index]) => {
+  const dt = new DataTransfer(), source = document.querySelector(player), target = document.querySelectorAll(pool)[index];
+  const fire = (el, type) => el.dispatchEvent(new DragEvent(type, {bubbles: true, cancelable: true, dataTransfer: dt}));
+  fire(source, 'dragstart'); fire(target, 'dragover'); fire(target, 'drop'); fire(source, 'dragend');
+}"""
+
+# Live Scores showing one division's placements instead of the courts: the rows, or None.
+_LIVE_PLACEMENTS_JS = """() => {
+  const live = document.querySelector('[data-testid="live-scores"]');
+  if (!live || live.querySelector('[data-testid^="live-court-"]')) return null;
+  const panel = live.querySelector('[data-testid="division-complete"]');
+  return panel ? [...panel.querySelectorAll('[data-testid="division-complete-row"]')].map(r => r.innerText.trim().split(/\\s*\\n\\s*/)) : null;
 }"""
 
 
@@ -118,15 +152,16 @@ class KsmApp:
 
     @classmethod
     def open_device(cls, browser, base, name, problems, path='/', password=DEFAULT_PASSWORD,
-                    tournament_name='KSM E2E Cup', viewport=None, clock=False, before_load=None):
+                    tournament_name='KSM E2E Cup', viewport=None, clock=False, before_load=None, service_workers='block'):
         """A separate device (own browser context) opening `path` on a live backend.
 
         Answers the app's prompts (tournament name, staff password, device name);
         any other dialog, or a page error, is recorded in `problems`.
         clock=True installs Playwright's clock first, so a test can fast-forward time;
         before_load(page) runs before the page opens (e.g. to route its live socket).
+        service_workers='allow' lets the app's service worker run (the offline checks).
         """
-        ctx = browser.new_context(viewport=viewport or {'width': 1280, 'height': 900}, service_workers='block')
+        ctx = browser.new_context(viewport=viewport or {'width': 1280, 'height': 900}, service_workers=service_workers)
         page = ctx.new_page()
         app = cls(page, name, problems)
         app.answers = {
@@ -144,6 +179,7 @@ class KsmApp:
             before_load(page)
         page.goto(base + path, wait_until='domcontentloaded')
         page.wait_for_function('window.KSMTest && KSMTest.booted()')
+        wait_for_react(page)
         return app
 
     def expect_dialog(self, prefix, accept=False):
@@ -184,6 +220,22 @@ class KsmApp:
         """Reload the page (power cut, browser restart) and wait for the app to boot again."""
         self.page.reload(wait_until='domcontentloaded')
         self.page.wait_for_function('window.KSMTest && KSMTest.booted()')
+        wait_for_react(self.page)
+
+    def goto(self, path):
+        """Open `path` (e.g. app_path(tid, 'tv', 'B'), or an old ?tournament= link) in this device's page."""
+        origin = self.page.url.split('/', 3)[:3]
+        self.page.goto('/'.join(origin) + path, wait_until='domcontentloaded')
+        self.page.wait_for_function('window.KSMTest && KSMTest.booted()')
+        wait_for_react(self.page)
+
+    def address(self):
+        """The page's address without the origin: path, query and hash (e.g. /t/<id>/court/b)."""
+        return '/' + self.page.url.split('/', 3)[3]
+
+    def visible_view(self):
+        """The screens (main > .view ids) shown: ['public'] for Live Scores, ['home'], ['tv'], ..."""
+        return self.page.evaluate("() => [...document.querySelectorAll('main > .view')].filter(v => getComputedStyle(v).display !== 'none').map(v => v.id)")
 
     # --------------------------------------------------------- cloud / sync status
     def tournament_id(self):
@@ -221,6 +273,22 @@ class KsmApp:
     def receive(self, record):
         """(test API) Deliver a server record as if it came over the live socket; True if applied."""
         return self.page.evaluate('r => KSMTest.receive(r)', record)
+
+    def payload(self):
+        """(test API) This device's tournament as it would be saved (a copy, as a dict)."""
+        return self.page.evaluate('KSMTest.payload()')
+
+    def apply_live_update(self, payload):
+        """(test API) Apply a tournament copy as an applied live update does (state replaced, redrawn)."""
+        self.page.evaluate('p => KSMTest.applyLiveUpdate(p)', payload)
+
+    def watch_saves(self):
+        """(test API) Start counting the saves this device asks for (see saves_asked)."""
+        self.page.evaluate('KSMTest.watchSaves()')
+
+    def saves_asked(self):
+        """(test API) Saves asked for (scheduled or immediate) since the last call."""
+        return self.page.evaluate('KSMTest.savesAsked()')
 
     def client_id(self):
         """(test API) This device's client ID (sent with every save)."""
@@ -298,7 +366,7 @@ class KsmApp:
         def grab(route):
             captured.append(route.request.url)
             route.fulfill(status=200, content_type='text/html', body='')
-        is_tv = lambda url: 'view=tv' in url
+        is_tv = lambda url: '/tv/' in url
         ctx.route(is_tv, grab)
         try:
             self.click('nav-tv')
@@ -410,6 +478,13 @@ class KsmApp:
           p.querySelector('[data-testid="pool-title"]').textContent.replace(/^(Team )?Pool\\s*/, '').trim(),
           [...p.querySelectorAll('[data-testid="pool-player"]')].map(x => x.textContent.trim())]))""")
 
+    def pool_edit_move(self, to_pool=1):
+        """Edit Pool (open on the Pools view): drag the editor's first player onto pool `to_pool`.
+
+        The drag events a mouse drag fires, sharing one DataTransfer, dispatched (Chromium's
+        headless mouse drag is unreliable here); as pool-edit-safety-test.py does."""
+        self.page.evaluate(_POOL_DRAG_JS, [sel('pool-edit-player'), sel('pool-edit-pool'), to_pool])
+
     # ---------------------------------------------------------- court (scorekeeper)
     def court_screen(self):
         """What the court screen shows: division, match meta, names, points, completion."""
@@ -499,7 +574,7 @@ class KsmApp:
         self.page.evaluate('KSMTest.renderTv()')
 
     def tv_screen(self):
-        """TV display (?view=tv): court, division, meta, current names or completion, scores, team summaries."""
+        """TV display (/t/<id>/tv/a|b): court, division, meta, current names or completion, scores, team summaries."""
         return self.page.evaluate(_TV_JS)
 
     def tv_upcoming(self):
@@ -509,8 +584,13 @@ class KsmApp:
           return w ? [w.innerText.trim(), r.innerText.trim()] : null; })""")
 
     def live_court(self, court):
-        """Live Scores card for a court: {meta, white, red} (the page must be showing Live Scores)."""
+        """Live Scores card for a court: {meta, white, red}, plus `placements` [[place, name]] when the
+        card shows its finished division's placements (the page must be showing Live Scores)."""
         return self.page.evaluate(_LIVE_JS, court)
+
+    def live_placements(self):
+        """Live Scores showing a division's placements instead of the courts: [[place, name]], else None."""
+        return self.page.evaluate(_LIVE_PLACEMENTS_JS)
 
     def wait_for(self, predicate, timeout=15, interval=0.1, message='condition'):
         """Poll a Python predicate (e.g. lambda: app.tv_screen()['white'] == 'X')."""

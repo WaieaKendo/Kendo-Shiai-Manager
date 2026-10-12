@@ -40,8 +40,8 @@ function clearLocalCourtDivisions(){ksmLocalCourtDivision.A=null;ksmLocalCourtDi
 // until Staff Login and must come back on the same court. TV displays keep their own key.
 function storedCourtPin(tournamentId){const key=courtPinStorageKey(tournamentId),value=sessionStorage.getItem(key)||localStorage.getItem(key);return value?normalizeCourt(value):null}
 /* ksm:post-split-end */
-function courtPinStorageKey(/* ksm:post-split-begin court-pin was: */tournamentId/* ksm:post-split-end */){/* ksm:post-split-begin court-pin was:const id=cloudSession?.tournamentId||new URLSearchParams(location.search).get('tournament')||'unassigned';const role=ksmSessionRole||new URLSearchParams(location.search).get('role')||'local';const view=isTvSession()?'tv':'court';return `${KSM_PINNED_COURT_PREFIX}:${id}:${role}:${view}` */const id=tournamentId||cloudSession?.tournamentId||new URLSearchParams(location.search).get('tournament')||'unassigned';const view=isTvSession()?'tv':'court';return `${KSM_PINNED_COURT_PREFIX}:${id}:${view}`/* ksm:post-split-end */}
-function pinnedCourt(){/* ksm:post-split-begin court-pin was:const session=sessionStorage.getItem(courtPinStorageKey());if(session)return normalizeCourt(session);const stored=localStorage.getItem(courtPinStorageKey());if(stored)return normalizeCourt(stored);const fromUrl=new URLSearchParams(location.search).get('court');if(fromUrl)return normalizeCourt(fromUrl);return cloudSession?.court?normalizeCourt(cloudSession.court):null */const stored=storedCourtPin();if(stored)return stored;const fromUrl=new URLSearchParams(location.search).get('court');if(fromUrl)return normalizeCourt(fromUrl);return cloudSession?.court?normalizeCourt(cloudSession.court):null/* ksm:post-split-end */}
+function courtPinStorageKey(/* ksm:post-split-begin court-pin was: */tournamentId/* ksm:post-split-end */){/* ksm:post-split-begin court-pin was:const id=cloudSession?.tournamentId||new URLSearchParams(location.search).get('tournament')||'unassigned';const role=ksmSessionRole||new URLSearchParams(location.search).get('role')||'local';const view=isTvSession()?'tv':'court';return `${KSM_PINNED_COURT_PREFIX}:${id}:${role}:${view}` */const id=tournamentId||cloudSession?.tournamentId||ksmLinkParams().get('tournament')||'unassigned';const view=isTvSession()?'tv':'court';return `${KSM_PINNED_COURT_PREFIX}:${id}:${view}`/* ksm:post-split-end */}
+function pinnedCourt(){/* ksm:post-split-begin court-pin was:const session=sessionStorage.getItem(courtPinStorageKey());if(session)return normalizeCourt(session);const stored=localStorage.getItem(courtPinStorageKey());if(stored)return normalizeCourt(stored);const fromUrl=new URLSearchParams(location.search).get('court');if(fromUrl)return normalizeCourt(fromUrl);return cloudSession?.court?normalizeCourt(cloudSession.court):null */const stored=storedCourtPin();if(stored)return stored;const fromUrl=ksmLinkParams().get('court');if(fromUrl)return normalizeCourt(fromUrl);return cloudSession?.court?normalizeCourt(cloudSession.court):null/* ksm:post-split-end */}
 function pinCourtLocally(court){const normalized=normalizeCourt(court),key=courtPinStorageKey();sessionStorage.setItem(key,normalized);localStorage.setItem(key,normalized);cloudSession.court=normalized;persistCloudSession();return normalized}
 function restorePinnedCourt(){const court=pinnedCourt();if(!court)return null;cloudSession.court=court;state.currentCourt=court;if(isTvSession())state.publicCourt=court;return court}
 function noteLocalMutation(){ksmLocalMutationVersion+=1}
@@ -175,7 +175,8 @@ function pendingLocalCourtActionsForRebase(localPayload,serverRecord,originalBas
 // F4: director/staff edits that are not court actions (Setup fields, registration, divisions,
 // awards) are merged three-way against the cloud copy the local edit started from, so a
 // conflicting court save no longer drops them. Structural edits (generate, regenerate, pool
-// edits) are not merged: see F10 in docs/ROADMAP.md.
+// edits) are replayed division by division instead (F10, replayStructuralEdit() below); the
+// registration half of such an edit merges only when its structure was replayed.
 const KSM_MERGED_STATE_KEYS=['divisions','divisionTypes','divisionCourts','competitors','teams','exhibitions','awards','teamAwardMode'];
 const KSM_MERGE_LABELS={tName:'Tournament name',tHost:'Host',tDate:'Date',tLocation:'Location',tCourts:'Courts',tType:'Tournament type',teamEnabled:'Team tournament',teamFormat:'Team format',teamTournamentFormat:'Team tournament format',teamCourt:'Team court',teamAwardMode:'Team awards',exhibitionEnabled:'Exhibition matches',court1Refs:'Court A referees',court2Refs:'Court B referees',court1RedSide:'Court A red side',court2RedSide:'Court B red side',divisions:'Divisions',divisionTypes:'Division formats',divisionCourts:'Division courts',competitors:'Registration',teams:'Teams',exhibitions:'Exhibitions',awards:'Awards'};
 /** The cloud copy the local state was last reconciled with (merge base), by revision. */
@@ -183,7 +184,9 @@ const KSM_CLOUD_BASE={revision:-1,payload:null};
 function cloudBaseSubset(payload){
   if(!payload)return null;
   const st=payload.state||{};
-  return {setup:cloneJson(payload.setup||{}),state:Object.fromEntries(KSM_MERGED_STATE_KEYS.filter(k=>st[k]!==undefined).map(k=>[k,cloneJson(st[k])]).concat([['managementRevision',st.managementRevision||0]]))};
+  // F10: also each division's structure (pools, matches, brackets), to tell which divisions a
+  // structural edit changed and whether the server copy changed them too.
+  return {setup:cloneJson(payload.setup||{}),state:Object.fromEntries(KSM_MERGED_STATE_KEYS.concat(KSM_STRUCTURAL_DIVISION_KEYS).filter(k=>st[k]!==undefined).map(k=>[k,cloneJson(st[k])]).concat([['managementRevision',st.managementRevision||0]]))};
 }
 function rememberCloudBase(record){if(!record?.payload)return;KSM_CLOUD_BASE.revision=Number(record.revision||0);KSM_CLOUD_BASE.payload=cloudBaseSubset(record.payload)}
 function cloudBaseFor(revision){return KSM_CLOUD_BASE.payload&&KSM_CLOUD_BASE.revision===Number(revision||0)?KSM_CLOUD_BASE.payload:null}
@@ -200,8 +203,11 @@ function mergeValueThreeWay(server,local,base,label,conflicts){
   if(!conflicts.includes(label))conflicts.push(label);
   return server;
 }
-/** Merge local non-court edits (vs basePayload) into `rebased` (a copy of the server payload); returns the conflicting field labels. */
-function mergeLocalEditsThreeWay(rebased,localPayload,basePayload){
+/**
+ * Merge local non-court edits (vs basePayload) into `rebased` (a copy of the server payload); returns the conflicting field labels.
+ * structuralReplayed: the divisions a local structural edit replayed onto `rebased` (F10), so its registration half merges too (split by division, F32).
+ */
+function mergeLocalEditsThreeWay(rebased,localPayload,basePayload,structuralReplayed=false){
   const conflicts=[];
   if(!basePayload||!localPayload)return conflicts;
   const serverSetup=rebased.setup||{},localSetup=localPayload.setup||{},baseSetup=basePayload.setup||{};
@@ -209,18 +215,116 @@ function mergeLocalEditsThreeWay(rebased,localPayload,basePayload){
   Object.keys(localSetup).forEach(k=>{const v=mergeValueThreeWay(serverSetup[k],localSetup[k],baseSetup[k],KSM_MERGE_LABELS[k]||k,conflicts);if(v!==undefined)setup[k]=v});
   rebased.setup=setup;
   const localState=localPayload.state||{},baseState=basePayload.state||{};
-  // A local structural edit changes matches/pools too; merging only its registration half would split it.
-  if((localState.managementRevision||0)===(baseState.managementRevision||0)){
+  // A local structural edit changes matches/pools too; merging only its registration half would
+  // split it, so that half merges only when the structure was replayed (F10).
+  if(structuralReplayed||(localState.managementRevision||0)===(baseState.managementRevision||0)){
     rebased.state=rebased.state||{};
-    KSM_MERGED_STATE_KEYS.forEach(k=>{const v=mergeValueThreeWay(rebased.state[k],localState[k],baseState[k],KSM_MERGE_LABELS[k]||k,conflicts);if(v===undefined)delete rebased.state[k];else rebased.state[k]=v});
+    KSM_MERGED_STATE_KEYS.forEach(k=>{const v=/* F32 */Array.isArray(structuralReplayed)&&registrationListSplits(rebased.state[k],localState[k],baseState[k],k,structuralReplayed)?mergeRegistrationListSplit(rebased.state[k],localState[k],baseState[k],structuralReplayed,KSM_MERGE_LABELS[k]||k,conflicts,k):mergeValueThreeWay(rebased.state[k],localState[k],baseState[k],KSM_MERGE_LABELS[k]||k,conflicts);if(v===undefined)delete rebased.state[k];else rebased.state[k]=v});
   }
   return conflicts;
+}
+// F32: a replayed division's registration entries (players, teams) belong to its structure: when
+// both devices changed the list, the replayed divisions' entries are this device's (the matches
+// were built from them) and only the other divisions' entries merge three-way (server kept on a
+// conflict, with the notice); replayStructuralEdit() asks first when the other device changed a
+// replayed division's entries. Never a structure without the registration it was built from.
+const KSM_REGISTRATION_LIST_KEYS=['competitors','teams'];
+// Every team belongs to the team event, as the engine treats them (eligibleTeams(state.teams)): sample
+// and older teams have no division field, so a team's division is always 'Team Tournament'.
+function registrationEntryDivision(e,key){return key==='teams'?'Team Tournament':e?.division}
+function registrationEntriesIn(list,divisions,inside=true,key='competitors'){return (Array.isArray(list)?list:[]).filter(e=>divisions.includes(registrationEntryDivision(e,key))===inside)}
+/** True when list key `k` changed on both sides (a whole-list conflict) and divisions were replayed: it is merged split by division. */
+function registrationListSplits(server,local,base,k,divisions){
+  return KSM_REGISTRATION_LIST_KEYS.includes(k)&&divisions.length>0&&!sameJsonValue(local,base)&&!sameJsonValue(local,server)&&!sameJsonValue(server,base);
+}
+/** Replayed divisions whose entries the other device changed in a list that conflicts as a whole (the question's registration half). */
+function registrationConflictDivisions(serverState,localState,baseState,divisions){
+  const out=new Set();
+  KSM_REGISTRATION_LIST_KEYS.forEach(k=>{
+    if(!registrationListSplits(serverState?.[k],localState?.[k],baseState?.[k],k,divisions))return;
+    divisions.forEach(d=>{if(!sameJsonValue(registrationEntriesIn(serverState?.[k],[d],true,k),registrationEntriesIn(baseState?.[k],[d],true,k)))out.add(d)});
+  });
+  return [...out];
+}
+function mergeRegistrationListSplit(server,local,base,divisions,label,conflicts,key='competitors'){
+  const outside=mergeValueThreeWay(registrationEntriesIn(server,divisions,false,key),registrationEntriesIn(local,divisions,false,key),registrationEntriesIn(base,divisions,false,key),label,conflicts)||[];
+  const inside=cloneJson(registrationEntriesIn(local,divisions,true,key));
+  // In the server list's order: the replayed divisions' entries where its first one was (else at the end).
+  const at=(Array.isArray(server)?server:[]).findIndex(e=>divisions.includes(registrationEntryDivision(e,key)));
+  const before=at<0?outside.length:Math.min(at,outside.length);
+  return outside.slice(0,before).concat(inside,outside.slice(before));
 }
 function noteMergeConflicts(conflicts){
   if(!conflicts.length)return;
   const message=`Changed on another device at the same time, their version was kept: ${conflicts.join(', ')}`;
   writeCloudDiagnosticsState({stage:'Edit conflict: server version kept',mergeConflicts:conflicts});
   showKsmToast(message,10000,true);
+}
+/* ksm:post-split-end */
+/* ksm:post-split-begin structural-replay */
+// F10: a structural director edit (Generate/Regenerate Tournament, Regenerate Single Division,
+// Edit Pool's Save Pool Changes, a no-show that rebuilds a division) raises managementRevision and
+// replaces divisions' pools and matches. On a save conflict (409 rebase) it is replayed onto the
+// server copy: every division whose structure this device changed since the merge base is copied
+// over whole, when the server's copy of it still equals the base (no other device played in it
+// or changed it meanwhile). Otherwise the director is asked: re-apply the change (it replaces the
+// other device's version of those divisions, their new results included) or keep the other
+// device's version (the change is dropped, with a notice). Never silently. Limits: whole
+// divisions, not operations (the operation-based sync is issues #15/#16); without a merge base
+// that holds the structure (an outbox queued by an older version) the server copy is kept, as
+// before, with a notice.
+const KSM_STRUCTURAL_DIVISION_KEYS=['pools','teamPools','allMatches','teamBracketNodes','singleElimNodes','singleElimComps','teamElimTeams','brackets','championshipNodes','byeWinners'];
+function structuralDivisionNames(...states){const names=new Set();states.forEach(st=>KSM_STRUCTURAL_DIVISION_KEYS.forEach(k=>Object.keys(st?.[k]||{}).forEach(d=>names.add(d))));return [...names]}
+function structuralDivisionSnapshot(st,div){return KSM_STRUCTURAL_DIVISION_KEYS.map(k=>st?.[k]?.[div]??null)}
+function copyStructuralDivision(target,source,div){
+  KSM_STRUCTURAL_DIVISION_KEYS.concat(['currentByDivision']).forEach(k=>{
+    const value=source?.[k]?.[div];
+    if(value===undefined){if(target[k])delete target[k][div];return}
+    target[k]=target[k]||{};target[k][div]=cloneJson(value);
+  });
+}
+function playedMatchCount(st,div){return (st?.allMatches?.[div]||[]).filter(m=>m&&m.done).length}
+function noteStructuralEditDropped(divisions){
+  writeCloudDiagnosticsState({stage:'Structural edit conflict: server version kept',structuralConflict:divisions});
+  showKsmToast(divisions.length
+    ?`Your change to ${divisions.join(', ')} was not saved: another device changed it at the same time, their version was kept.`
+    :'Your change to the pools and matches was not saved: it could not be combined with another device\'s save, their version was kept.',10000,true);
+}
+/** Replays this device's structural edit (vs basePayload) onto `rebased`; the replayed division names when applied (F32), else false. */
+function replayStructuralEdit(rebased,localPayload,basePayload,serverPayload){
+  const localState=localPayload?.state,baseState=basePayload?.state,serverState=serverPayload?.state||{};
+  if(!localState||!baseState)return false;
+  const localRev=Number(localState.managementRevision||0),baseRev=Number(baseState.managementRevision||0);
+  if(localRev===baseRev)return false;
+  if(baseState.allMatches===undefined){noteStructuralEditDropped([]);return false}
+  const changed=structuralDivisionNames(localState,baseState).filter(d=>!sameJsonValue(structuralDivisionSnapshot(localState,d),structuralDivisionSnapshot(baseState,d)));
+  const structuralConflicts=changed.filter(d=>!sameJsonValue(structuralDivisionSnapshot(serverState,d),structuralDivisionSnapshot(baseState,d)));
+  // F32: the other device also changed the registration entries of a division this edit rebuilt.
+  const conflicting=structuralConflicts.concat(registrationConflictDivisions(serverState,localState,baseState,changed).filter(d=>!structuralConflicts.includes(d)));
+  if(conflicting.length){
+    const names=conflicting.join(', '),played=conflicting.reduce((n,d)=>n+Math.max(0,playedMatchCount(serverState,d)-playedMatchCount(baseState,d)),0);
+    const results=played?` and recorded ${played} match result${played===1?'':'s'}`:'';
+    if(!confirm(`Re-apply your change to ${names}?\n\nAnother device changed ${names} at the same time${results}.\n\nOK: re-apply your change. It replaces the other device's version of ${names}${played?' (those results are deleted)':''}.\nCancel: keep the other device's version. Your change is not saved.`)){
+      noteStructuralEditDropped(changed);
+      return false;
+    }
+  }
+  rebased.state=rebased.state||{};
+  changed.forEach(d=>copyStructuralDivision(rebased.state,localState,d));
+  if(localState.generated)rebased.state.generated=true;
+  rebased.state.managementRevision=Math.max(Number(serverState.managementRevision||0),baseRev)+Math.max(1,localRev-baseRev);
+  // Court pointers into a replayed (or removed) division are re-resolved, as the edit does.
+  rebased.state.courtState=rebased.state.courtState||{};rebased.state.courtActiveDivision=rebased.state.courtActiveDivision||{};
+  ['A','B'].forEach(c=>{
+    const div=rebased.state.courtState[c]?.division;
+    if(div&&!changed.includes(div))return;
+    const target=div&&Array.isArray(rebased.state.allMatches?.[div])?div:localState.courtState?.[c]?.division;
+    if(!target||!Array.isArray(rebased.state.allMatches?.[target]))return;
+    rebased.state.courtState[c]={division:target,index:nextReadyIndexInState(rebased.state,target,c)};
+    rebased.state.courtActiveDivision[c]=target;
+  });
+  writeCloudDiagnosticsState({stage:conflicting.length?'Structural edit re-applied over a conflict':'Structural edit replayed',structuralReplay:changed});
+  return changed; // F32: the replayed divisions (truthy), for the registration merge
 }
 /* ksm:post-split-end */
 function rebaseLocalPayloadOnRecord(localPayload,serverRecord,originalBaseRevision/* ksm:post-split-begin edit-merge */,basePayload=null/* ksm:post-split-end */){
@@ -240,7 +344,7 @@ function rebaseLocalPayloadOnRecord(localPayload,serverRecord,originalBaseRevisi
   rebased.state.courtRedoHistory=rebased.state.courtRedoHistory||{A:[],B:[]};
   rebased.state.courtActionHistory[court]=mergeHistoryEntries(rebased.state.courtActionHistory[court]||[],localState.courtActionHistory?.[court]||[]);
   rebased.state.courtRedoHistory[court]=mergeHistoryEntries(rebased.state.courtRedoHistory[court]||[],localState.courtRedoHistory?.[court]||[]);
-  /* ksm:post-split-begin edit-merge */noteMergeConflicts(mergeLocalEditsThreeWay(rebased,localPayload,basePayload));/* ksm:post-split-end */
+  /* ksm:post-split-begin edit-merge */noteMergeConflicts(mergeLocalEditsThreeWay(rebased,localPayload,basePayload,replayStructuralEdit(rebased,localPayload,basePayload,serverRecord.payload)));/* ksm:post-split-end */
   rebased.savedAt=new Date().toISOString();
   return rebased;
 }

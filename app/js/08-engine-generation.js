@@ -40,7 +40,7 @@ function regenerateSingleDivision(div){
   try{
     delete state.pools[div];delete state.teamPools[div];delete state.allMatches[div];delete state.teamBracketNodes[div];delete state.singleElimNodes[div];if(state.singleElimComps)delete state.singleElimComps[div];if(state.teamElimTeams)delete state.teamElimTeams[div];delete state.brackets[div];if(state.championshipNodes)delete state.championshipNodes[div];if(state.byeWinners)delete state.byeWinners[div];delete state.currentByDivision[div];
     if(!generateDivisionState(div))throw new Error('No eligible entrants remain in this division.');
-    initCourtStates();state.managementRevision=(state.managementRevision||0)+1;renderAll();scheduleAutoSave();regenerateModalTitle.textContent='Division Regenerated';regenerateModalBody.innerHTML=`<div class="muted-card"><b>${esc(div)} successfully regenerated.</b><div class="small" style="margin-top:6px">Pools/bracket, Match Objects, queues, Court Context, Results, and Director progress were updated. Other divisions were not changed.</div></div>`;regenerateModalActions.innerHTML='<button class="primary" onclick="closeManagementModal(\'regenerateModal\')">OK</button>';
+    initCourtStates();state.managementRevision=(state.managementRevision||0)+1;renderAll();scheduleAutoSave();/* ksm:post-split-begin react-shell */ksmRegenerateDone(div);/* ksm:post-split-end */
   }catch(err){
     state.pools[div]=snapshot.pools;state.teamPools[div]=snapshot.teamPools;state.allMatches[div]=snapshot.allMatches;state.teamBracketNodes[div]=snapshot.teamBracketNodes;state.singleElimNodes[div]=snapshot.singleElimNodes;state.singleElimComps=state.singleElimComps||{};state.singleElimComps[div]=snapshot.singleElimComps;state.teamElimTeams=state.teamElimTeams||{};state.teamElimTeams[div]=snapshot.teamElimTeams;state.brackets[div]=snapshot.brackets;state.championshipNodes=state.championshipNodes||{};state.championshipNodes[div]=snapshot.championshipNodes;state.byeWinners=state.byeWinners||{};state.byeWinners[div]=snapshot.byeWinners;state.currentByDivision[div]=snapshot.currentByDivision;alert('Unable to regenerate '+div+': '+err.message);
   }
@@ -93,11 +93,12 @@ function selectScorekeeperDivision(div){
 }
 function makeMatches(div){state.allMatches[div]=buildPoolMatches(div,state.pools[div]||[]);setActiveDivision(div)}
 function renderPools(){
-  let div=poolDiv?.value||state.poolViewDivision||state.currentDivision;state.poolViewDivision=div;let pools=state.pools[div]||[];
-  let poolHtml=pools.length?pools.map(p=>`<div class="pool" data-testid="pool" ondragover="event.preventDefault();this.classList.add('drop-target')" ondragleave="this.classList.remove('drop-target')" ondrop="if(event.target===this)dropPoolPlayer(event,${jsArg(p.label)});this.classList.remove('drop-target')"><h3 data-testid="pool-title">${isTeamDivision(div)?'Team Pool':'Pool'} ${p.label}</h3>${p.players.map((x,idx)=>`<div class="drag-player" draggable="true" ondragstart="dragPoolPlayer(event,${jsArg(p.label)},${idx})"><span class="pool-slot-badge" data-testid="pool-slot">${esc(poolPlayerSlot(x,idx))}</span><b data-testid="pool-player">${esc(x.name)}</b><span class="small" style="float:right">${esc(x.dojo)}</span></div>`).join('')}</div>`).join(''):(isTeamDivision(div)&&state.allMatches[div]?.length?'<div class="muted-card">Single-elimination team bracket created. Team position matches are available in the Court queue.</div>':((state.divisionTypes[div]==='Single Elimination'&&state.allMatches[div]?.length)?'<div class="muted-card">Single-elimination bracket created. Matches are available in the Court queue.</div>':'<div class="muted-card">No pools generated yet.</div>'));
-  let edit=pools.length&&!isTeamRoundRobinDivision(div)?'<div class="toolbar"><button onclick="toggleEditPools()" data-testid="pool-edit">Edit Pool</button></div>':'';
-  let rightTitle=isTeamRoundRobinDivision(div)?'Team Standings':'Championship Preview';
+/* ksm:post-split-begin react-pools */
+  // The Pools view is React (app/react/pools/, 41-react-pools.js): #poolOutput's contents are
+  // published to it instead of written (M.13).
+  let div=poolDiv?.value||state.poolViewDivision||state.currentDivision;state.poolViewDivision=div;
   poolOutput.className='pools-layout';
-  poolOutput.innerHTML=`<div><h2>Pools</h2>${edit}<div class="pool-list">${poolHtml}</div></div><div><h2>${rightTitle}</h2>${bracketHtml(div)}</div>`;
+  ksmRenderPools(div);
   renderResultsDashboard();
+/* ksm:post-split-end */
 }

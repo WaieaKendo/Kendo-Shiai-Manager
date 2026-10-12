@@ -17,7 +17,7 @@
     "test:e2e": "node tests/run-all.mjs e2e-",
     "test:e2e:watch": "KSM_HEADED=1 KSM_SLOWMO=${KSM_SLOWMO:-300} .venv/bin/python tests/e2e-full-tournament-test.py",
     "test:golden": "node tests/run-all.mjs golden-",
-    "test:golden:update": "KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-engine-test.py && KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-court-screen-test.py",
+    "test:golden:update": "KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-engine-test.py && KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-court-screen-test.py && KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-live-scores-test.py && KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-tv-test.py && KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-results-test.py && KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-overview-test.py && KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-library-test.py && KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-pools-test.py && KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-setup-test.py && KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-registration-test.py && KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-registration-teams-test.py && KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-shell-test.py",
     "test:setup": "python3 -m venv .venv && .venv/bin/pip install -q playwright && .venv/bin/python -m playwright install chromium",
     "check": "node tests/run-all.mjs",
     "check:cloud": "node tests/run-all.mjs --node cloud realtime role worker-api",

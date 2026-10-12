@@ -10,15 +10,32 @@ import { html, countDefinitions } from './lib/ksm-source.mjs';
 // declarations (renderScore 4->1, renderQueue 4->1, renderContext 7->1, legacyUpdateUndoButton
 // 4->0, setMatchBadge 2->0, allPoolResultsContextHtml 2->0, poolResultCardHtml 2->0,
 // singleElimRoundCardHtml 2->0; entries at 1 or 0 are dropped).
+// M.13 (feat/react-live-scores) removed the legacy Live Scores renderer: 27 -> 26 (renderPublic 2->1).
+// M.13 (feat/react-tv) removed the legacy TV renderers and the never-called audience-hero helpers:
+// 26 -> 23 (renderTvDisplay 2->1, audienceIndividualHero 2->0, standardTeamAudienceHtml 2->0).
+// M.13 (feat/react-results) removed the legacy Results renderer and the unused team/kachinuki
+// sheets: 23 -> 18 (renderResultsAll 2->0, teamResultsBracketHtml 2->0, teamSheetHtml 2->0,
+// kachinukiSheetHtml 2->0 and the inner `list` of both kachinukiSheetHtml() 2->0).
+// M.13 (feat/react-overview) removed the legacy Overview renderer and the first renderProgress()
+// (11-, overridden by the empty one in 23- and never run): 18 -> 17 (renderProgress 2->1).
+// M.13 (feat/react-library) removed none (17).
+// M.13 (feat/react-pools) removed the legacy Pools renderer with bracketHtml() and its helpers:
+// 17 -> 14 (alignedPointSlots 2->0, bracketHtml 2->0, singleElimBracketHtml 2->0).
+// M.13 (feat/react-setup-screen) removed none (14).
+// M.13 (feat/react-registration) removed the legacy players table renderer and the 03- regTab()
+// (overridden by 23-'s, never run): 14 -> 13 (regTab 2->1).
+// M.13 (feat/react-registration-2) removed the team cards, exhibition table and tab class
+// renderers, none of them redeclared (13).
+// M.13 (feat/react-shell) removed the legacy shell renderer with the first openTournamentAccess()
+// (21-, overridden by 33-'s and never run) and showQr(), which only it used: 13 -> 12
+// (openTournamentAccess 2->1). The dead 21-/20- installRoleBanner(), setSessionRole() and
+// spectatorLink() stay for 2.10 (the banner stays legacy; the others are not renderer code).
 const BASELINE = {
-  alignedPointSlots: 2, audienceIndividualHero: 2, bracketHtml: 2,
   canCloudWrite: 2, cloudHeaders: 2, cloudSocketUrl: 2, initializeCloudRoleFromUrl: 2,
-  installRoleBanner: 2, isReadOnlySession: 2, isSpectatorSession: 2, kachinukiSheetHtml: 2,
-  list: 2, loadTournamentFromCloud: 2, openTournamentAccess: 2,
-  regTab: 2, renderProgress: 2, renderPublic: 2,
-  renderResultsAll: 2, renderTvDisplay: 2, sessionKey: 2,
-  setSessionRole: 2, singleElimBracketHtml: 2, spectatorLink: 2, standardTeamAudienceHtml: 2, syncIndividualSingleElim: 2,
-  teamResultsBracketHtml: 2, teamSheetHtml: 2,
+  installRoleBanner: 2, isReadOnlySession: 2, isSpectatorSession: 2,
+  loadTournamentFromCloud: 2,
+  sessionKey: 2,
+  setSessionRole: 2, spectatorLink: 2, syncIndividualSingleElim: 2,
 };
 
 const names = [...new Set([...html.matchAll(/function\s+([A-Za-z_$][\w$]*)\s*\(/g)].map(m => m[1]))];

@@ -16,7 +16,7 @@ import copy
 import time
 
 from playwright.sync_api import sync_playwright
-from ksm_app import KsmApp, fetch_record, put_record, sel
+from ksm_app import KsmApp, fetch_record, put_record, sel, app_path
 from ksm_browser import launch_chromium
 from ksm_server import local_worker
 
@@ -41,7 +41,7 @@ def main():
         ])
         director.save_now()
         director.wait_idle()
-        court = KsmApp.open_device(browser, base, 'Court B', problems, f'/?tournament={tid}&court=B')
+        court = KsmApp.open_device(browser, base, 'Court B', problems, app_path(tid, 'court', 'B'))
         court.wait_generated()
         court.staff_login()
         court.open_court('B')
@@ -59,7 +59,7 @@ def main():
         assert name_field(court) == 'Updates Cup' and court.revision() == record['revision']
 
         # --- A spectator applies a record carrying its own client ID ---------------------------
-        spectator = KsmApp.open_device(browser, base, 'Spectator', problems, f'/?tournament={tid}')
+        spectator = KsmApp.open_device(browser, base, 'Spectator', problems, app_path(tid))
         spectator.wait_generated()
         mine = copy.deepcopy(record)
         mine['revision'] = record['revision'] + 1
@@ -95,7 +95,7 @@ def main():
         context_text = lambda app: app.page.inner_text(sel('court-context'))
         court.wait_for(lambda: semi['white'] in context_text(court).split('FINAL', 1)[-1],
                        message=f'{semi["white"]} to appear in the final after a live update')
-        fresh = KsmApp.open_device(browser, base, 'Fresh spectator', problems, f'/?tournament={tid}')
+        fresh = KsmApp.open_device(browser, base, 'Fresh spectator', problems, app_path(tid))
         fresh.wait_generated()
         fresh.open_court('B')
         assert semi['white'] in context_text(fresh).split('FINAL', 1)[-1], f'fresh load not repaired:\n{context_text(fresh)}'

@@ -2,9 +2,9 @@ const cloudSession=loadCloudSession();
 let ksmSessionRole='local';
 function loadCloudSession(){try{return JSON.parse(localStorage.getItem(KSM_CLOUD_SESSION_KEY)||'{}')}catch(_){return {}}}
 function persistCloudSession(){localStorage.setItem(KSM_CLOUD_SESSION_KEY,JSON.stringify(cloudSession))}
-function setConnectionStatus(text,mode='local'){const el=document.getElementById('connectionStatus');if(!el)return;const labels={online:'🟢 Online',offline:'🟠 Offline',connecting:'🟡 Connecting',error:'🔴 Attention',local:'Local'};el.textContent=labels[mode]||text||'Local';el.dataset.mode=mode;el.title=text||el.textContent}
+function setConnectionStatus(text,mode='local'){/* ksm:post-split-begin react-shell */ksmRenderConnectionStatus(text,mode);/* ksm:post-split-end */}
 function humanSaveAge(){if(!ksmLastSuccessfulSaveAt)return 'Not saved yet';const min=Math.max(0,Math.floor((Date.now()-ksmLastSuccessfulSaveAt)/60000));if(min<1)return '✓ Saved just now';if(min<60)return `✓ Saved ${min} min ago`;return '✓ Saved at '+new Date(ksmLastSuccessfulSaveAt).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}
-function renderPersistentSaveStatus(){const el=document.getElementById('saveStatus');if(!el)return;if(ksmSaveStatusMode==='saving'){el.textContent='Saving…';return}if(ksmSaveStatusMode==='syncing'){el.textContent='Synchronizing…';return}if(ksmSaveStatusMode==='offline'){el.textContent=`Saved locally${readOutbox()?' · 1 change waiting':''}`;return}if(ksmSaveStatusMode==='error'){el.textContent='Save needs attention';return}el.textContent=humanSaveAge()}
+function renderPersistentSaveStatus(){/* ksm:post-split-begin react-shell */ksmRenderSaveStatus(ksmPersistentSaveStatusText());/* ksm:post-split-end */}
 function setSessionRole(role){ksmSessionRole=role||'local';const names={spectator:'Spectator',scorekeeper:'Scorekeeper',director:'Director',admin:'Admin',local:'Local'};const el=document.getElementById('sessionRole');if(el){el.textContent=names[ksmSessionRole]||'Local';el.dataset.role=ksmSessionRole}document.body.classList.toggle('ksm-spectator',ksmSessionRole==='spectator');document.body.classList.toggle('ksm-scorekeeper',ksmSessionRole==='scorekeeper');document.body.classList.toggle('ksm-admin',ksmSessionRole==='admin')}
 function isReadOnlySession(){return ksmSessionRole==='spectator'}
 function isSpectatorSession(){return isReadOnlySession()}
@@ -49,7 +49,7 @@ function tournamentPayload(){
     state:JSON.parse(JSON.stringify(state))
   };
 }
-function updateSaveStatus(text){const el=document.getElementById('saveStatus');if(el)el.textContent=text}
+function updateSaveStatus(text){/* ksm:post-split-begin react-shell */ksmRenderSaveStatus(text);/* ksm:post-split-end */}
 function markLocalSave(reason='Local autosave'){try{localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(tournamentPayload()));return true}catch(err){console.warn('Local save failed',err);ksmSaveStatusMode='error';renderPersistentSaveStatus();return false}}
 function autoSaveTournament(reason='Autosave'){if(!markLocalSave(reason))return;if(!ksmApplyingRemoteSnapshot&&!isReadOnlySession())scheduleCloudSave(reason)}
 // Remote snapshots never echo into cloud: if(!ksmApplyingRemoteSnapshot)scheduleCloudSave()

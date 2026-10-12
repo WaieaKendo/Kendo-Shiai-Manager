@@ -1,0 +1,68 @@
+// The Tournament Library's island: the contents of #home .home-shell (the brand, the heading with
+// ＋ New Tournament, and #homeTournamentLibrary with the cards or the message), with the same
+// elements, ids, classes and test IDs (home-new-tournament, home-tournament, home-tournament-name)
+// as the static markup and the legacy renderer (paintHomeTournamentLibrary(), libraryCardMarkup())
+// drew, so the library CSS and every test apply unchanged; tests/golden/library pins them.
+// renderHomeTournamentLibrary() (app/js) publishes what to show (ksm:library). The buttons call the
+// legacy functions the inline handlers called: createNewTournament() (its prompts are kept) and
+// openTournamentFromHome(id). No colors of its own (the library CSS and theme tokens); the logo
+// and the card mark come from the branding module.
+import { useSyncExternalStore } from 'react';
+import { DEFAULT_HOME_LOGO_SRC, DEFAULT_LIBRARY_CARD_MARK } from '../court/branding.ts';
+import {
+  EMPTY_LIBRARY, HOME_SUBTITLE, HOME_TITLE, LIBRARY_HEADING, LIBRARY_INTRO, NEW_TOURNAMENT_TEXT,
+  libraryView, type LibraryCardView, type LibraryInput,
+} from './library-model.ts';
+
+export const LIBRARY_EVENT = 'ksm:library';
+
+interface LibraryWindow {
+  /** The library as paintHomeTournamentLibrary() last published it. */
+  ksmLibraryInput?: LibraryInput;
+  createNewTournament?: () => unknown;
+  openTournamentFromHome?: (id: string) => unknown;
+}
+
+const libraryWindow = (): LibraryWindow => window as unknown as LibraryWindow;
+
+function subscribe(onChange: () => void): () => void {
+  window.addEventListener(LIBRARY_EVENT, onChange);
+  return () => window.removeEventListener(LIBRARY_EVENT, onChange);
+}
+const snapshot = (): LibraryInput => libraryWindow().ksmLibraryInput ?? EMPTY_LIBRARY;
+
+/** libraryCardMarkup(x): the card and the name below it, both opening the tournament. */
+function LibraryCard({ card }: { card: LibraryCardView }) {
+  const open = () => { libraryWindow().openTournamentFromHome?.(card.id); };
+  return (
+    <div className="home-tournament-item" data-testid="home-tournament">
+      <button className="home-tournament-card" type="button" onClick={open} aria-label={card.label}>
+        <span className="home-card-placeholder" aria-hidden="true">{DEFAULT_LIBRARY_CARD_MARK}</span>
+      </button>
+      <button className="home-card-name-below" type="button" onClick={open} data-testid="home-tournament-name">{card.name}</button>
+    </div>
+  );
+}
+
+/** The contents of #home .home-shell. */
+export function Library() {
+  const view = libraryView(useSyncExternalStore(subscribe, snapshot, () => EMPTY_LIBRARY));
+  return (
+    <>
+      <div className="home-brand">
+        <img src={DEFAULT_HOME_LOGO_SRC} alt="" />
+        <div><h1 id="homeTitle">{HOME_TITLE}</h1><p>{HOME_SUBTITLE}</p></div>
+      </div>
+      <div className="home-head">
+        <div><h2>{LIBRARY_HEADING}</h2><p>{LIBRARY_INTRO}</p></div>
+        <button className="home-new-button" type="button" data-testid="home-new-tournament" onClick={() => { libraryWindow().createNewTournament?.(); }}>{NEW_TOURNAMENT_TEXT}</button>
+      </div>
+      <div id="homeTournamentLibrary" className="home-library-grid">
+        {view.message !== null
+          ? <div className="home-empty"><b>{view.message}</b></div>
+          // The rows' order is the key: IDs may repeat (the cache and the cloud are not checked).
+          : view.cards.map((card, i) => <LibraryCard key={i} card={card} />)}
+      </div>
+    </>
+  );
+}

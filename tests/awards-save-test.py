@@ -10,7 +10,7 @@ the Results screen's awards editor:
 import time
 
 from playwright.sync_api import sync_playwright
-from ksm_app import KsmApp, fetch_record
+from ksm_app import KsmApp, fetch_record, app_path
 from ksm_browser import launch_chromium
 from ksm_server import local_worker
 
@@ -54,7 +54,7 @@ def main():
         app.wait_idle()
 
         # Another device sees the awards.
-        other = KsmApp.open_device(browser, base, 'Spectator', problems, f'/?tournament={tid}')
+        other = KsmApp.open_device(browser, base, 'Spectator', problems, app_path(tid))
         other.wait_generated()
         other.wait_for(lambda: (other.page.evaluate('state.awards') or []) == want[1:], message='the second device to see the award')
 

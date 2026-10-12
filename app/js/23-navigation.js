@@ -1,38 +1,19 @@
 // ---------- KSM v3.9.1 Minimal navigation ----------
 function setNavMenuState(menu,open){
-  if(!menu)return;
-  menu.classList.toggle('hidden',!open);
-  menu.classList.toggle('is-open',open);
-  const trigger=document.querySelector(`[aria-controls="${menu.id}"]`);
-  if(trigger)trigger.setAttribute('aria-expanded',open?'true':'false');
-  if(!open){
-    menu.style.removeProperty('top');
-    menu.style.removeProperty('left');
-    menu.style.removeProperty('right');
-    menu.style.removeProperty('max-height');
-  }
+  /* ksm:post-split-begin react-shell */ksmSetNavMenuState(menu,open);/* ksm:post-split-end */
 }
 function positionMobileNavMenu(menu,trigger){
-  if(!menu||!trigger||!window.matchMedia('(max-width:900px)').matches)return;
-  const rect=trigger.getBoundingClientRect();
-  const margin=12;
-  const top=Math.min(window.innerHeight-80,Math.max(margin,rect.bottom+8));
-  menu.style.top=`${top}px`;
-  menu.style.left=`${margin}px`;
-  menu.style.right=`${margin}px`;
-  menu.style.maxHeight=`${Math.max(120,window.innerHeight-top-margin)}px`;
+  /* ksm:post-split-begin react-shell */ksmPositionNavMenu(menu,trigger);/* ksm:post-split-end */
 }
 function closeNavMenus(exceptId){
-  document.querySelectorAll('.nav-dropdown').forEach(menu=>{
-    if(menu.id!==exceptId)setNavMenuState(menu,false);
-  });
+  /* ksm:post-split-begin react-shell */ksmCloseNavMenus(exceptId);/* ksm:post-split-end */
 }
 function toggleNavMenu(id,event){
   if(event){event.preventDefault();event.stopPropagation();}
   const menu=document.getElementById(id);
   if(!menu)return false;
   const trigger=(event&&event.currentTarget)||document.querySelector(`[aria-controls="${id}"]`);
-  const opening=menu.classList.contains('hidden');
+  const opening=/* ksm:post-split-begin react-shell was:menu.classList.contains('hidden') */ksmNavOpenMenu!==id/* ksm:post-split-end */;
   closeNavMenus(id);
   setNavMenuState(menu,opening);
   if(opening)positionMobileNavMenu(menu,trigger);
@@ -75,10 +56,7 @@ function regTab(mode){
   if(window.teamReg)teamReg.classList.toggle('hidden',mode!=='team');
   if(window.exhibitionReg)exhibitionReg.classList.toggle('hidden',mode!=='exhibition');
   if(window.poolsReg)poolsReg.classList.toggle('hidden',mode!=='pools');
-  if(window.indTab)indTab.classList.toggle('active',mode==='individual');
-  if(window.teamTab)teamTab.classList.toggle('active',mode==='team');
-  if(window.exhibitionTab)exhibitionTab.classList.toggle('active',mode==='exhibition');
-  if(window.poolsTab)poolsTab.classList.toggle('active',mode==='pools');
+  /* ksm:post-split-begin react-registration */ksmRenderRegistrationTab(mode);/* ksm:post-split-end */
   if(mode==='pools')renderPools();
 }
 function renderProgress(){ return; }
@@ -89,15 +67,12 @@ document.addEventListener('keydown',function(event){
   if(event.key==='Escape')closeNavMenus();
 });
 window.addEventListener('resize',function(){
-  const openMenu=document.querySelector('.nav-dropdown:not(.hidden)');
+  const openMenu=/* ksm:post-split-begin react-shell was:document.querySelector('.nav-dropdown:not(.hidden)') */ksmNavOpenMenu?document.getElementById(ksmNavOpenMenu):null/* ksm:post-split-end */;
   if(!openMenu)return;
   const trigger=document.querySelector(`[aria-controls="${openMenu.id}"]`);
   if(window.matchMedia('(max-width:900px)').matches)positionMobileNavMenu(openMenu,trigger);
   else {
-    openMenu.style.removeProperty('top');
-    openMenu.style.removeProperty('left');
-    openMenu.style.removeProperty('right');
-    openMenu.style.removeProperty('max-height');
+    /* ksm:post-split-begin react-shell */ksmUnplaceNavMenu();/* ksm:post-split-end */
   }
 });
 

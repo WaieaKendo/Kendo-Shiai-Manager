@@ -1,5 +1,5 @@
 # Dependencies
-node_modules/
+node_modules
 
 # Cloudflare/Wrangler
 .wrangler/
@@ -33,7 +33,7 @@ temp/
 .idea/
 
 # Python test environment (npm run test:setup)
-.venv/
+.venv
 __pycache__/
 testlab-reports/
 

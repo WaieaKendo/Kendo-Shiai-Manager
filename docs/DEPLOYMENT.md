@@ -16,6 +16,10 @@ Both go through `.github/workflows/deploy.yml`: the full test suite (`test.yml`,
 
 Merging a pull request into `develop` (or pushing to it) starts **Deploy dev**. When it is green, the dev site runs exactly that commit. The first dev deploy creates the `kendoshiaimanager-dev` Worker and its empty Durable Object namespace (migration `v1` in `env.dev`). Use dev for trying a change on phones and TVs before it goes to production; its tournaments are throwaway.
 
+## Paths the site answers
+
+Screens have path URLs (roadmap M.9): `/t/<id>`, `/t/<id>/live`, `/t/<id>/court/a|b`, `/t/<id>/tv/a|b` and the stream overlay `/t/<id>/overlay/a|b`. The static assets' single-page fallback (`not_found_handling: single-page-application`) answers every `/t/...` path with `index.html`; `run_worker_first` sends `/api/*` and `/t/*` to the Worker, which answers `/t/<id>/overlay/...` with `overlay.html` (also served at `/overlay`) and hands every other `/t/...` path back to the assets. Old query links (`/?tournament=<id>&court=A`, `&view=tv`, `/overlay?tournament=...`) are still served (`/` and `/overlay`) and the page replaces them by their path. A custom domain that passes every request through to the Worker (the pass-through of PR #20) needs nothing extra for the paths.
+
 ## Production: a release merged into `main`
 
 Production changes only at a release (see [Versions and releases](#versions-and-releases)). A push to `main` deploys production **only when `package.json` has a version production does not already report**; any other push to `main` (a docs fix, a merge without a release) deploys nothing (the run's "New version for production?" job says so). There is no approval pause (see below), so **merging a release into `main` is the decision to deploy it**:
@@ -37,8 +41,8 @@ Two pushes in quick succession start two runs. Each deploy job has a concurrency
 1. Open `<production URL>/api/health`: `ok: true` and the new version (the workflow already checked this).
 2. Open the app: the version badge shows the new version; open an existing tournament.
 3. Create a small test tournament, confirm `Live sync` appears after the first cloud save, then delete it.
-4. Open a spectator link in a private window and check that it updates live.
-5. Open Court A and Court B scorekeeper links on two devices; check Cloud Diagnostics for connected devices and revisions.
+4. Open a spectator link (`/t/<id>`) in a private window and check that it updates live.
+5. Open Court A and Court B scorekeeper links (`/t/<id>/court/a`, `/t/<id>/court/b`) on two devices, plus a TV link (`/t/<id>/tv/a`) and an overlay link (`/t/<id>/overlay/a`); check Cloud Diagnostics for connected devices and revisions.
 
 ### No approval pause, and the event freeze
 

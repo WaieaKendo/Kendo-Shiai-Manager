@@ -16,7 +16,7 @@ import re
 import time
 
 from playwright.sync_api import sync_playwright
-from ksm_app import KsmApp, sel
+from ksm_app import KsmApp, sel, app_path
 from ksm_browser import launch_chromium
 from ksm_server import local_worker
 
@@ -81,7 +81,7 @@ def main():
                 server.on_message(from_server)
             page.route_web_socket(lambda url: '/live' in url, handler)
 
-        tv_a = KsmApp.open_device(browser, base, 'TV A', problems, f'/?role=spectator&tournament={tid}&court=A&view=tv',
+        tv_a = KsmApp.open_device(browser, base, 'TV A', problems, app_path(tid, 'tv', 'A'),
                                   viewport=TV_SIZE, clock=True, before_load=route_socket)
         tv_a.wait_generated()
         tv_a.wait_for(lambda: tv_a.tv_screen()['live'], message='a live match')
@@ -162,7 +162,7 @@ def main():
         k_dir.configure([{'team': True, 'format': 'Kachinuki', 'tournament': 'Single Elimination', 'teams': 2, 'court': 'A'}])
         k_dir.save_now()
         k_dir.wait_idle()
-        k_tv = KsmApp.open_device(browser, base, 'Kachinuki TV', problems, f'/?role=spectator&tournament={k_tid}&court=A&view=tv',
+        k_tv = KsmApp.open_device(browser, base, 'Kachinuki TV', problems, app_path(k_tid, 'tv', 'A'),
                                   viewport=TV_SIZE)
         k_tv.wait_generated()
         lineups = lambda: k_tv.page.evaluate("""() => [...document.querySelectorAll('[data-testid="tv-kachinuki-lineup"]')].map(l =>

@@ -15,7 +15,7 @@ Against a throwaway `wrangler dev`:
 import time
 
 from playwright.sync_api import sync_playwright
-from ksm_app import KsmApp, fetch_record
+from ksm_app import KsmApp, fetch_record, app_path
 from ksm_browser import launch_chromium
 from ksm_server import local_worker
 
@@ -75,9 +75,9 @@ def main():
         director.wait_idle()
 
         # --- TV and spectator: reload shows no prompt and the cloud copy --------------------
-        tv = KsmApp.open_device(browser, base, 'TV', problems, f'/?role=spectator&tournament={tid}&court=A&view=tv',
+        tv = KsmApp.open_device(browser, base, 'TV', problems, app_path(tid, 'tv', 'A'),
                                 viewport={'width': 1600, 'height': 900})
-        spectator = KsmApp.open_device(browser, base, 'Spectator', problems, f'/?tournament={tid}')
+        spectator = KsmApp.open_device(browser, base, 'Spectator', problems, app_path(tid))
         for device in (tv, spectator):
             device.wait_generated()
             assert device.has_autosave(), f'{device.name}: expected a local autosave (what the prompt used to offer)'
@@ -89,8 +89,8 @@ def main():
         spectator.page.wait_for_selector('[data-testid="live-scores"]')
 
         # --- Court A scorekeeper: failed save, reload, Court B scores meanwhile -------------
-        court_a = KsmApp.open_device(browser, base, 'Court A', problems, f'/?tournament={tid}&court=A')
-        court_b = KsmApp.open_device(browser, base, 'Court B', problems, f'/?tournament={tid}&court=B')
+        court_a = KsmApp.open_device(browser, base, 'Court A', problems, app_path(tid, 'court', 'A'))
+        court_b = KsmApp.open_device(browser, base, 'Court B', problems, app_path(tid, 'court', 'B'))
         for app, c in ((court_a, 'A'), (court_b, 'B')):
             app.wait_generated()
             app.staff_login()
