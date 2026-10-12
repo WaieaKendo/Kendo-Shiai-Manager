@@ -465,6 +465,10 @@ const MARKUP_TEST_IDS = [
   ['<button onclick="closeNavMenus();triggerLoadTournament()">', 'nav-load-file'],
   ['<input id="ksmLoadFile" type="file" accept=".ksm,application/json" style="display:none" onchange="loadTournamentFromFile(event)">', 'load-file-input'],
   ['<select id="exhibitionEnabled" onchange="saveSetup();renderReg()">', 'exhibition-enabled'],
+  // Test audit (issue #19): the referees' red side per court and the team awards, for edit-sync-test.py.
+  ['<select id="court1RedSide" onchange="saveSetup();applyCourtSides();renderAll()">', 'setup-red-side-a'],
+  ['<select id="court2RedSide" onchange="saveSetup();applyCourtSides();renderAll()">', 'setup-red-side-b'],
+  ['<select id="teamAwardMode" onchange="state.teamAwardMode=this.value;saveSetup()">', 'team-award-mode'],
   ['<button id="exhibitionTab" class="tab" onclick="regTab(\'exhibition\')">', 'reg-tab-exhibition'],
   ['<button id="regenerateDivisionBtn" onclick="openRegenerateDivisionDialog()">', 'regenerate-division-button'],
   ['<button onclick="alert(\'CSV import will be added in the production build.\')">', 'reg-import-csv'],

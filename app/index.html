@@ -264,7 +264,7 @@
           </div>
           <div class="field">
             <label>Team Awards to Display</label>
-            <select id="teamAwardMode" onchange="state.teamAwardMode=this.value;saveSetup()">
+            <select id="teamAwardMode" onchange="state.teamAwardMode=this.value;saveSetup()" data-testid="team-award-mode">
               <option value="top1">Champion only</option>
               <option value="top2" selected>Champion + Runner-up</option>
               <option value="dual3">Champion + Runner-up + 3rd place(s)</option>
@@ -310,11 +310,11 @@
           </div>
           <div class="field">
             <label>Court A — Red side (as seen from the scoring table)</label>
-            <select id="court1RedSide" onchange="saveSetup();applyCourtSides();renderAll()"><option value="right">Red on the right</option><option value="left">Red on the left</option></select>
+            <select id="court1RedSide" onchange="saveSetup();applyCourtSides();renderAll()" data-testid="setup-red-side-a"><option value="right">Red on the right</option><option value="left">Red on the left</option></select>
           </div>
           <div class="field">
             <label>Court B — Red side (as seen from the scoring table)</label>
-            <select id="court2RedSide" onchange="saveSetup();applyCourtSides();renderAll()"><option value="right">Red on the right</option><option value="left">Red on the left</option></select>
+            <select id="court2RedSide" onchange="saveSetup();applyCourtSides();renderAll()" data-testid="setup-red-side-b"><option value="right">Red on the right</option><option value="left">Red on the left</option></select>
           </div>
         </div>
       </section>
