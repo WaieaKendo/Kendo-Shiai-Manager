@@ -373,6 +373,18 @@ class KsmApp:
         self._held.pop().continue_()
         self.page.unroute(self._SAVE_URL, self._hold_handler)
 
+    def drop_held_save(self):
+        """Stop holding and never answer the held save (a request lost on the network; the app
+        gives up on it by itself, F35). Ends the held request so Playwright does not report it."""
+        self._hold_done = True
+        for route in self._held:
+            try:
+                route.abort()
+            except Exception:
+                pass  # the page already gave up on the request
+        self._held.clear()
+        self.page.unroute(self._SAVE_URL, self._hold_handler)
+
     def blur(self):
         """Leave the field that has the focus (as a tap elsewhere does); a staff device applies
         live updates held while a field was being edited."""

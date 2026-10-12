@@ -155,7 +155,7 @@ async function saveTournamentToCloudWithReason(reason='Autosave',force=false){
   if(location.protocol==='file:'||ksmApplyingRemoteSnapshot||isReadOnlySession()||!canCloudWrite())return false;
   if(ksmCloudSaveInFlight)return queuePendingCloudSave(reason,force);
   const payload=tournamentPayload();
-  if(!navigator.onLine){writeOutbox(payload,reason);setConnectionStatus('Offline','offline');return false}
+  if(!navigator.onLine){writeOutbox(payload,reason);/* ksm:post-split-begin save-retry */noteQueuedMutation(payload,ksmLocalMutationVersion);/* ksm:post-split-end */setConnectionStatus('Offline','offline');return false}
   ksmCloudSaveInFlight=true;
   ksmSaveStatusMode=readOutbox()?'syncing':'saving';
   setConnectionStatus('Connected','online');
@@ -195,6 +195,10 @@ async function saveTournamentToCloudWithReason(reason='Autosave',force=false){
     setConnectionStatus(String(err.message).includes('conflict')?'Conflict':'Offline',String(err.message).includes('conflict')?'error':'offline');
     renderPersistentSaveStatus();
     scheduleCloudReconnect();
+/* ksm:post-split-begin save-retry */
+    noteQueuedMutation(payload,savingMutationVersion);
+    scheduleQueuedSaveRetry(err);
+/* ksm:post-split-end */
     return false;
   }finally{
     ksmCloudSaveInFlight=false;
@@ -224,7 +228,45 @@ async function flushCloudOutbox(){const outbox=readOutbox();if(!outbox||ksmCloud
   // the socket opens and triggers the flush): any unconfirmed local change, not only newer ones.
 /* ksm:post-split-end */
   if(record?.payload){const localPayload=/* ksm:post-split-begin outbox-flush-rebase was:ksmLocalMutationVersion===mutationVersion */ksmLocalMutationVersion===mutationVersion&&ksmLocalMutationVersion<=ksmConfirmedMutationVersion/* ksm:post-split-end */?record.payload:rebaseLocalPayloadOnRecord(tournamentPayload(),record,Number(outbox.baseRevision||0)/* ksm:post-split-begin edit-merge */,outbox.payload/* ksm:post-split-end */);ksmApplyingRemoteSnapshot=true;try{applyTournamentPayload(localPayload,false,{pinnedCourt:pinnedCourt(),preserveLocalDivision:true,source:'outbox flush'});localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(localPayload))}finally{ksmApplyingRemoteSnapshot=false}}
-  return true}catch(err){console.warn('Queued cloud save failed',err);writeCloudDiagnosticsState({stage:'Queued save failed',errorMessage:String(err?.message||err),lastFailureAt:new Date().toISOString()});ksmSaveStatusMode='error';renderPersistentSaveStatus();return false}finally{ksmCloudSaveInFlight=false;await runPendingCloudSave()}}
+/* ksm:post-split-begin save-retry */confirmQueuedMutation();/* ksm:post-split-end */
+  return true}catch(err){console.warn('Queued cloud save failed',err);writeCloudDiagnosticsState({stage:'Queued save failed',errorMessage:String(err?.message||err),lastFailureAt:new Date().toISOString()});ksmSaveStatusMode='error';renderPersistentSaveStatus();/* ksm:post-split-begin save-retry */scheduleQueuedSaveRetry(err);/* ksm:post-split-end */return false}finally{ksmCloudSaveInFlight=false;await runPendingCloudSave()}}
+/* ksm:post-split-begin save-retry */
+// F35: a save that fails while the live connection stays open (a 5xx, a dropped request, one
+// that never answers) is queued in the outbox, but only the socket opening, the browser's
+// `online` event or the next edit sent the queue: with none of them the device stayed
+// "unsaved" indefinitely. Retry the queue with backoff, and give up on a save that has not
+// answered after KSM_CLOUD_SAVE_TIMEOUT_MS (test audit N1), so it is queued and retried too.
+const KSM_CLOUD_SAVE_TIMEOUT_MS=20000;
+const KSM_QUEUED_SAVE_RETRY_MS=[2000,5000,10000,30000];
+let ksmOutboxMutationVersion=0,ksmQueuedSaveRetryTimer=null,ksmQueuedSaveRetryAttempt=0;
+// The local changes a queued snapshot carries (the outbox lives in localStorage, the change
+// counter only in this page): confirmed when the queue is sent, else the device would stay
+// "unsaved" until its next edit. Only when the queued snapshot is this payload (a logged-out
+// device keeps an older staff snapshot instead; see ksmKeepStaffOutbox()).
+function noteQueuedMutation(payload,version){if(readOutbox()?.payload?.savedAt===payload?.savedAt)ksmOutboxMutationVersion=Math.max(ksmOutboxMutationVersion,version)}
+function confirmQueuedMutation(){ksmConfirmedMutationVersion=Math.max(ksmConfirmedMutationVersion,ksmOutboxMutationVersion);ksmOutboxMutationVersion=0;ksmQueuedSaveRetryAttempt=0}
+function scheduleQueuedSaveRetry(err){
+  const outbox=readOutbox();
+  if(ksmQueuedSaveRetryTimer||!outbox||isReadOnlySession()||(outbox.tournamentId&&outbox.tournamentId!==cloudSession.tournamentId))return;
+  // A refused staff session needs Staff Login, not another try.
+  if(/authorization required|password required/i.test(String(err?.message||'')))return;
+  const delay=KSM_QUEUED_SAVE_RETRY_MS[Math.min(ksmQueuedSaveRetryAttempt++,KSM_QUEUED_SAVE_RETRY_MS.length-1)];
+  ksmQueuedSaveRetryTimer=setTimeout(async()=>{
+    ksmQueuedSaveRetryTimer=null;
+    if(!readOutbox()){ksmQueuedSaveRetryAttempt=0;return}
+    if(!navigator.onLine)return;  // the online event sends the queue
+    if(!await flushCloudOutbox())scheduleQueuedSaveRetry();
+  },delay);
+}
+function cloudSaveTimeoutSignal(existing){
+  // Only for saves to an existing tournament: a create that timed out and was sent again could
+  // create a second tournament.
+  if(!existing||typeof AbortController!=='function')return undefined;
+  const controller=new AbortController();
+  setTimeout(()=>controller.abort(new Error('Cloud save timed out')),KSM_CLOUD_SAVE_TIMEOUT_MS);
+  return controller.signal;
+}
+/* ksm:post-split-end */
 async function retryQueuedCloudSave(){if(!readOutbox()){showKsmToast('No queued snapshot to retry',1800);return}showKsmToast('Retrying queued save…',1200);const ok=await flushCloudOutbox();showKsmToast(ok?'✓ Queued save completed':'Queued save still needs attention',2600,!ok);cloudDiagnostics()}
 function scheduleCloudSave(reason='Autosave',delay=1200){if(ksmApplyingRemoteSnapshot||isReadOnlySession())return;clearTimeout(ksmCloudTimer);ksmCloudTimer=setTimeout(()=>{ksmCloudTimer=null;saveTournamentToCloudWithReason(reason)},delay)}
 async function promptLoadTournamentFromCloud(){const id=prompt('Enter Tournament ID',cloudSession.tournamentId||'');if(!id)return;try{await loadTournamentFromCloud(id,{spectator:true});updateSaveStatus('Loaded cloud tournament')}catch(err){alert('Unable to load that cloud tournament.');console.error(err);setConnectionStatus('Cloud load failed','offline')}}

@@ -164,6 +164,12 @@ const KNOWN_POST_SPLIT_EDITS = {
   'staff-outbox': 1,
   // fix/pre-event (F11): saveAuto(), called by the awards editor but never defined (app/js/20).
   'award-save': 1,
+  // fix/stuck-pending (F35, test audit N1), 21 and 33: a failed save queued in the outbox is retried
+  // with backoff (scheduleQueuedSaveRetry(), from saveTournamentToCloudWithReason() and
+  // flushCloudOutbox()), the local changes a queued snapshot carries are confirmed when it is sent
+  // (noteQueuedMutation()/confirmQueuedMutation()), and performCloudSave() gives up on a save to an
+  // existing tournament after KSM_CLOUD_SAVE_TIMEOUT_MS (cloudSaveTimeoutSignal()).
+  'save-retry': 6,
   // fix/outbox-flush-local-changes (F6): mergeQueuedStaffWork() and its call at staff login;
   // the outbox flush also replays court actions taken before it started (comment + condition).
   'outbox-flush-rebase': 4,
