@@ -17,6 +17,7 @@ them; at the end a fresh device and a reloaded court device must still show them
   7. a Registration edit vs a structural edit saved first;
   8. Undo vs another court's point saved first: F30, expected-failure check: the undo is lost
      (the undone point comes back) because an undo is not an action the rebase replays.
+  9. Hansoku and Fusen-gachi vs another court's point saved first.
 
 Court vs court (both courts scoring) is e2e-two-court-sync-test.py; a Setup edit vs a court point
 saved first (F4) is sync-remote-updates-test.py; a structural edit vs a court point is
@@ -171,6 +172,16 @@ def main():
         assert scored(record, OPEN_A, 'wp', 'K'), 'F30 fixed? the undo survived the conflict: assert the point is gone and mark F30 fixed'
         court_a.wait_for(lambda: 'K' in court_a.court_screen()['white_points'], message='8: F30, the undone point back on Court A')
 
+        # 9. Hansoku and Fusen-gachi vs another court's point saved first.
+        def hansoku_and_fusen():
+            court_a.hansoku('R')
+            court_a.fusen_gachi('R')  # Red forfeits: White gets F F
+        record = race(court_a, hansoku_and_fusen, court_b, lambda: court_b.score_point('W', 'T'))
+        assert scored(record, OPEN_B, 'wp', 'T'), '9: the other court\'s point was lost'
+        assert any(m.get('wp') == ['F', 'F'] and m.get('rt') == 1 and not m.get('done') for m in state(record)['allMatches'][OPEN_A]), \
+            f'9: the hansoku or the fusen-gachi was lost: {[(m.get("wp"), m.get("rp"), m.get("rt")) for m in state(record)["allMatches"][OPEN_A]]}'
+        court_b.wait_for(lambda: any(m.get('wp') == ['F', 'F'] for m in court_b.all_matches()[OPEN_A]), message='9: the fusen-gachi on Court B')
+
         # Survives a reload: a fresh device and Court A reloaded show the saved edits.
         final = server()
         fresh = KsmApp.open_device(browser, base, 'Fresh', problems, app_path(tid))
@@ -187,7 +198,7 @@ def main():
             assert pl['state']['allMatches'] == final['payload']['state']['allMatches'], f'{app.name}: matches differ from the server'
 
         assert not problems, '\n'.join(problems)
-        print(f'PASS edit conflicts: court vs Setup, Registration vs court (both ways), awards vs court, structural vs Registration '
+        print(f'PASS edit conflicts: court vs Setup, hansoku/fusen-gachi vs the other court, Registration vs court (both ways), awards vs court, structural vs Registration '
               f'(both ways) kept both edits; two Registration edits (F29) and Undo vs another court (F30) pinned '
               f'({time.time() - started:.0f}s)')
         browser.close()
