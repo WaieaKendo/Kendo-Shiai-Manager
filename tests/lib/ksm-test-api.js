@@ -19,6 +19,24 @@ window.KSMTest = {
   // after Staff Login; issue #9).
   staffSession() { return sessionKey(); },
   pending() { return localChangesPending(); },
+  // Why pending() is true (what wait_idle reports when it times out): each thing that keeps the
+  // device "unsaved", plus the last save attempt as the cloud diagnostics recorded it.
+  pendingReason() {
+    const d = readCloudDiagnosticsState(), socket = typeof ksmCloudSocket === 'object' && ksmCloudSocket;
+    return {
+      pending: localChangesPending(),
+      mutationVersion: ksmLocalMutationVersion, confirmedVersion: ksmConfirmedMutationVersion,
+      autosaveTimer: !!ksmSaveTimer, cloudSaveTimer: !!ksmCloudTimer, saveInFlight: ksmCloudSaveInFlight,
+      queuedSave: ksmCloudSavePending ? {reason: ksmCloudSavePending.reason, force: !!ksmCloudSavePending.force} : null,
+      outbox: KSMTest.outbox(), applyingRemote: ksmApplyingRemoteSnapshot,
+      role: ksmSessionRole, revision: KSMTest.revision(), online: navigator.onLine,
+      socket: socket ? ['connecting', 'open', 'closing', 'closed'][socket.readyState] : 'none',
+      saveStatus: ksmSaveStatusMode,
+      lastSave: {attemptId: d.attemptId, stage: d.stage, at: d.lastAttemptAt, httpStatus: d.httpStatus,
+                 error: d.errorMessage || '', body: String(d.errorBody || '').slice(0, 200), lastSuccessAt: d.lastSuccessAt, serverRevision: d.serverRevision},
+      now: new Date().toISOString(),
+    };
+  },
   diagnostics() { return readCloudDiagnosticsState(); },
   // Snapshot queued for the cloud (offline, failed save, reload before a save): who queued it, for which tournament.
   outbox() { const o = readOutbox(); return o ? {tournamentId: o.tournamentId, role: o.role, baseRevision: o.baseRevision, reason: o.actions?.[0]?.reason || ''} : null; },

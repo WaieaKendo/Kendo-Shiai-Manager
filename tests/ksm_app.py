@@ -16,6 +16,8 @@ import time
 import urllib.request
 from pathlib import Path
 
+from playwright.sync_api import TimeoutError as PlaywrightTimeout
+
 from ksm_browser import load_app, wait_for_react
 
 API_JS = (Path(__file__).resolve().parent / 'lib' / 'ksm-test-api.js').read_text(encoding='utf-8')
@@ -269,8 +271,17 @@ class KsmApp:
         return self.page.evaluate('KSMTest.staffSession()')
 
     def wait_idle(self, timeout=30):
-        """(test API) Wait until every local change is confirmed by the server."""
-        self.page.wait_for_function('!KSMTest.pending()', timeout=timeout * 1000)
+        """(test API) Wait until every local change is confirmed by the server.
+
+        On a timeout the error says why the device is still unsaved (KSMTest.pendingReason():
+        timers, a save in flight or queued, the outbox, the last save attempt), so a flake on CI
+        can be diagnosed from the log alone.
+        """
+        try:
+            self.page.wait_for_function('!KSMTest.pending()', timeout=timeout * 1000)
+        except PlaywrightTimeout:
+            reason = self.page.evaluate('KSMTest.pendingReason()')
+            raise AssertionError(f'{self.name}: still unsaved after {timeout}s: {json.dumps(reason)}') from None
 
     def wait_revision(self, rev, timeout=15):
         """(test API) Wait until this device has caught up with server revision `rev`."""
