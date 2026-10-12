@@ -1,0 +1,54 @@
+name: Pages pass-through (production)
+
+# Creates or updates ONLY the production custom-domain pass-through: the Cloudflare Pages project
+# `ksm-tournament`, whose _worker.js forwards every request to the production Worker
+# `kendoshiaimanager-cloud-staging` (pages-proxy/production.jsonc). It does not build or deploy
+# the app or touch the Worker or its data, so tournament.hawaiikendofederation.org shows exactly
+# what production runs today. The pass-through code and script live on `develop` (docs/DEPLOYMENT.md,
+# "Custom domains"); this workflow checks them out from there. Once a release brings develop's
+# Deploy workflow to `main`, every production deploy also updates the pass-through, and this
+# workflow is only needed again to re-create it by hand.
+#
+# Run: Actions -> "Pages pass-through (production)" -> Run workflow (branch main).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pass-through:
+    name: Create/update the production Pages pass-through
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: pages-proxy-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Check the binding points at the production Worker
+        run: |
+          grep -q '"service": "kendoshiaimanager-cloud-staging"' pages-proxy/production.jsonc || { echo "::error::pages-proxy/production.jsonc must forward to kendoshiaimanager-cloud-staging"; exit 1; }
+      - name: Deploy the pass-through (Pages project ksm-tournament)
+        run: npm run proxy:production
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: The pass-through answers like production
+        run: |
+          for i in $(seq 1 12); do
+            via=$(curl -s -m 10 https://ksm-tournament.pages.dev/api/health || true)
+            direct=$(curl -s -m 10 https://kendoshiaimanager-cloud-staging.samanthakodamaworkersdev.workers.dev/api/health || true)
+            echo "pass-through: $via"; echo "production:   $direct"
+            if [ -n "$via" ] && [ "$via" = "$direct" ]; then exit 0; fi
+            sleep 10
+          done
+          echo "::error::https://ksm-tournament.pages.dev/api/health does not answer like production (the project's address may differ: check the Pages project in the Cloudflare dashboard)"; exit 1
