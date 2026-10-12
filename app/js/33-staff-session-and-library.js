@@ -7,6 +7,10 @@ function v316StaffPassword(){return sessionStorage.getItem(KSM_V316_STAFF_SESSIO
 // Staff Login or tournament creation (sent as x-ksm-session-key and the live connection's key),
 // or, only between New Tournament and the server's answer, the new password to create it with.
 function ksmStaffToken(value){return typeof value==='string'&&value.startsWith('ksmst_')}
+// F33: work queued by staff stays staff work. A device logged out (a 401, Staff Logout) holds no
+// staff work of its own, so it never replaces a queued staff snapshot of this tournament (by one
+// stamped as spectator, which the next live update would discard) before Staff Login sends it.
+function ksmKeepStaffOutbox(){if(!isReadOnlySession()||!cloudSession.tournamentId)return false;const queued=readOutbox();return queued?.role==='staff'&&queued.tournamentId===cloudSession.tournamentId}
 /* ksm:post-split-end */
 function setSessionRole(role){ksmSessionRole=role==='staff'?'staff':'spectator';document.body.classList.toggle('ksm-spectator',ksmSessionRole==='spectator');document.body.classList.toggle('ksm-staff',ksmSessionRole==='staff');document.body.classList.remove('ksm-scorekeeper','ksm-admin');/* ksm:post-split-begin react-shell */ksmRenderSessionRole();/* ksm:post-split-end */}
 function isReadOnlySession(){return ksmSessionRole!=='staff'}
@@ -86,7 +90,8 @@ async function performCloudSave(payload=tournamentPayload(),baseRevision=cloudSe
   // so Staff Login asks for the password again; the unsaved work stays queued for after it.
   if(response.status===401){
     writeCloudDiagnosticsState({attemptId,stage:'Staff session expired',errorMessage:(parsed&&parsed.error)||'Staff session expired'});
-    if(ksmStaffToken(v316StaffPassword())){sessionStorage.removeItem(KSM_V316_STAFF_SESSION);setSessionRole('spectator');installRoleBanner('spectator');disconnectCloudSocket();connectCloudSocket();showKsmToast('Staff session expired · use Staff Login again',4000,true)}
+    // F33: queue the unsaved work as staff work before the role changes (writeOutbox() stamps the role).
+    if(ksmStaffToken(v316StaffPassword())){writeOutbox(payload,'Staff session expired');sessionStorage.removeItem(KSM_V316_STAFF_SESSION);setSessionRole('spectator');installRoleBanner('spectator');disconnectCloudSocket();connectCloudSocket();showKsmToast('Staff session expired · use Staff Login again',4000,true)}
     throw new Error('Session authorization required');
   }
   /* ksm:post-split-end */
