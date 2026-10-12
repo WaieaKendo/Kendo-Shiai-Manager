@@ -79,7 +79,11 @@ jobs:
   dev:
     name: Deploy dev
     needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    # !cancelled() and the tests' own result: without a status function GitHub skips this job
+    # whenever any job before it was skipped, and release-check (main only) always is on develop.
+    if: >-
+      !cancelled() && needs.test.result == 'success' &&
+      github.event_name == 'push' && github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # cancel-in-progress stays false: GitHub cancels the *running* job of the group with it, i.e. a
