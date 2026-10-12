@@ -1,0 +1,6 @@
+/* ksm:post-split-begin privacy-footer */
+.privacy-footer { display: none; padding: 1rem; text-align: center; }
+body.ksm-home .privacy-footer { display: block; }
+.privacy-footer a { color: var(--ink); }
+@media print { body.ksm-home .privacy-footer { display: none; } }
+/* ksm:post-split-end */

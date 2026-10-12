@@ -233,6 +233,7 @@ const KNOWN_POST_SPLIT_CSS_EDITS = {
   // fix/react-batch-1 (F14): the TV canvas scales to fit the window, centred (end of 13-tv.css;
   // the factor --ksm-tv-fit comes from ksmFitTv() in app/js/37-react-tv.js, react-tv region).
   'tv-fit': 1,
+  'privacy-footer': 1,
 };
 // Old functions whose body now lives in app/engine/*.ts (parameter lists without braces).
 const MOVED_TO_ENGINE = [
@@ -464,6 +465,7 @@ const REMOVED_SHELL_RENDERER = [
 // 'now' must appear exactly once; the check puts 'before' back (before the test-ID step) and then
 // compares byte for byte, so any other markup change still fails.
 const MARKUP_EDITS = [
+  ['</main>', '<footer class="privacy-footer no-print"><a href="/privacy" data-testid="privacy-link">Privacy</a></footer>\n</main>'],
   ['<button class="danger" onclick="state.teams=[];renderTeams()" data-testid="team-clear">', '<button class="danger" onclick="clearTeams()" data-testid="team-clear">'],
   ['<button class="danger" onclick="state.exhibitions=[];renderExhibitions()" data-testid="exhibition-clear">', '<button class="danger" onclick="clearExhibitions()" data-testid="exhibition-clear">'],
 ];
