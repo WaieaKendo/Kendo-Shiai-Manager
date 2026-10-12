@@ -26,8 +26,17 @@ const on = deploy.slice(deploy.indexOf('\non:'), deploy.indexOf('\nrun-name:'));
 check(!/pull_request/.test(on) && /push:\n\s+branches: \[develop, main\]/.test(on) && /workflow_dispatch:/.test(on),
   'deploy.yml triggers: pushes to develop and main, and workflow_dispatch (never pull requests)');
 const jobs = Object.fromEntries(deploy.slice(deploy.indexOf('\njobs:')).split(/\n  (?=[\w-]+:\n)/).slice(1).map(block => [block.match(/^([\w-]+):/)[1], block]));
-check(/name: Deploy dev/.test(jobs.dev) && /needs: test/.test(jobs.dev) && /if: github.event_name == 'push' && github.ref == 'refs\/heads\/develop'/.test(jobs.dev) && /npm run deploy:dev/.test(jobs.dev) && /health-check\.mjs "\$DEV_URL"/.test(jobs.dev),
+check(/name: Deploy dev/.test(jobs.dev) && /needs: test/.test(jobs.dev) && /github.event_name == 'push' && github.ref == 'refs\/heads\/develop'/.test(jobs.dev) && /npm run deploy:dev/.test(jobs.dev) && /health-check\.mjs "\$DEV_URL"/.test(jobs.dev),
   'Deploy dev: after the tests, only on a push to develop, then the health check');
+// GitHub skips a job when any job before it in the needs chain was skipped, unless its condition
+// uses a status function: release-check (main only) is always skipped on develop, so without
+// !cancelled() Deploy dev never ran (seen on the first develop push, 2026-10-12).
+check(/if: >-\n\s+!cancelled\(\) && needs\.test\.result == 'success' &&/.test(jobs.dev),
+  'Deploy dev: runs although release-check is skipped on develop (!cancelled() + the tests passed)');
+for (const [name, job] of Object.entries(jobs)) {
+  if (!/\bneeds:/.test(job) || name === 'test') continue;
+  check(/!cancelled\(\)|always\(\)/.test(job), `${name}: its condition uses a status function, so a skipped job earlier in the chain does not skip it`);
+}
 check(/name: Deploy production/.test(jobs.production) && /needs: \[release-check, test\]/.test(jobs.production)
   && /needs\.test\.result == 'success' && github\.ref == 'refs\/heads\/main' && \(/.test(jobs.production)
   && /github\.event_name == 'workflow_dispatch' \|\|/.test(jobs.production) && /\(github\.event_name == 'push' && needs\.release-check\.outputs\.deploy == 'true'\)\)/.test(jobs.production)
