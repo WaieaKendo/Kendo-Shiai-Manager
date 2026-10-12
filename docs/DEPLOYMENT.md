@@ -28,7 +28,7 @@ Production changes only at a release (see [Versions and releases](#versions-and-
 
 ### Overlapping runs
 
-Two pushes in quick succession start two runs. Each deploy job has a concurrency group (`deploy-dev`, `deploy-production`), which only makes the deploys take turns: the older run's tests can finish later, so on its own it would deploy the older commit over the newer one. So right before the deploy, the step **Still the newest commit on develop/main?** compares the run's commit (`GITHUB_SHA`) with the branch's current head (`git ls-remote origin refs/heads/<branch>`); if the branch has moved on, the run skips the deploy and the health check with a notice ("… has moved on …: skipping this deploy, the newer run deploys") and stays green. If the head cannot be read the step fails (nothing is deployed). A production run by hand deploys `main` as it is when the run starts; if `main` moves on before the deploy step, it skips too (the newer push deploys if it carries a new version, or run it again).
+Two pushes in quick succession start two runs. Each deploy job has a concurrency group (`deploy-dev`, `deploy-production`), which only makes the deploys take turns: the older run's tests can finish later, so on its own it would deploy the older commit over the newer one. So right before the deploy, the step **Still the newest commit on develop/main?** compares the run's commit (`GITHUB_SHA`) with the branch's current head (`git ls-remote origin refs/heads/<branch>`); if the branch has moved on, the run skips the deploy, the health check and the custom-domain pass-through with a notice ("… has moved on …: skipping this deploy, the newer run deploys") and stays green. If the head cannot be read the step fails (nothing is deployed). A production run by hand deploys `main` as it is when the run starts; if `main` moves on before the deploy step, it skips too (the newer push deploys if it carries a new version, or run it again).
 
 `cancel-in-progress` stays `false` for both groups: GitHub cancels the group's *running* job with it, i.e. a deploy midway (half-uploaded Worker, no health check). Pending runs need no setting: GitHub keeps one pending job per group and a newer one replaces (cancels) it. So waiting deploys of older commits are dropped by GitHub, and one that is already past the queue is caught by the freshness check.
 
@@ -113,8 +113,27 @@ Production runs on a Worker still named `kendoshiaimanager-cloud-staging`. Renam
 3. **Run it with the owner, before the ~11/7 freeze**, at a quiet time (no tournament running or being prepared): backup → the rehearsed deploys → backup of the new Worker and compare → the after-deploy checks on the new URL → `wrangler.jsonc` top-level `name` changed to the new name in the same pull request, and `PRODUCTION_URL` in `deploy.yml` and this document updated.
 4. **Keep the old Worker** (serving the moved data via `script_name`, or redirecting to the new URL) until the new one has been verified through at least one real use; delete it only after that, and only if the rehearsal showed that deleting it does not affect the namespace.
 
+## Custom domains
+
+The sites are meant to live at **tournament.hawaiikendofederation.org** (production) and **dev.tournament.hawaiikendofederation.org** (dev). The domain's DNS is at GoDaddy, which rules out the direct ways: a Worker gets a custom domain only on a Cloudflare zone, and handing just the `tournament.` subdomain to Cloudflare (subdomain delegation) is Enterprise-only. Cloudflare **Pages** projects, however, accept a subdomain through a plain CNAME at another DNS provider. So each site has a small Pages project that owns the address and passes every request, WebSocket upgrades included, to that site's Worker through a service binding (`pages-proxy/`):
+
+| | **Dev** | **Production** |
+|---|---|---|
+| Pages project | `ksm-tournament-dev` (`pages-proxy/dev.jsonc`) | `ksm-tournament` (`pages-proxy/production.jsonc`) |
+| Forwards to | `kendoshiaimanager-dev` | `kendoshiaimanager-cloud-staging` |
+| Address | `dev.tournament.hawaiikendofederation.org` | `tournament.hawaiikendofederation.org` |
+
+- `pages-proxy/_worker.js` is the whole pass-through: `env.KSM.fetch(request)`. The Worker sees the request unchanged; nothing in it depends on the host name.
+- Deployed by the deploy workflow right after each Worker passes its health check (`npm run proxy:dev` / `npm run proxy:production`, `scripts/pages-proxy.mjs`), which creates the Pages project the first time. The script runs wrangler from a temporary folder: inside the repository, `wrangler pages` reads the Worker's own config instead (Durable Object binding, no service binding).
+- The API token needs **Cloudflare Pages: Edit** besides the Workers permissions.
+- Workers.dev addresses keep working; the custom domains are an extra way in, and removing them changes nothing for the Workers.
+
+**Connecting a domain (once per site, after its Pages project exists):** Cloudflare dashboard → Workers & Pages → the Pages project → Custom domains → Set up a custom domain → enter the address. Cloudflare shows the CNAME to add (`tournament` → `ksm-tournament.pages.dev`, `dev.tournament` → `ksm-tournament-dev.pages.dev`; the exact `.pages.dev` names are on the projects' pages). The HKF domain contact adds those records at GoDaddy (DNS → Add New Record → CNAME); Cloudflare then verifies the address and issues its certificate, usually within minutes to a few hours. Add the domain in the dashboard **before** the CNAME exists, or Cloudflare can refuse the address.
+
+**Local check:** `npm run build`, `npx wrangler dev --env dev --port 8787`, then in another terminal `node scripts/pages-proxy.mjs dev --local --port 8788` and use http://127.0.0.1:8788. Measured 2026-10-06 against the local dev Worker: health, index.html, SPA paths, tournament create/list/delete, staff and spectator WebSockets (a wrong staff key refused), 20 saves broadcast in order without duplicates, a stale save's 409 all identical through the pass-through; +0.9 ms per request locally (two processes; in Cloudflare a service binding usually runs on the same machine). Still to measure on the dev site: real latency, an hour-long live connection, request counts.
+
 ## Notes
 
 - Worker secrets (e.g. `KSM_RESET_KEY`, which enables the destructive `/api/admin/reset`, see RESET-CLOUD-DATA.md) belong to one Worker and are not in `wrangler.jsonc`; deploys keep them. Dev has none unless someone sets them with `npx wrangler secret put <NAME> --env dev`. Check that production does not hold a reset key it no longer needs: `npx wrangler secret list --env=""`.
 - Dry runs (no upload, no login needed): `npm run deploy:production -- --dry-run`, `npm run deploy:dev -- --dry-run`.
-- `tests/deploy-config-test.mjs` guards the rules above (separate dev Worker and binding, production unchanged, no deploy from pull requests, production only from `main`, a deploy only of the branch's current head, no running deploy cancelled).
+- `tests/deploy-config-test.mjs` guards the rules above (separate dev Worker and binding, production unchanged, no deploy from pull requests, production only from `main`, a deploy only of the branch's current head, no running deploy cancelled, each pass-through bound to its own site's Worker).

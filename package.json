@@ -56,7 +56,9 @@
     "release": "node scripts/release.mjs",
     "backup": "node scripts/backup-tournaments.mjs",
     "deploy:dev": "vite build && wrangler deploy --env dev",
-    "deploy:production": "vite build && wrangler deploy --env=\"\""
+    "deploy:production": "vite build && wrangler deploy --env=\"\"",
+    "proxy:dev": "node scripts/pages-proxy.mjs dev",
+    "proxy:production": "node scripts/pages-proxy.mjs production"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",

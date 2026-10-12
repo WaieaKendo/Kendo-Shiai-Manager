@@ -49,19 +49,38 @@ for (const [job, branch, command, url] of [['dev', 'develop', 'npm run deploy:de
   const fresh = list.findIndex(s => /id: fresh/.test(s));
   const deployAt = list.findIndex(s => s.includes(command));
   const healthAt = list.findIndex(s => s.includes(`health-check.mjs "$${url}"`));
+  // The custom-domain pass-through is deployed with the Worker, so an older run skips it too.
+  const proxyAt = list.findIndex(s => s.includes(`npm run proxy:${job}`));
   const gate = s => /\n\s+if: steps\.fresh\.outputs\.fresh == 'true'\n/.test(s);
   check(fresh >= 0 && deployAt === fresh + 1
     && list[fresh].includes(`git ls-remote --exit-code origin refs/heads/${branch}`) && /if \[ "\$head" = "\$GITHUB_SHA" \]; then\n\s+echo "fresh=true"/.test(list[fresh])
     && /echo "fresh=false"/.test(list[fresh]) && /::notice::/.test(list[fresh]) && !/exit/.test(list[fresh].split('fresh=true')[1] || 'exit'),
     `Deploy ${job}: right before the deploy, a check that the run's commit is still the head of ${branch} (a notice, not a failure, when it is not)`);
-  check(deployAt >= 0 && healthAt > deployAt && gate(list[deployAt]) && gate(list[healthAt]),
-    `Deploy ${job}: the deploy and the health check run only when the commit is still the head`);
+  check(deployAt >= 0 && healthAt > deployAt && gate(list[deployAt]) && gate(list[healthAt]) && proxyAt > healthAt && gate(list[proxyAt]),
+    `Deploy ${job}: the deploy, the health check and the pass-through run only when the commit is still the head`);
   check(/concurrency:\n\s+group: deploy-[\w]+\n\s+cancel-in-progress: false/.test(jobs[job]), `Deploy ${job}: a running deploy is never cancelled midway`);
 }
 
 const pkg = JSON.parse(readRepoFile('package.json'));
 check(pkg.scripts['deploy:dev'] === 'vite build && wrangler deploy --env dev' && pkg.scripts['deploy:production'] === 'vite build && wrangler deploy --env=""' && !pkg.scripts.deploy,
   'npm scripts build before deploying and always name the target (no bare `npm run deploy`)');
+
+// The custom-domain pass-through (pages-proxy/): one Pages project per site, bound to that site's
+// Worker, deployed after it (never production's Worker behind the dev address or the reverse).
+const proxy = site => JSON.parse(stripComments(readRepoFile(`pages-proxy/${site}.jsonc`)));
+const devProxy = proxy('dev'), productionProxy = proxy('production');
+const target = config => config.services?.length === 1 && config.services[0].binding === 'KSM' ? config.services[0].service : null;
+check(target(devProxy) === dev?.name && target(productionProxy) === wrangler.name,
+  'pages-proxy: the dev project binds KSM to the dev Worker, the production project to the production Worker');
+check(devProxy.name !== productionProxy.name && ![dev?.name, wrangler.name].includes(devProxy.name) && ![dev?.name, wrangler.name].includes(productionProxy.name),
+  'pages-proxy: two Pages projects, named apart from each other and from the Workers');
+check(devProxy.pages_build_output_dir === './public' && productionProxy.pages_build_output_dir === './public' && !devProxy.durable_objects && !productionProxy.durable_objects,
+  'pages-proxy: no Durable Objects or assets of its own (it only forwards)');
+check(/return env\.KSM\.fetch\(request\);/.test(readRepoFile('pages-proxy/_worker.js')), 'pages-proxy/_worker.js forwards the request unchanged');
+check(/npm run proxy:dev/.test(jobs.dev) && jobs.dev.indexOf('npm run proxy:dev') > jobs.dev.indexOf('health-check.mjs')
+  && /npm run proxy:production/.test(jobs.production) && jobs.production.indexOf('npm run proxy:production') > jobs.production.indexOf('health-check.mjs'),
+  'deploy.yml: each site\'s pass-through deploys after its Worker passed the health check');
+check(pkg.scripts['proxy:dev'] === 'node scripts/pages-proxy.mjs dev' && pkg.scripts['proxy:production'] === 'node scripts/pages-proxy.mjs production', 'npm scripts proxy:dev / proxy:production');
 
 let failed = 0;
 for (const [ok, name] of checks) { console.log(`${ok ? 'PASS' : 'FAIL'} ${name}`); if (!ok) failed++; }
