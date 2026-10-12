@@ -219,7 +219,7 @@ function mergeLocalEditsThreeWay(rebased,localPayload,basePayload,structuralRepl
   // split it, so that half merges only when the structure was replayed (F10).
   if(structuralReplayed||(localState.managementRevision||0)===(baseState.managementRevision||0)){
     rebased.state=rebased.state||{};
-    KSM_MERGED_STATE_KEYS.forEach(k=>{const v=/* F32 */Array.isArray(structuralReplayed)&&registrationListSplits(rebased.state[k],localState[k],baseState[k],k,structuralReplayed)?mergeRegistrationListSplit(rebased.state[k],localState[k],baseState[k],structuralReplayed,KSM_MERGE_LABELS[k]||k,conflicts):mergeValueThreeWay(rebased.state[k],localState[k],baseState[k],KSM_MERGE_LABELS[k]||k,conflicts);if(v===undefined)delete rebased.state[k];else rebased.state[k]=v});
+    KSM_MERGED_STATE_KEYS.forEach(k=>{const v=/* F32 */Array.isArray(structuralReplayed)&&registrationListSplits(rebased.state[k],localState[k],baseState[k],k,structuralReplayed)?mergeRegistrationListSplit(rebased.state[k],localState[k],baseState[k],structuralReplayed,KSM_MERGE_LABELS[k]||k,conflicts,k):mergeValueThreeWay(rebased.state[k],localState[k],baseState[k],KSM_MERGE_LABELS[k]||k,conflicts);if(v===undefined)delete rebased.state[k];else rebased.state[k]=v});
   }
   return conflicts;
 }
@@ -229,7 +229,10 @@ function mergeLocalEditsThreeWay(rebased,localPayload,basePayload,structuralRepl
 // conflict, with the notice); replayStructuralEdit() asks first when the other device changed a
 // replayed division's entries. Never a structure without the registration it was built from.
 const KSM_REGISTRATION_LIST_KEYS=['competitors','teams'];
-function registrationEntriesIn(list,divisions,inside=true){return (Array.isArray(list)?list:[]).filter(e=>divisions.includes(e?.division)===inside)}
+// Every team belongs to the team event, as the engine treats them (eligibleTeams(state.teams)): sample
+// and older teams have no division field, so a team's division is always 'Team Tournament'.
+function registrationEntryDivision(e,key){return key==='teams'?'Team Tournament':e?.division}
+function registrationEntriesIn(list,divisions,inside=true,key='competitors'){return (Array.isArray(list)?list:[]).filter(e=>divisions.includes(registrationEntryDivision(e,key))===inside)}
 /** True when list key `k` changed on both sides (a whole-list conflict) and divisions were replayed: it is merged split by division. */
 function registrationListSplits(server,local,base,k,divisions){
   return KSM_REGISTRATION_LIST_KEYS.includes(k)&&divisions.length>0&&!sameJsonValue(local,base)&&!sameJsonValue(local,server)&&!sameJsonValue(server,base);
@@ -239,15 +242,15 @@ function registrationConflictDivisions(serverState,localState,baseState,division
   const out=new Set();
   KSM_REGISTRATION_LIST_KEYS.forEach(k=>{
     if(!registrationListSplits(serverState?.[k],localState?.[k],baseState?.[k],k,divisions))return;
-    divisions.forEach(d=>{if(!sameJsonValue(registrationEntriesIn(serverState?.[k],[d]),registrationEntriesIn(baseState?.[k],[d])))out.add(d)});
+    divisions.forEach(d=>{if(!sameJsonValue(registrationEntriesIn(serverState?.[k],[d],true,k),registrationEntriesIn(baseState?.[k],[d],true,k)))out.add(d)});
   });
   return [...out];
 }
-function mergeRegistrationListSplit(server,local,base,divisions,label,conflicts){
-  const outside=mergeValueThreeWay(registrationEntriesIn(server,divisions,false),registrationEntriesIn(local,divisions,false),registrationEntriesIn(base,divisions,false),label,conflicts)||[];
-  const inside=cloneJson(registrationEntriesIn(local,divisions));
+function mergeRegistrationListSplit(server,local,base,divisions,label,conflicts,key='competitors'){
+  const outside=mergeValueThreeWay(registrationEntriesIn(server,divisions,false,key),registrationEntriesIn(local,divisions,false,key),registrationEntriesIn(base,divisions,false,key),label,conflicts)||[];
+  const inside=cloneJson(registrationEntriesIn(local,divisions,true,key));
   // In the server list's order: the replayed divisions' entries where its first one was (else at the end).
-  const at=(Array.isArray(server)?server:[]).findIndex(e=>divisions.includes(e?.division));
+  const at=(Array.isArray(server)?server:[]).findIndex(e=>divisions.includes(registrationEntryDivision(e,key)));
   const before=at<0?outside.length:Math.min(at,outside.length);
   return outside.slice(0,before).concat(inside,outside.slice(before));
 }
