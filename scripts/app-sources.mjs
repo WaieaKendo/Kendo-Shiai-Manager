@@ -17,6 +17,11 @@
 // app/service-worker.js service worker (the build rewrites /app.css and /app.js to the
 //                       hashed bundle names in APP_SHELL)
 // app/public/           static files, copied to the site root unchanged
+//
+// The release version is written ONLY in package.json. The sources carry the placeholder
+// __KSM_VERSION__ instead (index.html title + badge, the two appVersion fields in
+// app/js/19-cloud-diagnostics.js, the service worker CACHE_NAME); the build (and the dev
+// server) replace it with withVersion(). src-worker.js imports package.json itself.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -31,6 +36,11 @@ export const ENGINE_DIR = path.join(APP_DIR, 'engine');
 export const ENGINE_URL = '/engine.js';
 export const STYLE_TAG = `<link rel="stylesheet" href="${STYLE_URL}">`;
 export const SCRIPT_TAG = `<script src="${SCRIPT_URL}"></script>`;
+export const VERSION_PLACEHOLDER = '__KSM_VERSION__';
+/** package.json "version", read fresh (a release bumps it while the dev server runs). */
+export const appVersion = () => JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
+/** The text with every version placeholder replaced by package.json "version". */
+export const withVersion = text => text.replaceAll(VERSION_PLACEHOLDER, appVersion());
 
 const ordered = (dir, ext) => fs.readdirSync(dir).filter(f => f.endsWith(ext)).sort().map(f => path.join(dir, f));
 export const styleFiles = () => ordered(path.join(APP_DIR, 'styles'), '.css');

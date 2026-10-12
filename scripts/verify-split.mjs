@@ -32,7 +32,7 @@
 import { execFileSync } from 'node:child_process';
 import { minify } from 'vite';
 import { extractFunction } from '../tests/lib/ksm-source.mjs';
-import { ROOT, STYLE_TAG, SCRIPT_TAG, indexHtml, appStyles, appScript } from './app-sources.mjs';
+import { ROOT, STYLE_TAG, SCRIPT_TAG, VERSION_PLACEHOLDER, indexHtml, appStyles, appScript } from './app-sources.mjs';
 
 const commit = process.argv[2] || 'def5010';
 const KNOWN_POST_SPLIT_EDITS = {
@@ -497,9 +497,31 @@ const MARKUP_TEST_IDS = [
   ['<button onclick="loadTeamSamples()">', 'team-load-samples'],
   ['<button onclick="loadFullTournament()">', 'reg-load-sample-tournament'],
 ];
+// infra/deploy: the release version is written only in package.json. Where the old file had its
+// version, the sources now hold the placeholder __KSM_VERSION__, which the build fills in from
+// package.json (withVersion() in scripts/app-sources.mjs). These are the only placeholders allowed,
+// as [the text around the placeholder, how many times]: each must appear exactly that often, no
+// other placeholder may exist, and the check puts the OLD file's own version (read from its badge)
+// back in their place before comparing, so every other difference still fails.
+const VERSION_PLACEHOLDERS = {
+  // app/index.html: the page title (also the About text) and the navigation version badge.
+  markup: [['<title>Kendo Shiai Manager v__KSM_VERSION__</title>', 1], ['<span class="version-badge">v__KSM_VERSION__</span>', 1]],
+  // app/js/19-cloud-diagnostics.js: appVersion in the snapshot and action-history downloads.
+  script: [["appVersion:'__KSM_VERSION__'", 2]],
+};
 const old = execFileSync('git', ['show', `${commit}:public/index.html`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64e6 });
 let failed = 0;
 const check = (ok, name) => { console.log(`${ok ? 'PASS' : 'FAIL'} ${name}`); if (!ok) failed++; };
+const oldVersion = old.match(/<span class="version-badge">v([^<]+)<\/span>/)[1];
+// VERSION_PLACEHOLDERS: check the listed placeholders and put the old version back in their place.
+function fillOldVersion(text, where) {
+  const listed = VERSION_PLACEHOLDERS[where];
+  const counts = listed.map(([context, n]) => [context, n, text.split(context).length - 1]);
+  const total = text.split(VERSION_PLACEHOLDER).length - 1, expected = listed.reduce((sum, [, n]) => sum + n, 0);
+  check(counts.every(([, n, found]) => found === n) && total === expected,
+    `${where}: the version placeholders are exactly the listed ones (${counts.map(([c, n, found]) => `${c} ${found}/${n}`).join(', ')}; ${total} in all)`);
+  return text.replaceAll(VERSION_PLACEHOLDER, oldVersion);
+}
 
 const scriptStart = old.indexOf('\n<script>\n') + 1, scriptEnd = old.indexOf('</script>\n</body>');
 let oldScript = old.slice(scriptStart + '<script>\n'.length, scriptEnd);
@@ -549,7 +571,7 @@ const outsideBlocks = headStyles.replace(/<style[^>]*>\n[\s\S]*?<\/style>/g, '')
 
 check(!outsideBlocks.trim(), `old <head> held only <style> blocks between <title> and </head> (${oldStyleBlocks.length} blocks)`);
 const oldMarkup = old.slice(0, old.indexOf('<style')) + STYLE_TAG + '\n' + old.slice(old.indexOf('</head>'), scriptStart) + SCRIPT_TAG + old.slice(scriptEnd + '</script>'.length);
-let markup = indexHtml();
+let markup = fillOldVersion(indexHtml(), 'markup');
 for (const [before, now] of MARKUP_EDITS) {
   const count = markup.split(now).length - 1;
   if (count !== 1) check(false, `MARKUP_EDITS: ${now} appears ${count} times (expected once)`);
@@ -561,7 +583,7 @@ for (const [tag, id] of MARKUP_TEST_IDS) {
   if (count !== 1) check(false, `MARKUP_TEST_IDS: ${id} is on its tag ${count} times (expected once)`);
   else markup = markup.replace(added, () => tag);
 }
-check(markup === oldMarkup, `app/index.html is the old markup, byte for byte, apart from ${MARKUP_TEST_IDS.length} listed test IDs and ${MARKUP_EDITS.length} listed edits`);
+check(markup === oldMarkup, `app/index.html is the old markup, byte for byte, apart from ${MARKUP_TEST_IDS.length} listed test IDs, ${MARKUP_EDITS.length} listed edits and the version placeholders`);
 const POST_SPLIT = /\/\* ksm:post-split-begin ([\w-]+)(?: was:((?:(?!\*\/)[^\n])*?))? \*\/[\s\S]*?\/\* ksm:post-split-end \*\/\n?/g;
 // CSS takes the same markers (KNOWN_POST_SPLIT_CSS_EDITS); without them the styles stay byte for byte.
 const foundCss = {};
@@ -575,7 +597,7 @@ const found = {};
 for (const m of appScript().matchAll(POST_SPLIT)) found[m[1]] = (found[m[1]] || 0) + 1;
 check(JSON.stringify(found) === JSON.stringify(KNOWN_POST_SPLIT_EDITS),
   `post-split edits are the known ones (${Object.entries(found).map(([k, n]) => `${k}: ${n}`).join(', ') || 'none'})`);
-const js = appScript().replace(POST_SPLIT, (_, name, was) => was ?? '');
+const js = fillOldVersion(appScript(), 'script').replace(POST_SPLIT, (_, name, was) => was ?? '');
 check(!/ksm:post-split-(begin|end)/.test(js), 'every post-split marker is paired');
 if (js === oldScript) check(true, 'app/js/*.js concatenated = old <script>, byte for byte');
 else {

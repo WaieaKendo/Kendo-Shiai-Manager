@@ -62,7 +62,7 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                       offline app for /, /index.html and the path URLs /t/... (not the overlay)
 src-worker.js        Cloudflare Worker backend (API + Durable Object); answers /t/<id>/overlay/...
                       with overlay.html (wrangler.jsonc run_worker_first: /api/*, /t/*)
-scripts/             Build helpers (app-sources.mjs), verify-split.mjs, reset-cloud-data.mjs
+scripts/             Build helpers (app-sources.mjs), verify-split.mjs, reset-cloud-data.mjs, pages-proxy.mjs
 tests/               Maintained regression tests (golden/engine, golden/court, golden/live-scores, golden/tv, golden/results, golden/overview, golden/library, golden/pools, golden/setup, golden/registration, golden/registration-teams, golden/shell: approved snapshots)
 docs/                Maintained documentation
 README.md             Project overview
@@ -71,6 +71,7 @@ package.json          Scripts and development dependency metadata
 vite.config.js        Front-end build (Vite)
 tsconfig.json         Type checking (`npm run typecheck`; also app/react, app/engine)
 wrangler.jsonc        Cloudflare deployment configuration (serves dist/)
+pages-proxy/          Custom-domain pass-through: a Pages project per site forwarding to its Worker (docs/DEPLOYMENT.md)
 .gitignore            Generated-file exclusions
 ```
 
