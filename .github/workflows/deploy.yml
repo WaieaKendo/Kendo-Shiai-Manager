@@ -1,0 +1,192 @@
+name: Deploy
+
+# Never from a pull request (docs/DEPLOYMENT.md):
+#
+#   Deploy dev         every push to `develop`: npm test -> wrangler deploy --env dev
+#                      -> the dev URL's /api/health must report package.json's version.
+#   Deploy production  a push to `main` whose package.json version differs from the version
+#                      production reports (a release: npm run release -- <version>), or by hand:
+#                      Actions -> Deploy -> "Run workflow" with branch `main` (any other branch is
+#                      refused; a re-deploy, e.g. after a rollback) -> npm test -> wrangler deploy
+#                      (top level of wrangler.jsonc) -> the production /api/health must report the
+#                      version. A push to `main` without a new version deploys nothing.
+#
+# Overlapping runs: each deploy runs only if the run's commit is still the branch's head (an
+# older run skips its deploy with a notice); a running deploy is never cancelled.
+#
+# There is no approval pause: the repository belongs to a personal account (collaborators get
+# Write, not Admin) and required reviewers on a private repository need GitHub Enterprise. Merging
+# a release into `main` is the decision to deploy it.
+on:
+  push:
+    branches: [develop, main]
+  workflow_dispatch:
+
+run-name: ${{ (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main') && 'Deploy production' || 'Deploy dev' }} (${{ github.ref_name }})
+
+permissions:
+  contents: read
+
+env:
+  DEV_URL: https://kendoshiaimanager-dev.samanthakodamaworkersdev.workers.dev
+  # Production still runs on the Worker named kendoshiaimanager-cloud-staging (renaming it is a
+  # separate, supervised step: docs/DEPLOYMENT.md, "Renaming production").
+  PRODUCTION_URL: https://kendoshiaimanager-cloud-staging.samanthakodamaworkersdev.workers.dev
+
+jobs:
+  refuse:
+    name: Refuse production from a branch other than main
+    if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "::error::Deploy production only runs from main (this run is on ${GITHUB_REF}). Choose 'Branch: main' under Run workflow."
+          exit 1
+
+  release-check:
+    name: New version for production?
+    # A push to main deploys production only when it carries a new version (a release).
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      deploy: ${{ steps.compare.outputs.deploy }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: compare
+        run: |
+          want=$(node -p "require('./package.json').version")
+          live=$(node -e "fetch(process.env.PRODUCTION_URL + '/api/health').then(r => r.json()).then(b => console.log(b.version)).catch(() => console.log('unreachable'))")
+          echo "production now: $live; main has: $want"
+          if [ "$live" = "$want" ]; then
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::main has the version production already runs ($want): nothing to deploy. Release with npm run release -- <version>, or use Run workflow to re-deploy."
+          else
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  test:
+    name: Tests
+    needs: release-check
+    # release-check is skipped except on a push to main; !cancelled() lets the tests run anyway.
+    if: >-
+      !cancelled() && (
+      (github.event_name == 'push' && github.ref == 'refs/heads/develop') ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      needs.release-check.outputs.deploy == 'true')
+    uses: ./.github/workflows/test.yml
+
+  dev:
+    name: Deploy dev
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # cancel-in-progress stays false: GitHub cancels the *running* job of the group with it, i.e. a
+    # deploy midway. Pending runs need no setting: a newer pending job already replaces an older
+    # pending one in the group. The freshness check below covers the rest.
+    concurrency:
+      group: deploy-dev
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Still the newest commit on develop?
+        # Two runs can overlap: the concurrency group only serialises the deploys, so an older run
+        # whose tests finished later would otherwise deploy over a newer one. Deploy only the
+        # branch's current head; an older run skips its deploy (a notice, not a failure).
+        id: fresh
+        run: |
+          head=$(git ls-remote --exit-code origin refs/heads/develop) || { echo "::error::could not read the head of develop"; exit 1; }
+          head=${head%%[[:space:]]*}
+          if [ "$head" = "$GITHUB_SHA" ]; then
+            echo "fresh=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "fresh=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::develop has moved on to $head since this run started ($GITHUB_SHA): skipping this deploy, the newer run deploys."
+          fi
+      - name: Build and deploy kendoshiaimanager-dev
+        if: steps.fresh.outputs.fresh == 'true'
+        run: npm run deploy:dev
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Health check (version must equal package.json)
+        if: steps.fresh.outputs.fresh == 'true'
+        run: node scripts/health-check.mjs "$DEV_URL"
+      - name: Custom-domain pass-through (Pages project ksm-tournament-dev)
+        # A Pages project that hands every request to the Worker above, so the site can have a
+        # custom domain while the domain's DNS stays at GoDaddy (docs/DEPLOYMENT.md, "Custom domains").
+        if: steps.fresh.outputs.fresh == 'true'
+        run: npm run proxy:dev
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+  production:
+    name: Deploy production
+    needs: [release-check, test]
+    if: >-
+      !cancelled() && needs.test.result == 'success' && github.ref == 'refs/heads/main' && (
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && needs.release-check.outputs.deploy == 'true'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Never cancelled midway (cancel-in-progress would stop a running production deploy).
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - name: Only main
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then echo "::error::refusing to deploy $GITHUB_REF to production"; exit 1; fi
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Version already live?
+        # Every production release needs a new version, or installed devices keep the old offline
+        # copy (the service worker cache is named after it). A re-deploy of the same version is
+        # allowed (e.g. after a rollback), so this only warns.
+        run: |
+          want=$(node -p "require('./package.json').version")
+          live=$(node -e "fetch(process.env.PRODUCTION_URL + '/api/health').then(r => r.json()).then(b => console.log(b.version)).catch(() => console.log('unreachable'))")
+          echo "production now: $live; deploying: $want"
+          if [ "$live" = "$want" ]; then echo "::warning::production already runs $want; installed devices will not refresh their offline copy. Release with npm run release -- <version>."; fi
+      - name: Still the newest commit on main?
+        # Two runs can overlap: the concurrency group only serialises the deploys, so an older run
+        # whose tests finished later would otherwise deploy over a newer one. Deploy only the
+        # branch's current head; an older run skips its deploy (a notice, not a failure).
+        id: fresh
+        run: |
+          head=$(git ls-remote --exit-code origin refs/heads/main) || { echo "::error::could not read the head of main"; exit 1; }
+          head=${head%%[[:space:]]*}
+          if [ "$head" = "$GITHUB_SHA" ]; then
+            echo "fresh=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "fresh=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::main has moved on to $head since this run started ($GITHUB_SHA): skipping this deploy. The newer push deploys if it carries a new version; otherwise use Run workflow again."
+          fi
+      - name: Build and deploy production (kendoshiaimanager-cloud-staging)
+        if: steps.fresh.outputs.fresh == 'true'
+        run: npm run deploy:production
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Health check (version must equal package.json)
+        if: steps.fresh.outputs.fresh == 'true'
+        run: node scripts/health-check.mjs "$PRODUCTION_URL"
+      - name: Custom-domain pass-through (Pages project ksm-tournament)
+        # A Pages project that hands every request to the Worker above, so the site can have a
+        # custom domain while the domain's DNS stays at GoDaddy (docs/DEPLOYMENT.md, "Custom domains").
+        if: steps.fresh.outputs.fresh == 'true'
+        run: npm run proxy:production
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

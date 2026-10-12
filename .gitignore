@@ -36,3 +36,6 @@ temp/
 .venv
 __pycache__/
 testlab-reports/
+
+# Tournament backups (npm run backup)
+backups/

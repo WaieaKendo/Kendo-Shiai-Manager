@@ -36,7 +36,7 @@ def court_react_source():
 
 def ensure_built():
     built = DIST / 'index.html'
-    sources = [ROOT / 'vite.config.js', ROOT / 'scripts' / 'app-sources.mjs', *(f for f in APP.rglob('*') if f.is_file())]
+    sources = [ROOT / 'vite.config.js', ROOT / 'scripts' / 'app-sources.mjs', ROOT / 'package.json', *(f for f in APP.rglob('*') if f.is_file())]
     if built.exists() and built.stat().st_mtime >= max(f.stat().st_mtime for f in sources):
         return
     subprocess.run(['npm', 'run', '--silent', 'build'], cwd=ROOT, check=True, stdout=subprocess.DEVNULL)
