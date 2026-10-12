@@ -205,7 +205,7 @@ function mergeValueThreeWay(server,local,base,label,conflicts){
 }
 /**
  * Merge local non-court edits (vs basePayload) into `rebased` (a copy of the server payload); returns the conflicting field labels.
- * structuralReplayed: a local structural edit was replayed onto `rebased` (F10), so its registration half merges too.
+ * structuralReplayed: the divisions a local structural edit replayed onto `rebased` (F10), so its registration half merges too (split by division, F32).
  */
 function mergeLocalEditsThreeWay(rebased,localPayload,basePayload,structuralReplayed=false){
   const conflicts=[];
@@ -219,9 +219,37 @@ function mergeLocalEditsThreeWay(rebased,localPayload,basePayload,structuralRepl
   // split it, so that half merges only when the structure was replayed (F10).
   if(structuralReplayed||(localState.managementRevision||0)===(baseState.managementRevision||0)){
     rebased.state=rebased.state||{};
-    KSM_MERGED_STATE_KEYS.forEach(k=>{const v=mergeValueThreeWay(rebased.state[k],localState[k],baseState[k],KSM_MERGE_LABELS[k]||k,conflicts);if(v===undefined)delete rebased.state[k];else rebased.state[k]=v});
+    KSM_MERGED_STATE_KEYS.forEach(k=>{const v=/* F32 */Array.isArray(structuralReplayed)&&registrationListSplits(rebased.state[k],localState[k],baseState[k],k,structuralReplayed)?mergeRegistrationListSplit(rebased.state[k],localState[k],baseState[k],structuralReplayed,KSM_MERGE_LABELS[k]||k,conflicts):mergeValueThreeWay(rebased.state[k],localState[k],baseState[k],KSM_MERGE_LABELS[k]||k,conflicts);if(v===undefined)delete rebased.state[k];else rebased.state[k]=v});
   }
   return conflicts;
+}
+// F32: a replayed division's registration entries (players, teams) belong to its structure: when
+// both devices changed the list, the replayed divisions' entries are this device's (the matches
+// were built from them) and only the other divisions' entries merge three-way (server kept on a
+// conflict, with the notice); replayStructuralEdit() asks first when the other device changed a
+// replayed division's entries. Never a structure without the registration it was built from.
+const KSM_REGISTRATION_LIST_KEYS=['competitors','teams'];
+function registrationEntriesIn(list,divisions,inside=true){return (Array.isArray(list)?list:[]).filter(e=>divisions.includes(e?.division)===inside)}
+/** True when list key `k` changed on both sides (a whole-list conflict) and divisions were replayed: it is merged split by division. */
+function registrationListSplits(server,local,base,k,divisions){
+  return KSM_REGISTRATION_LIST_KEYS.includes(k)&&divisions.length>0&&!sameJsonValue(local,base)&&!sameJsonValue(local,server)&&!sameJsonValue(server,base);
+}
+/** Replayed divisions whose entries the other device changed in a list that conflicts as a whole (the question's registration half). */
+function registrationConflictDivisions(serverState,localState,baseState,divisions){
+  const out=new Set();
+  KSM_REGISTRATION_LIST_KEYS.forEach(k=>{
+    if(!registrationListSplits(serverState?.[k],localState?.[k],baseState?.[k],k,divisions))return;
+    divisions.forEach(d=>{if(!sameJsonValue(registrationEntriesIn(serverState?.[k],[d]),registrationEntriesIn(baseState?.[k],[d])))out.add(d)});
+  });
+  return [...out];
+}
+function mergeRegistrationListSplit(server,local,base,divisions,label,conflicts){
+  const outside=mergeValueThreeWay(registrationEntriesIn(server,divisions,false),registrationEntriesIn(local,divisions,false),registrationEntriesIn(base,divisions,false),label,conflicts)||[];
+  const inside=cloneJson(registrationEntriesIn(local,divisions));
+  // In the server list's order: the replayed divisions' entries where its first one was (else at the end).
+  const at=(Array.isArray(server)?server:[]).findIndex(e=>divisions.includes(e?.division));
+  const before=at<0?outside.length:Math.min(at,outside.length);
+  return outside.slice(0,before).concat(inside,outside.slice(before));
 }
 function noteMergeConflicts(conflicts){
   if(!conflicts.length)return;
@@ -259,7 +287,7 @@ function noteStructuralEditDropped(divisions){
     ?`Your change to ${divisions.join(', ')} was not saved: another device changed it at the same time, their version was kept.`
     :'Your change to the pools and matches was not saved: it could not be combined with another device\'s save, their version was kept.',10000,true);
 }
-/** Replays this device's structural edit (vs basePayload) onto `rebased`; true when it was applied. */
+/** Replays this device's structural edit (vs basePayload) onto `rebased`; the replayed division names when applied (F32), else false. */
 function replayStructuralEdit(rebased,localPayload,basePayload,serverPayload){
   const localState=localPayload?.state,baseState=basePayload?.state,serverState=serverPayload?.state||{};
   if(!localState||!baseState)return false;
@@ -267,7 +295,9 @@ function replayStructuralEdit(rebased,localPayload,basePayload,serverPayload){
   if(localRev===baseRev)return false;
   if(baseState.allMatches===undefined){noteStructuralEditDropped([]);return false}
   const changed=structuralDivisionNames(localState,baseState).filter(d=>!sameJsonValue(structuralDivisionSnapshot(localState,d),structuralDivisionSnapshot(baseState,d)));
-  const conflicting=changed.filter(d=>!sameJsonValue(structuralDivisionSnapshot(serverState,d),structuralDivisionSnapshot(baseState,d)));
+  const structuralConflicts=changed.filter(d=>!sameJsonValue(structuralDivisionSnapshot(serverState,d),structuralDivisionSnapshot(baseState,d)));
+  // F32: the other device also changed the registration entries of a division this edit rebuilt.
+  const conflicting=structuralConflicts.concat(registrationConflictDivisions(serverState,localState,baseState,changed).filter(d=>!structuralConflicts.includes(d)));
   if(conflicting.length){
     const names=conflicting.join(', '),played=conflicting.reduce((n,d)=>n+Math.max(0,playedMatchCount(serverState,d)-playedMatchCount(baseState,d)),0);
     const results=played?` and recorded ${played} match result${played===1?'':'s'}`:'';
@@ -291,7 +321,7 @@ function replayStructuralEdit(rebased,localPayload,basePayload,serverPayload){
     rebased.state.courtActiveDivision[c]=target;
   });
   writeCloudDiagnosticsState({stage:conflicting.length?'Structural edit re-applied over a conflict':'Structural edit replayed',structuralReplay:changed});
-  return true;
+  return changed; // F32: the replayed divisions (truthy), for the registration merge
 }
 /* ksm:post-split-end */
 function rebaseLocalPayloadOnRecord(localPayload,serverRecord,originalBaseRevision/* ksm:post-split-begin edit-merge */,basePayload=null/* ksm:post-split-end */){
