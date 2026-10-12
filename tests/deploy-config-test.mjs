@@ -2,7 +2,8 @@
 // wrangler.jsonc keeps production at the top level and gives dev its own Worker and Durable
 // Object binding; .github/workflows/deploy.yml never deploys from a pull request, deploys dev only
 // from `develop`, production only from `main` (a release, i.e. a new version, or by hand), and
-// both only after the test suite.
+// both only after the test suite, and only the branch's current head (an older overlapping run
+// skips its deploy).
 import { readRepoFile } from './lib/ksm-source.mjs';
 
 const checks = [];
@@ -38,6 +39,25 @@ check(/\(github\.event_name == 'push' && github\.ref == 'refs\/heads\/develop'\)
   'the tests run for a dev deploy, a manual production deploy and a release pushed to main');
 check(/github.event_name == 'workflow_dispatch' && github.ref != 'refs\/heads\/main'/.test(jobs.refuse) && /exit 1/.test(jobs.refuse), 'a manual run from another branch fails visibly');
 check(/uses: \.\/\.github\/workflows\/test\.yml/.test(jobs.test) && /workflow_call:/.test(readRepoFile('.github/workflows/test.yml')), 'the tests are the shared test.yml workflow');
+
+// F34: overlapping runs. Concurrency only serialises the deploys, so right before each deploy a
+// step checks that the run's commit is still the branch's head (git ls-remote); an older run skips
+// its deploy and health check with a notice. Neither group cancels a running deploy.
+const steps = job => job.split(/\n      - /).slice(1);
+for (const [job, branch, command, url] of [['dev', 'develop', 'npm run deploy:dev', 'DEV_URL'], ['production', 'main', 'npm run deploy:production', 'PRODUCTION_URL']]) {
+  const list = steps(jobs[job]);
+  const fresh = list.findIndex(s => /id: fresh/.test(s));
+  const deployAt = list.findIndex(s => s.includes(command));
+  const healthAt = list.findIndex(s => s.includes(`health-check.mjs "$${url}"`));
+  const gate = s => /\n\s+if: steps\.fresh\.outputs\.fresh == 'true'\n/.test(s);
+  check(fresh >= 0 && deployAt === fresh + 1
+    && list[fresh].includes(`git ls-remote --exit-code origin refs/heads/${branch}`) && /if \[ "\$head" = "\$GITHUB_SHA" \]; then\n\s+echo "fresh=true"/.test(list[fresh])
+    && /echo "fresh=false"/.test(list[fresh]) && /::notice::/.test(list[fresh]) && !/exit/.test(list[fresh].split('fresh=true')[1] || 'exit'),
+    `Deploy ${job}: right before the deploy, a check that the run's commit is still the head of ${branch} (a notice, not a failure, when it is not)`);
+  check(deployAt >= 0 && healthAt > deployAt && gate(list[deployAt]) && gate(list[healthAt]),
+    `Deploy ${job}: the deploy and the health check run only when the commit is still the head`);
+  check(/concurrency:\n\s+group: deploy-[\w]+\n\s+cancel-in-progress: false/.test(jobs[job]), `Deploy ${job}: a running deploy is never cancelled midway`);
+}
 
 const pkg = JSON.parse(readRepoFile('package.json'));
 check(pkg.scripts['deploy:dev'] === 'vite build && wrangler deploy --env dev' && pkg.scripts['deploy:production'] === 'vite build && wrangler deploy --env=""' && !pkg.scripts.deploy,
