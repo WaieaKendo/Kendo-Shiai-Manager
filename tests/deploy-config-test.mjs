@@ -49,13 +49,15 @@ for (const [job, branch, command, url] of [['dev', 'develop', 'npm run deploy:de
   const fresh = list.findIndex(s => /id: fresh/.test(s));
   const deployAt = list.findIndex(s => s.includes(command));
   const healthAt = list.findIndex(s => s.includes(`health-check.mjs "$${url}"`));
+  // The custom-domain pass-through is deployed with the Worker, so an older run skips it too.
+  const proxyAt = list.findIndex(s => s.includes(`npm run proxy:${job}`));
   const gate = s => /\n\s+if: steps\.fresh\.outputs\.fresh == 'true'\n/.test(s);
   check(fresh >= 0 && deployAt === fresh + 1
     && list[fresh].includes(`git ls-remote --exit-code origin refs/heads/${branch}`) && /if \[ "\$head" = "\$GITHUB_SHA" \]; then\n\s+echo "fresh=true"/.test(list[fresh])
     && /echo "fresh=false"/.test(list[fresh]) && /::notice::/.test(list[fresh]) && !/exit/.test(list[fresh].split('fresh=true')[1] || 'exit'),
     `Deploy ${job}: right before the deploy, a check that the run's commit is still the head of ${branch} (a notice, not a failure, when it is not)`);
-  check(deployAt >= 0 && healthAt > deployAt && gate(list[deployAt]) && gate(list[healthAt]),
-    `Deploy ${job}: the deploy and the health check run only when the commit is still the head`);
+  check(deployAt >= 0 && healthAt > deployAt && gate(list[deployAt]) && gate(list[healthAt]) && proxyAt > healthAt && gate(list[proxyAt]),
+    `Deploy ${job}: the deploy, the health check and the pass-through run only when the commit is still the head`);
   check(/concurrency:\n\s+group: deploy-[\w]+\n\s+cancel-in-progress: false/.test(jobs[job]), `Deploy ${job}: a running deploy is never cancelled midway`);
 }
 

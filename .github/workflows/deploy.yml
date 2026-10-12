@@ -121,6 +121,7 @@ jobs:
       - name: Custom-domain pass-through (Pages project ksm-tournament-dev)
         # A Pages project that hands every request to the Worker above, so the site can have a
         # custom domain while the domain's DNS stays at GoDaddy (docs/DEPLOYMENT.md, "Custom domains").
+        if: steps.fresh.outputs.fresh == 'true'
         run: npm run proxy:dev
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -184,6 +185,7 @@ jobs:
       - name: Custom-domain pass-through (Pages project ksm-tournament)
         # A Pages project that hands every request to the Worker above, so the site can have a
         # custom domain while the domain's DNS stays at GoDaddy (docs/DEPLOYMENT.md, "Custom domains").
+        if: steps.fresh.outputs.fresh == 'true'
         run: npm run proxy:production
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
