@@ -156,6 +156,10 @@ const KNOWN_POST_SPLIT_EDITS = {
   // the server copy on a save conflict, or the director is asked (18: the replay helpers; the
   // merge base, the registration gate and the rebase's call are in edit-merge regions).
   'structural-replay': 1,
+  // fix/staff-password-hardening (F33): writeOutbox() (20) leaves a queued staff snapshot alone on a
+  // logged-out device (ksmKeepStaffOutbox() in 33's staff-hardening region), so a 401 keeps the
+  // unsaved work as staff work until Staff Login.
+  'staff-outbox': 1,
   // fix/pre-event (F11): saveAuto(), called by the awards editor but never defined (app/js/20).
   'award-save': 1,
   // fix/outbox-flush-local-changes (F6): mergeQueuedStaffWork() and its call at staff login;
