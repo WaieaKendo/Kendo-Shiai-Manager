@@ -1,0 +1,88 @@
+{
+ "setup": [
+  {
+   "name": "Open",
+   "format": "Single Elimination",
+   "court": "A",
+   "entrants": [
+    {
+     "name": "P01",
+     "dojo": "Dojo A",
+     "seed": "",
+     "status": "Checked"
+    },
+    {
+     "name": "P02",
+     "dojo": "Dojo B",
+     "seed": "",
+     "status": "Checked"
+    }
+   ]
+  }
+ ],
+ "generated": {
+  "Open": {
+   "pools": [],
+   "matches": [
+    {
+     "pool": "Championship",
+     "position": "Final",
+     "node": "F",
+     "court": "A",
+     "white": "P02",
+     "red": "P01",
+     "teams": null,
+     "type": "individual",
+     "championship": true,
+     "singleElim": true,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    }
+   ]
+  }
+ },
+ "play_order": [
+  "A | Open | Final | P02 v P01 | red RK"
+ ],
+ "final": {
+  "Open": {
+   "complete": true,
+   "matches": [
+    {
+     "pool": "Championship",
+     "position": "Final",
+     "node": "F",
+     "court": "A",
+     "white": "P02",
+     "red": "P01",
+     "teams": null,
+     "type": "individual",
+     "championship": true,
+     "singleElim": true,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "K"
+     ],
+     "winner": "P01"
+    }
+   ],
+   "standings": {},
+   "placements": [
+    {
+     "place": "1st",
+     "name": "P01"
+    },
+    {
+     "place": "2nd",
+     "name": "P02"
+    }
+   ]
+  }
+ },
+ "events": []
+}

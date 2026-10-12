@@ -1,16 +1,17 @@
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from ksm_browser import launch_chromium, load_app
 
 HTML=(Path(__file__).resolve().parents[1]/'public'/'index.html').read_text()
 
 with sync_playwright() as p:
-    browser=p.chromium.launch(headless=True, executable_path='/usr/bin/chromium', args=['--no-sandbox'])
+    browser=launch_chromium(p)
     page=browser.new_page(viewport={'width':1280,'height':900})
     errors=[]
     dialogs=[]
     page.on('pageerror', lambda e: errors.append(str(e)))
     page.on('dialog', lambda d: (dialogs.append(d.message), d.accept()))
-    page.set_content(HTML, wait_until='domcontentloaded')
+    load_app(page, HTML)
 
     # Split pools must use the existing tiebreak algorithm; routing only adds the pool court.
     page.evaluate("""

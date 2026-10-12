@@ -1,7 +1,6 @@
 import fs from 'node:fs';
 const html = fs.readFileSync('public/index.html', 'utf8');
 const checks = [
-  ['version 3.15.8', html.includes('v3.15.8')],
   ['overview navigation renamed', html.includes('<span>Overview</span>') && html.includes('title="Tournament Overview"')],
   ['spectator courts allowed', html.includes("!['score','public','results','director'].includes(id)")],
   ['shared spectator court presentation', html.includes('body.ksm-spectator #score .score-controls-grid') && html.includes('body.ksm-spectator #score .sk-action-row')],

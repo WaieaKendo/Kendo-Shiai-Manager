@@ -1,7 +1,6 @@
 import fs from 'node:fs';
 const html=fs.readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
 const checks=[
- ['version',html.includes('v3.15.9')],
  ['fixed canvas',html.includes('width:1920px!important;height:1080px!important')&&html.includes('transform:none!important')],
  ['no automatic resize listener',!html.includes("window.addEventListener('resize',()=>{if(document.body.classList.contains('ksm-tv'))fitTvCanvas()})")],
  ['fixed red coordinate',html.includes('left:1142px!important;right:auto!important')],

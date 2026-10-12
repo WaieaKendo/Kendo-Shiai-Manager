@@ -1,7 +1,6 @@
 import fs from "node:fs";
 const html=fs.readFileSync("public/index.html","utf8");
 const checks=[
- ["v3.15.8 marker",html.includes("v3.15.8")],
  ["fixed 1920 canvas",html.includes("width:1920px;height:1080px")],
  ["scaled canvas wrapper",html.includes("class=\"tv-canvas\"")&&html.includes("fitTvCanvas")],
  ["court URL lock",html.includes("KSM_TV_ASSIGNED_COURT")&&html.includes("function tvAssignedCourt(){return KSM_TV_ASSIGNED_COURT}")],

@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Callable, Any
 
 from playwright.sync_api import sync_playwright
+from ksm_browser import launch_chromium, load_app
 
 ROOT = Path(__file__).resolve().parents[1]
 HTML = (ROOT / "public" / "index.html").read_text(encoding="utf-8")
@@ -64,7 +65,7 @@ def reset_individual(page, n: int, fmt: str, court: str, division: str = "Test")
           }));
           state.teams=[];state.pools={};state.allMatches={};state.singleElimNodes={};
           state.singleElimComps={};state.teamBracketNodes={};state.teamPools={};
-          state.brackets={};state.byeWinners={};state.currentByDivision={};state.courtState={};
+          state.brackets={};state.championshipNodes={};state.byeWinners={};state.currentByDivision={};state.courtState={};
           state.courtActiveDivision={};state.currentDivision=division;state.currentCourt='A';
           generateDivisionState(division);state.generated=true;initCourtStates();
         }""",
@@ -307,10 +308,10 @@ def main() -> int:
 
     errors: list[str] = []
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True, executable_path="/usr/bin/chromium", args=["--no-sandbox"])
+        browser = launch_chromium(p)
         page = browser.new_page(viewport={"width": 1280, "height": 900})
         page.on("pageerror", lambda exc: errors.append(str(exc)))
-        page.set_content(HTML, wait_until="domcontentloaded")
+        load_app(page, HTML)
         lab = Lab(page)
 
         elim_counts = [4, 8, 11, 16] if args.profile == "smoke" else list(range(4, 33))

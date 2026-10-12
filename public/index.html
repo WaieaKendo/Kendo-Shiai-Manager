@@ -17,7 +17,24 @@
 .context-split{display:grid;grid-template-columns:1fr 1fr;gap:14px}.context-box{border:1px solid var(--line);border-radius:14px;background:#fff;padding:14px}.pools-layout{display:grid;grid-template-columns:340px 1fr;gap:18px;align-items:start}.pool-list{display:flex;flex-direction:column;gap:12px}.drag-player{cursor:grab;border-top:1px solid #f1ece4;padding:9px 0}.drag-player:active{cursor:grabbing}.pool-slot-badge{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:26px;margin-right:8px;border:1px solid var(--line);border-radius:999px;background:#f5f2ec;color:var(--ink);font-size:11px;font-weight:950;vertical-align:middle}.pool.drop-target{outline:2px dashed #d8c8ad;outline-offset:4px}.queue-divider{margin-top:12px;padding:8px 10px;border-left:4px solid var(--red);background:var(--ivory);border-radius:10px;font-size:12px;font-weight:900;color:var(--ink)}
 @media(max-width:760px){.pools-layout,.context-split,.grid,.setup-grid,.review{grid-template-columns:1fr}header{align-items:flex-start;flex-direction:column}nav button{flex:1}.scorebox{flex-direction:column}.stepbar{grid-template-columns:1fr}.queue-row{grid-template-columns:1fr 30px 1fr}}
 .summary-like{padding:12px 0;display:flex;align-items:center;justify-content:space-between}
-.print-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0 18px}.print-body{display:flex;flex-direction:column;gap:18px}.print-sheet{background:#fff;border:1px solid var(--line);border-radius:18px;padding:28px;box-shadow:var(--shadow);min-height:980px}.print-head{border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:18px}.print-kicker{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:900}.print-title{font-size:26px;font-weight:950;margin:4px 0}.print-subtitle{color:var(--muted);font-size:13px}.print-section-title{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:950;margin:22px 0 10px}.print-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.print-card{border:1px solid var(--line);border-radius:14px;padding:13px 14px;background:#fff}.print-card.soft{background:#fbfaf7}.print-list{display:flex;flex-direction:column;gap:7px}.print-person{padding:7px 0;border-top:1px solid #f1ece4}.print-person:first-child{border-top:0}.print-name{font-weight:900}.print-dojo{font-size:11px;color:var(--muted);margin-top:1px}.print-match{display:grid;grid-template-columns:1fr 46px 1fr;gap:8px;align-items:center;border-top:1px solid #f1ece4;padding:8px 0}.print-match:first-child{border-top:0}.print-match .print-white{text-align:left;border-left:3px solid #ddd;padding-left:8px}.print-match .print-red{text-align:right;border-right:3px solid var(--red);padding-right:8px}.print-vs{text-align:center;color:var(--muted);font-weight:900;font-size:11px;text-transform:uppercase}.print-round{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:950;margin-bottom:6px}.print-roster{display:grid;grid-template-columns:82px 1fr;gap:6px;border-top:1px solid #f1ece4;padding:5px 0}.print-roster:first-of-type{border-top:0}.print-position{font-size:10px;color:var(--muted);font-weight:950;text-transform:uppercase;letter-spacing:.06em}.print-results-row{display:grid;grid-template-columns:1.1fr 2fr;gap:14px;border-top:1px solid #f1ece4;padding:10px 0}.print-results-row:first-child{border-top:0}.print-placement{display:flex;gap:10px;align-items:baseline;padding:4px 0}.print-place-label{font-size:11px;color:var(--muted);font-weight:950;text-transform:uppercase;letter-spacing:.08em;min-width:44px}.print-award-row{display:grid;grid-template-columns:1.2fr 1.4fr 1fr;gap:12px;border-top:1px solid #f1ece4;padding:8px 0}.print-award-row:first-child{border-top:0}
+.print-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0 18px}.print-body{display:flex;flex-direction:column;gap:18px}.print-sheet{background:#fff;border:1px solid var(--line);border-radius:18px;padding:28px;box-shadow:var(--shadow);min-height:980px}.print-head{border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:18px}.print-kicker{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:900}.print-title{font-size:26px;font-weight:950;margin:4px 0}.print-subtitle{color:var(--muted);font-size:13px}.print-section-title{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:950;margin:22px 0 10px}.print-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.print-card{border:1px solid var(--line);border-radius:14px;padding:13px 14px;background:#fff}.print-card.soft{background:#fbfaf7}.print-list{display:flex;flex-direction:column;gap:7px}.print-person{padding:7px 0;border-top:1px solid #f1ece4}.print-person:first-child{border-top:0}.print-name{font-weight:900}.print-dojo{font-size:11px;color:var(--muted);margin-top:1px}/* Red on the left (Setup → Referees): mirror White|Red grids. Cells keep normal text direction;
+   the rtl rule comes last so nested mirrored grids (score row inside the name header) still flip. */
+.print-match.red-left>*,body.ksm-red-left #score :is(.scoreboard-match,.scoreboard-score-row,.score-controls-grid,.aligned-match-row,.queue-row)>*{direction:ltr}
+.print-match.red-left,body.ksm-red-left #score :is(.scoreboard-match,.scoreboard-score-row,.score-controls-grid,.aligned-match-row,.queue-row){direction:rtl}
+body.ksm-red-left #score .scoreboard-white{text-align:right!important}
+body.ksm-red-left #score .scoreboard-white .competitor-head{flex-direction:row-reverse!important;justify-content:flex-start!important;text-align:right!important}
+body.ksm-red-left #score .scoreboard-white :is(h2,.sk-dojo){text-align:right!important}
+body.ksm-red-left #score .scoreboard-red{text-align:left!important}
+body.ksm-red-left #score .scoreboard-red .red-head{flex-direction:row-reverse!important;justify-content:flex-end!important;text-align:left!important}
+body.ksm-red-left #score .scoreboard-red .red-identity{margin-left:0!important;text-align:left!important}
+body.ksm-red-left #score .scoreboard-red :is(h2,.sk-dojo){text-align:left!important}
+body.ksm-red-left #score .aligned-match-row .match-name.white,.print-match.red-left .print-white{text-align:right!important}
+body.ksm-red-left #score .aligned-match-row .match-name.red,.print-match.red-left .print-red{text-align:left!important}
+.print-match.red-left .print-white{border-left:0;border-right:2px solid #ddd;padding-left:0;padding-right:4px}
+.print-match.red-left .print-red{border-right:0;border-left:2px solid var(--red);padding-right:0;padding-left:4px}
+body.ksm-red-left #score .queue-row .white{text-align:right;border-left:0;border-right:3px solid #ddd;padding-left:0;padding-right:10px}
+body.ksm-red-left #score .queue-row .red{text-align:left;border-right:0;border-left:3px solid var(--red);padding-right:0;padding-left:10px}
+.print-match{display:grid;grid-template-columns:1fr 46px 1fr;gap:8px;align-items:center;border-top:1px solid #f1ece4;padding:8px 0}.print-match:first-child{border-top:0}.print-match .print-white{text-align:left;border-left:3px solid #ddd;padding-left:8px}.print-match .print-red{text-align:right;border-right:3px solid var(--red);padding-right:8px}.print-vs{text-align:center;color:var(--muted);font-weight:900;font-size:11px;text-transform:uppercase}.print-round{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:950;margin-bottom:6px}.print-roster{display:grid;grid-template-columns:82px 1fr;gap:6px;border-top:1px solid #f1ece4;padding:5px 0}.print-roster:first-of-type{border-top:0}.print-position{font-size:10px;color:var(--muted);font-weight:950;text-transform:uppercase;letter-spacing:.06em}.print-results-row{display:grid;grid-template-columns:1.1fr 2fr;gap:14px;border-top:1px solid #f1ece4;padding:10px 0}.print-results-row:first-child{border-top:0}.print-placement{display:flex;gap:10px;align-items:baseline;padding:4px 0}.print-place-label{font-size:11px;color:var(--muted);font-weight:950;text-transform:uppercase;letter-spacing:.08em;min-width:44px}.print-award-row{display:grid;grid-template-columns:1.2fr 1.4fr 1fr;gap:12px;border-top:1px solid #f1ece4;padding:8px 0}.print-award-row:first-child{border-top:0}
 
 /* KSM v3.10.0 hosted mobile foundation */
 html{min-height:100%;background:var(--bg);-webkit-text-size-adjust:100%}
@@ -5262,61 +5279,61 @@ body.ksm-staff .director-only{display:flex!important}
   </div>
 
   <nav class="minimal-nav icon-nav" aria-label="Primary navigation">
-    <button class="nav-tile director-only setup-nav-tile" onclick="navigateTo('setup')" title="Setup">
+    <button class="nav-tile director-only setup-nav-tile" onclick="navigateTo('setup')" title="Setup" data-testid="nav-setup">
       <img src="/assets/nav-icons/setup.svg" alt="">
       <span>Setup</span>
     </button>
 
-    <button class="nav-tile director-only" onclick="openRegistrationTab('individual')" title="Registration">
+    <button class="nav-tile director-only" onclick="openRegistrationTab('individual')" title="Registration" data-testid="nav-registration">
       <img src="/assets/nav-icons/registration.svg" alt="">
       <span>Registration</span>
     </button>
 
     <div class="nav-menu nav-tile-wrap role-court-access">
-      <button class="nav-tile nav-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="courtsMenu" onclick="toggleNavMenu('courtsMenu',event)" title="Courts">
+      <button class="nav-tile nav-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="courtsMenu" onclick="toggleNavMenu('courtsMenu',event)" title="Courts" data-testid="nav-courts">
         <img src="/assets/nav-icons/courts.svg" alt="">
         <span>Courts <b aria-hidden="true">▾</b></span>
       </button>
       <div id="courtsMenu" role="menu" class="nav-dropdown hidden">
-        <button onclick="chooseCourt('A')">Court A</button>
-        <button onclick="chooseCourt('B')">Court B</button>
+        <button onclick="chooseCourt('A')" data-testid="nav-court-a">Court A</button>
+        <button onclick="chooseCourt('B')" data-testid="nav-court-b">Court B</button>
       </div>
     </div>
 
-    <button class="nav-tile" onclick="navigateTo('public')" title="Live Scores">
+    <button class="nav-tile" onclick="navigateTo('public')" title="Live Scores" data-testid="nav-live-scores">
       <img src="/assets/nav-icons/live-scores.svg" alt="">
       <span>Live Scores</span>
     </button>
 
     <div class="nav-menu nav-tile-wrap role-court-access tv-role-access">
-      <button class="nav-tile nav-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="tvMenu" onclick="toggleNavMenu('tvMenu',event)" title="TV Display">
+      <button class="nav-tile nav-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="tvMenu" onclick="toggleNavMenu('tvMenu',event)" title="TV Display" data-testid="nav-tv">
         <img src="/assets/nav-icons/live-scores.svg" alt="">
         <span>TV <b aria-hidden="true">▾</b></span>
       </button>
       <div id="tvMenu" role="menu" class="nav-dropdown hidden">
-        <button onclick="launchTvDisplay('A')">Court A TV</button>
-        <button onclick="launchTvDisplay('B')">Court B TV</button>
+        <button onclick="launchTvDisplay('A')" data-testid="nav-tv-a">Court A TV</button>
+        <button onclick="launchTvDisplay('B')" data-testid="nav-tv-b">Court B TV</button>
       </div>
     </div>
 
-    <button class="nav-tile role-court-access" onclick="navigateTo('director')" title="Tournament Overview">
+    <button class="nav-tile role-court-access" onclick="navigateTo('director')" title="Tournament Overview" data-testid="nav-overview">
       <img src="/assets/nav-icons/live-scores.svg" alt="">
       <span>Overview</span>
     </button>
 
 
-    <button class="nav-tile" onclick="navigateTo('results')" title="Results">
+    <button class="nav-tile" onclick="navigateTo('results')" title="Results" data-testid="nav-results">
       <img src="/assets/nav-icons/results.svg" alt="">
       <span>Results</span>
     </button>
 
     <div class="nav-menu nav-tile-wrap director-only">
-      <button class="nav-tile nav-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="exportMenu" onclick="toggleNavMenu('exportMenu',event)" title="Export">
+      <button class="nav-tile nav-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="exportMenu" onclick="toggleNavMenu('exportMenu',event)" title="Export" data-testid="nav-export">
         <img src="/assets/nav-icons/export.svg" alt="">
         <span>Export <b aria-hidden="true">▾</b></span>
       </button>
       <div id="exportMenu" role="menu" class="nav-dropdown nav-dropdown-wide hidden">
-        <button onclick="exportTournamentBrackets()">Tournament Brackets</button>
+        <button onclick="exportTournamentBrackets()" data-testid="nav-export-brackets">Tournament Brackets</button>
         <button onclick="exportResultsAwards()">Results &amp; Awards</button>
         <button onclick="closeNavMenus();alert('Referee assignment export will be added with the Referee Assignment module.')">Referee Assignments</button>
         <button onclick="closeNavMenus();alert('Tournament Archive export will be added with the archive module.')">Tournament Archive</button>
@@ -5324,33 +5341,33 @@ body.ksm-staff .director-only{display:flex!important}
     </div>
 
     <div class="nav-menu nav-tile-wrap director-only">
-      <button class="nav-tile nav-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="saveLoadMenu" onclick="toggleNavMenu('saveLoadMenu',event)" title="Save or Load">
+      <button class="nav-tile nav-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="saveLoadMenu" onclick="toggleNavMenu('saveLoadMenu',event)" title="Save or Load" data-testid="nav-save-load">
         <img src="/assets/nav-icons/save-load.svg" alt="">
         <span>Save / Load <b aria-hidden="true">▾</b></span>
       </button>
       <div id="saveLoadMenu" role="menu" class="nav-dropdown nav-dropdown-wide hidden">
         <div class="menu-heading">Tournament</div>
-        <button onclick="closeNavMenus();createNewTournament()">New Tournament</button>
-        <button onclick="closeNavMenus();saveNow()">Save Now</button>
-        <button onclick="closeNavMenus();showHomePage()">Tournament Library</button>
+        <button onclick="closeNavMenus();createNewTournament()" data-testid="nav-new-tournament">New Tournament</button>
+        <button onclick="closeNavMenus();saveNow()" data-testid="nav-save-now">Save Now</button>
+        <button onclick="closeNavMenus();showHomePage()" data-testid="nav-library">Tournament Library</button>
         <button onclick="closeNavMenus();manualSaveTournament()">Download Tournament File</button>
         <button onclick="closeNavMenus();triggerLoadTournament()">Load Tournament File</button>
         <div class="menu-divider"></div><div class="menu-heading">Recovery</div>
-        <button onclick="closeNavMenus();downloadRecoveryFile()">Download Recovery File</button>
-        <button onclick="closeNavMenus();triggerLoadRecoveryFile()">Load Recovery File</button>
+        <button onclick="closeNavMenus();downloadRecoveryFile()" data-testid="nav-download-recovery">Download Recovery File</button>
+        <button onclick="closeNavMenus();triggerLoadRecoveryFile()" data-testid="nav-load-recovery">Load Recovery File</button>
         <div class="menu-divider"></div><div class="menu-heading">Sharing</div>
         <button onclick="closeNavMenus();copyTournamentId()">Copy Tournament ID</button>
-        <button onclick="closeNavMenus();openTournamentAccess()">Tournament Access</button>
+        <button onclick="closeNavMenus();openTournamentAccess()" data-testid="nav-tournament-access">Tournament Access</button>
         <div class="menu-divider"></div><div class="menu-heading">Cloud</div>
-        <button onclick="closeNavMenus();cloudDiagnostics()">Cloud Diagnostics</button>
+        <button onclick="closeNavMenus();cloudDiagnostics()" data-testid="nav-cloud-diagnostics">Cloud Diagnostics</button>
       </div>
     </div>
 
     <input id="ksmLoadFile" type="file" accept=".ksm,application/json" style="display:none" onchange="loadTournamentFromFile(event)">
-    <input id="ksmRecoveryFile" type="file" accept=".ksm,application/json" style="display:none" onchange="loadRecoveryFile(event)">
+    <input id="ksmRecoveryFile" data-testid="recovery-file-input" type="file" accept=".ksm,application/json" style="display:none" onchange="loadRecoveryFile(event)">
   </nav>
 
-  <div class="row cloud-status-wrap"><button id="staffAuthButton" class="secondary" type="button" onclick="toggleStaffSession()">Staff Login</button><div onclick="cloudDiagnostics()" role="button" tabindex="0" title="Open Cloud Diagnostics"><span id="sessionRole" hidden>Spectator</span><span id="connectionStatus" class="small nav-save-status">Local</span><span id="cloudPresence" hidden></span><span id="saveStatus" class="small nav-save-status">Not saved yet</span></div></div>
+  <div class="row cloud-status-wrap"><button id="staffAuthButton" class="secondary" type="button" onclick="toggleStaffSession()" data-testid="staff-auth">Staff Login</button><div onclick="cloudDiagnostics()" role="button" tabindex="0" title="Open Cloud Diagnostics"><span id="sessionRole" hidden>Spectator</span><span id="connectionStatus" class="small nav-save-status" data-testid="connection-status">Local</span><span id="cloudPresence" hidden></span><span id="saveStatus" class="small nav-save-status" data-testid="save-status">Not saved yet</span></div></div>
 </header>
 <main>
 
@@ -5362,7 +5379,7 @@ body.ksm-staff .director-only{display:flex!important}
     </div>
     <div class="home-head">
       <div><h2>Your Tournaments</h2><p>Create a new tournament or open an existing tournament in Spectator mode.</p></div>
-      <button class="home-new-button" type="button" onclick="createNewTournament()">＋ New Tournament</button>
+      <button class="home-new-button" type="button" data-testid="home-new-tournament" onclick="createNewTournament()">＋ New Tournament</button>
     </div>
     <div id="homeTournamentLibrary" class="home-library-grid"></div>
   </div>
@@ -5391,7 +5408,7 @@ body.ksm-staff .director-only{display:flex!important}
         <div class="setup-form-grid">
           <div class="field">
             <label>Tournament Name</label>
-            <input id="tName" value="Aiea Taiheiji Kendo Tournament">
+            <input id="tName" value="Aiea Taiheiji Kendo Tournament" data-testid="setup-tournament-name">
           </div>
           <div class="field">
             <label>Host Organization</label>
@@ -5439,24 +5456,24 @@ body.ksm-staff .director-only{display:flex!important}
                 <th>Court Assignment</th>
               </tr>
             </thead>
-            <tbody id="divisionSetupRows"></tbody>
+            <tbody id="divisionSetupRows" data-testid="setup-division-rows"></tbody>
           </table>
         </div>
 
         <div class="custom-division-box">
           <div class="custom-division-title">Add Custom Division</div>
           <div class="custom-division-row">
-            <input id="customDivName" placeholder="Division name">
-            <select id="customDivFormat">
+            <input id="customDivName" placeholder="Division name" data-testid="custom-division-name">
+            <select id="customDivFormat" data-testid="custom-division-format">
               <option>Round Robin</option>
               <option>Single Elimination</option>
             </select>
-            <select id="customDivCourt">
+            <select id="customDivCourt" data-testid="custom-division-court">
               <option value="A">Court A</option>
               <option value="B">Court B</option>
               <option value="split">Split Between Courts</option>
             </select>
-            <button onclick="addCustomDivision()">+ Add Division</button>
+            <button onclick="addCustomDivision()" data-testid="custom-division-add">+ Add Division</button>
           </div>
         </div>
       </section>
@@ -5471,14 +5488,14 @@ body.ksm-staff .director-only{display:flex!important}
         <div class="setup-stack">
           <div class="field">
             <label>Enable Team Tournament</label>
-            <select id="teamEnabled" onchange="saveSetup()">
+            <select id="teamEnabled" onchange="saveSetup()" data-testid="team-enabled">
               <option>Enabled</option>
               <option>Disabled</option>
             </select>
           </div>
           <div class="field">
             <label>Team Match Format</label>
-            <select id="teamFormat" onchange="saveSetup();renderTeams()">
+            <select id="teamFormat" onchange="saveSetup();renderTeams()" data-testid="team-format">
               <option selected>3-Person Team</option>
               <option>5-Person Team</option>
               <option>Kachinuki</option>
@@ -5486,14 +5503,14 @@ body.ksm-staff .director-only{display:flex!important}
           </div>
           <div class="field">
             <label>Tournament Format</label>
-            <select id="teamTournamentFormat" onchange="saveSetup()">
+            <select id="teamTournamentFormat" onchange="saveSetup()" data-testid="team-tournament-format">
               <option selected>Single Elimination</option>
               <option>Round Robin</option>
             </select>
           </div>
           <div class="field">
             <label>Court Assignment</label>
-            <select id="teamCourt" onchange="state.divisionCourts['Team Tournament']=this.value;saveSetup()">
+            <select id="teamCourt" onchange="state.divisionCourts['Team Tournament']=this.value;saveSetup()" data-testid="team-court">
               <option>A</option>
               <option>B</option>
               <option selected>Both</option>
@@ -5545,31 +5562,39 @@ body.ksm-staff .director-only{display:flex!important}
             <label>Court B Referees</label>
             <textarea id="court2Refs" rows="4" placeholder="Names only"></textarea>
           </div>
+          <div class="field">
+            <label>Court A — Red side (as seen from the scoring table)</label>
+            <select id="court1RedSide" onchange="saveSetup();applyCourtSides();renderAll()"><option value="right">Red on the right</option><option value="left">Red on the left</option></select>
+          </div>
+          <div class="field">
+            <label>Court B — Red side (as seen from the scoring table)</label>
+            <select id="court2RedSide" onchange="saveSetup();applyCourtSides();renderAll()"><option value="right">Red on the right</option><option value="left">Red on the left</option></select>
+          </div>
         </div>
       </section>
 
       <div class="setup-action-row">
-        <button class="setup-primary-action" onclick="saveSetup();show('registration')">Save Setup &amp; Continue</button>
+        <button class="setup-primary-action" onclick="saveSetup();show('registration')" data-testid="setup-save-continue">Save Setup &amp; Continue</button>
       </div>
     </div>
   </div>
 </section>
-<section id="registration" class="view hidden"><div class="card wide"><div class="toolbar"><div class="row"><button id="indTab" class="tab active" onclick="regTab('individual')">Individual Players</button><button id="teamTab" class="tab" onclick="regTab('team')">Team Registration</button><button id="exhibitionTab" class="tab" onclick="regTab('exhibition')">Exhibition</button><button id="poolsTab" class="tab" onclick="regTab('pools')">Pools</button><button id="generateBtn" class="primary" onclick="requestTournamentGeneration()">Generate Tournament</button><button id="regenerateDivisionBtn" onclick="openRegenerateDivisionDialog()">Regenerate Single Division</button></div><div class="row"><button onclick="alert('CSV import will be added in the production build.')">Import CSV</button><button onclick="exportCSV()">Export CSV</button><button onclick="alert('Paste rows directly into the table from Excel.')">Paste from Excel</button><button onclick="loadFullTournament()">Load Sample Tournament</button><button class="danger" onclick="clearCompetitors()">Clear Registration</button></div></div><div id="tournamentStatusCard" class="tournament-status-card"></div></div><div id="indReg" class="card wide"><div class="toolbar"><div class="row"><button class="primary" onclick="addRow()">+ Add Row</button><button onclick="addRow(5)">+ 5 Rows</button><button onclick="loadSamples()">Load Sample Players</button></div><div class="row"><input id="regFilter" placeholder="Filter players..." oninput="renderReg()"></div></div><div style="overflow:auto"><table id="regTable"></table></div></div><div id="teamReg" class="card wide hidden"><div class="toolbar"><div class="row"><button class="primary" onclick="addTeamRow()">+ Add Team</button><button onclick="addTeamRow(3)">+ 3 Teams</button><button onclick="loadTeamSamples()">Load Sample Teams</button><button onclick="addAutoTeam()">+ Auto Test Team</button><button class="danger" onclick="state.teams=[];renderTeams()">Clear Teams</button></div><div class="row"><input id="teamFilter" placeholder="Filter teams..." oninput="renderTeams()"></div></div><p class="sub">Use vertical team cards. Team name is the only team identifier required.</p><div style="overflow:auto"><table id="teamTable"></table></div></div><div id="exhibitionReg" class="card wide hidden"><div class="toolbar"><div class="row"><button class="primary" onclick="addExhibitionRow()">+ Add Exhibition Match</button><button onclick="addExhibitionRow(3)">+ 3 Matches</button><button class="danger" onclick="state.exhibitions=[];renderExhibitions()">Clear Exhibitions</button></div></div><div style="overflow:auto"><table id="exhibitionTable"></table></div></div><div id="poolsReg" class="card wide hidden"><h1>Generated Pools</h1><p class="sub">Pools are generated from registered or checked-in individual competitors. No-show competitors are excluded.</p><div class="row"><select id="poolDiv" onchange="state.poolViewDivision=this.value;renderPools()"></select><button onclick="generatePools()">Regenerate</button></div><div id="poolOutput" class="pool-wrap" style="margin-top:16px"></div></div></section><section id="score" class="view hidden">
+<section id="registration" class="view hidden"><div class="card wide"><div class="toolbar"><div class="row"><button id="indTab" class="tab active" onclick="regTab('individual')" data-testid="reg-tab-individual">Individual Players</button><button id="teamTab" class="tab" onclick="regTab('team')" data-testid="reg-tab-team">Team Registration</button><button id="exhibitionTab" class="tab" onclick="regTab('exhibition')">Exhibition</button><button id="poolsTab" class="tab" onclick="regTab('pools')" data-testid="reg-tab-pools">Pools</button><button id="generateBtn" class="primary" onclick="requestTournamentGeneration()" data-testid="generate-button">Generate Tournament</button><button id="regenerateDivisionBtn" onclick="openRegenerateDivisionDialog()">Regenerate Single Division</button></div><div class="row"><button onclick="alert('CSV import will be added in the production build.')">Import CSV</button><button onclick="exportCSV()">Export CSV</button><button onclick="alert('Paste rows directly into the table from Excel.')">Paste from Excel</button><button onclick="loadFullTournament()">Load Sample Tournament</button><button class="danger" onclick="clearCompetitors()">Clear Registration</button></div></div><div id="tournamentStatusCard" class="tournament-status-card" data-testid="tournament-status"></div></div><div id="indReg" class="card wide"><div class="toolbar"><div class="row"><button class="primary" onclick="addRow()" data-testid="reg-add-row">+ Add Row</button><button onclick="addRow(5)">+ 5 Rows</button><button onclick="loadSamples()">Load Sample Players</button></div><div class="row"><input id="regFilter" placeholder="Filter players..." oninput="renderReg()" data-testid="reg-filter"></div></div><div style="overflow:auto"><table id="regTable"></table></div></div><div id="teamReg" class="card wide hidden"><div class="toolbar"><div class="row"><button class="primary" onclick="addTeamRow()" data-testid="team-add">+ Add Team</button><button onclick="addTeamRow(3)">+ 3 Teams</button><button onclick="loadTeamSamples()">Load Sample Teams</button><button onclick="addAutoTeam()">+ Auto Test Team</button><button class="danger" onclick="state.teams=[];renderTeams()">Clear Teams</button></div><div class="row"><input id="teamFilter" placeholder="Filter teams..." oninput="renderTeams()"></div></div><p class="sub">Use vertical team cards. Team name is the only team identifier required.</p><div style="overflow:auto"><table id="teamTable"></table></div></div><div id="exhibitionReg" class="card wide hidden"><div class="toolbar"><div class="row"><button class="primary" onclick="addExhibitionRow()">+ Add Exhibition Match</button><button onclick="addExhibitionRow(3)">+ 3 Matches</button><button class="danger" onclick="state.exhibitions=[];renderExhibitions()">Clear Exhibitions</button></div></div><div style="overflow:auto"><table id="exhibitionTable"></table></div></div><div id="poolsReg" class="card wide hidden"><h1>Generated Pools</h1><p class="sub">Pools are generated from registered or checked-in individual competitors. No-show competitors are excluded.</p><div class="row"><select id="poolDiv" onchange="state.poolViewDivision=this.value;renderPools()" data-testid="pool-division-select"></select><button onclick="generatePools()">Regenerate</button></div><div id="poolOutput" class="pool-wrap" style="margin-top:16px"></div></div></section><section id="score" class="view hidden">
   <div class="scorekeeper-shell">
     <div class="card scorekeeper-main scoreboard-card">
       <img class="active-match-watermark" src="/assets/KSM-Background-watermark.svg" alt="" aria-hidden="true">
       <div class="sk-header scoreboard-header">
         <div class="scoreboard-tournament">
           <img src="/assets/ksm-fuji-logo.svg" alt="" aria-hidden="true">
-          <div id="scoreTournamentName">Kendo Tournament</div>
+          <div id="scoreTournamentName" data-testid="court-tournament-name">Kendo Tournament</div>
         </div>
         <div class="scoreboard-heading-center">
-          <h1 id="courtTitle">Court A</h1>
+          <h1 id="courtTitle" data-testid="court-title">Court A</h1>
           <div class="sk-division-row">
-            <select id="scoreDiv" class="division-select" onchange="selectScorekeeperDivision(this.value)"></select>
+            <select id="scoreDiv" class="division-select" onchange="selectScorekeeperDivision(this.value)" data-testid="court-division-select"></select>
           </div>
-          <div class="sk-division-title" id="scoreDivisionTitle">—</div>
-          <div class="sk-match-line" id="matchMeta">No active match</div>
+          <div class="sk-division-title" id="scoreDivisionTitle" data-testid="court-division-title">—</div>
+          <div class="sk-match-line" id="matchMeta" data-testid="court-match-meta">No active match</div>
         </div>
         <div class="scoreboard-heading-spacer" aria-hidden="true"></div>
       </div>
@@ -5579,7 +5604,7 @@ body.ksm-staff .director-only{display:flex!important}
           <div class="competitor-head">
             <span class="side-dot white-dot" aria-hidden="true"></span>
             <div>
-              <h2 id="whiteName">—</h2>
+              <h2 id="whiteName" data-testid="court-white-name">—</h2>
               <div class="sk-dojo" id="whiteDojo">—</div>
             </div>
           </div>
@@ -5587,20 +5612,20 @@ body.ksm-staff .director-only{display:flex!important}
 
         <div class="scoreboard-score-row">
           <div class="score-stack white-score-stack">
-            <div class="points white-score" id="whitePts"></div>
-            <div class="tri" id="whiteTri"></div>
+            <div class="points white-score" id="whitePts" data-testid="court-white-points"></div>
+            <div class="tri" id="whiteTri" data-testid="court-white-hansoku"></div>
           </div>
           <div class="score-vs">vs</div>
           <div class="score-stack red-score-stack">
-            <div class="points red-score" id="redPts"></div>
-            <div class="tri" id="redTri"></div>
+            <div class="points red-score" id="redPts" data-testid="court-red-points"></div>
+            <div class="tri" id="redTri" data-testid="court-red-hansoku"></div>
           </div>
         </div>
 
         <div class="scoreboard-side scoreboard-red">
           <div class="competitor-head red-head">
             <div class="red-identity">
-              <h2 id="redName">—</h2>
+              <h2 id="redName" data-testid="court-red-name">—</h2>
               <div class="sk-dojo" id="redDojo">—</div>
             </div>
             <span class="side-dot red-dot" aria-hidden="true"></span>
@@ -5611,45 +5636,45 @@ body.ksm-staff .director-only{display:flex!important}
       <div class="score-controls-grid">
         <div class="control-panel white-control-panel">
           <div class="score-buttons sk-score-buttons">
-            <button onclick="point('W','M')"><span class="point-letter">M</span><span class="point-name">Men</span></button>
-            <button onclick="point('W','K')"><span class="point-letter">K</span><span class="point-name">Kote</span></button>
-            <button onclick="point('W','D')"><span class="point-letter">D</span><span class="point-name">Do</span></button>
-            <button onclick="point('W','T')"><span class="point-letter">T</span><span class="point-name">Tsuki</span></button>
-            <button onclick="hansoku('W')"><span class="point-letter">H</span><span class="point-name">Hansoku</span></button>
+            <button onclick="point('W','M')" data-testid="point-white-M"><span class="point-letter">M</span><span class="point-name">Men</span></button>
+            <button onclick="point('W','K')" data-testid="point-white-K"><span class="point-letter">K</span><span class="point-name">Kote</span></button>
+            <button onclick="point('W','D')" data-testid="point-white-D"><span class="point-letter">D</span><span class="point-name">Do</span></button>
+            <button onclick="point('W','T')" data-testid="point-white-T"><span class="point-letter">T</span><span class="point-name">Tsuki</span></button>
+            <button onclick="hansoku('W')" data-testid="hansoku-white"><span class="point-letter">H</span><span class="point-name">Hansoku</span></button>
           </div>
         </div>
 
         <div class="control-panel red-control-panel">
           <div class="score-buttons sk-score-buttons">
-            <button onclick="point('R','M')"><span class="point-letter">M</span><span class="point-name">Men</span></button>
-            <button onclick="point('R','K')"><span class="point-letter">K</span><span class="point-name">Kote</span></button>
-            <button onclick="point('R','D')"><span class="point-letter">D</span><span class="point-name">Do</span></button>
-            <button onclick="point('R','T')"><span class="point-letter">T</span><span class="point-name">Tsuki</span></button>
-            <button onclick="hansoku('R')"><span class="point-letter">H</span><span class="point-name">Hansoku</span></button>
+            <button onclick="point('R','M')" data-testid="point-red-M"><span class="point-letter">M</span><span class="point-name">Men</span></button>
+            <button onclick="point('R','K')" data-testid="point-red-K"><span class="point-letter">K</span><span class="point-name">Kote</span></button>
+            <button onclick="point('R','D')" data-testid="point-red-D"><span class="point-letter">D</span><span class="point-name">Do</span></button>
+            <button onclick="point('R','T')" data-testid="point-red-T"><span class="point-letter">T</span><span class="point-name">Tsuki</span></button>
+            <button onclick="hansoku('R')" data-testid="hansoku-red"><span class="point-letter">H</span><span class="point-name">Hansoku</span></button>
           </div>
         </div>
       </div>
 
       <div class="action-row sk-action-row bottom-action-row">
-        <button id="undoBtn" class="action-btn undo-action" onclick="undo()">
+        <button id="undoBtn" class="action-btn undo-action" onclick="undo()" data-testid="undo">
       <svg class="action-svg undo-svg" viewBox="0 0 64 64" aria-hidden="true">
         <path d="M24 14H10v14" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M11 27c4-10 14-17 26-17 15 0 27 12 27 27S52 64 37 64c-11 0-21-7-25-17" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
       </svg>
       <span class="action-label">Undo</span>
     </button>
-        <button id="redoBtn" class="action-btn redo-action" onclick="redo()" disabled>
+        <button id="redoBtn" class="action-btn redo-action" onclick="redo()" disabled data-testid="redo">
       <svg class="action-svg undo-svg" viewBox="0 0 64 64" aria-hidden="true" style="transform:scaleX(-1)">
         <path d="M24 14H10v14" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M11 27c4-10 14-17 26-17 15 0 27 12 27 27S52 64 37 64c-11 0-21-7-25-17" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
       </svg>
       <span class="action-label">Redo</span>
     </button>
-        <button class="action-btn fusen-action" onclick="openFusenDialog()">
+        <button class="action-btn fusen-action" onclick="openFusenDialog()" data-testid="fusen-gachi">
       <span class="action-symbol flag-symbol" aria-hidden="true">⚑</span>
       <span>Fusen-gachi</span>
     </button>
-        <button class="primary next-match-btn action-btn" onclick="nextMatch()">
+        <button class="primary next-match-btn action-btn" onclick="nextMatch()" data-testid="next-match">
       <span class="action-symbol next-symbol" aria-hidden="true">»</span>
       <span>Next Match</span>
     </button>
@@ -5659,11 +5684,11 @@ body.ksm-staff .director-only{display:flex!important}
     <div class="sk-support-grid">
       <div class="card sk-context-card scoreboard-support-card">
         <div class="toolbar"><h1>Court Context</h1></div>
-        <div id="courtContext"></div>
+        <div id="courtContext" data-testid="court-context"></div>
       </div>
       <div class="card sk-queue-card scoreboard-support-card">
         <h1>Court Queue</h1>
-        <div id="queue"></div>
+        <div id="queue" data-testid="court-queue"></div>
       </div>
     </div>
   </div>
@@ -5673,9 +5698,9 @@ body.ksm-staff .director-only{display:flex!important}
       <h2 id="fusenTitle">Fusen-gachi</h2>
       <p class="sub">Which side forfeited?</p>
       <div class="modal-actions">
-        <button onclick="confirmFusen('W')">White</button>
-        <button onclick="confirmFusen('R')">Red</button>
-        <button onclick="closeFusenDialog()">Cancel</button>
+        <button onclick="confirmFusen('W')" data-testid="fusen-white">White</button>
+        <button onclick="confirmFusen('R')" data-testid="fusen-red">Red</button>
+        <button onclick="closeFusenDialog()" data-testid="fusen-cancel">Cancel</button>
       </div>
     </div>
   </div>
@@ -5685,18 +5710,18 @@ body.ksm-staff .director-only{display:flex!important}
     <section class="director-overall-card">
       <div class="director-kicker">Tournament Overview</div>
       <h1 id="directorTournamentName">Kendo Tournament</h1>
-      <div class="director-progress-label"><span>Overall Progress</span><strong id="directorOverallCount">0 / 0 Matches</strong></div>
+      <div class="director-progress-label"><span>Overall Progress</span><strong id="directorOverallCount" data-testid="overview-progress">0 / 0 Matches</strong></div>
       <div class="director-progress-track"><div id="directorOverallBar" class="director-progress-fill"></div></div>
       <div id="directorOverallRemaining" class="director-remaining">0 Remaining</div>
     </section>
-    <div id="directorCourtGrid" class="director-court-grid"></div>
+    <div id="directorCourtGrid" class="director-court-grid" data-testid="overview-courts"></div>
   </div>
 </section>
 <section id="public" class="view hidden">
-  <div id="publicLive" class="live-scores-overview"></div>
+  <div id="publicLive" class="live-scores-overview" data-testid="live-scores"></div>
 </section>
 <section id="tv" class="view hidden" aria-label="TV Court Display">
-  <div id="tvLive" class="tv-court-display"></div>
+  <div id="tvLive" class="tv-court-display" data-testid="tv-display"></div>
 </section>
 <section id="results" class="view hidden">
   <div class="results-page">
@@ -5711,7 +5736,7 @@ body.ksm-staff .director-only{display:flex!important}
       <button class="results-export-button" onclick="exportResultsAwards()">Export Results</button>
     </div>
 
-    <div id="resultsBody" class="results-dashboard"></div>
+    <div id="resultsBody" class="results-dashboard" data-testid="results"></div>
   </div>
 
   <div id="resultsBracketModal" class="ksm-modal hidden" role="dialog" aria-modal="true" aria-labelledby="resultsBracketTitle">
@@ -5725,7 +5750,7 @@ body.ksm-staff .director-only{display:flex!important}
   </div>
 </section>
 
-<div id="validationModal" class="ksm-modal hidden" role="dialog" aria-modal="true" aria-labelledby="validationModalTitle">
+<div id="validationModal" class="ksm-modal hidden" role="dialog" aria-modal="true" aria-labelledby="validationModalTitle" data-testid="validation-modal">
   <div class="results-modal-card management-modal-card">
     <h2 id="validationModalTitle" class="validation-modal-title">Tournament Validation</h2>
     <div id="validationModalBody"></div><div class="action-row validation-modal-actions" id="validationModalActions"></div>
@@ -5757,7 +5782,7 @@ function toggleDivision(d,on){if(on&&!state.divisions.includes(d)){state.divisio
 function setDivisionFormat(d,v){state.divisionTypes[d]=v;renderReg()}
 function setDivisionCourt(d,v){state.divisionCourts[d]=v;renderDivisions();renderTournamentStatus()}
 function renderDivisionSetup(){if(!window.divisionSetupRows)return;let custom=state.divisions.filter(d=>!DIVISION_PRESETS.some(p=>p[0]===d));let rows=DIVISION_PRESETS.map(([d,fmt,c])=>divisionSetupRow(d,state.divisions.includes(d),false)).join('')+custom.map(d=>divisionSetupRow(d,true,true)).join('');divisionSetupRows.innerHTML=rows;if(window.teamCourt)teamCourt.value=state.divisionCourts['Team Tournament']||'Both';if(window.teamAwardMode)teamAwardMode.value=state.teamAwardMode||'top2'}
-function divisionSetupRow(d,enabled,custom){let court=state.divisionCourts[d]||'A';return `<tr><td><input type="checkbox" ${enabled?'checked':''} onchange="toggleDivision('${esc(d)}',this.checked)"></td><td><b>${esc(d)}</b>${custom?' <span class="small">custom</span>':''}</td><td><select ${enabled?'':'disabled'} onchange="setDivisionFormat('${esc(d)}',this.value)"><option ${state.divisionTypes[d]==='Round Robin'?'selected':''}>Round Robin</option><option ${state.divisionTypes[d]==='Single Elimination'?'selected':''}>Single Elimination</option></select></td><td><select ${enabled?'':'disabled'} onchange="setDivisionCourt('${esc(d)}',this.value)"><option value="A" ${court==='A'?'selected':''}>Court A</option><option value="B" ${court==='B'?'selected':''}>Court B</option><option value="split" ${court==='split'?'selected':''}>Split Between Courts</option></select>${custom?` <button onclick="removeDivision(state.divisions.indexOf('${esc(d)}'))">×</button>`:''}</td></tr>`}
+function divisionSetupRow(d,enabled,custom){let court=state.divisionCourts[d]||'A';return `<tr data-testid="setup-division-row"><td><input type="checkbox" ${enabled?'checked':''} onchange="toggleDivision(${jsArg(d)},this.checked)" data-testid="setup-division-enabled"></td><td><b data-testid="setup-division-name">${esc(d)}</b>${custom?' <span class="small">custom</span>':''}</td><td><select ${enabled?'':'disabled'} onchange="setDivisionFormat(${jsArg(d)},this.value)" data-testid="setup-division-format"><option ${state.divisionTypes[d]==='Round Robin'?'selected':''}>Round Robin</option><option ${state.divisionTypes[d]==='Single Elimination'?'selected':''}>Single Elimination</option></select></td><td><select ${enabled?'':'disabled'} onchange="setDivisionCourt(${jsArg(d)},this.value)" data-testid="setup-division-court"><option value="A" ${court==='A'?'selected':''}>Court A</option><option value="B" ${court==='B'?'selected':''}>Court B</option><option value="split" ${court==='split'?'selected':''}>Split Between Courts</option></select>${custom?` <button onclick="removeDivision(state.divisions.indexOf(${jsArg(d)}))">×</button>`:''}</td></tr>`}
 function courtEligibleDivisions(court){
   let all=[...new Set([...Object.keys(state.allMatches||{}),...state.divisions])];
   return all.filter(d=>{
@@ -5835,6 +5860,7 @@ function applyCourtState(court,cs,keepScore=true){
   state.currentByDivision[cs.division]=state.current;
   if(keepScore){loadScoreFromMatch(state.matches[state.current]);}
   else{state.score={W:[],R:[],WT:0,RT:0};state.history=[]}
+  applyCourtSides();
 }
 function initCourtStates(){
   ['A','B'].forEach(c=>{state.courtState[c]=findNextForCourt(c,null,0);state.courtActiveDivision[c]=state.courtState[c].division;});
@@ -5927,7 +5953,7 @@ function renderTournamentStatus(){
 function showValidationDialog(result,onConfirm){
   validationModalTitle.textContent=result.valid?'Tournament Validation Passed':'Tournament Validation';
   validationModalBody.innerHTML=result.valid?'<div class="muted-card"><b>✓ No blocking issues found.</b><div class="small" style="margin-top:6px">Generate Tournament?</div></div>':`<div class="validation-list">${result.issues.map(x=>`<div class="validation-issue ${esc(x.severity)}"><b>${esc(x.divisionId||'Tournament')}</b><div>${esc(x.message)}</div>${x.suggestedAction?`<div class="small">${esc(x.suggestedAction)}</div>`:''}</div>`).join('')}</div>`;
-  validationModalActions.innerHTML=result.valid?'<button onclick="closeManagementModal(\'validationModal\')">Cancel</button><button class="primary" id="validationGenerateConfirm">Generate</button>':'<button class="primary" onclick="closeManagementModal(\'validationModal\')">Close</button>';
+  validationModalActions.innerHTML=result.valid?'<button onclick="closeManagementModal(\'validationModal\')" data-testid="generate-cancel">Cancel</button><button class="primary" id="validationGenerateConfirm" data-testid="generate-confirm">Generate</button>':'<button class="primary" onclick="closeManagementModal(\'validationModal\')" data-testid="validation-close">Close</button>';
   validationModal.classList.remove('hidden');
   if(result.valid)document.getElementById('validationGenerateConfirm').onclick=()=>{closeManagementModal('validationModal');onConfirm()};
 }
@@ -5940,9 +5966,9 @@ function openRegenerateDivisionDialog(){
   regenerateModalActions.innerHTML='<button onclick="closeManagementModal(\'regenerateModal\')">Cancel</button><button class="primary" onclick="continueRegenerateDivision()">Continue</button>';
   regenerateModal.classList.remove('hidden');
 }
-function continueRegenerateDivision(){let selected=document.querySelector('input[name="regenDiv"]:checked')?.value;if(!selected){alert('No division is ready to regenerate.');return}if(divisionRegenerationStatus(selected)!=='ready'){alert('This division cannot be regenerated.');return}regenerateModalTitle.textContent=`Regenerate ${selected}?`;regenerateModalBody.innerHTML=`<div class="muted-card"><p>This will rebuild this division’s pools or bracket, Match Objects, court queues, Court Context, Results state, and Director progress.</p><p><b>All other divisions will remain unchanged.</b></p></div>`;regenerateModalActions.innerHTML=`<button onclick="closeManagementModal('regenerateModal')">Cancel</button><button class="primary" onclick="regenerateSingleDivision('${esc(selected)}')">Regenerate</button>`}
-function renderReg(){let f=(regFilter?.value||'').toLowerCase();let rows=state.competitors.map((c,i)=>({...c,i})).filter(c=>!f||[c.name,c.dojo,c.division,c.status].join(' ').toLowerCase().includes(f));regTable.innerHTML=`<thead><tr><th>Name</th><th>Dojo</th><th>Division</th><th>Seed</th><th>Status</th><th></th></tr></thead><tbody>`+rows.map(c=>`<tr><td><input value="${esc(c.name)}" onchange="updateComp(${c.i},'name',this.value)"></td><td><input value="${esc(c.dojo)}" onchange="updateComp(${c.i},'dojo',this.value)"></td><td><select class="division-select" onchange="updateComp(${c.i},'division',this.value)">${state.divisions.map(d=>`<option ${d===c.division?'selected':''}>${esc(d)}</option>`).join('')}</select></td><td><input value="${esc(c.seed)}" onchange="updateComp(${c.i},'seed',this.value)"></td><td><span class="status ${c.status}" onclick="cycleCompetitorStatus(${c.i})">${c.status==='Checked'?'● Checked In':c.status==='NoShow'?'● No Show':'○ Registered'}</span></td><td><button onclick="state.competitors.splice(${c.i},1);renderReg();renderTournamentStatus()">×</button></td></tr>`).join('')+`</tbody>`}
-function renderTeams(){let f=(teamFilter?.value||'').toLowerCase();let rows=state.teams.map((c,i)=>({...c,i})).filter(c=>!f||[c.team,c.type,c.senpo,c.jiho,c.chuken,c.fukusho,c.taisho].join(' ').toLowerCase().includes(f));let fmt=teamFormat?.value||'5-Person Team';let slots=fmt==='3-Person Team'||fmt==='Kachinuki'?['senpo','chuken','taisho']:['senpo','jiho','chuken','fukusho','taisho'];teamTable.outerHTML=`<div id="teamTable" class="team-cards">`+rows.map(c=>`<div class="team-card"><div class="row" style="justify-content:space-between"><div class="field" style="flex:1"><label>Team Name</label><input value="${esc(c.team)}" onchange="state.teams[${c.i}].team=this.value"></div><button onclick="state.teams.splice(${c.i},1);renderTeams();renderTournamentStatus()">×</button></div><div class="small">${esc(fmt)} • ${esc(teamTournamentFormat?.value||'Single Elimination')}</div>${slots.map(k=>`<div class="slot"><label>${k}</label><input value="${esc(c[k])}" onchange="state.teams[${c.i}].${k}=this.value"></div>`).join('')}<div style="margin-top:10px"><span class="status ${c.status}" onclick="cycleTeamStatus(${c.i})">${c.status==='Checked'?'● Checked In':c.status==='NoShow'?'● No Show':'○ Registered'}</span></div></div>`).join('')+`</div>`}
+function continueRegenerateDivision(){let selected=document.querySelector('input[name="regenDiv"]:checked')?.value;if(!selected){alert('No division is ready to regenerate.');return}if(divisionRegenerationStatus(selected)!=='ready'){alert('This division cannot be regenerated.');return}regenerateModalTitle.textContent=`Regenerate ${selected}?`;regenerateModalBody.innerHTML=`<div class="muted-card"><p>This will rebuild this division’s pools or bracket, Match Objects, court queues, Court Context, Results state, and Director progress.</p><p><b>All other divisions will remain unchanged.</b></p></div>`;regenerateModalActions.innerHTML=`<button onclick="closeManagementModal('regenerateModal')">Cancel</button><button class="primary" onclick="regenerateSingleDivision(${jsArg(selected)})">Regenerate</button>`}
+function renderReg(){let f=(regFilter?.value||'').toLowerCase();let rows=state.competitors.map((c,i)=>({...c,i})).filter(c=>!f||[c.name,c.dojo,c.division,c.status].join(' ').toLowerCase().includes(f));regTable.innerHTML=`<thead><tr><th>Name</th><th>Dojo</th><th>Division</th><th>Seed</th><th>Status</th><th></th></tr></thead><tbody>`+rows.map(c=>`<tr data-testid="reg-row"><td><input value="${esc(c.name)}" onchange="updateComp(${c.i},'name',this.value)" data-testid="reg-name"></td><td><input value="${esc(c.dojo)}" onchange="updateComp(${c.i},'dojo',this.value)" data-testid="reg-dojo"></td><td><select class="division-select" onchange="updateComp(${c.i},'division',this.value)" data-testid="reg-division">${state.divisions.map(d=>`<option ${d===c.division?'selected':''}>${esc(d)}</option>`).join('')}</select></td><td><input value="${esc(c.seed)}" onchange="updateComp(${c.i},'seed',this.value)" data-testid="reg-seed"></td><td><span class="status ${c.status}" onclick="cycleCompetitorStatus(${c.i})" data-testid="reg-status">${c.status==='Checked'?'● Checked In':c.status==='NoShow'?'● No Show':'○ Registered'}</span></td><td><button onclick="state.competitors.splice(${c.i},1);renderReg();renderTournamentStatus()" data-testid="reg-remove">×</button></td></tr>`).join('')+`</tbody>`}
+function renderTeams(){let f=(teamFilter?.value||'').toLowerCase();let rows=state.teams.map((c,i)=>({...c,i})).filter(c=>!f||[c.team,c.type,c.senpo,c.jiho,c.chuken,c.fukusho,c.taisho].join(' ').toLowerCase().includes(f));let fmt=teamFormat?.value||'5-Person Team';let slots=fmt==='3-Person Team'||fmt==='Kachinuki'?['senpo','chuken','taisho']:['senpo','jiho','chuken','fukusho','taisho'];teamTable.outerHTML=`<div id="teamTable" class="team-cards">`+rows.map(c=>`<div class="team-card" data-testid="team-card"><div class="row" style="justify-content:space-between"><div class="field" style="flex:1"><label>Team Name</label><input value="${esc(c.team)}" onchange="state.teams[${c.i}].team=this.value" data-testid="team-name"></div><button onclick="state.teams.splice(${c.i},1);renderTeams();renderTournamentStatus()" data-testid="team-remove">×</button></div><div class="small">${esc(fmt)} • ${esc(teamTournamentFormat?.value||'Single Elimination')}</div>${slots.map(k=>`<div class="slot"><label>${k}</label><input value="${esc(c[k])}" onchange="state.teams[${c.i}].${k}=this.value" data-testid="team-member-${k}"></div>`).join('')}<div style="margin-top:10px"><span class="status ${c.status}" onclick="cycleTeamStatus(${c.i})" data-testid="team-status">${c.status==='Checked'?'● Checked In':c.status==='NoShow'?'● No Show':'○ Registered'}</span></div></div>`).join('')+`</div>`}
 function addExhibitionRow(n=1){for(let i=0;i<n;i++)state.exhibitions.push({white:'',red:'',division:'Exhibition Matches',status:'Registered'});renderExhibitions()}
 function renderExhibitions(){if(!window.exhibitionTable)return;let rows=state.exhibitions||[];exhibitionTable.innerHTML=`<thead><tr><th>White Player</th><th>Red Player</th><th>Status</th><th></th></tr></thead><tbody>`+rows.map((x,i)=>`<tr><td><input value="${esc(x.white)}" onchange="state.exhibitions[${i}].white=this.value"></td><td><input value="${esc(x.red)}" onchange="state.exhibitions[${i}].red=this.value"></td><td><span class="status ${x.status}" onclick="state.exhibitions[${i}].status=statusCycle(state.exhibitions[${i}].status);renderExhibitions()">${x.status==='Checked'?'● Checked In':x.status==='NoShow'?'● No Show':'○ Registered'}</span></td><td><button onclick="state.exhibitions.splice(${i},1);renderExhibitions()">×</button></td></tr>`).join('')+`</tbody>`}
 function updateComp(i,k,v){state.competitors[i][k]=v;if(k==='division'&&v&&!state.divisions.includes(v)){state.divisions.push(v);renderDivisions()}renderTournamentStatus()}
@@ -5996,7 +6022,7 @@ function poolSizes(n){
     37:[4,4,4,4,4,4,4,3,3,3],38:[4,4,4,4,4,4,4,4,3,3],39:[4,4,4,4,4,4,4,4,4,3],40:[4,4,4,4,4,4,4,4,4,4]
   };
   if(fixed[n])return fixed[n];
-  let poolCount=Math.max(1,Math.ceil(n/4));while(n/poolCount<3&&poolCount>1)poolCount--;let sizes=Array(poolCount).fill(3),rem=n-poolCount*3;for(let i=0;i<rem;i++)sizes[i]++;return sizes;
+  let poolCount=Math.max(1,Math.ceil(n/4));while(n/poolCount<3&&poolCount>1)poolCount--;let sizes=Array(poolCount).fill(3),rem=n-poolCount*3;for(let i=0;i<rem;i++)sizes[i%poolCount]++;return sizes;// wrap: n=5 → [5], not [4,NaN] (which dropped an entrant)
 }
 function poolPlayerSlotLetter(index){return String.fromCharCode(65+Math.max(0,Number(index)||0))}
 function assignPoolPlayerSlots(pools){
@@ -6540,14 +6566,21 @@ function selectScorekeeperDivision(div){
 function makeMatches(div){state.allMatches[div]=buildPoolMatches(div,state.pools[div]||[]);setActiveDivision(div)}
 function renderPools(){
   let div=poolDiv?.value||state.poolViewDivision||state.currentDivision;state.poolViewDivision=div;let pools=state.pools[div]||[];
-  let poolHtml=pools.length?pools.map(p=>`<div class="pool" ondragover="event.preventDefault();this.classList.add('drop-target')" ondragleave="this.classList.remove('drop-target')" ondrop="if(event.target===this)dropPoolPlayer(event,'${esc(p.label)}');this.classList.remove('drop-target')"><h3>${isTeamDivision(div)?'Team Pool':'Pool'} ${p.label}</h3>${p.players.map((x,idx)=>`<div class="drag-player" draggable="true" ondragstart="dragPoolPlayer(event,'${esc(p.label)}',${idx})"><span class="pool-slot-badge">${esc(poolPlayerSlot(x,idx))}</span><b>${esc(x.name)}</b><span class="small" style="float:right">${esc(x.dojo)}</span></div>`).join('')}</div>`).join(''):(isTeamDivision(div)&&state.allMatches[div]?.length?'<div class="muted-card">Single-elimination team bracket created. Team position matches are available in the Court queue.</div>':((state.divisionTypes[div]==='Single Elimination'&&state.allMatches[div]?.length)?'<div class="muted-card">Single-elimination bracket created. Matches are available in the Court queue.</div>':'<div class="muted-card">No pools generated yet.</div>'));
-  let edit=pools.length&&!isTeamRoundRobinDivision(div)?'<div class="toolbar"><button onclick="toggleEditPools()">Edit Pool</button></div>':'';
+  let poolHtml=pools.length?pools.map(p=>`<div class="pool" data-testid="pool" ondragover="event.preventDefault();this.classList.add('drop-target')" ondragleave="this.classList.remove('drop-target')" ondrop="if(event.target===this)dropPoolPlayer(event,${jsArg(p.label)});this.classList.remove('drop-target')"><h3 data-testid="pool-title">${isTeamDivision(div)?'Team Pool':'Pool'} ${p.label}</h3>${p.players.map((x,idx)=>`<div class="drag-player" draggable="true" ondragstart="dragPoolPlayer(event,${jsArg(p.label)},${idx})"><span class="pool-slot-badge" data-testid="pool-slot">${esc(poolPlayerSlot(x,idx))}</span><b data-testid="pool-player">${esc(x.name)}</b><span class="small" style="float:right">${esc(x.dojo)}</span></div>`).join('')}</div>`).join(''):(isTeamDivision(div)&&state.allMatches[div]?.length?'<div class="muted-card">Single-elimination team bracket created. Team position matches are available in the Court queue.</div>':((state.divisionTypes[div]==='Single Elimination'&&state.allMatches[div]?.length)?'<div class="muted-card">Single-elimination bracket created. Matches are available in the Court queue.</div>':'<div class="muted-card">No pools generated yet.</div>'));
+  let edit=pools.length&&!isTeamRoundRobinDivision(div)?'<div class="toolbar"><button onclick="toggleEditPools()" data-testid="pool-edit">Edit Pool</button></div>':'';
   let rightTitle=isTeamRoundRobinDivision(div)?'Team Standings':'Championship Preview';
   poolOutput.className='pools-layout';
   poolOutput.innerHTML=`<div><h2>Pools</h2>${edit}<div class="pool-list">${poolHtml}</div></div><div><h2>${rightTitle}</h2>${bracketHtml(div)}</div>`;
   renderResultsDashboard();
 }
-function divisionComplete(div){const matches=(state.allMatches[div]||[]).filter(isValidMatchObject);return matches.some(m=>m.championship&&m.position==='Final'&&m.done) || (isTeamDivision(div)&&matches.length && matches.every(m=>m.done));}
+function divisionComplete(div){const matches=(state.allMatches[div]||[]).filter(isValidMatchObject);return matches.some(m=>m.championship&&m.position==='Final'&&m.done) || ((isTeamDivision(div)||isPoolOnlyDivision(div))&&matches.length && matches.every(m=>m.done));}
+// Individual round robins too small for a championship bracket (3–5 entrants: a single pool
+// and no frozen template) have no Final; they are decided by the final pool standings.
+function isPoolOnlyDivision(div){
+  if(isTeamDivision(div)||(state.divisionTypes?.[div]||'Round Robin')!=='Round Robin')return false;
+  const pools=state.pools?.[div]||[];
+  return pools.length===1&&!championshipLabels(div).length;
+}
 function medalResultsHtml(div){if(!divisionComplete(div))return '';if(isTeamDivision(div))return teamFinalResultsHtml(div);let final=(state.allMatches[div]||[]).find(m=>m.championship&&m.position==='Final'&&m.done);if(final){let first=winnerOf(final),second=first===final.red?final.white:final.red;let thirds=(state.allMatches[div]||[]).filter(m=>m.championship&&m.position==='Semifinal'&&m.done).map(m=>{let w=winnerOf(m);return w===m.red?m.white:m.red}).filter(Boolean);return `<div class="muted-card"><div class="competitor-line"><b>🥇 1st</b><span>${esc(first)}</span></div><div class="competitor-line"><b>🥈 2nd</b><span>${esc(second)}</span></div>${thirds.map(t=>`<div class="competitor-line"><b>🥉 3rd</b><span>${esc(t)}</span></div>`).join('')}</div>`;}return `<div class="muted-card"><b>Completed</b></div>`}
 
 function teamNodeSideName(side,div){
@@ -6606,9 +6639,9 @@ function repSelect(side,team,current){
   let m=state.matches[state.current];
   let roster=(m&&m.type==='teamPlayoff')?(side==='W'?teamRoster(m.teamWhite):teamRoster(m.teamRed)):teamRoster(team);
   let placeholder=!current||/Representative/.test(current);
-  if(!canModifyRepresentative(m))return `<span class="representative-readonly">${esc(placeholder?`${team||'Dojo'} Representative`:current)}</span>`;
+  if(!canModifyRepresentative(m))return `<span class="representative-readonly" data-testid="representative-readonly">${esc(placeholder?`${team||'Dojo'} Representative`:current)}</span>`;
   let opts=`<option value="" ${placeholder?'selected':''}>${esc(team||'Dojo')} Representative</option>`+roster.map(n=>`<option value="${esc(n)}" ${n===current?'selected':''}>${esc(n)}</option>`).join('');
-  return `<select onchange="setRepresentative('${side}',this.value)">${opts}</select>`;
+  return `<select onchange="setRepresentative('${side}',this.value)" data-testid="representative-select">${opts}</select>`;
 }
 function setRepresentative(side,val){
   let m=state.matches[state.current];
@@ -6913,7 +6946,7 @@ function activeScoreArrays(m){let arr=state.allMatches[m.division]||[],idx=arr.i
 function teamSheetHtml(div,pair,currentMatch){let matches=(state.allMatches[div]||[]).filter(m=>m.teamPair===pair && (m.type==='teamPosition'||m.type==='teamPlayoff'));let first=matches[0]||{};let s=teamPairSummary(div,pair);let rows=matches.map(x=>{let pts=activeScoreArrays(x);let mid=x===currentMatch?'NOW':(x.done?'DONE':esc(x.position||''));return `<div class="team-sheet-row ${x===currentMatch?'gold':''}"><div class="white"><b>${esc(x.white)}</b><div class="live-points">${pts.W.join(' ')}</div></div><div class="vs">${mid}</div><div class="red"><b>${esc(x.red)}</b><div class="live-points">${pts.R.join(' ')}</div></div></div>`}).join('');return `<div class="team-sheet"><div class="team-sheet-head"><div>${esc(first.teamWhite||'White Team')}</div><div class="redHead">${esc(first.teamRed||'Red Team')}</div></div>${rows}<div class="team-score-footer"><div class="white">Wins ${s.wWins}<br><span class="small">Points ${s.wPts}</span></div><div></div><div class="red">Wins ${s.rWins}<br><span class="small">Points ${s.rPts}</span></div></div></div>`}
 function renderPublic(){let data=courtCurrentMatch(state.publicCourt||'A');function panel(label,data){if(!data)return `<div class="fighter"><div class="court-chip">Court ${label}</div><h2>No active match</h2></div>`;let m=data.match,n=data.next,pts=activeScoreArrays(m);if(m.type==='teamPosition'||m.type==='teamPlayoff'||m.type==='kachinuki'){return `<div class="fighter"><div class="court-chip">Court ${label} • ${esc(data.division)}</div><h2>${esc(m.teamWhite)} vs ${esc(m.teamRed)}</h2>${m.type==='kachinuki'?kachinukiSheetHtml(m):teamSheetHtml(m.division,m.teamPair,m)}</div>`}return `<div class="fighter"><div class="court-chip">Court ${label} • ${esc(data.division)}${m.position?' • '+esc(m.position):''}</div><div class="scorebox"><div><div class="small">White</div><h2>${esc(m.white)}</h2><div class="points">${pts.W.join(' ')}</div></div><div class="redside"><div class="small">Red</div><h2>${esc(m.red)}</h2><div class="points">${pts.R.join(' ')}</div></div></div><h3>On Deck</h3>${n?`<div class="queue-row"><div class="white">${esc(n.white)}<div class="small">${esc(n.wdojo||'')}</div></div><div class="vs">vs<div class="small">${n.position?esc(n.position):''}</div></div><div class="red">${esc(n.red)}<div class="small">${esc(n.rdojo||'')}</div></div></div>`:'<div class="small">None</div>'}</div>`}if(window.publicTitle)publicTitle.textContent='Live Scores • Court '+(state.publicCourt||'A');publicLive.innerHTML=panel(state.publicCourt||'A',data)}
 function renderProgress(){progActive.innerHTML=`<b>${esc(state.currentDivision)}</b><br><span class="small">${state.matches[state.current]?`Pool ${state.matches[state.current].pool}`:'Not started'}</span>`;progUpcoming.innerHTML=state.divisions.filter(d=>d!==state.currentDivision).slice(0,4).map(d=>`<div class="competitor-line">${esc(d)}</div>`).join('')}
-function renderSearch(){if(!window.searchName||!window.searchDojo)return;let q=searchName.value.toLowerCase(),d=searchDojo.value.toLowerCase();let names=state.competitors.filter(c=>q&&c.name.toLowerCase().includes(q)).slice(0,8);nameResults.classList.toggle('hidden',!names.length);nameResults.innerHTML=names.map((c,i)=>`<div class="search-item" onclick="showCompProfile(${state.competitors.indexOf(c)})">${esc(c.name)}<div class="small">${esc(c.dojo)} • ${esc(c.division)}</div></div>`).join('');let dojos=[...new Set([...state.competitors.map(c=>c.dojo),...state.teams.map(t=>t.dojo)].filter(Boolean))].filter(x=>d&&x.toLowerCase().includes(d)).slice(0,8);dojoResults.classList.toggle('hidden',!dojos.length);dojoResults.innerHTML=dojos.map(x=>`<div class="search-item" onclick="showDojoProfile('${esc(x)}')">${esc(x)}</div>`).join('')}
+function renderSearch(){if(!window.searchName||!window.searchDojo)return;let q=searchName.value.toLowerCase(),d=searchDojo.value.toLowerCase();let names=state.competitors.filter(c=>q&&c.name.toLowerCase().includes(q)).slice(0,8);nameResults.classList.toggle('hidden',!names.length);nameResults.innerHTML=names.map((c,i)=>`<div class="search-item" onclick="showCompProfile(${state.competitors.indexOf(c)})">${esc(c.name)}<div class="small">${esc(c.dojo)} • ${esc(c.division)}</div></div>`).join('');let dojos=[...new Set([...state.competitors.map(c=>c.dojo),...state.teams.map(t=>t.dojo)].filter(Boolean))].filter(x=>d&&x.toLowerCase().includes(d)).slice(0,8);dojoResults.classList.toggle('hidden',!dojos.length);dojoResults.innerHTML=dojos.map(x=>`<div class="search-item" onclick="showDojoProfile(${jsArg(x)})">${esc(x)}</div>`).join('')}
 function showCompProfile(i){let c=state.competitors[i];profile.innerHTML=`<h1>${esc(c.name)}</h1><p>${esc(c.dojo)} • ${esc(c.division)}</p><p>Status: ${esc(c.status)}</p>`}
 function showDojoProfile(x){let n=state.competitors.filter(c=>c.dojo===x).length,t=state.teams.filter(c=>c.dojo===x).length;profile.innerHTML=`<h1>${esc(x)}</h1><p>${n} individual entries • ${t} teams</p>`}
 function completedResultWinnerValid(m,winner){
@@ -7284,6 +7317,8 @@ function championshipLabels(div){
   return championshipTemplateForTotal(total);
 }
 function requiredSeedPlaces(div){
+  // Pool-only divisions award 1st–3rd from standings, so ties touching those places need tiebreaks.
+  if(isPoolOnlyDivision(div)){const pool=state.pools[div][0];return {[pool.label]:Math.min(3,pool.players?.length||0)};}
   let req={};championshipLabels(div).flat().forEach(label=>{let m=String(label).match(/^([A-Z])(\d)$/);if(m){let p=parseInt(m[2],10);req[m[1]]=Math.max(req[m[1]]||0,p);}});return req;
 }
 function poolRowsStillTied(a,b){
@@ -7547,7 +7582,10 @@ function poolStandings(poolLabel,div=state.currentDivision){
     if(group.length>1&&(i+1)<=req){
       const resolved=resolveTiebreakBaseGroup(poolLabel,div,{start:i+1,end:j,players:group});
       const statsByName=new Map(tiebreakStatsForPlayers(poolLabel,div,group).stats.map(x=>[x.name,x]));
-      rebuilt.push(...resolved.ordered.map(x=>{const st=statsByName.get(x.name);return {name:x.name,dojo:x.dojo,wins:x.wins,pts:x.pts,tbWins:st?.wins||0,tbPts:st?.pts||0,seedLocked:resolved.locked.some(l=>l.name===x.name)};}));
+      // resolved.locked holds tiebreak-series stats; report the pool record (from `group`) as wins/pts
+      // and keep the tiebreak record separately in tbWins/tbPts.
+      const poolRecordByName=new Map(group.map(x=>[x.name,x]));
+      rebuilt.push(...resolved.ordered.map(x=>{const st=statsByName.get(x.name),rec=poolRecordByName.get(x.name)||x;return {name:x.name,dojo:x.dojo,wins:rec.wins,pts:rec.pts,tbWins:st?.wins||0,tbPts:st?.pts||0,seedLocked:resolved.locked.some(l=>l.name===x.name)};}));
     }else rebuilt.push(...group);
     i=j;
   }
@@ -7588,7 +7626,7 @@ function insertPoolPlayer(ev,toLabel,toIndex){
   toggleEditPools();
 }
 function dropPoolPlayer(ev,toLabel){ev.preventDefault();let div=poolDiv?.value||state.currentDivision;let pools=state.pools[div]||[];let data;try{data=JSON.parse(ev.dataTransfer.getData('text/plain'))}catch(e){return}let from=pools.find(p=>p.label===data.poolLabel),to=pools.find(p=>p.label===toLabel);if(!from||!to)return;let player=from.players.splice(data.idx,1)[0];if(player)to.players.push(player);toggleEditPools();}
-function toggleEditPools(){let div=poolDiv?.value||state.currentDivision;let pools=state.pools[div]||[];if(!pools.length)return;poolOutput.className='pools-layout';poolOutput.innerHTML='<div><div class="toolbar"><button class="primary" onclick="saveEditedPools()">Save Pool Changes</button><button onclick="renderPools()">Cancel</button></div><p class="sub">Drag players between pools or drop between names to insert into that position. Top-to-bottom order is always A, B, C, D.</p><div class="pool-list">'+pools.map((p,pi)=>`<div class="pool" ondragover="event.preventDefault();this.classList.add('drop-target')" ondragleave="this.classList.remove('drop-target')" ondrop="if(event.target===this)dropPoolPlayer(event,'${esc(p.label)}');this.classList.remove('drop-target')"><h3>Pool ${esc(p.label)}</h3><div class="drop-zone" ondragover="event.preventDefault()" ondrop="insertPoolPlayer(event,'${esc(p.label)}',0)"></div>${p.players.map((x,idx)=>`<div class="drag-player" draggable="true" ondragstart="dragPoolPlayer(event,'${esc(p.label)}',${idx})"><span class="pool-slot-badge">${esc(poolPlayerSlotLetter(idx))}</span><b>${esc(x.name)}</b><span class="small" style="float:right">${esc(x.dojo||'')}</span></div><div class="drop-zone" ondragover="event.preventDefault()" ondrop="insertPoolPlayer(event,'${esc(p.label)}',${idx+1})"></div>`).join('')}</div>`).join('')+'</div></div><div><h2>Championship Preview</h2>'+bracketHtml(div)+'</div>';}
+function toggleEditPools(){let div=poolDiv?.value||state.currentDivision;let pools=state.pools[div]||[];if(!pools.length)return;poolOutput.className='pools-layout';poolOutput.innerHTML='<div><div class="toolbar"><button class="primary" onclick="saveEditedPools()" data-testid="pool-edit-save">Save Pool Changes</button><button onclick="renderPools()">Cancel</button></div><p class="sub">Drag players between pools or drop between names to insert into that position. Top-to-bottom order is always A, B, C, D.</p><div class="pool-list">'+pools.map((p,pi)=>`<div class="pool" data-testid="pool-edit-pool" ondragover="event.preventDefault();this.classList.add('drop-target')" ondragleave="this.classList.remove('drop-target')" ondrop="if(event.target===this)dropPoolPlayer(event,${jsArg(p.label)});this.classList.remove('drop-target')"><h3>Pool ${esc(p.label)}</h3><div class="drop-zone" data-testid="pool-edit-drop" ondragover="event.preventDefault()" ondrop="insertPoolPlayer(event,${jsArg(p.label)},0)"></div>${p.players.map((x,idx)=>`<div class="drag-player" draggable="true" data-testid="pool-edit-player" ondragstart="dragPoolPlayer(event,${jsArg(p.label)},${idx})"><span class="pool-slot-badge">${esc(poolPlayerSlotLetter(idx))}</span><b>${esc(x.name)}</b><span class="small" style="float:right">${esc(x.dojo||'')}</span></div><div class="drop-zone" data-testid="pool-edit-drop" ondragover="event.preventDefault()" ondrop="insertPoolPlayer(event,${jsArg(p.label)},${idx+1})"></div>`).join('')}</div>`).join('')+'</div></div><div><h2>Championship Preview</h2>'+bracketHtml(div)+'</div>';}
 function movePoolPlayer(fromPool,idx,toPool){let div=poolDiv?.value||state.currentDivision;let pools=state.pools[div]||[];toPool=parseInt(toPool,10);if(fromPool===toPool)return;let player=pools[fromPool].players.splice(idx,1)[0];if(player)pools[toPool].players.push(player);toggleEditPools();}
 function saveEditedPools(){
   let div=poolDiv?.value||state.currentDivision;
@@ -7630,6 +7668,9 @@ function saveEditedPools(){
 }
 function renderAll(){ensureCourtHistory();renderDivisions();renderReg();renderTeams();renderExhibitions();renderPools();renderScore();renderProgress();renderContext();saveSetup();renderTournamentStatus();updateUndoButton()}
 function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+// A value as a JavaScript string literal inside an inline on*="..." handler. esc() alone is not enough:
+// the HTML parser decodes &#39; back to ' before the handler runs, so a name could break out of '...'.
+function jsArg(v){return esc(JSON.stringify(String(v??'')))}
 document.addEventListener('paste',e=>{if(!registration.classList.contains('hidden')&&state.regMode==='individual'){let text=e.clipboardData.getData('text');if(text&&text.includes('\t')){e.preventDefault();text.trim().split(/\n/).forEach(line=>{let[name,dojo,division,seed,status]=line.split('\t');if(name){if(division&&!state.divisions.includes(division))state.divisions.push(division);state.competitors.push({name,dojo:dojo||'',division:division||state.divisions[0],seed:seed||'',status:(status||'Registered').replace('Checked In','Checked')})}});renderDivisions();renderReg()}}});
 
 
@@ -7645,14 +7686,14 @@ function previewResultsSheet(){refreshPrintDivisionSelect();printBody.innerHTML=
 function previewFullPrintPacket(){refreshPrintDivisionSelect();let divs=printableDivisions();printBody.innerHTML=(divs.length?divs.map(printDivisionSheet).join(''):printSheet('No generated divisions','Generate a tournament before printing.',''))+printResultsSheet()}
 function printDivisionSheet(div){return isTeamDivision(div)?printTeamDivisionSheet(div):printIndividualDivisionSheet(div)}
 function printIndividualDivisionSheet(div){let pools=state.pools[div]||[],court=state.divisionCourts[div]||'A',format=state.divisionTypes[div]||'Round Robin';let body='';
-  if(pools.length){body+=`<div class="print-section-title">Pools</div><div class="print-pool-grid">`+pools.map(p=>`<div class="print-card"><div class="print-round">Pool ${esc(p.label)}</div><div class="print-list">${p.players.map((x,i)=>`<div class="print-person"><div class="print-place-label">${esc(poolPlayerSlot(x,i))}</div>${printNameBlock(x.name,x.dojo)}</div>`).join('')}</div></div>`).join('')+`</div>`;
-    body+=`<div class="print-section-title">Pool Match Order</div><div class="print-match-grid">`+pools.map(p=>{let ms=(state.allMatches[div]||[]).filter(m=>m.pool===p.label&&!m.championship&&!m.tiebreak);return `<div class="print-card soft"><div class="print-round">Pool ${esc(p.label)}</div>${ms.map((m,i)=>printMatchLine(m.white,m.red,m.wdojo,m.rdojo,'Match '+(i+1))).join('')||'<div class="print-dojo">No pool matches.</div>'}</div>`}).join('')+`</div>`;
+  if(pools.length){body+=`<div class="print-section-title">Pools</div><div class="print-pool-grid">`+pools.map(p=>`<div class="print-card" data-testid="print-pool"><div class="print-round">Pool ${esc(p.label)}</div><div class="print-list">${p.players.map((x,i)=>`<div class="print-person" data-testid="print-pool-player"><div class="print-place-label" data-testid="print-slot">${esc(poolPlayerSlot(x,i))}</div>${printNameBlock(x.name,x.dojo)}</div>`).join('')}</div></div>`).join('')+`</div>`;
+    body+=`<div class="print-section-title">Pool Match Order</div><div class="print-match-grid">`+pools.map(p=>{let ms=(state.allMatches[div]||[]).filter(m=>m.pool===p.label&&!m.championship&&!m.tiebreak);return `<div class="print-card soft"><div class="print-round">Pool ${esc(p.label)}</div>${ms.map((m,i)=>printMatchLine(m.white,m.red,m.wdojo,m.rdojo,'Match '+(i+1),m.court)).join('')||'<div class="print-dojo">No pool matches.</div>'}</div>`}).join('')+`</div>`;
   }else{body+=`<div class="print-section-title">Bracket</div>`;}
   body+=`<div class="print-section-title">Championship Bracket</div>${printBracketCards(div)}`;
   return printSheet(tName?.value||'Kendo Tournament',`${div} • ${format} • Court ${court}${printMetaLine()?' • '+printMetaLine():''}`,body,'Division Sheet')}
-function printMatchLine(white,red,wdojo,rdojo,label){return `<div class="print-match"><div class="print-white">${printNameBlock(white,wdojo)}</div><div class="print-vs">${esc(label||'vs')}</div><div class="print-red">${printNameBlock(red,rdojo)}</div></div>`}
-function printBracketCards(div){if(state.singleElimNodes&&state.singleElimNodes[div])return printSingleElimBracketCards(div);let labels=championshipLabels(div);if(!labels.length)return '<div class="print-card soft"><div class="print-dojo">Championship bracket placeholders will appear after generation.</div></div>';let first=firstRoundName(labels.length),html=`<div class="print-card"><div class="print-round">${esc(first)}</div>`;labels.forEach(([r,w],i)=>{let rn=seedNameForLabel(div,r,true),wn=seedNameForLabel(div,w,true);let red=rn?rn.name:r,white=wn?wn.name:w;let rdojo=rn?rn.dojo:'',wdojo=wn?wn.dojo:'';let status=(String(w).toUpperCase()==='BYE'||!w)?'BYE':'Match '+(i+1);html+=printMatchLine(white,red,wdojo,rdojo,status)});html+='</div>';let round=nextRoundFromName(first),count=labels.length;while(round){let next=Math.ceil(count/2);html+=`<div class="print-card"><div class="print-round">${esc(round)}</div>`;for(let i=1;i<=next;i++){html+=printMatchLine((2*i<=count)?`Winner of ${first} Match ${2*i}`:'Bye',`Winner of ${first} Match ${2*i-1}`,'','',round==='Final'?'Final':'Match '+i)}html+='</div>';if(round==='Final')break;first=round;round=nextRoundFromName(round);count=next;}return `<div class="print-bracket-grid">${html}</div>`}
-function printSingleElimBracketCards(div){let nodes=state.singleElimNodes?.[div]||[];if(!nodes.length)return '<div class="print-card soft"><div class="print-dojo">Bracket will appear after generation.</div></div>';let rounds=[...new Set(nodes.map(n=>n.round))];return `<div class="print-bracket-grid print-single-elim-grid">`+rounds.map(round=>`<div class="print-card"><div class="print-round">${esc(round)}</div>`+nodes.filter(n=>n.round===round).map((node,i)=>{let m=(state.allMatches[div]||[]).find(x=>x.singleElim&&x.elimNodeId===node.id);if(m)return printMatchLine(m.white,m.red,m.wdojo,m.rdojo,'Match '+(i+1));return printMatchLine(sideLabelGeneric(node.right,div),sideLabelGeneric(node.left,div),'','',(!node.left||!node.right)?'BYE':'Match '+(i+1));}).join('')+`</div>`).join('')+`</div>`}
+function printMatchLine(white,red,wdojo,rdojo,label,court){return `<div class="print-match${court&&redOnLeftForCourt(court)?' red-left':''}"><div class="print-white">${printNameBlock(white,wdojo)}</div><div class="print-vs">${esc(label||'vs')}</div><div class="print-red">${printNameBlock(red,rdojo)}</div></div>`}
+function printBracketCards(div){if(state.singleElimNodes&&state.singleElimNodes[div])return printSingleElimBracketCards(div);let labels=championshipLabels(div);if(!labels.length)return '<div class="print-card soft"><div class="print-dojo">Championship bracket placeholders will appear after generation.</div></div>';let first=firstRoundName(labels.length),html=`<div class="print-card"><div class="print-round">${esc(first)}</div>`;labels.forEach(([r,w],i)=>{let rn=seedNameForLabel(div,r,true),wn=seedNameForLabel(div,w,true);let red=rn?rn.name:r,white=wn?wn.name:w;let rdojo=rn?rn.dojo:'',wdojo=wn?wn.dojo:'';let status=(String(w).toUpperCase()==='BYE'||!w)?'BYE':'Match '+(i+1);html+=printMatchLine(white,red,wdojo,rdojo,status,(state.championshipNodes?.[div]||[])[i]?.court||state.divisionCourts?.[div])});html+='</div>';let round=nextRoundFromName(first),count=labels.length;while(round){let next=Math.ceil(count/2);html+=`<div class="print-card"><div class="print-round">${esc(round)}</div>`;for(let i=1;i<=next;i++){html+=printMatchLine((2*i<=count)?`Winner of ${first} Match ${2*i}`:'Bye',`Winner of ${first} Match ${2*i-1}`,'','',round==='Final'?'Final':'Match '+i,state.divisionCourts?.[div])}html+='</div>';if(round==='Final')break;first=round;round=nextRoundFromName(round);count=next;}return `<div class="print-bracket-grid">${html}</div>`}
+function printSingleElimBracketCards(div){let nodes=state.singleElimNodes?.[div]||[];if(!nodes.length)return '<div class="print-card soft"><div class="print-dojo">Bracket will appear after generation.</div></div>';let rounds=[...new Set(nodes.map(n=>n.round))];return `<div class="print-bracket-grid print-single-elim-grid">`+rounds.map(round=>`<div class="print-card"><div class="print-round">${esc(round)}</div>`+nodes.filter(n=>n.round===round).map((node,i)=>{let m=(state.allMatches[div]||[]).find(x=>x.singleElim&&x.elimNodeId===node.id);if(m)return printMatchLine(m.white,m.red,m.wdojo,m.rdojo,'Match '+(i+1),m.court);return printMatchLine(sideLabelGeneric(node.right,div),sideLabelGeneric(node.left,div),'','',(!node.left||!node.right)?'BYE':'Match '+(i+1),node.court);}).join('')+`</div>`).join('')+`</div>`}
 function printTeamRoundRobinStandings(div){
   let rows=teamStandings(div),pairs=teamPairIds(div);
   let standings=`<div class="print-card">${rows.map(row=>`<div class="print-results-row"><div><b>${row.rank}. ${esc(row.name)}</b></div><div>${row.wins}-${row.losses} team W-L • ${row.matchWins} bout wins • ${row.pts} pts</div></div>`).join('')}</div>`;
@@ -7661,7 +7702,7 @@ function printTeamRoundRobinStandings(div){
 }
 function printTeamDivisionSheet(div){let teams=eligibleTeams(div),fmt=teamFormat?.value||'Team',court=state.divisionCourts[div]||state.divisionCourts['Team Tournament']||'Both',cols=Math.max(1,Math.min(4,teams.length||1));let competitive=isTeamRoundRobinDivision(div)?printTeamRoundRobinStandings(div):`<div class="print-section-title">Team Bracket</div>${printTeamBracketCards(div)}`;let body=`<div class="print-section-title">Teams and Rosters</div><div class="print-team-grid" style="--team-cols:${cols}">`+teams.map(t=>`<div class="print-card"><div class="print-round">${esc(t.team)}</div>${printTeamRosterRows(t)}</div>`).join('')+`</div>${competitive}`;return printSheet(tName?.value||'Kendo Tournament',`${div} • ${fmt} • Court ${court}${printMetaLine()?' • '+printMetaLine():''}`,body,'Team Sheet')}
 function printTeamRosterRows(t){let keys=(teamFormat?.value==='3-Person Team'||teamFormat?.value==='Kachinuki')?['senpo','chuken','taisho']:['senpo','jiho','chuken','fukusho','taisho'];return keys.map(k=>`<div class="print-roster"><div class="print-position">${esc(slotLabel(k))}</div><div>${esc(t[k]||'—')}</div></div>`).join('')}
-function printTeamBracketCards(div){let nodes=state.teamBracketNodes?.[div]||[];if(!nodes.length)return '<div class="print-card soft"><div class="print-dojo">Team bracket will appear after generation.</div></div>';let rounds=[...new Set(nodes.map(n=>n.round))];return `<div class="print-bracket-grid">`+rounds.map(round=>`<div class="print-card"><div class="print-round">${esc(round)}</div>`+nodes.filter(n=>n.round===round).map((node,i)=>printMatchLine(teamSideLabel(node.right,div),teamSideLabel(node.left,div),'','',`${node.court?`Court ${node.court}`:'Match'} ${i+1}`)).join('')+`</div>`).join('')+`</div>`}
+function printTeamBracketCards(div){let nodes=state.teamBracketNodes?.[div]||[];if(!nodes.length)return '<div class="print-card soft"><div class="print-dojo">Team bracket will appear after generation.</div></div>';let rounds=[...new Set(nodes.map(n=>n.round))];return `<div class="print-bracket-grid">`+rounds.map(round=>`<div class="print-card"><div class="print-round">${esc(round)}</div>`+nodes.filter(n=>n.round===round).map((node,i)=>printMatchLine(teamSideLabel(node.right,div),teamSideLabel(node.left,div),'','',`${node.court?`Court ${node.court}`:'Match'} ${i+1}`,node.court)).join('')+`</div>`).join('')+`</div>`}
 function printPlacementsForDivision(div){if(isTeamDivision(div)){let p=teamFinalPlacements(div),mode=state.teamAwardMode||'top2';if(!p)return [];let rows=[['1st',p.first]];if(mode!=='top1'&&p.second)rows.push(['2nd',p.second]);if(mode==='dual3')(p.thirds||[]).forEach(t=>rows.push(['3rd',t]));return rows;}let final=(state.allMatches[div]||[]).find(m=>m.championship&&m.position==='Final'&&m.done);if(!final)return [];let first=winnerOf(final),second=first===final.red?final.white:final.red;let rows=[['1st',first],['2nd',second]];(state.allMatches[div]||[]).filter(m=>m.championship&&m.position==='Semifinal'&&m.done).forEach(m=>{let w=winnerOf(m);rows.push(['3rd',w===m.red?m.white:m.red])});return rows;}
 function printResultsSheet(){let divs=printableDivisions();let rows=divs.map(div=>{let placements=printPlacementsForDivision(div);return `<div class="print-results-row"><div><div class="print-name">${esc(div)}</div></div><div>${placements.length?placements.map(([place,name])=>`<div class="print-placement"><span class="print-place-label">${esc(place)}</span><b>${esc(name)}</b></div>`).join(''):'<span class="print-dojo">Results pending</span>'}</div></div>`}).join('');let awards=(state.awards||[]).filter(a=>a.award||a.name||a.dojo);let awardHtml=`<div class="print-section-title">Awards</div>`+(awards.length?`<div class="print-card">${awards.map(a=>`<div class="print-award-row"><b>${esc(a.award)}</b><span>${esc(a.name)}</span><span class="print-dojo">${esc(a.dojo)}</span></div>`).join('')}</div>`:'<div class="print-card soft"><div class="print-dojo">No awards entered.</div></div>');return printSheet(tName?.value||'Kendo Tournament',`Results${printMetaLine()?' • '+printMetaLine():''}`,`<div class="print-section-title">Division Results</div><div class="print-card">${rows||'<div class="print-dojo">No generated divisions.</div>'}</div>${awardHtml}`,'Results + Awards')}
 
@@ -7697,6 +7738,9 @@ const KSM_PINNED_COURT_PREFIX='ksm.pinned.court.v3_17_11';
 const ksmLocalCourtDivision={A:null,B:null};
 const KSM_LOCAL_VIEW_STATE_KEYS=new Set(['currentCourt','publicCourt','currentDivision','matches','current','score']);
 function normalizeCourt(value){return String(value||'').toUpperCase()==='B'?'B':'A'}
+// Red/White sides are mirrored per court to match the scoring table's view (Setup → Referees).
+function redOnLeftForCourt(court){return document.getElementById(normalizeCourt(court)==='B'?'court2RedSide':'court1RedSide')?.value==='left'}
+function applyCourtSides(){document.body.classList.toggle('ksm-red-left',redOnLeftForCourt(state.currentCourt))}
 function rememberLocalCourtDivision(court,division){const c=normalizeCourt(court);if(division&&typeof division==='string')ksmLocalCourtDivision[c]=division;return ksmLocalCourtDivision[c]}
 function localCourtDivision(court){return ksmLocalCourtDivision[normalizeCourt(court)]||null}
 function clearLocalCourtDivisions(){ksmLocalCourtDivision.A=null;ksmLocalCourtDivision.B=null}
@@ -7939,7 +7983,7 @@ function recoveryPackage(){const outbox=readOutbox();let stored=null;try{stored=
 function downloadRecoveryFile(){try{const pack=recoveryPackage();const court=pack.assignedCourt?`_Court-${pack.assignedCourt}`:'';const stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);downloadJson(pack,`KSM_Recovery${court}_${stamp}.ksm`);updateSaveStatus('Recovery file downloaded')}catch(err){console.error(err);alert('Unable to create recovery file.')}}
 function downloadCloudRecovery(){downloadRecoveryFile()}
 function getSetupSnapshot(){
-  const ids=['tName','tHost','tDate','tLocation','tCourts','tType','teamEnabled','teamFormat','teamTournamentFormat','teamCourt','teamAwardMode','exhibitionEnabled','court1Refs','court2Refs'];
+  const ids=['tName','tHost','tDate','tLocation','tCourts','tType','teamEnabled','teamFormat','teamTournamentFormat','teamCourt','teamAwardMode','exhibitionEnabled','court1Refs','court2Refs','court1RedSide','court2RedSide'];
   const data={};
   ids.forEach(id=>{const el=document.getElementById(id); if(el) data[id]=el.value;});
   return data;
@@ -7947,6 +7991,7 @@ function getSetupSnapshot(){
 function applySetupSnapshot(data){
   if(!data) return;
   Object.keys(data).forEach(id=>{const el=document.getElementById(id); if(el) el.value=data[id];});
+  applyCourtSides();
   if(data.teamCourt) state.divisionCourts['Team Tournament']=data.teamCourt;
   if(data.teamAwardMode) state.teamAwardMode=data.teamAwardMode;
 }
@@ -8098,7 +8143,7 @@ function applyRemoteCloudRecord(record,allowWhileEditing=false,forceApply=false)
     if(!ksmDeferredRemoteRecord||incomingRevision>Number(ksmDeferredRemoteRecord.revision||0))ksmDeferredRemoteRecord=record;
     updateSaveStatus('Live update waiting for editing to finish');updateTvRealtimeDiagnostics({lastReason:`Deferred revision ${incomingRevision} while editing`});return false;
   }
-  const outbox=readOutbox();if(outbox&&Number(outbox.baseRevision||0)<incomingRevision){preserveRecovery(outbox,record);clearOutbox()}
+  const outbox=readOutbox();if(outbox&&Number(outbox.baseRevision||0)<incomingRevision&&!(isReadOnlySession()&&outbox.role==='staff'&&outbox.tournamentId===record.tournamentId)){preserveRecovery(outbox,record);clearOutbox()}
   ksmApplyingRemoteSnapshot=true;
   try{
     applyTournamentPayload(record.payload,false,{pinnedCourt:pinnedCourt(),preserveLocalDivision:preserveLocalDivisionForRemoteSync(),source:'live sync'});restorePinnedCourt();localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(record.payload));cloudSession.revision=Math.max(Number(cloudSession.revision||0),incomingRevision);cloudSession.updatedAt=record.updatedAt;persistCloudSession();const by=record.updatedBy?.name||record.updatedBy?.role;updateSaveStatus((by?`Updated by ${by} • `:'Live update • ')+new Date(record.updatedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}));setConnectionStatus('Live sync','online');const nextTvDivision=state.courtActiveDivision?.[tvCourt]||state.courtState?.[tvCourt]?.division||null;if(isTvSession()){renderTvDisplay();if(priorTvDivision!==nextTvDivision)console.info('[TV Realtime] Active division changed',tvCourt,priorTvDivision,'→',nextTvDivision)}console.info('[TV Realtime] Applied revision',incomingRevision);updateTvRealtimeDiagnostics({lastAppliedRevision:incomingRevision,lastReason:priorTvDivision!==nextTvDivision?`Applied ${incomingRevision}; Court ${tvCourt} division refreshed`:`Applied revision ${incomingRevision}`});return true
@@ -8171,7 +8216,11 @@ async function saveTournamentToCloudWithReason(reason='Autosave',force=false){
     if(!localChangesPending())applyDeferredSyncRecord();
   }
 }
-async function flushCloudOutbox(){const outbox=readOutbox();if(!outbox||ksmCloudSaveInFlight||isReadOnlySession()||!navigator.onLine)return false;if(outbox.tournamentId&&outbox.tournamentId!==cloudSession.tournamentId){writeCloudDiagnosticsState({stage:'Outbox blocked',errorMessage:'Queued snapshot belongs to a different tournament',queuedTournamentId:outbox.tournamentId||'',activeTournamentId:cloudSession.tournamentId||''});return false}ksmCloudSaveInFlight=true;ksmSaveStatusMode='syncing';writeCloudDiagnosticsState({stage:'Retrying queued snapshot',lastAttemptAt:new Date().toISOString(),baseRevision:outbox.baseRevision||0,snapshotBytes:payloadByteSize(outbox.payload),retryCount:(readCloudDiagnosticsState().retryCount||0)+1});renderPersistentSaveStatus();try{await performCloudSave(outbox.payload,outbox.baseRevision);return true}catch(err){console.warn('Queued cloud save failed',err);writeCloudDiagnosticsState({stage:'Queued save failed',errorMessage:String(err?.message||err),lastFailureAt:new Date().toISOString()});ksmSaveStatusMode='error';renderPersistentSaveStatus();return false}finally{ksmCloudSaveInFlight=false}}
+async function flushCloudOutbox(){const outbox=readOutbox();if(!outbox||ksmCloudSaveInFlight||isReadOnlySession()||!navigator.onLine)return false;if(outbox.tournamentId&&outbox.tournamentId!==cloudSession.tournamentId){writeCloudDiagnosticsState({stage:'Outbox blocked',errorMessage:'Queued snapshot belongs to a different tournament',queuedTournamentId:outbox.tournamentId||'',activeTournamentId:cloudSession.tournamentId||''});return false}ksmCloudSaveInFlight=true;ksmSaveStatusMode='syncing';writeCloudDiagnosticsState({stage:'Retrying queued snapshot',lastAttemptAt:new Date().toISOString(),baseRevision:outbox.baseRevision||0,snapshotBytes:payloadByteSize(outbox.payload),retryCount:(readCloudDiagnosticsState().retryCount||0)+1});renderPersistentSaveStatus();const mutationVersion=ksmLocalMutationVersion;try{const record=await performCloudSave(outbox.payload,outbox.baseRevision);
+  // After a reload the screen shows the older cloud copy and our own echo is ignored: show what
+  // was just saved, replaying court actions taken while the flush was in flight (as a rebase does).
+  if(record?.payload){const localPayload=ksmLocalMutationVersion===mutationVersion?record.payload:rebaseLocalPayloadOnRecord(tournamentPayload(),record,Number(outbox.baseRevision||0));ksmApplyingRemoteSnapshot=true;try{applyTournamentPayload(localPayload,false,{pinnedCourt:pinnedCourt(),preserveLocalDivision:true,source:'outbox flush'});localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(localPayload))}finally{ksmApplyingRemoteSnapshot=false}}
+  return true}catch(err){console.warn('Queued cloud save failed',err);writeCloudDiagnosticsState({stage:'Queued save failed',errorMessage:String(err?.message||err),lastFailureAt:new Date().toISOString()});ksmSaveStatusMode='error';renderPersistentSaveStatus();return false}finally{ksmCloudSaveInFlight=false;await runPendingCloudSave()}}
 async function retryQueuedCloudSave(){if(!readOutbox()){showKsmToast('No queued snapshot to retry',1800);return}showKsmToast('Retrying queued save…',1200);const ok=await flushCloudOutbox();showKsmToast(ok?'✓ Queued save completed':'Queued save still needs attention',2600,!ok);cloudDiagnostics()}
 function scheduleCloudSave(reason='Autosave',delay=1200){if(ksmApplyingRemoteSnapshot||isReadOnlySession())return;clearTimeout(ksmCloudTimer);ksmCloudTimer=setTimeout(()=>{ksmCloudTimer=null;saveTournamentToCloudWithReason(reason)},delay)}
 async function promptLoadTournamentFromCloud(){const id=prompt('Enter Tournament ID',cloudSession.tournamentId||'');if(!id)return;try{await loadTournamentFromCloud(id,{spectator:true});updateSaveStatus('Loaded cloud tournament')}catch(err){alert('Unable to load that cloud tournament.');console.error(err);setConnectionStatus('Cloud load failed','offline')}}
@@ -8182,7 +8231,7 @@ async function loadTournamentFromCloud(tournamentId,options={}){
   if(options.credentials)cloudSession.credentials=options.credentials;else if(options.role&&options.key){cloudSession.credentials={[options.role]:options.key}}else if(options.spectator)delete cloudSession.credentials;
   persistCloudSession();ksmLastSuccessfulSaveAt=Date.parse(record.updatedAt)||Date.now();ksmSaveStatusMode='saved';setSessionRole(options.role||((cloudSession.credentials&&Object.keys(cloudSession.credentials)[0])||'spectator'));connectCloudSocket();setConnectionStatus('Connected','online');renderPersistentSaveStatus();return record;
 }
-function showKsmToast(message,duration=2000,isError=false){let toast=document.getElementById('ksmToast');if(!toast){toast=document.createElement('div');toast.id='ksmToast';toast.className='ksm-toast';document.body.appendChild(toast)}clearTimeout(showKsmToast.timer);toast.textContent=message;toast.classList.toggle('error',Boolean(isError));requestAnimationFrame(()=>toast.classList.add('show'));if(duration>0)showKsmToast.timer=setTimeout(()=>toast.classList.remove('show'),duration)}
+function showKsmToast(message,duration=2000,isError=false){let toast=document.getElementById('ksmToast');if(!toast){toast=document.createElement('div');toast.id='ksmToast';toast.className='ksm-toast';toast.dataset.testid='toast';document.body.appendChild(toast)}clearTimeout(showKsmToast.timer);toast.textContent=message;toast.classList.toggle('error',Boolean(isError));requestAnimationFrame(()=>toast.classList.add('show'));if(duration>0)showKsmToast.timer=setTimeout(()=>toast.classList.remove('show'),duration)}
 async function copyTextValue(value,success,closeAfter=false){try{await navigator.clipboard.writeText(value);showKsmToast('✓ '+success,1200);if(closeAfter)setTimeout(closeCloudModal,850);return true}catch(_){prompt(success,value);return false}}
 function roleLink(role,court=''){if(!cloudSession.tournamentId)return '';const url=new URL(location.href);url.search='';url.hash='';url.searchParams.set('role',role);url.searchParams.set('tournament',cloudSession.tournamentId);const key=cloudSession.credentials?.[role];if(key)url.searchParams.set('key',key);if(court)url.searchParams.set('court',court);return url.toString()}
 function tvLink(court){const url=new URL(roleLink('spectator',court));if(!url.href||!cloudSession.tournamentId)return '';url.searchParams.set('view','tv');url.searchParams.set('court',court);return url.toString()}
@@ -8194,11 +8243,11 @@ async function copyDirectorLink(){const link=directorLink();if(!link||!cloudSess
 async function copyScorekeeperLink(court){const link=roleLink('scorekeeper',court);if(!link||!cloudSession.credentials?.scorekeeper){alert('This device does not have the scorekeeper credential.');return}await copyTextValue(link,`Court ${court} scorekeeper link copied`)}
 async function copyAdminLink(){const link=roleLink('admin');if(!link||!cloudSession.credentials?.admin){alert('This device does not have admin access.');return}await copyTextValue(link,'Admin link copied')}
 function closeCloudModal(){document.getElementById('ksmCloudModal')?.remove()}
-function openCloudModal(title,body){closeCloudModal();const wrap=document.createElement('div');wrap.id='ksmCloudModal';wrap.className='cloud-modal-backdrop';wrap.innerHTML=`<div class="cloud-modal" role="dialog" aria-modal="true"><div class="cloud-modal-head"><div><div class="setup-panel-eyebrow">KSM Cloud</div><h2>${esc(title)}</h2></div><button class="secondary" onclick="closeCloudModal()">Close</button></div>${body}</div>`;wrap.addEventListener('click',e=>{if(e.target===wrap)closeCloudModal()});document.body.appendChild(wrap)}
+function openCloudModal(title,body){closeCloudModal();const wrap=document.createElement('div');wrap.id='ksmCloudModal';wrap.className='cloud-modal-backdrop';wrap.innerHTML=`<div class="cloud-modal" role="dialog" aria-modal="true" data-testid="cloud-modal"><div class="cloud-modal-head"><div><div class="setup-panel-eyebrow">KSM Cloud</div><h2 data-testid="cloud-modal-title">${esc(title)}</h2></div><button class="secondary" onclick="closeCloudModal()" data-testid="cloud-modal-close">Close</button></div>${body}</div>`;wrap.addEventListener('click',e=>{if(e.target===wrap)closeCloudModal()});document.body.appendChild(wrap)}
 function showQr(label,link){if(!link)return;const qr=`https://api.qrserver.com/v1/create-qr-code/?size=440x440&data=${encodeURIComponent(link)}`;openCloudModal(`${label} QR Code`,`<img class="cloud-qr" src="${qr}" alt="${label} QR code"><p class="small" style="text-align:center">Scan this code to open ${label}.</p><div class="row" style="justify-content:center"><button class="secondary" onclick="openTournamentAccess()">Back</button></div>`)}
-async function openTournamentAccess(){if(!cloudSession.tournamentId)await saveNow();if(!cloudSession.tournamentId){alert('Connect to the internet and save the tournament first.');return}const rows=[['Spectator View',spectatorLink(),true],['Court A Scorekeeper',roleLink('scorekeeper','A'),Boolean(cloudSession.credentials?.scorekeeper)],['Court B Scorekeeper',roleLink('scorekeeper','B'),Boolean(cloudSession.credentials?.scorekeeper)],['TV Display — Court A',tvLink('A'),true],['TV Display — Court B',tvLink('B'),true],['Admin Access',roleLink('admin'),Boolean(cloudSession.credentials?.admin)]];const html=`<p class="small">Spectator access is public. Court and Admin links are private.</p>${rows.map(([label,link,allowed])=>`<div class="cloud-access-row"><div><b>${esc(label)}</b>${allowed?'':`<div class="small">Not available on this device</div>`}</div><div class="cloud-access-actions">${allowed?`<button onclick='copyTextValue(${JSON.stringify(link)},${JSON.stringify(label+' link copied')},true)'>Copy Link</button><button class="secondary" onclick='showQr(${JSON.stringify(label)},${JSON.stringify(link)})'>QR Code</button>`:''}</div></div>`).join('')}`;openCloudModal('Tournament Access',html)}
+async function openTournamentAccess(){if(!cloudSession.tournamentId)await saveNow();if(!cloudSession.tournamentId){alert('Connect to the internet and save the tournament first.');return}const rows=[['Spectator View',spectatorLink(),true],['Court A Scorekeeper',roleLink('scorekeeper','A'),Boolean(cloudSession.credentials?.scorekeeper)],['Court B Scorekeeper',roleLink('scorekeeper','B'),Boolean(cloudSession.credentials?.scorekeeper)],['TV Display — Court A',tvLink('A'),true],['TV Display — Court B',tvLink('B'),true],['Admin Access',roleLink('admin'),Boolean(cloudSession.credentials?.admin)]];const html=`<p class="small">Spectator access is public. Court and Admin links are private.</p>${rows.map(([label,link,allowed])=>`<div class="cloud-access-row"><div><b>${esc(label)}</b>${allowed?'':`<div class="small">Not available on this device</div>`}</div><div class="cloud-access-actions">${allowed?`<button onclick='copyTextValue(${jsArg(link)},${jsArg(label+' link copied')},true)'>Copy Link</button><button class="secondary" onclick='showQr(${jsArg(label)},${jsArg(link)})'>QR Code</button>`:''}</div></div>`).join('')}`;openCloudModal('Tournament Access',html)}
 function installRoleBanner(role){document.querySelector('.spectator-readonly-banner')?.remove();if(!['spectator','scorekeeper'].includes(role))return;const banner=document.createElement('div');banner.className='spectator-readonly-banner';banner.textContent=role==='spectator'?'LIVE SPECTATOR VIEW • READ ONLY':`COURT ${cloudSession.court||'—'} SCOREKEEPER • LIVE SYNC`;document.body.prepend(banner)}
-function cloudDiagnostics(){const outbox=readOutbox(),presence=cloudSession.presence||[],diag=readCloudDiagnosticsState(),currentAnalysis=analyzeTournamentSnapshot(),analysis=diag.snapshotAnalysis||currentAnalysis,historyAnalysis=analyzeCourtActionHistory();const details=[['Connection',navigator.onLine?'Online':'Offline'],['Realtime',ksmCloudSocket?.readyState===1?'Connected':'Not connected'],['Last successful save',ksmLastSuccessfulSaveAt?new Date(ksmLastSuccessfulSaveAt).toLocaleString():'None'],['Pending offline changes',outbox?'1 queued snapshot':'None'],['Tournament ID',cloudSession.tournamentId||'None'],['Role',ksmSessionRole],['Pinned court',pinnedCourt()||'—'],['Displayed court',state.currentCourt||'—'],['Local changes pending',localChangesPending()?'Yes':'No'],['Court',cloudSession.court||state.currentCourt||'—'],['Connected devices',String(presence.length)],['Cloud revision',String(cloudSession.revision||0)],['Last save stage',diag.stage||'No diagnostic attempt recorded'],['Last attempt',formatDiagnosticTime(diag.lastAttemptAt)],['HTTP status',diag.httpStatus==null?'None':String(diag.httpStatus)],['Last error',diag.errorMessage||'None'],['Server response',diag.errorBody||'None'],['Retry count',String(diag.retryCount||0)],['Queued base revision',outbox?String(outbox.baseRevision||0):'None'],['Queued since',outbox?formatDiagnosticTime(outbox.queuedAt):'None'],['Snapshot size',formatSnapshotBytes(outbox?payloadByteSize(outbox.payload):(diag.snapshotBytes||currentAnalysis.totalBytes))]];const actions=`<div class="row" style="justify-content:flex-end;margin-top:18px;gap:10px;flex-wrap:wrap"><button class="secondary" onclick="downloadSnapshotAnalysis()">Download snapshot analysis</button><button class="secondary" onclick="downloadActionHistorySample()">Download action history sample</button>${outbox&&!isReadOnlySession()?'<button class="secondary" onclick="retryQueuedCloudSave()">Retry queued save</button>':''}</div>`;openCloudModal('Developer Tools',`<div class="cloud-detail-grid">${details.map(([a,b])=>`<div class="cloud-detail"><div class="small">${esc(a)}</div><b style="overflow-wrap:anywhere">${esc(b)}</b></div>`).join('')}</div><h2 style="margin-top:24px">Snapshot Analysis</h2>${snapshotAnalysisHtml(analysis)}<h2 style="margin-top:24px">Action History Analysis</h2><p class="small">Read-only diagnostics. Scoring, undo, redo, saving, and synchronization are unchanged.</p>${actionHistoryAnalysisHtml(historyAnalysis)}${actions}`)}
+function cloudDiagnostics(){const outbox=readOutbox(),presence=cloudSession.presence||[],diag=readCloudDiagnosticsState(),currentAnalysis=analyzeTournamentSnapshot(),analysis=diag.snapshotAnalysis||currentAnalysis,historyAnalysis=analyzeCourtActionHistory();const details=[['Connection',navigator.onLine?'Online':'Offline'],['Realtime',ksmCloudSocket?.readyState===1?'Connected':'Not connected'],['Last successful save',ksmLastSuccessfulSaveAt?new Date(ksmLastSuccessfulSaveAt).toLocaleString():'None'],['Pending offline changes',outbox?'1 queued snapshot':'None'],['Tournament ID',cloudSession.tournamentId||'None'],['Role',ksmSessionRole],['Pinned court',pinnedCourt()||'—'],['Displayed court',state.currentCourt||'—'],['Local changes pending',localChangesPending()?'Yes':'No'],['Court',cloudSession.court||state.currentCourt||'—'],['Connected devices',String(presence.length)],['Cloud revision',String(cloudSession.revision||0)],['Last save stage',diag.stage||'No diagnostic attempt recorded'],['Last attempt',formatDiagnosticTime(diag.lastAttemptAt)],['HTTP status',diag.httpStatus==null?'None':String(diag.httpStatus)],['Last error',diag.errorMessage||'None'],['Server response',diag.errorBody||'None'],['Retry count',String(diag.retryCount||0)],['Queued base revision',outbox?String(outbox.baseRevision||0):'None'],['Queued since',outbox?formatDiagnosticTime(outbox.queuedAt):'None'],['Snapshot size',formatSnapshotBytes(outbox?payloadByteSize(outbox.payload):(diag.snapshotBytes||currentAnalysis.totalBytes))]];const actions=`<div class="row" style="justify-content:flex-end;margin-top:18px;gap:10px;flex-wrap:wrap"><button class="secondary" onclick="downloadSnapshotAnalysis()">Download snapshot analysis</button><button class="secondary" onclick="downloadActionHistorySample()">Download action history sample</button>${outbox&&!isReadOnlySession()?'<button class="secondary" onclick="retryQueuedCloudSave()" data-testid="diagnostics-retry">Retry queued save</button>':''}</div>`;openCloudModal('Developer Tools',`<div class="cloud-detail-grid">${details.map(([a,b])=>`<div class="cloud-detail"><div class="small">${esc(a)}</div><b style="overflow-wrap:anywhere">${esc(b)}</b></div>`).join('')}</div><h2 style="margin-top:24px">Snapshot Analysis</h2>${snapshotAnalysisHtml(analysis)}<h2 style="margin-top:24px">Action History Analysis</h2><p class="small">Read-only diagnostics. Scoring, undo, redo, saving, and synchronization are unchanged.</p>${actionHistoryAnalysisHtml(historyAnalysis)}${actions}`)}
 async function initializeCloudRoleFromUrl(){ensureClientIdentity();const params=new URLSearchParams(location.search);let role=params.get('role'),id=params.get('tournament'),key=params.get('key'),court=params.get('court')||'',requestedView=params.get('view')||'';
   if(!role){if(params.get('spectator')){role='spectator';id=params.get('spectator')}else if(params.get('director')){role='director';id=params.get('director');key=params.get('key')}}
   if(role&&id){role=['spectator','scorekeeper','director','admin'].includes(role)?role:'spectator';cloudSession.clientName=promptDeviceName(role,cloudSession.clientName);await loadTournamentFromCloud(id,role==='spectator'?{spectator:true,role,court}:{role,key,court});installRoleBanner(role);if(requestedView==='tv'){document.body.classList.add('ksm-tv');cloudSession.court=(court||'A').toUpperCase()==='B'?'B':'A';persistCloudSession();renderTvDisplay();renderTvRealtimeDiagnostics();show('tv')}else if(role==='spectator'){navigateTo('public')}else if(role==='scorekeeper'){chooseCourt(court||'A')}else navigateTo('director');return true}
@@ -8303,6 +8352,10 @@ function applyTournamentPayload(payload,saveAfter,options={}){
 }
 function restoreAutoSaveIfWanted(){
   try{
+    // A tournament link (spectator, TV, court device) always loads the cloud copy, which would
+    // replace anything restored here. Unsynced staff work is kept in the outbox instead.
+    const params=new URLSearchParams(location.search);
+    if(params.get('tournament')||params.get('spectator'))return false;
     const raw=localStorage.getItem(KSM_SAVE_KEY);
     if(!raw) return false;
     const payload=JSON.parse(raw);
@@ -8316,6 +8369,11 @@ function restoreAutoSaveIfWanted(){
   }catch(err){console.warn('Autosave restore failed',err)}
   return false;
 }
+// A reload before the debounced cloud save runs must not drop staff work: queue it in the
+// outbox, which survives the reload and is flushed once staff access is back.
+// An older queued snapshot keeps its base revision so the flush still replays its court actions.
+function queueUnsyncedStaffWorkBeforeUnload(){if(isReadOnlySession()||!cloudSession.tournamentId||!localChangesPending())return;const earlier=readOutbox();if(earlier?.tournamentId&&earlier.tournamentId!==cloudSession.tournamentId)return;writeOutbox(tournamentPayload(),'Unsynced changes at page unload');if(earlier){const queued=readOutbox();queued.baseRevision=Math.min(Number(earlier.baseRevision||0),Number(queued.baseRevision||0));localStorage.setItem(KSM_CLOUD_OUTBOX_KEY,JSON.stringify(queued))}}
+window.addEventListener('beforeunload', queueUnsyncedStaffWorkBeforeUnload);
 window.addEventListener('beforeunload', autoSaveTournament);
 document.addEventListener('input', scheduleAutoSave, true);
 document.addEventListener('change', scheduleAutoSave, true);
@@ -9371,13 +9429,13 @@ function liveScorePoints(m){
 }
 function liveScoresCourtCard(court){
   const data=courtCurrentMatch(court);
-  if(!data)return `<section class="live-court-card"><div class="live-court-head"><h2>Court ${esc(court)}</h2><span>No active match</span></div><div class="live-empty">Waiting for the next division</div></section>`;
+  if(!data)return `<section class="live-court-card" data-testid="live-court-${esc(court)}"><div class="live-court-head"><h2>Court ${esc(court)}</h2><span data-testid="live-meta">No active match</span></div><div class="live-empty">Waiting for the next division</div></section>`;
   const m=data.match, next=data.next, meta=audienceMeta(m), pts=liveScorePoints(m);
   if(m.type==='teamPosition'||m.type==='teamPlayoff'||m.type==='kachinuki'){
     const sheet=m.type==='kachinuki'?kachinukiSheetHtml(m):teamSheetHtml(m.division,m.teamPair,m);
-    return `<section class="live-court-card live-team-card"><div class="live-court-head"><h2>Court ${esc(court)}</h2><span>${esc(meta.division)} • ${esc(meta.line)}</span></div>${sheet}<div class="live-next"><span>Next</span>${next?`<b>${esc(next.teamWhite||next.white||'TBD')}</b><i>vs</i><b>${esc(next.teamRed||next.red||'TBD')}</b>`:'<em>No match queued</em>'}</div></section>`;
+    return `<section class="live-court-card live-team-card" data-testid="live-court-${esc(court)}"><div class="live-court-head"><h2>Court ${esc(court)}</h2><span data-testid="live-meta">${esc(meta.division)} • ${esc(meta.line)}</span></div>${sheet}<div class="live-next"><span>Next</span>${next?`<b>${esc(next.teamWhite||next.white||'TBD')}</b><i>vs</i><b>${esc(next.teamRed||next.red||'TBD')}</b>`:'<em>No match queued</em>'}</div></section>`;
   }
-  return `<section class="live-court-card"><div class="live-court-head"><h2>Court ${esc(court)}</h2><span>${esc(meta.division)} • ${esc(meta.line)}</span></div><div class="live-match-row"><div class="live-player white"><span class="live-side-label">White</span><strong>${esc(m.white||'TBD')}</strong><small>${esc(m.wdojo||'')}</small></div><div class="live-score-pair"><b>${esc(pts.white)}</b><span>vs</span><b>${esc(pts.red)}</b></div><div class="live-player red"><span class="live-side-label">Red</span><strong>${esc(m.red||'TBD')}</strong><small>${esc(m.rdojo||'')}</small></div></div><div class="live-next"><span>Next</span>${next?`<b>${esc(next.white||'TBD')}</b><i>vs</i><b>${esc(next.red||'TBD')}</b>`:'<em>No match queued</em>'}</div></section>`;
+  return `<section class="live-court-card" data-testid="live-court-${esc(court)}"><div class="live-court-head"><h2>Court ${esc(court)}</h2><span data-testid="live-meta">${esc(meta.division)} • ${esc(meta.line)}</span></div><div class="live-match-row"><div class="live-player white"><span class="live-side-label">White</span><strong data-testid="live-white-name">${esc(m.white||'TBD')}</strong><small>${esc(m.wdojo||'')}</small></div><div class="live-score-pair"><b>${esc(pts.white)}</b><span>vs</span><b>${esc(pts.red)}</b></div><div class="live-player red"><span class="live-side-label">Red</span><strong data-testid="live-red-name">${esc(m.red||'TBD')}</strong><small>${esc(m.rdojo||'')}</small></div></div><div class="live-next"><span>Next</span>${next?`<b>${esc(next.white||'TBD')}</b><i>vs</i><b>${esc(next.red||'TBD')}</b>`:'<em>No match queued</em>'}</div></section>`;
 }
 function renderPublic(){
   if(!window.publicLive)return;
@@ -9566,27 +9624,27 @@ function buildTV3ViewModel(court){
   const m=data.match,meta=audienceMeta(m),teamMode=isTeamMatch(m);
   return {court,empty:false,division:m.division,data,match:m,meta,teamMode,format:m.type==='kachinuki'?'kachinuki':(teamMode?'team':'individual'),upcoming:tv3UpcomingModel(court,m,teamMode)};
 }
-function tv3Header(vm){return `<div class="tv3-head"><div class="tv3-court">Court ${esc(vm.court)}</div><div class="tv3-division">${esc(vm.meta?.division||vm.division||'No active match')}</div><div class="tv3-meta">${esc(vm.meta?.line||'')}</div></div>`}
+function tv3Header(vm){return `<div class="tv3-head" data-testid="tv-header"><div class="tv3-court" data-testid="tv-court">Court ${esc(vm.court)}</div><div class="tv3-division" data-testid="tv-division">${esc(vm.meta?.division||vm.division||'No active match')}</div><div class="tv3-meta" data-testid="tv-meta">${esc(vm.meta?.line||'')}</div></div>`}
 function tv3Upcoming(vm){
-  const cards=vm.upcoming.map(x=>x?`<div class="tv3-up-card"><div><div class="tv3-up-name">${esc(x.left)}</div>${x.leftSub?`<div class="tv3-up-sub">${esc(x.leftSub)}</div>`:''}</div><div class="tv3-up-vs">vs</div><div><div class="tv3-up-name">${esc(x.right)}</div>${x.rightSub?`<div class="tv3-up-sub">${esc(x.rightSub)}</div>`:''}</div></div>`:`<div class="tv3-up-card empty"><div class="tv3-up-name">No additional match scheduled</div></div>`).join('');
-  return `<div class="tv3-upcoming"><div class="tv3-upcoming-title">Upcoming Matches</div>${cards}</div>`;
+  const cards=vm.upcoming.map(x=>x?`<div class="tv3-up-card" data-testid="tv-upcoming-card"><div><div class="tv3-up-name" data-testid="tv-upcoming-white">${esc(x.left)}</div>${x.leftSub?`<div class="tv3-up-sub">${esc(x.leftSub)}</div>`:''}</div><div class="tv3-up-vs">vs</div><div><div class="tv3-up-name" data-testid="tv-upcoming-red">${esc(x.right)}</div>${x.rightSub?`<div class="tv3-up-sub">${esc(x.rightSub)}</div>`:''}</div></div>`:`<div class="tv3-up-card empty" data-testid="tv-upcoming-card"><div class="tv3-up-name">No additional match scheduled</div></div>`).join('');
+  return `<div class="tv3-upcoming" data-testid="tv-upcoming"><div class="tv3-upcoming-title">Upcoming Matches</div>${cards}</div>`;
 }
-function tv3Player(name,dojo,red=false){return `<div class="tv3-player${red?' red':''}"><div class="tv3-top-rule${red?' red':''}"></div><div class="tv3-player-copy"><div class="tv3-name">${tv3Name(name)}</div><div class="tv3-sub">${esc(dojo||'')}</div></div></div>`}
+function tv3Player(name,dojo,red=false){return `<div class="tv3-player${red?' red':''}"><div class="tv3-top-rule${red?' red':''}"></div><div class="tv3-player-copy"><div class="tv3-name" data-testid="tv-${red?'red':'white'}-name">${tv3Name(name)}</div><div class="tv3-sub">${esc(dojo||'')}</div></div></div>`}
 function tv3Individual(vm){
   const m=vm.match,p=activeScoreArrays(m);
-  return `<div class="tv3-body"><div class="tv3-individual">${tv3Player(tvIndividualSideLabel(m,'white'),m.wdojo,false)}<div class="tv3-score white">${esc(tvPointText(p.W))}</div><div class="tv3-versus">vs</div><div class="tv3-score red">${esc(tvPointText(p.R))}</div>${tv3Player(tvIndividualSideLabel(m,'red'),m.rdojo,true)}</div></div>`;
+  return `<div class="tv3-body"><div class="tv3-individual" data-testid="tv-current-match">${tv3Player(tvIndividualSideLabel(m,'white'),m.wdojo,false)}<div class="tv3-score white" data-testid="tv-white-score">${esc(tvPointText(p.W))}</div><div class="tv3-versus">vs</div><div class="tv3-score red" data-testid="tv-red-score">${esc(tvPointText(p.R))}</div>${tv3Player(tvIndividualSideLabel(m,'red'),m.rdojo,true)}</div></div>`;
 }
 function tv3Team(vm){
   const m=vm.match,all=(state.allMatches[m.division]||[]).filter(x=>x.teamPair===m.teamPair&&(x.type==='teamPosition'||x.type==='teamPlayoff'));
   const rows=all.length?all:[m],count=rows.length<=3?3:5,first=rows[0]||m,sum=teamPairSummary(m.division,m.teamPair);
-  const left=rows.map((x,i)=>{const p=activeScoreArrays(x);return `<div class="tv3-team-row${x===m?' active':''}"><div class="tv3-person"><span class="tv3-pos">${i+1}</span>${esc(x.white||'TBD')}</div><div class="tv3-row-score">${esc(tvPointText(p.W))}</div></div>`}).join('');
-  const right=rows.map((x,i)=>{const p=activeScoreArrays(x);return `<div class="tv3-team-row${x===m?' active':''}"><div class="tv3-row-score">${esc(tvPointText(p.R))}</div><div class="tv3-person">${esc(x.red||'TBD')}<span class="tv3-pos">${i+1}</span></div></div>`}).join('');
-  return `<div class="tv3-body"><div class="tv3-team-grid"><div class="tv3-team-col"><div class="tv3-top-rule"></div><div class="tv3-team-name">${esc(first.teamWhite||m.teamWhite||'White Team')}</div><div class="tv3-roster ${count===3?'three':'five'}">${left}</div><div class="tv3-summary"><span class="label">Wins</span> ${sum.wWins} &nbsp; <span class="label">Points</span> ${sum.wPts}</div></div><div></div><div class="tv3-team-col red"><div class="tv3-top-rule red"></div><div class="tv3-team-name">${esc(first.teamRed||m.teamRed||'Red Team')}</div><div class="tv3-roster ${count===3?'three':'five'}">${right}</div><div class="tv3-summary"><span class="label">Wins</span> ${sum.rWins} &nbsp; <span class="label">Points</span> ${sum.rPts}</div></div></div></div>`;
+  const left=rows.map((x,i)=>{const p=activeScoreArrays(x);return `<div class="tv3-team-row${x===m?' active':''}"${x===m?' data-testid="tv-active-bout"':''}><div class="tv3-person"${x===m?' data-testid="tv-white-name"':''}><span class="tv3-pos">${i+1}</span>${esc(x.white||'TBD')}</div><div class="tv3-row-score">${esc(tvPointText(p.W))}</div></div>`}).join('');
+  const right=rows.map((x,i)=>{const p=activeScoreArrays(x);return `<div class="tv3-team-row${x===m?' active':''}"><div class="tv3-row-score">${esc(tvPointText(p.R))}</div><div class="tv3-person"${x===m?' data-testid="tv-red-name"':''}>${esc(x.red||'TBD')}<span class="tv3-pos">${i+1}</span></div></div>`}).join('');
+  return `<div class="tv3-body"><div class="tv3-team-grid" data-testid="tv-current-match"><div class="tv3-team-col"><div class="tv3-top-rule"></div><div class="tv3-team-name" data-testid="tv-white-team">${esc(first.teamWhite||m.teamWhite||'White Team')}</div><div class="tv3-roster ${count===3?'three':'five'}">${left}</div><div class="tv3-summary" data-testid="tv-white-summary"><span class="label">Wins</span> ${sum.wWins} &nbsp; <span class="label">Points</span> ${sum.wPts}</div></div><div></div><div class="tv3-team-col red"><div class="tv3-top-rule red"></div><div class="tv3-team-name" data-testid="tv-red-team">${esc(first.teamRed||m.teamRed||'Red Team')}</div><div class="tv3-roster ${count===3?'three':'five'}">${right}</div><div class="tv3-summary" data-testid="tv-red-summary"><span class="label">Wins</span> ${sum.rWins} &nbsp; <span class="label">Points</span> ${sum.rPts}</div></div></div></div>`;
 }
-function tv3KRow(name,index,active){const stateName=index<active?'eliminated':index===active?'active':'waiting';return `<div class="tv3-k-row ${stateName}"><span>${esc(name||'—')}</span><span class="tv3-k-state">${stateName}</span></div>`}
+function tv3KRow(name,index,active){const stateName=index<active?'eliminated':index===active?'active':'waiting';return `<div class="tv3-k-row ${stateName}" data-testid="tv-kachinuki-row"><span>${esc(name||'—')}</span><span class="tv3-k-state">${stateName}</span></div>`}
 function tv3Kachinuki(vm){
   const m=vm.match,p=activeScoreArrays(m),wl=(m.lineupW||[]).slice(0,3),rl=(m.lineupR||[]).slice(0,3);while(wl.length<3)wl.push('—');while(rl.length<3)rl.push('—');
-  return `<div class="tv3-body"><div class="tv3-k-wrap"><div class="tv3-k-current">${tv3Player(m.white||'—','',false)}<div class="tv3-score white">${esc(tvPointText(p.W))}</div><div class="tv3-versus">vs</div><div class="tv3-score red">${esc(tvPointText(p.R))}</div>${tv3Player(m.red||'—','',true)}</div><div class="tv3-k-lineups"><div class="tv3-k-team"><div class="tv3-top-rule"></div><div class="tv3-k-title">${esc(m.teamWhite||'White Team')}</div><div class="tv3-k-rows">${wl.map((n,i)=>tv3KRow(n,i,m.wIndex||0)).join('')}</div></div><div></div><div class="tv3-k-team red"><div class="tv3-top-rule red"></div><div class="tv3-k-title">${esc(m.teamRed||'Red Team')}</div><div class="tv3-k-rows">${rl.map((n,i)=>tv3KRow(n,i,m.rIndex||0)).join('')}</div></div></div></div></div>`;
+  return `<div class="tv3-body"><div class="tv3-k-wrap" data-testid="tv-current-match"><div class="tv3-k-current" data-testid="tv-kachinuki-current">${tv3Player(m.white||'—','',false)}<div class="tv3-score white" data-testid="tv-white-score">${esc(tvPointText(p.W))}</div><div class="tv3-versus">vs</div><div class="tv3-score red" data-testid="tv-red-score">${esc(tvPointText(p.R))}</div>${tv3Player(m.red||'—','',true)}</div><div class="tv3-k-lineups"><div class="tv3-k-team" data-testid="tv-kachinuki-lineup"><div class="tv3-top-rule"></div><div class="tv3-k-title">${esc(m.teamWhite||'White Team')}</div><div class="tv3-k-rows">${wl.map((n,i)=>tv3KRow(n,i,m.wIndex||0)).join('')}</div></div><div></div><div class="tv3-k-team red" data-testid="tv-kachinuki-lineup"><div class="tv3-top-rule red"></div><div class="tv3-k-title">${esc(m.teamRed||'Red Team')}</div><div class="tv3-k-rows">${rl.map((n,i)=>tv3KRow(n,i,m.rIndex||0)).join('')}</div></div></div></div></div>`;
 }
 function tv3Results(vm){
   return `<div class="tv3-body tv3-results-body">${divisionCompletePanelHtml(vm.division)}</div>`;
@@ -9599,7 +9657,7 @@ function renderTvDisplay(){
   const vm=buildTV3ViewModel(tvAssignedCourt());
   const body=vm.empty?`<div class="tv3-body"></div>`:(vm.format==='results'?tv3Results(vm):vm.format==='individual'?tv3Individual(vm):vm.format==='kachinuki'?tv3Kachinuki(vm):tv3Team(vm));
   const footer=vm.format==='results'?tv3ResultsFooter():tv3Upcoming(vm);
-  tvLive.innerHTML=`<div class="tv3-root">${tv3Header(vm)}${body}${footer}</div>`;
+  tvLive.innerHTML=`<div class="tv3-root" data-testid="tv-canvas">${tv3Header(vm)}${body}${footer}</div>`;
 }
 
 // ==========================================================
@@ -9622,6 +9680,10 @@ function resultPlacements(div){
   const final=(state.allMatches[div]||[]).find(m=>
     m.championship&&m.position==='Final'&&m.done
   );
+  if(!final&&isPoolOnlyDivision(div)){
+    const pool=state.pools[div][0];
+    return poolStandings(pool.label,div).slice(0,3).map((r,i)=>({place:['1st','2nd','3rd'][i],name:r.name,tier:['gold','silver','bronze'][i]}));
+  }
   if(!final)return [];
 
   const first=winnerOf(final);
@@ -9643,26 +9705,26 @@ function resultCardHtml(div){
   const placements=resultPlacements(div),roundRobin=isTeamRoundRobinDivision(div);
   if(!placements.length){
     const progress=roundRobin?teamRoundRobinProgress(div):null;
-    return `<article class="result-progress-card">
-      <h2 class="result-card-title">${esc(div)}</h2>
+    return `<article class="result-progress-card" data-testid="result-card">
+      <h2 class="result-card-title" data-testid="result-card-title">${esc(div)}</h2>
       <div class="result-progress-message">${roundRobin?`Round robin in progress • ${progress.complete}/${progress.total} pairings complete`:'Tournament in progress'}</div>
-      ${roundRobin?`<div class="result-card-footer"><button class="view-bracket-link" onclick="openResultsBracket('${esc(div)}')">View Standings →</button></div>`:''}
+      ${roundRobin?`<div class="result-card-footer"><button class="view-bracket-link" onclick="openResultsBracket(${jsArg(div)})">View Standings →</button></div>`:''}
     </article>`;
   }
 
   const rows=placements.map((p,i)=>`
-    <div class="placement-row ${i===0?'champion':''}">
+    <div class="placement-row ${i===0?'champion':''}" data-testid="placement-row">
       <div class="placement-ribbon ${p.tier}"></div>
-      <div class="placement-label">${esc(p.place)}</div>
-      <div class="placement-name">${esc(p.name)}</div>
+      <div class="placement-label" data-testid="placement-place">${esc(p.place)}</div>
+      <div class="placement-name" data-testid="placement-name">${esc(p.name)}</div>
     </div>`).join('');
 
-  return `<article class="result-award-card">
-    <h2 class="result-card-title">${esc(div)}</h2>
+  return `<article class="result-award-card" data-testid="result-card">
+    <h2 class="result-card-title" data-testid="result-card-title">${esc(div)}</h2>
     <div class="result-card-rule"></div>
     <div class="placement-list">${rows}</div>
     <div class="result-card-footer">
-      <button class="view-bracket-link" onclick="openResultsBracket('${esc(div)}')">${roundRobin?'View Standings':'View Bracket'} →</button>
+      <button class="view-bracket-link" onclick="openResultsBracket(${jsArg(div)})">${roundRobin?'View Standings':'View Bracket'} →</button>
     </div>
   </article>`;
 }
@@ -9818,11 +9880,11 @@ function alignedMatchRowHtml(match,options={}){
   const statusClass=String(status).toLowerCase().includes('done')?'done':
     String(status).toLowerCase().includes('await')?'awaiting':'';
   return `<div class="aligned-match-row ${current?'current':''} ${compact?'compact':''} ${extra}">
-    <div class="match-name white">${esc(white||'TBD')}</div>
+    <div class="match-name white"${current?' data-testid="current-bout-white-name"':''}>${esc(white||'TBD')}</div>
     ${alignedPointSlots(wp,'W')}
     <div class="match-status ${statusClass}">${esc(status||'vs')}</div>
     ${alignedPointSlots(rp,'R')}
-    <div class="match-name red">${esc(red||'TBD')}</div>
+    <div class="match-name red"${current?' data-testid="current-bout-red-name"':''}>${esc(red||'TBD')}</div>
   </div>`;
 }
 function alignedPlaceholderRowHtml(white,red,status='awaiting',compact=false){
@@ -10036,7 +10098,7 @@ function teamResultsBracketHtml(div){
 
   return `<div class="results-team-bracket">${rounds.map(round=>`
     <section class="results-team-round">
-      <div class="team-round-metric-head">
+      <div class="team-round-metric-head" data-testid="team-round-head">
         <h3>${esc(round)}</h3>
         <span class="metric-label white-wins">Wins</span>
         <span class="metric-label white-points">Points</span>
@@ -10597,8 +10659,8 @@ function poolResultCardHtml(div,pool,options={}){
   const complete=options.completed??poolDisplayComplete(div,pool.label);
   const standingsHtml=standings.map((row,index)=>`<div class="stand-row"><span>${index+1}</span><div><b>${esc(row.name)}</b><div class="small">${esc(row.dojo||'')}</div></div><b>${row.wins}</b><b>${row.pts}</b></div>`).join('');
   const matchesHtml=matches.map(match=>alignedMatchRowHtml(match,{status:match.done?'DONE':(match.tiebreak?'TIEBREAK':'vs'),compact:true,current:!!options.currentMatch&&match===options.currentMatch})).join('');
-  return `<section class="pool-result-card ${options.active?'active-pool-card':''} ${complete?'completed-pool-card':''}">
-    <h3><span>Pool ${esc(pool.label)}</span>${complete?'<span class="pool-complete-mark" aria-label="Complete">✓</span>':''}</h3>
+  return `<section class="pool-result-card ${options.active?'active-pool-card':''} ${complete?'completed-pool-card':''}" data-testid="context-pool">
+    <h3><span data-testid="context-pool-title">Pool ${esc(pool.label)}</span>${complete?'<span class="pool-complete-mark" data-testid="context-pool-complete" aria-label="Complete">✓</span>':''}</h3>
     <div class="pool-result-standings"><div class="stand-row small"><b>#</b><b>Name</b><b>Wins</b><b>Pts</b></div>${standingsHtml}</div>
     <div>${matchesHtml||'<div class="small">No pool matches available.</div>'}</div>
   </section>`;
@@ -10612,7 +10674,7 @@ function orderedPoolContextHtml(div,currentMatch){
   const completedHtml=completed.map(pool=>poolResultCardHtml(div,pool,{completed:true})).join('');
   return `<div class="pool-context-stack">
     ${incompleteHtml?`<div class="context-box"><div class="pool-context-section-label">Pools In Progress</div><div class="all-pools-context-grid">${incompleteHtml}</div></div><div class="pool-context-divider" aria-hidden="true"></div>`:''}
-    <div class="context-box pool-context-bracket"><h2>Championship Bracket Preview</h2>${bracketHtml(div)}</div>
+    <div class="context-box pool-context-bracket" data-testid="context-bracket"><h2>Championship Bracket Preview</h2>${bracketHtml(div)}</div>
     ${completedHtml?`<div class="pool-context-divider" aria-hidden="true"></div><div class="context-box"><div class="all-pools-context-grid">${completedHtml}</div></div>`:''}
   </div>`;
 }
@@ -10757,8 +10819,8 @@ renderContext=function(){
 
 function divisionCompletePanelHtml(div){
   const placements=resultPlacements(div);
-  if(!placements.length)return `<div class="division-complete-panel"><div class="small">Final results are available in Results.</div></div>`;
-  return `<div class="division-complete-panel"><div class="division-complete-list">${placements.map(p=>`<div class="division-complete-row"><b class="${esc(p.tier||'')}">${esc(p.place)}</b><span>${esc(p.name)}</span></div>`).join('')}</div></div>`;
+  if(!placements.length)return `<div class="division-complete-panel" data-testid="division-complete"><div class="small">Final results are available in Results.</div></div>`;
+  return `<div class="division-complete-panel" data-testid="division-complete"><div class="division-complete-list">${placements.map(p=>`<div class="division-complete-row" data-testid="division-complete-row"><b class="${esc(p.tier||'')}">${esc(p.place)}</b><span>${esc(p.name)}</span></div>`).join('')}</div></div>`;
 }
 function setCourtCompletePresentation(div,complete){
   const card=document.querySelector('#score .scoreboard-card');if(!card)return;
@@ -10811,7 +10873,7 @@ function installRoleBanner(role){document.querySelector('.spectator-readonly-ban
 function readTournamentLibrary(){try{return JSON.parse(localStorage.getItem(KSM_V316_LIBRARY)||'[]')}catch(_){return []}}
 function writeTournamentLibrary(list){localStorage.setItem(KSM_V316_LIBRARY,JSON.stringify((list||[]).slice(0,100)))}
 function rememberTournament(record){if(!record?.tournamentId)return;const list=readTournamentLibrary().filter(x=>x.id!==record.tournamentId);list.unshift({id:record.tournamentId,name:record.payload?.setup?.tName||'Kendo Tournament',updatedAt:record.updatedAt||new Date().toISOString()});writeTournamentLibrary(list)}
-function libraryCardMarkup(x){const mark=`<span class="home-card-placeholder" aria-hidden="true">🏆</span>`;const id=JSON.stringify(x.id);return `<div class="home-tournament-item"><button class="home-tournament-card" type="button" onclick='openTournamentFromHome(${id})' aria-label="Open ${esc(x.name)}">${mark}</button><button class="home-card-name-below" type="button" onclick='openTournamentFromHome(${id})'>${esc(x.name)}</button></div>`}
+function libraryCardMarkup(x){const mark=`<span class="home-card-placeholder" aria-hidden="true">🏆</span>`;const id=jsArg(x.id);return `<div class="home-tournament-item" data-testid="home-tournament"><button class="home-tournament-card" type="button" onclick='openTournamentFromHome(${id})' aria-label="Open ${esc(x.name)}">${mark}</button><button class="home-card-name-below" type="button" onclick='openTournamentFromHome(${id})' data-testid="home-tournament-name">${esc(x.name)}</button></div>`}
 function paintHomeTournamentLibrary(list,message='No tournaments yet.'){const host=document.getElementById('homeTournamentLibrary');if(!host)return;host.innerHTML=list.length?list.map(libraryCardMarkup).join(''):`<div class="home-empty"><b>${esc(message)}</b></div>`}
 async function renderHomeTournamentLibrary(){const cached=readTournamentLibrary();paintHomeTournamentLibrary(cached,cached.length?'':'Loading tournaments…');if(!navigator.onLine){if(!cached.length)paintHomeTournamentLibrary([],'Offline — no cached tournaments are available.');return}try{const ids=cached.map(x=>x.id).filter(Boolean);const response=await fetch(ids.length?'/api/tournaments/discover':'/api/tournaments',{method:ids.length?'POST':'GET',headers:ids.length?{'content-type':'application/json'}:undefined,body:ids.length?JSON.stringify({ids}):undefined,cache:'no-store'});if(!response.ok)throw new Error(`Library load failed (${response.status})`);const cloud=await response.json();writeTournamentLibrary(cloud);paintHomeTournamentLibrary(cloud)}catch(err){console.warn(err);if(!cached.length)paintHomeTournamentLibrary([],'Unable to load the Tournament Library. Check your connection.') }}
 function showHomePage(){closeNavMenus();disconnectCloudSocket();sessionStorage.removeItem(KSM_V316_STAFF_SESSION);setSessionRole('spectator');installRoleBanner('home');document.body.classList.add('ksm-home');renderHomeTournamentLibrary();show('home')}
@@ -10819,7 +10881,7 @@ async function createNewTournament(){const name=prompt('Tournament Name','Kendo 
 async function openTournamentFromHome(id){sessionStorage.removeItem(KSM_V316_STAFF_SESSION);setSessionRole('spectator');document.body.classList.remove('ksm-home');try{await loadTournamentFromCloud(id,{spectator:true});setSessionRole('spectator');installRoleBanner('spectator');navigateTo('public')}catch(err){console.error(err);document.body.classList.add('ksm-home');renderHomeTournamentLibrary();alert('Unable to open that tournament. The network or tournament data could not be loaded. Please retry; if the problem continues, check the browser console.')}}
 async function openTournamentLibrary(){showHomePage()}
 function spectatorLink(){if(!cloudSession.tournamentId)return '';const url=new URL(location.href);url.search='';url.hash='';url.searchParams.set('tournament',cloudSession.tournamentId);return url.toString()}
-async function openTournamentAccess(){if(!cloudSession.tournamentId)await saveNow();if(!cloudSession.tournamentId){alert('Connect to the internet and save the tournament first.');return}const link=spectatorLink();const qr=`https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(link)}`;openCloudModal('Tournament Access',`<div class="access-link-box">${esc(link)}</div><div class="row" style="margin-top:12px"><button onclick='copyTextValue(${JSON.stringify(link)},"Tournament link copied")'>Copy Link</button></div><div class="access-qr"><img src="${qr}" alt="Tournament access QR code"><p class="small">Scan to open the tournament in Spectator mode.</p></div>`)}
+async function openTournamentAccess(){if(!cloudSession.tournamentId)await saveNow();if(!cloudSession.tournamentId){alert('Connect to the internet and save the tournament first.');return}const link=spectatorLink();const qr=`https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(link)}`;openCloudModal('Tournament Access',`<div class="access-link-box" data-testid="access-link">${esc(link)}</div><div class="row" style="margin-top:12px"><button onclick='copyTextValue(${jsArg(link)},"Tournament link copied")' data-testid="access-copy">Copy Link</button></div><div class="access-qr"><img src="${qr}" alt="Tournament access QR code" data-testid="access-qr"><p class="small">Scan to open the tournament in Spectator mode.</p></div>`)}
 async function performCloudSave(payload=tournamentPayload(),baseRevision=cloudSession.revision||0,rebaseAttempt=0,originalBaseRevision=baseRevision){
   const existing=cloudSession.tournamentId;
   const attemptId=++ksmCloudAttemptCounter;

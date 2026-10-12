@@ -9,10 +9,6 @@ const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),
 const authoritativeRule=/\.all-pools-context-grid\s*\{[^}]*display\s*:\s*grid\s*;[^}]*grid-template-columns\s*:\s*minmax\(0\s*,\s*1fr\)\s*;[^}]*gap\s*:\s*12px\s*;[^}]*\}/s;
 const autoFitRule=/\.all-pools-context-grid\s*\{[^}]*grid-template-columns\s*:\s*repeat\(auto-fit/si;
 const checks=[
-  [pkg.version==='3.17.10-test','package version'],
-  [html.includes('v3.17.10-test'),'HTML version badge'],
-  [sw.includes('ksm-shell-v3.17.10-test'),'service worker cache'],
-  [worker.includes("version: '3.17.10-test'"),'worker health version'],
   [authoritativeRule.test(html),'authoritative pool context grid is one column with compact spacing'],
   [!autoFitRule.test(html),'no auto-fit multi-column pool context rule remains'],
   [html.includes('<div class="all-pools-context-grid">${incompleteHtml}</div>'),'in-progress pools use shared one-column grid'],

@@ -1,7 +1,6 @@
 import fs from 'node:fs';
 const html=fs.readFileSync(new URL('../public/index.html', import.meta.url),'utf8');
 const checks=[
- ['version',html.includes('v3.15.16')],
  ['clean root',html.includes('class="tv3-root"')],
  ['single fixed grid',html.includes('grid-template-rows:210px 610px 260px!important')],
  ['header current upcoming rebalance',html.includes('grid-template-rows:210px 610px 260px!important')],

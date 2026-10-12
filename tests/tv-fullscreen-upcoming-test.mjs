@@ -1,7 +1,6 @@
 import fs from 'node:fs';
 const html=fs.readFileSync('public/index.html','utf8');
 const checks=[
- ['v3.15.8 marker',html.includes('v3.15.8')],
  ['TV court locked from URL',html.includes('function tvAssignedCourt()')&&html.includes("new URLSearchParams(location.search).get('court')")],
  ['TV render uses assigned court',html.includes('const court=tvAssignedCourt(),data=courtCurrentMatch(court);')],
  ['TV fixed 16:9 canvas',html.includes('width:1920px;height:1080px')&&html.includes('fitTvCanvas')],

@@ -1,17 +1,18 @@
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from ksm_browser import launch_chromium, load_app
 
 ROOT = Path(__file__).resolve().parents[1] / 'public'
 HTML = (ROOT / 'index.html').read_text(encoding='utf-8')
 
 with sync_playwright() as p:
-    browser = p.chromium.launch(headless=True, executable_path='/usr/bin/chromium', args=['--no-sandbox'])
+    browser = launch_chromium(p)
     checks=0
     errors=[]
 
     portrait=browser.new_page(viewport={'width':390,'height':844}, is_mobile=True, has_touch=True)
     portrait.on('pageerror', lambda exc: errors.append(str(exc)))
-    portrait.set_content(HTML, wait_until='domcontentloaded')
+    load_app(portrait, HTML)
     portrait.evaluate("""
       document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));
       document.querySelector('#score').classList.remove('hidden');
@@ -27,7 +28,7 @@ with sync_playwright() as p:
 
     landscape=browser.new_page(viewport={'width':844,'height':390}, is_mobile=True, has_touch=True)
     landscape.on('pageerror', lambda exc: errors.append(str(exc)))
-    landscape.set_content(HTML, wait_until='domcontentloaded')
+    load_app(landscape, HTML)
     landscape.evaluate("""
       document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));
       document.querySelector('#score').classList.remove('hidden');

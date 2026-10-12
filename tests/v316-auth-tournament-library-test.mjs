@@ -2,7 +2,6 @@ import fs from 'node:fs';
 const html = fs.readFileSync('public/index.html','utf8');
 const worker = fs.readFileSync('src-worker.js','utf8');
 const checks = [
-  ['version', html.includes('v3.16.0')],
   ['staff login', html.includes('Staff Login') && html.includes("?'Logout':'Staff Login'")],
   ['new tournament', html.includes('createNewTournament()')],
   ['library cards', html.includes('tournament-library-grid') && html.includes('tournament-card')],

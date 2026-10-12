@@ -1,0 +1,38 @@
+name: Tests
+
+# Runs the full regression suite (npm test) on every push and pull request.
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Node dependencies (wrangler)
+        run: npm ci
+
+      - name: Install Playwright + Chromium
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -q playwright
+          .venv/bin/python -m playwright install --with-deps chromium
+
+      - name: Run all tests
+        run: npm test
+        env:
+          # GitHub's runners are slower than a laptop; the snapshot tests replay whole
+          # tournaments, so give each test up to 7 minutes here (180 s locally).
+          KSM_TEST_TIMEOUT_MS: '420000'
