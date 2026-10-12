@@ -7,7 +7,9 @@ Director, a Court B scorekeeper and a spectator against a throwaway `wrangler de
     waiting for editing to finish") and applies them when the field loses focus;
   * a saved tournament whose elimination winner was never advanced is repaired
     when it is loaded (live update and fresh link);
-  * a Setup edit that races a court save is lost (finding F4, expected failure);
+  * Setup edits that race another save are merged three-way (F4): a rename made while a
+    court scores survives; unrelated fields changed on both sides both survive; when both
+    change the same field the server's value is kept and a conflict notice is shown;
   * old local data from before v3.17.3 is cleared once, and only once.
 """
 import copy
@@ -99,7 +101,7 @@ def main():
         assert semi['white'] in context_text(fresh).split('FINAL', 1)[-1], f'fresh load not repaired:\n{context_text(fresh)}'
         fresh.close()
 
-        # --- Finding F4: a Setup edit racing a court save is lost -------------------------------
+        # --- F4 (fixed): a Setup edit racing a court save survives the conflict ----------------
         court.wait_idle()
         director.wait_revision(court.revision())
         director.nav('setup')
@@ -111,9 +113,40 @@ def main():
         director.wait_idle()
         court.wait_idle()
         final = fetch_record(base, tid)
+        assert director.diagnostics().get('rebaseAttempt', 0) >= 1, 'the director save did not conflict: the test no longer races'
         assert any(m.get('rp') == ['K'] for m in final['payload']['state']['allMatches']['Elim']), 'the court point was lost'
-        assert final['payload']['setup']['tName'] == 'Updates Cup' and name_field(director) == 'Updates Cup', \
-            'Finding F4 no longer reproduces (Setup edit survived the conflict): update this test and docs/ROADMAP.md'
+        assert final['payload']['setup']['tName'] == 'Renamed Cup' and name_field(director) == 'Renamed Cup', \
+            f'F4: the rename was lost in the conflict ({final["payload"]["setup"]["tName"]!r}, field {name_field(director)!r})'
+        court.wait_for(lambda: name_field(court) == 'Renamed Cup', message='the rename to reach Court B')
+
+        def race_director_edit(testid, value, server_edit):
+            """Director edits a Setup field; before its save goes out another device saves `server_edit`."""
+            director.wait_idle()
+            director.wait_revision(fetch_record(base, tid)['revision'])
+            director.page.fill(sel(testid), value)
+            director.page.press(sel(testid), 'Tab')
+            record = fetch_record(base, tid)
+            server_edit(record['payload'])
+            put_record(base, tid, record['payload'], record['revision'])
+            time.sleep(4)
+            director.wait_idle()
+            return fetch_record(base, tid)['payload']
+
+        # Unrelated fields on both sides: both survive.
+        field = lambda testid: director.page.input_value(sel(testid))
+        merged = race_director_edit('setup-host', 'Director Host', lambda pl: pl['setup'].update(tLocation='Other Hall'))
+        assert (merged['setup']['tHost'], merged['setup']['tLocation']) == ('Director Host', 'Other Hall'), merged['setup']
+        assert (field('setup-host'), field('setup-location')) == ('Director Host', 'Other Hall'), 'director fields not merged'
+        assert merged['setup']['tName'] == 'Renamed Cup', merged['setup']
+
+        # The same field on both sides: the server's value is kept and the director is told.
+        merged = race_director_edit('setup-tournament-name', 'Director Cup', lambda pl: pl['setup'].update(tName='Desk Cup'))
+        assert merged['setup']['tName'] == 'Desk Cup' and name_field(director) == 'Desk Cup', \
+            f'both changed the name: the server copy should win ({merged["setup"]["tName"]!r}, field {name_field(director)!r})'
+        notice = director.page.inner_text(sel('toast'))
+        assert 'Tournament name' in notice and 'another device' in notice, f'no conflict notice: {notice!r}'
+        assert director.page.is_visible(sel('toast')), 'the conflict notice is not shown'
+        assert merged['setup']['tHost'] == 'Director Host' and merged['setup']['tLocation'] == 'Other Hall', merged['setup']
 
         # --- Own echo: a staff device ignores its own save coming back ---------------------------
         record = fetch_record(base, tid)
@@ -137,7 +170,7 @@ def main():
         assert legacy.has_autosave() and legacy.seen_dialogs, 'the reset ran again'
 
         assert not problems, '\n'.join(problems)
-        print(f'PASS remote updates: stale/duplicate/own echo, editing hold, load repair, legacy reset; F4 pinned ({time.time() - started:.0f}s)')
+        print(f'PASS remote updates: stale/duplicate/own echo, editing hold, load repair, legacy reset; Setup edits merged on conflict ({time.time() - started:.0f}s)')
         browser.close()
 
 

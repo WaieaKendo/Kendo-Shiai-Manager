@@ -35,8 +35,13 @@ function applyCourtSides(){document.body.classList.toggle('ksm-red-left',redOnLe
 function rememberLocalCourtDivision(court,division){const c=normalizeCourt(court);if(division&&typeof division==='string')ksmLocalCourtDivision[c]=division;return ksmLocalCourtDivision[c]}
 function localCourtDivision(court){return ksmLocalCourtDivision[normalizeCourt(court)]||null}
 function clearLocalCourtDivisions(){ksmLocalCourtDivision.A=null;ksmLocalCourtDivision.B=null}
-function courtPinStorageKey(){const id=cloudSession?.tournamentId||new URLSearchParams(location.search).get('tournament')||'unassigned';const role=ksmSessionRole||new URLSearchParams(location.search).get('role')||'local';const view=isTvSession()?'tv':'court';return `${KSM_PINNED_COURT_PREFIX}:${id}:${role}:${view}`}
-function pinnedCourt(){const session=sessionStorage.getItem(courtPinStorageKey());if(session)return normalizeCourt(session);const stored=localStorage.getItem(courtPinStorageKey());if(stored)return normalizeCourt(stored);const fromUrl=new URLSearchParams(location.search).get('court');if(fromUrl)return normalizeCourt(fromUrl);return cloudSession?.court?normalizeCourt(cloudSession.court):null}
+/* ksm:post-split-begin court-pin */
+// F3: the pin belongs to the device, not the session role: a scorekeeper reloads as a spectator
+// until Staff Login and must come back on the same court. TV displays keep their own key.
+function storedCourtPin(tournamentId){const key=courtPinStorageKey(tournamentId),value=sessionStorage.getItem(key)||localStorage.getItem(key);return value?normalizeCourt(value):null}
+/* ksm:post-split-end */
+function courtPinStorageKey(/* ksm:post-split-begin court-pin was: */tournamentId/* ksm:post-split-end */){/* ksm:post-split-begin court-pin was:const id=cloudSession?.tournamentId||new URLSearchParams(location.search).get('tournament')||'unassigned';const role=ksmSessionRole||new URLSearchParams(location.search).get('role')||'local';const view=isTvSession()?'tv':'court';return `${KSM_PINNED_COURT_PREFIX}:${id}:${role}:${view}` */const id=tournamentId||cloudSession?.tournamentId||new URLSearchParams(location.search).get('tournament')||'unassigned';const view=isTvSession()?'tv':'court';return `${KSM_PINNED_COURT_PREFIX}:${id}:${view}`/* ksm:post-split-end */}
+function pinnedCourt(){/* ksm:post-split-begin court-pin was:const session=sessionStorage.getItem(courtPinStorageKey());if(session)return normalizeCourt(session);const stored=localStorage.getItem(courtPinStorageKey());if(stored)return normalizeCourt(stored);const fromUrl=new URLSearchParams(location.search).get('court');if(fromUrl)return normalizeCourt(fromUrl);return cloudSession?.court?normalizeCourt(cloudSession.court):null */const stored=storedCourtPin();if(stored)return stored;const fromUrl=new URLSearchParams(location.search).get('court');if(fromUrl)return normalizeCourt(fromUrl);return cloudSession?.court?normalizeCourt(cloudSession.court):null/* ksm:post-split-end */}
 function pinCourtLocally(court){const normalized=normalizeCourt(court),key=courtPinStorageKey();sessionStorage.setItem(key,normalized);localStorage.setItem(key,normalized);cloudSession.court=normalized;persistCloudSession();return normalized}
 function restorePinnedCourt(){const court=pinnedCourt();if(!court)return null;cloudSession.court=court;state.currentCourt=court;if(isTvSession())state.publicCourt=court;return court}
 function noteLocalMutation(){ksmLocalMutationVersion+=1}
@@ -166,7 +171,59 @@ function pendingLocalCourtActionsForRebase(localPayload,serverRecord,originalBas
   const remoteKeys=new Set(remoteEntries.map(historyEntryIdentity));
   return localEntries.filter(action=>action?.format==='patch-v1'&&action.clientId===cloudSession.clientId&&Number(action.revision||0)>=Number(originalBaseRevision||0)&&!remoteKeys.has(historyEntryIdentity(action)));
 }
-function rebaseLocalPayloadOnRecord(localPayload,serverRecord,originalBaseRevision){
+/* ksm:post-split-begin edit-merge */
+// F4: director/staff edits that are not court actions (Setup fields, registration, divisions,
+// awards) are merged three-way against the cloud copy the local edit started from, so a
+// conflicting court save no longer drops them. Structural edits (generate, regenerate, pool
+// edits) are not merged: see F10 in docs/ROADMAP.md.
+const KSM_MERGED_STATE_KEYS=['divisions','divisionTypes','divisionCourts','competitors','teams','exhibitions','awards','teamAwardMode'];
+const KSM_MERGE_LABELS={tName:'Tournament name',tHost:'Host',tDate:'Date',tLocation:'Location',tCourts:'Courts',tType:'Tournament type',teamEnabled:'Team tournament',teamFormat:'Team format',teamTournamentFormat:'Team tournament format',teamCourt:'Team court',teamAwardMode:'Team awards',exhibitionEnabled:'Exhibition matches',court1Refs:'Court A referees',court2Refs:'Court B referees',court1RedSide:'Court A red side',court2RedSide:'Court B red side',divisions:'Divisions',divisionTypes:'Division formats',divisionCourts:'Division courts',competitors:'Registration',teams:'Teams',exhibitions:'Exhibitions',awards:'Awards'};
+/** The cloud copy the local state was last reconciled with (merge base), by revision. */
+const KSM_CLOUD_BASE={revision:-1,payload:null};
+function cloudBaseSubset(payload){
+  if(!payload)return null;
+  const st=payload.state||{};
+  return {setup:cloneJson(payload.setup||{}),state:Object.fromEntries(KSM_MERGED_STATE_KEYS.filter(k=>st[k]!==undefined).map(k=>[k,cloneJson(st[k])]).concat([['managementRevision',st.managementRevision||0]]))};
+}
+function rememberCloudBase(record){if(!record?.payload)return;KSM_CLOUD_BASE.revision=Number(record.revision||0);KSM_CLOUD_BASE.payload=cloudBaseSubset(record.payload)}
+function cloudBaseFor(revision){return KSM_CLOUD_BASE.payload&&KSM_CLOUD_BASE.revision===Number(revision||0)?KSM_CLOUD_BASE.payload:null}
+function sameJsonValue(a,b){return JSON.stringify(a)===JSON.stringify(b)}
+function isPlainJsonObject(v){return v!==null&&typeof v==='object'&&!Array.isArray(v)}
+function mergeValueThreeWay(server,local,base,label,conflicts){
+  if(sameJsonValue(local,base)||sameJsonValue(local,server))return server;
+  if(sameJsonValue(server,base))return local===undefined?undefined:cloneJson(local);
+  if(isPlainJsonObject(server)&&isPlainJsonObject(local)&&isPlainJsonObject(base)){
+    const out={...server};
+    new Set([...Object.keys(server),...Object.keys(local)]).forEach(k=>{const v=mergeValueThreeWay(server[k],local[k],base[k],label,conflicts);if(v===undefined)delete out[k];else out[k]=v});
+    return out;
+  }
+  if(!conflicts.includes(label))conflicts.push(label);
+  return server;
+}
+/** Merge local non-court edits (vs basePayload) into `rebased` (a copy of the server payload); returns the conflicting field labels. */
+function mergeLocalEditsThreeWay(rebased,localPayload,basePayload){
+  const conflicts=[];
+  if(!basePayload||!localPayload)return conflicts;
+  const serverSetup=rebased.setup||{},localSetup=localPayload.setup||{},baseSetup=basePayload.setup||{};
+  const setup={...serverSetup};
+  Object.keys(localSetup).forEach(k=>{const v=mergeValueThreeWay(serverSetup[k],localSetup[k],baseSetup[k],KSM_MERGE_LABELS[k]||k,conflicts);if(v!==undefined)setup[k]=v});
+  rebased.setup=setup;
+  const localState=localPayload.state||{},baseState=basePayload.state||{};
+  // A local structural edit changes matches/pools too; merging only its registration half would split it.
+  if((localState.managementRevision||0)===(baseState.managementRevision||0)){
+    rebased.state=rebased.state||{};
+    KSM_MERGED_STATE_KEYS.forEach(k=>{const v=mergeValueThreeWay(rebased.state[k],localState[k],baseState[k],KSM_MERGE_LABELS[k]||k,conflicts);if(v===undefined)delete rebased.state[k];else rebased.state[k]=v});
+  }
+  return conflicts;
+}
+function noteMergeConflicts(conflicts){
+  if(!conflicts.length)return;
+  const message=`Changed on another device at the same time, their version was kept: ${conflicts.join(', ')}`;
+  writeCloudDiagnosticsState({stage:'Edit conflict: server version kept',mergeConflicts:conflicts});
+  showKsmToast(message,10000,true);
+}
+/* ksm:post-split-end */
+function rebaseLocalPayloadOnRecord(localPayload,serverRecord,originalBaseRevision/* ksm:post-split-begin edit-merge */,basePayload=null/* ksm:post-split-end */){
   const rebased=cloneJson(serverRecord.payload),court=pinnedCourt()||normalizeCourt(cloudSession.court||state.currentCourt);
   rebased.state=rebased.state||{};
   const localState=localPayload?.state||{};
@@ -183,6 +240,7 @@ function rebaseLocalPayloadOnRecord(localPayload,serverRecord,originalBaseRevisi
   rebased.state.courtRedoHistory=rebased.state.courtRedoHistory||{A:[],B:[]};
   rebased.state.courtActionHistory[court]=mergeHistoryEntries(rebased.state.courtActionHistory[court]||[],localState.courtActionHistory?.[court]||[]);
   rebased.state.courtRedoHistory[court]=mergeHistoryEntries(rebased.state.courtRedoHistory[court]||[],localState.courtRedoHistory?.[court]||[]);
+  /* ksm:post-split-begin edit-merge */noteMergeConflicts(mergeLocalEditsThreeWay(rebased,localPayload,basePayload));/* ksm:post-split-end */
   rebased.savedAt=new Date().toISOString();
   return rebased;
 }

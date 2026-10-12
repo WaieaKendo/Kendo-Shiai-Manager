@@ -14,14 +14,20 @@ SINGLETONS = [
     'nav-tv', 'nav-tv-a', 'nav-tv-b', 'nav-overlay-a', 'nav-overlay-b', 'nav-overview', 'nav-results', 'nav-export', 'nav-save-load',
     'nav-new-tournament', 'nav-save-now', 'nav-library', 'nav-tournament-access',
     'nav-export-brackets', 'nav-cloud-diagnostics', 'nav-download-recovery', 'nav-load-recovery', 'recovery-file-input',
+    'nav-download-file', 'nav-load-file', 'load-file-input', 'nav-export-results', 'nav-export-referees', 'nav-export-archive',
     'staff-auth', 'connection-status', 'save-status', 'home-new-tournament',
     # setup
-    'setup-tournament-name', 'setup-division-rows', 'custom-division-name', 'custom-division-format',
+    'setup-tournament-name', 'setup-host', 'setup-location', 'setup-division-rows', 'custom-division-name', 'custom-division-format',
     'custom-division-court', 'custom-division-add', 'team-enabled', 'team-format', 'team-tournament-format',
-    'team-court', 'setup-save-continue',
+    'team-court', 'setup-save-continue', 'exhibition-enabled',
     # registration
     'reg-tab-individual', 'reg-tab-team', 'reg-tab-pools', 'generate-button', 'tournament-status',
     'reg-add-row', 'reg-filter', 'team-add', 'validation-modal', 'pool-division-select',
+    'reg-tab-exhibition', 'regenerate-division-button', 'reg-import-csv', 'reg-export-csv', 'reg-paste-excel',
+    'reg-clear', 'team-clear', 'exhibition-add', 'exhibition-add-3', 'exhibition-clear',
+    'regenerate-modal', 'regenerate-modal-title', 'regenerate-modal-close',
+    # print / export
+    'print-full-packet', 'print-body',
     # court screen
     'court-title', 'court-tournament-name', 'court-division-select', 'court-division-title', 'court-match-meta',
     'court-white-name', 'court-red-name', 'court-white-points', 'court-red-points',
@@ -35,6 +41,8 @@ SINGLETONS = [
 REG_ROW = ['reg-name', 'reg-dojo', 'reg-division', 'reg-seed', 'reg-status', 'reg-remove']
 TEAM_CARD = ['team-name', 'team-remove', 'team-status', 'team-member-senpo', 'team-member-chuken', 'team-member-taisho']
 SETUP_ROW = ['setup-division-enabled', 'setup-division-name', 'setup-division-format', 'setup-division-court']
+EXHIBITION_ROW = ['exhibition-white', 'exhibition-red', 'exhibition-status', 'exhibition-remove']
+REGENERATE_OPTION = ['regenerate-option-name', 'regenerate-option-radio', 'regenerate-option-status']
 # Rendered only in a given state; checked where the flow below reaches that state.
 POOLS_VIEW = {'pool-edit': 1, 'pool-slot': 4}
 POOL_EDIT = {'pool-edit-pool': 1, 'pool-edit-player': 4, 'pool-edit-drop': 5, 'pool-edit-save': 1}  # a drop slot around each player
@@ -42,6 +50,8 @@ COURT_POOL_CONTEXT = ['context-pool', 'context-pool-title']
 TV_SCREEN = ['tv-canvas', 'tv-header', 'tv-upcoming', 'tv-upcoming-card', 'tv-upcoming-white', 'tv-upcoming-red']
 # Also in the contract, exercised by the feature tests that need their state (docs/TESTING.md):
 # access-link/-copy/-qr, cloud-modal(-title/-close), diagnostics-retry, home-tournament(-name),
+# file-load-name/-saved/-revision/-id/-open/-message/-cancel/-replace/-new (file-import-export-test),
+# regenerate-confirm (registration-screen-test),
 # print-pool(-player), print-slot, representative-select/-readonly, team-round-head,
 # context-bracket, context-pool-complete, tv-kachinuki-*, tv-white-/tv-red-summary.
 
@@ -86,6 +96,22 @@ def main():
         if (found := page.evaluate(COUNT_JS, list(POOL_EDIT))) != POOL_EDIT:
             errors.append(f'pool editor IDs: {found}, expected {POOL_EDIT}')
         app.pools('Open')  # leave the editor without saving
+        app.nav('setup')
+        page.select_option(sel('exhibition-enabled'), label='Enabled')
+        app.nav('registration')
+        app.click('reg-tab-exhibition')
+        app.click('exhibition-add-3')
+        exhibitions = page.evaluate(PER_ROW_JS, ['exhibition-row', EXHIBITION_ROW])
+        if len(exhibitions) != 3 or any(set(r.values()) != {1} for r in exhibitions):
+            errors.append(f'exhibition-row children: {exhibitions}')
+        app.click('exhibition-clear')
+        app.click('regenerate-division-button')
+        options = page.evaluate(PER_ROW_JS, ['regenerate-option', REGENERATE_OPTION])
+        if len(options) < 2 or any(set(r.values()) != {1} for r in options):
+            errors.append(f'regenerate-option children: {options}')
+        if page.evaluate(COUNT_JS, ['regenerate-continue']) != {'regenerate-continue': 1}:
+            errors.append('regenerate-continue: not shown once')
+        app.click('regenerate-modal-close')
         app.nav('setup')
         setup_rows = page.evaluate(PER_ROW_JS, ['setup-division-row', SETUP_ROW])
         if not setup_rows or any(set(r.values()) != {1} for r in setup_rows):

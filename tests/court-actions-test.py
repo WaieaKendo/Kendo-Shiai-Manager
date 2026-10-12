@@ -7,7 +7,8 @@ server copy:
   * points, hansoku and fusen-gachi are undoable and redoable; a new action clears Redo;
   * two hansoku give the opponent one "H" point (four give two, and win the match);
   * fusen-gachi gives the other side two "F" points; Cancel changes nothing;
-  * Next Match is one undoable action (completion + moving on);
+  * Next Match is one undoable action (completion + moving on); Undo stays on the
+    division-complete screen and reopens the last match (F2, fixed);
   * Court A and Court B keep separate histories, limited to 100 actions each;
   * history is saved as small patches and entries from older versions are dropped on load.
 """
@@ -138,10 +139,13 @@ def main():
         by_pair = {(m['white'], m['red']): m for m in matches}
         assert by_pair[(second['white'], second['red'])]['completedResult']['winner'] == second['white'], 'hansoku win not recorded'
         assert by_pair[(third['white'], third['red'])]['wp'] == ['F', 'F'], 'fusen-gachi not recorded'
-        # Finding F2 (docs/ROADMAP.md): once the last match is done the court screen hides Undo,
-        # so a wrong final result cannot be undone there. Expected failure: update when fixed.
-        assert enabled('undo') and not page.is_visible(sel('undo')), \
-            'Finding F2 no longer reproduces (Undo visible after the last match): update this test and docs/ROADMAP.md'
+        # F2 (fixed): Undo stays on the division-complete screen and reopens the last match.
+        assert enabled('undo') and page.is_visible(sel('undo')), 'Undo hidden after the last match (F2)'
+        assert not page.is_visible(sel('next-match')) and not page.is_visible(sel('fusen-gachi')), 'Next Match/Fusen-gachi shown when complete'
+        app.undo()
+        assert not app.court_screen()['complete'] and points() == ('FF', ''), 'Undo did not reopen the last match'
+        app.redo()
+        assert app.court_screen()['complete'], 'Redo did not complete Open A again'
         app.open_court('B')
 
         # --- History limit: 100 actions per court --------------------------------------------

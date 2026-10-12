@@ -23,7 +23,12 @@ const verbose = args.includes('-v') || args.includes('--verbose');
 const onlyNode = args.includes('--node');
 const onlyPy = args.includes('--py');
 const filters = args.filter(a => !a.startsWith('-'));
+// A test is killed after 180 s (catches a hang quickly). The golden-* snapshot tests play whole
+// tournaments step by step on several screens and run next to the other browser tests, so under
+// load they need longer: 420 s. KSM_TEST_TIMEOUT_MS / KSM_GOLDEN_TIMEOUT_MS override either.
 const TIMEOUT_MS = Number(process.env.KSM_TEST_TIMEOUT_MS || 180000);
+const GOLDEN_TIMEOUT_MS = Number(process.env.KSM_GOLDEN_TIMEOUT_MS || 420000);
+const timeoutFor = file => (file.startsWith('golden-') ? GOLDEN_TIMEOUT_MS : TIMEOUT_MS);
 
 const venvPython = path.join(root, '.venv', 'bin', 'python');
 const python = process.env.KSM_PYTHON || (fs.existsSync(venvPython) ? venvPython : 'python3');
@@ -51,7 +56,8 @@ function run(file) {
     let output = '';
     child.stdout.on('data', d => { output += d; });
     child.stderr.on('data', d => { output += d; });
-    const timer = setTimeout(() => { output += `\n[run-all] timed out after ${TIMEOUT_MS} ms`; child.kill('SIGKILL'); }, TIMEOUT_MS);
+    const limit = timeoutFor(file);
+    const timer = setTimeout(() => { output += `\n[run-all] timed out after ${limit} ms`; child.kill('SIGKILL'); }, limit);
     child.on('error', err => { output += `\n[run-all] failed to start: ${err.message}`; });
     child.on('close', code => { clearTimeout(timer); resolve({ file, ok: code === 0, code, output, ms: Date.now() - started }); });
   });

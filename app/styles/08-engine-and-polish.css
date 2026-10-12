@@ -24,6 +24,13 @@
 .scoreboard-card.division-complete .scoreboard-match,
 .scoreboard-card.division-complete .score-controls-grid,
 .scoreboard-card.division-complete .bottom-action-row{display:none!important}
+/* ksm:post-split-begin undo-after-complete */
+/* F2: Undo/Redo stay on the division-complete screen, so a wrong final result can still be undone
+   on the court; only Fusen-gachi and Next Match are hidden. Spectators still see no action row. */
+body:not(.ksm-spectator) #score .scoreboard-card.division-complete .bottom-action-row{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}
+#score .scoreboard-card.division-complete .bottom-action-row .fusen-action,
+#score .scoreboard-card.division-complete .bottom-action-row .next-match-btn{display:none!important}
+/* ksm:post-split-end */
 .division-complete-panel{padding:18px 20px 22px;text-align:center}
 .division-complete-panel h2{margin:0 0 12px}.division-complete-list{display:grid;gap:8px;max-width:620px;margin:0 auto}
 .division-complete-row{display:grid;grid-template-columns:82px minmax(0,1fr);gap:16px;align-items:baseline;padding:8px 0;border:0;border-radius:0;background:transparent;text-align:left}

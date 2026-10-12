@@ -13,7 +13,9 @@ throwaway `wrangler dev`:
   * Cloud Diagnostics shows pinned court, snapshot and action-history analysis;
   * the Recovery file downloads the device's latest snapshot, and loading it on a
     fresh device restores that snapshot into a new cloud tournament;
-  * a Court B link comes back on Court B after a reload (a plain link does not: finding F3).
+  * the court a device chose comes back after a reload (F3, fixed): a plain tournament link
+    and a Court B link both return on Court B; an explicit &court=A in the link wins over
+    the stored choice; a TV link keeps its own court whatever the device chose for scoring.
 """
 import json
 import time
@@ -131,6 +133,8 @@ def main():
 
         fresh = KsmApp.open_device(browser, base, 'Replacement device', problems, password='new-pass')
         fresh.create_tournament()  # a replacement device needs a staff session to see the menu
+        # That tournament is open, so loading the recovery file asks first (F7) and leaves it unchanged.
+        fresh.expect_dialog('Load this recovery file as a new tournament?', accept=True)
         fresh.click('nav-save-load')
         fresh.click('nav-load-recovery')
         fresh.page.set_input_files(sel('recovery-file-input'), str(dl.value.path()) + '.ksm')
@@ -153,10 +157,27 @@ def main():
         keeper.reload()
         keeper.wait_generated()
         keeper.show_screen('score')
-        # Finding F3 (docs/ROADMAP.md): the court chosen in the Courts menu is not restored; a plain
-        # tournament link comes back on Court A. Expected failure: update when fixed.
-        assert keeper.court_screen()['court'] == 'A', \
-            'Finding F3 no longer reproduces (Court B restored after reload): update this test and docs/ROADMAP.md'
+        assert keeper.court_screen()['court'] == 'B', f'F3: a plain link lost the chosen Court B after reload: {keeper.court_screen()}'
+
+        def goto(app, path):
+            app.page.goto(f'{base}{path}', wait_until='domcontentloaded')
+            app.page.wait_for_function('window.KSMTest && KSMTest.booted()')
+            app.wait_generated()
+
+        # An explicit court in the link wins over the court stored on the device.
+        goto(keeper, f'/?tournament={tid}&court=A')
+        keeper.show_screen('score')
+        assert keeper.court_screen()['court'] == 'A', f'&court=A did not override the stored Court B: {keeper.court_screen()}'
+        # A TV link keeps its fixed court, before and after a reload, whatever the device chose for scoring.
+        keeper.staff_login()
+        keeper.open_court('B')
+        goto(keeper, f'/?role=spectator&tournament={tid}&court=A&view=tv')
+        keeper.wait_for(lambda: keeper.tv_screen()['court'] == 'A', message='the Court A TV display')
+        keeper.reload()
+        keeper.wait_for(lambda: keeper.tv_screen()['court'] == 'A', message='the Court A TV display after reload')
+        goto(keeper, f'/?tournament={tid}')
+        keeper.show_screen('score')
+        assert keeper.court_screen()['court'] == 'B', f'the TV link changed the scoring court: {keeper.court_screen()}'
         keeper.close()
         link_keeper = KsmApp.open_device(browser, base, 'Court B link', problems, f'/?tournament={tid}&court=B')
         link_keeper.wait_generated()

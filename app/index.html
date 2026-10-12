@@ -80,9 +80,9 @@
       </button>
       <div id="exportMenu" role="menu" class="nav-dropdown nav-dropdown-wide hidden">
         <button onclick="exportTournamentBrackets()" data-testid="nav-export-brackets">Tournament Brackets</button>
-        <button onclick="exportResultsAwards()">Results &amp; Awards</button>
-        <button onclick="closeNavMenus();alert('Referee assignment export will be added with the Referee Assignment module.')">Referee Assignments</button>
-        <button onclick="closeNavMenus();alert('Tournament Archive export will be added with the archive module.')">Tournament Archive</button>
+        <button onclick="exportResultsAwards()" data-testid="nav-export-results">Results &amp; Awards</button>
+        <button onclick="closeNavMenus();alert('Referee assignment export will be added with the Referee Assignment module.')" data-testid="nav-export-referees">Referee Assignments</button>
+        <button onclick="closeNavMenus();alert('Tournament Archive export will be added with the archive module.')" data-testid="nav-export-archive">Tournament Archive</button>
       </div>
     </div>
 
@@ -96,8 +96,8 @@
         <button onclick="closeNavMenus();createNewTournament()" data-testid="nav-new-tournament">New Tournament</button>
         <button onclick="closeNavMenus();saveNow()" data-testid="nav-save-now">Save Now</button>
         <button onclick="closeNavMenus();showHomePage()" data-testid="nav-library">Tournament Library</button>
-        <button onclick="closeNavMenus();manualSaveTournament()">Download Tournament File</button>
-        <button onclick="closeNavMenus();triggerLoadTournament()">Load Tournament File</button>
+        <button onclick="closeNavMenus();manualSaveTournament()" data-testid="nav-download-file">Download Tournament File</button>
+        <button onclick="closeNavMenus();triggerLoadTournament()" data-testid="nav-load-file">Load Tournament File</button>
         <div class="menu-divider"></div><div class="menu-heading">Recovery</div>
         <button onclick="closeNavMenus();downloadRecoveryFile()" data-testid="nav-download-recovery">Download Recovery File</button>
         <button onclick="closeNavMenus();triggerLoadRecoveryFile()" data-testid="nav-load-recovery">Load Recovery File</button>
@@ -109,7 +109,7 @@
       </div>
     </div>
 
-    <input id="ksmLoadFile" type="file" accept=".ksm,application/json" style="display:none" onchange="loadTournamentFromFile(event)">
+    <input id="ksmLoadFile" type="file" accept=".ksm,application/json" style="display:none" onchange="loadTournamentFromFile(event)" data-testid="load-file-input">
     <input id="ksmRecoveryFile" data-testid="recovery-file-input" type="file" accept=".ksm,application/json" style="display:none" onchange="loadRecoveryFile(event)">
   </nav>
 
@@ -158,7 +158,7 @@
           </div>
           <div class="field">
             <label>Host Organization</label>
-            <input id="tHost" value="Aiea Taiheiji Kendo Club">
+            <input id="tHost" value="Aiea Taiheiji Kendo Club" data-testid="setup-host">
           </div>
           <div class="field">
             <label>Date</label>
@@ -166,7 +166,7 @@
           </div>
           <div class="field">
             <label>Location</label>
-            <input id="tLocation" value="Halawa District Park">
+            <input id="tLocation" value="Halawa District Park" data-testid="setup-location">
           </div>
           <div class="field">
             <label>Courts</label>
@@ -283,7 +283,7 @@
         <div class="setup-stack">
           <div class="field">
             <label>Enable Exhibition Matches</label>
-            <select id="exhibitionEnabled" onchange="saveSetup();renderReg()">
+            <select id="exhibitionEnabled" onchange="saveSetup();renderReg()" data-testid="exhibition-enabled">
               <option>Disabled</option>
               <option>Enabled</option>
             </select>
@@ -325,7 +325,7 @@
     </div>
   </div>
 </section>
-<section id="registration" class="view hidden"><div class="card wide"><div class="toolbar"><div class="row"><button id="indTab" class="tab active" onclick="regTab('individual')" data-testid="reg-tab-individual">Individual Players</button><button id="teamTab" class="tab" onclick="regTab('team')" data-testid="reg-tab-team">Team Registration</button><button id="exhibitionTab" class="tab" onclick="regTab('exhibition')">Exhibition</button><button id="poolsTab" class="tab" onclick="regTab('pools')" data-testid="reg-tab-pools">Pools</button><button id="generateBtn" class="primary" onclick="requestTournamentGeneration()" data-testid="generate-button">Generate Tournament</button><button id="regenerateDivisionBtn" onclick="openRegenerateDivisionDialog()">Regenerate Single Division</button></div><div class="row"><button onclick="alert('CSV import will be added in the production build.')">Import CSV</button><button onclick="exportCSV()">Export CSV</button><button onclick="alert('Paste rows directly into the table from Excel.')">Paste from Excel</button><button onclick="loadFullTournament()">Load Sample Tournament</button><button class="danger" onclick="clearCompetitors()">Clear Registration</button></div></div><div id="tournamentStatusCard" class="tournament-status-card" data-testid="tournament-status"></div></div><div id="indReg" class="card wide"><div class="toolbar"><div class="row"><button class="primary" onclick="addRow()" data-testid="reg-add-row">+ Add Row</button><button onclick="addRow(5)">+ 5 Rows</button><button onclick="loadSamples()">Load Sample Players</button></div><div class="row"><input id="regFilter" placeholder="Filter players..." oninput="renderReg()" data-testid="reg-filter"></div></div><div style="overflow:auto"><table id="regTable"></table></div></div><div id="teamReg" class="card wide hidden"><div class="toolbar"><div class="row"><button class="primary" onclick="addTeamRow()" data-testid="team-add">+ Add Team</button><button onclick="addTeamRow(3)">+ 3 Teams</button><button onclick="loadTeamSamples()">Load Sample Teams</button><button onclick="addAutoTeam()">+ Auto Test Team</button><button class="danger" onclick="state.teams=[];renderTeams()">Clear Teams</button></div><div class="row"><input id="teamFilter" placeholder="Filter teams..." oninput="renderTeams()"></div></div><p class="sub">Use vertical team cards. Team name is the only team identifier required.</p><div style="overflow:auto"><table id="teamTable"></table></div></div><div id="exhibitionReg" class="card wide hidden"><div class="toolbar"><div class="row"><button class="primary" onclick="addExhibitionRow()">+ Add Exhibition Match</button><button onclick="addExhibitionRow(3)">+ 3 Matches</button><button class="danger" onclick="state.exhibitions=[];renderExhibitions()">Clear Exhibitions</button></div></div><div style="overflow:auto"><table id="exhibitionTable"></table></div></div><div id="poolsReg" class="card wide hidden"><h1>Generated Pools</h1><p class="sub">Pools are generated from registered or checked-in individual competitors. No-show competitors are excluded.</p><div class="row"><select id="poolDiv" onchange="state.poolViewDivision=this.value;renderPools()" data-testid="pool-division-select"></select><button onclick="generatePools()">Regenerate</button></div><div id="poolOutput" class="pool-wrap" style="margin-top:16px"></div></div></section><section id="score" class="view hidden">
+<section id="registration" class="view hidden"><div class="card wide"><div class="toolbar"><div class="row"><button id="indTab" class="tab active" onclick="regTab('individual')" data-testid="reg-tab-individual">Individual Players</button><button id="teamTab" class="tab" onclick="regTab('team')" data-testid="reg-tab-team">Team Registration</button><button id="exhibitionTab" class="tab" onclick="regTab('exhibition')" data-testid="reg-tab-exhibition">Exhibition</button><button id="poolsTab" class="tab" onclick="regTab('pools')" data-testid="reg-tab-pools">Pools</button><button id="generateBtn" class="primary" onclick="requestTournamentGeneration()" data-testid="generate-button">Generate Tournament</button><button id="regenerateDivisionBtn" onclick="openRegenerateDivisionDialog()" data-testid="regenerate-division-button">Regenerate Single Division</button></div><div class="row"><button onclick="alert('CSV import will be added in the production build.')" data-testid="reg-import-csv">Import CSV</button><button onclick="exportCSV()" data-testid="reg-export-csv">Export CSV</button><button onclick="alert('Paste rows directly into the table from Excel.')" data-testid="reg-paste-excel">Paste from Excel</button><button onclick="loadFullTournament()">Load Sample Tournament</button><button class="danger" onclick="clearCompetitors()" data-testid="reg-clear">Clear Registration</button></div></div><div id="tournamentStatusCard" class="tournament-status-card" data-testid="tournament-status"></div></div><div id="indReg" class="card wide"><div class="toolbar"><div class="row"><button class="primary" onclick="addRow()" data-testid="reg-add-row">+ Add Row</button><button onclick="addRow(5)">+ 5 Rows</button><button onclick="loadSamples()">Load Sample Players</button></div><div class="row"><input id="regFilter" placeholder="Filter players..." oninput="renderReg()" data-testid="reg-filter"></div></div><div style="overflow:auto"><table id="regTable"></table></div></div><div id="teamReg" class="card wide hidden"><div class="toolbar"><div class="row"><button class="primary" onclick="addTeamRow()" data-testid="team-add">+ Add Team</button><button onclick="addTeamRow(3)">+ 3 Teams</button><button onclick="loadTeamSamples()">Load Sample Teams</button><button onclick="addAutoTeam()">+ Auto Test Team</button><button class="danger" onclick="clearTeams()" data-testid="team-clear">Clear Teams</button></div><div class="row"><input id="teamFilter" placeholder="Filter teams..." oninput="renderTeams()"></div></div><p class="sub">Use vertical team cards. Team name is the only team identifier required.</p><div style="overflow:auto"><table id="teamTable"></table></div></div><div id="exhibitionReg" class="card wide hidden"><div class="toolbar"><div class="row"><button class="primary" onclick="addExhibitionRow()" data-testid="exhibition-add">+ Add Exhibition Match</button><button onclick="addExhibitionRow(3)" data-testid="exhibition-add-3">+ 3 Matches</button><button class="danger" onclick="clearExhibitions()" data-testid="exhibition-clear">Clear Exhibitions</button></div></div><div style="overflow:auto"><table id="exhibitionTable"></table></div></div><div id="poolsReg" class="card wide hidden"><h1>Generated Pools</h1><p class="sub">Pools are generated from registered or checked-in individual competitors. No-show competitors are excluded.</p><div class="row"><select id="poolDiv" onchange="state.poolViewDivision=this.value;renderPools()" data-testid="pool-division-select"></select><button onclick="generatePools()">Regenerate</button></div><div id="poolOutput" class="pool-wrap" style="margin-top:16px"></div></div></section><section id="score" class="view hidden">
   <div class="scorekeeper-shell">
     <div class="card scorekeeper-main scoreboard-card">
       <img class="active-match-watermark" src="/assets/KSM-Background-watermark.svg" alt="" aria-hidden="true">
@@ -502,13 +502,13 @@
     <div id="validationModalBody"></div><div class="action-row validation-modal-actions" id="validationModalActions"></div>
   </div>
 </div>
-<div id="regenerateModal" class="ksm-modal hidden" role="dialog" aria-modal="true" aria-labelledby="regenerateModalTitle">
+<div id="regenerateModal" class="ksm-modal hidden" role="dialog" aria-modal="true" aria-labelledby="regenerateModalTitle" data-testid="regenerate-modal">
   <div class="results-modal-card management-modal-card">
-    <div class="results-modal-head"><h2 id="regenerateModalTitle">Regenerate Division</h2><button onclick="closeManagementModal('regenerateModal')" aria-label="Close">×</button></div>
+    <div class="results-modal-head"><h2 id="regenerateModalTitle" data-testid="regenerate-modal-title">Regenerate Division</h2><button onclick="closeManagementModal('regenerateModal')" aria-label="Close" data-testid="regenerate-modal-close">×</button></div>
     <div id="regenerateModalBody"></div><div class="action-row" id="regenerateModalActions"></div>
   </div>
 </div>
-<section id="print" class="view hidden"><div class="card wide"><div class="no-print"><h1>Print / PDF Export</h1><p class="sub">Read-only print sheets. Use your browser print dialog to print or save as PDF.</p><div class="print-controls"><select id="printDivSelect"></select><button onclick="previewSelectedDivisionSheet()">Preview Selected Division</button><button onclick="previewAllDivisionSheets()">Preview All Divisions</button><button onclick="previewResultsSheet()">Preview Results Page</button><button class="primary" onclick="previewFullPrintPacket()">Preview Full Packet</button><button onclick="window.print()">Print / Save PDF</button></div></div><div id="printBody" class="print-body"></div></div></section>
+<section id="print" class="view hidden"><div class="card wide"><div class="no-print"><h1>Print / PDF Export</h1><p class="sub">Read-only print sheets. Use your browser print dialog to print or save as PDF.</p><div class="print-controls"><select id="printDivSelect"></select><button onclick="previewSelectedDivisionSheet()">Preview Selected Division</button><button onclick="previewAllDivisionSheets()">Preview All Divisions</button><button onclick="previewResultsSheet()">Preview Results Page</button><button class="primary" onclick="previewFullPrintPacket()" data-testid="print-full-packet">Preview Full Packet</button><button onclick="window.print()">Print / Save PDF</button></div></div><div id="printBody" class="print-body" data-testid="print-body"></div></div></section>
 </main>
 <script src="/app.js"></script>
 </body></html>

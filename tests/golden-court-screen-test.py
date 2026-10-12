@@ -32,7 +32,7 @@ Scenarios (one file each):
   individual-rr-actions  points, hansoku (two give the opponent a point), undo, redo (Redo
                          enabled after Undo, disabled again by a new action), Fusen-gachi
                          (cancelled, then confirmed, undone, redone), Next Match, to the end of
-                         the division (score buttons and action row hidden: finding F2, kept);
+                         the division (score buttons, Fusen-gachi and Next Match hidden; Undo/Redo stay: F2, fixed);
   team-playoff           a 3-person team match with three drawn bouts: the representative
                          playoff and its picker (placeholder, choosing, read-only once scored);
   two-courts-split       three divisions on Court A, Court B and one split across both: the
@@ -431,9 +431,9 @@ def individual_rr_actions(browser, errors):
         expect_history(g, step, undo, redo)
     screen = g.do('last next match', lambda a: a.next_match())
     assert screen['complete'], f'division should be complete: {screen}'
-    # Finding F2 (docs/ROADMAP.md), kept for now: Undo is enabled but hidden.
+    # F2 (fixed): Undo stays visible and enabled on the division-complete screen.
     h = history(g.app)
-    assert h['undo']['enabled'] and not h['undo']['visible'], f'division complete: expected Undo enabled but hidden (F2): {h}'
+    assert h['undo']['enabled'] and h['undo']['visible'], f'division complete: Undo hidden or disabled (F2): {h}'
     g.finish()
 
 

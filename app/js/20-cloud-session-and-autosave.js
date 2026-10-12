@@ -14,7 +14,7 @@ function ensureClientIdentity(){if(!cloudSession.clientId)cloudSession.clientId=
 function cloudEnvelope(payload=tournamentPayload()){return {schemaVersion:'1.2',tournamentId:cloudSession.tournamentId||null,engineVersion:'3.12.9',revision:cloudSession.revision||0,payload}}
 function cloudHeaders(){return {'content-type':'application/json','x-ksm-role':ksmSessionRole==='local'?'director':ksmSessionRole,'x-ksm-session-key':sessionKey(),'x-ksm-client-id':cloudSession.clientId||'','x-ksm-client-name':cloudSession.clientName||'KSM Device','x-ksm-court':cloudSession.court||''}}
 function readOutbox(){try{return JSON.parse(localStorage.getItem(KSM_CLOUD_OUTBOX_KEY)||'null')}catch(_){return null}}
-function writeOutbox(payload,reason='Local change'){const queued={schemaVersion:'1.0',tournamentId:cloudSession.tournamentId,assignedCourt:cloudSession.court||state.currentCourt||'',role:ksmSessionRole,baseRevision:cloudSession.revision||0,payload,actions:[{type:'snapshot',reason,createdAt:new Date().toISOString()}],queuedAt:new Date().toISOString()};localStorage.setItem(KSM_CLOUD_OUTBOX_KEY,JSON.stringify(queued));localStorage.setItem(KSM_CLOUD_RECOVERY_KEY,JSON.stringify({savedAt:new Date().toISOString(),outbox:queued,serverRevision:cloudSession.revision||0}));ksmSaveStatusMode='offline';renderPersistentSaveStatus()}
+function writeOutbox(payload,reason='Local change'){const queued={schemaVersion:'1.0',tournamentId:cloudSession.tournamentId,assignedCourt:cloudSession.court||state.currentCourt||'',role:ksmSessionRole,baseRevision:cloudSession.revision||0,/* ksm:post-split-begin edit-merge */basePayload:cloudBaseFor(cloudSession.revision||0),/* ksm:post-split-end */payload,actions:[{type:'snapshot',reason,createdAt:new Date().toISOString()}],queuedAt:new Date().toISOString()};localStorage.setItem(KSM_CLOUD_OUTBOX_KEY,JSON.stringify(queued));localStorage.setItem(KSM_CLOUD_RECOVERY_KEY,JSON.stringify({savedAt:new Date().toISOString(),outbox:queued,serverRevision:cloudSession.revision||0}));ksmSaveStatusMode='offline';renderPersistentSaveStatus()}
 function clearOutbox(){localStorage.removeItem(KSM_CLOUD_OUTBOX_KEY)}
 function preserveRecovery(outbox,serverRecord){localStorage.setItem(KSM_CLOUD_RECOVERY_KEY,JSON.stringify({savedAt:new Date().toISOString(),outbox,serverRevision:serverRecord?.revision||0}));ksmSaveStatusMode='error';renderPersistentSaveStatus()}
 function downloadJson(value,name){const blob=new Blob([JSON.stringify(value,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
@@ -54,6 +54,12 @@ function markLocalSave(reason='Local autosave'){try{localStorage.setItem(KSM_SAV
 function autoSaveTournament(reason='Autosave'){if(!markLocalSave(reason))return;if(!ksmApplyingRemoteSnapshot&&!isReadOnlySession())scheduleCloudSave(reason)}
 // Remote snapshots never echo into cloud: if(!ksmApplyingRemoteSnapshot)scheduleCloudSave()
 function scheduleAutoSave(reason='Edit'){noteLocalMutation();clearTimeout(ksmSaveTimer);ksmSaveTimer=setTimeout(()=>{ksmSaveTimer=null;autoSaveTournament(reason)},2000)}
+/* ksm:post-split-begin award-save */
+// F11: the Results awards editor calls saveAuto() (add, remove, edit), which was never defined, so
+// every award action threw: award edits were never autosaved and add/remove did not redraw.
+// It is an ordinary edit, saved like the others.
+function saveAuto(){scheduleAutoSave('Awards')}
+/* ksm:post-split-end */
 async function saveNow(){markLocalSave('Manual Save Now');showKsmToast('Saving…',0);const saved=await saveTournamentToCloudWithReason('Manual Save Now',true);if(saved){showKsmToast('✓ Tournament saved',2000)}else if(!navigator.onLine){showKsmToast('Saved locally · Waiting to sync',3000)}else{showKsmToast('Unable to save to cloud',3500,true)}}
 function criticalAutoSave(reason){noteLocalMutation();markLocalSave(reason);if(!isReadOnlySession())saveTournamentToCloudWithReason(reason,true)}
 

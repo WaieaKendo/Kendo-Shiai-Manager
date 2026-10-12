@@ -63,7 +63,7 @@ const context={
   promptNewStaffPassword:()=> 'staffpass',
   sessionStorage:{setItem(){}},
   setSessionRole(){},persistCloudSession(){},rememberTournament(){},clearOutbox(){},
-  setConnectionStatus(){},renderPersistentSaveStatus(){},connectCloudSocket(){},
+  setConnectionStatus(){},renderPersistentSaveStatus(){},connectCloudSocket(){},showKsmToast(){},
   ksmCloudAttemptCounter:0,ksmLastSuccessfulSaveAt:null,ksmSaveStatusMode:'idle',ksmCloudSocket:{},
   fetch:async (_url,opts)=>{
     const sent=JSON.parse(opts.body);requestRevisions.push(sent.revision);call++;

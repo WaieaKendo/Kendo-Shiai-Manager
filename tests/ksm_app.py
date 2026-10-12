@@ -103,9 +103,16 @@ class KsmApp:
 
     # ------------------------------------------------------------------ devices
     @classmethod
-    def local(cls, page, name='local', session='staff'):
-        """Offline app on the fake http://ksm.test origin (see ksm_browser.load_app)."""
-        app = cls(page, name)
+    def local(cls, page, name='local', session='staff', problems=None):
+        """Offline app on the fake http://ksm.test origin (see ksm_browser.load_app).
+
+        With a `problems` list, dialogs and page errors are handled as on open_device()
+        (expect_dialog() answers documented ones, anything else is recorded).
+        """
+        app = cls(page, name, problems)
+        if problems is not None:
+            page.on('dialog', app._on_dialog)
+            page.on('pageerror', lambda e: problems.append(f'{name}: page error: {e}'))
         load_app(page, session=session)
         return app
 
@@ -146,6 +153,18 @@ class KsmApp:
         behaviour still happens (an expected-failure check for a recorded finding).
         """
         self.expected[prefix] = accept
+
+    def wait_for_dialogs(self, count=1, timeout=10):
+        """Wait until `count` expected dialogs have been seen (see expect_dialog); returns them.
+
+        Polls through the page, so Playwright delivers the dialog events meanwhile.
+        """
+        deadline = time.time() + timeout
+        while len(self.seen_dialogs) < count:
+            if time.time() > deadline:
+                raise AssertionError(f'{self.name}: expected {count} dialog(s), saw {self.seen_dialogs}')
+            self.page.wait_for_timeout(50)
+        return self.seen_dialogs
 
     def _on_dialog(self, d):
         for prefix, accept in self.expected.items():
@@ -437,6 +456,37 @@ class KsmApp:
     def switch_division(self, division):
         """Court screen division selector (what a scorekeeper does when a division ends)."""
         self.page.select_option(f'#score {sel("court-division-select")}', label=division)
+
+    # ------------------------------------------------------------------ files
+    def download(self, testid, menu=None):
+        """Click a control that downloads a file (opening `menu` first, e.g. 'nav-save-load').
+
+        Returns (suggested file name, local path of the downloaded file).
+        """
+        if menu:
+            self.click(menu)
+        with self.page.expect_download() as dl:
+            self.click(testid)
+        return dl.value.suggested_filename, dl.value.path()
+
+    def download_tournament_file(self):
+        """Save / Load -> Download Tournament File: (the parsed .ksm file, its local path)."""
+        _, path = self.download('nav-download-file', menu='nav-save-load')
+        return json.loads(Path(path).read_text(encoding='utf-8')), path
+
+    def _choose_file(self, testid, path):
+        self.click('nav-save-load')
+        with self.page.expect_file_chooser() as chooser:
+            self.click(testid)
+        chooser.value.set_files(str(path))
+
+    def load_tournament_file(self, path):
+        """Save / Load -> Load Tournament File, picking `path` in the file chooser."""
+        self._choose_file('nav-load-file', path)
+
+    def load_recovery_file(self, path):
+        """Save / Load -> Load Recovery File, picking `path` in the file chooser."""
+        self._choose_file('nav-load-recovery', path)
 
     # ------------------------------------------------------------ audience views
     def placements(self):
