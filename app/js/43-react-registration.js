@@ -47,6 +47,9 @@ function ksmRegistrationData(){
       checked:c.status==='Checked',noShow:c.status==='NoShow',
       // The options printed `selected` (d===c.division), by position.
       selected:state.divisions.map((d,j)=>d===c.division?j:-1).filter(j=>j>=0),
+      // Owner decision 15 (#29): a division that is no longer offered (switched off in Setup) is
+      // shown as an extra, selected "<division> (not offered)" option (it showed the first one).
+      ...(c.division&&!state.divisions.includes(c.division)?{notOffered:String(c.division)}:{}),
     })),
   };
 }
@@ -79,6 +82,9 @@ function ksmUpdateCompetitor(row,key,value){
     index=same[0];ksmRegistrationRowsStale=true;
   }
   updateComp(index,key,value);
+  // Owner decision 15: a row that showed its division as "(not offered)" is drawn again without
+  // that option once another division is chosen.
+  if(key==='division'&&row.notOffered!==undefined&&value!==row.notOffered)renderReg();
 }
 function ksmRenderRegistration(){
   let input=ksmRegistrationData();
