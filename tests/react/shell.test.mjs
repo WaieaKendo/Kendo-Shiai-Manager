@@ -99,8 +99,16 @@ test('dialog texts and the Regenerate options as the legacy templates printed th
 });
 
 test('Fusen-sho: the dialog title (owner decision 4; display only, stored labels keep Fusen-gachi)', async () => {
-  const { FUSEN_TEXTS } = await import('../../app/react/shell/dialogs-model.ts');
-  assert.equal(FUSEN_TEXTS.title, 'Fusen-sho');
+  const { FUSEN_TEXTS, fusenSides } = await import('../../app/react/shell/dialogs-model.ts');
+  // #38: the dialog asks who won ("Fusen-sho — who won?"); it was "Fusen-sho" / "Which side forfeited?".
+  assert.equal(FUSEN_TEXTS.title, 'Fusen-sho — who won?');
+  assert.ok(FUSEN_TEXTS.title.startsWith('Fusen-sho'));
+  const input = { open: true, white: 'Hana Ito', red: 'Ken Mori' };
+  assert.deepEqual(fusenSides(input).map(b => [b.side, b.label, b.name, b.testId]),
+    [['W', 'White', 'Hana Ito', 'fusen-white'], ['R', 'Red', 'Ken Mori', 'fusen-red']], 'White first on a default court');
+  assert.deepEqual(fusenSides({ ...input, redLeft: true }).map(b => b.side), ['R', 'W'], 'Red first when the court has Red on the left');
+  assert.deepEqual(fusenSides(input).map(b => b.className), ['fusen-side fusen-side-white', 'fusen-side fusen-side-red']);
+  assert.deepEqual(fusenSides({ open: true }).map(b => b.name), ['', ''], 'no names published: the sides alone');
 });
 
 test('owner decision 20: the Developer Tools test tools switch', async () => {

@@ -13,14 +13,15 @@ function matchDisplayMeta(m){
 function openFusenDialog(){
   const m=state.matches?.[state.current];
   if(!m){return;}
-  /* ksm:post-split-begin react-shell */ksmSetFusenOpen(true);/* ksm:post-split-end */
+  /* ksm:post-split-begin react-shell */ksmSetFusenOpen(true,{white:m.white||'TBD',red:m.red||'TBD',redLeft:redOnLeftForCourt(state.currentCourt)});/* ksm:post-split-end */
 }
 function closeFusenDialog(){
   /* ksm:post-split-begin react-shell */ksmSetFusenOpen(false);/* ksm:post-split-end */
 }
 function confirmFusen(side){
   closeFusenDialog();
-  fusen(side);
+  // #38: the dialog asks who won; fusen() takes the forfeiting side (the stored label and F F points are unchanged).
+  fusen(/* ksm:post-split-begin court-clarity was:side */side==='W'?'R':'W'/* ksm:post-split-end */);
 }
 document.addEventListener('keydown',function(e){
   if(e.key==='Escape')closeFusenDialog();
@@ -49,7 +50,7 @@ function renderScore(){
   let m=ensureScorableCurrentMatch();
   if(m && !matchBelongsToCourt(m,state.currentCourt||'A'))m=null;
   const meta=matchDisplayMeta(m);
-  ksmPublishCourtHeader({matchLine:meta.line,divisionTitle:m?meta.division:(state.currentDivision||'—')});
+  ksmPublishCourtHeader({matchLine:meta.line,divisionTitle:m?meta.division:(state.currentDivision||'—'),requiresWinner:m?!!matchRequiresWinner(m):null,redLeft:redOnLeftForCourt(state.currentCourt)});
   ksmPublishCourtScoreboard(m);
   renderQueue();renderPublic();renderContext();
 /* ksm:post-split-end */

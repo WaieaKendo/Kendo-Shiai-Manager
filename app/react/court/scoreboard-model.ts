@@ -12,6 +12,8 @@ export type Side = 'W' | 'R';
 export type ScoreboardMatch = Pick<Match, 'white' | 'red' | 'wdojo' | 'rdojo' | 'teamWhite' | 'teamRed' | 'type'> & {
   /** D1: a team round robin's daihyosen bout: "Daihyosen — first point wins". */
   rule?: string;
+  /** #38: the engine says this bout needs a winner (matchRequiresWinner()): no hikiwake. */
+  requiresWinner?: boolean;
 };
 
 export interface RepresentativeInput {
@@ -58,6 +60,32 @@ export interface ScoreboardView {
   red: SideView;
   /** D1: the bout's rule label, only for a team round robin's daihyosen. */
   rule?: string;
+  /** #38: shown in the match area while a winner-required bout is tied ("Encho — winner needed"). */
+  encho?: string;
+}
+
+/** #38: the match-area label for a tied bout that needs a winner. */
+export const ENCHO_LABEL = 'Encho — winner needed';
+/** #38: Next Match's text for a tied bout that may be a draw. */
+export const HIKIWAKE_NEXT_LABEL = 'Next Match (Hikiwake)';
+
+export interface NextMatchView {
+  /** A tied bout that needs a winner cannot be advanced (nextMatch() still alerts as a fallback). */
+  disabled: boolean;
+  label: string;
+}
+
+/** The live score is tied, as nextMatch() decides: equal point counts. */
+export function isTied(score: ActiveScore): boolean {
+  return (score.W || []).length === (score.R || []).length;
+}
+
+/** #38: Next Match for the court's bout: disabled while a winner-required bout is tied; "(Hikiwake)" while a draw would be recorded. */
+export function nextMatchView(input: ScoreboardInput): NextMatchView {
+  const m = input.match;
+  if (!m || !isTied(input.score)) return { disabled: false, label: 'Next Match' };
+  if (m.requiresWinner) return { disabled: true, label: 'Next Match' };
+  return { disabled: false, label: HIKIWAKE_NEXT_LABEL };
 }
 
 export const EMPTY_SCOREBOARD: ScoreboardInput = { match: null, score: { W: [], R: [], WT: 0, RT: 0 }, representatives: null };
@@ -93,5 +121,6 @@ export function scoreboardView(input: ScoreboardInput): ScoreboardView {
       hansoku: '△ '.repeat((w ? input.score.WT : input.score.RT) || 0),
     };
   };
-  return { white: side('W'), red: side('R'), ...(m.rule ? { rule: m.rule } : {}) };
+  const encho = m.requiresWinner && isTied(input.score) ? { encho: ENCHO_LABEL } : {};
+  return { white: side('W'), red: side('R'), ...(m.rule ? { rule: m.rule } : {}), ...encho };
 }

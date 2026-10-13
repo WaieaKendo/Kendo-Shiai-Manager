@@ -66,6 +66,7 @@ export function CourtScoreboard() {
           <div className="tri" id="redTri" data-testid="court-red-hansoku">{view.red.hansoku}</div>
         </div>
         {view.rule && <div className="court-bout-rule" role="note" data-testid="court-bout-rule">{view.rule}</div>}
+        {view.encho && <div className="court-encho-note" role="status" data-testid="court-encho-note">{view.encho}</div>}
       </div>
 
       <div className="scoreboard-side scoreboard-red">

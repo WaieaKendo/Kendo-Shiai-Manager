@@ -212,6 +212,8 @@ const KNOWN_POST_SPLIT_EDITS = {
   // replacements; the helpers after it); Download Tournament File writes the tournament ID and
   // revision into the file (manualSaveTournament(), inline).
   'load-file-guard': 4,
+  // feat/court-clarity (issue #38): confirmFusen() (22) takes the winning side now.
+  'court-clarity': 1,
   // feat/react-live-scores (M.13): the Live Scores screen's React island. With the legacy
   // renderer removed (REMOVED_LIVE_SCORES_RENDERER) renderPublic()'s body (25) is a marked call
   // of ksmRenderLiveScores(), and app/js/36-react-live-scores.js publishes the screen as plain
