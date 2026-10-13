@@ -41,7 +41,8 @@ chosen with select_option(); transitions are off.
                       a duplicate; a preset's name), moving a division up and down (the
                       mouse; the keyboard keeps the focus on it; #31: the rows are the
                       running order, switched-off divisions after), × on a custom division,
-                      a custom division switched off (it leaves the table), phones;
+                      a custom division switched off (it keeps its row: owner decision 12),
+                      phones;
   setup-live          a live update while typing: a staff device defers it (the typed text
                       and the focus stay); the redraw of a live update (renderAll()) with the
                       focus in the name, in a division select and in a referees field; an
@@ -352,7 +353,8 @@ def setup_divisions(browser, react_check):
         a.page.locator(in_row('Kids', 'setup-division-down')).focus(), a.page.keyboard.press('Enter')))
     leave(page)
     g.do('× on the first custom division', lambda a: click(a.page, in_row('Open <A> & "B"', 'setup-division-remove')))
-    g.do("custom 2 switched off (it leaves the table)", lambda a: click(a.page, in_row("O'ahu Juniors", 'setup-division-enabled')))
+    # Owner decision 12 (#29): a switched-off custom division keeps its row (it left the table).
+    g.do("custom 2 switched off (it keeps its row)", lambda a: click(a.page, in_row("O'ahu Juniors", 'setup-division-enabled')))
     g.do("custom 2 added again (its old format and court are not reused)", lambda a: (
         type_into(a.page, tid('custom-division-name'), "O'ahu Juniors"),
         click(a.page, tid('custom-division-add'))))

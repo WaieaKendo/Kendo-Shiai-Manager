@@ -30,13 +30,16 @@ function ksmPublishSetup(event,key,input){
 // Issue #31 (was: the presets in their order, then the enabled custom divisions): the enabled
 // divisions in their running order (state.divisions: the order generation, each court's division
 // dropdown, Continue and the TV's Up next use), each with whether it can move up / down, then the
-// switched-off presets in their order.
+// switched-off presets in their order, then (owner decision 12) the switched-off custom divisions:
+// switching one off keeps its format and court in state (toggleDivision()), so a custom division
+// with a format that is not in state.divisions is listed, unchecked, until × removes it.
 function ksmSetupDivisionsData(){
   const preset=d=>DIVISION_PRESETS.some(p=>p[0]===d),on=state.divisions;
   const row=(d,enabled,custom,move)=>({division:String(d??''),name:ksmText(d),enabled:!!enabled,custom:!!custom,
     format:state.divisionTypes[d]??null,court:state.divisionCourts[d]||'A',move});
   const off=DIVISION_PRESETS.map(([d])=>d).filter(d=>!on.includes(d));
-  return {rows:[...on.map((d,i)=>row(d,true,!preset(d),{up:i>0,down:i<on.length-1})),...off.map(d=>row(d,false,false,null))]};
+  const customOff=Object.keys(state.divisionTypes||{}).filter(d=>d&&!preset(d)&&!on.includes(d)&&d!=='Team Tournament'&&d!=='Exhibition Matches');
+  return {rows:[...on.map((d,i)=>row(d,true,!preset(d),{up:i>0,down:i<on.length-1})),...off.map(d=>row(d,false,false,null)),...customOff.map(d=>row(d,false,true,null))]};
 }
 // Issue #31: a row's move up / down button. Swaps the division with its neighbour in the running
 // order (state.divisions), saved and synced like every Setup edit (the button's click asks for the
@@ -55,8 +58,14 @@ function ksmRenderSetupDivisions(){
 function ksmRenderSetupHeader(){
   ksmPublishSetup('ksm:setup-header','ksmSetupHeaderInput',{name:window.tName?String(tName.value):''});
 }
-// × of a custom division row: what its inline handler ran.
-function ksmRemoveSetupDivision(d){removeDivision(state.divisions.indexOf(d))}
+// × of a custom division row: what its inline handler ran. A switched-off custom division (owner
+// decision 12) is not in state.divisions (removeDivision(-1) would remove the last division):
+// its format and court are forgotten, as removeDivision() does.
+function ksmRemoveSetupDivision(d){
+  const i=state.divisions.indexOf(d);
+  if(i>=0){removeDivision(i);return}
+  delete state.divisionTypes[d];delete state.divisionCourts[d];renderDivisionSetup();renderDivisions();renderReg();
+}
 
 // If the React module (app/react/main.tsx, a module script after app.js) did not run, say so in
 // Setup instead of an empty divisions table, which nothing fills any more (e.g. an offline device
