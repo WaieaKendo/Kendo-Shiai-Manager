@@ -12,6 +12,7 @@ tests/lib/ksm-test-api.js: the only code that touches index.html globals.
 Methods that do so say "(test API)" in their docstring.
 """
 import json
+import re
 import time
 import urllib.request
 from pathlib import Path
@@ -504,26 +505,41 @@ class KsmApp:
         page = self.page
         self.nav('setup')
         wanted = {name: (fmt, court) for name, fmt, court in divisions}
-        rows = page.locator(sel('setup-division-row'))
-        for i in range(rows.count()):
-            row = rows.nth(i)
-            name = row.locator(sel('setup-division-name')).inner_text().strip()
+        # Rows move when a division is switched off (the running order first, #31): find each by name.
+        for name in self.setup_division_names():
+            row = self.setup_division_row(name)
             box = row.locator(sel('setup-division-enabled'))
             if name not in wanted and box.is_checked():
                 box.uncheck()
         for name, (fmt, court) in wanted.items():
-            row = page.locator(sel('setup-division-row'), has=page.locator(sel('setup-division-name'), has_text=name))
+            row = self.setup_division_row(name)
             if row.count() == 0:
                 page.fill(sel('custom-division-name'), name)
                 page.select_option(sel('custom-division-format'), label=fmt)
                 page.select_option(sel('custom-division-court'), value=court)
                 self.click('custom-division-add')
-                row = page.locator(sel('setup-division-row'), has=page.locator(sel('setup-division-name'), has_text=name))
+                row = self.setup_division_row(name)
             box = row.locator(sel('setup-division-enabled'))
             if not box.is_checked():
                 box.check()
             row.locator(sel('setup-division-format')).select_option(label=fmt)
             row.locator(sel('setup-division-court')).select_option(value=court)
+
+    def setup_division_names(self):
+        """Setup screen: the divisions table's names, in the order shown (the running order first, #31)."""
+        return [x.strip() for x in self.page.locator(f'{sel("setup-division-row")} {sel("setup-division-name")}').all_inner_texts()]
+
+    def setup_division_row(self, name):
+        """Setup screen: the divisions table row whose name is exactly `name`."""
+        exact = re.compile('^' + re.escape(name) + '$')
+        return self.page.locator(sel('setup-division-row'), has=self.page.locator(sel('setup-division-name'), has_text=exact))
+
+    def move_division(self, name, direction):
+        """Setup screen: the row of `name`'s move button, direction 'up' or 'down' (#31)."""
+        row = self.setup_division_row(name)
+        before = self.setup_division_names()
+        row.locator(sel(f'setup-division-{direction}')).click()
+        self.wait_for(lambda: self.setup_division_names() != before, message=f'{name} to move {direction}')
 
     def setup_team_event(self, fmt='3-Person Team', tournament='Single Elimination', court='Both', enabled=True):
         """Setup screen: team tournament settings. court: 'A' | 'B' | 'Both'."""

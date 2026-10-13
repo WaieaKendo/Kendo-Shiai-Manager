@@ -26,4 +26,8 @@
 .live-bout-hansoku .live-hansoku{display:inline;color:var(--red);font-size:14px;letter-spacing:.1em}
 body.ksm-tv .tv3-hansoku{display:block;margin-top:14px;font-size:34px;line-height:1;letter-spacing:.12em;color:var(--ksm-gold)}
 body.ksm-tv .tv3-row-score .tv3-hansoku{display:inline;margin:0 12px;font-size:26px}
+/* Issue #31: the Setup divisions table's move up / down buttons, before the division's name. */
+.setup-division-move{display:inline-flex;gap:4px;margin-right:8px;vertical-align:middle}
+.setup-move-btn{min-height:32px;min-width:32px;padding:2px 8px;border-radius:8px;font-size:14px;line-height:1}
+.setup-move-btn:disabled{opacity:.35;cursor:default}
 /* ksm:post-split-end */

@@ -16,8 +16,8 @@
 // No colors or images of its own: the Setup CSS and theme tokens.
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 import {
-  COURT_OPTIONS, CUSTOM_TEXT, EMPTY_SETUP_DIVISIONS, EMPTY_SETUP_HEADER, FORMAT_OPTIONS, REMOVE_TEXT,
-  setupDivisionRowView, setupHeaderText,
+  COURT_OPTIONS, CUSTOM_TEXT, EMPTY_SETUP_DIVISIONS, EMPTY_SETUP_HEADER, FORMAT_OPTIONS, MOVE_TEXTS, REMOVE_TEXT,
+  moveLabel, setupDivisionRowView, setupHeaderText,
   type SetupDivisionRowView, type SetupDivisionsInput, type SetupHeaderInput,
 } from './setup-model.ts';
 
@@ -33,6 +33,7 @@ interface SetupWindow {
   setDivisionFormat?: (division: string, value: string) => unknown;
   setDivisionCourt?: (division: string, value: string) => unknown;
   ksmRemoveSetupDivision?: (division: string) => unknown;
+  ksmMoveSetupDivision?: (division: string, direction: 'up' | 'down') => unknown;
 }
 
 const setupWindow = (): SetupWindow => window as unknown as SetupWindow;
@@ -73,8 +74,39 @@ function useChange<T extends HTMLInputElement | HTMLSelectElement>(handler: (el:
   return ref;
 }
 
+// Issue #31: a move redraws every row (a new publish); the focus goes back to the moved division's
+// button (the other one when it is now disabled), so the keyboard keeps its place.
+let focusAfterMove: { division: string; direction: 'up' | 'down' } | null = null;
+
+function MoveButtons({ row }: { row: SetupDivisionRowView }) {
+  const up = useRef<HTMLButtonElement>(null);
+  const down = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const wanted = focusAfterMove;
+    if (!wanted || wanted.division !== row.division) return;
+    focusAfterMove = null;
+    const first = wanted.direction === 'up' ? up.current : down.current;
+    const other = wanted.direction === 'up' ? down.current : up.current;
+    (first && !first.disabled ? first : other)?.focus();
+  }, [row.division]);
+  if (!row.move) return null;
+  const move = (direction: 'up' | 'down') => {
+    focusAfterMove = { division: row.division, direction };
+    setupWindow().ksmMoveSetupDivision?.(row.division, direction);
+  };
+  return (
+    <span className="setup-division-move">
+      <button ref={up} type="button" className="setup-move-btn" disabled={!row.move.up} aria-label={moveLabel(row.division, 'up')}
+        title={moveLabel(row.division, 'up')} onClick={() => move('up')} data-testid="setup-division-up">{MOVE_TEXTS.up}</button>
+      <button ref={down} type="button" className="setup-move-btn" disabled={!row.move.down} aria-label={moveLabel(row.division, 'down')}
+        title={moveLabel(row.division, 'down')} onClick={() => move('down')} data-testid="setup-division-down">{MOVE_TEXTS.down}</button>
+    </span>
+  );
+}
+
 /** divisionSetupRow(d, enabled, custom). The `checked` and `selected` attributes are printed as
- * the template printed them (defaultChecked, the select's defaultValue). */
+ * the template printed them (defaultChecked, the select's defaultValue). Enabled rows have move
+ * up / down buttons before the name (#31). */
 function DivisionRow({ row }: { row: SetupDivisionRowView }) {
   const use = useChange<HTMLInputElement>(el => setupWindow().toggleDivision?.(row.division, el.checked));
   const format = useChange<HTMLSelectElement>(el => setupWindow().setDivisionFormat?.(row.division, el.value));
@@ -82,7 +114,7 @@ function DivisionRow({ row }: { row: SetupDivisionRowView }) {
   return (
     <tr data-testid="setup-division-row">
       <td><input ref={use} type="checkbox" defaultChecked={row.enabled} data-testid="setup-division-enabled" /></td>
-      <td><b data-testid="setup-division-name">{row.name}</b>{row.custom && <>{' '}<span className="small">{CUSTOM_TEXT}</span></>}</td>
+      <td><MoveButtons row={row} /><b data-testid="setup-division-name">{row.name}</b>{row.custom && <>{' '}<span className="small">{CUSTOM_TEXT}</span></>}</td>
       <td>
         <select ref={format} disabled={!row.enabled} defaultValue={row.formatSelected ?? undefined} data-testid="setup-division-format">
           {FORMAT_OPTIONS.map(f => <option key={f}>{f}</option>)}
@@ -92,7 +124,7 @@ function DivisionRow({ row }: { row: SetupDivisionRowView }) {
         <select ref={court} disabled={!row.enabled} defaultValue={row.courtSelected ?? undefined} data-testid="setup-division-court">
           {COURT_OPTIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
         </select>
-        {row.custom && <>{' '}<button onClick={() => setupWindow().ksmRemoveSetupDivision?.(row.division)}>{REMOVE_TEXT}</button></>}
+        {row.custom && <>{' '}<button onClick={() => setupWindow().ksmRemoveSetupDivision?.(row.division)} data-testid="setup-division-remove">{REMOVE_TEXT}</button></>}
       </td>
     </tr>
   );

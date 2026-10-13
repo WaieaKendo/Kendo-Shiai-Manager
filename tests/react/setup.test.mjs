@@ -42,3 +42,12 @@ test('a row keeps its input (division, name, enabled, custom)', () => {
   assert.equal(view.enabled, false);
   assert.equal(view.custom, true);
 });
+
+test('#31: the move buttons (symbols, accessible names) and a row keeps its move flags', async () => {
+  const { MOVE_TEXTS, moveLabel } = await import('../../app/react/setup/setup-model.ts');
+  assert.deepEqual(MOVE_TEXTS, { up: '↑', down: '↓' });
+  assert.equal(moveLabel('Kids', 'up'), 'Move Kids up');
+  assert.equal(moveLabel('Kids', 'down'), 'Move Kids down');
+  assert.deepEqual(setupDivisionRowView(row({ move: { up: false, down: true } })).move, { up: false, down: true });
+  assert.equal(setupDivisionRowView(row({ enabled: false, move: null })).move, null);
+});
