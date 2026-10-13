@@ -420,14 +420,40 @@ export function teamRoundRobinProgress(matches: readonly TeamMatchLike[]): { com
   return { complete, total: pairs.length };
 }
 
-export interface TeamPlacements { first: string; second: string; thirds: string[]; standings?: TeamStandingRow[]; roundRobin: boolean }
+/**
+ * `undecided`: places with an award (1-based, 1-3) whose teams are still level (no daihyosen has
+ * decided them): their name is '' (never the alphabetically first of the level teams); the screens
+ * show them as tied, a daihyosen needed. Only present when there is one.
+ */
+export interface TeamPlacements { first: string; second: string; thirds: string[]; standings?: TeamStandingRow[]; roundRobin: boolean; undecided?: number[] }
 
-/** Round-robin placements from the standings, once the division is complete; else null. */
+/**
+ * Round-robin placements from the standings, once the division is complete; else null.
+ * An awarded place (within `countedPlaces`) held by teams that share the rank is undecided, not
+ * named by the alphabetical listing (found in external PR review, #35: the award mode switched to
+ * more places after the round robin ended, before its daihyosen was played).
+ */
 export function teamRoundRobinPlacements(complete: boolean, matches: readonly TeamMatchLike[], teams: readonly TeamEntry[], countedPlaces: number = TEAM_ROUND_ROBIN_COUNTED_PLACES): TeamPlacements | null {
   if (!complete) return null;
   const rows = teamStandings(matches, teams, countedPlaces);
   if (!rows.length) return null;
-  return { first: rows[0]?.name || '', second: rows[1]?.name || '', thirds: rows[2] ? [rows[2].name] : [], standings: rows, roundRobin: true };
+  const undecided = [1, 2, 3].filter(place => place <= countedPlaces && rows[place - 1]?.nameFallback);
+  const at = (place: number): string => (undecided.includes(place) ? '' : rows[place - 1]?.name || '');
+  const out: TeamPlacements = { first: at(1), second: at(2), thirds: rows[2] && !undecided.includes(3) ? [rows[2].name] : [], standings: rows, roundRobin: true };
+  if (undecided.length) out.undecided = undecided;
+  return out;
+}
+
+/**
+ * The daihyosen a finished team round robin still needs for its places with an award, judged from
+ * the whole division rather than after a bout (teamRoundRobinTiebreakPlan() on its last decided
+ * bout): for when the places that count change after the round robin ended (Setup's team award
+ * mode switched to more places; found in external PR review, #35). Null when none is needed, one
+ * is unplayed, or the round robin is not finished.
+ */
+export function teamRoundRobinMissingDaihyosen<M extends TeamPlayoffSource>(matches: readonly M[], teams: readonly TeamEntry[], teamFormat: TournamentSettings['teamFormat'] | null | undefined, countedPlaces: number = TEAM_ROUND_ROBIN_COUNTED_PLACES): { anchor: M; bouts: TeamDaihyosen[]; dynamicType: TeamRoundRobinTiebreakType } | null {
+  const last = [...matches].reverse().find(x => x.done && isTeamBout(x));
+  return teamRoundRobinTiebreakPlan(last, matches, teams, teamFormat, countedPlaces);
 }
 
 /** Team name on a bracket side ('' while unknown). */

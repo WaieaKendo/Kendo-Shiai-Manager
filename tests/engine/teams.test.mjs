@@ -468,3 +468,38 @@ test('D2: a daihyosen only for the places with an award (team award mode: top1 /
   const p = teamRoundRobinPlacements(true, t2, six, 2);
   assert.deepEqual([p.first, p.second], ['Team A', 'Team B']);
 });
+
+test('#35 review: the award mode switched to more places after the round robin ended: a daihyosen, never an alphabetical runner-up', async () => {
+  const { teamRoundRobinMissingDaihyosen } = await import('../../app/engine/teams.ts');
+  // Four teams: A beats everyone; B, C, D level for 2nd (a circle, one 1-0 bout each).
+  const teams = makeTeams(4);
+  const circle = { 'Team B|Team C': 'Team B', 'Team C|Team D': 'Team C', 'Team B|Team D': 'Team D' };
+  const arr = buildTeamMatches('D', teams, settings('3-Person Team')).matches;
+  playRoundRobin(arr, (w, r) => oneBout(w === 'Team A' || r === 'Team A' ? 'Team A' : circle[[w, r].sort().join('|')], w));
+  // Finished under "Champion only" (top1): no daihyosen for 2nd, the champion is decided.
+  assert.equal(teamRoundRobinMissingDaihyosen(arr, teams, '3-Person Team', 1), null, 'top1: no daihyosen for 2nd');
+  const top1 = teamRoundRobinPlacements(true, arr, teams, 1);
+  assert.equal(top1.first, 'Team A');
+  assert.equal(top1.undecided, undefined, 'top1: every awarded place is decided');
+  // Switched to "Champion + Runner-up" (top2): 2nd now has an award; still level, so undecided.
+  const level = teamRoundRobinPlacements(true, arr, teams, 2);
+  assert.equal(level.first, 'Team A');
+  assert.equal(level.second, '', `the runner-up was named while B, C and D are level: ${level.second}`);
+  assert.deepEqual(level.undecided, [2]);
+  const dual3 = teamRoundRobinPlacements(true, arr, teams, 3);
+  assert.deepEqual([dual3.second, dual3.thirds, dual3.undecided], ['', [], [2, 3]], 'dual3: 2nd and 3rd both undecided');
+  // The missing daihyosen, judged from the whole division (no bout just played).
+  const plan = teamRoundRobinMissingDaihyosen(arr, teams, '3-Person Team', 2);
+  assert.ok(plan, 'top2: a daihyosen for the level teams');
+  assert.deepEqual(plan.bouts.map(b => [b.teamWhite, b.teamRed]), [['Team B', 'Team C'], ['Team D', 'Team C'], ['Team D', 'Team B']]);
+  assert.equal(plan.anchor, arr.at(-1));
+  arr.push(...plan.bouts);
+  assert.equal(teamRoundRobinMissingDaihyosen(arr, teams, '3-Person Team', 2), null, 'none while the daihyosen is unplayed');
+  // Back to fewer places after it was created: no other daihyosen (the bouts stay).
+  assert.equal(teamRoundRobinMissingDaihyosen(arr, teams, '3-Person Team', 1), null);
+  // Red wins every daihyosen bout: C beats B and D, B beats D, so C is 2nd.
+  arr.filter(m => m.roundRobinTiebreak).forEach(m => score(m, [], ['M']));
+  assert.equal(teamRoundRobinMissingDaihyosen(arr, teams, '3-Person Team', 2), null, 'decided: no further daihyosen');
+  const decided = teamRoundRobinPlacements(true, arr, teams, 2);
+  assert.deepEqual([decided.first, decided.second, decided.undecided], ['Team A', 'Team C', undefined], 'the daihyosen winner is runner-up');
+});
