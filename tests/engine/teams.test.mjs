@@ -425,3 +425,46 @@ test('team engine equals the pre-move legacy code over the golden team scenarios
   assert.ok(scenarios >= 60 && steps > 1500, `scenarios: ${scenarios}, snapshots: ${steps}`);
   assert.ok(daihyosenScenarios > 0, 'some golden round robins end level and get a daihyosen');
 });
+
+test('D2: a daihyosen only for the places with an award (team award mode: top1 / top2 / dual3)', async () => {
+  const { teamRoundRobinCountedPlaces } = await import('../../app/engine/teams.ts');
+  assert.equal(teamRoundRobinCountedPlaces('top1'), 1);
+  assert.equal(teamRoundRobinCountedPlaces('top2'), 2);
+  assert.equal(teamRoundRobinCountedPlaces('dual3'), 3);
+  assert.equal(teamRoundRobinCountedPlaces(undefined), 2, 'the default mode (Champion + Runner-up)');
+  // Four teams: A beats everyone; B, C, D level for 2nd-4th (a circle, one 1-0 bout each).
+  const teams = makeTeams(4);
+  const circle = { 'Team B|Team C': 'Team B', 'Team C|Team D': 'Team C', 'Team B|Team D': 'Team D' };
+  const play = () => {
+    const arr = buildTeamMatches('D', teams, settings('3-Person Team')).matches;
+    playRoundRobin(arr, (w, r) => oneBout(w === 'Team A' || r === 'Team A' ? 'Team A' : circle[[w, r].sort().join('|')], w));
+    return arr;
+  };
+  // top2 (Champion + Runner-up): 2nd has an award, so B, C, D (level for 2nd) play a daihyosen.
+  const top2 = play();
+  const plan2 = teamRoundRobinTiebreakPlan(top2.at(-1), top2, teams, '3-Person Team', 2);
+  assert.deepEqual(plan2.bouts.map(b => [b.teamWhite, b.teamRed]), [['Team B', 'Team C'], ['Team D', 'Team C'], ['Team D', 'Team B']]);
+  // top1 (Champion only): only 1st has an award; B, C, D share 2nd, no daihyosen.
+  const top1 = play();
+  assert.equal(teamRoundRobinTiebreakPlan(top1.at(-1), top1, teams, '3-Person Team', 1), null, 'no award for 2nd: no daihyosen');
+  assert.deepEqual(teamStandings(top1, teams, 1).map(r => [r.name, r.rank, r.nameFallback]),
+    [['Team A', 1, false], ['Team B', 2, true], ['Team C', 2, true], ['Team D', 2, true]], 'level teams without an award share the rank');
+  // Six teams, 3rd level (D > E > F > D after A, B, C win above): dual3 plays it, top2 does not.
+  const six = makeTeams(6), order = ['Team A', 'Team B'], c3 = { 'Team C|Team D': 'Team C', 'Team D|Team E': 'Team D', 'Team C|Team E': 'Team E' };
+  const playSix = () => {
+    const arr = buildTeamMatches('D', six, settings('3-Person Team')).matches;
+    playRoundRobin(arr, (w, r) => {
+      const top = [w, r].filter(x => order.includes(x)).sort((a, b) => order.indexOf(a) - order.indexOf(b))[0];
+      const key = [w, r].sort().join('|');
+      return oneBout(top || c3[key] || ([w, r].includes('Team F') ? [w, r].find(x => x !== 'Team F') : w), w);
+    });
+    return arr;
+  };
+  const d3 = playSix();
+  assert.deepEqual(teamStandings(d3, six, 3).slice(2, 5).map(r => [r.name, r.rank]), [['Team C', 3], ['Team D', 3], ['Team E', 3]], 'level for 3rd');
+  assert.ok(teamRoundRobinTiebreakPlan(d3.at(-1), d3, six, '3-Person Team', 3), 'dual3: 3rd has an award, a daihyosen');
+  const t2 = playSix();
+  assert.equal(teamRoundRobinTiebreakPlan(t2.at(-1), t2, six, '3-Person Team', 2), null, 'top2: no award for 3rd, no daihyosen');
+  const p = teamRoundRobinPlacements(true, t2, six, 2);
+  assert.deepEqual([p.first, p.second], ['Team A', 'Team B']);
+});

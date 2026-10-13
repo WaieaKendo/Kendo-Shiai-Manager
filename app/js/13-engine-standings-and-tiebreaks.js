@@ -303,7 +303,7 @@ function teamRoundRobinPairResolved(div,pair){
  * @returns {TeamStandingRow[]}
  */
 function teamStandings(div='Team Tournament'){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamStandings(state.allMatches[div]||[],eligibleTeams(div)||[]);
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamStandings(state.allMatches[div]||[],eligibleTeams(div)||[],KSMEngine.teamRoundRobinCountedPlaces(state.teamAwardMode));
   /* ksm:post-split-end */
 }
 /**
@@ -318,7 +318,7 @@ function teamRoundRobinProgress(div='Team Tournament'){
  * @param {string} [div]
  */
 function teamRoundRobinPlacements(div='Team Tournament'){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamRoundRobinPlacements(!!divisionComplete(div),state.allMatches[div]||[],eligibleTeams(div)||[]);
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamRoundRobinPlacements(!!divisionComplete(div),state.allMatches[div]||[],eligibleTeams(div)||[],KSMEngine.teamRoundRobinCountedPlaces(state.teamAwardMode));
   /* ksm:post-split-end */
 }
 /**
@@ -331,8 +331,9 @@ function maybeCreateTeamTiebreak(m){
   /* ksm:post-split-end */
   /* ksm:post-split-begin team-rr-daihyosen */
   // F27: once every pairing of a team round robin is decided, teams still level on team wins,
-  // bout wins and points for 1st-3rd get a one-point daihyosen (KSMEngine.teamRoundRobinTiebreakPlan).
-  const rr=m&&isTeamRoundRobinDivision(m.division)?KSMEngine.teamRoundRobinTiebreakPlan(m,state.allMatches[m.division]||[],eligibleTeams(m.division)||[],tournamentSettings().teamFormat):null;
+  // bout wins and points for a place with an award (D2: Setup's team award mode) get a one-point
+  // daihyosen (KSMEngine.teamRoundRobinTiebreakPlan).
+  const rr=m&&isTeamRoundRobinDivision(m.division)?KSMEngine.teamRoundRobinTiebreakPlan(m,state.allMatches[m.division]||[],eligibleTeams(m.division)||[],tournamentSettings().teamFormat,KSMEngine.teamRoundRobinCountedPlaces(state.teamAwardMode)):null;
   if(rr)appendApprovedDynamicMatches(m.division,rr.anchor,/** @type {Match[]} */(rr.bouts),rr.dynamicType);
   /* ksm:post-split-end */
 }
