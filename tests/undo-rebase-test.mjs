@@ -14,7 +14,9 @@
 //     keeps this device's Undo order); an entry this device took off its stacks is not offered again.
 //   * external PR #33 review: Undo of a Next Match that inserted a playoff in the middle of the
 //     list removes the playoff (also when the server's list has shifted), Redo puts it back once;
-//     the action and the Undo/Redo are pressed through the app's own performCourtAction()/undo()/redo().
+//     the action and the Undo/Redo are pressed through the app's own performCourtAction()/undo()/redo();
+//   * found with it: a pending Next Match that inserted a playoff (also a Redo of it after a saved
+//     Undo, which the rebase replays as the action) keeps the other court's point on the last bout.
 // edit-conflicts-test.py races the same through the real app and server (Undo, then Redo).
 import vm from 'node:vm';
 import { extractFunction, html, engine } from './lib/ksm-source.mjs';
@@ -34,7 +36,7 @@ const code = [engine, constant('KSM_LOCAL_VIEW_STATE_KEYS'), constant('KSM_UNDO_
     // the court's own actions and Undo/Redo (10-), to press them on the device's copy and the rebased copy
     'historyPathParent', 'applyHistoryPatch', 'cloneHistoryValue', 'historyComparableState', 'historyValuesEqual', 'buildHistoryPatches',
     'currentHistoryCourt', 'stampHistoryPatchMatchIdentity', 'ensureCourtHistory', 'performCourtAction', 'applyHistoryValues',
-    'courtUndoMatchesBefore', 'courtUndoMatchOps', 'recordCourtUndoLog', 'undo', 'redo'].map(n => extractFunction(html, n))].join('\n')
+    'courtUndoMatchesBefore', 'courtUndoMatchOps', 'withCourtMatchOps', 'recordCourtUndoLog', 'undo', 'redo'].map(n => extractFunction(html, n))].join('\n')
   + ['KSM_HISTORY_LIMIT', 'KSM_HISTORY_KEYS', 'KSM_HISTORY_MISSING'].map(constant).join('\n');
 const context = {
   console,
@@ -230,6 +232,37 @@ server.allMatches.Open[3].wp = ['K'];
 context.undo(); context.redo();
 r = rebaseOnto(clone(device), server);
 check(describe(r) === 'A 1-A 2 done M, A 3-A 4 done, playoff A 1-A 3, B 1-B 2 K, B 3-B 4', `15: Undo + Redo of the Next Match through a conflict (${describe(r)})`);
+
+// 16. Found while fixing 12-15: a Next Match that inserts a playoff, not saved yet, while Court B
+// scores on the division's LAST bout and saves first. The action's index patches end with a whole
+// match at the old last index (the last bout, moved one place on); replayed by identity it put the
+// last bout back as it was when the Next Match was pressed: Court B's point was lost. Replayed by
+// identity (the action's matchOps) only the playoff is inserted and the finished bout changed.
+device = deviceState([...poolA(), ...poolB()]);
+server = clone(device); server.allMatches.Open[3].wp = ['K'];
+nextMatchWithPlayoff(device, 1, TA);
+r = rebaseOnto(clone(device), server);
+check(describe(r) === 'A 1-A 2 done M, A 3-A 4 done, playoff A 1-A 3, B 1-B 2, B 3-B 4 K', `16: a pending Next Match with a playoff keeps Court B's point on the last bout (${describe(r)})`);
+
+// 17. The Redo of 14 with Court B's point on the last bout (the Undo saved; the Redo replays the action).
+device = deviceState([...poolA(), ...poolB()]);
+nextMatchWithPlayoff(device, 1, TA);
+context.undo();
+server = clone(device); server.allMatches.Open[3].wp = ['K'];
+context.redo();
+r = rebaseOnto(clone(device), server);
+check(describe(r) === 'A 1-A 2 done M, A 3-A 4 done, playoff A 1-A 3, B 1-B 2, B 3-B 4 K', `17: Redo of the Next Match keeps Court B's point on the last bout (${describe(r)})`);
+
+// 18. 16 with the server's list shifted by Court B's own playoff (pool Z first).
+device = deviceState([...poolZ(), ...poolA(), ...poolB()]);
+server = clone(device);
+server.allMatches.Open[1].done = true;
+server.allMatches.Open.splice(2, 0, playoff('Z', 'Z 1', 'Z 3', 'B'));
+server.allMatches.Open[6].wp = ['K'];
+nextMatchWithPlayoff(device, 3, TA);
+r = rebaseOnto(clone(device), server);
+check(describe(r) === 'Z 1-Z 2 done, Z 3-Z 4 done, playoff Z 1-Z 3, A 1-A 2 done M, A 3-A 4 done, playoff A 1-A 3, B 1-B 2, B 3-B 4 K',
+  `18: the same with the server's list shifted by Court B's playoff (${describe(r)})`);
 
 if (failed) process.exit(1);
 console.log(`PASS F30 undo/redo through a save conflict: ${count} checks`);

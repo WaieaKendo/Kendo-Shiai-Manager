@@ -64,7 +64,7 @@ function performCourtAction(label,fn){
   const result=fn();const after=historyComparableState(),patches=buildHistoryPatches(before,after).map(patch=>stampHistoryPatchMatchIdentity(patch,before,after));
   if(patches.length){
     const stack=state.courtActionHistory[court];
-    stack.push({format:'patch-v1',label:label||'Action',court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',revision:cloudSession?.revision||0,patches});
+    /* ksm:post-split-begin history-replay was:stack.push({format:'patch-v1',label:label||'Action',court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',revision:cloudSession?.revision||0,patches}); */stack.push(withCourtMatchOps({format:'patch-v1',label:label||'Action',court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',revision:cloudSession?.revision||0,patches},before.allMatches,after.allMatches));/* ksm:post-split-end */
     if(stack.length>KSM_HISTORY_LIMIT)stack.splice(0,stack.length-KSM_HISTORY_LIMIT);
     state.courtRedoHistory[court]=[];
   }
@@ -124,17 +124,21 @@ function courtUndoMatchesBefore(action){
 /**
  * External PR #33 review: an action that inserts or removes matches (Next Match creating a playoff
  * or tiebreak, appendApprovedDynamicMatches() in 13-) is recorded as index patches: every match
- * after the insertion is "changed" into its neighbour. Replayed backwards on the server copy by
- * match identity those patches overwrite the wrong matches and leave the playoff in. So for each
- * division whose matches (by identity, in order) differ before and after the Undo/Redo, the log
- * entry also keeps what it did by identity: the matches it removed, the ones it inserted (with the
- * match they follow) and the field changes of the others. The rebase replays these for that
+ * after the insertion is "changed" into its neighbour. Replayed on the server copy by match
+ * identity those patches overwrite the wrong matches: backwards (an Undo) they left the playoff in,
+ * forwards (the action, or its Redo) they put the division's last match back as it was then, losing
+ * the other court's points on it. So for each division whose matches (by identity, in order) differ
+ * before and after, the court action (performCourtAction(), withCourtMatchOps()) and the Undo/Redo
+ * log entry also keep what it did by identity: the matches it removed, the ones it inserted (with
+ * the match they follow) and the field changes of the others. The rebase replays these for that
  * division instead of the index patches (replayCourtMatchOps(), 18-).
+ * matchesBefore: the touched divisions' matches before; matchesAfter: all divisions' matches after.
  */
-function courtUndoMatchOps(matchesBefore){
+function courtUndoMatchOps(matchesBefore,matchesAfter=state.allMatches){
   const ops={};
   Object.keys(matchesBefore||{}).forEach(div=>{
-    const before=matchesBefore[div],after=Array.isArray(state.allMatches?.[div])?state.allMatches[div]:[];
+    const before=matchesBefore[div],after=Array.isArray(matchesAfter?.[div])?matchesAfter[div]:[];
+    if(!Array.isArray(before))return;
     const beforeIds=before.map(matchSyncIdentity),afterIds=after.map(matchSyncIdentity);
     if(beforeIds.join('\n')===afterIds.join('\n'))return; // same matches in the same order: the index patches replay it
     if(beforeIds.some(id=>!id)||afterIds.some(id=>!id)||new Set(beforeIds).size!==beforeIds.length||new Set(afterIds).size!==afterIds.length)return;
@@ -147,6 +151,13 @@ function courtUndoMatchOps(matchesBefore){
     ops[div]=op;
   });
   return Object.keys(ops).length?ops:null;
+}
+/** A new court action's entry, with its matchOps when it inserted or removed matches (beforeAll/afterAll: allMatches before and after). */
+function withCourtMatchOps(entry,beforeAll,afterAll){
+  const divisions={};
+  (entry.patches||[]).forEach(patch=>{const div=patch?.path?.[0]==='allMatches'?patch.path[1]:null;if(div!=null&&Array.isArray(beforeAll?.[div]))divisions[div]=beforeAll[div]});
+  const matchOps=courtUndoMatchOps(divisions,afterAll);if(matchOps)entry.matchOps=matchOps;
+  return entry;
 }
 function recordCourtUndoLog(court,kind,action,matchesBefore){
   state.courtUndoLog=state.courtUndoLog||{A:[],B:[]};

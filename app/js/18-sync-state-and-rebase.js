@@ -195,10 +195,10 @@ function replayPendingCourtHistory(actions,undoLog,localState,rebasedState,serve
     .map((step,i)=>({...step,i})).sort((a,b)=>String(a.entry.when||'').localeCompare(String(b.entry.when||''))||a.i-b.i);
   steps.forEach(({entry,op})=>{
     const patches=entry.patches||[];
-    if(!op){patches.forEach(apply);const id=historyEntryIdentity(entry);applied.add(id);undone.delete(id);return}
-    // A division whose matches the Undo/Redo inserted or removed is replayed by identity (entry.matchOps), not by its index patches.
+    // A division whose matches the action or the Undo/Redo inserted or removed is replayed by identity (entry.matchOps), not by its index patches.
     const matchOps=entry.matchOps&&typeof entry.matchOps==='object'?entry.matchOps:null;
     const byIndex=patch=>!(matchOps&&patch?.path?.[0]==='allMatches'&&Object.prototype.hasOwnProperty.call(matchOps,patch.path[1]));
+    if(!op){patches.filter(byIndex).forEach(apply);if(matchOps)replayCourtMatchOps(rebasedState,matchOps);const id=historyEntryIdentity(entry);applied.add(id);undone.delete(id);return}
     if(op==='UNDO'&&applied.has(entry.target)){
       [...patches].reverse().filter(byIndex).forEach(patch=>apply({...patch,before:patch.after,after:patch.before}));
       if(matchOps)replayCourtMatchOps(rebasedState,matchOps);
