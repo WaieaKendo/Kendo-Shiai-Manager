@@ -163,6 +163,53 @@ export interface RenameRebase<S extends RenameState> {
   accepted: DivisionRename[];
   /** This device's renames that could not be applied over the server copy (they are undone, never half-applied). */
   refused: RefusedRename[];
+  /**
+   * The other devices' renames of a division this device has an unsaved draw or other structural
+   * edit for (pools, matches, brackets under the old name; found in external PR review, #36): that
+   * edit must not be saved (it would stay keyed under a name that no longer exists).
+   */
+  blocked: DivisionRename[];
+}
+
+/** True when `div`'s structure (pools, matches, brackets) differs between `a` and `b`. */
+function structureChanged(a: RenameState, b: RenameState, div: string): boolean {
+  return DIVISION_STRUCTURE_KEYS.some(k => {
+    const x = (a[k] as Record<string, unknown> | undefined)?.[div], y = (b[k] as Record<string, unknown> | undefined)?.[div];
+    return JSON.stringify(x ?? null) !== JSON.stringify(y ?? null);
+  });
+}
+
+function namesWithStructure(st: RenameState): Set<string> {
+  const names = new Set<string>();
+  for (const k of DIVISION_STRUCTURE_KEYS) {
+    const byDivision = st[k];
+    if (!byDivision || typeof byDivision !== 'object') continue;
+    for (const [div, v] of Object.entries(byDivision as Record<string, unknown>)) if (hasValue(v)) names.add(div);
+  }
+  return names;
+}
+
+/**
+ * Division names that have structure (pools, matches, brackets) in `st` but are not a division
+ * there (nor the team event or the exhibition matches): a draw keyed under a name that no longer
+ * exists. `except` (the server copy) excludes every name that already has structure there, so
+ * only a draw this device would add is reported, never results played in a division the server
+ * already holds (found in external PR review, #36).
+ */
+export function orphanedDivisionStructure(st: RenameState, presets: readonly string[], except?: RenameState): string[] {
+  const existing = except ? namesWithStructure(except) : new Set<string>();
+  return [...namesWithStructure(st)].filter(d => d !== TEAM_DIVISION && d !== EXHIBITION_DIVISION && !isDivision(st, presets, d) && !existing.has(d));
+}
+
+/** `st` without the structure (pools, matches, brackets) of `divisions` (assign over the state). */
+export function withoutDivisionStructure(st: RenameState, divisions: readonly string[]): Partial<RenameState> {
+  const out: Partial<RenameState> = {};
+  for (const k of DIVISION_STRUCTURE_KEYS) {
+    const byDivision = st[k];
+    if (!byDivision || typeof byDivision !== 'object' || !divisions.some(d => Object.hasOwn(byDivision, d))) continue;
+    out[k] = Object.fromEntries(Object.entries(byDivision as Record<string, unknown>).filter(([d]) => !divisions.includes(d)));
+  }
+  return out;
 }
 
 /**
@@ -176,7 +223,10 @@ export interface RenameRebase<S extends RenameState> {
  * applied over the server copy: the draw was made there, its division was removed or renamed there,
  * its new name is taken there, or the other device renamed to or from one of its names at the same
  * time. Then it is undone on this device (with every later local rename), so no part of it is saved
- * (the caller shows a notice). Returns null when neither side renamed anything.
+ * (the caller shows a notice). `blocked` lists the other devices' renames of a division this device
+ * has an unsaved structural edit for (a draw racing the rename; external PR review, #36): the
+ * caller does not save that edit (the rename and the other device's state win). Returns null when
+ * neither side renamed anything.
  */
 export function rebaseDivisionRenames<S extends RenameState>(server: S, local: S, base: S, presets: readonly string[]): RenameRebase<S> | null {
   const baseIds = new Set((base.divisionRenames || []).map(r => r.id));
@@ -184,6 +234,8 @@ export function rebaseDivisionRenames<S extends RenameState>(server: S, local: S
   const theirs = (server.divisionRenames || []).filter(r => !baseIds.has(r.id));
   const mine = (local.divisionRenames || []).filter(r => !baseIds.has(r.id) && !serverIds.has(r.id));
   if (!theirs.length && !mine.length) return null;
+  // #36 review: the other device renamed a division this device has an unsaved structural edit for.
+  const blocked = theirs.filter(r => structureChanged(local, base, r.from));
   const theirNames = new Set(theirs.flatMap(r => [fold(r.from), fold(r.to)]));
   let s: RenameState = server, known: RenameState = base;
   const accepted: DivisionRename[] = [], refused: RefusedRename[] = [];
@@ -221,5 +273,6 @@ export function rebaseDivisionRenames<S extends RenameState>(server: S, local: S
     base: { ...b, divisionRenames: log } as S,
     accepted,
     refused,
+    blocked,
   };
 }

@@ -6,7 +6,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   RENAME_AFTER_DRAW_MESSAGE, RENAME_EMPTY_MESSAGE, divisionRenameError, renamedDivisionState, presetNames, drawMade,
-  rebaseDivisionRenames,
+  rebaseDivisionRenames, orphanedDivisionStructure, withoutDivisionStructure,
 } from '../../app/engine/divisions.ts';
 
 const PRESETS = ['Kids', 'Juniors', 'Women’s Open'];
@@ -202,4 +202,32 @@ test('a rename already on the server (a retried save) is not applied twice', () 
   assert.deepEqual(r.accepted, []);
   assert.deepEqual(r.local.divisions, ['Under 12', 'Juniors', 'Masters']);
   assert.deepEqual(r.server.divisionRenames.map(x => x.id), ['r1']);
+});
+
+test('#36 review: the other device renamed a division this device has an unsaved draw for: that draw is not saved', () => {
+  const base = st();
+  const server = apply(base, 'Kids', 'Under 12', 'theirs');
+  // This device generated: pools and matches keyed by the old name.
+  const local = st({ generated: true, pools: { Kids: [{ label: 'A', players: ['P1', 'P3'] }] }, allMatches: { Kids: [{ white: 'P1', red: 'P3' }], Juniors: [{ white: 'P2', red: '' }] } });
+  const r = rebaseDivisionRenames(server, local, base, PRESETS);
+  assert.deepEqual(r.blocked.map(x => x.id), ['theirs'], 'the draw under "Kids" must not be saved');
+  assert.deepEqual(r.local.competitors.filter(c => c.division === 'Under 12').map(c => c.name), ['P1', 'P3'], 'the registrations follow the rename');
+  // Without a draw for the renamed division (only Juniors drawn here), nothing is blocked.
+  const other = rebaseDivisionRenames(server, st({ allMatches: { Juniors: [{ white: 'P2', red: '' }] } }), base, PRESETS);
+  assert.deepEqual(other.blocked, []);
+  // This device's own renames never block.
+  const mine = rebaseDivisionRenames(base, apply(local, 'Juniors', 'Teens', 'mine'), base, PRESETS);
+  assert.deepEqual(mine.blocked, []);
+});
+
+test('#36 review: pools and matches under a name that is no division are found (the last guard) and removed', () => {
+  const s = apply(st({ pools: { Kids: [{ label: 'A' }], Juniors: [{ label: 'A' }] }, allMatches: { Kids: [{}], 'Team Tournament': [{}], 'Exhibition Matches': [{}], Gone: [] } }), 'Kids', 'Under 12');
+  assert.deepEqual(orphanedDivisionStructure(s, PRESETS), ['Kids'], 'the old name; not the team event, the exhibitions, a division or an empty list');
+  assert.deepEqual(orphanedDivisionStructure(s, PRESETS, s), [], 'structure the server copy holds is not reported');
+  assert.deepEqual(orphanedDivisionStructure(s, PRESETS, { pools: {}, allMatches: { Kids: [{ played: true }] } }), [], 'nor results in a division the server already holds');
+  assert.deepEqual(orphanedDivisionStructure(s, PRESETS, { ...s, pools: { Juniors: s.pools.Juniors }, allMatches: { ...s.allMatches, Kids: [] } }), ['Kids'], 'a draw this device would add is');
+  const out = { ...s, ...withoutDivisionStructure(s, ['Kids']) };
+  assert.deepEqual(Object.keys(out.pools), ['Juniors']);
+  assert.deepEqual(Object.keys(out.allMatches), ['Team Tournament', 'Exhibition Matches', 'Gone']);
+  assert.ok(s.pools.Kids, 'the input is unchanged');
 });
