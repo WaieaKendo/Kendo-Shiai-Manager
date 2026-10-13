@@ -9,7 +9,7 @@ import {
   STATIC_ACTIONS, courtActionsView, fusenButtonView, scoreButtons,
   type CourtActionsInput, type ScoreButton, type Side,
 } from './actions-model.ts';
-import type { ScoreboardInput } from './scoreboard-model.ts';
+import { EMPTY_SCOREBOARD, nextMatchView, type ScoreboardInput } from './scoreboard-model.ts';
 
 export const ACTIONS_EVENT = 'ksm:court-actions';
 
@@ -42,6 +42,8 @@ function subscribeMatch(onChange: () => void): () => void {
 }
 /** Whether the court screen shows a match (before the first publish: none). */
 const hasMatch = (): boolean => Boolean(courtWindow().ksmCourtScoreboardInput?.match);
+/** The published scoreboard (a new object each publish): Next Match follows the live score (#38). */
+const scoreboard = (): ScoreboardInput => courtWindow().ksmCourtScoreboardInput ?? EMPTY_SCOREBOARD;
 
 function press(b: ScoreButton) {
   const w = courtWindow();
@@ -87,6 +89,7 @@ function UndoIcon({ icon, mirrored }: { icon: CourtActionIcons['undo']; mirrored
 export function CourtActions({ icons = DEFAULT_COURT_ACTION_ICONS }: { icons?: CourtActionIcons }) {
   const view = courtActionsView(useSyncExternalStore(subscribe, snapshot, () => STATIC_ACTIONS));
   const fusen = fusenButtonView(useSyncExternalStore(subscribeMatch, hasMatch, () => false));
+  const next = nextMatchView(useSyncExternalStore(subscribeMatch, scoreboard, () => EMPTY_SCOREBOARD));
   const w = courtWindow;
   return (
     <>
@@ -102,9 +105,9 @@ export function CourtActions({ icons = DEFAULT_COURT_ACTION_ICONS }: { icons?: C
         <span className="action-symbol flag-symbol" aria-hidden="true">{icons.fusen}</span>
         <span>{fusen.label}</span>
       </button>
-      <button className="primary next-match-btn action-btn" onClick={() => w().nextMatch?.()} data-testid="next-match">
+      <button className="primary next-match-btn action-btn" onClick={() => w().nextMatch?.()} disabled={next.disabled} data-testid="next-match">
         <span className="action-symbol next-symbol" aria-hidden="true">{icons.next}</span>
-        <span>Next Match</span>
+        <span>{next.label}</span>
       </button>
     </>
   );

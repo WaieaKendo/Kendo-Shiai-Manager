@@ -42,7 +42,7 @@ function ksmScoreboardInput(m){
   const s=state.score||{};
   const score={W:[...(s.W||[])],R:[...(s.R||[])],WT:s.WT||0,RT:s.RT||0};
   const match={white:m.white,red:m.red,wdojo:m.wdojo,rdojo:m.rdojo,teamWhite:m.teamWhite,teamRed:m.teamRed,type:m.type,
-    ...(ksmIsRoundRobinDaihyosen(m)?{rule:ksmDaihyosenLabel()}:{})};
+    ...(ksmIsRoundRobinDaihyosen(m)?{rule:ksmDaihyosenLabel()}:{}),requiresWinner:!!matchRequiresWinner(m)};
   if(m.type!=='teamPlayoff')return {match,score,representatives:null};
   // As repSelect(): the roster and permission come from the match at state.current.
   const current=state.matches[state.current],playoff=current&&current.type==='teamPlayoff';

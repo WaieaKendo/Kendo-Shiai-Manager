@@ -52,3 +52,34 @@ test('D1: a daihyosen bout carries its rule label; other bouts none', async () =
   assert.equal(scoreboardView({ match: { ...m, rule: 'Daihyosen — first point wins' }, score, representatives: null }).rule, 'Daihyosen — first point wins');
   assert.equal('rule' in scoreboardView({ match: m, score, representatives: null }), false);
 });
+
+test('#38: a tied bout that needs a winner shows the encho label and disables Next Match; a point clears both', async () => {
+  const { nextMatchView, scoreboardView, ENCHO_LABEL } = await import('../../app/react/court/scoreboard-model.ts');
+  const m = { white: 'Aoki', red: 'Baba', type: 'individual', requiresWinner: true };
+  const tied = { match: m, score: score(['M'], ['K']), representatives: null };
+  assert.equal(scoreboardView(tied).encho, ENCHO_LABEL);
+  assert.equal(ENCHO_LABEL, 'Encho — winner needed');
+  assert.deepEqual(nextMatchView(tied), { disabled: true, label: 'Next Match' });
+  assert.deepEqual(nextMatchView({ ...tied, score: score([], []) }), { disabled: true, label: 'Next Match' }, '0-0 is tied too');
+  const decided = { ...tied, score: score(['M', 'K'], ['K']) };
+  assert.equal('encho' in scoreboardView(decided), false);
+  assert.deepEqual(nextMatchView(decided), { disabled: false, label: 'Next Match' });
+});
+
+test('#38: a tied bout that may be a draw keeps Next Match enabled, reading "(Hikiwake)"', async () => {
+  const { nextMatchView, scoreboardView } = await import('../../app/react/court/scoreboard-model.ts');
+  const m = { white: 'Aoki', red: 'Baba', type: 'individual', requiresWinner: false };
+  const tied = { match: m, score: score(['M'], ['K']), representatives: null };
+  assert.deepEqual(nextMatchView(tied), { disabled: false, label: 'Next Match (Hikiwake)' });
+  assert.equal('encho' in scoreboardView(tied), false);
+  assert.deepEqual(nextMatchView({ ...tied, score: score(['M'], []) }), { disabled: false, label: 'Next Match' });
+  assert.deepEqual(nextMatchView({ match: null, score: score(), representatives: null }), { disabled: false, label: 'Next Match' }, 'no match: unchanged');
+});
+
+test('#38: a daihyosen bout (team playoff) is winner-required, and keeps its rule label', async () => {
+  const { nextMatchView, scoreboardView } = await import('../../app/react/court/scoreboard-model.ts');
+  const m = { white: 'A Rep', red: 'B Rep', type: 'teamPlayoff', requiresWinner: true, rule: 'Daihyosen — first point wins' };
+  const input = { match: m, score: score(), representatives: null };
+  assert.equal(nextMatchView(input).disabled, true);
+  assert.equal(scoreboardView(input).rule, 'Daihyosen — first point wins');
+});
