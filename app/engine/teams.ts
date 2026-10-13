@@ -288,8 +288,17 @@ export function teamRoundRobinPairResolved(matches: readonly TeamMatchLike[], pa
   return !!(ms.length && ms.every(m => m.done) && teamWinner(matches, pair));
 }
 
-/** Places of a team round robin that a daihyosen decides when teams are level (1st–3rd, the medals; F27). */
+/** Places of a team round robin that a daihyosen decides when teams are level (1st–3rd, the medals; F27): the default. */
 export const TEAM_ROUND_ROBIN_COUNTED_PLACES = 3;
+
+/**
+ * D2 (owner decision, #29): a daihyosen only for the places that get an award under Setup's team
+ * award mode: "Champion only" (top1) 1st; "Champion + Runner-up" (top2, the default) 1st–2nd;
+ * "Champion + Runner-up + 3rd place(s)" (dual3) 1st–3rd. Level teams below share the rank.
+ */
+export function teamRoundRobinCountedPlaces(mode: string | null | undefined): number {
+  return mode === 'top1' ? 1 : mode === 'dual3' ? 3 : 2;
+}
 // The daihyosen bouts as individual tiebreak bouts between team names, for the tiebreak engine.
 const DAIHYOSEN_POOL = 'Daihyosen';
 function daihyosenAsTiebreaks(matches: readonly TeamMatchLike[]): StandingsMatch[] {
@@ -323,9 +332,9 @@ const asStandingRow = (r: TeamStandingRow): StandingRow => ({ name: r.name, dojo
  * counted places, or before their daihyosen is decided, share the rank and are listed by
  * name (`nameFallback`).
  */
-export function teamStandings(matches: readonly TeamMatchLike[], teams: readonly TeamEntry[]): TeamStandingRow[] {
+export function teamStandings(matches: readonly TeamMatchLike[], teams: readonly TeamEntry[], countedPlaces: number = TEAM_ROUND_ROBIN_COUNTED_PLACES): TeamStandingRow[] {
   const base = teamRecordRows(matches, teams).sort(byTeamRecord);
-  const places = Math.min(TEAM_ROUND_ROBIN_COUNTED_PLACES, base.length), tiebreaks = daihyosenAsTiebreaks(matches);
+  const places = Math.min(countedPlaces, base.length), tiebreaks = daihyosenAsTiebreaks(matches);
   const out: TeamStandingRow[] = [];
   for (const group of levelTeamGroups(base)) {
     const byName = new Map(group.rows.map(r => [r.name, r]));
@@ -348,13 +357,13 @@ export function teamStandings(matches: readonly TeamMatchLike[], teams: readonly
  * at a time, the highest first; none while a daihyosen bout is unplayed. Null otherwise (also
  * for a bracket, which has its own representative playoffs).
  */
-export function teamRoundRobinTiebreakPlan<M extends TeamPlayoffSource>(m: M | null | undefined, matches: readonly M[], teams: readonly TeamEntry[], teamFormat: TournamentSettings['teamFormat'] | null | undefined): { anchor: M; bouts: TeamDaihyosen[]; dynamicType: TeamRoundRobinTiebreakType } | null {
+export function teamRoundRobinTiebreakPlan<M extends TeamPlayoffSource>(m: M | null | undefined, matches: readonly M[], teams: readonly TeamEntry[], teamFormat: TournamentSettings['teamFormat'] | null | undefined, countedPlaces: number = TEAM_ROUND_ROBIN_COUNTED_PLACES): { anchor: M; bouts: TeamDaihyosen[]; dynamicType: TeamRoundRobinTiebreakType } | null {
   if (!m || !m.done || !isTeamBout(m) || matches.some(x => x.teamNodeId)) return null;
   const progress = teamRoundRobinProgress(matches);
   if (!progress.total || progress.complete < progress.total) return null;
   if (matches.some(x => x.roundRobinTiebreak && !x.done)) return null;
   const base = teamRecordRows(matches, teams).sort(byTeamRecord);
-  const places = Math.min(TEAM_ROUND_ROBIN_COUNTED_PLACES, base.length), tiebreaks = daihyosenAsTiebreaks(matches);
+  const places = Math.min(countedPlaces, base.length), tiebreaks = daihyosenAsTiebreaks(matches);
   for (const group of levelTeamGroups(base)) {
     if (group.rows.length < 2 || group.start > places) continue;
     const level = unresolvedRequiredTiebreakGroup(tiebreaks, DAIHYOSEN_POOL, { start: group.start, end: group.end, players: group.rows.map(asStandingRow) }, places);
@@ -411,14 +420,40 @@ export function teamRoundRobinProgress(matches: readonly TeamMatchLike[]): { com
   return { complete, total: pairs.length };
 }
 
-export interface TeamPlacements { first: string; second: string; thirds: string[]; standings?: TeamStandingRow[]; roundRobin: boolean }
+/**
+ * `undecided`: places with an award (1-based, 1-3) whose teams are still level (no daihyosen has
+ * decided them): their name is '' (never the alphabetically first of the level teams); the screens
+ * show them as tied, a daihyosen needed. Only present when there is one.
+ */
+export interface TeamPlacements { first: string; second: string; thirds: string[]; standings?: TeamStandingRow[]; roundRobin: boolean; undecided?: number[] }
 
-/** Round-robin placements from the standings, once the division is complete; else null. */
-export function teamRoundRobinPlacements(complete: boolean, matches: readonly TeamMatchLike[], teams: readonly TeamEntry[]): TeamPlacements | null {
+/**
+ * Round-robin placements from the standings, once the division is complete; else null.
+ * An awarded place (within `countedPlaces`) held by teams that share the rank is undecided, not
+ * named by the alphabetical listing (found in external PR review, #35: the award mode switched to
+ * more places after the round robin ended, before its daihyosen was played).
+ */
+export function teamRoundRobinPlacements(complete: boolean, matches: readonly TeamMatchLike[], teams: readonly TeamEntry[], countedPlaces: number = TEAM_ROUND_ROBIN_COUNTED_PLACES): TeamPlacements | null {
   if (!complete) return null;
-  const rows = teamStandings(matches, teams);
+  const rows = teamStandings(matches, teams, countedPlaces);
   if (!rows.length) return null;
-  return { first: rows[0]?.name || '', second: rows[1]?.name || '', thirds: rows[2] ? [rows[2].name] : [], standings: rows, roundRobin: true };
+  const undecided = [1, 2, 3].filter(place => place <= countedPlaces && rows[place - 1]?.nameFallback);
+  const at = (place: number): string => (undecided.includes(place) ? '' : rows[place - 1]?.name || '');
+  const out: TeamPlacements = { first: at(1), second: at(2), thirds: rows[2] && !undecided.includes(3) ? [rows[2].name] : [], standings: rows, roundRobin: true };
+  if (undecided.length) out.undecided = undecided;
+  return out;
+}
+
+/**
+ * The daihyosen a finished team round robin still needs for its places with an award, judged from
+ * the whole division rather than after a bout (teamRoundRobinTiebreakPlan() on its last decided
+ * bout): for when the places that count change after the round robin ended (Setup's team award
+ * mode switched to more places; found in external PR review, #35). Null when none is needed, one
+ * is unplayed, or the round robin is not finished.
+ */
+export function teamRoundRobinMissingDaihyosen<M extends TeamPlayoffSource>(matches: readonly M[], teams: readonly TeamEntry[], teamFormat: TournamentSettings['teamFormat'] | null | undefined, countedPlaces: number = TEAM_ROUND_ROBIN_COUNTED_PLACES): { anchor: M; bouts: TeamDaihyosen[]; dynamicType: TeamRoundRobinTiebreakType } | null {
+  const last = [...matches].reverse().find(x => x.done && isTeamBout(x));
+  return teamRoundRobinTiebreakPlan(last, matches, teams, teamFormat, countedPlaces);
 }
 
 /** Team name on a bracket side ('' while unknown). */

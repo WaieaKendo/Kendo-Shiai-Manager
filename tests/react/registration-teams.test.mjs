@@ -42,3 +42,11 @@ test('the tab classes as regTab() toggled them; the action buttons keep theirs',
   assert.equal(tabButtonClass(generate, 'team'), 'primary');
   assert.equal(tabButtonClass(regenerate, 'team'), undefined);
 });
+
+test('owner decision 19: the Exhibition tab only while exhibitions are enabled', async () => {
+  const { visibleTabButtons, TAB_BUTTONS } = await import('../../app/react/registration/teams-model.ts');
+  assert.deepEqual(visibleTabButtons({ mode: 'individual', exhibitions: true }), TAB_BUTTONS);
+  assert.deepEqual(visibleTabButtons({ mode: 'individual' }), TAB_BUTTONS, 'nothing published about it: as before');
+  assert.deepEqual(visibleTabButtons({ mode: 'individual', exhibitions: false }).map(b => b.testId),
+    ['reg-tab-individual', 'reg-tab-team', 'reg-tab-pools', 'generate-button', 'regenerate-division-button']);
+});

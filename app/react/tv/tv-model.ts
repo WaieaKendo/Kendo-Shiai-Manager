@@ -10,7 +10,7 @@
 // #tvLive. tvView() adds what the legacy tv3 renderer derived: "Court X", the name split into
 // first name and the rest, the point strings, classes, the kachinuki fighters' states.
 import { courtCompleteView, type CourtCompleteInput, type CourtCompleteView } from '../court/complete-model.ts';
-import { pointText } from '../live-scores/live-scores-model.ts';
+import { hansokuView, pointText, upNextTitle, type HansokuCounts, type HansokuView } from '../live-scores/live-scores-model.ts';
 
 // ------------------------------------------------------------------------------ input
 
@@ -31,16 +31,21 @@ export interface TvTeamRowInput {
   white: string;
   red: string;
   points: TvPoints;
+  /** The bout's hansoku (owner decision 5). */
+  hansoku?: HansokuCounts;
   /** The bout being fought (the court's current match). */
   active: boolean;
 }
 
 export type TvBodyInput =
-  /** No match on the court. */
-  | { kind: 'idle' }
+  /**
+   * No match on the court. waiting (owner decision 6): the court's division waits for a match
+   * ('match', with the reason when known) or the court waits for its next division ('division').
+   */
+  | { kind: 'idle'; waiting?: { next: 'match' | 'division'; reason: string | null } }
   /** The court's division is complete and nothing is left on the court: its placements. */
   | { kind: 'results'; complete: CourtCompleteInput }
-  | { kind: 'individual'; white: TvPlayerInput; red: TvPlayerInput; points: TvPoints }
+  | { kind: 'individual'; white: TvPlayerInput; red: TvPlayerInput; points: TvPoints; hansoku?: HansokuCounts }
   /** A team bout or representative playoff: the pairing's bouts and the Wins/Points summary. */
   | {
     kind: 'team'; teamWhite: string; teamRed: string; rows: TvTeamRowInput[];
@@ -48,6 +53,8 @@ export type TvBodyInput =
   }
   | {
     kind: 'kachinuki'; white: string; red: string; points: TvPoints; teamWhite: string; teamRed: string;
+    /** The current bout's hansoku (owner decision 5). */
+    hansoku?: HansokuCounts;
     /** Three fighters each ('—' for a missing one); the index of each side's current fighter. */
     lineupW: string[]; lineupR: string[]; wIndex: number; rIndex: number;
   };
@@ -67,6 +74,8 @@ export type TvInput =
     kind: 'tv'; court: string; division: string; meta: string; body: TvBodyInput;
     /** Two cards, null for an empty one (not shown with Final Results). */
     upcoming: (TvUpcomingInput | null)[];
+    /** Owner decision 6: the cards are this division's first matches ("Up next on this court"). */
+    upNext?: string;
   };
 
 // ------------------------------------------------------------------------------- view
@@ -84,6 +93,8 @@ export interface TvTeamRowView {
   red: string;
   whitePoints: string;
   redPoints: string;
+  /** Only when the bout has a hansoku. */
+  hansoku?: HansokuView;
   active: boolean;
 }
 
@@ -95,20 +106,20 @@ export interface TvKachinukiRowView {
 }
 
 export type TvBodyView =
-  | { kind: 'idle' }
+  | { kind: 'idle'; waiting?: { text: string; reason: string | null } }
   | { kind: 'results'; complete: CourtCompleteView }
-  | { kind: 'individual'; white: TvPlayerView; red: TvPlayerView; whitePoints: string; redPoints: string }
+  | { kind: 'individual'; white: TvPlayerView; red: TvPlayerView; whitePoints: string; redPoints: string; hansoku?: HansokuView }
   | {
     kind: 'team'; teamWhite: string; teamRed: string; rosterClass: string; rows: TvTeamRowView[];
     summary: { wWins: string; wPts: string; rWins: string; rPts: string };
   }
   | {
     kind: 'kachinuki'; white: TvPlayerView; red: TvPlayerView; whitePoints: string; redPoints: string;
-    teamWhite: string; teamRed: string; rowsW: TvKachinukiRowView[]; rowsR: TvKachinukiRowView[];
+    teamWhite: string; teamRed: string; rowsW: TvKachinukiRowView[]; rowsR: TvKachinukiRowView[]; hansoku?: HansokuView;
   };
 
 export type TvFooterView =
-  | { kind: 'upcoming'; cards: (TvUpcomingInput | null)[] }
+  | { kind: 'upcoming'; cards: (TvUpcomingInput | null)[]; title?: string }
   /** Final Results: "Division Complete" instead of Upcoming Matches. */
   | { kind: 'results' };
 
@@ -121,6 +132,8 @@ export const EMPTY_TV: TvInput = { kind: 'empty' };
 export const UPCOMING_TITLE = 'Upcoming Matches';
 export const NO_UPCOMING_TEXT = 'No additional match scheduled';
 export const DIVISION_COMPLETE_TEXT = 'Division Complete';
+/** Owner decision 6: the idle current-match zone. */
+export const TV_WAITING_TEXTS = { match: 'Waiting for the next match', division: 'Waiting for the next division' } as const;
 
 /** tv3Name(): a name as its first part and the rest; '—' for an empty name. */
 export function nameParts(name: string): string[] {
@@ -134,22 +147,27 @@ export function kachinukiState(index: number, active: number): TvKachinukiState 
 }
 
 const player = (name: string, sub: string): TvPlayerView => ({ nameParts: nameParts(name), sub });
+/** { hansoku } when a side has one (owner decision 5), else nothing. */
+const withHansoku = (counts: HansokuCounts | undefined): { hansoku?: HansokuView } => {
+  const hansoku = hansokuView(counts);
+  return hansoku ? { hansoku } : {};
+};
 
 export function tvBodyView(body: TvBodyInput): TvBodyView {
   switch (body.kind) {
-    case 'idle': return body;
+    case 'idle': return body.waiting ? { kind: 'idle', waiting: { text: TV_WAITING_TEXTS[body.waiting.next], reason: body.waiting.reason } } : { kind: 'idle' };
     case 'results': return { kind: 'results', complete: courtCompleteView(body.complete) };
     case 'individual':
       return {
         kind: 'individual', white: player(body.white.name, body.white.sub), red: player(body.red.name, body.red.sub),
-        whitePoints: pointText(body.points.W), redPoints: pointText(body.points.R),
+        whitePoints: pointText(body.points.W), redPoints: pointText(body.points.R), ...withHansoku(body.hansoku),
       };
     case 'team':
       return {
         kind: 'team', teamWhite: body.teamWhite, teamRed: body.teamRed,
         rosterClass: `tv3-roster ${body.rows.length <= 3 ? 'three' : 'five'}`,
         rows: body.rows.map((r, i) => ({
-          pos: String(i + 1), white: r.white, red: r.red, whitePoints: pointText(r.points.W), redPoints: pointText(r.points.R), active: r.active,
+          pos: String(i + 1), white: r.white, red: r.red, whitePoints: pointText(r.points.W), redPoints: pointText(r.points.R), ...withHansoku(r.hansoku), active: r.active,
         })),
         summary: body.summary,
       };
@@ -160,6 +178,7 @@ export function tvBodyView(body: TvBodyInput): TvBodyView {
         teamWhite: body.teamWhite, teamRed: body.teamRed,
         rowsW: body.lineupW.map((name, i) => ({ name, state: kachinukiState(i, body.wIndex) })),
         rowsR: body.lineupR.map((name, i) => ({ name, state: kachinukiState(i, body.rIndex) })),
+        ...withHansoku(body.hansoku),
       };
   }
 }
@@ -170,6 +189,7 @@ export function tvView(input: TvInput): TvView {
     kind: 'tv',
     header: { court: `Court ${input.court}`, division: input.division, meta: input.meta },
     body: tvBodyView(input.body),
-    footer: input.body.kind === 'results' ? { kind: 'results' } : { kind: 'upcoming', cards: input.upcoming },
+    footer: input.body.kind === 'results' ? { kind: 'results' }
+      : input.upNext ? { kind: 'upcoming', cards: input.upcoming, title: upNextTitle(input.upNext) } : { kind: 'upcoming', cards: input.upcoming },
   };
 }

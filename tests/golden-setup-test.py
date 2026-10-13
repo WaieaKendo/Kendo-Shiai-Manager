@@ -38,8 +38,11 @@ chosen with select_option(); transitions are off.
   setup-divisions     presets switched off and on (with the mouse and the keyboard; the
                       focus), every format and court option, Add Custom Division (round
                       robin, single elimination, split; special characters; an empty name;
-                      a duplicate; a preset's name), × on a custom division, a custom division
-                      switched off (it leaves the table), phones;
+                      a duplicate; a preset's name), moving a division up and down (the
+                      mouse; the keyboard keeps the focus on it; #31: the rows are the
+                      running order, switched-off divisions after), × on a custom division,
+                      a custom division switched off (it keeps its row: owner decision 12),
+                      phones;
   setup-live          a live update while typing: a staff device defers it (the typed text
                       and the focus stay); the redraw of a live update (renderAll()) with the
                       focus in the name, in a division select and in a referees field; an
@@ -344,13 +347,19 @@ def setup_divisions(browser, react_check):
     g.do("custom 2: Single Elimination", lambda a: a.page.select_option(in_row("O'ahu Juniors", 'setup-division-format'), label='Single Elimination'))
     phone_views(g, 'custom divisions')
     leave(page)
-    g.do('× on the first custom division', lambda a: click(a.page, f'{row("Open <A> & \"B\"")}//button'))
-    g.do("custom 2 switched off (it leaves the table)", lambda a: click(a.page, in_row("O'ahu Juniors", 'setup-division-enabled')))
+    # Issue #31: each enabled row has move up / down buttons before its name (× has its test ID).
+    g.do('Kids: move up', lambda a: click(a.page, in_row('Kids', 'setup-division-up')))
+    g.do('Kids: move down with the keyboard (Enter; the focus stays on Kids)', lambda a: (
+        a.page.locator(in_row('Kids', 'setup-division-down')).focus(), a.page.keyboard.press('Enter')))
+    leave(page)
+    g.do('× on the first custom division', lambda a: click(a.page, in_row('Open <A> & "B"', 'setup-division-remove')))
+    # Owner decision 12 (#29): a switched-off custom division keeps its row (it left the table).
+    g.do("custom 2 switched off (it keeps its row)", lambda a: click(a.page, in_row("O'ahu Juniors", 'setup-division-enabled')))
     g.do("custom 2 added again (its old format and court are not reused)", lambda a: (
         type_into(a.page, tid('custom-division-name'), "O'ahu Juniors"),
         click(a.page, tid('custom-division-add'))))
     leave(page)
-    g.do('× on Kids (focused first)', lambda a: (a.page.locator(f'{row("Kids")}//button').focus(), click(a.page, f'{row("Kids")}//button')))
+    g.do('× on Kids (focused first)', lambda a: (a.page.locator(in_row('Kids', 'setup-division-remove')).focus(), click(a.page, in_row('Kids', 'setup-division-remove'))))
     g.do('Save Setup & Continue', lambda a: click(a.page, tid('setup-save-continue')))
     g.do('back to Setup', lambda a: click(a.page, tid('nav-setup')))
     g.finish()

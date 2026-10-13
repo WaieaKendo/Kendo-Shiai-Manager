@@ -100,7 +100,16 @@ def main():
         app.wait_for(app.outbox, message='the rejected save to be queued')
         # The queue is retried by itself after 2 s (F35, save-retry-test.py): hold the clock so the
         # diagnostics still show this rejection and Retry queued save is what sends it.
-        page.clock.pause_at(datetime.fromtimestamp(page.evaluate('Date.now()') / 1000 + 0.01))
+        # pause_at needs a moment still in the page's future: on a busy runner more than a few ms can
+        # pass between reading Date.now() and the call ("Cannot fast-forward to the past"), so read the
+        # page's time again and retry.
+        for attempt in range(20):
+            try:
+                page.clock.pause_at(datetime.fromtimestamp(page.evaluate('Date.now()') / 1000 + 0.05))
+                break
+            except Exception as error:
+                if 'to the past' not in str(error) or attempt == 19:
+                    raise
         page.unroute('**/api/tournaments/**', reject)
         app.click('save-status')  # the status area opens Cloud Diagnostics
         page.wait_for_selector(sel('cloud-modal'))

@@ -62,6 +62,13 @@ export interface ExhibitionsInput {
 export interface TabsInput {
   /** state.regMode as regTab() set it (any text: an unknown one marks no tab). */
   mode: string;
+  /** Owner decision 19: Setup's Exhibition Matches is Enabled (else the Exhibition tab is hidden). */
+  exhibitions?: boolean;
+}
+
+/** Owner decision 19 (#29): the tab bar's buttons, without Exhibition while exhibitions are off. */
+export function visibleTabButtons(input: TabsInput): readonly TabButton[] {
+  return input.exhibitions === false ? TAB_BUTTONS.filter(b => b.mode !== 'exhibition') : TAB_BUTTONS;
 }
 
 /** Nothing published yet: the static markup's empty #teamTable (a <table>, which the first

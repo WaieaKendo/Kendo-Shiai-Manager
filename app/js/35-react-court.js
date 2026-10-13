@@ -32,16 +32,31 @@
 // does not load, the court screen shows a notice (the end of this file).
 // Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
+// D1 (owners' decision on F27): a team round robin's daihyosen bout is labelled on the court
+// screen, Live Scores and the TV. It still ends with Next Match (no automatic end at the point).
+// (A function, not a const: app.js publishes before this file's top level has run.)
+function ksmDaihyosenLabel(){return 'Daihyosen — first point wins'}
+function ksmIsRoundRobinDaihyosen(m){return !!(m&&m.roundRobinTiebreak&&m.type==='teamPlayoff')}
 function ksmScoreboardInput(m){
   if(!m)return {match:null,score:{W:[],R:[],WT:0,RT:0},representatives:null};
   const s=state.score||{};
   const score={W:[...(s.W||[])],R:[...(s.R||[])],WT:s.WT||0,RT:s.RT||0};
-  const match={white:m.white,red:m.red,wdojo:m.wdojo,rdojo:m.rdojo,teamWhite:m.teamWhite,teamRed:m.teamRed,type:m.type};
+  const match={white:m.white,red:m.red,wdojo:m.wdojo,rdojo:m.rdojo,teamWhite:m.teamWhite,teamRed:m.teamRed,type:m.type,
+    ...(ksmIsRoundRobinDaihyosen(m)?{rule:ksmDaihyosenLabel()}:{})};
   if(m.type!=='teamPlayoff')return {match,score,representatives:null};
   // As repSelect(): the roster and permission come from the match at state.current.
   const current=state.matches[state.current],playoff=current&&current.type==='teamPlayoff';
   const rep=(side,team,name)=>({team:team||'',current:name||'',roster:[...teamRoster(playoff?(side==='W'?current.teamWhite:current.teamRed):team)],editable:Boolean(canModifyRepresentative(current))});
   return {match,score,representatives:{W:rep('W',m.teamWhite,m.white),R:rep('R',m.teamRed,m.red)}};
+}
+// Owner decision 5 (#29): a match's hansoku per side, as the court screen shows them: the live
+// count for the match this device is scoring (state.score, as activeScoreArrays() reads its
+// points), else the match's stored wt/rt. Live Scores and the TV show them too.
+function ksmHansokuCounts(m){
+  if(!m)return {W:0,R:0};
+  const arr=state.allMatches?.[m.division]||[],idx=arr.indexOf(m);
+  if(m.division===state.currentDivision&&idx===state.current&&!m.done)return {W:Number(state.score?.WT)||0,R:Number(state.score?.RT)||0};
+  return {W:Number(m.wt)||0,R:Number(m.rt)||0};
 }
 function ksmPublishCourtScoreboard(m){
   window.ksmCourtScoreboardInput=ksmScoreboardInput(m);
@@ -65,9 +80,37 @@ function ksmDivisionCompleteInput(div,complete){
   if(!complete)return {complete:false,placements:[]};
   return {complete:true,placements:resultPlacements(div).map(p=>({place:ksmText(p.place),name:ksmText(p.name),tier:ksmText(p.tier)}))};
 }
+// setCourtCompletePresentation() (32-): the court screen's division-complete panel. Owner decision 7
+// and issue #31: a completed division's panel also gets the court, the division and the division
+// to continue to (ksmNextCourtDivision()), for the box "<Division> is complete ..." with
+// [Continue to <next> →] / [Keep showing results]; its buttons call selectScorekeeperDivision()
+// (08-), the court dropdown's action, so the TV and Live Scores follow (no new shared state).
 function ksmPublishCourtComplete(input){
+  if(input&&input.complete){
+    const court=state.currentCourt||'A',division=state.currentDivision||'';
+    input={...input,court:ksmText(court),division:ksmText(division),next:division?ksmNextCourtDivision(court,division):null};
+  }
   window.ksmCourtCompleteInput=input;
   window.dispatchEvent(new CustomEvent('ksm:court-complete'));
+}
+// Issue #31: a court's division list in Setup's running order, filtered to the court: the court
+// dropdown's options (renderDivisions(), 02-: state.divisions, then any other generated division
+// such as the team event; the divisions on this court, split ones and a team event on both).
+function ksmCourtDivisionList(court){
+  const all=[...new Set([...state.divisions,...Object.keys(state.allMatches||{})])].filter(Boolean);
+  return all.filter(d=>{const c=state.divisionCourts[d]||'A';return c===court||c==='split'||(d==='Team Tournament'&&(state.divisionCourts[d]||'Both')==='Both')});
+}
+// A division has a match ready to play on the court (as findNextForCourt() picks one): generated,
+// not finished, and not waiting for the other court.
+function ksmDivisionReadyOnCourt(d,court){
+  return (state.allMatches?.[d]||[]).some(m=>isValidMatchObject(m)&&individualMatchReady(m)&&matchBelongsToCourt(m,court));
+}
+// Owner decision 7 / #31: the division a court continues to after `current`: the next one in the
+// court's list that has a match ready on the court (after `current`, then from the top), or null.
+function ksmNextCourtDivision(court,current){
+  const list=ksmCourtDivisionList(court),i=list.indexOf(current);
+  const order=i<0?list:[...list.slice(i+1),...list.slice(0,i)];
+  return order.find(d=>d!==current&&ksmDivisionReadyOnCourt(d,court))||null;
 }
 
 // ---------- Queue and context panels ----------
@@ -285,9 +328,11 @@ function ksmFinalResults(div){
     // teamFinalResultsHtml() (09-, removed in M.13)
     const p=teamFinalPlacements(div);
     if(!p)return {kind:'results',results:null};
-    const mode=state.teamAwardMode||'top2',lines=[{place:'🥇 1st',name:ksmText(p.first)}];
-    if(mode!=='top1'&&p.second)lines.push({place:'🥈 2nd',name:ksmText(p.second)});
-    if(mode==='dual3')(p.thirds||[]).forEach(t=>lines.push({place:'🥉 3rd',name:ksmText(t)}));
+    // External PR review (#35): a place with an award still level is never named alphabetically.
+    const tied=new Set(p.undecided||[]),named=(place,name)=>ksmText(tied.has(place)?KSM_TEAM_PLACE_TIED:name);
+    const mode=state.teamAwardMode||'top2',lines=[{place:'🥇 1st',name:named(1,p.first)}];
+    if(mode!=='top1'&&(p.second||tied.has(2)))lines.push({place:'🥈 2nd',name:named(2,p.second)});
+    if(mode==='dual3')(tied.has(3)?[KSM_TEAM_PLACE_TIED]:(p.thirds||[])).forEach(t=>lines.push({place:'🥉 3rd',name:ksmText(t)}));
     return {kind:'results',results:{title:'Team Results',lines}};
   }
   const final=(state.allMatches[div]||[]).find(m=>m.championship&&m.position==='Final'&&m.done);

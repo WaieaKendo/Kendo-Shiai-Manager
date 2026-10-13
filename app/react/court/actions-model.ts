@@ -1,5 +1,5 @@
 // The court screen's score buttons (#score .score-controls-grid) and action row
-// (#score .bottom-action-row: Undo, Redo, Fusen-gachi, Next Match).
+// (#score .bottom-action-row: Undo, Redo, Fusen-sho (stored as Fusen-gachi), Next Match).
 //
 // The buttons call the legacy actions (point(), hansoku(), undo(), redo(), openFusenDialog(),
 // nextMatch()); the legacy app keeps the court action history. Its updateUndoButton()
@@ -50,6 +50,23 @@ export const STATIC_ACTIONS: CourtActionsInput = {
 };
 
 export type CourtActionsView = CourtActionsInput;
+
+/**
+ * Owner decision 4 (#29): the button shows "Fusen-sho" (display text only; the action, its stored
+ * history label "White/Red Fusen-gachi", the F F points and the test ID fusen-gachi are unchanged).
+ */
+export const FUSEN_LABEL = 'Fusen-sho';
+
+export interface FusenButtonView {
+  /** No match on the court (the scoreboard shows none): nothing to award (openFusenDialog() did nothing). */
+  disabled: boolean;
+  label: string;
+}
+
+/** The Fusen-sho button: disabled while the court screen has no match (owner decision 4). */
+export function fusenButtonView(hasMatch: boolean): FusenButtonView {
+  return { disabled: !hasMatch, label: FUSEN_LABEL };
+}
 
 export function courtActionsView(input: CourtActionsInput): CourtActionsView {
   const button = (b: HistoryButtonInput): HistoryButtonInput => ({ disabled: Boolean(b.disabled), label: b.label });

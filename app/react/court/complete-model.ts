@@ -23,6 +23,11 @@ export interface CourtCompleteInput {
   /** The division on this court is complete (no match of it left to play here). */
   complete: boolean;
   placements: PlacementInput[];
+  /** Court screen only (owner decision 7, #31): the court and its completed division. */
+  court?: string;
+  division?: string;
+  /** The division to continue to (the next in the court's running order with a match ready here), or null. */
+  next?: string | null;
 }
 
 /** Before the legacy app published anything: the static markup (no panel). */
@@ -52,4 +57,40 @@ export function courtCompleteView(input: CourtCompleteInput): CourtCompleteView 
   const placements = input.placements || [];
   if (!placements.length) return { complete: true, rows: null };
   return { complete: true, rows: placements.map(p => ({ place: p.place, name: p.name, placeClass: p.tier })) };
+}
+
+// ------------------------------------------------------------------ continue box (decision 7)
+
+/**
+ * Owner decision 7 and issue #31: on the court screen, a completed division's box: "<Division> is
+ * complete. Final results are showing on the Court X TV." with [Continue to <next> →] and
+ * [Keep showing results]; once results are kept, [Close TV results] (the same move-on) stays; with
+ * no division left to continue to, "All divisions on Court X are done." No timer.
+ */
+export type ContinueBoxView =
+  | { kind: 'offer'; message: string; next: string; continueLabel: string }
+  | { kind: 'kept'; message: string; next: string }
+  | { kind: 'done'; message: string; doneText: string };
+
+export const CONTINUE_TEXTS = {
+  keep: 'Keep showing results',
+  close: 'Close TV results',
+} as const;
+
+export function continueLabel(next: string): string {
+  return `Continue to ${next} →`;
+}
+
+/** The box for a published court-complete state, or null (not complete, or not the court screen). kept: Keep showing results was pressed for this court and division. */
+export function continueBoxView(input: CourtCompleteInput, kept: boolean): ContinueBoxView | null {
+  if (!input.complete || !input.division || !input.court) return null;
+  const message = `${input.division} is complete. Final results are showing on the Court ${input.court} TV.`;
+  if (!input.next) return { kind: 'done', message, doneText: `All divisions on Court ${input.court} are done.` };
+  if (kept) return { kind: 'kept', message, next: input.next };
+  return { kind: 'offer', message, next: input.next, continueLabel: continueLabel(input.next) };
+}
+
+/** What "Keep showing results" remembers: the court and division it was pressed for. */
+export function keptKey(input: CourtCompleteInput): string {
+  return `${input.court ?? ''}|${input.division ?? ''}`;
 }

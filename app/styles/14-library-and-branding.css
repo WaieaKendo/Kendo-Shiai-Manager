@@ -17,3 +17,39 @@
   .icon-nav .setup-nav-tile span{display:flex!important;align-items:flex-start!important;justify-content:center!important;min-height:22px!important;margin:0!important}
 }
 /* KSM v3.17.20-test — pool-local tiebreak ordering + conflict-safe dynamic insertion. */
+/* ksm:post-split-begin owner-decisions */
+/* feat/owner-decisions (issue #29), theme tokens and existing classes only.
+   Decision 5: hansoku triangles on Live Scores (a fighter's, a team card's current bout) and on
+   the TV (a fighter's, a team sheet row's), as on the court screen. */
+.live-player .live-hansoku{display:block;min-height:0;margin-top:4px;color:var(--red);font-size:14px;letter-spacing:.1em}
+.live-bout-hansoku{display:flex;justify-content:space-between;gap:12px;margin-top:8px}
+.live-bout-hansoku .live-hansoku{display:inline;color:var(--red);font-size:14px;letter-spacing:.1em}
+body.ksm-tv .tv3-hansoku{display:block;margin-top:14px;font-size:34px;line-height:1;letter-spacing:.12em;color:var(--ksm-gold)}
+body.ksm-tv .tv3-row-score .tv3-hansoku{display:inline;margin:0 12px;font-size:26px}
+/* Issue #31: the Setup divisions table's move up / down buttons, before the division's name. */
+.setup-division-move{display:inline-flex;gap:4px;margin-right:8px;vertical-align:middle}
+.setup-move-btn{min-height:32px;min-width:32px;padding:2px 8px;border-radius:8px;font-size:14px;line-height:1}
+.setup-move-btn:disabled{opacity:.35;cursor:default}
+/* Decision 7 / #31: the court screen's "<Division> is complete" box (Continue, Keep showing results,
+   Close TV results); a spectator's court screen has no controls. */
+.court-continue-box{margin:0 0 14px;text-align:left;color:var(--ink)}
+.court-continue-message{font-weight:800}
+.court-continue-done{margin-top:8px;color:var(--muted);font-weight:700}
+.court-continue-actions{margin-top:10px}
+body.ksm-spectator .court-continue-box{display:none!important}
+/* Decision 6: Live Scores and the TV between matches ("Waiting for the next match", the reason,
+   "Up next on this court"). */
+.live-waiting-reason{margin-top:6px}
+.live-up-next{flex-wrap:wrap}
+.live-up-next-match{display:inline-flex;align-items:center;gap:6px}
+body.ksm-tv .tv3-waiting-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;height:100%;text-align:center}
+body.ksm-tv .tv3-waiting{font-size:72px;line-height:1.05;font-weight:850;color:var(--ksm-paper)}
+body.ksm-tv .tv3-waiting-reason{font-size:40px;line-height:1.1;font-weight:700;color:var(--ksm-gold)}
+/* Decision 8: a spectator's special awards, read-only. */
+.award-view-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.award-view-row:first-child{border-top:0}
+/* Decision 20: the sample-data buttons only with this device's test tools on (Developer Tools). */
+body:not(.ksm-test-tools) :is([data-testid="reg-load-samples"],[data-testid="team-load-samples"],[data-testid="reg-load-sample-tournament"],button[onclick="addAutoTeam()"]){display:none!important}
+/* D1: a team round robin's daihyosen bout on the court screen ("Daihyosen — first point wins"). */
+.scoreboard-score-row .court-bout-rule{grid-column:1/-1;justify-self:center;margin-top:6px;padding:4px 14px;border:1px solid var(--line-strong,var(--line));border-radius:999px;background:var(--ivory);color:var(--ink);font-size:14px;font-weight:800;letter-spacing:.04em}
+/* ksm:post-split-end */

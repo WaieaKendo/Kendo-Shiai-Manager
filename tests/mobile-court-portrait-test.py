@@ -33,7 +33,8 @@ with sync_playwright() as p:
         box=buttons.nth(i).bounding_box(); assert box
         assert box['x']>=0 and box['x']+box['width']<=viewport['w']+0.5
         checks+=1
-    assert page.locator('.fusen-action').inner_text().strip().endswith('Fusen-gachi'); checks+=1
+    # Owner decision 4 (#29): the button reads "Fusen-sho" (was "Fusen-gachi"; display text only).
+    assert page.locator('.fusen-action').inner_text().strip().endswith('Fusen-sho'); checks+=1
     row=page.locator('#courtContext .aligned-match-row').first
     rbox=row.bounding_box(); assert rbox and rbox['x']+rbox['width']<=viewport['w']+0.5; checks+=1
     wname=page.locator('#courtContext .aligned-match-row .match-name.white').first.bounding_box()

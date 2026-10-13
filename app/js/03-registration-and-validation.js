@@ -1,5 +1,5 @@
-function addRow(n=1){for(let i=0;i<n;i++)state.competitors.push({name:'',dojo:'',division:state.divisions[0]||'',seed:'',status:'Registered'});renderReg()}
-function addTeamRow(n=1){for(let i=0;i<n;i++)state.teams.push({team:'',division:'Team Tournament',type:(teamFormat?.value||'5-Person Team'),senpo:'',jiho:'',chuken:'',fukusho:'',taisho:'',status:'Registered'});renderTeams()}
+function addRow(n=1){for(let i=0;i<n;i++)state.competitors.push({name:'',dojo:'',division:state.divisions[0]||'',seed:'',status:'Registered'});/* ksm:post-split-begin owner-decisions */if(window.regFilter)regFilter.value='';/* ksm:post-split-end */renderReg()}
+function addTeamRow(n=1){for(let i=0;i<n;i++)state.teams.push({team:'',division:'Team Tournament',type:(teamFormat?.value||'5-Person Team'),senpo:'',jiho:'',chuken:'',fukusho:'',taisho:'',status:'Registered'});/* ksm:post-split-begin owner-decisions */if(window.teamFilter)teamFilter.value='';/* ksm:post-split-end */renderTeams()}
 function addAutoTeam(){let n=(state.teams||[]).length+1;let team='Auto Team '+n;state.teams.push({team,division:'Team Tournament',type:(teamFormat?.value||'3-Person Team'),senpo:team,jiho:team,chuken:team,fukusho:team,taisho:team,status:'Checked'});renderTeams()}
 function statusCycle(s){return s==='Checked'?'NoShow':s==='NoShow'?'Registered':'Checked'}
 
@@ -8,15 +8,16 @@ function closeManagementModal(id){/* ksm:post-split-begin react-shell */if(!ksmC
 function structuralNoShowAllowed(div){return !!state.generated && !!(state.allMatches?.[div]) && !divisionHasCompletedMatches(div)}
 function cycleCompetitorStatus(i){
   let c=state.competitors[i];if(!c)return;let next=statusCycle(c.status);
+  /* ksm:post-split-begin owner-decisions */if(next==='NoShow'&&state.generated&&structuralNoShowAllowed(c.division)&&!ksmConfirmNoShow(c.name||'this player',c.division))return;/* ksm:post-split-end */
   c.status=next;
   if(next==='NoShow'&&state.generated){
     if(structuralNoShowAllowed(c.division))applyIndividualNoShow(c.division,c.name);
-    else if(state.allMatches?.[c.division])alert('This division has already started. The bracket or pools were not changed; handle the absence with Fusen-gachi.');
+    else if(state.allMatches?.[c.division])alert(/* ksm:post-split-begin owner-decisions was:'This division has already started. The bracket or pools were not changed; handle the absence with Fusen-gachi.' */'This division has already started. The bracket or pools were not changed; handle the absence with Fusen-sho.'/* ksm:post-split-end */);
   }
   renderAll();scheduleAutoSave();
 }
 function cycleTeamStatus(i){
-  let t=state.teams[i];if(!t)return;let next=statusCycle(t.status);t.status=next;
+  let t=state.teams[i];if(!t)return;let next=statusCycle(t.status);/* ksm:post-split-begin owner-decisions */if(next==='NoShow'&&state.generated&&structuralNoShowAllowed('Team Tournament')&&!ksmConfirmNoShow(t.team||'this team','Team Tournament'))return;/* ksm:post-split-end */t.status=next;
   if(next==='NoShow'&&state.generated){
     let div='Team Tournament';
     if(structuralNoShowAllowed(div))applyWholeTeamNoShow(div,t.team);
@@ -50,6 +51,15 @@ function validateTournament(options={}){
     if(teams.length===1)issues.push(validationIssue('error','TEAM_COUNT','Team Tournament','At least two teams are required.','Add another team or disable the team tournament.'));
     if(fmt==='Single Elimination'&&teams.length>32)issues.push(validationIssue('error','TEAM_TEMPLATE','Team Tournament','Single elimination supports no more than 32 teams.','Reduce the number of teams.'));
   }
+  /* ksm:post-split-begin owner-decisions */
+  // Owner decision 2 (#29): nothing to generate (no individual, team or exhibition entry that is
+  // not a No Show) is an error of the check itself, so Generate cannot proceed (it alerted after).
+  if(!target){
+    const st=tournamentSettings(),teamsOn=(st.teamEnabled||'Enabled')==='Enabled',exOn=st.exhibitionEnabled==='Enabled';
+    const any=state.divisions.some(d=>eligibleIndividuals(d).length)||(teamsOn&&eligibleTeams('Team Tournament').length)||(exOn&&(state.exhibitions||[]).some(e=>e&&e.status!=='NoShow'&&e.white&&e.red));
+    if(!any)issues.push(validationIssue('error','NO_ENTRIES',null,'No competitors registered.','Register competitors or teams first (No Show entries are excluded).'));
+  }
+  /* ksm:post-split-end */
   return {valid:!issues.some(x=>x.severity==='error'),issues};
 }
 function renderTournamentStatus(){

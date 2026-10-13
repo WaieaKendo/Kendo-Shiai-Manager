@@ -13,7 +13,7 @@ import { DivisionCompletePanel } from '../court/CourtComplete.tsx';
 import { ContextPanel } from '../court/CourtContext.tsx';
 import {
   EMPTY_LIVE_SCORES, IDLE_TEXT, WAITING_TEXT, LIVE_SCORES_HEADING, NO_NEXT_TEXT, liveScoresView,
-  type LiveCourtBodyView, type LiveCourtView, type LivePlayerInput, type LiveScoresInput,
+  type HansokuView, type LiveCourtBodyView, type LiveCourtView, type LivePlayerInput, type LiveScoresInput,
 } from './live-scores-model.ts';
 
 export const LIVE_SCORES_EVENT = 'ksm:live-scores';
@@ -30,29 +30,61 @@ function subscribe(onChange: () => void): () => void {
 
 const snapshot = (): LiveScoresInput => (window as unknown as LiveScoresWindow).ksmLiveScoresInput ?? EMPTY_LIVE_SCORES;
 
-function Player({ side, player }: { side: 'white' | 'red'; player: LivePlayerInput }) {
+/** A side's hansoku triangles (owner decision 5), only when it has any. */
+function Hansoku({ side, marks }: { side: 'white' | 'red'; marks: string }) {
+  return marks ? <span className="tri live-hansoku" data-testid={`live-${side}-hansoku`} aria-label={`${side === 'white' ? 'White' : 'Red'} hansoku`}>{marks}</span> : null;
+}
+
+function Player({ side, player, hansoku }: { side: 'white' | 'red'; player: LivePlayerInput; hansoku?: HansokuView | undefined }) {
   return (
     <div className={`live-player ${side}`}>
       <span className="live-side-label">{side === 'white' ? 'White' : 'Red'}</span>
       <strong data-testid={`live-${side}-name`}>{player.name}</strong>
       <small>{player.dojo}</small>
+      {hansoku && <Hansoku side={side} marks={hansoku[side]} />}
+    </div>
+  );
+}
+
+/** A team or kachinuki card's current bout hansoku, under its sheet (owner decision 5). */
+function BoutHansoku({ hansoku }: { hansoku?: HansokuView | undefined }) {
+  if (!hansoku) return null;
+  return (
+    <div className="live-bout-hansoku">
+      <span>{hansoku.white && <><span className="live-side-label">White</span> <Hansoku side="white" marks={hansoku.white} /></>}</span>
+      <span>{hansoku.red && <><span className="live-side-label">Red</span> <Hansoku side="red" marks={hansoku.red} /></>}</span>
     </div>
   );
 }
 
 function Body({ body }: { body: LiveCourtBodyView }) {
   switch (body.kind) {
-    case 'idle': return <div className="live-empty">{body.waiting ? WAITING_TEXT : IDLE_TEXT}</div>;
+    case 'idle':
+      return (
+        <>
+          <div className="live-empty">
+            {body.waiting ? WAITING_TEXT : IDLE_TEXT}
+            {body.reason && <div className="small live-waiting-reason" data-testid="live-waiting-reason">{body.reason}</div>}
+          </div>
+          {body.upNext && (
+            // Owner decision 6: the court's next division, marked as upcoming.
+            <div className="live-next live-up-next" data-testid="live-up-next">
+              <span>{body.upNext.title}</span>
+              {body.upNext.matches.map((m, i) => <span key={i} className="live-up-next-match"><b>{m.white}</b><i>vs</i><b>{m.red}</b></span>)}
+            </div>
+          )}
+        </>
+      );
     case 'individual':
       return (
         <div className="live-match-row">
-          <Player side="white" player={body.white} />
+          <Player side="white" player={body.white} hansoku={body.hansoku} />
           <div className="live-score-pair"><b>{body.whitePoints}</b><span>vs</span><b>{body.redPoints}</b></div>
-          <Player side="red" player={body.red} />
+          <Player side="red" player={body.red} hansoku={body.hansoku} />
         </div>
       );
-    case 'team': return <ContextPanel view={{ kind: 'team-sheet', ...body.sheet }} />;
-    case 'kachinuki': return <ContextPanel view={{ kind: 'kachinuki', ...body.sheet }} />;
+    case 'team': return <><ContextPanel view={{ kind: 'team-sheet', ...body.sheet }} /><BoutHansoku hansoku={body.hansoku} /></>;
+    case 'kachinuki': return <><ContextPanel view={{ kind: 'kachinuki', ...body.sheet }} /><BoutHansoku hansoku={body.hansoku} /></>;
     // F16: a finished division's placements in its court's card, drawn as the full-screen
     // placements are (the dark audience panel, so the placement colors stay legible).
     case 'complete': return <div className="audience-hero"><DivisionCompletePanel view={body.complete} /></div>;

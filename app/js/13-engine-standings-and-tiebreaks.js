@@ -303,7 +303,7 @@ function teamRoundRobinPairResolved(div,pair){
  * @returns {TeamStandingRow[]}
  */
 function teamStandings(div='Team Tournament'){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamStandings(state.allMatches[div]||[],eligibleTeams(div)||[]);
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamStandings(state.allMatches[div]||[],eligibleTeams(div)||[],KSMEngine.teamRoundRobinCountedPlaces(state.teamAwardMode));
   /* ksm:post-split-end */
 }
 /**
@@ -318,7 +318,7 @@ function teamRoundRobinProgress(div='Team Tournament'){
  * @param {string} [div]
  */
 function teamRoundRobinPlacements(div='Team Tournament'){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamRoundRobinPlacements(!!divisionComplete(div),state.allMatches[div]||[],eligibleTeams(div)||[]);
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamRoundRobinPlacements(!!divisionComplete(div),state.allMatches[div]||[],eligibleTeams(div)||[],KSMEngine.teamRoundRobinCountedPlaces(state.teamAwardMode));
   /* ksm:post-split-end */
 }
 /**
@@ -331,11 +331,40 @@ function maybeCreateTeamTiebreak(m){
   /* ksm:post-split-end */
   /* ksm:post-split-begin team-rr-daihyosen */
   // F27: once every pairing of a team round robin is decided, teams still level on team wins,
-  // bout wins and points for 1st-3rd get a one-point daihyosen (KSMEngine.teamRoundRobinTiebreakPlan).
-  const rr=m&&isTeamRoundRobinDivision(m.division)?KSMEngine.teamRoundRobinTiebreakPlan(m,state.allMatches[m.division]||[],eligibleTeams(m.division)||[],tournamentSettings().teamFormat):null;
+  // bout wins and points for a place with an award (D2: Setup's team award mode) get a one-point
+  // daihyosen (KSMEngine.teamRoundRobinTiebreakPlan).
+  const rr=m&&isTeamRoundRobinDivision(m.division)?KSMEngine.teamRoundRobinTiebreakPlan(m,state.allMatches[m.division]||[],eligibleTeams(m.division)||[],tournamentSettings().teamFormat,KSMEngine.teamRoundRobinCountedPlaces(state.teamAwardMode)):null;
   if(rr)appendApprovedDynamicMatches(m.division,rr.anchor,/** @type {Match[]} */(rr.bouts),rr.dynamicType);
   /* ksm:post-split-end */
 }
+/* ksm:post-split-begin team-rr-daihyosen */
+// Found in external PR review (#35): the places a daihyosen decides follow Setup's team award mode
+// (D2), and the mode can change after a team round robin has ended. Changing it to more places
+// (e.g. "Champion only" -> "Champion + Runner-up" with three teams level for 2nd) adds the
+// daihyosen the newly awarded places need, judged from the whole division; until it is played
+// the place stays undecided (KSMEngine.teamRoundRobinPlacements(), never the alphabetical first).
+// Run on the Setup change and after any tournament load or live/rebased update on a device that
+// saves (a merge that kept the new mode but not the bouts, or a mode changed on an older
+// version). Idempotent: none while a daihyosen is unplayed, and the bouts are the same on every
+// device (a rebase keeps the server's). Changing to fewer places keeps a daihyosen already
+// created: it is played as scheduled and only no longer changes an award.
+/** Adds the daihyosen the team award mode now needs; returns the divisions that got one. */
+function ksmAddDaihyosenForTeamAwards(){
+  if(typeof isReadOnlySession==='function'&&isReadOnlySession())return [];
+  const added=[];
+  Object.keys(state.allMatches||{}).forEach(div=>{
+    if(!isTeamRoundRobinDivision(div))return;
+    const rr=KSMEngine.teamRoundRobinMissingDaihyosen(state.allMatches[div]||[],eligibleTeams(div)||[],tournamentSettings().teamFormat,KSMEngine.teamRoundRobinCountedPlaces(state.teamAwardMode));
+    if(!rr)return;
+    appendApprovedDynamicMatches(div,rr.anchor,/** @type {Match[]} */(rr.bouts),rr.dynamicType);
+    added.push(div);
+  });
+  return added;
+}
+// The Setup field: its inline handler has set state.teamAwardMode; the document's change listener
+// has scheduled the autosave, which then carries the new bouts with the new mode.
+document.getElementById('teamAwardMode')?.addEventListener('change',()=>{if(ksmAddDaihyosenForTeamAwards().length)renderAll()});
+/* ksm:post-split-end */
 
 /**
  * @param {string} div

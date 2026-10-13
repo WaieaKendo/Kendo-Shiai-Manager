@@ -14,7 +14,8 @@ const checks=[
   // The court screen's completion panel: its data (ksmDivisionCompleteInput()) and component (DivisionCompletePanel).
   [html.includes('complete:ksmDivisionCompleteInput(vm.division,true)')&&tvReact.includes('<div className="tv3-body tv3-results-body"><DivisionCompletePanel view={body.complete} /></div>'),'shared Court completion markup'],
   [html.includes("if(vm.format==='results')return {kind:'tv',...header,body:{kind:'results'")&&tvReact.includes("case 'results':"),'TV results render branch'],
-  [tvModel.includes("footer: input.body.kind === 'results' ? { kind: 'results' } : { kind: 'upcoming', cards: input.upcoming }")&&tvReact.includes('if (footer.kind === \'results\') return <div className="tv3-results-footer"><div>{DIVISION_COMPLETE_TEXT}</div></div>;'),'results footer branch'],
+  // Owner decision 6 (#29): an idle court's Upcoming may be "Up next on this court" (its title).
+  [tvModel.includes("footer: input.body.kind === 'results' ? { kind: 'results' }\n      : input.upNext ? { kind: 'upcoming', cards: input.upcoming, title: upNextTitle(input.upNext) } : { kind: 'upcoming', cards: input.upcoming }")&&tvReact.includes('if (footer.kind === \'results\') return <div className="tv3-results-footer"><div>{DIVISION_COMPLETE_TEXT}</div></div>;'),'results footer branch'],
   [html.includes('.tv3-results-body .division-complete-row'),'isolated TV results styling']
 ];
 const failed=checks.filter(([ok])=>!ok);

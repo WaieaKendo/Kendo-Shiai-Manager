@@ -86,6 +86,15 @@ const KNOWN_POST_SPLIT_EDITS = {
   // variable instead of the menus' classes), setActiveNavForView() (24), setSessionRole() and
   // openTournamentAccess() (33). Listed here because closeManagementModal() (03) is its first
   // region: the check compares names in order of first appearance.
+  // feat/owner-decisions (issue #29, the owners' decisions on the quirk pass; #31): legacy edits
+  // that carry out a decision. 03: + Add Row / + Add Team clear their filter so the new entry
+  // shows (14, addRow(), addTeamRow()); cycleCompetitorStatus()'s alert says Fusen-sho (4, inline
+  // `was:`); validateTournament() lists "No competitors registered" as an error when nothing would
+  // be generated (2). 16: the Paste from Excel listener adds a row through ksmPasteRow() (16, 17;
+  // inline `was:`) and names the refused rows (ksmPasteNotice()). Listed before react-shell:
+  // addRow() (03) is its first region. 03: a No Show after generation asks first
+  // (cycleCompetitorStatus(), cycleTeamStatus(); 18).
+  'owner-decisions': 8,
   'react-shell': 23,
   // feat/react-registration (M.13): Registration part 1's React islands (#regTable, the contents
   // of #tournamentStatusCard). With the legacy renderer removed (REMOVED_REGISTRATION_RENDERER)
@@ -142,7 +151,11 @@ const KNOWN_POST_SPLIT_EDITS = {
   'history-replay': 14,
   // fix/pre-event-2 (F27): maybeCreateTeamTiebreak() (13) also adds a team round robin's daihyosen
   // (KSMEngine.teamRoundRobinTiebreakPlan) when teams are level for 1st-3rd.
-  'team-rr-daihyosen': 1,
+  // Found in external PR review (#35): ksmAddDaihyosenForTeamAwards() (13) adds the daihyosen a
+  // team award mode changed after the round robin needs (with the Setup field's change listener),
+  // also after a load or live/rebased update (applyTournamentPayload(), 21); KSM_TEAM_PLACE_TIED
+  // (27), what Results and the court show for an awarded place still level.
+  'team-rr-daihyosen': 4,
   // fix/react-batch-1 (F12): Edit Pool works on a copy (41-react-pools.js): the drop handlers
   // insertPoolPlayer(), dropPoolPlayer() and movePoolPlayer() (16) move players in it (three inline
   // replacements), saveEditedPools() (16) applies it after the played-results warning (one), and
@@ -248,6 +261,11 @@ const KNOWN_POST_SPLIT_CSS_EDITS = {
   // fix/react-batch-1 (F14): the TV canvas scales to fit the window, centred (end of 13-tv.css;
   // the factor --ksm-tv-fit comes from ksmFitTv() in app/js/37-react-tv.js, react-tv region).
   'tv-fit': 1,
+  // feat/owner-decisions (issue #29): the decisions' styles, theme tokens only, at the end of
+  // 14-library-and-branding.css: hansoku on Live Scores and the TV (5), the Setup move buttons
+  // (#31), the court's Continue box (7), between matches (6), read-only awards (8), the sample
+  // buttons only with the test tools on (20), the daihyosen label (D1).
+  'owner-decisions': 1,
   'privacy-footer': 1,
 };
 // Old functions whose body now lives in app/engine/*.ts (parameter lists without braces).
@@ -480,6 +498,15 @@ const REMOVED_SHELL_RENDERER = [
 // 'now' must appear exactly once; the check puts 'before' back (before the test-ID step) and then
 // compares byte for byte, so any other markup change still fails.
 const MARKUP_EDITS = [
+  // feat/owner-decisions (decision 3, #29): the Pools tab's Regenerate opens Regenerate Single
+  // Division for the Pools select's division (ksmRegeneratePoolDivision(), 44-react-shell.js).
+  ['<button onclick="generatePools()">Regenerate</button>', '<button onclick="ksmRegeneratePoolDivision()" data-testid="pools-regenerate">Regenerate</button>'],
+  // feat/owner-decisions (decision 4): "Fusen-gachi" is shown as "Fusen-sho" (the court button and
+  // its dialog; React draws both, this is the markup without the module). Display text only.
+  ['<span>Fusen-gachi</span>', '<span>Fusen-sho</span>'],
+  // feat/owner-decisions (decision 17): Paste from Excel explains the paste (ksmPasteHelp(), 43-).
+  ['<button onclick="alert(\'Paste rows directly into the table from Excel.\')" data-testid="reg-paste-excel">', '<button onclick="ksmPasteHelp()" data-testid="reg-paste-excel">'],
+  ['<h2 id="fusenTitle">Fusen-gachi</h2>', '<h2 id="fusenTitle">Fusen-sho</h2>'],
   ['</main>', '<footer class="privacy-footer no-print"><a href="/privacy" data-testid="privacy-link">Privacy</a></footer>\n</main>'],
   ['<button class="danger" onclick="state.teams=[];renderTeams()" data-testid="team-clear">', '<button class="danger" onclick="clearTeams()" data-testid="team-clear">'],
   ['<button class="danger" onclick="state.exhibitions=[];renderExhibitions()" data-testid="exhibition-clear">', '<button class="danger" onclick="clearExhibitions()" data-testid="exhibition-clear">'],

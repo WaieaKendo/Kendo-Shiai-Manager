@@ -84,6 +84,8 @@ window.KSMTest = {
   savesAsked() { const n = window.__ksmTestSaves?.count || 0; if (window.__ksmTestSaves) window.__ksmTestSaves.count = 0; return n; },
   // Show a screen without re-running its menu action ('score' has no plain nav item).
   show(view) { navigateTo(view); },
+  // Owner decision 20: this device's test tools (the sample-data buttons) on or off.
+  testTools(on) { ksmSetTestTools(!!on); },
   // Render the TV display in this page (a real TV device opens the ?view=tv link).
   renderTv() { renderTvDisplay(); },
 

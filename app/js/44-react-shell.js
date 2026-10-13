@@ -187,10 +187,20 @@ function ksmShowRegenerate(title,content){
 }
 // openRegenerateDivisionDialog() (03): every division (set up or generated) with its status; the
 // first ready one chosen.
-function ksmOpenRegenerateDialog(){
+// Owner decision 3 (#29): the Pools tab's Regenerate (ksmRegeneratePoolDivision()) opens it with
+// the Pools select's division chosen when it is ready (none chosen when it is not).
+function ksmOpenRegenerateDialog(preferred){
   let all=[...new Set([...state.divisions,...Object.keys(state.allMatches||{})])].filter(Boolean);let selected='';
-  const options=all.map(d=>{let st=divisionRegenerationStatus(d),ready=st==='ready';if(ready&&!selected)selected=d;return {name:ksmHtmlText(d),status:st,checked:ready&&d===selected}});
+  if(preferred!==undefined)selected=divisionRegenerationStatus(preferred)==='ready'?preferred:null;
+  const options=all.map(d=>{let st=divisionRegenerationStatus(d),ready=st==='ready';if(ready&&!selected&&selected!==null)selected=d;return {name:ksmHtmlText(d),status:st,checked:ready&&d===selected}});
   ksmShowRegenerate('Regenerate Division',{view:'list',options});
+}
+// The Pools tab's Regenerate button (app/index.html): Regenerate Single Division for the division
+// in the Pools select (owner decision 3; it regenerated the whole tournament, which stays with
+// Generate Tournament).
+function ksmRegeneratePoolDivision(){
+  const div=window.poolDiv?poolDiv.value:'';
+  ksmOpenRegenerateDialog(div||undefined);
 }
 // continueRegenerateDivision() (03): the division chosen in the list (read from the page) to
 // confirm.
@@ -230,11 +240,29 @@ function ksmOpenTournamentAccess(link,qr){
 // (snapshotAnalysisHtml()), the action history analysis (actionHistoryAnalysisHtml(),
 // historyEntryCard()) and the buttons ("Retry queued save" with work queued on a staff device).
 function ksmSizeText(bytes){return ksmHtmlText(formatSnapshotBytes(bytes))}
+// Owner decision 4 (#29): a court action's label as shown: "Fusen-gachi" reads "Fusen-sho" (the
+// stored label in state.courtActionHistory is unchanged, so saved tournaments are unaffected).
+function ksmActionLabelText(label){return String(label??'').replace(/Fusen-gachi/g,'Fusen-sho')}
 function ksmHistoryEntryCard(title,item){
   if(!item)return {title:ksmHtmlText(title),entry:null};
   const largestChanges=(item.changes||[]).slice(0,6).map(x=>`${x.key}: ${formatSnapshotBytes(x.bytes)}`).join(' • ');
-  return {title:ksmHtmlText(title),entry:{heading:`${ksmHtmlText(title)} • #${item.index+1}`,line:`${ksmHtmlText(item.label)} — ${ksmSizeText(item.totalBytes)}`,changes:ksmHtmlText(largestChanges||'No changed state properties')}};
+  return {title:ksmHtmlText(title),entry:{heading:`${ksmHtmlText(title)} • #${item.index+1}`,line:`${ksmHtmlText(ksmActionLabelText(item.label))} — ${ksmSizeText(item.totalBytes)}`,changes:ksmHtmlText(largestChanges||'No changed state properties')}};
 }
+// Owner decision 20 (#29): the sample-data buttons (Load Sample Players / Teams / Tournament,
+// + Auto Test Team) show only while this device's test tools are on: body.ksm-test-tools (the
+// owner-decisions CSS hides them otherwise), switched in Developer Tools ("Show test tools" /
+// "Hide test tools") and kept in this device's storage (not the tournament: nothing is synced).
+var KSM_TEST_TOOLS_KEY='ksm-test-tools';
+function ksmTestToolsOn(){try{return localStorage.getItem(KSM_TEST_TOOLS_KEY)==='1'}catch(_){return false}}
+function ksmApplyTestTools(){if(document.body)document.body.classList.toggle('ksm-test-tools',ksmTestToolsOn())}
+function ksmSetTestTools(on){
+  try{if(on)localStorage.setItem(KSM_TEST_TOOLS_KEY,'1');else localStorage.removeItem(KSM_TEST_TOOLS_KEY)}catch(_){}
+  ksmApplyTestTools();
+}
+// Developer Tools' button: switch them and show Developer Tools again with the new label.
+function ksmToggleTestTools(){ksmSetTestTools(!ksmTestToolsOn());cloudDiagnostics()}
+ksmApplyTestTools();
+document.addEventListener('DOMContentLoaded',ksmApplyTestTools);
 function ksmOpenDiagnostics(details,analysis,historyAnalysis,retry){
   ksmOpenCloudModal('Developer Tools',{kind:'diagnostics',
     details:details.map(([a,b])=>({label:ksmHtmlText(a),value:ksmHtmlText(b)})),
@@ -246,7 +274,7 @@ function ksmOpenDiagnostics(details,analysis,historyAnalysis,retry){
     history:['A','B'].map(court=>{const c=historyAnalysis.courts[court];return {court,entries:ksmHtmlText(`${c.entryCount}`),
       total:ksmSizeText(c.totalBytes),average:ksmSizeText(c.averageBytes),largest:ksmSizeText(c.largest?.totalBytes||0),
       cards:[ksmHistoryEntryCard('First entry',c.first),ksmHistoryEntryCard('Latest entry',c.latest),ksmHistoryEntryCard('Largest entry',c.largest)]}}),
-    retry:!!retry});
+    retry:!!retry,testTools:ksmTestToolsOn()});
 }
 // confirmTournamentFileLoad() (21, roadmap 0.5): the file's and the open tournament's details,
 // what loading it does, Cancel and Replace open tournament / Load as new tournament.

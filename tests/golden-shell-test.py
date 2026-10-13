@@ -52,7 +52,7 @@ pressed with the keyboard; transitions are off.
   nav-phones      phone portrait and landscape and two tablet sizes: every menu opened (placed
                   under its tile), a resize while a menu is open, back to desktop with a menu open,
                   a spectator on a phone;
-  dialogs         the generation check (nobody registered, issues, Close, Cancel, Escape, drawn
+  dialogs         the generation check (nobody registered: refused, issues, Close, Cancel, Escape, drawn
                   afresh while Close has the focus, Close by keyboard, Generate), the
                   Fusen-gachi dialog (Cancel, Escape, White, Red), Regenerate Single Division
                   (x, Cancel, Continue, Regenerate, OK, Continue and Cancel by keyboard, a division
@@ -415,10 +415,12 @@ def dialogs(browser, react_check):
     g = open_app('dialogs', browser, react_check)
     page = g.app.page
     nav(g, 'registration')
-    g.do('Generate with nobody registered (the check passes)', lambda a: click(a.page, tid('generate-button')))
-    g.do('the check: Cancel', lambda a: click(a.page, tid('generate-cancel')))
+    # Owner decision 2 (#29): with nobody registered the check refuses ("No competitors
+    # registered", only Close); it passed and Generate then alerted.
+    g.do('Generate with nobody registered (the check refuses)', lambda a: click(a.page, tid('generate-button')))
+    g.do('the check: Close', lambda a: click(a.page, tid('validation-close')))
     g.do('Generate again', lambda a: click(a.page, tid('generate-button')))
-    g.do('the check: Generate (nothing to generate: the alert)', lambda a: click(a.page, tid('generate-confirm')))
+    g.do('the check: Close again', lambda a: click(a.page, tid('validation-close')))
     g.do('registration with issues (code)', lambda a: a.page.evaluate("""() => {
       state.competitors = [
         {name: 'Ann <A>', dojo: 'Hilo & Co', division: state.divisions[0], seed: 'x', status: 'Checked'},

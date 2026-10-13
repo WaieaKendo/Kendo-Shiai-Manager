@@ -55,7 +55,9 @@ function ksmResultsDashboardInput(){
     completed:completed.map(ksmResultCard),
     pending:pending.map(ksmResultCard),
     noDivisions:!divisions.length,
-    awards:(state.awards||[]).map(a=>({award:ksmText(a.award||''),name:ksmText(a.name||''),dojo:ksmText(a.dojo||'')}))};
+    awards:(state.awards||[]).map(a=>({award:ksmText(a.award||''),name:ksmText(a.name||''),dojo:ksmText(a.dojo||'')})),
+    // Owner decision 8 (#29): spectators see the awards read-only.
+    readOnly:isReadOnlySession()};
 }
 function ksmRenderResults(){
   ksmPublishResults(ksmResultsDashboardInput());

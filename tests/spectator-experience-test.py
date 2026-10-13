@@ -25,8 +25,9 @@ checks={
  'red point slots centered':'.team-point-slot.red{' in html and 'padding-right:0;' in html and 'text-align:center;' in html and 'justify-content:center;' in html,
  'active mobile point slots separated':'.team-live-row.current>.team-point-slot:nth-child(2){transform:translateX(-17px)}' in html and '.team-live-row.current>.team-point-slot:nth-child(3){transform:translateX(17px)}' in html and '.team-live-row.current>.team-point-slot:nth-child(5){transform:translateX(-17px)}' in html and '.team-live-row.current>.team-point-slot:nth-child(6){transform:translateX(17px)}' in html,
  'mobile view top spacing':'#registration,#score,#director,#search,#print{padding-top:12px!important}' in html,
- 'team lineup retained':"case 'team': return <ContextPanel view={{ kind: 'team-sheet', ...body.sheet }} />;" in live and "rows:matches.map(match=>{" in html,
- 'next match retained':'<div className="live-next">' in live and '<span>Next</span>' in live and '<div className="tv3-upcoming-title">{UPCOMING_TITLE}</div>' in tv,
+ # Owner decision 5 (#29): the team sheet is followed by the current bout's hansoku (BoutHansoku).
+ 'team lineup retained':"case 'team': return <><ContextPanel view={{ kind: 'team-sheet', ...body.sheet }} /><BoutHansoku hansoku={body.hansoku} /></>;" in live and "rows:matches.map(match=>{" in html,
+ 'next match retained':'<div className="live-next">' in live and '<span>Next</span>' in live and '<div className="tv3-upcoming-title">{footer.title ?? UPCOMING_TITLE}</div>' in tv,  # decision 6: or "Up next on this court"
  'pool completion helper':'function poolDisplayComplete(div,label)' in html,
  'incomplete pools before bracket':'Pools In Progress' in react and react.index('Pools In Progress') < react.index('Championship Bracket Preview', react.index('export function CourtContext')) and "return {kind:'pools',inProgress,bracket:ksmBracket(div),completed:done};" in html,
  'completed checkmark':'pool-complete-mark' in html and 'className="pool-complete-mark" data-testid="context-pool-complete" aria-label="Complete">{icons.poolComplete}' in react and "poolComplete: '✓'" in react,

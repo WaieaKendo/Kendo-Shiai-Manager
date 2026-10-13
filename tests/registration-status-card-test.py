@@ -23,6 +23,7 @@ def main():
         browser = launch_chromium(p)
         page = browser.new_page(viewport={'width': 1280, 'height': 900})
         app = KsmApp.local(page, 'Director', problems=problems)
+        app.enable_test_tools()  # owner decision 20: the sample-data buttons need the test tools on
         app.answers['Create Staff password'] = ''  # offline harness: autosaves stay local
         app.setup_team_event()
         app.register('Kana', 'Aiea', "Women’s Open")

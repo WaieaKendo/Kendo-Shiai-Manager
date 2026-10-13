@@ -31,6 +31,13 @@ export interface PlayerRowInput {
   /** The division options printed `selected` (equal to the competitor's division), by position;
    * the last one is the one selected, none selects the first option. */
   selected: number[];
+  /** Owner decision 15: the competitor's division when it is no longer offered (an extra option). */
+  notOffered?: string;
+}
+
+/** Owner decision 15 (#29): the extra option's text for a division that is no longer offered. */
+export function notOfferedLabel(division: string): string {
+  return `${division} (not offered)`;
 }
 
 export interface PlayersInput {

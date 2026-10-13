@@ -33,14 +33,14 @@ function ksmTvTeam(vm){
   const m=vm.match,all=(state.allMatches[m.division]||[]).filter(x=>x.teamPair===m.teamPair&&(x.type==='teamPosition'||x.type==='teamPlayoff'));
   const rows=all.length?all:[m],first=rows[0]||m,sum=teamPairSummary(m.division,m.teamPair);
   return {kind:'team',teamWhite:ksmText(first.teamWhite||m.teamWhite||'White Team'),teamRed:ksmText(first.teamRed||m.teamRed||'Red Team'),
-    rows:rows.map(x=>{const p=activeScoreArrays(x);return {white:ksmText(x.white||'TBD'),red:ksmText(x.red||'TBD'),points:{W:ksmTvLetters(p.W),R:ksmTvLetters(p.R)},active:x===m}}),
+    rows:rows.map(x=>{const p=activeScoreArrays(x);return {white:ksmText(x.white||'TBD'),red:ksmText(x.red||'TBD'),points:{W:ksmTvLetters(p.W),R:ksmTvLetters(p.R)},hansoku:ksmHansokuCounts(x),active:x===m}}),
     // Printed into the template as they are (no esc()).
     summary:{wWins:String(sum.wWins),wPts:String(sum.wPts),rWins:String(sum.rWins),rPts:String(sum.rPts)}};
 }
 // tv3Kachinuki(): the current bout and both three-fighter lineups.
 function ksmTvKachinuki(vm){
   const m=vm.match,p=activeScoreArrays(m),lineup=arr=>{const l=(arr||[]).slice(0,3);while(l.length<3)l.push('—');return l.map(n=>ksmText(n||'—'))};
-  return {kind:'kachinuki',white:ksmText(m.white||'—'),red:ksmText(m.red||'—'),points:{W:ksmTvLetters(p.W),R:ksmTvLetters(p.R)},
+  return {kind:'kachinuki',white:ksmText(m.white||'—'),red:ksmText(m.red||'—'),points:{W:ksmTvLetters(p.W),R:ksmTvLetters(p.R)},hansoku:ksmHansokuCounts(m),
     teamWhite:ksmText(m.teamWhite||'White Team'),teamRed:ksmText(m.teamRed||'Red Team'),
     lineupW:lineup(m.lineupW),lineupR:lineup(m.lineupR),wIndex:Number(m.wIndex||0),rIndex:Number(m.rIndex||0)};
 }
@@ -48,15 +48,28 @@ function ksmTvKachinuki(vm){
 // (or, for Final Results, the "Division Complete" footer).
 function ksmTvDisplayInput(court){
   const vm=buildTV3ViewModel(court);
-  const header={court:ksmText(vm.court),division:ksmText(vm.meta?.division||vm.division||'No active match'),meta:ksmText(vm.meta?.line||'')};
-  if(vm.empty)return {kind:'tv',...header,body:{kind:'idle'},upcoming:ksmTvUpcoming(vm)};
+  // D1: a team round robin's daihyosen bout is labelled as the header's match line.
+  const header={court:ksmText(vm.court),division:ksmText(vm.meta?.division||vm.division||'No active match'),meta:ksmIsRoundRobinDaihyosen(vm.match)?ksmDaihyosenLabel():ksmText(vm.meta?.line||'')};
+  if(vm.empty){
+    // Owner decision 6: "Waiting for the next match" (with the reason when known) while the court's
+    // division waits; "Up next on this court" (the next division's first matches) in Upcoming.
+    const own=vm.division,between=ksmBetweenMatches(court,own);
+    const waiting=!!own&&(state.allMatches?.[own]||[]).some(m=>isValidMatchObject(m)&&!m.done&&matchBelongsToCourt(m,court));
+    const body={kind:'idle'};
+    if(waiting)body.waiting={next:'match',reason:between.reason};
+    else if(between.upNext)body.waiting={next:'division',reason:null};
+    if(!between.upNext)return {kind:'tv',...header,body,upcoming:ksmTvUpcoming(vm)};
+    const cards=between.upNext.matches.map(x=>({white:x.white,red:x.red,whiteSub:'',redSub:''}));
+    while(cards.length<2)cards.push(null);
+    return {kind:'tv',...header,body,upcoming:cards,upNext:between.upNext.division};
+  }
   if(vm.format==='results')return {kind:'tv',...header,body:{kind:'results',complete:ksmDivisionCompleteInput(vm.division,true)},upcoming:[]};
   const upcoming=ksmTvUpcoming(vm);
   if(vm.format==='individual'){
     const m=vm.match,p=activeScoreArrays(m);
     return {kind:'tv',...header,upcoming,body:{kind:'individual',
       white:{name:ksmText(tvIndividualSideLabel(m,'white')),sub:ksmText(m.wdojo)},red:{name:ksmText(tvIndividualSideLabel(m,'red')),sub:ksmText(m.rdojo)},
-      points:{W:ksmTvLetters(p.W),R:ksmTvLetters(p.R)}}};
+      points:{W:ksmTvLetters(p.W),R:ksmTvLetters(p.R)},hansoku:ksmHansokuCounts(m)}};
   }
   return {kind:'tv',...header,upcoming,body:vm.format==='kachinuki'?ksmTvKachinuki(vm):ksmTvTeam(vm)};
 }

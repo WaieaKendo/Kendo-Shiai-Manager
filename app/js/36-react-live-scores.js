@@ -31,26 +31,76 @@ function ksmLiveScoresCourt(court){
     if(div)return {court:ksmText(court),kind:'complete',division:ksmText(div),complete:ksmDivisionCompleteInput(div,true)};
     // Quirk pass: "Waiting for the next match" (not "...division") while the court's division
     // still has an unplayed match on this court that is not ready yet.
+    // Owner decision 6: with the reason when it is known, and the court's next division's first
+    // matches ("Up next on this court").
     const own=state.courtActiveDivision?.[court]||state.courtState?.[court]?.division;
-    if(own&&(state.allMatches?.[own]||[]).some(m=>isValidMatchObject(m)&&!m.done&&matchBelongsToCourt(m,court)))return {court:ksmText(court),kind:'idle',waiting:true};
-    return {court:ksmText(court),kind:'idle'};
+    const between=ksmBetweenMatches(court,own);
+    if(own&&(state.allMatches?.[own]||[]).some(m=>isValidMatchObject(m)&&!m.done&&matchBelongsToCourt(m,court)))return {court:ksmText(court),kind:'idle',waiting:true,...ksmBetweenFields(court,own,between)};
+    return {court:ksmText(court),kind:'idle',...ksmBetweenFields(court,own,between,false)};
   }
   const m=data.match,next=data.next,meta=audienceMeta(m);
-  const base={court:ksmText(court),meta:{division:ksmText(meta.division),line:ksmText(meta.line)}};
+  // D1: a team round robin's daihyosen bout is labelled as its line.
+  const base={court:ksmText(court),meta:{division:ksmText(meta.division),line:ksmIsRoundRobinDaihyosen(m)?ksmDaihyosenLabel():ksmText(meta.line)}};
   if(m.type==='teamPosition'||m.type==='teamPlayoff'||m.type==='kachinuki'){
     // Quirk pass: "Next" is the court's next pairing, as the TV's Upcoming shows it
     // (tvUpcomingMatches(), 25-), not the next bout of the pairing being fought.
     const up=tvUpcomingMatches(court,m,true)[0]||null;
     const nextTeams=up?{white:ksmText(up.teamWhite||up.white||'TBD'),red:ksmText(up.teamRed||up.red||'TBD')}:null;
-    if(m.type==='kachinuki')return {...base,kind:'kachinuki',sheet:ksmKachinukiSheet(m),next:nextTeams};
-    return {...base,kind:'team',sheet:ksmTeamSheet(m.division,m.teamPair,m),next:nextTeams};
+    // Owner decision 5: the current bout's hansoku under the sheet.
+    if(m.type==='kachinuki')return {...base,kind:'kachinuki',sheet:ksmKachinukiSheet(m),next:nextTeams,hansoku:ksmHansokuCounts(m)};
+    return {...base,kind:'team',sheet:ksmTeamSheet(m.division,m.teamPair,m),next:nextTeams,hansoku:ksmHansokuCounts(m)};
   }
   // liveScorePoints(): the letters as Array.join() prints them.
   const pts=activeScoreArrays(m),letters=arr=>(arr||[]).map(x=>x==null?'':String(x));
   return {...base,kind:'individual',
     white:{name:ksmText(m.white||'TBD'),dojo:ksmText(m.wdojo||'')},red:{name:ksmText(m.red||'TBD'),dojo:ksmText(m.rdojo||'')},
-    points:{W:letters(pts.W),R:letters(pts.R)},
+    points:{W:letters(pts.W),R:letters(pts.R)},hansoku:ksmHansokuCounts(m),
     next:next?{white:ksmText(next.white||'TBD'),red:ksmText(next.red||'TBD')}:null};
+}
+// Owner decision 6 (#29): what Live Scores and the TV show for a court between matches.
+// A match's stage as a reason names it: the bracket round (Final, Semifinal), the team bracket
+// node's round, the pool, or the position.
+function ksmStageLabel(m){
+  if(!m)return 'The next match';
+  if(isTeamMatch(m)&&m.teamNodeId){const n=(state.teamBracketNodes?.[m.division]||[]).find(x=>x.id===m.teamNodeId);if(n?.round)return String(n.round)}
+  if(m.championship||m.singleElim||m.pool==='Championship')return String(m.position||'Championship');
+  if(m.pool&&!isTeamMatch(m))return `Pool ${m.pool}`;
+  return String(m.position||'The next match');
+}
+// Why the court's division waits, when it is known: its next match on this court waits for an
+// unfinished match of the division on the other court ("Final waits for the semifinal on Court B").
+function ksmWaitingReason(court,div){
+  const other=court==='A'?'B':'A',arr=state.allMatches?.[div]||[];
+  const mine=arr.find(m=>isValidMatchObject(m)&&!m.done&&matchBelongsToCourt(m,court));
+  const theirs=arr.find(m=>isValidMatchObject(m)&&!m.done&&matchBelongsToCourt(m,other)&&!matchBelongsToCourt(m,court));
+  if(!mine||!theirs)return null;
+  const stage=ksmStageLabel(theirs),what=/^Pool /.test(stage)?stage:`the ${stage.toLowerCase()}`;
+  return `${ksmStageLabel(mine)} waits for ${what} on Court ${other}`;
+}
+// "Up next on this court": the next division in the court's running order (#31, as Continue
+// picks it) and its first two matches ready on this court (a team pairing once), or null.
+function ksmUpNext(court,own){
+  const next=ksmNextCourtDivision(court,own||null);if(!next)return null;
+  let arr=state.allMatches[next]||[];arr=arr.some(isTeamMatch)?sortTeamMatches(next):sortIndividualDivisionMatches(next,arr);
+  const seen=new Set(),matches=[];
+  for(const m of arr){
+    if(matches.length>=2)break;
+    if(!isValidMatchObject(m)||!individualMatchReady(m)||!matchBelongsToCourt(m,court))continue;
+    if(isTeamMatch(m)){const key=m.teamPair||m.teamNodeId||`${m.teamWhite}|${m.teamRed}`;if(seen.has(key))continue;seen.add(key);matches.push({white:ksmText(m.teamWhite||'TBD'),red:ksmText(m.teamRed||'TBD')})}
+    else matches.push({white:ksmText(m.white||'TBD'),red:ksmText(m.red||'TBD')});
+  }
+  return matches.length?{division:ksmText(next),matches}:null;
+}
+function ksmBetweenMatches(court,own){
+  return {reason:own?ksmWaitingReason(court,own):null,upNext:ksmUpNext(court,own)};
+}
+// The idle court's extra fields, only when there is something to say (so other idle courts are
+// published as before). waiting=false: the reason does not apply (the division does not wait here).
+function ksmBetweenFields(court,own,between,waiting=true){
+  const out={};
+  if(waiting&&between.reason)out.reason=between.reason;
+  if(between.upNext)out.upNext=between.upNext;
+  return out;
 }
 // The court's division when it is complete and played on this court (F16): the court's own
 // division (courtActiveDivision / courtState, which the scorekeepers publish, so every device

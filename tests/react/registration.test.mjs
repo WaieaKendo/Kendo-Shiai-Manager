@@ -38,3 +38,8 @@ test('the status card: verdict, counts (singular for 1) and the issue line', () 
     verdict: 'Needs Attention', counts: '1 competitor • 1 division • 3 courts', message: '1 validation issue(s). Generate Tournament to review.',
   });
 });
+
+test('owner decision 15: a division no longer offered is an extra "(not offered)" option', async () => {
+  const { notOfferedLabel } = await import('../../app/react/registration/registration-model.ts');
+  assert.equal(notOfferedLabel('Women’s Open'), 'Women’s Open (not offered)');
+});

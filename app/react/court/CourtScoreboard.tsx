@@ -65,6 +65,7 @@ export function CourtScoreboard() {
           <div className="points red-score" id="redPts" data-testid="court-red-points"><Points letters={view.red.points} side="R" /></div>
           <div className="tri" id="redTri" data-testid="court-red-hansoku">{view.red.hansoku}</div>
         </div>
+        {view.rule && <div className="court-bout-rule" role="note" data-testid="court-bout-rule">{view.rule}</div>}
       </div>
 
       <div className="scoreboard-side scoreboard-red">

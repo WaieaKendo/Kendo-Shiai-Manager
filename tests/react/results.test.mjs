@@ -93,3 +93,11 @@ test('resultsBracketView: the title and the court screen\'s bracket view', () =>
   assert.equal(standings.kind === 'bracket' && standings.detail.bracket.kind === 'team-standings' && standings.detail.bracket.standings.status,
     'Current standings • 1 of 3 team pairings complete');
 });
+
+test('owner decision 8: a spectator\'s results are read-only (only then marked)', () => {
+  const input = { kind: 'results', tournamentName: 'Cup', completed: [], pending: [], noDivisions: true, awards: [{ award: 'Fighting Spirit', name: 'Aki', dojo: '' }] };
+  assert.equal(resultsView(input).readOnly, undefined, 'staff: the editor');
+  assert.equal('readOnly' in resultsView({ ...input, readOnly: false }), false);
+  assert.equal(resultsView({ ...input, readOnly: true }).readOnly, true);
+  assert.deepEqual(resultsView({ ...input, readOnly: true }).awards, input.awards);
+});

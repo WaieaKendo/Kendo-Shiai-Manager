@@ -90,3 +90,33 @@ test('tvView: Final Results use the division-complete panel and the "Division Co
   });
   assert.deepEqual(view.footer, { kind: 'results' });
 });
+
+test('tvView: hansoku on an individual match and a team row (owner decision 5)', () => {
+  const view = tvView({
+    kind: 'tv', ...header, upcoming: [null, null],
+    body: { kind: 'individual', white: { name: 'P 1', sub: '' }, red: { name: 'P 2', sub: '' }, points: { W: [], R: ['H'] }, hansoku: { W: 2, R: 0 } },
+  });
+  assert.deepEqual(view.body.hansoku, { white: '△ △', red: '' });
+  const team = tvView({
+    kind: 'tv', ...header, upcoming: [null, null],
+    body: { kind: 'team', teamWhite: 'A', teamRed: 'B', summary: { wWins: '0', wPts: '0', rWins: '0', rPts: '0' }, rows: [
+      { white: 'A1', red: 'B1', points: { W: [], R: [] }, hansoku: { W: 0, R: 1 }, active: true },
+      { white: 'A2', red: 'B2', points: { W: [], R: [] }, active: false },
+    ] },
+  });
+  assert.deepEqual(team.body.rows[0].hansoku, { white: '', red: '△' });
+  assert.equal('hansoku' in team.body.rows[1], false);
+});
+
+test('tvView between matches (owner decision 6): waiting text, reason, Up next title', async () => {
+  const { TV_WAITING_TEXTS } = await import('../../app/react/tv/tv-model.ts');
+  assert.deepEqual(TV_WAITING_TEXTS, { match: 'Waiting for the next match', division: 'Waiting for the next division' });
+  const card = { white: 'M 1', red: 'M 2', whiteSub: '', redSub: '' };
+  const view = tvView({ kind: 'tv', court: 'A', division: 'Split', meta: '', upcoming: [card, null], upNext: 'Masters',
+    body: { kind: 'idle', waiting: { next: 'match', reason: 'Final waits for the semifinal on Court B' } } });
+  assert.deepEqual(view.body, { kind: 'idle', waiting: { text: 'Waiting for the next match', reason: 'Final waits for the semifinal on Court B' } });
+  assert.deepEqual(view.footer, { kind: 'upcoming', cards: [card, null], title: 'Up next on this court: Masters' });
+  const division = tvView({ kind: 'tv', court: 'A', division: 'Kids', meta: '', upcoming: [card, null], upNext: 'Masters',
+    body: { kind: 'idle', waiting: { next: 'division', reason: null } } });
+  assert.deepEqual(division.body, { kind: 'idle', waiting: { text: 'Waiting for the next division', reason: null } });
+});

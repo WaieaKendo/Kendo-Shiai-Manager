@@ -108,6 +108,24 @@ function AwardField({ index, field, label, value }: { index: number; field: Awar
   return <input ref={ref} aria-label={label} defaultValue={value} />;
 }
 
+/** Owner decision 8 (#29): a spectator's special awards, read-only (award, recipient, dojo). */
+function AwardsList({ awards }: { awards: AwardInput[] }) {
+  return (
+    <section className="results-awards-card">
+      <h2 className="results-awards-title">Special Awards</h2>
+      <div className="awards-editor awards-readonly">
+        {awards.length
+          ? awards.map((a, i) => (
+            <div key={i} className="award-view-row" data-testid="award-row">
+              <b>{a.award}</b>{a.name && <span>{a.name}</span>}{a.dojo && <span className="small">{a.dojo}</span>}
+            </div>
+          ))
+          : <div className="results-empty">{NO_AWARDS_TEXT}</div>}
+      </div>
+    </section>
+  );
+}
+
 /** awardsEditorHtml(). */
 function AwardsEditor({ awards }: { awards: AwardInput[] }) {
   return (
@@ -142,7 +160,7 @@ export function ResultsBody() {
         <SectionFragment key={section.heading} heading={section.heading} cards={section.cards} />
       ))}
       {view.noDivisions && <div className="results-empty">{NO_DIVISIONS_TEXT}</div>}
-      <AwardsEditor awards={view.awards} />
+      {view.readOnly ? <AwardsList awards={view.awards} /> : <AwardsEditor awards={view.awards} />}
     </>
   );
 }

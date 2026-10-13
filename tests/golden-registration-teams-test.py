@@ -40,7 +40,8 @@ off.
                     Kachinuki) and tournament format, the filter, x (also filtered), + Auto Test
                     Team, Load Sample Teams, a typed name dropped by a redraw, Clear Teams
                     (Cancel, OK), phones;
-  exhibitions       exhibitions switched on and off in Setup, + Add Exhibition Match, + 3 Matches,
+  exhibitions       exhibitions switched on and off in Setup (the Exhibition tab hidden while
+                    off: owner decision 19), + Add Exhibition Match, + 3 Matches,
                     players typed with special characters, every status, x, a typed name dropped
                     by a redraw, Clear Exhibitions (Cancel, OK), phones;
   teams-live        a live update arriving while a team name is being typed (deferred), the
@@ -152,6 +153,7 @@ def open_app(name, browser, react_check=None):
     app = KsmApp(browser.new_page(viewport=DESKTOP), name)
     app.page_errors = []
     load_app(app.page)  # a staff session on Setup
+    app.enable_test_tools()  # owner decision 20: the sample-data buttons need the test tools on (pressed below)
     app.page.add_style_tag(content=NO_TRANSITIONS)
     app.page.evaluate(SAVES_INIT_JS)
     golden = Golden(name, app, app.page_errors, GOLDEN_DIR, capture, react_check)
@@ -219,6 +221,10 @@ SPECIAL = ' <B> & "C" O\'ahu 🏆'
 def tabs_empty(browser, react_check):
     g = open_app('tabs-empty', browser, react_check)
     open_registration(g)
+    # Owner decision 19 (#29): the Exhibition tab shows only while exhibitions are enabled (the
+    # step above records the tab bar without it); switched on in Setup for the tab steps below.
+    setup_select(g, 'exhibition-enabled', 'Enabled')
+    g.do('Registration from the menu (the Exhibition tab shown)', lambda a: click(a.page, tid('nav-registration')))
     for t in ['team', 'exhibition', 'pools', 'individual', 'exhibition', 'team']:
         g.do(f'tab: {t}', lambda a, t=t: click(a.page, tid(f'reg-tab-{t}')))
     g.do('the same tab again (team)', lambda a: click(a.page, tid('reg-tab-team')))
@@ -281,7 +287,7 @@ def teams_cards(browser, react_check):
     g.do('filter: typed on with the cards redrawn per key', lambda a: (type_into(a.page, '#teamFilter', 'k'), a.page.keyboard.type('o')))
     g.do("filter: 'o' (several)", lambda a: type_into(a.page, '#teamFilter', 'o'))
     g.do('filtered: × on the second shown card', lambda a: click(a.page, team_field('team-remove', 1)))
-    g.do('filtered: + Add Team (the new card does not match)', lambda a: click(a.page, tid('team-add')))
+    g.do('filtered: + Add Team (clears the filter: owner decision 14)', lambda a: click(a.page, tid('team-add')))
     g.do('filter cleared', lambda a: type_into(a.page, '#teamFilter', ''))
     leave(page)
     g.do('+ Auto Test Team', lambda a: click(a.page, button(TEAMS, '+ Auto Test Team')))
@@ -339,13 +345,14 @@ def exhibitions(browser, react_check):
         type_into(a.page, ex_field('exhibition-white', 0), 'Pending'), click(a.page, ex_field('exhibition-remove', 2))))
     leave(page)
     phone_views(g, 'matches')
-    setup_select(g, 'exhibition-enabled', 'Disabled')
-    open_registration(g)
-    g.do('tab: exhibition (switched off in Setup)', lambda a: click(a.page, tid('reg-tab-exhibition')))
-    g.do('+ Add Exhibition Match (switched off)', lambda a: click(a.page, tid('exhibition-add')))
+    # Owner decision 19 (#29): switched off in Setup, the Exhibition tab is hidden (it was offered
+    # and its card worked: the steps that pressed the tab, + Add Exhibition Match and Clear
+    # Exhibitions there are gone with it). Clear Exhibitions: Cancel is pressed before, enabled.
     g.answer = lambda d: d.dismiss() if d.type == 'confirm' else d.accept()
     g.do('Clear Exhibitions: Cancel', lambda a: click(a.page, tid('exhibition-clear')))
     g.answer = None
+    setup_select(g, 'exhibition-enabled', 'Disabled')
+    open_registration(g)
     g.do('Clear Exhibitions: OK', lambda a: click(a.page, tid('exhibition-clear')))
     g.do('+ 3 Matches after Clear', lambda a: click(a.page, tid('exhibition-add-3')))
     g.do('× on the last match (focused first)', lambda a: (a.page.locator(ex_field('exhibition-remove', 2)).focus(), click(a.page, ex_field('exhibition-remove', 2))))

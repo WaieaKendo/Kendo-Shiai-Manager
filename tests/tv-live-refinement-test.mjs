@@ -16,13 +16,13 @@ const checks=[
  ['TV opens separate court link',html.includes("window.open(tvLink(court),'_blank','noopener')")],
  ['TV header has no generic header chrome',html.includes('.tv-shell header{all:unset')],
  ['division larger beneath court',html.includes('.tv-context{')&&html.includes('font-size:clamp(34px,3.8vw,62px)')],
- ['pool metadata remains beneath division',html.includes("meta:ksmText(vm.meta?.line||'')")&&tvReact.indexOf('data-testid="tv-meta"')>tvReact.indexOf('data-testid="tv-division"')&&tvReact.indexOf('data-testid="tv-division"')>0],
+ ['pool metadata remains beneath division',html.includes("meta:ksmIsRoundRobinDaihyosen(vm.match)?ksmDaihyosenLabel():ksmText(vm.meta?.line||'')")&&tvReact.indexOf('data-testid="tv-meta"')>tvReact.indexOf('data-testid="tv-division"')&&tvReact.indexOf('data-testid="tv-division"')>0],
  ['individual points are medial',html.includes('grid-template-columns:minmax(0,1fr) auto auto auto minmax(0,1fr)')],
  ['individual names split first and remaining names',tvModel.includes("return rest.length ? [first, rest.join(' ')] : [first];")&&tvReact.includes('{player.nameParts.map((part, i) => <span key={i}>{part}</span>)}')],
  ['next match moved and enlarged',html.includes('align-self:end')&&html.includes('Upcoming Matches')],
  ['team next match uses team names',html.includes("if(teamMode)return side==='white'?(match.teamWhite||match.wdojo||")&&html.includes("(match.teamRed||match.rdojo||")&&html.includes("left:tv3Side(m,'white',teamMode),right:tv3Side(m,'red',teamMode)")],
  ['team wins and points shown',html.includes('tv-team-summary')&&html.includes('summary.wWins')&&html.includes('summary.rPts')],
- ['team live scores use court-context sheet',html.includes("if(m.type==='kachinuki')return {...base,kind:'kachinuki',sheet:ksmKachinukiSheet(m),next:nextTeams};")&&html.includes("return {...base,kind:'team',sheet:ksmTeamSheet(m.division,m.teamPair,m),next:nextTeams};")&&liveReact.includes("case 'team': return <ContextPanel view={{ kind: 'team-sheet', ...body.sheet }} />;")&&liveReact.includes("case 'kachinuki': return <ContextPanel view={{ kind: 'kachinuki', ...body.sheet }} />;")],
+ ['team live scores use court-context sheet',html.includes("if(m.type==='kachinuki')return {...base,kind:'kachinuki',sheet:ksmKachinukiSheet(m),next:nextTeams,hansoku:ksmHansokuCounts(m)};")&&html.includes("return {...base,kind:'team',sheet:ksmTeamSheet(m.division,m.teamPair,m),next:nextTeams,hansoku:ksmHansokuCounts(m)};")&&liveReact.includes("case 'team': return <><ContextPanel view={{ kind: 'team-sheet', ...body.sheet }} /><BoutHansoku hansoku={body.hansoku} /></>;")&&liveReact.includes("case 'kachinuki': return <><ContextPanel view={{ kind: 'kachinuki', ...body.sheet }} /><BoutHansoku hansoku={body.hansoku} /></>;")],
  ['frozen engine retained',html.includes("engineVersion:'3.12.9'")]
 ];
 let failed=0;for(const [name,ok] of checks){console.log(`${ok?'PASS':'FAIL'} ${name}`);if(!ok)failed++;}

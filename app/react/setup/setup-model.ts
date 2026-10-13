@@ -31,10 +31,15 @@ export interface SetupDivisionRowInput {
   format: string | null;
   /** state.divisionCourts[d] || 'A'. */
   court: string;
+  /**
+   * Issue #31: an enabled division's move buttons (whether it can move up / down in the running
+   * order); null or missing for a switched-off division (no buttons).
+   */
+  move?: { up: boolean; down: boolean } | null;
 }
 
 export interface SetupDivisionsInput {
-  /** The presets in their order, then the custom divisions in state.divisions. */
+  /** The enabled divisions in their running order (#31), then the switched-off ones. */
   rows: SetupDivisionRowInput[];
 }
 
@@ -51,6 +56,11 @@ export const EMPTY_SETUP_HEADER: SetupHeaderInput = { name: '' };
 // ------------------------------------------------------------------------------ texts
 
 export const SETUP_HEADER_FALLBACK = 'Kendo Tournament';
+/** Issue #31: the move buttons' symbols and accessible names. */
+export const MOVE_TEXTS = { up: '↑', down: '↓' } as const;
+export function moveLabel(name: string, direction: 'up' | 'down'): string {
+  return `Move ${name} ${direction}`;
+}
 export const CUSTOM_TEXT = 'custom';
 export const REMOVE_TEXT = '×';
 /** The format select's options (no value attribute: the value is the text). */

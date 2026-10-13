@@ -53,6 +53,8 @@ export type ResultsInput =
     /** No generated division at all. */
     noDivisions: boolean;
     awards: AwardInput[];
+    /** Owner decision 8 (#29): a spectator's Results shows the awards read-only (no editor). */
+    readOnly?: boolean;
   };
 
 /** One pool of the modal's "Pool Results" (poolStandings(), in order). */
@@ -111,7 +113,7 @@ export interface ResultsSectionView {
 
 export type ResultsView =
   | { kind: 'empty' }
-  | { kind: 'results'; tournamentName: string; sections: ResultsSectionView[]; noDivisions: boolean; awards: AwardInput[] };
+  | { kind: 'results'; tournamentName: string; sections: ResultsSectionView[]; noDivisions: boolean; awards: AwardInput[]; readOnly?: true };
 
 export function resultCardView(card: ResultCardInput): ResultCardView {
   if (!card.placements || !card.placements.length) {
@@ -141,7 +143,10 @@ export function resultsView(input: ResultsInput): ResultsView {
   const sections: ResultsSectionView[] = [];
   if (input.completed.length) sections.push({ heading: 'Completed', cards: input.completed.map(resultCardView) });
   if (input.pending.length) sections.push({ heading: 'In Progress', cards: input.pending.map(resultCardView) });
-  return { kind: 'results', tournamentName: input.tournamentName, sections, noDivisions: input.noDivisions, awards: input.awards };
+  return {
+    kind: 'results', tournamentName: input.tournamentName, sections, noDivisions: input.noDivisions, awards: input.awards,
+    ...(input.readOnly ? { readOnly: true as const } : {}),
+  };
 }
 
 export function tournamentNameText(input: ResultsInput): string {

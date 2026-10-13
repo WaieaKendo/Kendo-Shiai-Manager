@@ -82,7 +82,8 @@ def main():
 
         # --- Placeholder buttons (meeting decision: implement or remove) ------------------------
         placeholders = [('reg-import-csv', None, 'CSV import will be added in the production build.'),
-                        ('reg-paste-excel', None, 'Paste rows directly into the table from Excel.'),
+                        # Owner decision 17 (#29): the button explains the paste (was "Paste rows directly into the table from Excel.").
+                        ('reg-paste-excel', None, 'Paste from Excel: copy rows with the columns Name, Dojo, Division, Seed, Status (in that order; only Name is required) and paste them (Ctrl+V / Cmd+V) while Individual Players is shown. Division must be one offered in Setup (empty: the first division). Status: Registered, Checked In or No Show (empty: Registered). Rows with another division or status are not added; a notice lists them.'),
                         ('nav-export-referees', 'nav-export', 'Referee assignment export will be added with the Referee Assignment module.'),
                         ('nav-export-archive', 'nav-export', 'Tournament Archive export will be added with the archive module.')]
         for testid, menu, message in placeholders:

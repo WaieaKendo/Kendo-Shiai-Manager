@@ -23,6 +23,7 @@ import { useEffect, useLayoutEffect, useRef, useSyncExternalStore } from 'react'
 import {
   EMPTY_PLAYERS, EMPTY_STATUS, PLAYER_HEADERS, REMOVE_TEXT, STATUS_TITLE,
   statusClass, statusText, statusView,
+  notOfferedLabel,
   type PlayerRowInput, type PlayersInput, type StatusInput,
 } from './registration-model.ts';
 import { pressOnKey } from '../keyboard.ts';
@@ -100,10 +101,15 @@ function DivisionField({ row, divisions }: { row: PlayerRowInput; divisions: str
       const option = el.options[i];
       if (option) option.defaultSelected = true;
     }
+    if (row.notOffered !== undefined) {
+      const extra = el.options[divisions.length];
+      if (extra) extra.defaultSelected = true;
+    }
   }, [ref, row]);
   return (
     <select ref={ref} className="division-select" data-testid="reg-division">
       {divisions.map((d, i) => <option key={i}>{d}</option>)}
+      {row.notOffered !== undefined && <option value={row.notOffered}>{notOfferedLabel(row.notOffered)}</option>}
     </select>
   );
 }

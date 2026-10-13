@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { STATIC_ACTIONS, courtActionsView, scoreButtons } from '../../app/react/court/actions-model.ts';
+import { FUSEN_LABEL, STATIC_ACTIONS, courtActionsView, fusenButtonView, scoreButtons } from '../../app/react/court/actions-model.ts';
 import { DEFAULT_COURT_ACTION_ICONS } from '../../app/react/court/branding.ts';
 
 test('scoreButtons: each panel in the legacy order, test IDs and labels', () => {
@@ -39,4 +39,10 @@ test('default action icons: the legacy undo arrow (64x64, two paths, first one r
   assert.equal(undo.paths[0].d, 'M24 14H10v14');
   assert.equal(fusen, '⚑');
   assert.equal(next, '»');
+});
+
+test('fusenButtonView: "Fusen-sho", disabled while the court has no match (owner decision 4)', () => {
+  assert.equal(FUSEN_LABEL, 'Fusen-sho');
+  assert.deepEqual(fusenButtonView(true), { disabled: false, label: 'Fusen-sho' });
+  assert.deepEqual(fusenButtonView(false), { disabled: true, label: 'Fusen-sho' });
 });

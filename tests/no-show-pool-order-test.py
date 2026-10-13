@@ -48,6 +48,7 @@ def main():
         # The director marks slot C No Show (Checked In -> No Show): nothing in Pool A was played.
         director.nav('registration')
         director.click('reg-tab-individual')
+        director.expect_dialog('Mark ', accept=True)  # owner decision 18: a No Show after generation asks first
         rows = director.page.locator(sel('reg-row'))
         next(rows.nth(i) for i in range(rows.count()) if rows.nth(i).locator(sel('reg-name')).input_value() == c) \
             .locator(sel('reg-status')).click()

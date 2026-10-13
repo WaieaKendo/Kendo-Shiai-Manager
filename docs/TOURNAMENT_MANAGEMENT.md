@@ -129,8 +129,22 @@ Standard quarterfinals, semifinals, Finals, pool schedules, and elimination team
 ## Team round robin ranking (F27, decided by the owners, WKC style)
 
 - Teams are ranked by (a) team match wins, then (b) individual bout wins, then (c) points (ippon) scored.
-- Teams still level on all three for a counted place (1st–3rd) fight a one-point daihyosen (representative bout, ippon shobu; a winner is required), one bout per pair of the level teams, once every pairing is decided; its winner takes the place. Teams still level after it (a circle of three) fight another round.
-- Level teams below the counted places share the rank. Daihyosen bouts do not count in the team records.
+- Teams still level on all three for a place that gets an award fight a one-point daihyosen (representative bout, ippon shobu; a winner is required), one bout per pair of the level teams, once every pairing is decided; its winner takes the place. Teams still level after it (a circle of three) fight another round.
+- The places that get an award follow Setup's "Team Awards to Display" (D2, decided by the owners): Champion only → 1st; Champion + Runner-up (the default) → 1st–2nd; Champion + Runner-up + 3rd place(s) → 1st–3rd.
+- Level teams below those places share the rank. Daihyosen bouts do not count in the team records.
+- A daihyosen bout is labelled "Daihyosen — first point wins" on the court screen, Live Scores and the TV (D1); the scorekeeper still ends it with Next Match.
+
+## Division running order and Continue (#31)
+
+- Setup's divisions table lists the divisions in their running order (enabled ones; switched-off ones below, a switched-off custom division keeps its row). Move up / move down change it; it is saved and synced like every Setup edit.
+- Each court plays its divisions in that order: the court's division dropdown, the division-complete box's **Continue to <next division>** (the next one in the order with a match ready on that court: finished divisions, divisions not generated yet and divisions waiting on the other court are skipped) and the TV's / Live Scores' "Up next on this court".
+- Continue (and Close TV results after Keep showing results) is the court's ordinary division choice, so the court's TV and Live Scores follow. "All divisions on Court X are done." when nothing is left on the court.
+
+## Paste from Excel (owner decisions 16, 17)
+
+- On Registration → Individual Players, paste rows copied from a spreadsheet (Ctrl+V / Cmd+V; the Paste from Excel button explains it). Columns, tab-separated: Name, Dojo, Division, Seed, Status; only Name is required.
+- Division: one offered in Setup (empty: the first division). Status: Registered, Checked In (or Checked) or No Show (or NoShow), in any case (empty: Registered).
+- A row with another division or status is not added (an unknown division is never created); a notice lists those rows and why. Cells are trimmed; CR LF, CR and LF line ends all work.
 
 ## Kachinuki (confirmed by the owners)
 

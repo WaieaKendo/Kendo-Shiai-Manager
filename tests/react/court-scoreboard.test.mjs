@@ -44,3 +44,11 @@ test('representativeView: as the legacy repSelect()', () => {
   assert.equal(representativeView({ ...rep, current: 'Stranger' }).value, '', 'a name outside the roster shows the placeholder option');
   assert.deepEqual(representativeView({ ...rep, current: 'A1', editable: false }), { editable: false, placeholder: 'Team A Representative', text: 'A1', value: 'A1', options: ['A1', 'A2'] });
 });
+
+test('D1: a daihyosen bout carries its rule label; other bouts none', async () => {
+  const { scoreboardView } = await import('../../app/react/court/scoreboard-model.ts');
+  const score = { W: [], R: [], WT: 0, RT: 0 };
+  const m = { white: 'A Rep', red: 'B Rep', teamWhite: 'Team A', teamRed: 'Team B', type: 'teamPlayoff' };
+  assert.equal(scoreboardView({ match: { ...m, rule: 'Daihyosen — first point wins' }, score, representatives: null }).rule, 'Daihyosen — first point wins');
+  assert.equal('rule' in scoreboardView({ match: m, score, representatives: null }), false);
+});

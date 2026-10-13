@@ -28,7 +28,7 @@ import { statusClass, statusText, REMOVE_TEXT } from './registration-model.ts';
 import { pressOnKey } from '../keyboard.ts';
 import {
   EMPTY_EXHIBITIONS, EMPTY_TABS, EMPTY_TEAMS, EXHIBITION_HEADERS, TAB_BUTTONS, TEAM_NAME_LABEL,
-  tabButtonClass, teamFormatLine,
+  tabButtonClass, teamFormatLine, visibleTabButtons,
   type ExhibitionRowInput, type ExhibitionsInput, type TabsInput, type TeamCardInput, type TeamsInput,
 } from './teams-model.ts';
 
@@ -176,10 +176,11 @@ export function ExhibitionTable() {
 /** The first row of the Registration toolbar card: the tabs (the current one marked "active", as
  * regTab() toggled it), Generate Tournament and Regenerate Single Division. */
 export function RegistrationTabs() {
-  const { mode } = useSyncExternalStore(subscribeTab, tabSnapshot, () => EMPTY_TABS);
+  const input = useSyncExternalStore(subscribeTab, tabSnapshot, () => EMPTY_TABS);
+  const { mode } = input;
   return (
     <>
-      {TAB_BUTTONS.map(b => (
+      {visibleTabButtons(input).map(b => (
         <button
           key={b.id}
           id={b.id}

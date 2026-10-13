@@ -38,7 +38,8 @@ export {
   teamSlots, slotLabel, teamPairMatchObjects, buildTeamMatches, teamSource, winnerSource, teamNode, teamBracketNodesForCount,
   teamPairMatches, teamPositionMatches, teamPairSummary, teamWinner, teamPairIds, teamSideTeam, nodeHasMatch, nodePairId,
   syncTeamBracket, maybeCreateTeamTiebreak, teamRoundRobinPairResolved, teamStandings, teamRoundRobinProgress,
-  teamRoundRobinPlacements, teamNodeSideName, teamFinalPlacements, teamRoundRobinTiebreakPlan, TEAM_ROUND_ROBIN_COUNTED_PLACES,
+  teamRoundRobinPlacements, teamNodeSideName, teamFinalPlacements, teamRoundRobinTiebreakPlan, TEAM_ROUND_ROBIN_COUNTED_PLACES, teamRoundRobinCountedPlaces,
+  teamRoundRobinMissingDaihyosen,
 } from './teams.ts';
 export type {
   TeamPosition, TeamEntry, TeamBracketSource, TeamBracketNode, TeamPositionMatch, KachinukiStartMatch, TeamBout, TeamMatchLike,

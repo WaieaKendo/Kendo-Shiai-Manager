@@ -47,6 +47,9 @@ function ksmRegistrationData(){
       checked:c.status==='Checked',noShow:c.status==='NoShow',
       // The options printed `selected` (d===c.division), by position.
       selected:state.divisions.map((d,j)=>d===c.division?j:-1).filter(j=>j>=0),
+      // Owner decision 15 (#29): a division that is no longer offered (switched off in Setup) is
+      // shown as an extra, selected "<division> (not offered)" option (it showed the first one).
+      ...(c.division&&!state.divisions.includes(c.division)?{notOffered:String(c.division)}:{}),
     })),
   };
 }
@@ -79,6 +82,9 @@ function ksmUpdateCompetitor(row,key,value){
     index=same[0];ksmRegistrationRowsStale=true;
   }
   updateComp(index,key,value);
+  // Owner decision 15: a row that showed its division as "(not offered)" is drawn again without
+  // that option once another division is chosen.
+  if(key==='division'&&row.notOffered!==undefined&&value!==row.notOffered)renderReg();
 }
 function ksmRenderRegistration(){
   let input=ksmRegistrationData();
@@ -92,6 +98,8 @@ function ksmRenderRegistration(){
   // F17: the blur committed an edit into a competitor of the new list (ksmUpdateCompetitor()).
   if(ksmRegistrationRowsStale){ksmRegistrationRowsStale=false;input=ksmRegistrationData()}
   ksmPublishRegistration('ksm:registration-players','ksmRegistrationPlayersInput',input);
+  // Owner decision 19: renderReg() runs when Setup's Exhibition Matches changes; the tab follows.
+  ksmSyncExhibitionTab();
 }
 // renderTournamentStatus() (03) as data: the validation result and the counts.
 function ksmRenderTournamentStatus(valid,competitors,divisions,errors){
@@ -99,7 +107,26 @@ function ksmRenderTournamentStatus(valid,competitors,divisions,errors){
     {valid:!!valid,competitors,divisions,courts:ksmHtmlText(tCourts?.value||'2'),errors});
 }
 // × of a row: what its inline handler ran.
-function ksmRemoveCompetitor(i){state.competitors.splice(i,1);renderReg();renderTournamentStatus()}
+function ksmRemoveCompetitor(i){
+  // Owner decision 18 (#29): × on a player of a generated division asks first.
+  const c=state.competitors[i];if(c&&c.name&&ksmInGeneratedDivision(c.name,c.division,false)&&!ksmConfirmRemove(c.name,c.division))return;
+  state.competitors.splice(i,1);renderReg();renderTournamentStatus();
+}
+// Owner decision 18 (#29): after generation, a No Show takes the entry out of its division's pools
+// or bracket (applyIndividualNoShow(), applyWholeTeamNoShow()) and × leaves its matches in place,
+// so both ask first (cycleCompetitorStatus(), cycleTeamStatus() in 03; ksmRemoveCompetitor(),
+// ksmRemoveTeam() here). Before generation nothing asks.
+function ksmConfirmNoShow(name,division){
+  return confirm(`Mark ${name} as No Show? ${division} is already generated: ${name} is taken out of its pools or bracket.`);
+}
+function ksmInGeneratedDivision(name,division,team){
+  if(!state.generated||!name)return false;
+  return (state.allMatches?.[division]||[]).some(m=>m&&(team?(m.teamWhite===name||m.teamRed===name):(m.white===name||m.red===name)))
+    ||(state.pools?.[division]||[]).some(p=>(p.players||[]).some(x=>x&&x.name===name));
+}
+function ksmConfirmRemove(name,division){
+  return confirm(`Remove ${name}? ${division} is already generated: removing the entry does not change its pools, bracket or matches (regenerate the division for that).`);
+}
 
 // ---------------------------------------------------------- Registration part 2
 // The team cards (the wrapper of #teamTable in #teamReg), the exhibition table (#exhibitionTable)
@@ -156,9 +183,41 @@ function ksmRenderExhibitions(){
   if(ksmExhibitionsStale){ksmExhibitionsStale=false;input=ksmExhibitionsData()}
   ksmPublishRegistration('ksm:registration-exhibitions','ksmRegistrationExhibitionsInput',input);
 }
-// regTab() (23): the tab marked active.
+// Owner decisions 16 and 17 (#29): Paste from Excel. A pasted row (the document paste listener,
+// 16-: Name, Dojo, Division, Seed, Status, tab-separated) is added only with a division that is
+// offered (empty: the first division) and a known status (empty: Registered; Registered, Checked
+// In / Checked, No Show / NoShow, in any case); other rows are not added (before: an unknown
+// division was created, an unknown status kept as typed) and ksmPasteNotice() names them.
+var ksmPasteRefused=[];
+var KSM_PASTE_STATUSES={'':'Registered','registered':'Registered','checked in':'Checked','checked':'Checked','no show':'NoShow','noshow':'NoShow'};
+function ksmPasteRow(name,dojo,division,seed,status){
+  const st=KSM_PASTE_STATUSES[String(status||'').trim().toLowerCase()],why=[];
+  if(division&&!state.divisions.includes(division))why.push(`division "${division}" is not offered`);
+  if(st===undefined)why.push(`status "${status}" is not Registered, Checked In or No Show`);
+  if(why.length){ksmPasteRefused.push(`${name}: ${why.join('; ')}`);return}
+  state.competitors.push({name,dojo:dojo||'',division:division||state.divisions[0],seed:seed||'',status:st});
+}
+function ksmPasteNotice(){
+  if(!ksmPasteRefused.length)return;
+  const rows=ksmPasteRefused;ksmPasteRefused=[];
+  alert(`Not added (${rows.length} ${rows.length===1?'row':'rows'}):\n${rows.join('\n')}\n\nUse a division offered in Setup and the status Registered, Checked In or No Show, then paste those rows again.`);
+}
+// The Paste from Excel button (app/index.html): how the paste works (decision 17).
+function ksmPasteHelp(){
+  alert('Paste from Excel: copy rows with the columns Name, Dojo, Division, Seed, Status (in that order; only Name is required) and paste them (Ctrl+V / Cmd+V) while Individual Players is shown. Division must be one offered in Setup (empty: the first division). Status: Registered, Checked In or No Show (empty: Registered). Rows with another division or status are not added; a notice lists them.');
+}
+// regTab() (23): the tab marked active. Owner decision 19 (#29): and whether the Exhibition tab
+// shows (only while Setup's Exhibition Matches is Enabled).
+function ksmExhibitionsEnabled(){return window.exhibitionEnabled?exhibitionEnabled.value==='Enabled':false}
 function ksmRenderRegistrationTab(mode){
-  ksmPublishRegistration('ksm:registration-tab','ksmRegistrationTabInput',{mode:String(mode)});
+  ksmPublishRegistration('ksm:registration-tab','ksmRegistrationTabInput',{mode:String(mode),exhibitions:ksmExhibitionsEnabled()});
+}
+// The Exhibition tab hidden while its card is shown: back to Individual Players.
+function ksmSyncExhibitionTab(){
+  const mode=state.regMode||'individual';
+  if(mode==='exhibition'&&!ksmExhibitionsEnabled()){regTab('individual');return}
+  const current=window.ksmRegistrationTabInput;
+  if(!current||current.mode!==String(mode)||current.exhibitions!==ksmExhibitionsEnabled())ksmRenderRegistrationTab(mode);
 }
 // F20 (F17 on the team cards and exhibition rows): a card's or row's fields belong to the team or
 // match it showed, not to a place in the list. The redraw commits the field being edited (its
@@ -196,7 +255,11 @@ function ksmSetTeamField(card,key,value){
   if(state.teams[index]!==ksmRegistrationEntries?.get(card))ksmTeamsStale=true;
   state.teams[index][key]=value;
 }
-function ksmRemoveTeam(i){state.teams.splice(i,1);renderTeams();renderTournamentStatus()}
+function ksmRemoveTeam(i){
+  // Owner decision 18 (#29): × on a team of the generated team division asks first.
+  const t=state.teams[i];if(t&&t.team&&ksmInGeneratedDivision(t.team,'Team Tournament',true)&&!ksmConfirmRemove(t.team,'Team Tournament'))return;
+  state.teams.splice(i,1);renderTeams();renderTournamentStatus();
+}
 function ksmSetExhibitionField(row,key,value){
   const index=ksmRegistrationEntryIndex(state.exhibitions||[],row,KSM_EXHIBITION_FIELDS);
   if(index<0){const x=ksmRegistrationEntries.get(row);ksmEditDropped(x.white||x.red?`the exhibition match ${x.white||'?'} vs ${x.red||'?'}`:'an exhibition match','exhibition list');return}

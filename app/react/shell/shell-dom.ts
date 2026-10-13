@@ -19,6 +19,8 @@ export interface ShellWindow {
   cloudDiagnostics?: () => unknown;
   confirmFusen?: (side: 'W' | 'R') => unknown;
   closeFusenDialog?: () => unknown;
+  /** Owner decision 20: Developer Tools' test tools switch. */
+  ksmToggleTestTools?: () => unknown;
   closeManagementModal?: (id: string) => unknown;
   /** The generation check's Generate: closes it and runs what showValidationDialog() was given. */
   ksmConfirmValidation?: () => unknown;

@@ -39,7 +39,7 @@ function TeamStandings({ s }: { s: TeamStandingsView }) {
           </div>
         ))}
       </div>
-      {s.nameFallbackNote && <div className="small team-standings-note">Teams level on team wins, bout wins and points share a place and are listed by name; a daihyosen decides 1st–3rd.</div>}
+      {s.nameFallbackNote && <div className="small team-standings-note">Teams level on team wins, bout wins and points share a place and are listed by name; a daihyosen decides the places with an award.</div>}
       {s.pairs && (
         <div className="results-team-bracket team-round-robin-pairs">
           <h2>Team Pair Results</h2>

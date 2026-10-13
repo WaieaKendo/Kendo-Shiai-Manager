@@ -41,7 +41,7 @@ so the scenarios use both:
                       change handler), a second award, × on the first, re-opened; phone
                       portrait and landscape; the division played through (Results after each
                       match), its card and bracket modal (opened by View Bracket, closed with ×
-                      and Escape); a spectator's Results (and the editor used by a spectator);
+                      and Escape); a spectator's Results (the awards read-only: owner decision 8);
   play-*              whole divisions played through on Courts A and B (the court's next ready
                       match chosen as the golden engine test does, points and Next Match called
                       as the court buttons do) with Results opened after every match: pool-only
@@ -247,9 +247,9 @@ def awards_rr_4(browser, errors):
     page.set_viewport_size(DESKTOP)
     g.do('Open: close with Escape', lambda a: a.page.keyboard.press('Escape'))
     phone_views(g, 'complete')
-    g.do('spectator', lambda a: (a.page.evaluate(SPECTATOR_JS), a.page.evaluate(SHOW_RESULTS_JS)))
-    type_award(g, 1, 'Dojo', 'Spectator Dojo')
-    g.do('spectator: + Add Award', lambda a: press(a, ADD_AWARD))
+    # Owner decision 8 (#29): a spectator sees the awards read-only (the steps that typed into a
+    # spectator's award input and pressed + Add Award have nothing to press any more).
+    g.do('spectator (the awards read-only)', lambda a: (a.page.evaluate(SPECTATOR_JS), a.page.evaluate(SHOW_RESULTS_JS)))
     g.do('spectator: Results opened again', lambda a: a.page.evaluate(SHOW_RESULTS_JS))
     g.do('spectator: Open: open the bracket', lambda a: press(a, CARD_BUTTON.format(div='Open')))
     g.do('spectator: Open: close with ×', lambda a: press(a, CLOSE_MODAL))
