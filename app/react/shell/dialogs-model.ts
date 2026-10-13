@@ -14,16 +14,43 @@
 export interface FusenInput {
   /** Shown (openFusenDialog()) or hidden (closeFusenDialog()). */
   open: boolean;
+  /** #38: the bout's fighters (openFusenDialog()); absent: "White" / "Red" only. */
+  white?: string;
+  red?: string;
+  /** #38: the court is set to Red on the left (redOnLeftForCourt()): the buttons follow. */
+  redLeft?: boolean;
 }
 
-/** Owner decision 4 (#29): shown as "Fusen-sho" (display only; stored values keep Fusen-gachi). */
+/**
+ * Owner decision 4 (#29): shown as "Fusen-sho" (display only; stored values keep Fusen-gachi).
+ * #38: the dialog asks who WON. The stored result is unchanged: choosing the winner records the
+ * other side's forfeit exactly as before ("<forfeiting side> Fusen-gachi", the winner gets F F).
+ */
 export const FUSEN_TEXTS = {
-  title: 'Fusen-sho',
-  question: 'Which side forfeited?',
+  title: 'Fusen-sho — who won?',
+  question: 'The winner is recorded with F F.',
   white: 'White',
   red: 'Red',
   cancel: 'Cancel',
 } as const;
+
+export interface FusenSideView {
+  /** The winning side this button records: confirmFusen(side). */
+  side: 'W' | 'R';
+  testId: 'fusen-white' | 'fusen-red';
+  className: string;
+  /** "White" / "Red". */
+  label: string;
+  /** The bout's fighter on that side. */
+  name: string;
+}
+
+/** #38: the two side buttons in the court's left-to-right order (Red first when Red is on the left). */
+export function fusenSides(input: FusenInput): FusenSideView[] {
+  const white: FusenSideView = { side: 'W', testId: 'fusen-white', className: 'fusen-side fusen-side-white', label: FUSEN_TEXTS.white, name: input.white || '' };
+  const red: FusenSideView = { side: 'R', testId: 'fusen-red', className: 'fusen-side fusen-side-red', label: FUSEN_TEXTS.red, name: input.red || '' };
+  return input.redLeft ? [red, white] : [white, red];
+}
 
 // ------------------------------------------------------------------------------ generation check
 

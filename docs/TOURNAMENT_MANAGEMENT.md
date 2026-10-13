@@ -133,6 +133,9 @@ Standard quarterfinals, semifinals, Finals, pool schedules, and elimination team
 - The places that get an award follow Setup's "Team Awards to Display" (D2, decided by the owners): Champion only → 1st; Champion + Runner-up (the default) → 1st–2nd; Champion + Runner-up + 3rd place(s) → 1st–3rd.
 - Level teams below those places share the rank. Daihyosen bouts do not count in the team records.
 - A daihyosen bout is labelled "Daihyosen — first point wins" on the court screen, Live Scores and the TV (D1); the scorekeeper still ends it with Next Match.
+- Scorer notes (court screen, #38): a tag next to the bout line says "Winner required" or "Hikiwake allowed". While a winner-required bout (a semifinal or final, a team playoff, a daihyosen) is tied, the match area shows "Encho — winner needed" and Next Match is disabled; one point (or a hansoku point) clears it. While a hikiwake-allowed bout (pool or round robin) is tied, Next Match reads "Next Match (Hikiwake)": pressing it records a draw. A bout at 0-0 counts as tied.
+- Fusen-sho asks "who won?": press the winning side's button (White or Red, with the fighter's name; the buttons are in the same left/right order as the court screen). The winner is recorded with F F, as before.
+- "Configure court" (staff, top right of the court screen) sets this court's Red side (Left / Right, as seen from the scoring table) without going to Setup; it edits the same Setup setting, so every device follows. It never changes which fighter is Red or White.
 
 ## Division running order and Continue (#31)
 

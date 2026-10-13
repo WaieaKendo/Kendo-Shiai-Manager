@@ -24,7 +24,7 @@
 import { Fragment, useLayoutEffect, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  CLOUD_TEXTS, DELETE_TEXTS, EMPTY_DIALOGS, FUSEN_TEXTS, REGENERATE_TEXTS, VALIDATION_TEXTS,
+  CLOUD_TEXTS, DELETE_TEXTS, EMPTY_DIALOGS, FUSEN_TEXTS, REGENERATE_TEXTS, fusenSides, VALIDATION_TEXTS,
   deleteDevicesText, deleteEnabled, deleteRequiredName, regenerateOptionClass, regenerateStatusText,
   type CloudBody, type DeleteBody, type CloudDetail, type DialogsInput, type HistoryCourtView, type HistoryEntryView,
   type RegenerateContent, type SnapshotAnalysisView, type ValidationContent,
@@ -57,10 +57,16 @@ export function FusenDialog({ root }: { root: Element }) {
     <div className="ksm-modal-card">
       <h2 id="fusenTitle">{FUSEN_TEXTS.title}</h2>
       <p className="sub">{FUSEN_TEXTS.question}</p>
-      <div className="modal-actions">
-        <button onClick={() => { w.confirmFusen?.('W'); }} data-testid="fusen-white">{FUSEN_TEXTS.white}</button>
-        <button onClick={() => { w.confirmFusen?.('R'); }} data-testid="fusen-red">{FUSEN_TEXTS.red}</button>
-        <button onClick={() => { w.closeFusenDialog?.(); }} data-testid="fusen-cancel">{FUSEN_TEXTS.cancel}</button>
+      <div className="fusen-sides">
+        {fusenSides(fusen).map(b => (
+          <button key={b.side} className={b.className} onClick={() => { w.confirmFusen?.(b.side); }} data-testid={b.testId}>
+            <span className="fusen-side-label">{b.label}</span>
+            {b.name && <span className="fusen-side-name">{b.name}</span>}
+          </button>
+        ))}
+      </div>
+      <div className="fusen-cancel-row">
+        <button className="fusen-cancel" onClick={() => { w.closeFusenDialog?.(); }} data-testid="fusen-cancel">{FUSEN_TEXTS.cancel}</button>
       </div>
     </div>
   );

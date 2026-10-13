@@ -40,6 +40,33 @@ def no_sideways_scroll(page, label):
     assert width <= inner, f'{label}: page scrolls sideways ({width} > {inner})'
 
 
+def court_band(page, size, label, widen=False):
+    """Phone landscape court: ten scoring buttons in one band; the four action buttons in one compact row;
+    nothing off screen or scrolling sideways; the heading stack clear of the scores. `widen` adds letter
+    spacing to every label, a stand-in for a wider font (Linux CI renders wider than macOS)."""
+    page.set_viewport_size({'width': size[0], 'height': size[1]})
+    if widen:
+        page.add_style_tag(content='#score *{letter-spacing:.06em !important}')
+    page.mouse.move(0, 0)  # a hovered button lifts 1px (translateY); that is not layout
+    page.wait_for_timeout(400)  # let the resize reflow and any transitions settle before measuring
+    points = boxes(page, '#score [data-testid^="point-"], #score [data-testid^="hansoku-"]')
+    assert len(points) == 10 and len({b['y'] for b in points}) == 1, f'{label}: scoring buttons not in one band: {points}'
+    actions = boxes(page, '#score [data-testid="undo"], #score [data-testid="redo"], #score [data-testid="fusen-gachi"], #score [data-testid="next-match"]')
+    assert len(actions) == 4 and all(b['h'] <= 40 for b in actions) and max(b['b'] for b in actions) <= size[1] + 60, \
+        f'{label}: compact action buttons expected: {actions}'
+    assert len({b['y'] for b in actions}) == 1, f'{label}: the four action buttons must share one row: {actions}'
+    assert all(b['r'] <= size[0] and b['x'] >= 0 for b in points + actions), f'{label}: court controls off screen'
+    no_sideways_scroll(page, label)
+    clipped = page.evaluate("""() => [...document.querySelectorAll('#score .bottom-action-row button')]
+        .filter(b => b.scrollWidth > b.clientWidth + 1 || b.scrollHeight > b.clientHeight + 1).map(b => b.dataset.testid)""")
+    assert not clipped, f'{label}: action button content is clipped: {clipped}'
+    head = page.evaluate("""() => { const h = document.querySelector('#score .scoreboard-heading-center').getBoundingClientRect();
+        const r = document.querySelector('#score .scoreboard-score-row').getBoundingClientRect(); return {hb: h.bottom, st: r.top}; }""")
+    assert head['hb'] <= head['st'] + 1, f'{label}: heading stack overlaps the scores: {head}'
+    tags = boxes(page, sel('court-encho-note')) + boxes(page, sel('court-rule-tag'))
+    assert all(n['x'] >= 0 and n['r'] <= size[0] for n in tags), f'{label}: encho note / rule tag off screen: {tags}'
+
+
 def main():
     started = time.time()
     with sync_playwright() as p:
@@ -88,16 +115,29 @@ def main():
         # --- Court screen in phone landscape ----------------------------------------------------------
         page.set_viewport_size({'width': LANDSCAPE[0], 'height': LANDSCAPE[1]})
         app.open_court('A')
-        points = boxes(page, '#score [data-testid^="point-"], #score [data-testid^="hansoku-"]')
-        assert len(points) == 10 and len({b['y'] for b in points}) == 1, f'scoring buttons not in one band: {points}'
-        actions = boxes(page, '#score [data-testid="undo"], #score [data-testid="redo"], #score [data-testid="fusen-gachi"], #score [data-testid="next-match"]')
-        assert len(actions) == 4 and all(b['h'] <= 40 for b in actions) and max(b['b'] for b in actions) <= LANDSCAPE[1] + 60, \
-            f'compact action buttons expected: {actions}'
-        assert all(b['r'] <= LANDSCAPE[0] and b['x'] >= 0 for b in points + actions), 'court controls off screen'
+        court_band(page, LANDSCAPE, 'phone landscape')
         for size in (LANDSCAPE, DESKTOP):
             page.set_viewport_size(dict(zip(('width', 'height'), size)))
             nxt = boxes(page, sel('next-match'))[0]
             assert NEXT_GOLD in (nxt['bg'] + nxt['bgi']).replace('223,161,58', NEXT_GOLD), f'Next Match is not gold at {size}: {nxt}'
+
+        # A tied bout changes the labels (the encho note on a winner-required bout; "Next Match (Hikiwake)" and
+        # the rule tag on a pool bout). They must not push the four action buttons onto a second row or
+        # overflow, at the test's phone landscape and at narrower landscape widths, whatever the fonts.
+        for court, shown in (('A', 'court-encho-note'), ('B', 'court-rule-tag')):
+            page.set_viewport_size({'width': LANDSCAPE[0], 'height': LANDSCAPE[1]})
+            app.open_court(court)
+            app.score_point('W', 'M')
+            app.score_point('R', 'M')
+            page.wait_for_selector(sel(shown))
+            if court == 'B':
+                page.wait_for_function("document.querySelector('[data-testid=\"next-match\"]').textContent.includes('Hikiwake')")
+            for size in (LANDSCAPE, (740, 390), (667, 375), (568, 375)):
+                court_band(page, size, f'tied court {court} at {size}')
+            court_band(page, LANDSCAPE, f'tied court {court}, widened labels', widen=True)
+            page.set_viewport_size({'width': LANDSCAPE[0], 'height': LANDSCAPE[1]})
+            app.undo()
+            app.undo()
 
         # --- Live Scores: stacked on a phone, side by side on desktop ------------------------------------
         page.set_viewport_size({'width': PORTRAIT[0], 'height': PORTRAIT[1]})

@@ -52,4 +52,52 @@ body.ksm-tv .tv3-waiting-reason{font-size:40px;line-height:1.1;font-weight:700;c
 body:not(.ksm-test-tools) :is([data-testid="reg-load-samples"],[data-testid="team-load-samples"],[data-testid="reg-load-sample-tournament"],button[onclick="addAutoTeam()"]){display:none!important}
 /* D1: a team round robin's daihyosen bout on the court screen ("Daihyosen — first point wins"). */
 .scoreboard-score-row .court-bout-rule{grid-column:1/-1;justify-self:center;margin-top:6px;padding:4px 14px;border:1px solid var(--line-strong,var(--line));border-radius:999px;background:var(--ivory);color:var(--ink);font-size:14px;font-weight:800;letter-spacing:.04em}
+/* #38: a tied bout that needs a winner (encho), in the match area. */
+.scoreboard-score-row .court-encho-note{grid-column:1/-1;justify-self:center;margin-top:6px;padding:6px 16px;border:2px solid var(--red);border-radius:999px;background:var(--ivory);color:var(--red);font-size:16px;font-weight:900;letter-spacing:.04em;text-align:center;overflow-wrap:anywhere}
+/* #38: the rule tag next to the bout line. */
+.sk-match-line-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px}
+.court-rule-tag{display:inline-block;padding:2px 10px;border:1px solid var(--line-strong,var(--line));border-radius:999px;background:var(--ivory);color:var(--muted);font-size:12px;font-weight:800;letter-spacing:.04em;white-space:nowrap}
+.court-rule-tag[data-rule="winner"]{border-color:var(--red);color:var(--red)}
+/* #38: the Fusen-sho dialog asks who won: two side buttons (the court's White and Red scoring-button looks, in the court's left/right order), Cancel quieter underneath. */
+.fusen-sides{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}
+.fusen-side{min-width:0;min-height:72px;padding:9px 7px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:13px;overflow-wrap:anywhere}
+.fusen-side-label{font-size:13px;font-weight:900;letter-spacing:.04em}
+.fusen-side-name{font-size:18px;font-weight:900;line-height:1.15}
+.fusen-side-white{background:var(--card);color:var(--ink);border:2px solid var(--ink)}
+.fusen-side-red{background:var(--redbg);color:var(--red);border:2px solid var(--red)}
+.fusen-cancel-row{margin-top:14px;padding-top:10px;border-top:1px solid var(--line)}
+.fusen-cancel{width:100%;background:transparent;border:0;color:var(--muted);font-weight:700;text-decoration:underline}
+/* #38: Configure court (staff): a small button under the bout line and its panel. */
+.court-config{position:absolute;top:0;right:0;z-index:5;display:flex;justify-content:flex-end}
+body.ksm-spectator .court-config{display:none!important}
+.scoreboard-header:has(.court-config-panel){position:relative!important;z-index:50!important}
+.court-config-btn{min-height:36px;padding:4px 12px;border-radius:999px;font-size:13px;font-weight:800;background:var(--card);color:var(--ink);border:1px solid var(--line)}
+.court-config-panel{position:absolute;top:100%;right:0;z-index:30;width:min(300px,86vw);margin-top:6px;padding:14px;text-align:left;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.court-config-fieldset{margin:0 0 10px;padding:0;border:0}
+.court-config-fieldset legend{padding:0;margin-bottom:8px;font-size:13px;font-weight:900;color:var(--muted)}
+.court-config-option{display:inline-flex;align-items:center;gap:8px;margin-right:18px;min-height:44px;font-weight:800;cursor:pointer}
+.court-config-option input{width:22px;height:22px;min-height:0;padding:0;margin:0;accent-color:var(--red)}
+.court-config-link{display:block;width:100%;min-height:44px;background:transparent;border:0;color:var(--muted);font-weight:700;text-decoration:underline;text-align:left;padding:0}
+@media(max-width:720px){.court-config{position:relative;top:auto;right:auto;justify-content:center;margin-top:6px}.court-config-panel{right:50%;transform:translateX(50%)}}
+/* #38: the court's four action buttons share one row in phone landscape; a tied pool bout's
+   "(Hikiwake)" is a smaller second line so the label never widens the button. */
+.next-match-btn > span:last-child{display:inline-block !important}
+.next-match-btn .next-sub{font-weight:800}
+@media (orientation:landscape) and (max-height:560px) and (max-width:980px){
+  #score .bottom-action-row{grid-template-columns:repeat(4,minmax(0,1fr)) !important;gap:5px !important}
+  #score .bottom-action-row .next-match-btn > span:last-child{display:block !important;min-width:0;text-align:left;line-height:1.05;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #score .bottom-action-row .next-match-btn > span:last-child .next-sub{display:block !important;font-size:8px;line-height:1}
+  #score .bottom-action-row button,#score .bottom-action-row .primary{overflow:hidden}
+  /* the absolutely placed heading stack (title, division, bout line + rule tag) gets its own room above the scores */
+  #score .scoreboard-header{min-height:62px !important}
+  /* the rule tag stays on the bout line's row, small, so the heading stack does not grow into the scores */
+  #score .sk-match-line-row{flex-wrap:nowrap;gap:5px;margin-top:1px}
+  #score .sk-match-line-row .sk-match-line{margin-top:0 !important}
+  #score .court-rule-tag{padding:0 7px;font-size:8px;line-height:11px;border-width:1px;letter-spacing:.02em}
+  #score .court-encho-note{margin-top:2px;padding:2px 10px;font-size:10px;line-height:1.1;border-width:1px;white-space:nowrap;overflow-wrap:normal}
+  /* Configure court stays at the header's right edge (the 720px portrait rule would centre it over the heading) */
+  #score .court-config{position:absolute;top:0;right:0;margin:0;justify-content:flex-end}
+  #score .court-config-panel{right:0;transform:none}
+  #score .court-config-btn{min-height:30px;padding:2px 10px;font-size:11px}
+}
 /* ksm:post-split-end */

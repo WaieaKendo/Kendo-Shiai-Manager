@@ -1,11 +1,22 @@
 name: Tests
 
-# Runs the full regression suite (npm test: builds dist/ first) on every push and pull request.
-# Also called by deploy.yml (workflow_call), so nothing deploys without a green suite.
+# Runs the full regression suite (npm test: builds dist/ first) once per change, to save GitHub
+# Actions minutes (private repository: 2,000 free minutes a month, ~15 min per run):
+#   - on every pull request (each push to a PR branch); a newer push cancels the older run;
+#   - when deploy.yml calls it (workflow_call): every push to develop and every production deploy,
+#     so nothing deploys without a green suite.
+# Plain pushes to branches without a PR don't run it (they used to run it a second time next to
+# the pull_request run). Run it by hand with "Run workflow" if needed.
 on:
-  push:
   pull_request:
   workflow_call:
+  workflow_dispatch:
+
+concurrency:
+  # One run per PR / branch: a newer push cancels the older run. Calls from deploy.yml use their
+  # own group (deploy-…), so a deploy's tests are never cancelled by a PR run.
+  group: tests-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('{0}-{1}', github.workflow, github.ref) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   test:
