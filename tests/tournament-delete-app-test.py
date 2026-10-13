@@ -128,6 +128,8 @@ def main():
         good_token = director.staff_session()
         director.page.evaluate("([key]) => sessionStorage.setItem(key, 'ksmst_not-a-session')", [STAFF_SESSION_KEY])
         director.type_delete_name('Delete Cup')
+        # Delete is enabled only once the dialog has drawn the typed name: wait for it, as a person would.
+        director.wait_for(director.delete_enabled, message='Delete to be enabled for the typed name')
         director.click('delete-confirm')
         director.wait_for(lambda: director.delete_dialog()['error'], message='the refusal message')
         assert 'Nothing was deleted' in director.delete_dialog()['error'], director.delete_dialog()
@@ -141,6 +143,9 @@ def main():
 
         # ------------------------------------------------ delete
         director.type_delete_name('Delete Cup')
+        # Enter submits only while Delete is enabled (checked above); on a slow runner wait for the
+        # dialog to draw the typed name first, or the keypress is (correctly) ignored.
+        director.wait_for(director.delete_enabled, message='Delete to be enabled for the typed name')
         director.page.keyboard.press('Enter')  # the keyboard works as the button does
         director.wait_for_library()
         director.wait_toast('Tournament deleted')
