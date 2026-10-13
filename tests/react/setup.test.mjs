@@ -51,3 +51,21 @@ test('#31: the move buttons (symbols, accessible names) and a row keeps its move
   assert.deepEqual(setupDivisionRowView(row({ move: { up: false, down: true } })).move, { up: false, down: true });
   assert.equal(setupDivisionRowView(row({ enabled: false, move: null })).move, null);
 });
+
+test('#25: Rename texts and accessible names; the rename edit (open, type, refused, saved, cancelled, blocked)', async () => {
+  const { RENAME_TEXTS, renameLabel, renameFieldLabel, renameEditReducer } = await import('../../app/react/setup/setup-model.ts');
+  assert.deepEqual(RENAME_TEXTS, { rename: 'Rename', save: 'Save', cancel: 'Cancel' });
+  assert.equal(renameLabel('Kids'), 'Rename Kids');
+  assert.equal(renameFieldLabel('Kids'), 'New name for Kids');
+  let edit = renameEditReducer(null, { type: 'open', division: 'Kids', blocked: null });
+  assert.deepEqual(edit, { division: 'Kids', draft: 'Kids', error: null, open: true }, 'the field starts with the current name');
+  edit = renameEditReducer(edit, { type: 'draft', draft: 'Juniors' });
+  assert.equal(edit.draft, 'Juniors');
+  edit = renameEditReducer(edit, { type: 'saved', error: 'There is already a division named "Juniors".' });
+  assert.deepEqual(edit, { division: 'Kids', draft: 'Juniors', error: 'There is already a division named "Juniors".', open: true }, 'a refusal keeps the field and the text');
+  assert.equal(renameEditReducer(edit, { type: 'saved', error: null }), null, 'a rename closes the field');
+  assert.equal(renameEditReducer(edit, { type: 'cancel' }), null);
+  const blocked = renameEditReducer(edit, { type: 'open', division: 'Juniors', blocked: 'after the draw' });
+  assert.deepEqual(blocked, { division: 'Juniors', draft: '', error: 'after the draw', open: false }, 'refused outright: a message, no field');
+  assert.equal(renameEditReducer(blocked, { type: 'draft', draft: 'x' }), blocked, 'no typing without a field');
+});

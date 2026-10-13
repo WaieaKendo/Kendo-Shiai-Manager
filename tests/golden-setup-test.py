@@ -42,7 +42,8 @@ chosen with select_option(); transitions are off.
                       mouse; the keyboard keeps the focus on it; #31: the rows are the
                       running order, switched-off divisions after), × on a custom division,
                       a custom division switched off (it keeps its row: owner decision 12),
-                      phones;
+                      #25: Rename (the keyboard, a redraw while typing, a duplicate and an
+                      empty name refused, Escape, Enter, Save, Cancel), phones;
   setup-live          a live update while typing: a staff device defers it (the typed text
                       and the focus stay); the redraw of a live update (renderAll()) with the
                       focus in the name, in a division select and in a referees field; an
@@ -360,6 +361,25 @@ def setup_divisions(browser, react_check):
         click(a.page, tid('custom-division-add'))))
     leave(page)
     g.do('× on Kids (focused first)', lambda a: (a.page.locator(in_row('Kids', 'setup-division-remove')).focus(), click(a.page, in_row('Kids', 'setup-division-remove'))))
+    # Issue #25: every row has Rename; the name becomes a field (Save / Enter, Cancel / Escape).
+    g.do("Rename Women's Open (the field opens with the name, focused)", lambda a: (
+        a.page.locator(in_row(WOMEN, 'setup-division-rename')).focus(), a.page.keyboard.press('Enter')))
+    g.do('rename: a name typed', lambda a: type_into(a.page, tid('setup-division-rename-input'), 'Women & <Girls>'))
+    g.do('rename: a redraw (renderAll()) keeps the text and the focus', lambda a: a.page.evaluate('renderAll()'))
+    g.do("rename: another division's name in other case, Save (refused, the field stays)", lambda a: (
+        type_into(a.page, tid('setup-division-rename-input'), ' yonenbu (11 YEARS and under) '), click(a.page, tid('setup-division-rename-save'))))
+    g.do('rename: spaces only, Enter (refused)', lambda a: (type_into(a.page, tid('setup-division-rename-input'), '   '), a.page.keyboard.press('Enter')))
+    g.do('rename: Escape (cancelled, the focus back on Rename)', lambda a: a.page.keyboard.press('Escape'))
+    g.do("Rename Women's Open to Women & <Girls> with Enter (in place, format and court kept)", lambda a: (
+        click(a.page, in_row(WOMEN, 'setup-division-rename')),
+        type_into(a.page, tid('setup-division-rename-input'), 'Women & <Girls>'), a.page.keyboard.press('Enter')))
+    g.do("Rename custom 2 with Save (surrounding spaces trimmed)", lambda a: (
+        click(a.page, in_row("O'ahu Juniors", 'setup-division-rename')),
+        type_into(a.page, tid('setup-division-rename-input'), "  O'ahu Seniors  "), click(a.page, tid('setup-division-rename-save'))))
+    g.do('Rename Masters (switched off), Cancel', lambda a: (click(a.page, in_row(MASTERS, 'setup-division-rename')),
+                                                          click(a.page, tid('setup-division-rename-cancel'))))
+    leave(page)
+    phone_views(g, 'renamed divisions')
     g.do('Save Setup & Continue', lambda a: click(a.page, tid('setup-save-continue')))
     g.do('back to Setup', lambda a: click(a.page, tid('nav-setup')))
     g.finish()

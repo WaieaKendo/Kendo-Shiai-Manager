@@ -13,12 +13,16 @@
 // when the table is redrawn, which keeps a staff device's live-update deferral (it waits while a
 // field has the focus) as it was. The table has no text fields; the Setup fields being typed in
 // are legacy markup and are never redrawn.
+// Issue #25: every row has Rename, which turns the name into a text field (Save / Enter, Cancel /
+// Escape); ksmRenameSetupDivision() (42-) renames or says why not, and the reason is shown in the
+// row (role="alert"). The open rename lives outside the rows (renameEdit below), so a redraw keeps
+// the typed text and, while the field has the focus, gives it back.
 // No colors or images of its own: the Setup CSS and theme tokens.
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 import {
-  COURT_OPTIONS, CUSTOM_TEXT, EMPTY_SETUP_DIVISIONS, EMPTY_SETUP_HEADER, FORMAT_OPTIONS, MOVE_TEXTS, REMOVE_TEXT,
-  moveLabel, setupDivisionRowView, setupHeaderText,
-  type SetupDivisionRowView, type SetupDivisionsInput, type SetupHeaderInput,
+  COURT_OPTIONS, CUSTOM_TEXT, EMPTY_SETUP_DIVISIONS, EMPTY_SETUP_HEADER, FORMAT_OPTIONS, MOVE_TEXTS, REMOVE_TEXT, RENAME_TEXTS,
+  moveLabel, renameEditReducer, renameFieldLabel, renameLabel, setupDivisionRowView, setupHeaderText,
+  type RenameAction, type RenameEdit, type SetupDivisionRowView, type SetupDivisionsInput, type SetupHeaderInput,
 } from './setup-model.ts';
 
 export const SETUP_DIVISIONS_EVENT = 'ksm:setup-divisions';
@@ -34,6 +38,10 @@ interface SetupWindow {
   setDivisionCourt?: (division: string, value: string) => unknown;
   ksmRemoveSetupDivision?: (division: string) => unknown;
   ksmMoveSetupDivision?: (division: string, direction: 'up' | 'down') => unknown;
+  /** Issue #25: renames the division; why not (nothing changed), or null. */
+  ksmRenameSetupDivision?: (division: string, name: string) => string | null;
+  /** Issue #25: why the division cannot be renamed at all (after the draw), or null. */
+  ksmDivisionRenameBlocked?: (division: string) => string | null;
 }
 
 const setupWindow = (): SetupWindow => window as unknown as SetupWindow;
@@ -104,9 +112,94 @@ function MoveButtons({ row }: { row: SetupDivisionRowView }) {
   );
 }
 
+// Issue #25: the open rename (one row at a time), kept outside the rows: every publish draws new
+// rows, and the typed text must survive it.
+let renameEdit: RenameEdit | null = null;
+// The rename field had the focus when it was last drawn (a redraw gives it back).
+let renameFocused = false;
+// After Save or Cancel, the focus goes to this division's Rename button.
+let focusAfterRename: string | null = null;
+const renameListeners = new Set<() => void>();
+function dispatchRename(action: RenameAction) {
+  renameEdit = renameEditReducer(renameEdit, action);
+  renameListeners.forEach(l => l());
+}
+const subscribeRename = (onChange: () => void): (() => void) => {
+  renameListeners.add(onChange);
+  return () => { renameListeners.delete(onChange); };
+};
+const renameSnapshot = (): RenameEdit | null => renameEdit;
+
+function saveRename(division: string) {
+  const draft = renameEdit?.division === division ? renameEdit.draft : division;
+  const error = setupWindow().ksmRenameSetupDivision?.(division, draft) ?? null;
+  if (!error) focusAfterRename = draft.trim() || division;
+  dispatchRename({ type: 'saved', error });
+}
+function cancelRename(division: string) {
+  focusAfterRename = division;
+  dispatchRename({ type: 'cancel' });
+}
+
+function RenameField({ row, edit }: { row: SetupDivisionRowView; edit: RenameEdit }) {
+  const input = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const el = input.current;
+    if (!el || !renameFocused) return;
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
+  }, []);
+  // A refused Save gives the focus back to the field, so the name can be corrected at once.
+  useEffect(() => { if (edit.error) input.current?.focus(); }, [edit.error]);
+  return (
+    <span className="setup-rename">
+      <input ref={input} type="text" className="setup-rename-input" value={edit.draft} aria-label={renameFieldLabel(row.division)}
+        aria-invalid={edit.error ? true : undefined} aria-describedby={edit.error ? 'setupRenameError' : undefined}
+        onChange={e => dispatchRename({ type: 'draft', draft: e.target.value })}
+        onFocus={() => { renameFocused = true; }}
+        onBlur={e => { if (e.currentTarget.isConnected) renameFocused = false; }}
+        onKeyDown={e => {
+          if (e.key === 'Enter') { e.preventDefault(); saveRename(row.division); }
+          else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cancelRename(row.division); }
+        }}
+        data-testid="setup-division-rename-input" />
+      {' '}<button type="button" className="setup-rename-btn" onClick={() => saveRename(row.division)} data-testid="setup-division-rename-save">{RENAME_TEXTS.save}</button>
+      {' '}<button type="button" className="setup-rename-btn" onClick={() => cancelRename(row.division)} data-testid="setup-division-rename-cancel">{RENAME_TEXTS.cancel}</button>
+    </span>
+  );
+}
+
+/** A row's name cell after the move buttons (#31): the name, "custom" and Rename (#25), or the rename field; a refusal below. */
+function DivisionName({ row }: { row: SetupDivisionRowView }) {
+  const edit = useSyncExternalStore(subscribeRename, renameSnapshot, () => null);
+  const button = useRef<HTMLButtonElement>(null);
+  const mine = edit && edit.division === row.division ? edit : null;
+  useEffect(() => {
+    if (focusAfterRename !== row.division || !button.current) return;
+    focusAfterRename = null;
+    button.current.focus();
+  }, [row.division, mine]);
+  const open = () => {
+    renameFocused = true;
+    dispatchRename({ type: 'open', division: row.division, blocked: setupWindow().ksmDivisionRenameBlocked?.(row.division) ?? null });
+  };
+  return (
+    <>
+      {mine?.open ? <RenameField row={row} edit={mine} /> : (
+        <span className="setup-division-label">
+          <b data-testid="setup-division-name">{row.name}</b>{row.custom && <>{' '}<span className="small">{CUSTOM_TEXT}</span></>}
+          {' '}<button ref={button} type="button" className="setup-rename-btn" aria-label={renameLabel(row.division)} title={renameLabel(row.division)}
+            onClick={open} data-testid="setup-division-rename">{RENAME_TEXTS.rename}</button>
+        </span>
+      )}
+      {mine?.error && <div id="setupRenameError" role="alert" className="setup-rename-error" data-testid="setup-division-rename-error">{mine.error}</div>}
+    </>
+  );
+}
+
 /** divisionSetupRow(d, enabled, custom). The `checked` and `selected` attributes are printed as
  * the template printed them (defaultChecked, the select's defaultValue). Enabled rows have move
- * up / down buttons before the name (#31). */
+ * up / down buttons before the name (#31); every row has Rename after it (#25). */
 function DivisionRow({ row }: { row: SetupDivisionRowView }) {
   const use = useChange<HTMLInputElement>(el => setupWindow().toggleDivision?.(row.division, el.checked));
   const format = useChange<HTMLSelectElement>(el => setupWindow().setDivisionFormat?.(row.division, el.value));
@@ -114,7 +207,7 @@ function DivisionRow({ row }: { row: SetupDivisionRowView }) {
   return (
     <tr data-testid="setup-division-row">
       <td><input ref={use} type="checkbox" defaultChecked={row.enabled} data-testid="setup-division-enabled" /></td>
-      <td><MoveButtons row={row} /><b data-testid="setup-division-name">{row.name}</b>{row.custom && <>{' '}<span className="small">{CUSTOM_TEXT}</span></>}</td>
+      <td><MoveButtons row={row} /><DivisionName row={row} /></td>
       <td>
         <select ref={format} disabled={!row.enabled} defaultValue={row.formatSelected ?? undefined} data-testid="setup-division-format">
           {FORMAT_OPTIONS.map(f => <option key={f}>{f}</option>)}
