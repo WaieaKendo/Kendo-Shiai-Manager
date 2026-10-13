@@ -171,6 +171,49 @@ function pendingLocalCourtActionsForRebase(localPayload,serverRecord,originalBas
   const remoteKeys=new Set(remoteEntries.map(historyEntryIdentity));
   return localEntries.filter(action=>action?.format==='patch-v1'&&action.clientId===cloudSession.clientId&&Number(action.revision||0)>=Number(originalBaseRevision||0)&&!remoteKeys.has(historyEntryIdentity(action)));
 }
+/* ksm:post-split-begin history-replay */
+// F30: this device's Undo/Redo since the save's base revision (10-, recordCourtUndoLog()) that the
+// server copy does not have yet.
+function undoLogEntryIdentity(entry){return [entry?.clientId||'',entry?.when||'',entry?.court||'',entry?.kind||'',entry?.target||''].join('|')}
+function pendingLocalUndoLogForRebase(localPayload,serverRecord,originalBaseRevision,court){
+  const local=localPayload?.state?.courtUndoLog?.[court]||[],remote=serverRecord?.payload?.state?.courtUndoLog?.[court]||[];
+  const remoteKeys=new Set(remote.map(undoLogEntryIdentity));
+  return local.filter(entry=>entry?.format==='history-op-v1'&&entry.clientId===cloudSession.clientId&&Number(entry.revision||0)>=Number(originalBaseRevision||0)&&!remoteKeys.has(undoLogEntryIdentity(entry)));
+}
+/**
+ * Replays this device's pending court actions and Undo/Redo onto `rebasedState` (the server copy) in
+ * the order they happened. An Undo applies its action's patches backwards only while the server copy
+ * holds the action (in its Undo stack, or replayed here); a Redo applies them forwards only while
+ * the server copy has it undone (in its Redo stack, or undone here). So an Undo of a point the server
+ * never had (it was undone before it was saved) changes nothing, and nothing is applied twice.
+ */
+function replayPendingCourtHistory(actions,undoLog,localState,rebasedState,serverState,court){
+  const applied=new Set((serverState?.courtActionHistory?.[court]||[]).map(historyEntryIdentity));
+  const undone=new Set((serverState?.courtRedoHistory?.[court]||[]).map(historyEntryIdentity));
+  const apply=patch=>{const resolved=resolveRebasePatch(localState,rebasedState,patch);if(resolved)applyPatchToStateObject(rebasedState,resolved)};
+  const steps=[...actions.map(entry=>({entry,op:null})),...undoLog.map(entry=>({entry,op:entry.kind}))]
+    .map((step,i)=>({...step,i})).sort((a,b)=>String(a.entry.when||'').localeCompare(String(b.entry.when||''))||a.i-b.i);
+  steps.forEach(({entry,op})=>{
+    const patches=entry.patches||[];
+    if(!op){patches.forEach(apply);const id=historyEntryIdentity(entry);applied.add(id);undone.delete(id);return}
+    if(op==='UNDO'&&applied.has(entry.target)){
+      [...patches].reverse().forEach(patch=>apply({...patch,before:patch.after,after:patch.before}));
+      applied.delete(entry.target);undone.add(entry.target);
+    }else if(op==='REDO'&&undone.has(entry.target)){
+      patches.forEach(apply);undone.delete(entry.target);applied.add(entry.target);
+    }
+  });
+}
+/** The Undo/Redo stacks after a rebase: both devices' entries, but an action undone here stays undone (F30) and a redone one stays redone. */
+function mergeCourtHistoryStacks(rebasedState,localState,court){
+  const localDone=new Set((localState.courtActionHistory?.[court]||[]).map(historyEntryIdentity));
+  const localUndone=new Set((localState.courtRedoHistory?.[court]||[]).map(historyEntryIdentity));
+  rebasedState.courtActionHistory[court]=mergeHistoryEntries(rebasedState.courtActionHistory[court]||[],localState.courtActionHistory?.[court]||[]).filter(e=>!localUndone.has(historyEntryIdentity(e)));
+  rebasedState.courtRedoHistory[court]=mergeHistoryEntries(rebasedState.courtRedoHistory[court]||[],localState.courtRedoHistory?.[court]||[]).filter(e=>!localDone.has(historyEntryIdentity(e)));
+  const byKey=new Map();[...(rebasedState.courtUndoLog?.[court]||[]),...(localState.courtUndoLog?.[court]||[])].forEach(e=>{if(e?.format==='history-op-v1')byKey.set(undoLogEntryIdentity(e),e)});
+  if(byKey.size){rebasedState.courtUndoLog=rebasedState.courtUndoLog||{A:[],B:[]};rebasedState.courtUndoLog[court]=[...byKey.values()].sort((a,b)=>String(a.when||'').localeCompare(String(b.when||''))).slice(-KSM_UNDO_LOG_LIMIT)}
+}
+/* ksm:post-split-end */
 /* ksm:post-split-begin edit-merge */
 // F4: director/staff edits that are not court actions (Setup fields, registration, divisions,
 // awards) are merged three-way against the cloud copy the local edit started from, so a
@@ -332,7 +375,7 @@ function rebaseLocalPayloadOnRecord(localPayload,serverRecord,originalBaseRevisi
   rebased.state=rebased.state||{};
   const localState=localPayload?.state||{};
   const actions=pendingLocalCourtActionsForRebase(localPayload,serverRecord,originalBaseRevision);
-  actions.forEach(action=>(action.patches||[]).forEach(patch=>{const resolved=resolveRebasePatch(localState,rebased.state,patch);if(resolved)applyPatchToStateObject(rebased.state,resolved)}));
+  /* ksm:post-split-begin history-replay was:actions.forEach(action=>(action.patches||[]).forEach(patch=>{const resolved=resolveRebasePatch(localState,rebased.state,patch);if(resolved)applyPatchToStateObject(rebased.state,resolved)})); */replayPendingCourtHistory(actions,pendingLocalUndoLogForRebase(localPayload,serverRecord,originalBaseRevision,court),localState,rebased.state,serverRecord.payload?.state,court);/* ksm:post-split-end */
   sanitizeLoadedTournamentState(rebased.state,'concurrent rebase');
   normalizeAllIndividualPoolTiebreakOrder(rebased.state,'concurrent rebase');
   repairCompletedMatchResults(rebased.state,'concurrent rebase');
@@ -342,8 +385,7 @@ function rebaseLocalPayloadOnRecord(localPayload,serverRecord,originalBaseRevisi
   preserveOwnedCourtRuntimeState(rebased.state,localState,court);
   rebased.state.courtActionHistory=rebased.state.courtActionHistory||{A:[],B:[]};
   rebased.state.courtRedoHistory=rebased.state.courtRedoHistory||{A:[],B:[]};
-  rebased.state.courtActionHistory[court]=mergeHistoryEntries(rebased.state.courtActionHistory[court]||[],localState.courtActionHistory?.[court]||[]);
-  rebased.state.courtRedoHistory[court]=mergeHistoryEntries(rebased.state.courtRedoHistory[court]||[],localState.courtRedoHistory?.[court]||[]);
+  /* ksm:post-split-begin history-replay was:rebased.state.courtActionHistory[court]=mergeHistoryEntries(rebased.state.courtActionHistory[court]||[],localState.courtActionHistory?.[court]||[]);rebased.state.courtRedoHistory[court]=mergeHistoryEntries(rebased.state.courtRedoHistory[court]||[],localState.courtRedoHistory?.[court]||[]); */mergeCourtHistoryStacks(rebased.state,localState,court);/* ksm:post-split-end */
   /* ksm:post-split-begin edit-merge */noteMergeConflicts(mergeLocalEditsThreeWay(rebased,localPayload,basePayload,replayStructuralEdit(rebased,localPayload,basePayload,serverRecord.payload)));/* ksm:post-split-end */
   rebased.savedAt=new Date().toISOString();
   return rebased;

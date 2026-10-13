@@ -15,8 +15,9 @@ them; at the end a fresh device and a reloaded court device must still show them
   5. a Special Award vs a court point saved first;
   6. a structural edit (Regenerate Single Division) vs a Registration edit saved first;
   7. a Registration edit vs a structural edit saved first;
-  8. Undo vs another court's point saved first: F30, expected-failure check: the undo is lost
-     (the undone point comes back) because an undo is not an action the rebase replays.
+  8. Undo vs another court's point saved first, then Redo the same way (F30, fixed: the undo
+     was lost and the undone point came back, because an undo was not an action the rebase
+     replayed): the point stays undone, then comes back once.
   9. Hansoku and Fusen-gachi vs another court's point saved first.
 
 Court vs court (both courts scoring) is e2e-two-court-sync-test.py; a Setup edit vs a court point
@@ -160,17 +161,21 @@ def main():
         assert competitor(record, 'B 3')['dojo'] == 'Late Dojo', '7: the Registration edit was lost'
         assert state(record).get('managementRevision', 0) > revision_before, '7: the regenerate was lost'
 
-        # 8. Undo vs another court's point saved first.
+        # 8. Undo vs another court's point saved first, then Redo the same way (F30, fixed).
         court_a.score_point('W', 'K')
         settle()
         assert scored(server(), OPEN_A, 'wp', 'K'), '8: the point to undo was not saved'
         record = race(court_a, court_a.undo, court_b, lambda: court_b.score_point('R', 'D'))
         assert scored(record, OPEN_B, 'rp', 'D'), '8: the other court\'s point was lost'
-        # F30 (open): the undo is lost: the rebase replays only this device's new court actions, and
-        # an undo is not one, so the undone point comes back from the server copy (and on Court A).
-        # When F30 is fixed, the K is gone: assert that and mark F30 fixed.
-        assert scored(record, OPEN_A, 'wp', 'K'), 'F30 fixed? the undo survived the conflict: assert the point is gone and mark F30 fixed'
-        court_a.wait_for(lambda: 'K' in court_a.court_screen()['white_points'], message='8: F30, the undone point back on Court A')
+        # Before F30 was fixed the rebase replayed only new court actions, so the undone K came back.
+        assert not scored(record, OPEN_A, 'wp', 'K'), '8: F30: the undone point came back on the server'
+        court_a.wait_for(lambda: 'K' not in court_a.court_screen()['white_points'], message='8: the undone point to stay gone on Court A')
+        court_b.wait_for(lambda: not scored({'payload': court_b.payload()}, OPEN_A, 'wp', 'K'), message='8: the undo on Court B')
+        record = race(court_a, court_a.redo, court_b, lambda: court_b.score_point('W', 'K'))
+        assert scored(record, OPEN_B, 'wp', 'K'), '8: the other court\'s point was lost (Redo race)'
+        kotes = sum((m.get('wp') or []).count('K') for m in state(record)['allMatches'][OPEN_A])
+        assert kotes == 1, f'8: F30: the redone point is not back exactly once on the server ({kotes})'
+        court_a.wait_for(lambda: 'K' in court_a.court_screen()['white_points'], message='8: the redone point on Court A')
 
         # 9. Hansoku and Fusen-gachi vs another court's point saved first.
         def hansoku_and_fusen():
@@ -199,7 +204,7 @@ def main():
 
         assert not problems, '\n'.join(problems)
         print(f'PASS edit conflicts: court vs Setup, hansoku/fusen-gachi vs the other court, Registration vs court (both ways), awards vs court, structural vs Registration '
-              f'(both ways) kept both edits; two Registration edits (F29) and Undo vs another court (F30) pinned '
+              f'(both ways), Undo and Redo vs another court (F30) kept both edits; two Registration edits (F29) pinned '
               f'({time.time() - started:.0f}s)')
         browser.close()
 

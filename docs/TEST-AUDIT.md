@@ -21,8 +21,8 @@ Test names drop `-test.py`/`-test.mjs`; `vm` tests run extracted app code in Nod
 | C5 | Encho / must-win bout refuses a draw | `10:nextMatch()` alert, `matchRequiresWinner()` | ✅ split-court-stabilization, engine/edge-cases | — nothing saved | — | — | — |
 | C6 | Hantei | not modelled: entered as a point (**F28**) | — | — | — | — | — |
 | C7 | Next Match: completion + tiebreaks, championship, single-elim, team bracket, kachinuki | `10:nextMatch()` → `maybeCreateTiebreaks()` … `maybeAdvanceIndividualSingleElim()` | ✅ golden-engine (76 tournaments), court-actions | ✅ court-actions, e2e-full-tournament | ✅ e2e-two-court-sync, e2e-full-tournament, tv-display | ✅ e2e-full-tournament, reload-restore | ✅ e2e-two-court-sync; vm v31712, v31715–v31720 |
-| C8 | Undo | `10:undo()` | ✅ court-actions, undo-division-complete | ✅ court-actions | ◐ golden-tv/golden-live-scores (same page) | ✗ | ✗ **F30**: lost (edit-conflicts 8, expected failure) |
-| C9 | Redo | `10:redo()` | ✅ court-actions | ✅ court-actions | ◐ as Undo | ✗ | ✗ same cause as F30 |
+| C8 | Undo | `10:undo()` | ✅ court-actions, undo-division-complete | ✅ court-actions, edit-conflicts 8 | ✅ edit-conflicts 8 | ◐ edit-conflicts (the reload at the end) | ✅ edit-conflicts 8, undo-rebase (**F30**, fixed) |
+| C9 | Redo | `10:redo()` | ✅ court-actions | ✅ court-actions, edit-conflicts 8 | ✅ edit-conflicts 8 | ◐ as Undo | ✅ edit-conflicts 8, undo-rebase (F30, fixed) |
 | C10 | Team representative pick | `09:setRepresentative()` (a court action) | ✅ roles-access, golden-court-screen | ✅ roles-access | ✅ roles-access | ✗ | ✗ |
 | C11 | Court division select | `08:selectScorekeeperDivision()` (court runtime state) | ✅ e2e-full-tournament, court-screen-details | ◐ | ◐ vm v31719 (TV follows) | ◐ sync-saving (court pin) | ◐ vm v31711 (own court kept) |
 | C12 | Court choice on a device | `23:chooseCourt()`, `18:pinCourtLocally()` (device-local) | ✅ sync-saving | — | — | ✅ sync-saving (F3) | — |
@@ -86,7 +86,7 @@ Test names drop `-test.py`/`-test.mjs`; `vm` tests run extracted app code in Nod
 | Y3 | Outbox flush (socket open, back online, Retry) | `21:flushCloudOutbox()` | ✅ reload-restore, sync-saving | ✅ | ✅ | ✅ | ✅ reload-restore (F6 b) |
 | Y4 | Staff Login merges queued work (F6) | `21:mergeQueuedStaffWork()` | ✅ reload-restore | ✅ | ✅ | ✅ | ✅ |
 | Y5 | Applied live update (held while editing; stale, duplicate and own-echo records ignored) | `21:applyRemoteCloudRecord()`, `18:deferRemoteRecord()` | ✅ sync-remote-updates | — | ✅ every e2e | ✅ | ◐ sync-remote-updates (held update) |
-| Y6 | 409 rebase: this device's court actions replayed | `18:pendingLocalCourtActionsForRebase()/resolveRebasePatch()` | ✅ e2e-two-court-sync, vm v31712 | ✅ | ✅ | ✅ edit-conflicts | ✅ (F30 open: Undo/Redo) |
+| Y6 | 409 rebase: this device's court actions replayed | `18:pendingLocalCourtActionsForRebase()/resolveRebasePatch()` | ✅ e2e-two-court-sync, vm v31712 | ✅ | ✅ | ✅ edit-conflicts | ✅ (Undo/Redo replayed too: F30, fixed) |
 | Y7 | 409 rebase: other edits merged three-way (F4) | `18:mergeLocalEditsThreeWay()` | ✅ conflict-merge, sync-remote-updates, edit-conflicts | ✅ | ✅ | ✅ | ✅ (F29 open: lists) |
 | Y8 | 409 rebase: structural edit replayed per division (F10) | `18:replayStructuralEdit()` | ✅ structural-edit-conflict, conflict-merge, edit-conflicts | ✅ | ✅ | ◐ edit-conflicts | ✅ |
 | Y9 | Repairs on load (results, elimination winners, duplicate matches) | `21:repairLoadedEliminationAdvancement()`, `12:repairCompletedMatchResults()`, `18:sanitizeLoadedTournamentState()` | ✅ sync-remote-updates, vm v31715/v31716, engine/integrity | — | ✅ sync-remote-updates | ✅ sync-remote-updates (fresh link) | — |
@@ -104,7 +104,7 @@ Risk = what could go wrong at an event × how likely the store refactor (2.8 com
 
 | Rank | Gap | Event impact | Refactor risk | State / planned test |
 |---|---|---|---|---|
-| 1 | Undo/Redo whose save conflicts (C8, C9, Y6): **F30**, the undone point comes back | High: a wrong result stays after the scorekeeper fixed it | High: undo becomes a command | **Pinned** (`edit-conflicts` 8, expected failure). When fixed: Undo of Next Match and Redo through a conflict, Undo after a reload |
+| 1 | Undo/Redo whose save conflicts (C8, C9, Y6): **F30**, the undone point came back | High: a wrong result stays after the scorekeeper fixed it | High: undo becomes a command | **Closed** in `fix/pre-event-2` (F30 fixed): `edit-conflicts` 8 races Undo and then Redo against the other court's save; `undo-rebase` (vm) covers a point undone before it was saved, undo + redo of a saved and an unsaved point, a redo after a saved undo, two undos in a row and a saved undo not replayed twice. Still planned: Undo of Next Match through a conflict, Undo after a reload |
 | 2 | Two Registration edits at once (R1, Y7): **F29**, one desk's change dropped (with a notice) | High at check-in | High: 2.9 changes the merge | **Pinned** (`edit-conflicts` 4). When fixed: two desks adding, renaming and no-showing different players; the same player on both (still a conflict) |
 | 3 | Registration fields being edited when an update is applied by the real triggers (R10, F17/F20) | High: typed text into the wrong player | High: the `3N-react-*` glue goes | Planned: a desk typing (field focused) while its own held save conflicts, and while Staff Login merges queued work; the text stays with its player or is dropped with a notice, on the server too |
 | 4 | Hansoku / Fusen-gachi to other devices and through a conflict (C2, C3) | High: results | High: court commands | **Closed** (`edit-conflicts` 9 + reload) |

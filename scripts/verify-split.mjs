@@ -131,6 +131,10 @@ const KNOWN_POST_SPLIT_EDITS = {
   // plain data and shows a notice when the React module is missing. Listed here because renderPools() (08) is its first region: the check
   // compares names in order of first appearance.
   'react-pools': 3,
+  // fix/pre-event-2 (F30): Undo/Redo are logged per court (10-: KSM_HISTORY_KEYS, recordCourtUndoLog(),
+  // undo(), redo()) and replayed in time order with the court actions by the 409 rebase (18-:
+  // replayPendingCourtHistory(), mergeCourtHistoryStacks() and their two call sites).
+  'history-replay': 7,
   // fix/react-batch-1 (F12): Edit Pool works on a copy (41-react-pools.js): the drop handlers
   // insertPoolPlayer(), dropPoolPlayer() and movePoolPlayer() (16) move players in it (three inline
   // replacements), saveEditedPools() (16) applies it after the played-results warning (one), and

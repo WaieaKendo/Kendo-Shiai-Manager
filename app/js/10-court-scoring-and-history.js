@@ -13,7 +13,7 @@ function syncActiveScoreToMatch(){
 
 // ---------- KSM v3.17.8-test Compact action-patch court Undo / Redo ----------
 const KSM_HISTORY_LIMIT=100;
-const KSM_HISTORY_KEYS=new Set(['courtActionHistory','courtRedoHistory']);
+const KSM_HISTORY_KEYS=new Set(['courtActionHistory','courtRedoHistory'/* ksm:post-split-begin history-replay */,'courtUndoLog'/* ksm:post-split-end */]);
 const KSM_HISTORY_MISSING={__ksmMissing:true};
 function ensureCourtHistory(){
   state.courtActionHistory=state.courtActionHistory||{A:[],B:[]};
@@ -109,16 +109,30 @@ function updateUndoButton(){
   ksmPublishCourtActions({undo:{disabled:!undoStack.length,label:'Undo'},redo:{disabled:!redoStack.length,label:'Redo'}});
 /* ksm:post-split-end */
 }
+/* ksm:post-split-begin history-replay */
+// F30: an Undo or Redo removes or re-adds an action instead of adding one, so a save conflict's
+// rebase (18-, replayPendingCourtHistory()) had nothing to replay and the server copy brought the
+// undone point back. Each Undo/Redo is also logged here (per court, with the action's patches and
+// who/when, like a court action) so the rebase replays it in time order with the court actions.
+const KSM_UNDO_LOG_LIMIT=40;
+function recordCourtUndoLog(court,kind,action){
+  state.courtUndoLog=state.courtUndoLog||{A:[],B:[]};
+  const log=Array.isArray(state.courtUndoLog[court])?state.courtUndoLog[court]:(state.courtUndoLog[court]=[]);
+  log.push({format:'history-op-v1',kind,court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',revision:cloudSession?.revision||0,
+    target:historyEntryIdentity(action),label:action.label||'Action',patches:cloneJson(action.patches||[])});
+  if(log.length>KSM_UNDO_LOG_LIMIT)log.splice(0,log.length-KSM_UNDO_LOG_LIMIT);
+}
+/* ksm:post-split-end */
 function undo(){
   ensureCourtHistory();const court=currentHistoryCourt(),stack=state.courtActionHistory[court];const action=stack.pop();
   if(!action){updateSaveStatus('Nothing to undo');updateUndoButton();return}
-  applyHistoryValues(action,'before');state.courtRedoHistory[court].push(action);if(state.courtRedoHistory[court].length>KSM_HISTORY_LIMIT)state.courtRedoHistory[court].shift();
+  applyHistoryValues(action,'before');/* ksm:post-split-begin history-replay */recordCourtUndoLog(court,'UNDO',action);/* ksm:post-split-end */state.courtRedoHistory[court].push(action);if(state.courtRedoHistory[court].length>KSM_HISTORY_LIMIT)state.courtRedoHistory[court].shift();
   updateUndoButton();updateSaveStatus('Undid '+action.label);criticalAutoSave('Undo: '+action.label);
 }
 function redo(){
   ensureCourtHistory();const court=currentHistoryCourt(),stack=state.courtRedoHistory[court];const action=stack.pop();
   if(!action){updateSaveStatus('Nothing to redo');updateUndoButton();return}
-  applyHistoryValues(action,'after');state.courtActionHistory[court].push(action);if(state.courtActionHistory[court].length>KSM_HISTORY_LIMIT)state.courtActionHistory[court].shift();
+  applyHistoryValues(action,'after');/* ksm:post-split-begin history-replay */recordCourtUndoLog(court,'REDO',action);/* ksm:post-split-end */state.courtActionHistory[court].push(action);if(state.courtActionHistory[court].length>KSM_HISTORY_LIMIT)state.courtActionHistory[court].shift();
   updateUndoButton();updateSaveStatus('Redid '+action.label);criticalAutoSave('Redo: '+action.label);
 }
 function point(side,letter){performCourtAction(`${side==='W'?'White':'Red'} ${letter}`,()=>{state.score[side].push(letter);syncActiveScoreToMatch();renderScore()})}
