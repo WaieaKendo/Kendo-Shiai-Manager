@@ -5,7 +5,7 @@ KSM runs as a Cloudflare Worker (`src-worker.js`) that serves the built app (`di
 | | **Dev** | **Production** |
 |---|---|---|
 | Worker | `kendoshiaimanager-dev` | `kendoshiaimanager-cloud-staging` (the old name; see [Renaming production](#renaming-production)) |
-| URL | https://kendoshiaimanager-dev.samanthakodamaworkersdev.workers.dev | https://kendoshiaimanager-cloud-staging.samanthakodamaworkersdev.workers.dev |
+| URL | the dev Worker's `workers.dev` address (repository variable `DEV_URL`); `https://ksm-tournament-dev.pages.dev`; later `dev.tournament.hawaiikendofederation.org` | the production Worker's `workers.dev` address (repository variable `PRODUCTION_URL`); `https://ksm-tournament.pages.dev`; later `tournament.hawaiikendofederation.org` |
 | Data | its own test tournaments | **the real tournaments** (11th AHKC and later) |
 | `wrangler.jsonc` | `env.dev` | the top level |
 | Deployed by | **Deploy dev**: every push to `develop` | **Deploy production**: a release merged into `main` (new version), or by hand from `main` |
@@ -84,7 +84,7 @@ npm test                         # do not skip
 npx wrangler login               # an account with access to the Worker
 npm run deploy:production -- --dry-run
 npm run deploy:production        # vite build, then wrangler deploy --env=""
-node scripts/health-check.mjs https://kendoshiaimanager-cloud-staging.samanthakodamaworkersdev.workers.dev
+node scripts/health-check.mjs <production URL>
 ```
 
 `npm run deploy:production` and `npm run deploy:dev` always build first and always name their target; there is no bare `npm run deploy`. Never run `wrangler deploy` without `--env` (wrangler would pick the top level, production) and never without building (it would publish whatever is in `dist/`). Tell the team, and push the same commit to `main` afterwards so the next workflow run does not undo it.
@@ -154,6 +154,8 @@ The sites are meant to live at **tournament.hawaiikendofederation.org** (product
 **Local check:** `npm run build`, `npx wrangler dev --env dev --port 8787`, then in another terminal `node scripts/pages-proxy.mjs dev --local --port 8788` and use http://127.0.0.1:8788. Measured 2026-10-06 against the local dev Worker: health, index.html, SPA paths, tournament create/list/delete, staff and spectator WebSockets (a wrong staff key refused), 20 saves broadcast in order without duplicates, a stale save's 409 all identical through the pass-through; +0.9 ms per request locally (two processes; in Cloudflare a service binding usually runs on the same machine). Still to measure on the dev site: real latency, an hour-long live connection, request counts.
 
 ## Notes
+
+- The two sites' `workers.dev` addresses are GitHub **repository variables** `DEV_URL` and `PRODUCTION_URL` (Settings → Secrets and variables → Actions → Variables), used by the deploy workflow's health checks; they are not written in the repository.
 
 - Worker secrets (e.g. `KSM_RESET_KEY`, which enables the destructive `/api/admin/reset`, see RESET-CLOUD-DATA.md) belong to one Worker and are not in `wrangler.jsonc`; deploys keep them. Dev has none unless someone sets them with `npx wrangler secret put <NAME> --env dev`. Check that production does not hold a reset key it no longer needs: `npx wrangler secret list --env=""`.
 - Dry runs (no upload, no login needed): `npm run deploy:production -- --dry-run`, `npm run deploy:dev -- --dry-run`.
