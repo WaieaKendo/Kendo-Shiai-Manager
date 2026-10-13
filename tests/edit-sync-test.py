@@ -122,6 +122,7 @@ def main():
         saved(lambda pl: st(pl)['teams'][0].get('senpo') == 'New Senpo', 'the team member')
 
         # --- Structural no-shows after generation (nothing played yet) ----------------------------
+        director.expect_dialog('Mark ', accept=True)  # owner decision 18: a No Show after generation asks first
         director.click('reg-tab-individual')
         row('A 4').locator(sel('reg-status')).click()  # Checked In -> No Show: the pool is rebuilt
         in_pools = lambda pl, div, name: any(name == (x['name'] if isinstance(x, dict) else x) for pool in st(pl)['pools'][div] for x in pool['players'])

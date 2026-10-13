@@ -105,7 +105,26 @@ function ksmRenderTournamentStatus(valid,competitors,divisions,errors){
     {valid:!!valid,competitors,divisions,courts:ksmHtmlText(tCourts?.value||'2'),errors});
 }
 // × of a row: what its inline handler ran.
-function ksmRemoveCompetitor(i){state.competitors.splice(i,1);renderReg();renderTournamentStatus()}
+function ksmRemoveCompetitor(i){
+  // Owner decision 18 (#29): × on a player of a generated division asks first.
+  const c=state.competitors[i];if(c&&c.name&&ksmInGeneratedDivision(c.name,c.division,false)&&!ksmConfirmRemove(c.name,c.division))return;
+  state.competitors.splice(i,1);renderReg();renderTournamentStatus();
+}
+// Owner decision 18 (#29): after generation, a No Show takes the entry out of its division's pools
+// or bracket (applyIndividualNoShow(), applyWholeTeamNoShow()) and × leaves its matches in place,
+// so both ask first (cycleCompetitorStatus(), cycleTeamStatus() in 03; ksmRemoveCompetitor(),
+// ksmRemoveTeam() here). Before generation nothing asks.
+function ksmConfirmNoShow(name,division){
+  return confirm(`Mark ${name} as No Show? ${division} is already generated: ${name} is taken out of its pools or bracket.`);
+}
+function ksmInGeneratedDivision(name,division,team){
+  if(!state.generated||!name)return false;
+  return (state.allMatches?.[division]||[]).some(m=>m&&(team?(m.teamWhite===name||m.teamRed===name):(m.white===name||m.red===name)))
+    ||(state.pools?.[division]||[]).some(p=>(p.players||[]).some(x=>x&&x.name===name));
+}
+function ksmConfirmRemove(name,division){
+  return confirm(`Remove ${name}? ${division} is already generated: removing the entry does not change its pools, bracket or matches (regenerate the division for that).`);
+}
 
 // ---------------------------------------------------------- Registration part 2
 // The team cards (the wrapper of #teamTable in #teamReg), the exhibition table (#exhibitionTable)
@@ -225,7 +244,11 @@ function ksmSetTeamField(card,key,value){
   if(state.teams[index]!==ksmRegistrationEntries?.get(card))ksmTeamsStale=true;
   state.teams[index][key]=value;
 }
-function ksmRemoveTeam(i){state.teams.splice(i,1);renderTeams();renderTournamentStatus()}
+function ksmRemoveTeam(i){
+  // Owner decision 18 (#29): × on a team of the generated team division asks first.
+  const t=state.teams[i];if(t&&t.team&&ksmInGeneratedDivision(t.team,'Team Tournament',true)&&!ksmConfirmRemove(t.team,'Team Tournament'))return;
+  state.teams.splice(i,1);renderTeams();renderTournamentStatus();
+}
 function ksmSetExhibitionField(row,key,value){
   const index=ksmRegistrationEntryIndex(state.exhibitions||[],row,KSM_EXHIBITION_FIELDS);
   if(index<0){const x=ksmRegistrationEntries.get(row);ksmEditDropped(x.white||x.red?`the exhibition match ${x.white||'?'} vs ${x.red||'?'}`:'an exhibition match','exhibition list');return}

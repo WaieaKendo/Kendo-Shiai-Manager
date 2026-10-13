@@ -8,6 +8,7 @@ function closeManagementModal(id){/* ksm:post-split-begin react-shell */if(!ksmC
 function structuralNoShowAllowed(div){return !!state.generated && !!(state.allMatches?.[div]) && !divisionHasCompletedMatches(div)}
 function cycleCompetitorStatus(i){
   let c=state.competitors[i];if(!c)return;let next=statusCycle(c.status);
+  /* ksm:post-split-begin owner-decisions */if(next==='NoShow'&&state.generated&&structuralNoShowAllowed(c.division)&&!ksmConfirmNoShow(c.name||'this player',c.division))return;/* ksm:post-split-end */
   c.status=next;
   if(next==='NoShow'&&state.generated){
     if(structuralNoShowAllowed(c.division))applyIndividualNoShow(c.division,c.name);
@@ -16,7 +17,7 @@ function cycleCompetitorStatus(i){
   renderAll();scheduleAutoSave();
 }
 function cycleTeamStatus(i){
-  let t=state.teams[i];if(!t)return;let next=statusCycle(t.status);t.status=next;
+  let t=state.teams[i];if(!t)return;let next=statusCycle(t.status);/* ksm:post-split-begin owner-decisions */if(next==='NoShow'&&state.generated&&structuralNoShowAllowed('Team Tournament')&&!ksmConfirmNoShow(t.team||'this team','Team Tournament'))return;/* ksm:post-split-end */t.status=next;
   if(next==='NoShow'&&state.generated){
     let div='Team Tournament';
     if(structuralNoShowAllowed(div))applyWholeTeamNoShow(div,t.team);

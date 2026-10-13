@@ -92,8 +92,9 @@ const KNOWN_POST_SPLIT_EDITS = {
   // `was:`); validateTournament() lists "No competitors registered" as an error when nothing would
   // be generated (2). 16: the Paste from Excel listener adds a row through ksmPasteRow() (16, 17;
   // inline `was:`) and names the refused rows (ksmPasteNotice()). Listed before react-shell:
-  // addRow() (03) is its first region.
-  'owner-decisions': 6,
+  // addRow() (03) is its first region. 03: a No Show after generation asks first
+  // (cycleCompetitorStatus(), cycleTeamStatus(); 18).
+  'owner-decisions': 8,
   'react-shell': 23,
   // feat/react-registration (M.13): Registration part 1's React islands (#regTable, the contents
   // of #tournamentStatusCard). With the legacy renderer removed (REMOVED_REGISTRATION_RENDERER)
