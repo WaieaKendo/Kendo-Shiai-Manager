@@ -258,7 +258,9 @@ const KNOWN_POST_SPLIT_CSS_EDITS = {
   // the factor --ksm-tv-fit comes from ksmFitTv() in app/js/37-react-tv.js, react-tv region).
   'tv-fit': 1,
   // feat/owner-decisions (issue #29): the decisions' styles, theme tokens only, at the end of
-  // 14-library-and-branding.css (hansoku on Live Scores and the TV, 5).
+  // 14-library-and-branding.css: hansoku on Live Scores and the TV (5), the Setup move buttons
+  // (#31), the court's Continue box (7), between matches (6), read-only awards (8), the sample
+  // buttons only with the test tools on (20), the daihyosen label (D1).
   'owner-decisions': 1,
 };
 // Old functions whose body now lives in app/engine/*.ts (parameter lists without braces).
