@@ -48,6 +48,15 @@ check(/\(github\.event_name == 'push' && github\.ref == 'refs\/heads\/develop'\)
   'the tests run for a dev deploy, a manual production deploy and a release pushed to main');
 check(/github.event_name == 'workflow_dispatch' && github.ref != 'refs\/heads\/main'/.test(jobs.refuse) && /exit 1/.test(jobs.refuse), 'a manual run from another branch fails visibly');
 check(/uses: \.\/\.github\/workflows\/test\.yml/.test(jobs.test) && /workflow_call:/.test(readRepoFile('.github/workflows/test.yml')), 'the tests are the shared test.yml workflow');
+// Actions minutes (private repo): the suite runs once per change — on pull requests and when
+// deploy.yml calls it — never a second time for the same commit on a plain push.
+{
+  const testYml = readRepoFile('.github/workflows/test.yml');
+  const testOn = testYml.slice(testYml.indexOf('\non:'), testYml.indexOf('\nconcurrency:'));
+  check(!/\n  push:/.test(testOn) && /\n  pull_request:/.test(testOn) && /\n  workflow_call:/.test(testOn),
+    'test.yml runs on pull requests and when called by deploy.yml, not on every push');
+  check(/cancel-in-progress: \$\{\{ github\.event_name == 'pull_request' \}\}/.test(testYml), 'a newer push to a PR cancels its older test run');
+}
 
 // F34: overlapping runs. Concurrency only serialises the deploys, so right before each deploy a
 // step checks that the run's commit is still the branch's head (git ls-remote); an older run skips
