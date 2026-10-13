@@ -14,6 +14,7 @@ import {
   DIVISION_COMPLETE_TEXT, EMPTY_TV, NO_UPCOMING_TEXT, UPCOMING_TITLE, tvView,
   type TvBodyView, type TvFooterView, type TvInput, type TvKachinukiRowView, type TvPlayerView,
 } from './tv-model.ts';
+import type { HansokuView } from '../live-scores/live-scores-model.ts';
 
 export const TV_EVENT = 'ksm:tv';
 
@@ -29,8 +30,15 @@ function subscribe(onChange: () => void): () => void {
 
 const snapshot = (): TvInput => (window as unknown as TvWindow).ksmTvInput ?? EMPTY_TV;
 
-/** tv3Player(): the side's colour rule, the name (one span per part) and the dojo. */
-function Player({ side, player }: { side: 'white' | 'red'; player: TvPlayerView }) {
+/** A side's hansoku triangles (owner decision 5), only when it has any. */
+function Hansoku({ side, marks, testId = true }: { side: 'white' | 'red'; marks: string; testId?: boolean }) {
+  return marks
+    ? <span className="tv3-hansoku" data-testid={testId ? `tv-${side}-hansoku` : undefined} aria-label={`${side === 'white' ? 'White' : 'Red'} hansoku`}>{marks}</span>
+    : null;
+}
+
+/** tv3Player(): the side's colour rule, the name (one span per part) and the dojo; the hansoku. */
+function Player({ side, player, hansoku }: { side: 'white' | 'red'; player: TvPlayerView; hansoku?: HansokuView | undefined }) {
   const red = side === 'red' ? ' red' : '';
   return (
     <div className={`tv3-player${red}`}>
@@ -38,6 +46,7 @@ function Player({ side, player }: { side: 'white' | 'red'; player: TvPlayerView 
       <div className="tv3-player-copy">
         <div className="tv3-name" data-testid={`tv-${side}-name`}>{player.nameParts.map((part, i) => <span key={i}>{part}</span>)}</div>
         <div className="tv3-sub">{player.sub}</div>
+        {hansoku && <Hansoku side={side} marks={hansoku[side]} />}
       </div>
     </div>
   );
@@ -82,9 +91,9 @@ function Body({ body }: { body: TvBodyView }) {
       return (
         <div className="tv3-body">
           <div className="tv3-individual" data-testid="tv-current-match">
-            <Player side="white" player={body.white} />
+            <Player side="white" player={body.white} hansoku={body.hansoku} />
             <Scores white={body.whitePoints} red={body.redPoints} />
-            <Player side="red" player={body.red} />
+            <Player side="red" player={body.red} hansoku={body.hansoku} />
           </div>
         </div>
       );
@@ -99,7 +108,7 @@ function Body({ body }: { body: TvBodyView }) {
                 {body.rows.map(row => (
                   <div key={row.pos} className={`tv3-team-row${row.active ? ' active' : ''}`} data-testid={row.active ? 'tv-active-bout' : undefined}>
                     <div className="tv3-person" data-testid={row.active ? 'tv-white-name' : undefined}><span className="tv3-pos">{row.pos}</span>{row.white}</div>
-                    <div className="tv3-row-score">{row.whitePoints}</div>
+                    <div className="tv3-row-score">{row.hansoku && <Hansoku side="white" marks={row.hansoku.white} testId={row.active} />}{row.whitePoints}</div>
                   </div>
                 ))}
               </div>
@@ -112,7 +121,7 @@ function Body({ body }: { body: TvBodyView }) {
               <div className={body.rosterClass}>
                 {body.rows.map(row => (
                   <div key={row.pos} className={`tv3-team-row${row.active ? ' active' : ''}`}>
-                    <div className="tv3-row-score">{row.redPoints}</div>
+                    <div className="tv3-row-score">{row.redPoints}{row.hansoku && <Hansoku side="red" marks={row.hansoku.red} testId={row.active} />}</div>
                     <div className="tv3-person" data-testid={row.active ? 'tv-red-name' : undefined}>{row.red}<span className="tv3-pos">{row.pos}</span></div>
                   </div>
                 ))}
@@ -127,9 +136,9 @@ function Body({ body }: { body: TvBodyView }) {
         <div className="tv3-body">
           <div className="tv3-k-wrap" data-testid="tv-current-match">
             <div className="tv3-k-current" data-testid="tv-kachinuki-current">
-              <Player side="white" player={body.white} />
+              <Player side="white" player={body.white} hansoku={body.hansoku} />
               <Scores white={body.whitePoints} red={body.redPoints} />
-              <Player side="red" player={body.red} />
+              <Player side="red" player={body.red} hansoku={body.hansoku} />
             </div>
             <div className="tv3-k-lineups">
               <div className="tv3-k-team" data-testid="tv-kachinuki-lineup">

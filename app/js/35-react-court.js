@@ -43,6 +43,15 @@ function ksmScoreboardInput(m){
   const rep=(side,team,name)=>({team:team||'',current:name||'',roster:[...teamRoster(playoff?(side==='W'?current.teamWhite:current.teamRed):team)],editable:Boolean(canModifyRepresentative(current))});
   return {match,score,representatives:{W:rep('W',m.teamWhite,m.white),R:rep('R',m.teamRed,m.red)}};
 }
+// Owner decision 5 (#29): a match's hansoku per side, as the court screen shows them: the live
+// count for the match this device is scoring (state.score, as activeScoreArrays() reads its
+// points), else the match's stored wt/rt. Live Scores and the TV show them too.
+function ksmHansokuCounts(m){
+  if(!m)return {W:0,R:0};
+  const arr=state.allMatches?.[m.division]||[],idx=arr.indexOf(m);
+  if(m.division===state.currentDivision&&idx===state.current&&!m.done)return {W:Number(state.score?.WT)||0,R:Number(state.score?.RT)||0};
+  return {W:Number(m.wt)||0,R:Number(m.rt)||0};
+}
 function ksmPublishCourtScoreboard(m){
   window.ksmCourtScoreboardInput=ksmScoreboardInput(m);
   window.dispatchEvent(new CustomEvent('ksm:court-scoreboard'));

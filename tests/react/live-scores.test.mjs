@@ -96,3 +96,20 @@ test('liveCourtView: an idle court still waiting for a match of its division say
   assert.equal(WAITING_TEXT, 'Waiting for the next match');
   assert.deepEqual(liveCourtView({ court: 'A', kind: 'idle' }).body, { kind: 'idle' });
 });
+
+test('hansoku (owner decision 5): one triangle each, shown only when a side has one', async () => {
+  const { hansokuMarks, hansokuView } = await import('../../app/react/live-scores/live-scores-model.ts');
+  assert.equal(hansokuMarks(0), '');
+  assert.equal(hansokuMarks(3), '△ △ △');
+  assert.equal(hansokuMarks(undefined), '');
+  assert.equal(hansokuView(undefined), undefined);
+  assert.equal(hansokuView({ W: 0, R: 0 }), undefined);
+  assert.deepEqual(hansokuView({ W: 2, R: 0 }), { white: '△ △', red: '' });
+  const card = liveCourtView({
+    court: 'A', kind: 'individual', meta, white: { name: 'P 1', dojo: '' }, red: { name: 'P 2', dojo: '' },
+    points: { W: [], R: ['H'] }, hansoku: { W: 2, R: 1 }, next: null,
+  });
+  assert.deepEqual(card.body.hansoku, { white: '△ △', red: '△' });
+  const none = liveCourtView({ court: 'A', kind: 'individual', meta, white: { name: 'P 1', dojo: '' }, red: { name: 'P 2', dojo: '' }, points: { W: [], R: [] }, hansoku: { W: 0, R: 0 }, next: null });
+  assert.equal('hansoku' in none.body, false, 'nothing drawn without a hansoku');
+});

@@ -37,6 +37,30 @@ export interface LivePlayerInput {
   dojo: string;
 }
 
+/** Each side's hansoku count (owner decision 5: shown as on the court screen). */
+export interface HansokuCounts {
+  W: number;
+  R: number;
+}
+
+/** Each side's hansoku as triangles ('' for none), as the court screen's '△ △'. */
+export interface HansokuView {
+  white: string;
+  red: string;
+}
+
+/** One triangle per hansoku, separated by spaces; '' for none. */
+export function hansokuMarks(count: number | undefined): string {
+  const n = Math.max(0, Math.floor(Number(count) || 0));
+  return Array.from({ length: n }, () => '△').join(' ');
+}
+
+/** The hansoku to show, or undefined when neither side has one (nothing is drawn then). */
+export function hansokuView(counts: HansokuCounts | undefined): HansokuView | undefined {
+  if (!counts || (!counts.W && !counts.R)) return undefined;
+  return { white: hansokuMarks(counts.W), red: hansokuMarks(counts.R) };
+}
+
 export type LiveCourtInput =
   /**
    * No match on the court. waiting: its division still has an unplayed match on this court that
@@ -47,11 +71,13 @@ export type LiveCourtInput =
     court: string; kind: 'individual'; meta: LiveMetaInput; white: LivePlayerInput; red: LivePlayerInput;
     /** The point letters so far (the live score for the match being scored). */
     points: { W: string[]; R: string[] };
+    /** Each side's hansoku (owner decision 5). */
+    hansoku?: HansokuCounts;
     next: LiveNextInput | null;
   }
-  /** A team bout or representative playoff: the pairing's bout sheet. */
-  | { court: string; kind: 'team'; meta: LiveMetaInput; sheet: TeamSheetInput; next: LiveNextInput | null }
-  | { court: string; kind: 'kachinuki'; meta: LiveMetaInput; sheet: KachinukiSheetInput; next: LiveNextInput | null }
+  /** A team bout or representative playoff: the pairing's bout sheet (hansoku: the current bout's). */
+  | { court: string; kind: 'team'; meta: LiveMetaInput; sheet: TeamSheetInput; next: LiveNextInput | null; hansoku?: HansokuCounts }
+  | { court: string; kind: 'kachinuki'; meta: LiveMetaInput; sheet: KachinukiSheetInput; next: LiveNextInput | null; hansoku?: HansokuCounts }
   /** No match on the court and its division is complete (F16): the division's placements in the card. */
   | { court: string; kind: 'complete'; division: string; complete: CourtCompleteInput };
 
@@ -71,9 +97,9 @@ export type LiveScoresInput =
 
 export type LiveCourtBodyView =
   | { kind: 'idle'; waiting?: true }
-  | { kind: 'individual'; white: LivePlayerInput; red: LivePlayerInput; whitePoints: string; redPoints: string }
-  | { kind: 'team'; sheet: TeamSheetView }
-  | { kind: 'kachinuki'; sheet: KachinukiSheetView }
+  | { kind: 'individual'; white: LivePlayerInput; red: LivePlayerInput; whitePoints: string; redPoints: string; hansoku?: HansokuView }
+  | { kind: 'team'; sheet: TeamSheetView; hansoku?: HansokuView }
+  | { kind: 'kachinuki'; sheet: KachinukiSheetView; hansoku?: HansokuView }
   | { kind: 'complete'; complete: CourtCompleteView };
 
 export interface LiveCourtView {
@@ -119,14 +145,16 @@ export function liveCourtView(input: LiveCourtInput): LiveCourtView {
   }
   const meta = `${input.meta.division} • ${input.meta.line}`;
   const next = { match: input.next };
+  const hansoku = hansokuView(input.hansoku);
+  const withHansoku = hansoku ? { hansoku } : {};
   switch (input.kind) {
     case 'individual':
       return {
         ...base, className: 'live-court-card', meta, next,
-        body: { kind: 'individual', white: input.white, red: input.red, whitePoints: pointText(input.points.W), redPoints: pointText(input.points.R) },
+        body: { kind: 'individual', white: input.white, red: input.red, whitePoints: pointText(input.points.W), redPoints: pointText(input.points.R), ...withHansoku },
       };
-    case 'team': return { ...base, className: 'live-court-card live-team-card', meta, next, body: { kind: 'team', sheet: teamSheetView(input.sheet) } };
-    case 'kachinuki': return { ...base, className: 'live-court-card live-team-card', meta, next, body: { kind: 'kachinuki', sheet: kachinukiSheetView(input.sheet) } };
+    case 'team': return { ...base, className: 'live-court-card live-team-card', meta, next, body: { kind: 'team', sheet: teamSheetView(input.sheet), ...withHansoku } };
+    case 'kachinuki': return { ...base, className: 'live-court-card live-team-card', meta, next, body: { kind: 'kachinuki', sheet: kachinukiSheetView(input.sheet), ...withHansoku } };
   }
 }
 

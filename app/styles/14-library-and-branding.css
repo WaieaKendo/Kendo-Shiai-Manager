@@ -17,3 +17,13 @@
   .icon-nav .setup-nav-tile span{display:flex!important;align-items:flex-start!important;justify-content:center!important;min-height:22px!important;margin:0!important}
 }
 /* KSM v3.17.20-test — pool-local tiebreak ordering + conflict-safe dynamic insertion. */
+/* ksm:post-split-begin owner-decisions */
+/* feat/owner-decisions (issue #29), theme tokens and existing classes only.
+   Decision 5: hansoku triangles on Live Scores (a fighter's, a team card's current bout) and on
+   the TV (a fighter's, a team sheet row's), as on the court screen. */
+.live-player .live-hansoku{display:block;min-height:0;margin-top:4px;color:var(--red);font-size:14px;letter-spacing:.1em}
+.live-bout-hansoku{display:flex;justify-content:space-between;gap:12px;margin-top:8px}
+.live-bout-hansoku .live-hansoku{display:inline;color:var(--red);font-size:14px;letter-spacing:.1em}
+body.ksm-tv .tv3-hansoku{display:block;margin-top:14px;font-size:34px;line-height:1;letter-spacing:.12em;color:var(--ksm-gold)}
+body.ksm-tv .tv3-row-score .tv3-hansoku{display:inline;margin:0 12px;font-size:26px}
+/* ksm:post-split-end */

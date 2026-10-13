@@ -33,14 +33,14 @@ function ksmTvTeam(vm){
   const m=vm.match,all=(state.allMatches[m.division]||[]).filter(x=>x.teamPair===m.teamPair&&(x.type==='teamPosition'||x.type==='teamPlayoff'));
   const rows=all.length?all:[m],first=rows[0]||m,sum=teamPairSummary(m.division,m.teamPair);
   return {kind:'team',teamWhite:ksmText(first.teamWhite||m.teamWhite||'White Team'),teamRed:ksmText(first.teamRed||m.teamRed||'Red Team'),
-    rows:rows.map(x=>{const p=activeScoreArrays(x);return {white:ksmText(x.white||'TBD'),red:ksmText(x.red||'TBD'),points:{W:ksmTvLetters(p.W),R:ksmTvLetters(p.R)},active:x===m}}),
+    rows:rows.map(x=>{const p=activeScoreArrays(x);return {white:ksmText(x.white||'TBD'),red:ksmText(x.red||'TBD'),points:{W:ksmTvLetters(p.W),R:ksmTvLetters(p.R)},hansoku:ksmHansokuCounts(x),active:x===m}}),
     // Printed into the template as they are (no esc()).
     summary:{wWins:String(sum.wWins),wPts:String(sum.wPts),rWins:String(sum.rWins),rPts:String(sum.rPts)}};
 }
 // tv3Kachinuki(): the current bout and both three-fighter lineups.
 function ksmTvKachinuki(vm){
   const m=vm.match,p=activeScoreArrays(m),lineup=arr=>{const l=(arr||[]).slice(0,3);while(l.length<3)l.push('—');return l.map(n=>ksmText(n||'—'))};
-  return {kind:'kachinuki',white:ksmText(m.white||'—'),red:ksmText(m.red||'—'),points:{W:ksmTvLetters(p.W),R:ksmTvLetters(p.R)},
+  return {kind:'kachinuki',white:ksmText(m.white||'—'),red:ksmText(m.red||'—'),points:{W:ksmTvLetters(p.W),R:ksmTvLetters(p.R)},hansoku:ksmHansokuCounts(m),
     teamWhite:ksmText(m.teamWhite||'White Team'),teamRed:ksmText(m.teamRed||'Red Team'),
     lineupW:lineup(m.lineupW),lineupR:lineup(m.lineupR),wIndex:Number(m.wIndex||0),rIndex:Number(m.rIndex||0)};
 }
@@ -56,7 +56,7 @@ function ksmTvDisplayInput(court){
     const m=vm.match,p=activeScoreArrays(m);
     return {kind:'tv',...header,upcoming,body:{kind:'individual',
       white:{name:ksmText(tvIndividualSideLabel(m,'white')),sub:ksmText(m.wdojo)},red:{name:ksmText(tvIndividualSideLabel(m,'red')),sub:ksmText(m.rdojo)},
-      points:{W:ksmTvLetters(p.W),R:ksmTvLetters(p.R)}}};
+      points:{W:ksmTvLetters(p.W),R:ksmTvLetters(p.R)},hansoku:ksmHansokuCounts(m)}};
   }
   return {kind:'tv',...header,upcoming,body:vm.format==='kachinuki'?ksmTvKachinuki(vm):ksmTvTeam(vm)};
 }

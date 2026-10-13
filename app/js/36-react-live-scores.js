@@ -42,14 +42,15 @@ function ksmLiveScoresCourt(court){
     // (tvUpcomingMatches(), 25-), not the next bout of the pairing being fought.
     const up=tvUpcomingMatches(court,m,true)[0]||null;
     const nextTeams=up?{white:ksmText(up.teamWhite||up.white||'TBD'),red:ksmText(up.teamRed||up.red||'TBD')}:null;
-    if(m.type==='kachinuki')return {...base,kind:'kachinuki',sheet:ksmKachinukiSheet(m),next:nextTeams};
-    return {...base,kind:'team',sheet:ksmTeamSheet(m.division,m.teamPair,m),next:nextTeams};
+    // Owner decision 5: the current bout's hansoku under the sheet.
+    if(m.type==='kachinuki')return {...base,kind:'kachinuki',sheet:ksmKachinukiSheet(m),next:nextTeams,hansoku:ksmHansokuCounts(m)};
+    return {...base,kind:'team',sheet:ksmTeamSheet(m.division,m.teamPair,m),next:nextTeams,hansoku:ksmHansokuCounts(m)};
   }
   // liveScorePoints(): the letters as Array.join() prints them.
   const pts=activeScoreArrays(m),letters=arr=>(arr||[]).map(x=>x==null?'':String(x));
   return {...base,kind:'individual',
     white:{name:ksmText(m.white||'TBD'),dojo:ksmText(m.wdojo||'')},red:{name:ksmText(m.red||'TBD'),dojo:ksmText(m.rdojo||'')},
-    points:{W:letters(pts.W),R:letters(pts.R)},
+    points:{W:letters(pts.W),R:letters(pts.R)},hansoku:ksmHansokuCounts(m),
     next:next?{white:ksmText(next.white||'TBD'),red:ksmText(next.red||'TBD')}:null};
 }
 // The court's division when it is complete and played on this court (F16): the court's own

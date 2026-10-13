@@ -10,7 +10,7 @@
 // #tvLive. tvView() adds what the legacy tv3 renderer derived: "Court X", the name split into
 // first name and the rest, the point strings, classes, the kachinuki fighters' states.
 import { courtCompleteView, type CourtCompleteInput, type CourtCompleteView } from '../court/complete-model.ts';
-import { pointText } from '../live-scores/live-scores-model.ts';
+import { hansokuView, pointText, type HansokuCounts, type HansokuView } from '../live-scores/live-scores-model.ts';
 
 // ------------------------------------------------------------------------------ input
 
@@ -31,6 +31,8 @@ export interface TvTeamRowInput {
   white: string;
   red: string;
   points: TvPoints;
+  /** The bout's hansoku (owner decision 5). */
+  hansoku?: HansokuCounts;
   /** The bout being fought (the court's current match). */
   active: boolean;
 }
@@ -40,7 +42,7 @@ export type TvBodyInput =
   | { kind: 'idle' }
   /** The court's division is complete and nothing is left on the court: its placements. */
   | { kind: 'results'; complete: CourtCompleteInput }
-  | { kind: 'individual'; white: TvPlayerInput; red: TvPlayerInput; points: TvPoints }
+  | { kind: 'individual'; white: TvPlayerInput; red: TvPlayerInput; points: TvPoints; hansoku?: HansokuCounts }
   /** A team bout or representative playoff: the pairing's bouts and the Wins/Points summary. */
   | {
     kind: 'team'; teamWhite: string; teamRed: string; rows: TvTeamRowInput[];
@@ -48,6 +50,8 @@ export type TvBodyInput =
   }
   | {
     kind: 'kachinuki'; white: string; red: string; points: TvPoints; teamWhite: string; teamRed: string;
+    /** The current bout's hansoku (owner decision 5). */
+    hansoku?: HansokuCounts;
     /** Three fighters each ('—' for a missing one); the index of each side's current fighter. */
     lineupW: string[]; lineupR: string[]; wIndex: number; rIndex: number;
   };
@@ -84,6 +88,8 @@ export interface TvTeamRowView {
   red: string;
   whitePoints: string;
   redPoints: string;
+  /** Only when the bout has a hansoku. */
+  hansoku?: HansokuView;
   active: boolean;
 }
 
@@ -97,14 +103,14 @@ export interface TvKachinukiRowView {
 export type TvBodyView =
   | { kind: 'idle' }
   | { kind: 'results'; complete: CourtCompleteView }
-  | { kind: 'individual'; white: TvPlayerView; red: TvPlayerView; whitePoints: string; redPoints: string }
+  | { kind: 'individual'; white: TvPlayerView; red: TvPlayerView; whitePoints: string; redPoints: string; hansoku?: HansokuView }
   | {
     kind: 'team'; teamWhite: string; teamRed: string; rosterClass: string; rows: TvTeamRowView[];
     summary: { wWins: string; wPts: string; rWins: string; rPts: string };
   }
   | {
     kind: 'kachinuki'; white: TvPlayerView; red: TvPlayerView; whitePoints: string; redPoints: string;
-    teamWhite: string; teamRed: string; rowsW: TvKachinukiRowView[]; rowsR: TvKachinukiRowView[];
+    teamWhite: string; teamRed: string; rowsW: TvKachinukiRowView[]; rowsR: TvKachinukiRowView[]; hansoku?: HansokuView;
   };
 
 export type TvFooterView =
@@ -134,6 +140,11 @@ export function kachinukiState(index: number, active: number): TvKachinukiState 
 }
 
 const player = (name: string, sub: string): TvPlayerView => ({ nameParts: nameParts(name), sub });
+/** { hansoku } when a side has one (owner decision 5), else nothing. */
+const withHansoku = (counts: HansokuCounts | undefined): { hansoku?: HansokuView } => {
+  const hansoku = hansokuView(counts);
+  return hansoku ? { hansoku } : {};
+};
 
 export function tvBodyView(body: TvBodyInput): TvBodyView {
   switch (body.kind) {
@@ -142,14 +153,14 @@ export function tvBodyView(body: TvBodyInput): TvBodyView {
     case 'individual':
       return {
         kind: 'individual', white: player(body.white.name, body.white.sub), red: player(body.red.name, body.red.sub),
-        whitePoints: pointText(body.points.W), redPoints: pointText(body.points.R),
+        whitePoints: pointText(body.points.W), redPoints: pointText(body.points.R), ...withHansoku(body.hansoku),
       };
     case 'team':
       return {
         kind: 'team', teamWhite: body.teamWhite, teamRed: body.teamRed,
         rosterClass: `tv3-roster ${body.rows.length <= 3 ? 'three' : 'five'}`,
         rows: body.rows.map((r, i) => ({
-          pos: String(i + 1), white: r.white, red: r.red, whitePoints: pointText(r.points.W), redPoints: pointText(r.points.R), active: r.active,
+          pos: String(i + 1), white: r.white, red: r.red, whitePoints: pointText(r.points.W), redPoints: pointText(r.points.R), ...withHansoku(r.hansoku), active: r.active,
         })),
         summary: body.summary,
       };
@@ -160,6 +171,7 @@ export function tvBodyView(body: TvBodyInput): TvBodyView {
         teamWhite: body.teamWhite, teamRed: body.teamRed,
         rowsW: body.lineupW.map((name, i) => ({ name, state: kachinukiState(i, body.wIndex) })),
         rowsR: body.lineupR.map((name, i) => ({ name, state: kachinukiState(i, body.rIndex) })),
+        ...withHansoku(body.hansoku),
       };
   }
 }
