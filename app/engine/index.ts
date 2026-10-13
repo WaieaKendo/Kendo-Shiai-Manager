@@ -58,3 +58,8 @@ export {
   routePath, routeUrl, parseRoutePath, parseLegacyLink, resolveUrl, legacyQuery, servesAppShell, servesOverlay,
 } from './routes.ts';
 export type { Route, RouteCourt, ResolvedUrl } from './routes.ts';
+export {
+  RENAME_AFTER_DRAW_MESSAGE, RENAME_EMPTY_MESSAGE, DIVISION_STRUCTURE_KEYS, drawMade, presetNames, divisionNamesInUse, isDivision,
+  divisionRenameError, renamedDivisionState, rebaseDivisionRenames,
+} from './divisions.ts';
+export type { DivisionRename, RenameState, RefusedRename, RenameRebase } from './divisions.ts';
