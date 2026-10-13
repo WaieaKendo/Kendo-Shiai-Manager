@@ -20,7 +20,9 @@ element's page box per platform) and compared with the approved snapshot, togeth
 select's value, state.poolViewDivision, every division's pools (players with their slots) and
 match counts (pool, championship, done), the courts' positions, state.managementRevision, the
 saves the step asked for (scheduleAutoSave(), criticalAutoSave(), saveAuto(), counted by
-wrappers the test installs), whether the validation dialog is open (Regenerate), whether the
+wrappers the test installs), whether the validation dialog is open (or, in its place,
+Regenerate Single Division's contents while it is open: the Pools tab's Regenerate, owner
+decision 3), whether the
 view is shown, the page's scroll width against the window's, the page errors since the step
 before and the dialogs shown. While the view is hidden its innerText is its textContent, so the
 text is compared only while it is shown (the tree always).
@@ -32,12 +34,13 @@ heading, dragend; a step can show the page mid-drag, e.g. the pool's drop-target
 with Playwright's real mouse drag (locator.drag_to) in Chromium.
 
   pools-empty         Registration -> Pools before anything is generated (the default
-                      division), Regenerate with nobody registered (the validation dialog
-                      refuses: Close), phones;
+                      division), Regenerate with nothing generated (Regenerate Single
+                      Division, no division ready: x), phones;
   pools-divisions     eight individual divisions: round robins of 3, 4, 5, 10, 14 (seeded,
                       dojo-mates spread, names and dojos with <, &, quotes), 8 and 20 split, a
                       single elimination of 6; every division chosen with the select; phones;
-                      Regenerate cancelled and confirmed;
+                      Regenerate (Regenerate Single Division with the select's division
+                      chosen) closed, and for Masters continued and confirmed;
   pools-team-rr       a 3-person team round robin (Team Pool, Team Standings, no Edit Pool)
                       next to an individual round robin;
   pools-team-se       a 3-person team single elimination and an individual one (the two
@@ -124,6 +127,17 @@ STATE_JS = """() => {
   };
 }"""
 VALIDATION_JS = "() => !document.getElementById('validationModal').classList.contains('hidden')"
+# Regenerate Single Division while open (the Pools tab's Regenerate opens it since owner decision 3):
+# its title and each option's name, status and whether it is chosen; null when closed.
+REGENERATE_JS = """() => {
+  const modal = document.getElementById('regenerateModal');
+  if (!modal || modal.classList.contains('hidden')) return null;
+  return {title: modal.querySelector('[data-testid="regenerate-modal-title"]')?.textContent.trim(),
+    options: [...modal.querySelectorAll('[data-testid="regenerate-option"]')].map(o => [
+      o.querySelector('[data-testid="regenerate-option-name"]').textContent.trim(),
+      o.querySelector('[data-testid="regenerate-option-status"]').textContent.trim(),
+      o.querySelector('[data-testid="regenerate-option-radio"]').checked])};
+}"""
 
 # Drag and drop with dispatched events sharing one DataTransfer (window.__ksmDrag).
 # [selector, index]: the element of document.querySelectorAll(selector) at index.
@@ -199,6 +213,9 @@ def capture(app):
         # innerText of a hidden view is its textContent (the templates' source formatting).
         'pools': {'tree': panel['tree'], 'text': panel['text'] if shown else None},
     }
+    regenerate = page.evaluate(REGENERATE_JS)
+    if regenerate is not None:  # in place of `false`, so the other steps' snapshots are unchanged
+        entry['validation'] = entry['validation'] or {'regenerate': regenerate}
     return entry, {'pools': panel['boxes']}
 
 
@@ -323,10 +340,10 @@ def pools_empty(browser, errors, react_check):
     g = open_app('pools-empty', browser, errors, react_check=react_check)
     g.do('Registration -> Pools, nothing generated', open_pools)
     phone_views(g, 'nothing generated')
-    # Owner decision 2 (#29): the check refuses with nobody registered ("No competitors
-    # registered", only Close); it passed and Generate then alerted.
-    g.do('Regenerate with nobody registered (the check refuses)', lambda a: click(a.page, f'{ROOT} button'))
-    g.do('Regenerate: Close', lambda a: click(a.page, '[data-testid="validation-close"]'))
+    # Owner decision 3 (#29): Regenerate opens Regenerate Single Division for the select's division
+    # (before: the generation check for the whole tournament); nothing generated, nothing ready.
+    g.do('Regenerate with nothing generated (Regenerate Single Division, none ready)', lambda a: click(a.page, '[data-testid="pools-regenerate"]'))
+    g.do('Regenerate: x', lambda a: click(a.page, '[data-testid="regenerate-modal-close"]'))
     g.finish()
 
 
@@ -351,11 +368,14 @@ def pools_divisions(browser, errors, react_check):
             phone_views(g, d['name'])
     g.do('select Open again', lambda a: choose(a, 'Open'))
     g.do('Overview, then Pools again', lambda a: (a.page.evaluate("() => KSMTest.show('director')"), open_pools(a)))
-    g.do('Regenerate', lambda a: click(a.page, f'{ROOT} button'))
-    g.do('Regenerate: Cancel', lambda a: click(a.page, '[data-testid="generate-cancel"]'))
+    # Owner decision 3 (#29): Regenerate Single Division with the select's division chosen.
+    g.do('Regenerate (Open chosen)', lambda a: click(a.page, '[data-testid="pools-regenerate"]'))
+    g.do('Regenerate: x', lambda a: click(a.page, '[data-testid="regenerate-modal-close"]'))
     choose(g.app, 'Masters')
-    g.do('Masters: Regenerate', lambda a: click(a.page, f'{ROOT} button'))
-    g.do('Masters: Regenerate: Generate', lambda a: click(a.page, '[data-testid="generate-confirm"]'))
+    g.do('Masters: Regenerate (Masters chosen)', lambda a: click(a.page, '[data-testid="pools-regenerate"]'))
+    g.do('Masters: Regenerate: Continue', lambda a: click(a.page, '[data-testid="regenerate-continue"]'))
+    g.do('Masters: Regenerate: Regenerate', lambda a: click(a.page, '[data-testid="regenerate-confirm"]'))
+    g.do('Masters: Regenerate: OK', lambda a: click(a.page, '[data-testid="regenerate-modal-close"]'))
     g.finish()
 
 

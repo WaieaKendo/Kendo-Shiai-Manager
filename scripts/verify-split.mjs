@@ -481,6 +481,9 @@ const REMOVED_SHELL_RENDERER = [
 // 'now' must appear exactly once; the check puts 'before' back (before the test-ID step) and then
 // compares byte for byte, so any other markup change still fails.
 const MARKUP_EDITS = [
+  // feat/owner-decisions (decision 3, #29): the Pools tab's Regenerate opens Regenerate Single
+  // Division for the Pools select's division (ksmRegeneratePoolDivision(), 44-react-shell.js).
+  ['<button onclick="generatePools()">Regenerate</button>', '<button onclick="ksmRegeneratePoolDivision()" data-testid="pools-regenerate">Regenerate</button>'],
   ['<button class="danger" onclick="state.teams=[];renderTeams()" data-testid="team-clear">', '<button class="danger" onclick="clearTeams()" data-testid="team-clear">'],
   ['<button class="danger" onclick="state.exhibitions=[];renderExhibitions()" data-testid="exhibition-clear">', '<button class="danger" onclick="clearExhibitions()" data-testid="exhibition-clear">'],
 ];

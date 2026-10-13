@@ -187,10 +187,20 @@ function ksmShowRegenerate(title,content){
 }
 // openRegenerateDivisionDialog() (03): every division (set up or generated) with its status; the
 // first ready one chosen.
-function ksmOpenRegenerateDialog(){
+// Owner decision 3 (#29): the Pools tab's Regenerate (ksmRegeneratePoolDivision()) opens it with
+// the Pools select's division chosen when it is ready (none chosen when it is not).
+function ksmOpenRegenerateDialog(preferred){
   let all=[...new Set([...state.divisions,...Object.keys(state.allMatches||{})])].filter(Boolean);let selected='';
-  const options=all.map(d=>{let st=divisionRegenerationStatus(d),ready=st==='ready';if(ready&&!selected)selected=d;return {name:ksmHtmlText(d),status:st,checked:ready&&d===selected}});
+  if(preferred!==undefined)selected=divisionRegenerationStatus(preferred)==='ready'?preferred:null;
+  const options=all.map(d=>{let st=divisionRegenerationStatus(d),ready=st==='ready';if(ready&&!selected&&selected!==null)selected=d;return {name:ksmHtmlText(d),status:st,checked:ready&&d===selected}});
   ksmShowRegenerate('Regenerate Division',{view:'list',options});
+}
+// The Pools tab's Regenerate button (app/index.html): Regenerate Single Division for the division
+// in the Pools select (owner decision 3; it regenerated the whole tournament, which stays with
+// Generate Tournament).
+function ksmRegeneratePoolDivision(){
+  const div=window.poolDiv?poolDiv.value:'';
+  ksmOpenRegenerateDialog(div||undefined);
 }
 // continueRegenerateDivision() (03): the division chosen in the list (read from the page) to
 // confirm.
