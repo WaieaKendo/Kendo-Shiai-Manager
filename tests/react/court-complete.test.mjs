@@ -46,3 +46,18 @@ test('courtCompleteView: text is shown as published (esc() already blanked 0 and
 test('DIVISION_COMPLETE_CLASS: the class the court CSS keys on', () => {
   assert.equal(DIVISION_COMPLETE_CLASS, 'division-complete');
 });
+
+test('continueBoxView: the division-complete box on the court screen (owner decision 7, #31)', async () => {
+  const { continueBoxView, continueLabel, keptKey, CONTINUE_TEXTS } = await import('../../app/react/court/complete-model.ts');
+  const base = { complete: true, placements: [], court: 'A', division: 'Kids' };
+  const message = 'Kids is complete. Final results are showing on the Court A TV.';
+  assert.equal(continueLabel('Masters'), 'Continue to Masters →');
+  assert.deepEqual(CONTINUE_TEXTS, { keep: 'Keep showing results', close: 'Close TV results' });
+  assert.deepEqual(continueBoxView({ ...base, next: 'Masters' }, false), { kind: 'offer', message, next: 'Masters', continueLabel: 'Continue to Masters →' });
+  assert.deepEqual(continueBoxView({ ...base, next: 'Masters' }, true), { kind: 'kept', message, next: 'Masters' });
+  assert.deepEqual(continueBoxView({ ...base, next: null }, false), { kind: 'done', message, doneText: 'All divisions on Court A are done.' });
+  assert.deepEqual(continueBoxView({ ...base, next: null }, true), { kind: 'done', message, doneText: 'All divisions on Court A are done.' });
+  assert.equal(continueBoxView({ complete: false, placements: [] }, false), null, 'not complete');
+  assert.equal(continueBoxView({ complete: true, placements: [] }, false), null, 'Live Scores / TV: no court, no box');
+  assert.equal(keptKey(base), 'A|Kids');
+});

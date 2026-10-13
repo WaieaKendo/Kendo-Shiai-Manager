@@ -74,9 +74,37 @@ function ksmDivisionCompleteInput(div,complete){
   if(!complete)return {complete:false,placements:[]};
   return {complete:true,placements:resultPlacements(div).map(p=>({place:ksmText(p.place),name:ksmText(p.name),tier:ksmText(p.tier)}))};
 }
+// setCourtCompletePresentation() (32-): the court screen's division-complete panel. Owner decision 7
+// and issue #31: a completed division's panel also gets the court, the division and the division
+// to continue to (ksmNextCourtDivision()), for the box "<Division> is complete ..." with
+// [Continue to <next> →] / [Keep showing results]; its buttons call selectScorekeeperDivision()
+// (08-), the court dropdown's action, so the TV and Live Scores follow (no new shared state).
 function ksmPublishCourtComplete(input){
+  if(input&&input.complete){
+    const court=state.currentCourt||'A',division=state.currentDivision||'';
+    input={...input,court:ksmText(court),division:ksmText(division),next:division?ksmNextCourtDivision(court,division):null};
+  }
   window.ksmCourtCompleteInput=input;
   window.dispatchEvent(new CustomEvent('ksm:court-complete'));
+}
+// Issue #31: a court's division list in Setup's running order, filtered to the court: the court
+// dropdown's options (renderDivisions(), 02-: state.divisions, then any other generated division
+// such as the team event; the divisions on this court, split ones and a team event on both).
+function ksmCourtDivisionList(court){
+  const all=[...new Set([...state.divisions,...Object.keys(state.allMatches||{})])].filter(Boolean);
+  return all.filter(d=>{const c=state.divisionCourts[d]||'A';return c===court||c==='split'||(d==='Team Tournament'&&(state.divisionCourts[d]||'Both')==='Both')});
+}
+// A division has a match ready to play on the court (as findNextForCourt() picks one): generated,
+// not finished, and not waiting for the other court.
+function ksmDivisionReadyOnCourt(d,court){
+  return (state.allMatches?.[d]||[]).some(m=>isValidMatchObject(m)&&individualMatchReady(m)&&matchBelongsToCourt(m,court));
+}
+// Owner decision 7 / #31: the division a court continues to after `current`: the next one in the
+// court's list that has a match ready on the court (after `current`, then from the top), or null.
+function ksmNextCourtDivision(court,current){
+  const list=ksmCourtDivisionList(court),i=list.indexOf(current);
+  const order=i<0?list:[...list.slice(i+1),...list.slice(0,i)];
+  return order.find(d=>d!==current&&ksmDivisionReadyOnCourt(d,court))||null;
 }
 
 // ---------- Queue and context panels ----------

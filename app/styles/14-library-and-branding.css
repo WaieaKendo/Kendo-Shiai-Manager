@@ -30,4 +30,11 @@ body.ksm-tv .tv3-row-score .tv3-hansoku{display:inline;margin:0 12px;font-size:2
 .setup-division-move{display:inline-flex;gap:4px;margin-right:8px;vertical-align:middle}
 .setup-move-btn{min-height:32px;min-width:32px;padding:2px 8px;border-radius:8px;font-size:14px;line-height:1}
 .setup-move-btn:disabled{opacity:.35;cursor:default}
+/* Decision 7 / #31: the court screen's "<Division> is complete" box (Continue, Keep showing results,
+   Close TV results); a spectator's court screen has no controls. */
+.court-continue-box{margin:0 0 14px;text-align:left;color:var(--ink)}
+.court-continue-message{font-weight:800}
+.court-continue-done{margin-top:8px;color:var(--muted);font-weight:700}
+.court-continue-actions{margin-top:10px}
+body.ksm-spectator .court-continue-box{display:none!important}
 /* ksm:post-split-end */
