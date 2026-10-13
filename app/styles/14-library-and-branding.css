@@ -79,4 +79,25 @@ body.ksm-spectator .court-config{display:none!important}
 .court-config-option input{width:22px;height:22px;min-height:0;padding:0;margin:0;accent-color:var(--red)}
 .court-config-link{display:block;width:100%;min-height:44px;background:transparent;border:0;color:var(--muted);font-weight:700;text-decoration:underline;text-align:left;padding:0}
 @media(max-width:720px){.court-config{position:relative;top:auto;right:auto;justify-content:center;margin-top:6px}.court-config-panel{right:50%;transform:translateX(50%)}}
+/* #38: the court's four action buttons share one row in phone landscape; a tied pool bout's
+   "(Hikiwake)" is a smaller second line so the label never widens the button. */
+.next-match-btn > span:last-child{display:inline-block !important}
+.next-match-btn .next-sub{font-weight:800}
+@media (orientation:landscape) and (max-height:560px) and (max-width:980px){
+  #score .bottom-action-row{grid-template-columns:repeat(4,minmax(0,1fr)) !important;gap:5px !important}
+  #score .bottom-action-row .next-match-btn > span:last-child{display:block !important;min-width:0;text-align:left;line-height:1.05;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #score .bottom-action-row .next-match-btn > span:last-child .next-sub{display:block !important;font-size:8px;line-height:1}
+  #score .bottom-action-row button,#score .bottom-action-row .primary{overflow:hidden}
+  /* the absolutely placed heading stack (title, division, bout line + rule tag) gets its own room above the scores */
+  #score .scoreboard-header{min-height:62px !important}
+  /* the rule tag stays on the bout line's row, small, so the heading stack does not grow into the scores */
+  #score .sk-match-line-row{flex-wrap:nowrap;gap:5px;margin-top:1px}
+  #score .sk-match-line-row .sk-match-line{margin-top:0 !important}
+  #score .court-rule-tag{padding:0 7px;font-size:8px;line-height:11px;border-width:1px;letter-spacing:.02em}
+  #score .court-encho-note{margin-top:2px;padding:2px 10px;font-size:10px;line-height:1.1;border-width:1px;white-space:nowrap;overflow-wrap:normal}
+  /* Configure court stays at the header's right edge (the 720px portrait rule would centre it over the heading) */
+  #score .court-config{position:absolute;top:0;right:0;margin:0;justify-content:flex-end}
+  #score .court-config-panel{right:0;transform:none}
+  #score .court-config-btn{min-height:30px;padding:2px 10px;font-size:11px}
+}
 /* ksm:post-split-end */

@@ -9,7 +9,7 @@ import {
   STATIC_ACTIONS, courtActionsView, fusenButtonView, scoreButtons,
   type CourtActionsInput, type ScoreButton, type Side,
 } from './actions-model.ts';
-import { EMPTY_SCOREBOARD, nextMatchView, type ScoreboardInput } from './scoreboard-model.ts';
+import { EMPTY_SCOREBOARD, HIKIWAKE_NEXT_LABEL, nextMatchView, type ScoreboardInput } from './scoreboard-model.ts';
 
 export const ACTIONS_EVENT = 'ksm:court-actions';
 
@@ -107,7 +107,9 @@ export function CourtActions({ icons = DEFAULT_COURT_ACTION_ICONS }: { icons?: C
       </button>
       <button className="primary next-match-btn action-btn" onClick={() => w().nextMatch?.()} disabled={next.disabled} data-testid="next-match">
         <span className="action-symbol next-symbol" aria-hidden="true">{icons.next}</span>
-        <span>{next.label}</span>
+        <span>
+          {next.label === HIKIWAKE_NEXT_LABEL ? <>Next Match <small className="next-sub">(Hikiwake)</small></> : next.label}
+        </span>
       </button>
     </>
   );
