@@ -324,6 +324,7 @@ async function ksmConfirmDeleteTournament(){
     if(response.ok){
       ksmForgetTournament(id);
       closeCloudModal();
+      ksmLeaveTournamentAddress();
       showHomePage();
       showKsmToast('Tournament deleted',4000);
       return;
@@ -368,6 +369,12 @@ function ksmForgetTournament(id){
   setSessionRole('spectator');
   renderPersistentSaveStatus();
 }
+// A TV (body.ksm-tv, /t/<id>/tv/a) or any device on the deleted tournament's address leaves it:
+// out of TV mode and back to / , so the Library is visible and a reload doesn't reopen the TV view.
+function ksmLeaveTournamentAddress(){
+  document.body.classList.remove('ksm-tv');
+  if(location.pathname!=='/'||location.search)history.replaceState(null,'','/');
+}
 // The unload autosave (21) writes the screens' leftover data back as this device's autosave, which
 // the next start offers to restore: not for a tournament deleted here, while the Library is shown.
 var ksmForgotTournament=false;
@@ -382,6 +389,7 @@ function ksmTournamentGone(id,fromLoad){
   if(!id||ksmDeletingTournamentId===id||(id!==cloudSession.tournamentId&&!fromLoad))return false;
   ksmForgetTournament(id);
   closeCloudModal();
+  ksmLeaveTournamentAddress();
   showHomePage();
   showKsmToast('This tournament was deleted',8000,true);
   return true;

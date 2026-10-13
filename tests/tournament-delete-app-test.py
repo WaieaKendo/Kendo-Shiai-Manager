@@ -192,6 +192,10 @@ def main():
             print_delete_diagnostics(director, trace)
             raise
 
+        # ------------------------------------------------ a TV is showing the tournament
+        tv = KsmApp.open_device(browser, base, 'TV', problems, app_path(tid, 'tv', 'A'))
+        tv.wait_for(lambda: tv.page.evaluate("document.body.classList.contains('ksm-tv')"), message='the TV in TV mode')
+
         # ------------------------------------------------ the offline device loses its connection
         later.page.context.set_offline(True)
 
@@ -220,6 +224,12 @@ def main():
         director.wait_for(lambda: director.library_names() == ['Keep Cup'], message='the Library after a reload')
 
         # ------------------------------------------------ a connected device is told
+        # The TV leaves TV mode too (external review of #39): the Library is shown, not a stale TV screen.
+        tv.wait_for_library()
+        tv.wait_toast('This tournament was deleted')
+        tv.wait_for(lambda: not tv.page.evaluate("document.body.classList.contains('ksm-tv')"), message='the TV to leave TV mode')
+        assert tv.visible_view() == ['home'], tv.visible_view()
+        assert tv.page.evaluate('location.pathname') == '/', tv.page.evaluate('location.pathname')
         spectator.wait_for_library()
         spectator.wait_toast('This tournament was deleted')
         assert spectator.visible_view() == ['home'] and spectator.tournament_id() is None
