@@ -214,11 +214,15 @@ function replayPendingCourtHistory(actions,undoLog,localState,rebasedState,serve
  * Applies an Undo/Redo's match changes by identity (recordCourtUndoLog()'s matchOps, 10-) to the server copy, wherever its
  * matches are now (another device may have inserted or moved matches meanwhile): the removed matches are taken out, the
  * inserted ones put back after the match they followed (at the end when it is gone; never twice), the others' fields set.
+ * Also used by an ordinary Undo/Redo on the device (applyCourtHistoryEntry(), 10-). Returns {applied: the field patches set,
+ * at the index they were set at; skipped: how many were not, their match being gone}.
  */
 function replayCourtMatchOps(targetState,matchOps){
+  const applied=[];let skipped=0;
   Object.entries(matchOps||{}).forEach(([div,op])=>{
     const arr=targetState?.allMatches?.[div];
-    if(!Array.isArray(arr)||!op)return;
+    if(!op)return;
+    if(!Array.isArray(arr)){skipped+=(op.patches||[]).length;return}
     const indexOf=identity=>identity?arr.findIndex(match=>matchHasSyncIdentity(match,identity)):-1;
     (op.remove||[]).forEach(identity=>{const i=indexOf(identity);if(i>=0)arr.splice(i,1)});
     (op.insert||[]).forEach(({after,match})=>{
@@ -228,9 +232,12 @@ function replayCourtMatchOps(targetState,matchOps){
     });
     (op.patches||[]).forEach(patch=>{
       const i=indexOf(patch?.matchIdentity);
-      if(i>=0)applyPatchToStateObject(targetState,{...patch,path:['allMatches',div,i,...(patch.path||[]).slice(3)]});
+      if(i<0){skipped++;return}
+      const resolved={...patch,path:['allMatches',div,i,...(patch.path||[]).slice(3)]};
+      if(applyPatchToStateObject(targetState,resolved))applied.push(resolved);else skipped++;
     });
   });
+  return {applied,skipped};
 }
 /**
  * The Undo/Redo stacks after a rebase: both devices' entries, but an action undone here stays undone (F30) and a redone one stays redone.

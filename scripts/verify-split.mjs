@@ -136,8 +136,10 @@ const KNOWN_POST_SPLIT_EDITS = {
   // replayPendingCourtHistory(), mergeCourtHistoryStacks() and their two call sites). PR #33 review:
   // undo() and redo() also keep the touched divisions' matches before they apply (courtUndoMatchesBefore()),
   // so an Undo/Redo that inserts or removes matches is logged and replayed by identity; performCourtAction()
-  // records the same for a court action (withCourtMatchOps()).
-  'history-replay': 10,
+  // records the same for a court action (withCourtMatchOps()). PR #33 review: an ordinary Undo/Redo applies
+  // its patches by match identity (applyCourtHistoryEntry(), two replacements in applyHistoryValues()) and
+  // undo()/redo() note a part not applied in their status (two replacements).
+  'history-replay': 14,
   // fix/pre-event-2 (F27): maybeCreateTeamTiebreak() (13) also adds a team round robin's daihyosen
   // (KSMEngine.teamRoundRobinTiebreakPlan) when teams are level for 1st-3rd.
   'team-rr-daihyosen': 1,
