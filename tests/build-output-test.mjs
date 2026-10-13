@@ -47,8 +47,8 @@ for (const page of pages) {
   const html = fs.existsSync(path.join(DIST_DIR, page)) ? dist(page) : '';
   const scripts = [...html.matchAll(/<script\b[^>]*>/g)].map(m => m[0]);
   const modules = scripts.map(tag => tag.match(/type="module"[^>]*src="\/(assets\/[\w.-]+\.js)"/)?.[1]);
-  check(html && scripts.length && modules.every(f => f && fs.existsSync(path.join(DIST_DIR, f))),
-    `dist/${page}: built, only bundled module scripts (${scripts.length})`);
+  check(html && (page === 'privacy.html' ? scripts.length === 0 : scripts.length > 0) && modules.every(f => f && fs.existsSync(path.join(DIST_DIR, f))),
+    `dist/${page}: built, script-free privacy page or only bundled module scripts (${scripts.length})`);
   check(html && !html.includes('/assets/app-') && !html.includes('/assets/engine-') && modules.every(f => f && !dist(f).includes('function performCourtAction(')), `dist/${page}: does not load the classic app bundle`);
 }
 // Path URLs (M.9): the app shell answers /, /index.html and /t/... (servesAppShell(), checked

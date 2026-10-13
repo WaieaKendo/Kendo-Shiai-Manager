@@ -262,6 +262,7 @@ const KNOWN_POST_SPLIT_CSS_EDITS = {
   // (#31), the court's Continue box (7), between matches (6), read-only awards (8), the sample
   // buttons only with the test tools on (20), the daihyosen label (D1).
   'owner-decisions': 1,
+  'privacy-footer': 1,
 };
 // Old functions whose body now lives in app/engine/*.ts (parameter lists without braces).
 const MOVED_TO_ENGINE = [
@@ -502,6 +503,7 @@ const MARKUP_EDITS = [
   // feat/owner-decisions (decision 17): Paste from Excel explains the paste (ksmPasteHelp(), 43-).
   ['<button onclick="alert(\'Paste rows directly into the table from Excel.\')" data-testid="reg-paste-excel">', '<button onclick="ksmPasteHelp()" data-testid="reg-paste-excel">'],
   ['<h2 id="fusenTitle">Fusen-gachi</h2>', '<h2 id="fusenTitle">Fusen-sho</h2>'],
+  ['</main>', '<footer class="privacy-footer no-print"><a href="/privacy" data-testid="privacy-link">Privacy</a></footer>\n</main>'],
   ['<button class="danger" onclick="state.teams=[];renderTeams()" data-testid="team-clear">', '<button class="danger" onclick="clearTeams()" data-testid="team-clear">'],
   ['<button class="danger" onclick="state.exhibitions=[];renderExhibitions()" data-testid="exhibition-clear">', '<button class="danger" onclick="clearExhibitions()" data-testid="exhibition-clear">'],
 ];
