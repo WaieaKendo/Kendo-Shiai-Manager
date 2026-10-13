@@ -50,4 +50,6 @@ body.ksm-tv .tv3-waiting-reason{font-size:40px;line-height:1.1;font-weight:700;c
 .award-view-row:first-child{border-top:0}
 /* Decision 20: the sample-data buttons only with this device's test tools on (Developer Tools). */
 body:not(.ksm-test-tools) :is([data-testid="reg-load-samples"],[data-testid="team-load-samples"],[data-testid="reg-load-sample-tournament"],button[onclick="addAutoTeam()"]){display:none!important}
+/* D1: a team round robin's daihyosen bout on the court screen ("Daihyosen — first point wins"). */
+.scoreboard-score-row .court-bout-rule{grid-column:1/-1;justify-self:center;margin-top:6px;padding:4px 14px;border:1px solid var(--line-strong,var(--line));border-radius:999px;background:var(--ivory);color:var(--ink);font-size:14px;font-weight:800;letter-spacing:.04em}
 /* ksm:post-split-end */

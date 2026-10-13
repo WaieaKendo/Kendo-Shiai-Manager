@@ -32,11 +32,17 @@
 // does not load, the court screen shows a notice (the end of this file).
 // Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
+// D1 (owners' decision on F27): a team round robin's daihyosen bout is labelled on the court
+// screen, Live Scores and the TV. It still ends with Next Match (no automatic end at the point).
+// (A function, not a const: app.js publishes before this file's top level has run.)
+function ksmDaihyosenLabel(){return 'Daihyosen — first point wins'}
+function ksmIsRoundRobinDaihyosen(m){return !!(m&&m.roundRobinTiebreak&&m.type==='teamPlayoff')}
 function ksmScoreboardInput(m){
   if(!m)return {match:null,score:{W:[],R:[],WT:0,RT:0},representatives:null};
   const s=state.score||{};
   const score={W:[...(s.W||[])],R:[...(s.R||[])],WT:s.WT||0,RT:s.RT||0};
-  const match={white:m.white,red:m.red,wdojo:m.wdojo,rdojo:m.rdojo,teamWhite:m.teamWhite,teamRed:m.teamRed,type:m.type};
+  const match={white:m.white,red:m.red,wdojo:m.wdojo,rdojo:m.rdojo,teamWhite:m.teamWhite,teamRed:m.teamRed,type:m.type,
+    ...(ksmIsRoundRobinDaihyosen(m)?{rule:ksmDaihyosenLabel()}:{})};
   if(m.type!=='teamPlayoff')return {match,score,representatives:null};
   // As repSelect(): the roster and permission come from the match at state.current.
   const current=state.matches[state.current],playoff=current&&current.type==='teamPlayoff';

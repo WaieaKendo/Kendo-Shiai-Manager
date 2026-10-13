@@ -39,7 +39,8 @@ function ksmLiveScoresCourt(court){
     return {court:ksmText(court),kind:'idle',...ksmBetweenFields(court,own,between,false)};
   }
   const m=data.match,next=data.next,meta=audienceMeta(m);
-  const base={court:ksmText(court),meta:{division:ksmText(meta.division),line:ksmText(meta.line)}};
+  // D1: a team round robin's daihyosen bout is labelled as its line.
+  const base={court:ksmText(court),meta:{division:ksmText(meta.division),line:ksmIsRoundRobinDaihyosen(m)?ksmDaihyosenLabel():ksmText(meta.line)}};
   if(m.type==='teamPosition'||m.type==='teamPlayoff'||m.type==='kachinuki'){
     // Quirk pass: "Next" is the court's next pairing, as the TV's Upcoming shows it
     // (tvUpcomingMatches(), 25-), not the next bout of the pairing being fought.

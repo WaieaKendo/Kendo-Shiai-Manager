@@ -48,7 +48,8 @@ function ksmTvKachinuki(vm){
 // (or, for Final Results, the "Division Complete" footer).
 function ksmTvDisplayInput(court){
   const vm=buildTV3ViewModel(court);
-  const header={court:ksmText(vm.court),division:ksmText(vm.meta?.division||vm.division||'No active match'),meta:ksmText(vm.meta?.line||'')};
+  // D1: a team round robin's daihyosen bout is labelled as the header's match line.
+  const header={court:ksmText(vm.court),division:ksmText(vm.meta?.division||vm.division||'No active match'),meta:ksmIsRoundRobinDaihyosen(vm.match)?ksmDaihyosenLabel():ksmText(vm.meta?.line||'')};
   if(vm.empty){
     // Owner decision 6: "Waiting for the next match" (with the reason when known) while the court's
     // division waits; "Up next on this court" (the next division's first matches) in Upcoming.

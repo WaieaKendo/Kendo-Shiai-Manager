@@ -9,7 +9,10 @@
 
 export type Side = 'W' | 'R';
 
-export type ScoreboardMatch = Pick<Match, 'white' | 'red' | 'wdojo' | 'rdojo' | 'teamWhite' | 'teamRed' | 'type'>;
+export type ScoreboardMatch = Pick<Match, 'white' | 'red' | 'wdojo' | 'rdojo' | 'teamWhite' | 'teamRed' | 'type'> & {
+  /** D1: a team round robin's daihyosen bout: "Daihyosen — first point wins". */
+  rule?: string;
+};
 
 export interface RepresentativeInput {
   /** The side's team (m.teamWhite / m.teamRed). */
@@ -53,6 +56,8 @@ export interface SideView {
 export interface ScoreboardView {
   white: SideView;
   red: SideView;
+  /** D1: the bout's rule label, only for a team round robin's daihyosen. */
+  rule?: string;
 }
 
 export const EMPTY_SCOREBOARD: ScoreboardInput = { match: null, score: { W: [], R: [], WT: 0, RT: 0 }, representatives: null };
@@ -88,5 +93,5 @@ export function scoreboardView(input: ScoreboardInput): ScoreboardView {
       hansoku: '△ '.repeat((w ? input.score.WT : input.score.RT) || 0),
     };
   };
-  return { white: side('W'), red: side('R') };
+  return { white: side('W'), red: side('R'), ...(m.rule ? { rule: m.rule } : {}) };
 }
