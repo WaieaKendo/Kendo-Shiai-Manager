@@ -122,6 +122,9 @@ const KNOWN_POST_SPLIT_EDITS = {
   // the team engine moved (2.6) and its bridges pass tournamentSettings() in; 3 after
   // division generation moved (2.7).
   'engine-settings': 3,
+  // fix/pre-event-2 (#24, product owner): applyIndividualNoShow() (08) rebuilds the no-show's pool
+  // bouts in the standard order for its new size (KSMEngine.poolNoShowPlan).
+  'pool-no-show': 3,
   // feat/react-pools (M.13): the Pools view's React island (#poolOutput). With the legacy renderer
   // removed (REMOVED_POOLS_RENDERER) the bodies of renderPools() (08) and toggleEditPools() (16)
   // are marked publishers, and app/js/41-react-pools.js publishes the view and the editor as

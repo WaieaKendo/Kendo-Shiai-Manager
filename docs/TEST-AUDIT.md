@@ -62,7 +62,7 @@ Test names drop `-test.py`/`-test.mjs`; `vm` tests run extracted app code in Nod
 | G1 | Generate Tournament | `03:requestTournamentGeneration()` → `08:generatePools()` | ✅ registration-screen, e2e-full-tournament | ✅ e2e-full-tournament | ✅ e2e-full-tournament | ✅ e2e-full-tournament | ◐ conflict-merge (vm) |
 | G2 | Regenerate Single Division | `03:continueRegenerateDivision()` → `08:regenerateSingleDivision()` | ✅ registration-screen | ✅ edit-conflicts | ✅ edit-conflicts | ✅ edit-conflicts | ✅ edit-conflicts 6, 7; conflict-merge |
 | G3 | Edit Pool → Save Pool Changes | `41:ksmPoolEditToSave()` → `16:saveEditedPools()` | ✅ pool-edit-safety, golden-pools | ✅ structural-edit-conflict | ✅ structural-edit-conflict | ✗ | ✅ structural-edit-conflict (F10) |
-| G4 | No Show after generation (player: pool rebuilt; team: pairings removed) | `08:applyIndividualNoShow()/applyWholeTeamNoShow()` | ✅ tournament-management-engine, edit-sync | ✅ edit-sync | ✅ edit-sync | ✅ edit-sync | ✗ |
+| G4 | No Show after generation (player: pool rebuilt in the standard order for its new size, #24; team: pairings removed) | `08:applyIndividualNoShow()/applyWholeTeamNoShow()` | ✅ tournament-management-engine, edit-sync, engine/pools, no-show-pool-order | ✅ edit-sync | ✅ edit-sync | ✅ edit-sync | ✗ |
 
 ### Awards, files, library
 

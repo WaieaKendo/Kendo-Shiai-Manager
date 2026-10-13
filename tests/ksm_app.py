@@ -621,6 +621,22 @@ class KsmApp:
           p.querySelector('[data-testid="pool-title"]').textContent.replace(/^(Team )?Pool\\s*/, '').trim(),
           [...p.querySelectorAll('[data-testid="pool-player"]')].map(x => x.textContent.trim())]))""")
 
+    def pool_slots(self, division):
+        """Registration -> Pools for `division`: {pool label: [[slot letter, player name], ...]}."""
+        self.pools(division)
+        return self.page.evaluate("""() => Object.fromEntries([...document.querySelectorAll('[data-testid="pool"]')].map(p => [
+          p.querySelector('[data-testid="pool-title"]').textContent.replace(/^(Team )?Pool\\s*/, '').trim(),
+          [...p.querySelectorAll('[data-testid="pool-slot"]')].map(x => [x.textContent.trim(),
+            x.parentElement.querySelector('[data-testid="pool-player"]').textContent.trim()])]))""")
+
+    def court_pool_bouts(self):
+        """Court screen, the pool cards beside the scoreboard: {pool card title: [[white, red], ...]}
+        in the order the court plays them."""
+        return self.page.evaluate("""() => Object.fromEntries([...document.querySelectorAll('#courtContext [data-testid="context-pool"]')].map(card => [
+          card.querySelector('[data-testid="context-pool-title"]').textContent.trim(),
+          [...card.querySelectorAll('.match-name.white')].map(w => [w.textContent.trim(),
+            w.parentElement.querySelector('.match-name.red').textContent.trim()])]))""")
+
     def pool_edit_move(self, to_pool=1):
         """Edit Pool (open on the Pools view): drag the editor's first player onto pool `to_pool`.
 

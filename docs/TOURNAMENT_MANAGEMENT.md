@@ -134,5 +134,5 @@ Once a tiebreak series uniquely secures an advancing seed, that seed is frozen. 
 
 - A two-person tiebreak for first place owns and resolves both advancing placements: winner to Seed 1 and loser to Seed 2.
 - A tiebreak at the second-place boundary owns only Seed 2 and cannot alter an already secured Seed 1.
-- Structural no-show handling removes only matches involving the absent entrant. Surviving pool Match Objects retain their original template order, pool identity, and court assignment.
+- Structural no-show handling changes only the absent entrant's pool (#24, product owner): before any of that pool's bouts is played, its bouts are rebuilt in the standard order for the new size (3 players: A–B, C–B, C–A, so nobody changes tasuki between consecutive bouts), in the pool's place and on its court, and the remaining players keep their slot letters. Every other Match Object (other pools, the championship template) retains its template order, pool identity and court assignment. A pool with a played bout is not restructured.
 - Championship seed-pair mappings are frozen at generation. A no-show does not select a different championship template, including the native six-competitor 3+3 configuration.

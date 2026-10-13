@@ -3,9 +3,9 @@
 // directly. Add each moved module's exports here.
 export {
   poolSizes, clubGroup, shuffleDeterministic, poolPlayerSlotLetter, poolPlayerSlot,
-  assignPoolPlayerSlots, buildPools, poolMatchPairs, buildPoolMatches,
+  assignPoolPlayerSlots, buildPools, poolMatchPairs, buildPoolMatches, poolNoShowPlan,
 } from './pools.ts';
-export type { PoolEntrant, SlottedPlayer, BuiltPool, PoolMatch } from './pools.ts';
+export type { PoolEntrant, SlottedPlayer, BuiltPool, PoolMatch, PoolNoShowMatch } from './pools.ts';
 export { readSettings, DEFAULT_SETTINGS } from './settings.ts';
 export type { TournamentSettings } from './settings.ts';
 export {
