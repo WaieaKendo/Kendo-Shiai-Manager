@@ -43,10 +43,15 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       - name: The pass-through answers like production
+        # PRODUCTION_URL: the production Worker's workers.dev address, a repository variable
+        # (Settings -> Secrets and variables -> Actions -> Variables).
+        env:
+          PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
         run: |
+          if [ -z "$PRODUCTION_URL" ]; then echo "::error::the repository variable PRODUCTION_URL is not set (Settings -> Secrets and variables -> Actions -> Variables)"; exit 1; fi
           for i in $(seq 1 12); do
             via=$(curl -s -m 10 https://ksm-tournament.pages.dev/api/health || true)
-            direct=$(curl -s -m 10 https://kendoshiaimanager-cloud-staging.samanthakodamaworkersdev.workers.dev/api/health || true)
+            direct=$(curl -s -m 10 "$PRODUCTION_URL/api/health" || true)
             echo "pass-through: $via"; echo "production:   $direct"
             if [ -n "$via" ] && [ "$via" = "$direct" ]; then exit 0; fi
             sleep 10
