@@ -10,7 +10,8 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                       (00-path-urls.js: path URLs, M.9: an old ?tournament= link becomes its
                       path first, ksmLinkParams()/ksmLinkUrl(); 00-react-bridge.js: the
                       ksm:state-changed event for React islands)
-  *.html              Extra pages other than index.html (Vite entries, React, no app.js):
+  *.html              Extra pages other than index.html (Vite entries, no app.js):
+                        privacy.html = /privacy, static privacy notice (no JavaScript)
                         overlay.html = /t/<id>/overlay/a|b (and /overlay), the stream overlay
   react/              React + strict TypeScript ES modules (own tsconfig.json):
                         island.tsx (mountIsland), legacy-bridge.ts (useLegacyState),
