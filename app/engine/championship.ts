@@ -166,7 +166,8 @@ export function poolSeedResolution(pool: StandingsPool | null | undefined, poolL
       const ordered = resolved.ordered || [];
       for (let offset = 0; offset < ordered.length; offset++) {
         const place = start + offset;
-        if (place <= req && !resolved.unresolved.some(x => x.name === ordered[offset]!.name)) seeds[place] = ordered[offset]!;
+        // Only a player its tiebreaks placed (F26: players still level behind them are not seeds yet).
+        if (place <= req && resolved.locked.some(x => x.name === ordered[offset]!.name)) seeds[place] = ordered[offset]!;
       }
       // A fully resolved two-person tie for first explicitly owns both Seed 1
       // and Seed 2; a tie at the advancement boundary owns only that boundary.

@@ -192,3 +192,46 @@ export function buildPoolMatches<C>(
   });
   return matches;
 }
+
+/** The fields of a division's match that a pool no-show reads. */
+export interface PoolNoShowMatch<C> {
+  pool?: string | undefined;
+  championship?: boolean | undefined;
+  done?: boolean | undefined;
+  court?: C | undefined;
+}
+
+type NoShowPlayer = { name: string; dojo: string; poolSlot?: string | undefined };
+
+/**
+ * A no-show in a round-robin pool none of whose bouts has been played (issue #24, product
+ * owner): the player leaves the pool and the pool's bouts are rebuilt in the standard order for
+ * its new size (poolMatchPairs; 3 players: A–B, C–B, C–A, so nobody changes tasuki between
+ * consecutive bouts), each remaining player keeping its pool slot letter. The new bouts take the
+ * old bouts' place in the division's match list and their court; other pools, the championship
+ * template and every other match are unchanged (the same objects). `players` are the remaining
+ * players as copies carrying their slot. Null when nobody of that name is in a pool, or when a
+ * bout of the pool is done (a started pool is not restructured; the court handles the absence
+ * with Fusen-gachi).
+ */
+export function poolNoShowPlan<C, P extends NoShowPlayer, M extends PoolNoShowMatch<C>>(
+  div: string,
+  pools: readonly { label: string; players?: readonly P[] | null | undefined }[] | null | undefined,
+  matches: readonly M[],
+  name: string,
+): { poolIndex: number; players: SlottedPlayer<P>[]; matches: (M | PoolMatch<C>)[] } | null {
+  const poolIndex = (pools || []).findIndex(p => (p.players || []).some(x => x.name === name));
+  const pool = pools?.[poolIndex];
+  if (!pool) return null;
+  const own = (m: M) => !m.championship && m.pool === pool.label;
+  if (matches.some(m => own(m) && m.done)) return null;
+  const players = (pool.players || [])
+    .map((player, index) => ({ ...player, poolSlot: poolPlayerSlot(player, index), poolSlotIndex: index }))
+    .filter(player => player.name !== name);
+  const first = matches.findIndex(own);
+  const court = matches[first]?.court as C;
+  const rebuilt = buildPoolMatches(div, [{ label: pool.label, players }], [court]).map(m => ({ ...m, poolOrder: poolIndex }));
+  const kept: (M | PoolMatch<C>)[] = matches.filter(m => !own(m));
+  kept.splice(first < 0 ? kept.length : matches.slice(0, first).filter(m => !own(m)).length, 0, ...rebuilt);
+  return { poolIndex, players, matches: kept };
+}

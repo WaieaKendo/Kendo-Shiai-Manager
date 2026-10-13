@@ -163,10 +163,18 @@ def scenario_no_show_matrix(page, n: int, court: str) -> int:
     checks = 0
     for removed in range(n):
         reset_individual(page, n, "Round Robin", court)
-        before = page.evaluate(
-            """()=>state.allMatches.Test.map((m,i)=>({i,pool:m.pool,white:m.white,red:m.red,championship:!!m.championship,key:individualLogicalMatchKey(m)}))"""
-        )
         name = f"P{removed+1}"
+        # #24: the no-show's pool is rebuilt in the standard order for its new size (in the pool's
+        # place, the remaining players in slot order); every other match keeps its order.
+        before = page.evaluate(
+            """name=>{const pool=state.pools.Test.find(p=>p.players.some(x=>x.name===name));const rest=pool.players.filter(x=>x.name!==name);
+              const rebuilt=poolMatchPairs(rest.length).map(([w,r])=>({pool:pool.label,white:rest[w].name,red:rest[r].name,championship:false,key:null}));
+              const out=[];let placed=false;state.allMatches.Test.forEach(m=>{
+                if(!m.championship&&m.pool===pool.label){if(!placed){out.push(...rebuilt);placed=true}return}
+                out.push({pool:m.pool,white:m.white,red:m.red,championship:!!m.championship,key:individualLogicalMatchKey(m)});
+              });return out}""",
+            name,
+        )
         applied = page.evaluate("name=>applyIndividualNoShow('Test',name)", name)
         assert applied, f"No-show rejected for {name}"
         after = page.evaluate(

@@ -171,6 +171,97 @@ function pendingLocalCourtActionsForRebase(localPayload,serverRecord,originalBas
   const remoteKeys=new Set(remoteEntries.map(historyEntryIdentity));
   return localEntries.filter(action=>action?.format==='patch-v1'&&action.clientId===cloudSession.clientId&&Number(action.revision||0)>=Number(originalBaseRevision||0)&&!remoteKeys.has(historyEntryIdentity(action)));
 }
+/* ksm:post-split-begin history-replay */
+// F30: this device's Undo/Redo since the save's base revision (10-, recordCourtUndoLog()) that the
+// server copy does not have yet.
+function undoLogEntryIdentity(entry){return [entry?.clientId||'',entry?.when||'',entry?.court||'',entry?.kind||'',entry?.target||''].join('|')}
+function pendingLocalUndoLogForRebase(localPayload,serverRecord,originalBaseRevision,court){
+  const local=localPayload?.state?.courtUndoLog?.[court]||[],remote=serverRecord?.payload?.state?.courtUndoLog?.[court]||[];
+  const remoteKeys=new Set(remote.map(undoLogEntryIdentity));
+  return local.filter(entry=>entry?.format==='history-op-v1'&&entry.clientId===cloudSession.clientId&&Number(entry.revision||0)>=Number(originalBaseRevision||0)&&!remoteKeys.has(undoLogEntryIdentity(entry)));
+}
+/**
+ * Replays this device's pending court actions and Undo/Redo onto `rebasedState` (the server copy) in
+ * the order they happened. An Undo applies its action's patches backwards only while the server copy
+ * holds the action (in its Undo stack, or replayed here); a Redo applies them forwards only while
+ * the server copy has it undone (in its Redo stack, or undone here). So an Undo of a point the server
+ * never had (it was undone before it was saved) changes nothing, and nothing is applied twice.
+ */
+function replayPendingCourtHistory(actions,undoLog,localState,rebasedState,serverState,court){
+  const applied=new Set((serverState?.courtActionHistory?.[court]||[]).map(historyEntryIdentity));
+  const undone=new Set((serverState?.courtRedoHistory?.[court]||[]).map(historyEntryIdentity));
+  const apply=patch=>{const resolved=resolveRebasePatch(localState,rebasedState,patch);if(resolved)applyPatchToStateObject(rebasedState,resolved)};
+  const steps=[...actions.map(entry=>({entry,op:null})),...undoLog.map(entry=>({entry,op:entry.kind}))]
+    .map((step,i)=>({...step,i})).sort((a,b)=>String(a.entry.when||'').localeCompare(String(b.entry.when||''))||a.i-b.i);
+  steps.forEach(({entry,op})=>{
+    const patches=entry.patches||[];
+    // A division whose matches the action or the Undo/Redo inserted or removed is replayed by identity (entry.matchOps), not by its index patches.
+    const matchOps=entry.matchOps&&typeof entry.matchOps==='object'?entry.matchOps:null;
+    const byIndex=patch=>!(matchOps&&patch?.path?.[0]==='allMatches'&&Object.prototype.hasOwnProperty.call(matchOps,patch.path[1]));
+    if(!op){patches.filter(byIndex).forEach(apply);if(matchOps)replayCourtMatchOps(rebasedState,matchOps);const id=historyEntryIdentity(entry);applied.add(id);undone.delete(id);return}
+    if(op==='UNDO'&&applied.has(entry.target)){
+      [...patches].reverse().filter(byIndex).forEach(patch=>apply({...patch,before:patch.after,after:patch.before}));
+      if(matchOps)replayCourtMatchOps(rebasedState,matchOps);
+      applied.delete(entry.target);undone.add(entry.target);
+    }else if(op==='REDO'&&undone.has(entry.target)){
+      patches.filter(byIndex).forEach(apply);
+      if(matchOps)replayCourtMatchOps(rebasedState,matchOps);
+      undone.delete(entry.target);applied.add(entry.target);
+    }
+  });
+}
+/**
+ * Applies an Undo/Redo's match changes by identity (recordCourtUndoLog()'s matchOps, 10-) to the server copy, wherever its
+ * matches are now (another device may have inserted or moved matches meanwhile): the removed matches are taken out, the
+ * inserted ones put back after the match they followed (at the end when it is gone; never twice), the others' fields set.
+ * Also used by an ordinary Undo/Redo on the device (applyCourtHistoryEntry(), 10-). Returns {applied: the field patches set,
+ * at the index they were set at; skipped: how many were not, their match being gone}.
+ */
+function replayCourtMatchOps(targetState,matchOps){
+  const applied=[];let skipped=0;
+  Object.entries(matchOps||{}).forEach(([div,op])=>{
+    const arr=targetState?.allMatches?.[div];
+    if(!op)return;
+    if(!Array.isArray(arr)){skipped+=(op.patches||[]).length;return}
+    const indexOf=identity=>identity?arr.findIndex(match=>matchHasSyncIdentity(match,identity)):-1;
+    (op.remove||[]).forEach(identity=>{const i=indexOf(identity);if(i>=0)arr.splice(i,1)});
+    (op.insert||[]).forEach(({after,match})=>{
+      if(!isValidMatchObject(match)||indexOf(matchSyncIdentity(match))>=0)return;
+      const anchor=after?indexOf(after):-1;
+      arr.splice(after?(anchor>=0?anchor+1:arr.length):0,0,cloneJson(match));
+    });
+    (op.patches||[]).forEach(patch=>{
+      const i=indexOf(patch?.matchIdentity);
+      if(i<0){skipped++;return}
+      const resolved={...patch,path:['allMatches',div,i,...(patch.path||[]).slice(3)]};
+      if(applyPatchToStateObject(targetState,resolved))applied.push(resolved);else skipped++;
+    });
+  });
+  return {applied,skipped};
+}
+/**
+ * The Undo/Redo stacks after a rebase: both devices' entries, but an action undone here stays undone (F30) and a redone one stays redone.
+ * This device's stacks are the truth for its own entries: one of its entries that the server copy still lists but its own stacks
+ * no longer hold was taken off here (undone, redone, or its Redo dropped by a new action), so it is not offered again. Only another
+ * device's entries for this court (a replaced tablet) are added from the server copy.
+ * The Undo stack is in the order the actions happened (merged by time). The Redo stack is in Undo order (the last undone on top),
+ * not by action time (external PR #33 review: sorted by time, Redo after two Undos redid the earlier point first and lost one):
+ * this device's Redo stack is kept as it is, in its order, with the other device's entries below it in the server's order, so a
+ * Redo first redoes this device's latest Undo.
+ */
+function mergeCourtHistoryStacks(rebasedState,localState,court){
+  const localDoneList=(localState.courtActionHistory?.[court]||[]).filter(e=>e?.format==='patch-v1');
+  const localUndoneList=(localState.courtRedoHistory?.[court]||[]).filter(e=>e?.format==='patch-v1');
+  const localDone=new Set(localDoneList.map(historyEntryIdentity)),localUndone=new Set(localUndoneList.map(historyEntryIdentity));
+  const fromOtherDevice=e=>e?.format==='patch-v1'&&e.clientId!==cloudSession.clientId&&!localDone.has(historyEntryIdentity(e))&&!localUndone.has(historyEntryIdentity(e));
+  rebasedState.courtActionHistory[court]=mergeHistoryEntries((rebasedState.courtActionHistory[court]||[]).filter(fromOtherDevice),localDoneList);
+  const seen=new Set();
+  rebasedState.courtRedoHistory[court]=[...(rebasedState.courtRedoHistory[court]||[]).filter(fromOtherDevice),...localUndoneList]
+    .filter(e=>{const id=historyEntryIdentity(e);if(seen.has(id))return false;seen.add(id);return true}).map(cloneJson).slice(-80);
+  const byKey=new Map();[...(rebasedState.courtUndoLog?.[court]||[]),...(localState.courtUndoLog?.[court]||[])].forEach(e=>{if(e?.format==='history-op-v1')byKey.set(undoLogEntryIdentity(e),e)});
+  if(byKey.size){rebasedState.courtUndoLog=rebasedState.courtUndoLog||{A:[],B:[]};rebasedState.courtUndoLog[court]=[...byKey.values()].sort((a,b)=>String(a.when||'').localeCompare(String(b.when||''))).slice(-KSM_UNDO_LOG_LIMIT)}
+}
+/* ksm:post-split-end */
 /* ksm:post-split-begin edit-merge */
 // F4: director/staff edits that are not court actions (Setup fields, registration, divisions,
 // awards) are merged three-way against the cloud copy the local edit started from, so a
@@ -332,7 +423,7 @@ function rebaseLocalPayloadOnRecord(localPayload,serverRecord,originalBaseRevisi
   rebased.state=rebased.state||{};
   const localState=localPayload?.state||{};
   const actions=pendingLocalCourtActionsForRebase(localPayload,serverRecord,originalBaseRevision);
-  actions.forEach(action=>(action.patches||[]).forEach(patch=>{const resolved=resolveRebasePatch(localState,rebased.state,patch);if(resolved)applyPatchToStateObject(rebased.state,resolved)}));
+  /* ksm:post-split-begin history-replay was:actions.forEach(action=>(action.patches||[]).forEach(patch=>{const resolved=resolveRebasePatch(localState,rebased.state,patch);if(resolved)applyPatchToStateObject(rebased.state,resolved)})); */replayPendingCourtHistory(actions,pendingLocalUndoLogForRebase(localPayload,serverRecord,originalBaseRevision,court),localState,rebased.state,serverRecord.payload?.state,court);/* ksm:post-split-end */
   sanitizeLoadedTournamentState(rebased.state,'concurrent rebase');
   normalizeAllIndividualPoolTiebreakOrder(rebased.state,'concurrent rebase');
   repairCompletedMatchResults(rebased.state,'concurrent rebase');
@@ -342,8 +433,7 @@ function rebaseLocalPayloadOnRecord(localPayload,serverRecord,originalBaseRevisi
   preserveOwnedCourtRuntimeState(rebased.state,localState,court);
   rebased.state.courtActionHistory=rebased.state.courtActionHistory||{A:[],B:[]};
   rebased.state.courtRedoHistory=rebased.state.courtRedoHistory||{A:[],B:[]};
-  rebased.state.courtActionHistory[court]=mergeHistoryEntries(rebased.state.courtActionHistory[court]||[],localState.courtActionHistory?.[court]||[]);
-  rebased.state.courtRedoHistory[court]=mergeHistoryEntries(rebased.state.courtRedoHistory[court]||[],localState.courtRedoHistory?.[court]||[]);
+  /* ksm:post-split-begin history-replay was:rebased.state.courtActionHistory[court]=mergeHistoryEntries(rebased.state.courtActionHistory[court]||[],localState.courtActionHistory?.[court]||[]);rebased.state.courtRedoHistory[court]=mergeHistoryEntries(rebased.state.courtRedoHistory[court]||[],localState.courtRedoHistory?.[court]||[]); */mergeCourtHistoryStacks(rebased.state,localState,court);/* ksm:post-split-end */
   /* ksm:post-split-begin edit-merge */noteMergeConflicts(mergeLocalEditsThreeWay(rebased,localPayload,basePayload,replayStructuralEdit(rebased,localPayload,basePayload,serverRecord.payload)));/* ksm:post-split-end */
   rebased.savedAt=new Date().toISOString();
   return rebased;

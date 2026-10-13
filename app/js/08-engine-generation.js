@@ -52,12 +52,15 @@ function applyIndividualNoShow(div,name){
     let comps=state.singleElimComps?.[div]||[];let idx=comps.findIndex(c=>c&&c.name===name);if(idx<0)return false;comps[idx]=null;state.allMatches[div]=buildIndividualSingleElimMatches(div,comps);
   }else{
     let pool=(state.pools[div]||[]).find(p=>p.players.some(x=>x.name===name));if(!pool)return false;
-    pool.players=pool.players.filter(x=>x.name!==name);pool.size=pool.players.length;
-    // Template order is immutable after generation. Remove only the affected
-    // pool matches and leave every surviving Match Object in its original slot.
-    state.allMatches[div]=(state.allMatches[div]||[]).filter(m=>
-      m.championship || m.pool!==pool.label || (m.white!==name && m.red!==name)
-    );
+    /* ksm:post-split-begin pool-no-show */
+    // #24 (product owner): the pool's bouts are rebuilt in the standard order for its new size
+    // (4 -> 3: A-B, C-B, C-A, nobody changes tasuki between consecutive bouts), the remaining
+    // players keep their slots; other pools and the championship template are unchanged
+    // (KSMEngine.poolNoShowPlan). Refused when a bout of the pool was played.
+    const plan=KSMEngine.poolNoShowPlan(div,state.pools[div]||[],state.allMatches[div]||[],name);if(!plan)return false;
+    /* ksm:post-split-end */
+    pool.players=/* ksm:post-split-begin pool-no-show was:pool.players.filter(x=>x.name!==name) */plan.players/* ksm:post-split-end */;pool.size=pool.players.length;
+    state.allMatches[div]=/* ksm:post-split-begin pool-no-show was:(state.allMatches[div]||[]).filter(m=>m.championship || m.pool!==pool.label || (m.white!==name && m.red!==name)) *//** @type {Match[]} */(plan.matches)/* ksm:post-split-end */;
     syncChampionshipTemplate(div);
   }
   initCourtStates();state.managementRevision=(state.managementRevision||0)+1;return true;

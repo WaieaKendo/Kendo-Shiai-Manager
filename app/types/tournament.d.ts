@@ -137,6 +137,8 @@ interface Match {
   lineupW?: string[];
   lineupR?: string[];
   parentTeamMatch?: boolean;
+  /** A team round robin's daihyosen (F27): a one-point representative bout between teams level for 1st–3rd. */
+  roundRobinTiebreak?: boolean;
 }
 
 /** Where a bracket side comes from: a pool seed ('A1'), an earlier node's winner, or a team number. */

@@ -122,12 +122,27 @@ const KNOWN_POST_SPLIT_EDITS = {
   // the team engine moved (2.6) and its bridges pass tournamentSettings() in; 3 after
   // division generation moved (2.7).
   'engine-settings': 3,
+  // fix/pre-event-2 (#24, product owner): applyIndividualNoShow() (08) rebuilds the no-show's pool
+  // bouts in the standard order for its new size (KSMEngine.poolNoShowPlan).
+  'pool-no-show': 3,
   // feat/react-pools (M.13): the Pools view's React island (#poolOutput). With the legacy renderer
   // removed (REMOVED_POOLS_RENDERER) the bodies of renderPools() (08) and toggleEditPools() (16)
   // are marked publishers, and app/js/41-react-pools.js publishes the view and the editor as
   // plain data and shows a notice when the React module is missing. Listed here because renderPools() (08) is its first region: the check
   // compares names in order of first appearance.
   'react-pools': 3,
+  // fix/pre-event-2 (F30): Undo/Redo are logged per court (10-: KSM_HISTORY_KEYS, recordCourtUndoLog(),
+  // undo(), redo()) and replayed in time order with the court actions by the 409 rebase (18-:
+  // replayPendingCourtHistory(), mergeCourtHistoryStacks() and their two call sites). PR #33 review:
+  // undo() and redo() also keep the touched divisions' matches before they apply (courtUndoMatchesBefore()),
+  // so an Undo/Redo that inserts or removes matches is logged and replayed by identity; performCourtAction()
+  // records the same for a court action (withCourtMatchOps()). PR #33 review: an ordinary Undo/Redo applies
+  // its patches by match identity (applyCourtHistoryEntry(), two replacements in applyHistoryValues()) and
+  // undo()/redo() note a part not applied in their status (two replacements).
+  'history-replay': 14,
+  // fix/pre-event-2 (F27): maybeCreateTeamTiebreak() (13) also adds a team round robin's daihyosen
+  // (KSMEngine.teamRoundRobinTiebreakPlan) when teams are level for 1st-3rd.
+  'team-rr-daihyosen': 1,
   // fix/react-batch-1 (F12): Edit Pool works on a copy (41-react-pools.js): the drop handlers
   // insertPoolPlayer(), dropPoolPlayer() and movePoolPlayer() (16) move players in it (three inline
   // replacements), saveEditedPools() (16) applies it after the played-results warning (one), and

@@ -151,3 +151,90 @@ test('engine pool building and match generation equal the pre-move legacy code',
     }
   }
 });
+
+// ---- #24 (product owner): a no-show before a pool starts rebuilds its bout order ----------
+import { poolNoShowPlan } from '../../app/engine/pools.ts';
+
+// [white, red] names of a pool's bouts.
+const sides = ms => ms.map(m => [m.white, m.red]);
+// Nobody changes tasuki (white/red side) between two consecutive bouts of the pool.
+function assertNoTasukiChange(ms, label) {
+  for (let i = 1; i < ms.length; i++) {
+    const prev = ms[i - 1], cur = ms[i];
+    for (const name of [cur.white, cur.red]) {
+      const before = prev.white === name ? 'W' : prev.red === name ? 'R' : null;
+      const now = cur.white === name ? 'W' : 'R';
+      assert.ok(!before || before === now, `${label}: ${name} changes tasuki between bouts ${i} and ${i + 1} (${JSON.stringify(sides(ms))})`);
+    }
+  }
+}
+// A generated division: pools [4, 3] (A: 4 players, B: 3) and a championship template stand-in.
+function division() {
+  const pools = buildPools(['A1', 'A2', 'A3', 'A4', 'B1', 'B2', 'B3'].map((n, i) => c(n, `Dojo ${i}`)));
+  const matches = [...buildPoolMatches('D', pools, ['A', 'B']),
+    { division: 'D', pool: 'Championship', championship: true, position: 'Final', white: '', red: '', done: false, court: 'A' }];
+  return { pools, matches };
+}
+
+test('#24: a no-show in a pool of 4 leaves the 3-player order A-B, C-B, C-A; nobody changes tasuki; slots kept', () => {
+  for (let k = 0; k < 4; k++) {
+    const { pools, matches } = division();
+    const poolA = pools[0], name = poolA.players[k].name, slot = 'ABCD'[k];
+    assert.equal(poolA.players.length, 4);
+    const plan = poolNoShowPlan('D', pools, matches, name);
+    assert.ok(plan, `no-show of slot ${slot}`);
+    const rest = poolA.players.filter(p => p.name !== name);
+    assert.deepEqual(plan.players.map(p => [p.name, p.poolSlot]), rest.map(p => [p.name, p.poolSlot]), `${slot}: remaining players keep their slots`);
+    const bouts = plan.matches.filter(m => m.pool === poolA.label);
+    // poolMatchPairs(3): [0,1], [2,1], [2,0] over the remaining players in slot order.
+    assert.deepEqual(sides(bouts), [[rest[0].name, rest[1].name], [rest[2].name, rest[1].name], [rest[2].name, rest[0].name]], `${slot}: 3-player order`);
+    assert.deepEqual(bouts.map(m => [m.whitePoolSlot, m.redPoolSlot]),
+      [[rest[0].poolSlot, rest[1].poolSlot], [rest[2].poolSlot, rest[1].poolSlot], [rest[2].poolSlot, rest[0].poolSlot]]);
+    assert.deepEqual(bouts.map(m => [m.poolOrder, m.poolTemplateOrder, m.court, m.origin, m.done]),
+      [[0, 0, 'A', 'TEMPLATE', false], [0, 1, 'A', 'TEMPLATE', false], [0, 2, 'A', 'TEMPLATE', false]]);
+    assertNoTasukiChange(bouts, `no-show ${slot}`);
+    // The rebuilt bouts take pool A's place; pool B and the championship are the same objects, in order.
+    assert.equal(plan.matches.length, matches.length - 3);
+    assert.ok(plan.matches.slice(3).every((m, i) => m === matches[6 + i]), `${slot}: other matches are the same objects, in order`);
+  }
+});
+
+test('#24: the old order (the 4-player bouts minus the no-show) changed tasuki: why the pool is rebuilt', () => {
+  // The 4-player order minus the no-show's bouts: without C, A-B then B-D (B red, then white);
+  // without D, A-B then C-A (A white, then red). Without A or B the sides happened to hold.
+  const changed = [0, 1, 2, 3].filter(k => {
+    const { pools, matches } = division();
+    const gone = pools[0].players[k].name;
+    const filtered = matches.filter(m => m.pool === 'A' && m.white !== gone && m.red !== gone);
+    try { assertNoTasukiChange(filtered, 'old order'); return false; } catch { return true; }
+  }).map(k => 'ABCD'[k]);
+  assert.deepEqual(changed, ['C', 'D']);
+});
+
+test('#24: a pool generated with 3 keeps its order; a pool of 5 shrinks to the 4-player order; 3 -> 2', () => {
+  const three = buildPools(['P', 'Q', 'R', 'S', 'T', 'U'].map(n => c(n, n))); // [3, 3]
+  const ms3 = buildPoolMatches('D', three, ['A', 'A']).filter(m => m.pool === 'A');
+  assert.deepEqual(ms3.map(m => [m.whitePoolSlot, m.redPoolSlot]), [['A', 'B'], ['C', 'B'], ['C', 'A']]);
+  assertNoTasukiChange(ms3, 'generated pool of 3');
+  const five = [{ label: 'A', players: ['V', 'W', 'X', 'Y', 'Z'].map((n, i) => ({ name: n, dojo: '', poolSlot: 'ABCDE'[i], poolSlotIndex: i })) }];
+  const plan = poolNoShowPlan('D', five, buildPoolMatches('D', five, ['B']), 'X');
+  const rest = ['V', 'W', 'Y', 'Z'];
+  assert.deepEqual(sides(plan.matches), poolMatchPairs(4).map(([w, r]) => [rest[w], rest[r]]), '5 -> 4: the 4-player order');
+  assert.deepEqual(plan.matches.map(m => `${m.whitePoolSlot}${m.redPoolSlot}`), ['AB', 'DE', 'DA', 'BE', 'BD', 'EA'], 'slots kept (C left)');
+  assert.ok(plan.matches.every(m => m.court === 'B'), 'the pool keeps its court');
+  assertNoTasukiChange(plan.matches, '5 -> 4');
+  // 3 -> 2: one bout between the two left (slots from the old positions when none were saved).
+  const p3 = [{ label: 'A', players: ['P', 'Q', 'R'].map(n => ({ name: n, dojo: '' })) }];
+  const two = poolNoShowPlan('D', p3, buildPoolMatches('D', p3, ['A']), 'Q');
+  assert.deepEqual(two.matches.map(m => [m.white, m.red, m.whitePoolSlot, m.redPoolSlot]), [['P', 'R', 'A', 'C']]);
+  assert.deepEqual(two.players.map(p => p.poolSlot), ['A', 'C']);
+});
+
+test('#24: a pool with a played bout is not restructured; an unknown name changes nothing', () => {
+  const { pools, matches } = division();
+  matches[1] = { ...matches[1], done: true, wp: ['M'], rp: [] };
+  assert.equal(poolNoShowPlan('D', pools, matches, pools[0].players[0].name), null, 'pool A started');
+  assert.ok(poolNoShowPlan('D', pools, matches, pools[1].players[0].name), 'pool B has not started: rebuilt');
+  assert.equal(poolNoShowPlan('D', pools, matches, 'Nobody'), null);
+  assert.equal(poolNoShowPlan('D', null, [], 'A1'), null);
+});

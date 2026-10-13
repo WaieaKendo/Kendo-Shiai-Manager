@@ -48,7 +48,8 @@ function ok(cond,msg){if(!cond)throw new Error(msg);passed++;}
   ok(context.seedNameForLabel('D','A2',true).name==='B','A2 placeholder must populate');
 }
 
-// No-show removal deletes only affected matches and preserves every survivor's order.
+// No-show removal rebuilds only the affected pool (#24: the standard order for its new size, in
+// the pool's place) and preserves every other match object and its order.
 {
   const matches=[
     {pool:'A',white:'A',red:'B',id:'A1'},
@@ -62,10 +63,13 @@ function ok(cond,msg){if(!cond)throw new Error(msg);passed++;}
     structuralNoShowAllowed:()=>true,syncChampionshipTemplate:()=>{},initCourtStates:()=>{},
     buildIndividualSingleElimMatches:()=>[]
   };
-  vm.createContext(context);vm.runInContext(extract('applyIndividualNoShow'),context);
+  vm.createContext(context);vm.runInContext(engine,context);vm.runInContext(extract('applyIndividualNoShow'),context);
   ok(context.applyIndividualNoShow('D','B')===true,'no-show should apply');
-  const ids=context.state.allMatches.D.map(m=>m.id);
-  ok(ids.join(',')==='A3,B1,C1','surviving template matches must retain original global order');
+  const arr=context.state.allMatches.D;
+  // #24: pool A (A, B, C) without B is a pool of 2: its one bout A-C (slots A and C kept) in the
+  // pool's place (before #24 the surviving C-A bout, id A3, stayed as it was).
+  ok(arr.length===3&&arr[0].white==='A'&&arr[0].red==='C'&&arr[0].whitePoolSlot==='A'&&arr[0].redPoolSlot==='C'&&arr[0].pool==='A','pool A rebuilt in the 2-player order with its slots');
+  ok(arr[1]===matches[3]&&arr[2]===matches[4],'the other pool and the championship keep their match objects and global order');
   ok(context.state.pools.D[0].players.map(p=>p.name).join(',')==='A,C','only absent player is removed from pool');
 }
 console.log(`PASS: template consistency and seed resolution ${passed}/${passed} assertions`);

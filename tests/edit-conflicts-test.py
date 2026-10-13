@@ -15,9 +15,19 @@ them; at the end a fresh device and a reloaded court device must still show them
   5. a Special Award vs a court point saved first;
   6. a structural edit (Regenerate Single Division) vs a Registration edit saved first;
   7. a Registration edit vs a structural edit saved first;
-  8. Undo vs another court's point saved first: F30, expected-failure check: the undo is lost
-     (the undone point comes back) because an undo is not an action the rebase replays.
+  8. Undo vs another court's point saved first, then Redo the same way (F30, fixed: the undo
+     was lost and the undone point came back, because an undo was not an action the rebase
+     replayed): the point stays undone, then comes back once.
   9. Hansoku and Fusen-gachi vs another court's point saved first.
+ 10. Undo of a Next Match that created playoffs vs another court's point saved first (external
+     review of PR #33): pool A of a 6-player round robin ends in a three-way tie, so its playoffs
+     are inserted in the middle of the match list, before pool B. Before the fix the rebase
+     replayed the Next Match's index patches backwards, leaving playoffs in and overwriting pool B.
+ 11. Redo and Undo on a court after the other court's playoffs reached it (external review of PR
+     #33, no conflict): a split division, pool 1 on Court A before Court B's pool 2. Court B's
+     Next Match ends pool 2 in a tie (playoffs), Court B undoes it; Court A's Next Match then
+     inserts pool 1's playoffs before pool 2, and the live update reaches Court B. Before the fix
+     Court B's Redo and Undo applied their patches at the old indexes and changed the wrong bouts.
 
 Court vs court (both courts scoring) is e2e-two-court-sync-test.py; a Setup edit vs a court point
 saved first (F4) is sync-remote-updates-test.py; a structural edit vs a court point is
@@ -30,7 +40,7 @@ from ksm_app import KsmApp, fetch_record, sel, app_path
 from ksm_browser import launch_chromium
 from ksm_server import local_worker
 
-OPEN_A, OPEN_B, KIDS = 'Open A', 'Open B', 'Kids'
+OPEN_A, OPEN_B, KIDS, TIE, SPLIT = 'Open A', 'Open B', 'Kids', 'Tie', 'Split'
 
 
 def people(prefix, n):
@@ -48,6 +58,8 @@ def main():
             {'name': OPEN_A, 'format': 'Round Robin', 'court': 'A', 'entrants': people('A', 4)},
             {'name': OPEN_B, 'format': 'Round Robin', 'court': 'B', 'entrants': people('B', 4)},
             {'name': KIDS, 'format': 'Round Robin', 'court': 'A', 'entrants': people('K', 3)},
+            {'name': TIE, 'format': 'Round Robin', 'court': 'A', 'entrants': people('T', 6)},
+            {'name': SPLIT, 'format': 'Round Robin', 'court': 'split', 'entrants': people('S', 9)},
         ])
         director.save_now()
         director.wait_idle()
@@ -160,17 +172,21 @@ def main():
         assert competitor(record, 'B 3')['dojo'] == 'Late Dojo', '7: the Registration edit was lost'
         assert state(record).get('managementRevision', 0) > revision_before, '7: the regenerate was lost'
 
-        # 8. Undo vs another court's point saved first.
+        # 8. Undo vs another court's point saved first, then Redo the same way (F30, fixed).
         court_a.score_point('W', 'K')
         settle()
         assert scored(server(), OPEN_A, 'wp', 'K'), '8: the point to undo was not saved'
         record = race(court_a, court_a.undo, court_b, lambda: court_b.score_point('R', 'D'))
         assert scored(record, OPEN_B, 'rp', 'D'), '8: the other court\'s point was lost'
-        # F30 (open): the undo is lost: the rebase replays only this device's new court actions, and
-        # an undo is not one, so the undone point comes back from the server copy (and on Court A).
-        # When F30 is fixed, the K is gone: assert that and mark F30 fixed.
-        assert scored(record, OPEN_A, 'wp', 'K'), 'F30 fixed? the undo survived the conflict: assert the point is gone and mark F30 fixed'
-        court_a.wait_for(lambda: 'K' in court_a.court_screen()['white_points'], message='8: F30, the undone point back on Court A')
+        # Before F30 was fixed the rebase replayed only new court actions, so the undone K came back.
+        assert not scored(record, OPEN_A, 'wp', 'K'), '8: F30: the undone point came back on the server'
+        court_a.wait_for(lambda: 'K' not in court_a.court_screen()['white_points'], message='8: the undone point to stay gone on Court A')
+        court_b.wait_for(lambda: not scored({'payload': court_b.payload()}, OPEN_A, 'wp', 'K'), message='8: the undo on Court B')
+        record = race(court_a, court_a.redo, court_b, lambda: court_b.score_point('W', 'K'))
+        assert scored(record, OPEN_B, 'wp', 'K'), '8: the other court\'s point was lost (Redo race)'
+        kotes = sum((m.get('wp') or []).count('K') for m in state(record)['allMatches'][OPEN_A])
+        assert kotes == 1, f'8: F30: the redone point is not back exactly once on the server ({kotes})'
+        court_a.wait_for(lambda: 'K' in court_a.court_screen()['white_points'], message='8: the redone point on Court A')
 
         # 9. Hansoku and Fusen-gachi vs another court's point saved first.
         def hansoku_and_fusen():
@@ -181,6 +197,58 @@ def main():
         assert any(m.get('wp') == ['F', 'F'] and m.get('rt') == 1 and not m.get('done') for m in state(record)['allMatches'][OPEN_A]), \
             f'9: the hansoku or the fusen-gachi was lost: {[(m.get("wp"), m.get("rp"), m.get("rt")) for m in state(record)["allMatches"][OPEN_A]]}'
         court_b.wait_for(lambda: any(m.get('wp') == ['F', 'F'] for m in court_b.all_matches()[OPEN_A]), message='9: the fusen-gachi on Court B')
+
+        # 10. Undo of a Next Match that created playoffs vs another court's point saved first.
+        court_a.switch_division(TIE)
+        tie_matches = lambda record: [(m.get('pool'), m.get('white'), m.get('red'), bool(m.get('done')), bool(m.get('tiebreak')))
+                                      for m in state(record)['allMatches'][TIE]]
+        before_tie = tie_matches(server())
+        for _ in range(3):  # pool A's three bouts, all drawn: a three-way tie, so the third Next Match adds playoffs
+            court_a.next_match(settle=True)
+        settle()
+        played = tie_matches(server())
+        assert [m[0] for m in played if m[4]] == ['A', 'A', 'A'] and played[-4][0] == 'B', f'10: the playoffs were not inserted before pool B: {played}'
+        record = race(court_a, court_a.undo, court_b, lambda: court_b.score_point('R', 'T'))
+        assert scored(record, OPEN_B, 'rp', 'T'), '10: the other court\'s point was lost'
+        expected = [(p, w, r, done or (p == 'A' and i < 2), t) for i, (p, w, r, done, t) in enumerate(before_tie)]
+        assert tie_matches(record) == expected, f'10: the undone Next Match left its playoffs or changed pool B:\n{tie_matches(record)}\nexpected\n{expected}'
+        court_a.wait_for(lambda: court_a.current_match() and (court_a.current_match()['white'], court_a.current_match()['red']) == ('T 5', 'T 1'),
+                         message='10: pool A\'s last bout back on Court A')
+
+        # 11. Redo and Undo on Court B after Court A's playoffs reached it (no conflict).
+        court_a.switch_division(SPLIT)
+        court_b.switch_division(SPLIT)
+        settle()
+        split_matches = lambda record: [(m.get('pool'), m.get('white'), m.get('red'), bool(m.get('done')), bool(m.get('tiebreak')))
+                                        for m in state(record)['allMatches'][SPLIT]]
+        on_court = lambda record, court: [m.get('pool') for m in state(record)['allMatches'][SPLIT] if m.get('court') == court and not m.get('championship')]
+        pool_a, pool_b = on_court(server(), 'A')[0], on_court(server(), 'B')[0]
+        for _ in range(3):  # Court B's first pool, all drawn: its third Next Match adds the playoffs
+            court_b.next_match(settle=True)
+        settle()
+        with_b_playoffs = split_matches(server())
+        b_playoffs = [m for m in with_b_playoffs if m[4] and m[0] == pool_b]
+        assert b_playoffs, f'11: no playoffs for Court B\'s pool: {with_b_playoffs}'
+        court_b.undo()
+        settle()
+        assert not any(m[4] for m in split_matches(server())), f'11: the Undo left playoffs: {split_matches(server())}'
+        for _ in range(3):  # Court A's pool (before Court B's in the list): its playoffs go in before Court B's bouts
+            court_a.next_match(settle=True)
+        settle()
+        shifted = split_matches(server())
+        first_b = next(i for i, m in enumerate(shifted) if m[0] == pool_b)
+        assert any(m[4] and m[0] == pool_a for m in shifted[:first_b]), f'11: Court A\'s playoffs are not before Court B\'s pool: {shifted}'
+        court_b.wait_revision(server()['revision'])
+        court_b.redo()
+        settle()
+        last_b = max(i for i, m in enumerate(shifted) if m[0] == pool_b and not m[4])
+        expected = shifted[:last_b] + [shifted[last_b][:3] + (True, False)] + b_playoffs + shifted[last_b + 1:]
+        assert split_matches(server()) == expected, f'11: Court B\'s Redo after the list shifted:\n{split_matches(server())}\nexpected\n{expected}'
+        court_b.undo()
+        settle()
+        assert split_matches(server()) == shifted, f'11: Court B\'s Undo after the list shifted:\n{split_matches(server())}\nexpected\n{shifted}'
+        court_b.wait_for(lambda: court_b.current_match() and (court_b.current_match()['white'], court_b.current_match()['red']) == shifted[last_b][1:3],
+                         message='11: Court B\'s pool\'s last bout back on Court B')
 
         # Survives a reload: a fresh device and Court A reloaded show the saved edits.
         final = server()
@@ -199,7 +267,7 @@ def main():
 
         assert not problems, '\n'.join(problems)
         print(f'PASS edit conflicts: court vs Setup, hansoku/fusen-gachi vs the other court, Registration vs court (both ways), awards vs court, structural vs Registration '
-              f'(both ways) kept both edits; two Registration edits (F29) and Undo vs another court (F30) pinned '
+              f'(both ways), Undo and Redo vs another court (F30, also of a Next Match with playoffs) kept both edits; Redo/Undo after the other court\'s playoffs shifted the list; two Registration edits (F29) pinned '
               f'({time.time() - started:.0f}s)')
         browser.close()
 

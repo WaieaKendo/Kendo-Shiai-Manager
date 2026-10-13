@@ -126,6 +126,16 @@ Approved dynamic types are limited to:
 Standard quarterfinals, semifinals, Finals, pool schedules, and elimination team pairings are template-owned and must exist before play begins.
 
 
+## Team round robin ranking (F27, decided by the owners, WKC style)
+
+- Teams are ranked by (a) team match wins, then (b) individual bout wins, then (c) points (ippon) scored.
+- Teams still level on all three for a counted place (1st–3rd) fight a one-point daihyosen (representative bout, ippon shobu; a winner is required), one bout per pair of the level teams, once every pairing is decided; its winner takes the place. Teams still level after it (a circle of three) fight another round.
+- Level teams below the counted places share the rank. Daihyosen bouts do not count in the team records.
+
+## Kachinuki (confirmed by the owners)
+
+- A team loses only when its last player loses. A draw eliminates only the other team's player while that team still has players; when both teams' players are exhausted by draws, a representative playoff decides.
+
 ## Seed-locked tiebreak resolution
 
 Once a tiebreak series uniquely secures an advancing seed, that seed is frozen. Later tiebreak series may resolve only the remaining unresolved seed range and may not displace already secured players or teams.
@@ -134,5 +144,5 @@ Once a tiebreak series uniquely secures an advancing seed, that seed is frozen. 
 
 - A two-person tiebreak for first place owns and resolves both advancing placements: winner to Seed 1 and loser to Seed 2.
 - A tiebreak at the second-place boundary owns only Seed 2 and cannot alter an already secured Seed 1.
-- Structural no-show handling removes only matches involving the absent entrant. Surviving pool Match Objects retain their original template order, pool identity, and court assignment.
+- Structural no-show handling changes only the absent entrant's pool (#24, product owner): before any of that pool's bouts is played, its bouts are rebuilt in the standard order for the new size (3 players: A–B, C–B, C–A, so nobody changes tasuki between consecutive bouts), in the pool's place and on its court, and the remaining players keep their slot letters. Every other Match Object (other pools, the championship template) retains its template order, pool identity and court assignment. A pool with a played bout is not restructured.
 - Championship seed-pair mappings are frozen at generation. A no-show does not select a different championship template, including the native six-competitor 3+3 configuration.
