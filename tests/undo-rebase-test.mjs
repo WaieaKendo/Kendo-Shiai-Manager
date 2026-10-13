@@ -54,6 +54,8 @@ const context = {
   // the screen side of undo()/redo() (10-)
   applyCourtState() {}, renderAll() {}, updateUndoButton() {}, updateSaveStatus(message) { context.lastStatus = message; }, criticalAutoSave() {},
   writeCloudDiagnosticsState() {}, showKsmToast() {}, noteMergeConflicts() {}, replayStructuralEdit: () => false, mergeLocalEditsThreeWay: () => [],
+  // Issue #25's rename replay (not under test here: no renames).
+  rebaseDivisionRenamesForMerge: (rebased, local, base, server) => ({ local, base, server, refused: [] }), noteDivisionRenamesRefused() {},
 };
 vm.createContext(context);
 vm.runInContext(code, context);
