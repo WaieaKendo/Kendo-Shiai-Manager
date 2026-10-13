@@ -98,6 +98,8 @@ function ksmRenderRegistration(){
   // F17: the blur committed an edit into a competitor of the new list (ksmUpdateCompetitor()).
   if(ksmRegistrationRowsStale){ksmRegistrationRowsStale=false;input=ksmRegistrationData()}
   ksmPublishRegistration('ksm:registration-players','ksmRegistrationPlayersInput',input);
+  // Owner decision 19: renderReg() runs when Setup's Exhibition Matches changes; the tab follows.
+  ksmSyncExhibitionTab();
 }
 // renderTournamentStatus() (03) as data: the validation result and the counts.
 function ksmRenderTournamentStatus(valid,competitors,divisions,errors){
@@ -204,9 +206,18 @@ function ksmPasteNotice(){
 function ksmPasteHelp(){
   alert('Paste from Excel: copy rows with the columns Name, Dojo, Division, Seed, Status (in that order; only Name is required) and paste them (Ctrl+V / Cmd+V) while Individual Players is shown. Division must be one offered in Setup (empty: the first division). Status: Registered, Checked In or No Show (empty: Registered). Rows with another division or status are not added; a notice lists them.');
 }
-// regTab() (23): the tab marked active.
+// regTab() (23): the tab marked active. Owner decision 19 (#29): and whether the Exhibition tab
+// shows (only while Setup's Exhibition Matches is Enabled).
+function ksmExhibitionsEnabled(){return window.exhibitionEnabled?exhibitionEnabled.value==='Enabled':false}
 function ksmRenderRegistrationTab(mode){
-  ksmPublishRegistration('ksm:registration-tab','ksmRegistrationTabInput',{mode:String(mode)});
+  ksmPublishRegistration('ksm:registration-tab','ksmRegistrationTabInput',{mode:String(mode),exhibitions:ksmExhibitionsEnabled()});
+}
+// The Exhibition tab hidden while its card is shown: back to Individual Players.
+function ksmSyncExhibitionTab(){
+  const mode=state.regMode||'individual';
+  if(mode==='exhibition'&&!ksmExhibitionsEnabled()){regTab('individual');return}
+  const current=window.ksmRegistrationTabInput;
+  if(!current||current.mode!==String(mode)||current.exhibitions!==ksmExhibitionsEnabled())ksmRenderRegistrationTab(mode);
 }
 // F20 (F17 on the team cards and exhibition rows): a card's or row's fields belong to the team or
 // match it showed, not to a place in the list. The redraw commits the field being edited (its

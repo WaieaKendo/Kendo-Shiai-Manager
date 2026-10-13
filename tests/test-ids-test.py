@@ -23,7 +23,7 @@ SINGLETONS = [
     # registration
     'reg-tab-individual', 'reg-tab-team', 'reg-tab-pools', 'generate-button', 'tournament-status',
     'reg-add-row', 'reg-filter', 'team-add', 'validation-modal', 'pool-division-select',
-    'reg-tab-exhibition', 'regenerate-division-button', 'reg-import-csv', 'reg-export-csv', 'reg-paste-excel',
+    'regenerate-division-button', 'reg-import-csv', 'reg-export-csv', 'reg-paste-excel',
     'reg-clear', 'team-clear', 'exhibition-add', 'exhibition-add-3', 'exhibition-clear', 'reg-load-samples', 'team-load-samples', 'reg-load-sample-tournament',
     'regenerate-modal', 'regenerate-modal-title', 'regenerate-modal-close',
     # print / export
@@ -98,6 +98,11 @@ def main():
         app.pools('Open')  # leave the editor without saving
         app.nav('setup')
         page.select_option(sel('exhibition-enabled'), label='Enabled')
+        # Owner decision 19: the Exhibition tab exists only while exhibitions are enabled (checked here,
+        # not with the singletons at load).
+        app.nav('registration')
+        if (n := page.locator(sel('reg-tab-exhibition')).count()) != 1:
+            errors.append(f'reg-tab-exhibition: found {n} with exhibitions enabled, expected exactly 1')
         app.nav('registration')
         app.click('reg-tab-exhibition')
         app.click('exhibition-add-3')

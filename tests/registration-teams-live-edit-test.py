@@ -95,7 +95,10 @@ def main():
         assert not toast(), toast()
         page.evaluate('() => document.activeElement && document.activeElement.blur()')
 
-        # Exhibition: the same rules for a match.
+        # Exhibition: the same rules for a match (its tab shows once exhibitions are enabled: owner decision 19).
+        app.nav('setup')
+        page.select_option(sel('exhibition-enabled'), label='Enabled')
+        app.nav('registration')
         app.click('reg-tab-exhibition')
         app.click('exhibition-add-3')
         rows = page.locator(sel('exhibition-row'))

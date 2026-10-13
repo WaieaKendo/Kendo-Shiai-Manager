@@ -263,7 +263,9 @@ def reg_empty(browser, react_check):
     g = open_app('reg-empty', browser, react_check)
     g.do('Setup (Registration hidden)', lambda a: None)
     open_registration(g)
-    for t in ['team', 'exhibition', 'pools', 'individual']:
+    # Owner decision 19 (#29): no Exhibition tab while exhibitions are off (the default); the tab is
+    # golden-registration-teams-test.py's.
+    for t in ['team', 'pools', 'individual']:
         g.do(f'tab: {t}', lambda a, t=t: click(a.page, tid(f'reg-tab-{t}')))
     g.do('Team Registration from the code (regTab)', lambda a: a.page.evaluate("() => regTab('team')"))
     g.do('Registration from the menu again (Individual Players)', lambda a: click(a.page, tid('nav-registration')))
