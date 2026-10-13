@@ -51,6 +51,34 @@ def devices(n):
     return f'{n} devices are connected right now, this one included.'
 
 
+def relogin_staff(app):
+    """Staff Login again (the dialog stays open): the device is staff with a session the server accepts."""
+    # a save sent with the bad token may still be on its way to being refused (which makes the device
+    # a spectator when it lands): let it land first, or the login below is undone by it
+    app.page.wait_for_function(
+        "() => { const r = KSMTest.pendingReason(); return !r.saveInFlight && !r.autosaveTimer && !r.cloudSaveTimer; }")
+    app.page.evaluate("() => ksmSessionRole !== 'staff' ? toggleStaffSession() : null")
+    app.page.wait_for_function("() => ksmSessionRole === 'staff'", timeout=10000)
+
+
+def print_delete_diagnostics(app, trace):
+    """On a failed wait for the Library: what the page was doing (CI logs are all there is to go on)."""
+    try:
+        state = app.page.evaluate("""() => ({
+          body: document.body.className, role: typeof ksmSessionRole !== 'undefined' ? ksmSessionRole : null,
+          staffSession: KSMTest.staffSession(), tournamentId: KSMTest.tournamentId(),
+          toasts: KSMTest.toasts ? KSMTest.toasts() : null,
+          dialog: document.querySelector('[data-testid="delete-dialog"]')?.innerText || null,
+          confirmDisabled: document.querySelector('[data-testid="delete-confirm"]')?.disabled ?? null,
+        })""")
+    except Exception as err:
+        state = f'(state unavailable: {err})'
+    print('DELETE DIAGNOSTICS state:', state)
+    print('DELETE DIAGNOSTICS trace:')
+    for line in trace[-60:]:
+        print('   ', line)
+
+
 def main():
     problems = []
     started = time.time()
@@ -125,18 +153,44 @@ def main():
         assert director.page.input_value(sel('delete-name-input')) == 'Delete Cu', 'the typed name was lost'
 
         # ------------------------------------------------ a refused delete deletes nothing
-        good_token = director.staff_session()
-        director.page.evaluate("([key]) => sessionStorage.setItem(key, 'ksmst_not-a-session')", [STAFF_SESSION_KEY])
-        director.type_delete_name('Delete Cup')
-        # Delete is enabled only once the dialog has drawn the typed name: wait for it, as a person would.
-        director.wait_for(director.delete_enabled, message='Delete to be enabled for the typed name')
-        director.click('delete-confirm')
-        director.wait_for(lambda: director.delete_dialog()['error'], message='the refusal message')
-        assert 'Nothing was deleted' in director.delete_dialog()['error'], director.delete_dialog()
-        assert status_of(base, f'/api/tournaments/{tid}')[0] == 200, 'a refused delete removed the tournament'
-        assert tid in server_library_ids(base)
-        assert director.delete_enabled(), 'the dialog stayed locked after a refusal'
-        director.page.evaluate("([key, token]) => sessionStorage.setItem(key, token)", [STAFF_SESSION_KEY, good_token])
+        trace = []
+        director.page.on('console', lambda m: trace.append(f'console.{m.type}: {m.text}'))
+        director.page.on('request', lambda r: trace.append(f'request {r.method} {r.url}'))
+        director.page.on('response', lambda r: trace.append(f'response {r.status} {r.request.method} {r.url}'))
+        try:
+            director.wait_idle()  # nothing of the dialog's own is still to be saved before the session is spoiled
+            good_token = director.staff_session()
+            director.page.evaluate("([key]) => sessionStorage.setItem(key, 'ksmst_not-a-session')", [STAFF_SESSION_KEY])
+            director.type_delete_name('Delete Cup')
+            # Delete is enabled only once the dialog has drawn the typed name: wait for it, as a person would.
+            director.wait_for(director.delete_enabled, message='Delete to be enabled for the typed name')
+            director.click('delete-confirm')
+            director.wait_for(lambda: director.delete_dialog()['error'], message='the refusal message')
+            assert 'Nothing was deleted' in director.delete_dialog()['error'], director.delete_dialog()
+            assert status_of(base, f'/api/tournaments/{tid}')[0] == 200, 'a refused delete removed the tournament'
+            assert tid in server_library_ids(base)
+            assert director.delete_enabled(), 'the dialog stayed locked after a refusal'
+            # The bad token is a real 401 for any request this device sends, and a refused save makes the
+            # device a spectator (F33; a background save can land at any moment on a slow runner). Delete
+            # must still be retryable: log in again as a person would, instead of poking the token back.
+            director.page.evaluate("([key, token]) => sessionStorage.setItem(key, token)", [STAFF_SESSION_KEY, good_token])
+            relogin_staff(director)
+
+            # a device that stopped being staff while the dialog was open: Delete says so, deletes nothing
+            director.page.wait_for_function("() => !KSMTest.pendingReason().saveInFlight")  # the login's save is done
+            # what a refused save does to the device (33): the session is dropped, the device is a spectator
+            director.page.evaluate("([key]) => { sessionStorage.removeItem(key); setSessionRole('spectator'); }", [STAFF_SESSION_KEY])
+            director.type_delete_name('Delete Cup')
+            director.wait_for(director.delete_enabled, message='Delete to be enabled for the typed name')
+            director.click('delete-confirm')
+            director.wait_for(lambda: 'no longer logged in' in director.delete_dialog()['error'], message='the not-staff message')
+            assert 'Nothing was deleted' in director.delete_dialog()['error'], director.delete_dialog()
+            assert status_of(base, f'/api/tournaments/{tid}')[0] == 200 and tid in server_library_ids(base)
+            relogin_staff(director)
+            director.wait_for(director.delete_enabled, message='Delete to be enabled after logging in again')
+        except Exception:
+            print_delete_diagnostics(director, trace)
+            raise
 
         # ------------------------------------------------ the offline device loses its connection
         later.page.context.set_offline(True)
@@ -147,7 +201,11 @@ def main():
         # dialog to draw the typed name first, or the keypress is (correctly) ignored.
         director.wait_for(director.delete_enabled, message='Delete to be enabled for the typed name')
         director.page.keyboard.press('Enter')  # the keyboard works as the button does
-        director.wait_for_library()
+        try:
+            director.wait_for_library()
+        except Exception:
+            print_delete_diagnostics(director, trace)
+            raise
         director.wait_toast('Tournament deleted')
         code, gone = status_of(base, f'/api/tournaments/{tid}')
         assert code == 410 and gone['code'] == 'tournament-deleted', (code, gone)

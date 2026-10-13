@@ -309,7 +309,13 @@ function ksmRefreshDeleteDevices(){
 }
 async function ksmConfirmDeleteTournament(){
   const id=cloudSession.tournamentId,cloud=ksmShellDialogs&&ksmShellDialogs.cloud;
-  if(!id||!cloud||cloud.body.kind!=='delete'||cloud.body.busy||!ksmCanDeleteTournament())return;
+  if(!id||!cloud||cloud.body.kind!=='delete'||cloud.body.busy)return;
+  // A save refused with 401 while the dialog was open made this device a spectator (F33): say so
+  // instead of a Delete that silently does nothing; Staff Login, then Delete works again.
+  if(!ksmCanDeleteTournament()){
+    ksmUpdateDeleteDialog({busy:false,error:'This device is no longer logged in as Staff. Use Staff Login again, then delete. Nothing was deleted.'});
+    return;
+  }
   ksmUpdateDeleteDialog({busy:true,error:''});
   ksmDeletingTournamentId=id;
   try{
