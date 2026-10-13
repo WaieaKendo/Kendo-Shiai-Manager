@@ -1,5 +1,5 @@
-function addRow(n=1){for(let i=0;i<n;i++)state.competitors.push({name:'',dojo:'',division:state.divisions[0]||'',seed:'',status:'Registered'});renderReg()}
-function addTeamRow(n=1){for(let i=0;i<n;i++)state.teams.push({team:'',division:'Team Tournament',type:(teamFormat?.value||'5-Person Team'),senpo:'',jiho:'',chuken:'',fukusho:'',taisho:'',status:'Registered'});renderTeams()}
+function addRow(n=1){for(let i=0;i<n;i++)state.competitors.push({name:'',dojo:'',division:state.divisions[0]||'',seed:'',status:'Registered'});/* ksm:post-split-begin owner-decisions */if(window.regFilter)regFilter.value='';/* ksm:post-split-end */renderReg()}
+function addTeamRow(n=1){for(let i=0;i<n;i++)state.teams.push({team:'',division:'Team Tournament',type:(teamFormat?.value||'5-Person Team'),senpo:'',jiho:'',chuken:'',fukusho:'',taisho:'',status:'Registered'});/* ksm:post-split-begin owner-decisions */if(window.teamFilter)teamFilter.value='';/* ksm:post-split-end */renderTeams()}
 function addAutoTeam(){let n=(state.teams||[]).length+1;let team='Auto Team '+n;state.teams.push({team,division:'Team Tournament',type:(teamFormat?.value||'3-Person Team'),senpo:team,jiho:team,chuken:team,fukusho:team,taisho:team,status:'Checked'});renderTeams()}
 function statusCycle(s){return s==='Checked'?'NoShow':s==='NoShow'?'Registered':'Checked'}
 

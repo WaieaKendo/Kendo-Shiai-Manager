@@ -281,7 +281,7 @@ def teams_cards(browser, react_check):
     g.do('filter: typed on with the cards redrawn per key', lambda a: (type_into(a.page, '#teamFilter', 'k'), a.page.keyboard.type('o')))
     g.do("filter: 'o' (several)", lambda a: type_into(a.page, '#teamFilter', 'o'))
     g.do('filtered: × on the second shown card', lambda a: click(a.page, team_field('team-remove', 1)))
-    g.do('filtered: + Add Team (the new card does not match)', lambda a: click(a.page, tid('team-add')))
+    g.do('filtered: + Add Team (clears the filter: owner decision 14)', lambda a: click(a.page, tid('team-add')))
     g.do('filter cleared', lambda a: type_into(a.page, '#teamFilter', ''))
     leave(page)
     g.do('+ Auto Test Team', lambda a: click(a.page, button(TEAMS, '+ Auto Test Team')))

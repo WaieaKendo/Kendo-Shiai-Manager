@@ -311,7 +311,7 @@ def reg_rows(browser, react_check):
     g.do('filter: typed on with the table redrawn per key', lambda a: (type_into(a.page, tid('reg-filter'), 'm'), a.page.keyboard.type('a')))
     g.do('filter: Aiea (2 rows)', lambda a: type_into(a.page, tid('reg-filter'), 'Aiea'))
     g.do('filtered: × on the second shown row', lambda a: click(a.page, field('reg-remove', 1)))
-    g.do('filtered: + Add Row (the new row does not match)', lambda a: click(a.page, tid('reg-add-row')))
+    g.do('filtered: + Add Row (clears the filter: owner decision 14)', lambda a: click(a.page, tid('reg-add-row')))
     g.do('filter cleared', lambda a: type_into(a.page, tid('reg-filter'), ''))
     leave(page)
     phone_views(g, 'rows')

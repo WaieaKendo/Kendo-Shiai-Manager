@@ -86,12 +86,13 @@ const KNOWN_POST_SPLIT_EDITS = {
   // variable instead of the menus' classes), setActiveNavForView() (24), setSessionRole() and
   // openTournamentAccess() (33). Listed here because closeManagementModal() (03) is its first
   // region: the check compares names in order of first appearance.
-  'react-shell': 23,
   // feat/owner-decisions (issue #29, the owners' decisions on the quirk pass; #31): legacy edits
-  // that carry out a decision. 03: validateTournament() lists "No competitors registered" as an
-  // error when nothing would be generated (2); cycleCompetitorStatus()'s alert says Fusen-sho (4,
-  // inline `was:`).
-  'owner-decisions': 2,
+  // that carry out a decision. 03: + Add Row / + Add Team clear their filter so the new entry
+  // shows (14, addRow(), addTeamRow()); cycleCompetitorStatus()'s alert says Fusen-sho (4, inline
+  // `was:`); validateTournament() lists "No competitors registered" as an error when nothing would
+  // be generated (2). Listed before react-shell: addRow() (03) is its first region.
+  'owner-decisions': 4,
+  'react-shell': 23,
   // feat/react-registration (M.13): Registration part 1's React islands (#regTable, the contents
   // of #tournamentStatusCard). With the legacy renderer removed (REMOVED_REGISTRATION_RENDERER)
   // renderReg()'s body (03) is a marked publisher and renderTournamentStatus() (03) publishes in
