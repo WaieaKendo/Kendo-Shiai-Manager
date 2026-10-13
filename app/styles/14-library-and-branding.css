@@ -45,4 +45,7 @@ body.ksm-spectator .court-continue-box{display:none!important}
 body.ksm-tv .tv3-waiting-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;height:100%;text-align:center}
 body.ksm-tv .tv3-waiting{font-size:72px;line-height:1.05;font-weight:850;color:var(--ksm-paper)}
 body.ksm-tv .tv3-waiting-reason{font-size:40px;line-height:1.1;font-weight:700;color:var(--ksm-gold)}
+/* Decision 8: a spectator's special awards, read-only. */
+.award-view-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.award-view-row:first-child{border-top:0}
 /* ksm:post-split-end */
