@@ -769,6 +769,10 @@ class KsmApp:
         col = lambda label: [x.input_value() for x in editor.get_by_role('textbox', name=label).all()]
         return list(zip(col('Award name'), col('Recipient name'), col('Dojo')))
 
+    def enable_test_tools(self, on=True):
+        """(test API) This device's test tools (the sample-data buttons, owner decision 20) on or off."""
+        self.page.evaluate('on => KSMTest.testTools(on)', on)
+
     def render_tv(self):
         """(test API) Render the TV display inside this page (offline tests; a TV device uses tv_link())."""
         self.page.evaluate('KSMTest.renderTv()')

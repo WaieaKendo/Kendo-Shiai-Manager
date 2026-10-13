@@ -153,6 +153,7 @@ def open_app(name, browser, react_check=None):
     app = KsmApp(browser.new_page(viewport=DESKTOP), name)
     app.page_errors = []
     load_app(app.page)  # a staff session on Setup
+    app.enable_test_tools()  # owner decision 20: the sample-data buttons need the test tools on (pressed below)
     app.page.add_style_tag(content=NO_TRANSITIONS)
     app.page.evaluate(SAVES_INIT_JS)
     golden = Golden(name, app, app.page_errors, GOLDEN_DIR, capture, react_check)

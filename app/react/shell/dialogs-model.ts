@@ -156,6 +156,8 @@ export type CloudBody =
     history: HistoryCourtView[];
     /** Work is queued and the device may save: "Retry queued save". */
     retry: boolean;
+    /** Owner decision 20: this device's test tools (the sample-data buttons) are on. */
+    testTools?: boolean;
   }
   | { kind: 'file'; same: boolean; details: CloudDetail[]; message: string };
 
@@ -211,3 +213,8 @@ export const EMPTY_DIALOGS: DialogsInput = {
   regenerate: { open: false, key: 0, title: REGENERATE_TEXTS.title, content: null },
   cloud: null,
 };
+
+/** Owner decision 20 (#29): Developer Tools' switch for this device's test tools. */
+export function testToolsLabel(on: boolean | undefined): string {
+  return on ? 'Hide test tools' : 'Show test tools';
+}

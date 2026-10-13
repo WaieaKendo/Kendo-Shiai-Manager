@@ -29,6 +29,7 @@ import {
   type CloudBody, type CloudDetail, type DialogsInput, type HistoryCourtView, type HistoryEntryView,
   type RegenerateContent, type SnapshotAnalysisView, type ValidationContent,
 } from './dialogs-model.ts';
+import { testToolsLabel } from './dialogs-model.ts';
 import { rawStyle, shellWindow, subscribeTo } from './shell-dom.ts';
 
 export const DIALOGS_EVENT = 'ksm:shell-dialogs';
@@ -262,6 +263,7 @@ function CloudModalBody({ body }: { body: CloudBody }) {
           <button className="secondary" onClick={() => { w.downloadSnapshotAnalysis?.(); }}>{CLOUD_TEXTS.downloadAnalysis}</button>
           <button className="secondary" onClick={() => { w.downloadActionHistorySample?.(); }}>{CLOUD_TEXTS.downloadHistory}</button>
           {body.retry ? <button className="secondary" onClick={() => { w.retryQueuedCloudSave?.(); }} data-testid="diagnostics-retry">{CLOUD_TEXTS.retry}</button> : null}
+          <button className="secondary" onClick={() => { w.ksmToggleTestTools?.(); }} data-testid="diagnostics-test-tools">{testToolsLabel(body.testTools)}</button>
         </div>
       </>
     );

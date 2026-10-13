@@ -248,6 +248,21 @@ function ksmHistoryEntryCard(title,item){
   const largestChanges=(item.changes||[]).slice(0,6).map(x=>`${x.key}: ${formatSnapshotBytes(x.bytes)}`).join(' • ');
   return {title:ksmHtmlText(title),entry:{heading:`${ksmHtmlText(title)} • #${item.index+1}`,line:`${ksmHtmlText(ksmActionLabelText(item.label))} — ${ksmSizeText(item.totalBytes)}`,changes:ksmHtmlText(largestChanges||'No changed state properties')}};
 }
+// Owner decision 20 (#29): the sample-data buttons (Load Sample Players / Teams / Tournament,
+// + Auto Test Team) show only while this device's test tools are on: body.ksm-test-tools (the
+// owner-decisions CSS hides them otherwise), switched in Developer Tools ("Show test tools" /
+// "Hide test tools") and kept in this device's storage (not the tournament: nothing is synced).
+var KSM_TEST_TOOLS_KEY='ksm-test-tools';
+function ksmTestToolsOn(){try{return localStorage.getItem(KSM_TEST_TOOLS_KEY)==='1'}catch(_){return false}}
+function ksmApplyTestTools(){if(document.body)document.body.classList.toggle('ksm-test-tools',ksmTestToolsOn())}
+function ksmSetTestTools(on){
+  try{if(on)localStorage.setItem(KSM_TEST_TOOLS_KEY,'1');else localStorage.removeItem(KSM_TEST_TOOLS_KEY)}catch(_){}
+  ksmApplyTestTools();
+}
+// Developer Tools' button: switch them and show Developer Tools again with the new label.
+function ksmToggleTestTools(){ksmSetTestTools(!ksmTestToolsOn());cloudDiagnostics()}
+ksmApplyTestTools();
+document.addEventListener('DOMContentLoaded',ksmApplyTestTools);
 function ksmOpenDiagnostics(details,analysis,historyAnalysis,retry){
   ksmOpenCloudModal('Developer Tools',{kind:'diagnostics',
     details:details.map(([a,b])=>({label:ksmHtmlText(a),value:ksmHtmlText(b)})),
@@ -259,7 +274,7 @@ function ksmOpenDiagnostics(details,analysis,historyAnalysis,retry){
     history:['A','B'].map(court=>{const c=historyAnalysis.courts[court];return {court,entries:ksmHtmlText(`${c.entryCount}`),
       total:ksmSizeText(c.totalBytes),average:ksmSizeText(c.averageBytes),largest:ksmSizeText(c.largest?.totalBytes||0),
       cards:[ksmHistoryEntryCard('First entry',c.first),ksmHistoryEntryCard('Latest entry',c.latest),ksmHistoryEntryCard('Largest entry',c.largest)]}}),
-    retry:!!retry});
+    retry:!!retry,testTools:ksmTestToolsOn()});
 }
 // confirmTournamentFileLoad() (21, roadmap 0.5): the file's and the open tournament's details,
 // what loading it does, Cancel and Replace open tournament / Load as new tournament.
