@@ -113,3 +113,15 @@ test('hansoku (owner decision 5): one triangle each, shown only when a side has 
   const none = liveCourtView({ court: 'A', kind: 'individual', meta, white: { name: 'P 1', dojo: '' }, red: { name: 'P 2', dojo: '' }, points: { W: [], R: [] }, hansoku: { W: 0, R: 0 }, next: null });
   assert.equal('hansoku' in none.body, false, 'nothing drawn without a hansoku');
 });
+
+test('between matches (owner decision 6): the reason and "Up next on this court" on an idle card', async () => {
+  const { upNextTitle } = await import('../../app/react/live-scores/live-scores-model.ts');
+  assert.equal(upNextTitle('Masters'), 'Up next on this court: Masters');
+  const upNext = { division: 'Masters', matches: [{ white: 'M 1', red: 'M 2' }] };
+  const waiting = liveCourtView({ court: 'A', kind: 'idle', waiting: true, reason: 'Final waits for the semifinal on Court B', upNext });
+  assert.deepEqual(waiting.body, { kind: 'idle', waiting: true, reason: 'Final waits for the semifinal on Court B',
+    upNext: { title: 'Up next on this court: Masters', matches: [{ white: 'M 1', red: 'M 2' }] } });
+  const idle = liveCourtView({ court: 'A', kind: 'idle', reason: 'ignored without waiting', upNext });
+  assert.deepEqual(idle.body, { kind: 'idle', upNext: { title: 'Up next on this court: Masters', matches: [{ white: 'M 1', red: 'M 2' }] } });
+  assert.deepEqual(liveCourtView({ court: 'A', kind: 'idle', waiting: true }).body, { kind: 'idle', waiting: true }, 'nothing more to say: as before');
+});

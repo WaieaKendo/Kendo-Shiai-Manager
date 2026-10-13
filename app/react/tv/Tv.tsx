@@ -84,7 +84,17 @@ function KachinukiRows({ rows }: { rows: TvKachinukiRowView[] }) {
 
 function Body({ body }: { body: TvBodyView }) {
   switch (body.kind) {
-    case 'idle': return <div className="tv3-body"></div>;
+    case 'idle':
+      return (
+        <div className="tv3-body">
+          {body.waiting && (
+            <div className="tv3-waiting-wrap">
+              <div className="tv3-waiting" data-testid="tv-waiting">{body.waiting.text}</div>
+              {body.waiting.reason && <div className="tv3-waiting-reason" data-testid="tv-waiting-reason">{body.waiting.reason}</div>}
+            </div>
+          )}
+        </div>
+      );
     case 'results':
       return <div className="tv3-body tv3-results-body"><DivisionCompletePanel view={body.complete} /></div>;
     case 'individual':
@@ -163,7 +173,7 @@ function Footer({ footer }: { footer: TvFooterView }) {
   if (footer.kind === 'results') return <div className="tv3-results-footer"><div>{DIVISION_COMPLETE_TEXT}</div></div>;
   return (
     <div className="tv3-upcoming" data-testid="tv-upcoming">
-      <div className="tv3-upcoming-title">{UPCOMING_TITLE}</div>
+      <div className="tv3-upcoming-title">{footer.title ?? UPCOMING_TITLE}</div>
       {footer.cards.map((card, i) => card
         ? (
           <div key={i} className="tv3-up-card" data-testid="tv-upcoming-card">

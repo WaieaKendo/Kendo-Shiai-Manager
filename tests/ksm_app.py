@@ -783,6 +783,10 @@ class KsmApp:
           const w = c.querySelector('[data-testid="tv-upcoming-white"]'), r = c.querySelector('[data-testid="tv-upcoming-red"]');
           return w ? [w.innerText.trim(), r.innerText.trim()] : null; })""")
 
+    def tv_upcoming_title(self):
+        """TV: the Upcoming zone's title ('Upcoming Matches', or 'Up next on this court: <division>')."""
+        return self.page.evaluate("""() => document.querySelector('[data-testid="tv-upcoming"] .tv3-upcoming-title')?.textContent.trim() ?? null""")
+
     def live_court(self, court):
         """Live Scores card for a court: {meta, white, red}, plus `placements` [[place, name]] when the
         card shows its finished division's placements (the page must be showing Live Scores)."""

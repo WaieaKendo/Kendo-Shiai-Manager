@@ -59,7 +59,22 @@ function BoutHansoku({ hansoku }: { hansoku?: HansokuView | undefined }) {
 
 function Body({ body }: { body: LiveCourtBodyView }) {
   switch (body.kind) {
-    case 'idle': return <div className="live-empty">{body.waiting ? WAITING_TEXT : IDLE_TEXT}</div>;
+    case 'idle':
+      return (
+        <>
+          <div className="live-empty">
+            {body.waiting ? WAITING_TEXT : IDLE_TEXT}
+            {body.reason && <div className="small live-waiting-reason" data-testid="live-waiting-reason">{body.reason}</div>}
+          </div>
+          {body.upNext && (
+            // Owner decision 6: the court's next division, marked as upcoming.
+            <div className="live-next live-up-next" data-testid="live-up-next">
+              <span>{body.upNext.title}</span>
+              {body.upNext.matches.map((m, i) => <span key={i} className="live-up-next-match"><b>{m.white}</b><i>vs</i><b>{m.red}</b></span>)}
+            </div>
+          )}
+        </>
+      );
     case 'individual':
       return (
         <div className="live-match-row">

@@ -49,7 +49,19 @@ function ksmTvKachinuki(vm){
 function ksmTvDisplayInput(court){
   const vm=buildTV3ViewModel(court);
   const header={court:ksmText(vm.court),division:ksmText(vm.meta?.division||vm.division||'No active match'),meta:ksmText(vm.meta?.line||'')};
-  if(vm.empty)return {kind:'tv',...header,body:{kind:'idle'},upcoming:ksmTvUpcoming(vm)};
+  if(vm.empty){
+    // Owner decision 6: "Waiting for the next match" (with the reason when known) while the court's
+    // division waits; "Up next on this court" (the next division's first matches) in Upcoming.
+    const own=vm.division,between=ksmBetweenMatches(court,own);
+    const waiting=!!own&&(state.allMatches?.[own]||[]).some(m=>isValidMatchObject(m)&&!m.done&&matchBelongsToCourt(m,court));
+    const body={kind:'idle'};
+    if(waiting)body.waiting={next:'match',reason:between.reason};
+    else if(between.upNext)body.waiting={next:'division',reason:null};
+    if(!between.upNext)return {kind:'tv',...header,body,upcoming:ksmTvUpcoming(vm)};
+    const cards=between.upNext.matches.map(x=>({white:x.white,red:x.red,whiteSub:'',redSub:''}));
+    while(cards.length<2)cards.push(null);
+    return {kind:'tv',...header,body,upcoming:cards,upNext:between.upNext.division};
+  }
   if(vm.format==='results')return {kind:'tv',...header,body:{kind:'results',complete:ksmDivisionCompleteInput(vm.division,true)},upcoming:[]};
   const upcoming=ksmTvUpcoming(vm);
   if(vm.format==='individual'){

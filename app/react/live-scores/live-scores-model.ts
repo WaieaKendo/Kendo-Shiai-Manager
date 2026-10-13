@@ -66,7 +66,13 @@ export type LiveCourtInput =
    * No match on the court. waiting: its division still has an unplayed match on this court that
    * is not ready yet (e.g. a split final waiting for the other court's semifinal; quirk pass).
    */
-  | { court: string; kind: 'idle'; waiting?: true }
+  | {
+    court: string; kind: 'idle'; waiting?: true;
+    /** Owner decision 6: why the division waits, when known ("Final waits for the semifinal on Court B"). */
+    reason?: string;
+    /** Owner decision 6: "Up next on this court": the next division's first matches. */
+    upNext?: UpNextInput;
+  }
   | {
     court: string; kind: 'individual'; meta: LiveMetaInput; white: LivePlayerInput; red: LivePlayerInput;
     /** The point letters so far (the live score for the match being scored). */
@@ -80,6 +86,26 @@ export type LiveCourtInput =
   | { court: string; kind: 'kachinuki'; meta: LiveMetaInput; sheet: KachinukiSheetInput; next: LiveNextInput | null; hansoku?: HansokuCounts }
   /** No match on the court and its division is complete (F16): the division's placements in the card. */
   | { court: string; kind: 'complete'; division: string; complete: CourtCompleteInput };
+
+/** Owner decision 6: the court's next division (#31's running order) and its first matches, drawn. */
+export interface UpNextInput {
+  division: string;
+  matches: LiveNextInput[];
+}
+
+export interface UpNextView {
+  /** "Up next on this court: <division>". */
+  title: string;
+  matches: LiveNextInput[];
+}
+
+export function upNextTitle(division: string): string {
+  return `Up next on this court: ${division}`;
+}
+
+export function upNextView(input: UpNextInput): UpNextView {
+  return { title: upNextTitle(input.division), matches: input.matches.map(m => ({ ...m })) };
+}
 
 export type LiveScoresInput =
   /** Nothing published yet: the static markup (an empty #publicLive). */
@@ -96,7 +122,7 @@ export type LiveScoresInput =
 // ------------------------------------------------------------------------------- view
 
 export type LiveCourtBodyView =
-  | { kind: 'idle'; waiting?: true }
+  | { kind: 'idle'; waiting?: true; reason?: string; upNext?: UpNextView }
   | { kind: 'individual'; white: LivePlayerInput; red: LivePlayerInput; whitePoints: string; redPoints: string; hansoku?: HansokuView }
   | { kind: 'team'; sheet: TeamSheetView; hansoku?: HansokuView }
   | { kind: 'kachinuki'; sheet: KachinukiSheetView; hansoku?: HansokuView }
@@ -136,7 +162,12 @@ export function pointText(points: readonly string[]): string {
 
 export function liveCourtView(input: LiveCourtInput): LiveCourtView {
   const base = { testId: `live-court-${input.court}`, title: `Court ${input.court}` };
-  if (input.kind === 'idle') return { ...base, className: 'live-court-card', meta: IDLE_META, body: input.waiting ? { kind: 'idle', waiting: true } : { kind: 'idle' }, next: null };
+  if (input.kind === 'idle') {
+    const body: Extract<LiveCourtBodyView, { kind: 'idle' }> = input.waiting ? { kind: 'idle', waiting: true } : { kind: 'idle' };
+    if (input.waiting && input.reason) body.reason = input.reason;
+    if (input.upNext && input.upNext.matches.length) body.upNext = upNextView(input.upNext);
+    return { ...base, className: 'live-court-card', meta: IDLE_META, body, next: null };
+  }
   if (input.kind === 'complete') {
     return {
       ...base, className: 'live-court-card', meta: `${input.division} • ${COMPLETE_LINE}`,

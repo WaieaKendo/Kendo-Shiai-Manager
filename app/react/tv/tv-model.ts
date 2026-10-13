@@ -10,7 +10,7 @@
 // #tvLive. tvView() adds what the legacy tv3 renderer derived: "Court X", the name split into
 // first name and the rest, the point strings, classes, the kachinuki fighters' states.
 import { courtCompleteView, type CourtCompleteInput, type CourtCompleteView } from '../court/complete-model.ts';
-import { hansokuView, pointText, type HansokuCounts, type HansokuView } from '../live-scores/live-scores-model.ts';
+import { hansokuView, pointText, upNextTitle, type HansokuCounts, type HansokuView } from '../live-scores/live-scores-model.ts';
 
 // ------------------------------------------------------------------------------ input
 
@@ -38,8 +38,11 @@ export interface TvTeamRowInput {
 }
 
 export type TvBodyInput =
-  /** No match on the court. */
-  | { kind: 'idle' }
+  /**
+   * No match on the court. waiting (owner decision 6): the court's division waits for a match
+   * ('match', with the reason when known) or the court waits for its next division ('division').
+   */
+  | { kind: 'idle'; waiting?: { next: 'match' | 'division'; reason: string | null } }
   /** The court's division is complete and nothing is left on the court: its placements. */
   | { kind: 'results'; complete: CourtCompleteInput }
   | { kind: 'individual'; white: TvPlayerInput; red: TvPlayerInput; points: TvPoints; hansoku?: HansokuCounts }
@@ -71,6 +74,8 @@ export type TvInput =
     kind: 'tv'; court: string; division: string; meta: string; body: TvBodyInput;
     /** Two cards, null for an empty one (not shown with Final Results). */
     upcoming: (TvUpcomingInput | null)[];
+    /** Owner decision 6: the cards are this division's first matches ("Up next on this court"). */
+    upNext?: string;
   };
 
 // ------------------------------------------------------------------------------- view
@@ -101,7 +106,7 @@ export interface TvKachinukiRowView {
 }
 
 export type TvBodyView =
-  | { kind: 'idle' }
+  | { kind: 'idle'; waiting?: { text: string; reason: string | null } }
   | { kind: 'results'; complete: CourtCompleteView }
   | { kind: 'individual'; white: TvPlayerView; red: TvPlayerView; whitePoints: string; redPoints: string; hansoku?: HansokuView }
   | {
@@ -114,7 +119,7 @@ export type TvBodyView =
   };
 
 export type TvFooterView =
-  | { kind: 'upcoming'; cards: (TvUpcomingInput | null)[] }
+  | { kind: 'upcoming'; cards: (TvUpcomingInput | null)[]; title?: string }
   /** Final Results: "Division Complete" instead of Upcoming Matches. */
   | { kind: 'results' };
 
@@ -127,6 +132,8 @@ export const EMPTY_TV: TvInput = { kind: 'empty' };
 export const UPCOMING_TITLE = 'Upcoming Matches';
 export const NO_UPCOMING_TEXT = 'No additional match scheduled';
 export const DIVISION_COMPLETE_TEXT = 'Division Complete';
+/** Owner decision 6: the idle current-match zone. */
+export const TV_WAITING_TEXTS = { match: 'Waiting for the next match', division: 'Waiting for the next division' } as const;
 
 /** tv3Name(): a name as its first part and the rest; '—' for an empty name. */
 export function nameParts(name: string): string[] {
@@ -148,7 +155,7 @@ const withHansoku = (counts: HansokuCounts | undefined): { hansoku?: HansokuView
 
 export function tvBodyView(body: TvBodyInput): TvBodyView {
   switch (body.kind) {
-    case 'idle': return body;
+    case 'idle': return body.waiting ? { kind: 'idle', waiting: { text: TV_WAITING_TEXTS[body.waiting.next], reason: body.waiting.reason } } : { kind: 'idle' };
     case 'results': return { kind: 'results', complete: courtCompleteView(body.complete) };
     case 'individual':
       return {
@@ -182,6 +189,7 @@ export function tvView(input: TvInput): TvView {
     kind: 'tv',
     header: { court: `Court ${input.court}`, division: input.division, meta: input.meta },
     body: tvBodyView(input.body),
-    footer: input.body.kind === 'results' ? { kind: 'results' } : { kind: 'upcoming', cards: input.upcoming },
+    footer: input.body.kind === 'results' ? { kind: 'results' }
+      : input.upNext ? { kind: 'upcoming', cards: input.upcoming, title: upNextTitle(input.upNext) } : { kind: 'upcoming', cards: input.upcoming },
   };
 }
