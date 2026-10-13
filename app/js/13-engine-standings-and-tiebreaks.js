@@ -329,6 +329,12 @@ function maybeCreateTeamTiebreak(m){
   /* ksm:post-split-begin engine-bridge */const plan=KSMEngine.maybeCreateTeamTiebreak(m,state.allMatches[m?.division]||[],tournamentSettings().teamFormat);
   if(plan)appendApprovedDynamicMatches(m.division,plan.anchor,/** @type {Match} */(plan.playoff),plan.dynamicType);
   /* ksm:post-split-end */
+  /* ksm:post-split-begin team-rr-daihyosen */
+  // F27: once every pairing of a team round robin is decided, teams still level on team wins,
+  // bout wins and points for 1st-3rd get a one-point daihyosen (KSMEngine.teamRoundRobinTiebreakPlan).
+  const rr=m&&isTeamRoundRobinDivision(m.division)?KSMEngine.teamRoundRobinTiebreakPlan(m,state.allMatches[m.division]||[],eligibleTeams(m.division)||[],tournamentSettings().teamFormat):null;
+  if(rr)appendApprovedDynamicMatches(m.division,rr.anchor,/** @type {Match[]} */(rr.bouts),rr.dynamicType);
+  /* ksm:post-split-end */
 }
 
 /**

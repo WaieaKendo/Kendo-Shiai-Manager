@@ -349,7 +349,8 @@
   "B | Team Tournament | Taisho | TB3 v TC3 | white WM",
   "B | Team Tournament | Senpo | TC1 v TD1 | tie WM RK",
   "B | Team Tournament | Chuken | TC2 v TD2 | white WM",
-  "B | Team Tournament | Taisho | TC3 v TD3 | red RD RM"
+  "B | Team Tournament | Taisho | TC3 v TD3 | red RD RM",
+  "B | Team Tournament | Daihyosen TB | Team B Representative v Team C Representative | red RK"
  ],
  "final": {
   "Team Tournament": {
@@ -714,6 +715,25 @@
       "M"
      ],
      "winner": "TD3"
+    },
+    {
+     "pool": "A",
+     "position": "Daihyosen",
+     "node": null,
+     "court": "B",
+     "white": "Team B Representative",
+     "red": "Team C Representative",
+     "teams": "Team B v Team C",
+     "type": "teamPlayoff",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": true,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "K"
+     ],
+     "winner": "Team C Representative"
     }
    ],
    "standings": {
@@ -729,12 +749,12 @@
       "pts": 7
      },
      {
-      "name": "Team B",
+      "name": "Team C",
       "wins": 1,
       "pts": 7
      },
      {
-      "name": "Team C",
+      "name": "Team B",
       "wins": 1,
       "pts": 7
      }

@@ -7,7 +7,9 @@
 // and new bouts come back as data for the legacy wrappers to apply to `state`.
 // Match and node objects keep the legacy field order (saved data and goldens compare JSON).
 import { kachinukiPairWinner } from './kachinuki.ts';
-import type { StandingsMatch } from './standings.ts';
+import { tiebreakBlocks, unresolvedRequiredTiebreakGroup } from './standings.ts';
+import type { StandingsMatch, StandingRow } from './standings.ts';
+import { poolMatchPairs } from './pools.ts';
 import type { TournamentSettings } from './settings.ts';
 
 export type TeamPosition = 'senpo' | 'jiho' | 'chuken' | 'fukusho' | 'taisho';
@@ -39,6 +41,8 @@ export type TeamBout = TeamPositionMatch | KachinukiStartMatch;
 /** The fields of a match the team rules read. */
 export interface TeamMatchLike extends StandingsMatch {
   teamPair?: string | undefined; teamWhite?: string | undefined; teamRed?: string | undefined; teamNodeId?: string | undefined;
+  /** A team round robin's daihyosen (F27): not a pairing of the round robin. */
+  roundRobinTiebreak?: boolean | undefined;
 }
 
 // ---- Positions and bouts ---------------------------------------------------------------
@@ -189,9 +193,9 @@ export function teamWinner(matches: readonly TeamMatchLike[], pair: string): str
   return null;
 }
 
-/** Distinct pairing ids in bout order. */
+/** Distinct pairing ids in bout order (a round robin's daihyosen bouts are not pairings, F27). */
 export function teamPairIds(matches: readonly TeamMatchLike[]): string[] {
-  return [...new Set(matches.filter(m => m.teamPair && isTeamBout(m)).map(m => m.teamPair as string))];
+  return [...new Set(matches.filter(m => m.teamPair && isTeamBout(m) && !m.roundRobinTiebreak).map(m => m.teamPair as string))];
 }
 
 // ---- Bracket advancement ---------------------------------------------------------------
@@ -284,12 +288,102 @@ export function teamRoundRobinPairResolved(matches: readonly TeamMatchLike[], pa
   return !!(ms.length && ms.every(m => m.done) && teamWinner(matches, pair));
 }
 
+/** Places of a team round robin that a daihyosen decides when teams are level (1st–3rd, the medals; F27). */
+export const TEAM_ROUND_ROBIN_COUNTED_PLACES = 3;
+// The daihyosen bouts as individual tiebreak bouts between team names, for the tiebreak engine.
+const DAIHYOSEN_POOL = 'Daihyosen';
+function daihyosenAsTiebreaks(matches: readonly TeamMatchLike[]): StandingsMatch[] {
+  return matches.filter(m => m.roundRobinTiebreak && m.type === 'teamPlayoff').map(m => ({
+    pool: DAIHYOSEN_POOL, type: 'individual', tiebreak: true, requiresWinner: true, tiebreakSeries: m.tiebreakSeries,
+    white: m.teamWhite || '', red: m.teamRed || '', wp: m.wp, rp: m.rp, done: m.done,
+  }));
+}
+const byTeamRecord = (a: TeamStandingRow, b: TeamStandingRow): number =>
+  b.wins - a.wins || b.matchWins - a.matchWins || b.pts - a.pts || a.name.localeCompare(b.name);
+const levelTeams = (a: TeamStandingRow, b: TeamStandingRow): boolean => a.wins === b.wins && a.matchWins === b.matchWins && a.pts === b.pts;
+// Teams level on the record as tied groups (start..end, 1-based), in table order.
+function levelTeamGroups(sorted: readonly TeamStandingRow[]): { start: number; end: number; rows: TeamStandingRow[] }[] {
+  const groups: { start: number; end: number; rows: TeamStandingRow[] }[] = [];
+  for (let i = 0; i < sorted.length;) {
+    let j = i + 1;
+    while (j < sorted.length && levelTeams(sorted[j]!, sorted[i]!)) j++;
+    groups.push({ start: i + 1, end: j, rows: sorted.slice(i, j) });
+    i = j;
+  }
+  return groups;
+}
+const asStandingRow = (r: TeamStandingRow): StandingRow => ({ name: r.name, dojo: '', wins: r.wins, pts: r.pts });
+
 /**
  * Round-robin table: every team (eligible teams first, then any other team in the
- * matches), resolved pairings only; ranked by pairing wins, then points, then name
- * (`nameFallback` marks rows only the name separates).
+ * matches), resolved pairings only. F27 (the owners' rule, WKC style): ranked by team
+ * match wins, then individual bout wins (`matchWins`), then points (ippon) scored; teams
+ * still level on all three for a counted place (1st–3rd) are ordered by their daihyosen
+ * (one-point representative bouts, teamRoundRobinTiebreakPlan()); level teams below the
+ * counted places, or before their daihyosen is decided, share the rank and are listed by
+ * name (`nameFallback`).
  */
 export function teamStandings(matches: readonly TeamMatchLike[], teams: readonly TeamEntry[]): TeamStandingRow[] {
+  const base = teamRecordRows(matches, teams).sort(byTeamRecord);
+  const places = Math.min(TEAM_ROUND_ROBIN_COUNTED_PLACES, base.length), tiebreaks = daihyosenAsTiebreaks(matches);
+  const out: TeamStandingRow[] = [];
+  for (const group of levelTeamGroups(base)) {
+    const byName = new Map(group.rows.map(r => [r.name, r]));
+    const blocks = group.rows.length > 1 && group.start <= places
+      ? tiebreakBlocks(tiebreaks, DAIHYOSEN_POOL, { start: group.start, end: group.end, players: group.rows.map(asStandingRow) }).blocks.map(b => b.players.map(p => byName.get(p.name)!))
+      : [group.rows];
+    for (const block of blocks) {
+      const rank = out.length + 1;
+      [...block].sort((a, b) => a.name.localeCompare(b.name)).forEach(row => { row.rank = rank; row.nameFallback = block.length > 1; out.push(row); });
+    }
+  }
+  return out;
+}
+
+/**
+ * F27: after a team round-robin bout, the daihyosen to add when every pairing is decided and
+ * teams are level on team wins, bout wins and points for a counted place (1st–3rd): one
+ * representative bout per pair of the level teams (one-point, a winner required), as the next
+ * series; a pair still level after it (a circle of three) plays another series. Only one group
+ * at a time, the highest first; none while a daihyosen bout is unplayed. Null otherwise (also
+ * for a bracket, which has its own representative playoffs).
+ */
+export function teamRoundRobinTiebreakPlan<M extends TeamPlayoffSource>(m: M | null | undefined, matches: readonly M[], teams: readonly TeamEntry[], teamFormat: TournamentSettings['teamFormat'] | null | undefined): { anchor: M; bouts: TeamDaihyosen[]; dynamicType: TeamRoundRobinTiebreakType } | null {
+  if (!m || !m.done || !isTeamBout(m) || matches.some(x => x.teamNodeId)) return null;
+  const progress = teamRoundRobinProgress(matches);
+  if (!progress.total || progress.complete < progress.total) return null;
+  if (matches.some(x => x.roundRobinTiebreak && !x.done)) return null;
+  const base = teamRecordRows(matches, teams).sort(byTeamRecord);
+  const places = Math.min(TEAM_ROUND_ROBIN_COUNTED_PLACES, base.length), tiebreaks = daihyosenAsTiebreaks(matches);
+  for (const group of levelTeamGroups(base)) {
+    if (group.rows.length < 2 || group.start > places) continue;
+    const level = unresolvedRequiredTiebreakGroup(tiebreaks, DAIHYOSEN_POOL, { start: group.start, end: group.end, players: group.rows.map(asStandingRow) }, places);
+    if (!level || level.length < 2) continue;
+    const series = tiebreaks.reduce((max, x) => Math.max(max, Number(x.tiebreakSeries || 1)), 0) + 1;
+    const court = m.court || 'A';
+    const bouts = poolMatchPairs(level.length).map(([i, j], index): TeamDaihyosen => {
+      const a = level[i]!.name, b = level[j]!.name;
+      return { division: m.division, pool: m.pool, white: `${a} Representative`, red: `${b} Representative`, wdojo: a, rdojo: b, teamWhite: a, teamRed: b,
+        position: 'Daihyosen', teamPair: `daihyosen-${series}-${index}`, done: false, wp: [], rp: [], tiebreak: true, type: 'teamPlayoff', court,
+        roundRobinTiebreak: true, requiresWinner: true, tiebreakSeries: series, tiebreakIndex: index };
+    });
+    const fmt = teamFormat || '5-Person Team';
+    const dynamicType: TeamRoundRobinTiebreakType = fmt === 'Kachinuki' ? 'KACHINUKI_ROUND_ROBIN_TIEBREAK' : fmt === '3-Person Team' ? 'TEAM_3_PERSON_ROUND_ROBIN_TIEBREAK' : 'TEAM_5_PERSON_ROUND_ROBIN_TIEBREAK';
+    return { anchor: matches[matches.length - 1] || m, bouts, dynamicType };
+  }
+  return null;
+}
+
+/** A team round robin's daihyosen bout (F27; field order is part of the saved data). */
+export interface TeamDaihyosen {
+  division: string; pool: string | undefined; white: string; red: string; wdojo: string; rdojo: string; teamWhite: string; teamRed: string;
+  position: 'Daihyosen'; teamPair: string; done: false; wp: never[]; rp: never[]; tiebreak: true; type: 'teamPlayoff'; court: string;
+  roundRobinTiebreak: true; requiresWinner: true; tiebreakSeries: number; tiebreakIndex: number;
+}
+export type TeamRoundRobinTiebreakType = 'TEAM_3_PERSON_ROUND_ROBIN_TIEBREAK' | 'TEAM_5_PERSON_ROUND_ROBIN_TIEBREAK' | 'KACHINUKI_ROUND_ROBIN_TIEBREAK';
+
+/** Every team's round-robin record over its resolved pairings (unsorted, rank not set). */
+function teamRecordRows(matches: readonly TeamMatchLike[], teams: readonly TeamEntry[]): TeamStandingRow[] {
   const rows: Record<string, TeamStandingRow> = {};
   const ensure = (name: string | undefined) => {
     if (name && !rows[name]) rows[name] = { name, played: 0, wins: 0, losses: 0, matchWins: 0, pts: 0 };
@@ -308,12 +402,7 @@ export function teamStandings(matches: readonly TeamMatchLike[], teams: readonly
     if (winner === white.name) { white.wins++; red.losses++; }
     else if (winner === red.name) { red.wins++; white.losses++; }
   });
-  const sorted = Object.values(rows).sort((a, b) => b.wins - a.wins || b.pts - a.pts || a.name.localeCompare(b.name));
-  sorted.forEach((row, index) => {
-    row.rank = index + 1;
-    row.nameFallback = sorted.some((other, otherIndex) => otherIndex !== index && other.wins === row.wins && other.pts === row.pts);
-  });
-  return sorted;
+  return Object.values(rows);
 }
 
 /** Resolved and total round-robin pairings. */

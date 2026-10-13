@@ -9,6 +9,7 @@ import vm from 'node:vm';
 import {
   teamSlots, slotLabel, buildTeamMatches, teamBracketNodesForCount, teamPairMatchObjects, syncTeamBracket, teamWinner,
   teamPairSummary, maybeCreateTeamTiebreak, teamStandings, teamRoundRobinPlacements, teamFinalPlacements, teamRoundRobinProgress,
+  teamRoundRobinTiebreakPlan, teamPairIds, teamPairMatches,
 } from '../../app/engine/teams.ts';
 import { kachinukiTransitionState, kachinukiPairWinner, maybeCreateKachinukiNext } from '../../app/engine/kachinuki.ts';
 import { html, engine, extractFunction } from '../lib/ksm-source.mjs';
@@ -191,7 +192,8 @@ test('kachinuki: winner stays, draws, lineups exhausted, playoff', () => {
 test('round robin standings, progress and placements', () => {
   const teams = makeTeams(4), arr = buildTeamMatches('D', teams, settings('3-Person Team')).matches;
   assert.deepEqual(teamRoundRobinProgress(arr), { complete: 0, total: 6 });
-  assert.deepEqual(teamStandings(arr, teams).map(r => [r.name, r.played, r.rank, r.nameFallback]), teams.map((t, i) => [t.team, 0, i + 1, true]));
+  // Nothing played: all level, so they share the rank (F27; before, ranks 1-4 by name), listed by name.
+  assert.deepEqual(teamStandings(arr, teams).map(r => [r.name, r.played, r.rank, r.nameFallback]), teams.map(t => [t.team, 0, 1, true]));
   // Lower-numbered team wins every pairing 2-1; pairing 0-1 on points only (1-1 bouts, one draw).
   for (const m of arr) {
     const [i, j] = m.teamPair.split('-').map(Number);
@@ -237,6 +239,97 @@ test('award mode: top1 / top2 / dual3 rows from the team placements', () => {
   assert.deepEqual(plain(ctx.ksmFinalResults('D')), { kind: 'results', results: null });
 });
 
+// ---- F27: team round-robin ties (the owners' rule, WKC style) ----------------------------------
+// Plays every pairing: result(teamWhite, teamRed) -> [[wp, rp], ...] per position bout.
+function playRoundRobin(arr, result) {
+  for (const pair of teamPairIds(arr)) {
+    const bouts = teamPairMatches(arr, pair), r = result(bouts[0].teamWhite, bouts[0].teamRed);
+    bouts.forEach((m, i) => score(m, ...(r[i] || [[], []])));
+  }
+}
+// The winner takes the first bout 1-0 (Men), the other bouts are 0-0 draws.
+const oneBout = (winner, white) => [winner === white ? [['M'], []] : [[], ['M']]];
+const rows = (arr, teams) => teamStandings(arr, teams).map(r => [r.name, r.wins, r.matchWins, r.pts, r.rank, r.nameFallback]);
+
+test('F27: ranked by team wins, then individual bout wins, then points', () => {
+  const teams = makeTeams(4), arr = buildTeamMatches('D', teams, settings('3-Person Team')).matches;
+  // A beats everyone 3-0; B, C, D each win one pairing (B > C 3-0, C > D 2-0, D > B 1-0).
+  const sweep = { 'Team B|Team C': 3, 'Team C|Team D': 2, 'Team B|Team D': 1 };
+  playRoundRobin(arr, (w, r) => {
+    const key = [w, r].sort().join('|'), aWins = w === 'Team A' || r === 'Team A';
+    const winner = aWins ? 'Team A' : { 'Team B|Team C': 'Team B', 'Team C|Team D': 'Team C', 'Team B|Team D': 'Team D' }[key];
+    const n = aWins ? 3 : sweep[key];
+    return [0, 1, 2].map(i => (i < n ? (winner === w ? [['M'], []] : [[], ['M']]) : [[], []]));
+  });
+  assert.deepEqual(rows(arr, teams), [['Team A', 3, 9, 9, 1, false], ['Team B', 1, 3, 3, 2, false], ['Team C', 1, 2, 2, 3, false], ['Team D', 1, 1, 1, 4, false]],
+    'B, C and D level on team wins: bout wins decide');
+  assert.equal(teamRoundRobinTiebreakPlan(arr.at(-1), arr, teams, '3-Person Team'), null, 'nobody level: no daihyosen');
+  // Points decide when team wins and bout wins are level: each wins one pairing by one bout.
+  const three = makeTeams(3), arr3 = buildTeamMatches('D', three, settings('3-Person Team')).matches;
+  playRoundRobin(arr3, (w, r) => {
+    const key = [w, r].sort().join('|');
+    if (key === 'Team A|Team B') return w === 'Team A' ? [[['M', 'K'], []]] : [[[], ['M', 'K']]];   // A wins 2-0
+    if (key === 'Team B|Team C') return w === 'Team B' ? [[['M'], []]] : [[[], ['M']]];             // B wins 1-0
+    return w === 'Team C' ? [[['M'], []], [['K'], ['K']]] : [[[], ['M']], [['K'], ['K']]];          // C beats A 1-0, a 1-1 draw
+  });
+  assert.deepEqual(rows(arr3, three), [['Team A', 1, 1, 3, 1, false], ['Team C', 1, 1, 2, 2, false], ['Team B', 1, 1, 1, 3, false]]);
+});
+
+test('F27: three teams level for 1st play a daihyosen round; a circle plays another; kachinuki and 5-person types', () => {
+  for (const [fmt, type] of [['3-Person Team', 'TEAM_3_PERSON_ROUND_ROBIN_TIEBREAK'], ['5-Person Team', 'TEAM_5_PERSON_ROUND_ROBIN_TIEBREAK']]) {
+    const teams = makeTeams(3), arr = buildTeamMatches('D', teams, settings(fmt)).matches;
+    // A > B, B > C, C > A, each by one 1-0 bout: level on all three.
+    playRoundRobin(arr, (w, r) => oneBout({ 'Team A|Team B': 'Team A', 'Team B|Team C': 'Team B', 'Team A|Team C': 'Team C' }[[w, r].sort().join('|')], w));
+    assert.deepEqual(rows(arr, teams).map(r => [r[0], r[4], r[5]]), [['Team A', 1, true], ['Team B', 1, true], ['Team C', 1, true]]);
+    assert.equal(teamRoundRobinTiebreakPlan(arr[0], arr.slice(0, -1).concat({ ...arr.at(-1), done: false }), teams, fmt), null, 'not before every pairing is decided');
+    const s1 = teamRoundRobinTiebreakPlan(arr.at(-1), arr, teams, fmt);
+    assert.equal(s1.dynamicType, type);
+    assert.deepEqual(s1.bouts.map(b => [b.teamWhite, b.teamRed, b.tiebreakSeries, b.tiebreakIndex, b.teamPair]),
+      [['Team A', 'Team B', 1, 0, 'daihyosen-1-0'], ['Team C', 'Team B', 1, 1, 'daihyosen-1-1'], ['Team C', 'Team A', 1, 2, 'daihyosen-1-2']], 'the 3-player order');
+    assert.ok(s1.bouts.every(b => b.court === arr.at(-1).court && b.position === 'Daihyosen' && b.roundRobinTiebreak && b.done === false));
+    // Series 1 a circle again (A > B, B > C, C > A): a second series between the same three.
+    const all = [...arr, ...s1.bouts];
+    s1.bouts.forEach(b => score(b, ...(b.teamWhite === 'Team A' || b.teamWhite === 'Team C' && b.teamRed === 'Team A' ? [['M'], []] : [[], ['M']])));
+    assert.deepEqual(rows(all, teams).map(r => r[4]), [1, 1, 1], 'still level after a circle');
+    const s2 = teamRoundRobinTiebreakPlan(all.at(-1), all, teams, fmt);
+    assert.deepEqual(s2.bouts.map(b => [b.teamWhite, b.teamRed, b.tiebreakSeries]), [['Team A', 'Team B', 2], ['Team C', 'Team B', 2], ['Team C', 'Team A', 2]]);
+    // Series 2: B beats both, A beats C -> B, A, C.
+    s2.bouts.forEach(b => score(b, ...(b.teamRed === 'Team B' ? [[], ['M']] : b.teamRed === 'Team A' ? [[], ['M']] : [['M'], []])));
+    const done = [...all, ...s2.bouts];
+    assert.deepEqual(rows(done, teams), [['Team B', 1, 1, 1, 1, false], ['Team A', 1, 1, 1, 2, false], ['Team C', 1, 1, 1, 3, false]], 'records unchanged, order by the daihyosen');
+    assert.deepEqual(teamRoundRobinProgress(done), { complete: 3, total: 3 }, 'daihyosen bouts are not pairings');
+    const p = teamRoundRobinPlacements(true, done, teams);
+    assert.deepEqual([p.first, p.second, p.thirds], ['Team B', 'Team A', ['Team C']]);
+    assert.equal(teamRoundRobinTiebreakPlan(done.at(-1), done, teams, fmt), null);
+  }
+  // Kachinuki: its own approved type.
+  const teams = makeTeams(2), arr = buildTeamMatches('D', teams, settings('Kachinuki')).matches;
+  assert.equal(teamRoundRobinTiebreakPlan(arr[0], arr, teams, 'Kachinuki'), null, 'kachinuki pairing undecided');
+  const kTeams = makeTeams(3), k = buildTeamMatches('D', kTeams, settings('3-Person Team')).matches;
+  playRoundRobin(k, (w, r) => oneBout({ 'Team A|Team B': 'Team A', 'Team B|Team C': 'Team B', 'Team A|Team C': 'Team C' }[[w, r].sort().join('|')], w));
+  assert.equal(teamRoundRobinTiebreakPlan(k.at(-1), k, kTeams, 'Kachinuki').dynamicType, 'KACHINUKI_ROUND_ROBIN_TIEBREAK');
+});
+
+test('F27: teams level below the counted places share the rank, no daihyosen; a bracket never gets one', () => {
+  // Six teams: A, B, C beat every team below them; D > E, E > F, F > D (level for 4th-6th).
+  const teams = makeTeams(6), arr = buildTeamMatches('D', teams, settings('3-Person Team')).matches;
+  const order = ['Team A', 'Team B', 'Team C'], circle = { 'Team D|Team E': 'Team D', 'Team E|Team F': 'Team E', 'Team D|Team F': 'Team F' };
+  playRoundRobin(arr, (w, r) => {
+    const top = [w, r].filter(x => order.includes(x)).sort((a, b) => order.indexOf(a) - order.indexOf(b))[0];
+    return oneBout(top || circle[[w, r].sort().join('|')], w);
+  });
+  assert.deepEqual(rows(arr, teams).map(r => [r[0], r[1], r[4], r[5]]),
+    [['Team A', 5, 1, false], ['Team B', 4, 2, false], ['Team C', 3, 3, false], ['Team D', 1, 4, true], ['Team E', 1, 4, true], ['Team F', 1, 4, true]]);
+  assert.equal(teamRoundRobinTiebreakPlan(arr.at(-1), arr, teams, '3-Person Team'), null, '4th-6th do not count');
+  const p = teamRoundRobinPlacements(true, arr, teams);
+  assert.deepEqual([p.first, p.second, p.thirds], ['Team A', 'Team B', ['Team C']]);
+  // A bracket bout (teamNodeId) has its own representative playoffs.
+  const nodes = teamBracketNodesForCount(2), bracketTeams = makeTeams(2), bouts = [];
+  applySync(nodes, bouts, syncTeamBracket('D', nodes, bouts, bracketTeams, '3-Person Team'));
+  bouts.forEach(m => score(m, [], []));
+  assert.equal(teamRoundRobinTiebreakPlan(bouts.at(-1), bouts, bracketTeams, '3-Person Team'), null);
+});
+
 test('team engine equals the pre-move legacy code over the golden team scenarios', t => {
   const files = ['05-engine-team-matches.js', '07-engine-team-bracket.js', '09-results-and-awards.js', '13-engine-standings-and-tiebreaks.js', '16-court-context-and-pool-editing.js'];
   const oldFiles = files.map(f => gitShow(OLD, `app/js/${f}`));
@@ -249,7 +342,7 @@ test('team engine equals the pre-move legacy code over the golden team scenarios
   const SHARED = ['winnerOf', 'isTeamMatch', 'teamNodeOrderMap', 'teamPairOrderMap', 'teamPositionOrder', 'teamMatchSortKey', 'sortTeamMatches', 'isTeamRoundRobinDivision'];
   const stubs = `alert=()=>{};isTeamDivision=()=>true;eligibleTeams=()=>teamsList;tournamentSettings=()=>settings;
     divisionComplete=div=>{const ms=state.allMatches[div]||[];return ms.length&&ms.every(m=>m.done)};
-    appendApprovedDynamicMatches=(div,after,match,type)=>{const arr=state.allMatches[div]||[];match.origin='TIEBREAK';match.dynamicType=type;arr.splice(arr.indexOf(after)+1,0,match);state.allMatches[div]=arr;sortTeamMatches(div);return [match];};`;
+    appendApprovedDynamicMatches=(div,after,match,type)=>{const arr=state.allMatches[div]||[];const list=Array.isArray(match)?match:[match];list.forEach(x=>{x.origin='TIEBREAK';x.dynamicType=type});arr.splice(arr.indexOf(after)+1,0,...list);state.allMatches[div]=arr;sortTeamMatches(div);return list;};`;
   const load = src => {
     const ctx = vm.createContext({ state: null, teamsList: null, settings: null });
     vm.runInContext(`${engine}\n${stubs}\n${SHARED.map(n => extractFunction(html, n)).join('\n')}\n${MOVED.map(n => extractFunction(src, n)).join('\n')}`, ctx);
@@ -263,7 +356,7 @@ test('team engine equals the pre-move legacy code over the golden team scenarios
     const [side, ...pts] = line.split(' | ').at(-1).split(' ');
     return { side, wp: pts.filter(p => p[0] === 'W').map(p => p.slice(1)), rp: pts.filter(p => p[0] === 'R').map(p => p.slice(1)) };
   };
-  let scenarios = 0, steps = 0;
+  let scenarios = 0, steps = 0, daihyosenScenarios = 0;
   for (const file of fs.readdirSync(dir).filter(f => /^(team[35]|kachinuki)-/.test(f)).sort()) {
     const g = JSON.parse(fs.readFileSync(new URL(file, dir), 'utf8'));
     const d = g.setup.find(s => s.team);
@@ -277,24 +370,58 @@ test('team engine equals the pre-move legacy code over the golden team scenarios
           ctx.teamsList = makeTeams(count);
           ctx.state = { allMatches: {}, teamBracketNodes: {}, teamElimTeams: {}, teamAwardMode: 'dual3' };
           const st = ctx.state, res = [];
-          const snap = () => res.push(JSON.stringify(st.allMatches[div]), JSON.stringify(st.teamBracketNodes[div] || null),
-            JSON.stringify(ctx.teamStandings(div)), JSON.stringify(ctx.teamFinalPlacements(div)), JSON.stringify(ctx.teamRoundRobinProgress(div)));
+          const snap = () => res.push(JSON.parse(JSON.stringify({ matches: st.allMatches[div], nodes: st.teamBracketNodes[div] || null,
+            standings: ctx.teamStandings(div), placements: ctx.teamFinalPlacements(div), progress: ctx.teamRoundRobinProgress(div) })));
           st.allMatches[div] = ctx.buildTeamMatches(div, ctx.teamsList);
           ctx.sortTeamMatches(div); snap();
           for (let i = 0; i < 200; i++) {
             const m = st.allMatches[div].find(x => !x.done);
             if (!m) break;
             const r = results[i % Math.max(1, results.length)] || { wp: ['M'], rp: [] };
-            Object.assign(m, { wp: [...r.wp], rp: [...r.rp], done: true });
+            // A daihyosen (F27, current code only) needs a winner: a drawn result goes to White.
+            const level = m.roundRobinTiebreak && r.wp.length === r.rp.length;
+            Object.assign(m, { wp: level ? ['M'] : [...r.wp], rp: level ? [] : [...r.rp], done: true });
             ctx.maybeCreateTeamTiebreak(m); ctx.maybeCreateKachinukiNext(m); ctx.maybeAdvanceTeamBracket(m); snap();
           }
           return res;
         };
-        const a = run(legacy), b = run(current);
-        assert.deepEqual(b, a, `${file} ${count} teams ${tfmt}`);
+        const a = run(legacy), b = run(current), label = `${file} ${count} teams ${tfmt}`;
+        // F27 changed the round-robin ranking (team wins, bout wins, points, then a daihyosen for
+        // 1st-3rd; level teams share the rank) and adds daihyosen bouts after the last pairing.
+        // Everything else must equal the pre-move code step by step: the pairings' bouts, the
+        // bracket, the progress and every team's record; the order must follow the new rule.
+        const record = rows => rows.map(r => [r.name, r.played, r.wins, r.losses, r.matchWins, r.pts]).sort((x, y) => x[0].localeCompare(y[0]));
+        const pairings = ms => (ms || []).filter(m => !m.roundRobinTiebreak);
+        assert.equal(b.length >= a.length, true, `${label}: fewer steps`);
+        b.forEach((cur, i) => {
+          const old = a[Math.min(i, a.length - 1)], at = `${label} step ${i}`;
+          if (i < a.length) {
+            assert.deepEqual(pairings(cur.matches), old.matches, `${at}: bouts`);
+            assert.deepEqual(cur.nodes, old.nodes, `${at}: bracket`);
+          } else assert.ok(cur.matches.slice(old.matches.length).every(m => m.roundRobinTiebreak), `${at}: only daihyosen bouts after the round robin`);
+          assert.deepEqual(cur.progress, old.progress, `${at}: progress`);
+          assert.deepEqual(record(cur.standings), record(old.standings), `${at}: records`);
+          cur.standings.forEach((row, k) => {
+            const prev = cur.standings[k - 1];
+            if (!prev) return assert.equal(row.rank, 1, `${at}: first rank`);
+            const order = prev.wins - row.wins || prev.matchWins - row.matchWins || prev.pts - row.pts;
+            assert.ok(order >= 0, `${at}: ${prev.name} ahead of ${row.name} breaks the order rule`);
+            assert.ok(row.rank === prev.rank ? order === 0 && row.nameFallback && prev.nameFallback : row.rank === k + 1, `${at}: rank of ${row.name}`);
+          });
+          if (tfmt !== 'Round Robin') assert.deepEqual(cur.placements, old.placements, `${at}: bracket placements`);
+          else if (cur.matches.some(m => !m.done)) assert.equal(cur.placements, null, `${at}: no placements before every bout (and daihyosen) is played`);
+          else {
+            // The round robin's placements come from the (new) standings, 1st-3rd decided.
+            const top = cur.standings.slice(0, 3);
+            assert.deepEqual(cur.placements, { first: top[0].name, second: top[1]?.name || '', thirds: top[2] ? [top[2].name] : [], standings: cur.standings, roundRobin: true }, `${at}: placements`);
+            assert.ok(top.every((r, k) => r.rank === k + 1), `${at}: 1st-3rd decided (by the daihyosen when level)`);
+          }
+        });
+        if (b.some(x => x.matches.some(m => m.roundRobinTiebreak))) daihyosenScenarios++;
         scenarios++; steps += a.length;
       }
     }
   }
   assert.ok(scenarios >= 60 && steps > 1500, `scenarios: ${scenarios}, snapshots: ${steps}`);
+  assert.ok(daihyosenScenarios > 0, 'some golden round robins end level and get a daihyosen');
 });

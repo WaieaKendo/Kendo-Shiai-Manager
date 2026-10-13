@@ -11,10 +11,10 @@ export type { TournamentSettings } from './settings.ts';
 export {
   matchRequiresWinner, completedResultWinnerValid, completedResultSnapshotValid, scoreWinnerOf, winnerOf,
   pendingTiebreak, initialPoolStandings, tiebreakStatsForPlayers, tiebreakSeriesStats, resolveTiebreakBaseGroup,
-  unresolvedRequiredTiebreakGroup, poolStandings, requiredSeedPlaces, makeTiebreakMatch, tiebreakMatchesForGroup,
+  unresolvedRequiredTiebreakGroup, poolStandings, requiredSeedPlaces, makeTiebreakMatch, tiebreakMatchesForGroup, tiebreakBlocks,
 } from './standings.ts';
 export type {
-  StandingsMatch, CompletedResultLike, StandingRow, TiebreakStatsRow, TiedGroup, StandingsPool, TiebreakMatch,
+  StandingsMatch, CompletedResultLike, StandingRow, TiebreakStatsRow, TiedGroup, StandingsPool, TiebreakMatch, TiebreakBlock,
 } from './standings.ts';
 export {
   championshipTemplateForTotal, championshipLabels, firstRoundName, nextRoundFromName, roundMatchCount,
@@ -38,11 +38,12 @@ export {
   teamSlots, slotLabel, teamPairMatchObjects, buildTeamMatches, teamSource, winnerSource, teamNode, teamBracketNodesForCount,
   teamPairMatches, teamPositionMatches, teamPairSummary, teamWinner, teamPairIds, teamSideTeam, nodeHasMatch, nodePairId,
   syncTeamBracket, maybeCreateTeamTiebreak, teamRoundRobinPairResolved, teamStandings, teamRoundRobinProgress,
-  teamRoundRobinPlacements, teamNodeSideName, teamFinalPlacements,
+  teamRoundRobinPlacements, teamNodeSideName, teamFinalPlacements, teamRoundRobinTiebreakPlan, TEAM_ROUND_ROBIN_COUNTED_PLACES,
 } from './teams.ts';
 export type {
   TeamPosition, TeamEntry, TeamBracketSource, TeamBracketNode, TeamPositionMatch, KachinukiStartMatch, TeamBout, TeamMatchLike,
   TeamPairSummary as TeamPairSummaryData, TeamPlayoffSource, TeamPlayoff, TeamRepresentativeType, TeamStandingRow, TeamPlacements,
+  TeamDaihyosen, TeamRoundRobinTiebreakType,
 } from './teams.ts';
 export { kachinukiTransitionState, kachinukiPairWinner, maybeCreateKachinukiNext } from './kachinuki.ts';
 export type { KachinukiMatchLike, KachinukiBoutLike, KachinukiTransition, KachinukiPlayoff, KachinukiContinuation, KachinukiNext } from './kachinuki.ts';

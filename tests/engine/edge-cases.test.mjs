@@ -20,6 +20,7 @@ import { championshipTemplateForTotal, individualPlacements } from '../../app/en
 import { placeIndividualsForSingleElim, buildIndividualSingleElimMatches, syncIndividualSingleElim } from '../../app/engine/single-elim.ts';
 import {
   teamBracketNodesForCount, buildTeamMatches, teamStandings, teamRoundRobinPlacements, teamWinner, teamPairIds, teamPairMatches,
+  teamRoundRobinTiebreakPlan,
 } from '../../app/engine/teams.ts';
 import { kachinukiTransitionState, kachinukiPairWinner, maybeCreateKachinukiNext } from '../../app/engine/kachinuki.ts';
 
@@ -317,7 +318,7 @@ test('kachinuki: draws remove both players; the last player left wins the pairin
 });
 
 test('kachinuki: a team\'s last player is not removed by a draw while the other team has players left', () => {
-  // The rule as implemented (kachinukiTransitionState): B1 beats A1 and A2, then A3 (Team A's
+  // The rule (kachinukiTransitionState; confirmed by the owners: the last player must lose for the team to lose): B1 beats A1 and A2, then A3 (Team A's
   // last) draws B1: only B1 leaves, A3 stays and meets B2.
   const arr = kachinuki(['R', 'R', '=']);
   assert.deepEqual(arr.map(m => [m.white, m.red]), [['A1', 'B1'], ['A2', 'B1'], ['A3', 'B1'], ['A3', 'B2']]);
@@ -331,7 +332,7 @@ test('kachinuki: a team\'s last player is not removed by a draw while the other 
 
 // ---- Team round robin ties ------------------------------------------------------------------------
 
-test('F27 (open): team round robin teams level on team wins and points are ranked by name; bout wins are not used', () => {
+test('F27 (fixed): team round robin ranked by team wins, bout wins, points, then a daihyosen for a counted place', () => {
   // Three 3-person teams, each wins one pairing; every team scores 2 points in total.
   // A beat B with one 2-0 bout (two draws); B beat C with two 1-0 bouts; C beat A with one 2-0 bout.
   const teams = ['A', 'B', 'C'].map(t => ({ team: `Team ${t}`, senpo: `${t}1`, chuken: `${t}2`, taisho: `${t}3` }));
@@ -347,14 +348,25 @@ test('F27 (open): team round robin teams level on team wins and points are ranke
     bouts.forEach((m, i) => { const [a, b] = results[key][i]; Object.assign(m, { wp: swap ? b : a, rp: swap ? a : b, done: true }); });
   }
   const rows = teamStandings(arr, teams);
-  assert.deepEqual(rows.map(r => [r.name, r.wins, r.pts, r.matchWins]), [
-    ['Team A', 1, 2, 1], ['Team B', 1, 2, 2], ['Team C', 1, 2, 1],
-  ], 'level on team wins and points; Team B has the most bout wins');
-  assert.ok(rows.every(r => r.nameFallback), 'the court marks every row "Name fallback"');
-  // Usual kendo team order: team wins, then bout wins, then points (then a representative bout):
-  // Team B 1st. Today the name decides the medals and no playoff is created (the approved
-  // TEAM_*_ROUND_ROBIN_TIEBREAK types are never made). When F27 is fixed, assert Team B first.
-  const placements = teamRoundRobinPlacements(true, arr, teams);
-  assert.deepEqual([placements.first, placements.second, placements.thirds[0]], ['Team A', 'Team B', 'Team C'],
-    `F27 fixed? placements are now ${JSON.stringify(placements)}: assert the new rule and mark F27 fixed`);
+  // The owners' rule (WKC style): team wins, then bout wins, then points; Team B has the most bout
+  // wins and is 1st. Before the fix the name decided (A, B, C) and no daihyosen was made.
+  assert.deepEqual(rows.map(r => [r.name, r.wins, r.matchWins, r.pts, r.rank, r.nameFallback]), [
+    ['Team B', 1, 2, 2, 1, false], ['Team A', 1, 1, 2, 2, true], ['Team C', 1, 1, 2, 2, true],
+  ], 'Team B 1st on bout wins; A and C level on all three share 2nd until their daihyosen');
+  // A and C are level for 2nd (a counted place): one daihyosen between them, a winner required.
+  const plan = teamRoundRobinTiebreakPlan(arr.at(-1), arr, teams, '3-Person Team');
+  assert.deepEqual(plan.bouts.map(b => [b.teamWhite, b.teamRed, b.white, b.red, b.position, b.type, b.tiebreakSeries, b.requiresWinner, matchRequiresWinner(b)]),
+    [['Team A', 'Team C', 'Team A Representative', 'Team C Representative', 'Daihyosen', 'teamPlayoff', 1, true, true]]);
+  assert.equal(plan.dynamicType, 'TEAM_3_PERSON_ROUND_ROBIN_TIEBREAK');
+  const withDaihyosen = [...arr, ...plan.bouts];
+  assert.equal(teamRoundRobinTiebreakPlan(arr.at(-1), withDaihyosen, teams, '3-Person Team'), null, 'not twice while it is unplayed');
+  assert.deepEqual(teamPairIds(withDaihyosen), teamPairIds(arr), 'the daihyosen is not a pairing of the round robin');
+  // Team C's representative wins the daihyosen (ippon shobu): C 2nd, A 3rd; the records are unchanged.
+  Object.assign(withDaihyosen.at(-1), { wp: [], rp: ['M'], done: true });
+  assert.deepEqual(teamStandings(withDaihyosen, teams).map(r => [r.name, r.wins, r.matchWins, r.pts, r.rank, r.nameFallback]), [
+    ['Team B', 1, 2, 2, 1, false], ['Team C', 1, 1, 2, 2, false], ['Team A', 1, 1, 2, 3, false],
+  ]);
+  const placements = teamRoundRobinPlacements(true, withDaihyosen, teams);
+  assert.deepEqual([placements.first, placements.second, placements.thirds], ['Team B', 'Team C', ['Team A']]);
+  assert.equal(teamRoundRobinTiebreakPlan(withDaihyosen.at(-1), withDaihyosen, teams, '3-Person Team'), null, 'decided: no further daihyosen');
 });

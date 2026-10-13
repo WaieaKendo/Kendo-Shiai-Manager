@@ -625,14 +625,14 @@
    "standings": {
     "team": [
      {
-      "name": "Team C",
-      "wins": 1,
-      "pts": 10
-     },
-     {
       "name": "Team A",
       "wins": 1,
       "pts": 9
+     },
+     {
+      "name": "Team C",
+      "wins": 1,
+      "pts": 10
      },
      {
       "name": "Team B",
@@ -644,11 +644,11 @@
    "placements": [
     {
      "place": "1st",
-     "name": "Team C"
+     "name": "Team A"
     },
     {
      "place": "2nd",
-     "name": "Team A"
+     "name": "Team C"
     }
    ]
   }
@@ -662,9 +662,9 @@
    "COMPLETED",
    "Team Tournament",
    "1ST",
-   "Team C",
-   "2ND",
    "Team A",
+   "2ND",
+   "Team C",
    "View Standings →",
    "Special Awards",
    "No special awards entered yet.",
@@ -672,9 +672,9 @@
   ],
   "public": [
    "1ST",
-   "Team C",
+   "Team A",
    "2ND",
-   "Team A"
+   "Team C"
   ],
   "director": [
    "TOURNAMENT OVERVIEW",
@@ -713,9 +713,9 @@
    "Undo",
    "Redo",
    "1ST",
-   "Team C",
-   "2ND",
    "Team A",
+   "2ND",
+   "Team C",
    "Court Context",
    "Championship Bracket Preview",
    "Final standings",
@@ -725,15 +725,15 @@
    "BOUT W",
    "PTS",
    "1",
-   "Team C",
-   "1-1",
-   "4",
-   "10",
-   "2",
    "Team A",
    "1-1",
    "5",
    "9",
+   "2",
+   "Team C",
+   "1-1",
+   "4",
+   "10",
    "3",
    "Team B",
    "1-1",

@@ -96,7 +96,7 @@ Test names drop `-test.py`/`-test.mjs`; `vm` tests run extracted app code in Nod
 - **51 edit paths** (12 court actions, 8 Setup, 10 Registration, 4 structural, 1 awards, 4 files, 3 library, 9 sync paths).
 - **Fully covered** (every applicable column ✅, C6 hantei not counted): **21** after this audit (C1, C2, C3, C5, C7, C12, S1, R1, G2, A1, F4, L1–L3, Y1–Y4, Y6, Y7, Y9; R1, Y6 and Y7 with an open finding pinned). **Before the audit: 15**: C2, C3, S1, R1, G2 and A1 lacked the second-device, reload or conflict check that `edit-conflicts`/`edit-sync` add. Of the other 30, most miss only the conflict column (covered by the vm merge tests, not end to end).
 - **Gaps by risk** (below): 17 ranked gaps (5 high event impact, 8 medium, 4 low): 3 closed in part 1 (ranks 4, 5, 6 apart from its conflict case), 3 pinned by expected-failure checks (ranks 1, 2, 11), 11 with a planned test; plus 10 network cases for part 2.
-- **Findings:** F26–F31 (F31 fixed here; F26, F27, F29, F30 open and pinned by expected-failure checks; F28 a note).
+- **Findings:** F26–F31 (F31 fixed here; F26, F27, F30 fixed in `fix/pre-event-2`; F29 open and pinned by an expected-failure check; F28 a note).
 
 ## Gaps, ranked by risk
 
@@ -114,7 +114,7 @@ Risk = what could go wrong at an event × how likely the store refactor (2.8 com
 | 8 | Representative pick after a reload and through a conflict (C10) | Medium: the wrong player in a playoff | High: court command | Planned: pick while the other court saves first; reload the court device |
 | 9 | Court division select / court runtime state through a rebase and a reload (C11) | Medium: a court jumps to another division | High: 2.8's main point (device state out of tournament data) | Planned: both courts switch divisions while the other saves; each keeps its own after the rebase and a reload |
 | 10 | Hikiwake completion through a conflict (C4) | Medium: a draw replayed as unfinished | Medium | Planned: e2e-two-court-sync with drawn pool bouts on both courts |
-| 11 | Engine: 4-way tie ordering (**F26**), team round-robin ties by name (**F27**), hantei (**F28**) | Medium: a wrong bronze / medal order | Low (engine is pure, unchanged by 2.8) | **Pinned** (`engine/edge-cases`), plus 11 edge-case checks that pass |
+| 11 | Engine: 4-way tie ordering (**F26**), team round-robin ties by name (**F27**), hantei (**F28**) | Medium: a wrong bronze / medal order | Low (engine is pure, unchanged by 2.8) | **Closed** for F26 and F27 in `fix/pre-event-2` (`engine/edge-cases`, `engine/teams`, `team-daihyosen` e2e); F28 a note; plus the edge-case checks that pass |
 | 12 | Load Tournament File (replace) while another device saves; other devices follow it (F1) | Medium (recovery situations) | Medium | Planned: replace while a court scores: which copy wins, is anyone told; Court B follows the replaced copy |
 | 13 | Load samples / Clear on a cloud tournament (R5, R6) | Medium: one tap wipes (they ask first, F8/F24) | Medium | Planned: Clear Teams (OK) reaches the server and Court B; Cancel sends nothing |
 | 14 | Edit Pool survives a reload (G3) | Low | Medium | Planned: reload the director and the court after structural-edit-conflict's first race |
@@ -141,4 +141,4 @@ Risk = what could go wrong at an event × how likely the store refactor (2.8 com
 
 - Save races are now made deterministic by holding a save at the network (`KsmApp.hold_next_save()` / `wait_held_save()` / `release_save()`, counted by `conflicts()`). `sync-remote-updates-test.py` (F4) and `structural-edit-conflict-test.py` (F10) still race with fixed sleeps (`time.sleep(1)`/`(4)`); move them to the hold helpers in part 2 (CI runs on Linux under load).
 - The test API gained `watchConflicts()`/`conflicts()`; KsmApp gained `set_competitor_field`, `regenerate_division`, `add_award`/`awards`, `blur` (docs/TESTING.md).
-- Kachinuki rule as implemented (pinned, not a finding): a team's last player is not removed by a draw while the other team still has players. Confirm with the organisers' rules.
+- Kachinuki rule (pinned, not a finding; **confirmed by the owners**): a team's last player must **lose** for the team to lose; a draw eliminates only the other team's player while that team still has players (the current behaviour).

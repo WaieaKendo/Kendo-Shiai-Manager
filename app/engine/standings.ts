@@ -153,12 +153,27 @@ export function tiebreakSeriesStats<M extends StandingsMatch>(matches: readonly 
  * players); `locked`: every placed player; `ordered`: everyone in place order.
  */
 export function resolveTiebreakBaseGroup<R extends StandingRow>(matches: Matches, poolLabel: string, target: TiedGroup<R>): { locked: TiebreakStatsRow[]; unresolved: R[]; ordered: (R | TiebreakStatsRow)[]; lastStats: TiebreakStatsRow[] } {
+  const { blocks, pending, lastStats } = tiebreakBlocks(matches, poolLabel, target);
+  const locked = blocks.filter(b => b.placed).map(b => b.players[0] as TiebreakStatsRow);
+  const open = blocks.find(b => !b.placed && b.players.length > 1);
+  const unresolved: R[] = pending || (open ? open.players as R[] : blocks.length === 1 && !blocks[0]!.placed ? [...target.players] : []);
+  return { locked, unresolved, ordered: blocks.flatMap(b => b.players), lastStats };
+}
+
+/** A tied group's places after its tiebreaks: one placed player, or players still level (they share the place). */
+export interface TiebreakBlock<R> { players: (R | TiebreakStatsRow)[]; placed: boolean }
+
+/**
+ * The blocks of resolveTiebreakBaseGroup() in place order (also used for the team round robin's
+ * daihyosen, F27); `pending`: the players of a series not played yet (then later series are not read).
+ */
+export function tiebreakBlocks<R extends StandingRow>(matches: Matches, poolLabel: string, target: TiedGroup<R>): { blocks: TiebreakBlock<R>[]; pending: R[] | null; lastStats: TiebreakStatsRow[] } {
   const base = [...target.players];
   const baseByName = new Map(base.map(x => [x.name, x]));
   const all = matches.filter(x => x.pool === poolLabel && x.tiebreak && x.type === 'individual' && baseByName.has(x.white) && baseByName.has(x.red));
   const series = [...new Set(all.map(x => Number(x.tiebreakSeries || 1)))].sort((a, b) => a - b);
   // The group as blocks in place order: a placed player alone (locked), or players still level.
-  type Block = { players: (R | TiebreakStatsRow)[]; placed: boolean };
+  type Block = TiebreakBlock<R>;
   let blocks: Block[] = [{ players: base, placed: false }];
   const isPlaced = (name: string) => blocks.some(b => b.placed && b.players[0]!.name === name);
   let pending: R[] | null = null; let lastStats: TiebreakStatsRow[] = [];
@@ -194,10 +209,7 @@ export function resolveTiebreakBaseGroup<R extends StandingRow>(matches: Matches
     const without = (b: Block): Block => ({ ...b, players: b.players.filter(x => !names.has(x.name)) });
     blocks = [...blocks.slice(0, at).map(without), ...split, ...blocks.slice(at + 1).map(without)].filter(b => b.players.length);
   }
-  const locked = blocks.filter(b => b.placed).map(b => b.players[0] as TiebreakStatsRow);
-  const open = blocks.find(b => !b.placed && b.players.length > 1);
-  const unresolved: R[] = pending || (open ? open.players as R[] : blocks.length === 1 && !blocks[0]!.placed ? [...base] : []);
-  return { locked, unresolved, ordered: blocks.flatMap(b => b.players), lastStats };
+  return { blocks, pending, lastStats };
 }
 
 /** Players still tied for a place that matters (up to reqSeed), or null. */
