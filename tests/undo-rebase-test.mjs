@@ -17,6 +17,10 @@
 //     the action and the Undo/Redo are pressed through the app's own performCourtAction()/undo()/redo();
 //   * found with it: a pending Next Match that inserted a playoff (also a Redo of it after a saved
 //     Undo, which the rebase replays as the action) keeps the other court's point on the last bout.
+//   * external PR #33 review: an ordinary Undo/Redo on the device (no conflict) after the other
+//     court's playoff reached it (live update or rebase) changes the right matches, by identity:
+//     the playoff Redo/Undo after a conflict, a point's Undo, a Next Match's Redo; a match that is
+//     gone is skipped (and the scorer told), nothing else changed.
 // edit-conflicts-test.py races the same through the real app and server (Undo, then Redo).
 import vm from 'node:vm';
 import { extractFunction, html, engine } from './lib/ksm-source.mjs';
@@ -36,7 +40,10 @@ const code = [engine, constant('KSM_LOCAL_VIEW_STATE_KEYS'), constant('KSM_UNDO_
     // the court's own actions and Undo/Redo (10-), to press them on the device's copy and the rebased copy
     'historyPathParent', 'applyHistoryPatch', 'cloneHistoryValue', 'historyComparableState', 'historyValuesEqual', 'buildHistoryPatches',
     'currentHistoryCourt', 'stampHistoryPatchMatchIdentity', 'ensureCourtHistory', 'performCourtAction', 'applyHistoryValues',
-    'courtUndoMatchesBefore', 'courtUndoMatchOps', 'withCourtMatchOps', 'recordCourtUndoLog', 'undo', 'redo'].map(n => extractFunction(html, n))].join('\n')
+    'courtUndoMatchesBefore', 'courtUndoMatchOps', 'withCourtMatchOps', 'recordCourtUndoLog', 'undo', 'redo',
+    // ordinary Undo/Redo by match identity (10-)
+    'withCourtHistoryIdentity', 'historyIndexDivision', 'historyIndexRef', 'resolveHistoryIndexRef', 'invertCourtMatchOps', 'applyCourtHistoryEntry',
+    'courtHistoryAppliedEntry', 'courtHistorySkippedNote'].map(n => extractFunction(html, n))].join('\n')
   + ['KSM_HISTORY_LIMIT', 'KSM_HISTORY_KEYS', 'KSM_HISTORY_MISSING'].map(constant).join('\n');
 const context = {
   console,
@@ -45,7 +52,7 @@ const context = {
   pinnedCourt: () => 'A',
   sanitizeLoadedTournamentState() {}, repairCompletedMatchResults() {},
   // the screen side of undo()/redo() (10-)
-  applyCourtState() {}, renderAll() {}, updateUndoButton() {}, updateSaveStatus() {}, criticalAutoSave() {},
+  applyCourtState() {}, renderAll() {}, updateUndoButton() {}, updateSaveStatus(message) { context.lastStatus = message; }, criticalAutoSave() {},
   writeCloudDiagnosticsState() {}, showKsmToast() {}, noteMergeConflicts() {}, replayStructuralEdit: () => false, mergeLocalEditsThreeWay: () => [],
 };
 vm.createContext(context);
@@ -263,6 +270,109 @@ nextMatchWithPlayoff(device, 3, TA);
 r = rebaseOnto(clone(device), server);
 check(describe(r) === 'Z 1-Z 2 done, Z 3-Z 4 done, playoff Z 1-Z 3, A 1-A 2 done M, A 3-A 4 done, playoff A 1-A 3, B 1-B 2, B 3-B 4 K',
   `18: the same with the server's list shifted by Court B's playoff (${describe(r)})`);
+
+// 19-22. External review of PR #33: an ordinary Undo/Redo on this device (no conflict) applied the
+// entry's patches by array index. Once the other court's playoff, inserted earlier in the same
+// division, reached this device (a live update or a rebase), the indexes had shifted and the Undo or
+// Redo changed the wrong bouts. They now find each match by its identity.
+const at = (s, white) => s.allMatches.Open.findIndex(m => m.white === white && !m.tiebreak);
+const playoffAt = (s, pool) => s.allMatches.Open.findIndex(m => m.tiebreak && m.pool === pool);
+// The other court's Next Match ends pool Z with a playoff (inserted after Z 3 - Z 4), as it reaches this device.
+const otherCourtPlayoff = s => { const i = at(s, 'Z 3'); s.allMatches.Open[i].done = true; s.allMatches.Open.splice(i + 1, 0, playoff('Z', 'Z 1', 'Z 3', 'B')); };
+// Court A on A 3 - A 4 (pool Z, Court B, before it in the list).
+const courtAOnA3 = () => { const s = deviceState([...poolZ(), ...poolA(), ...poolB()]); s.courtState.A.index = 3; s.currentByDivision.Open = 3; return s; };
+
+// 19. The reported case: Court A's Next Match creates its playoff, Court A undoes it; the save meets a
+// conflict with Court B's own playoff (pool Z, earlier in the list), which the rebase keeps while
+// removing Court A's. Then Redo and Undo on Court A: before the fix the Redo applied the old index
+// patches and "A 3 vs A 4" disappeared, replaced by the playoff.
+device = courtAOnA3();
+nextMatchWithPlayoff(device, 3, TA);
+server = clone(device);
+context.undo();
+otherCourtPlayoff(server); server.allMatches.Open[at(server, 'B 1')].wp = ['K'];
+r = rebaseOnto(clone(device), server);
+check(describe(r) === 'Z 1-Z 2 done, Z 3-Z 4 done, playoff Z 1-Z 3, A 1-A 2 done M, A 3-A 4, B 1-B 2 K, B 3-B 4', `19: the conflict undid Court A's playoff (${describe(r)})`);
+context.state = r;
+context.redo();
+check(describe(r) === 'Z 1-Z 2 done, Z 3-Z 4 done, playoff Z 1-Z 3, A 1-A 2 done M, A 3-A 4 done, playoff A 1-A 3, B 1-B 2 K, B 3-B 4',
+  `19: Redo after the conflict: A 3 - A 4 done, the playoff after it, no bout lost (${describe(r)})`);
+check(r.courtState.A.index === playoffAt(r, 'A') && r.currentByDivision.Open === playoffAt(r, 'A'), `19: Court A on its playoff after the Redo (index ${r.courtState.A.index})`);
+context.undo();
+check(describe(r) === 'Z 1-Z 2 done, Z 3-Z 4 done, playoff Z 1-Z 3, A 1-A 2 done M, A 3-A 4, B 1-B 2 K, B 3-B 4', `19: and Undo again removes only Court A's playoff (${describe(r)})`);
+check(r.courtState.A.index === at(r, 'A 3'), `19: Court A back on A 3 - A 4 after the Undo (index ${r.courtState.A.index})`);
+check(labels(r.courtActionHistory.A) === '' && labels(r.courtRedoHistory.A) === 'Next Match: A 3 vs A 4', '19: the Next Match offered for Redo again');
+
+// 20. A point's Undo after Court B's playoff reached this device (live update): the point comes off
+// A 3 - A 4, not off the bout now at its old index (A 1 - A 2, which kept its M).
+device = courtAOnA3();
+context.state = device;
+context.performCourtAction('White K', () => { device.allMatches.Open[3].wp.push('K'); });
+otherCourtPlayoff(device);
+context.lastStatus = '';
+context.undo();
+check(describe(device) === 'Z 1-Z 2 done, Z 3-Z 4 done, playoff Z 1-Z 3, A 1-A 2 done M, A 3-A 4, B 1-B 2, B 3-B 4', `20: Undo of a point after the list shifted (${describe(device)})`);
+check(/^Undid White K$/.test(context.lastStatus), `20: a plain "Undid" (${context.lastStatus})`);
+context.redo();
+check(describe(device) === 'Z 1-Z 2 done, Z 3-Z 4 done, playoff Z 1-Z 3, A 1-A 2 done M, A 3-A 4 K, B 1-B 2, B 3-B 4', `20: Redo puts it back on A 3 - A 4 (${describe(device)})`);
+// The Undo log (replayed by a later conflict) holds the patch for the right bout.
+const undoLogged = device.courtUndoLog.A.find(e => e.kind === 'UNDO');
+check(undoLogged.patches.some(p => p.path[0] === 'allMatches' && p.path[2] === at(device, 'A 3')), '20: the Undo is logged at A 3 - A 4\'s index now');
+
+// 21. A Next Match that created a playoff, undone, then Court B's playoff arrives earlier in the
+// list; Redo: the playoff goes back right after A 3 - A 4, no bout lost or duplicated; Undo removes it.
+device = courtAOnA3();
+nextMatchWithPlayoff(device, 3, TA);
+context.undo();
+otherCourtPlayoff(device);
+device.allMatches.Open[at(device, 'B 3')].wp = ['K'];
+context.redo();
+check(describe(device) === 'Z 1-Z 2 done, Z 3-Z 4 done, playoff Z 1-Z 3, A 1-A 2 done M, A 3-A 4 done, playoff A 1-A 3, B 1-B 2, B 3-B 4 K',
+  `21: Redo of a playoff Next Match after the list shifted (${describe(device)})`);
+check(device.courtState.A.index === playoffAt(device, 'A'), `21: Court A on its playoff (index ${device.courtState.A.index})`);
+context.undo();
+check(describe(device) === 'Z 1-Z 2 done, Z 3-Z 4 done, playoff Z 1-Z 3, A 1-A 2 done M, A 3-A 4, B 1-B 2, B 3-B 4 K', `21: Undo again (${describe(device)})`);
+
+// 22. The bout is gone (the director rebuilt pool A meanwhile): the Undo changes nothing else, does
+// not throw, tells the scorer, and the history stays usable (the entry moves to Redo; its Redo is
+// skipped the same way). The logged Undo carries no patch for the gone bout, so a conflict replay
+// cannot touch another one.
+device = courtAOnA3();
+context.state = device;
+context.performCourtAction('White K', () => { device.allMatches.Open[3].wp.push('K'); });
+device.allMatches.Open.splice(at(device, 'A 3'), 1);
+otherCourtPlayoff(device);
+const untouched = JSON.stringify(device.allMatches);
+let threw = false;
+try { context.undo(); } catch (e) { threw = e; }
+check(!threw, `22: Undo with its bout gone does not throw (${threw})`);
+check(JSON.stringify(device.allMatches) === untouched, `22: no other bout changed (${describe(device)})`);
+check(/no longer/i.test(context.lastStatus || ''), `22: the scorer is told (${context.lastStatus})`);
+check(labels(device.courtActionHistory.A) === '' && labels(device.courtRedoHistory.A) === 'White K', '22: the entry moved to Redo');
+check(!device.courtUndoLog.A.at(-1).patches.some(p => p.path[0] === 'allMatches'), '22: the logged Undo has no patch for the gone bout');
+threw = false;
+try { context.redo(); } catch (e) { threw = e; }
+check(!threw && JSON.stringify(device.allMatches) === untouched, `22: its Redo changes nothing either (${describe(device)})`);
+// The same for a Next Match whose playoff another device already removed with its bout: the Undo
+// removes nothing else.
+device = courtAOnA3();
+nextMatchWithPlayoff(device, 3, TA);
+device.allMatches.Open.splice(at(device, 'A 3'), 2);
+const untouched2 = JSON.stringify(device.allMatches);
+threw = false;
+try { context.undo(); } catch (e) { threw = e; }
+check(!threw && JSON.stringify(device.allMatches) === untouched2, `22: Undo of a Next Match whose bout and playoff are gone changes nothing (${describe(device)})`);
+
+// 23. Found with it: the list has not shifted, but Court B scored on a bout after the playoff (the
+// Next Match's index patches hold that bout, moved one place on, as it was then). The Undo removes
+// the playoff and keeps Court B's point; before, it wrote the old copies back and the point was lost.
+device = deviceState([...poolA(), ...poolB()]);
+nextMatchWithPlayoff(device, 1, TA);
+device.allMatches.Open[at(device, 'B 1')].wp = ['K'];
+context.undo();
+check(describe(device) === 'A 1-A 2 done M, A 3-A 4, B 1-B 2 K, B 3-B 4', `23: Undo of a playoff Next Match keeps Court B's later point (${describe(device)})`);
+context.redo();
+check(describe(device) === 'A 1-A 2 done M, A 3-A 4 done, playoff A 1-A 3, B 1-B 2 K, B 3-B 4', `23: and its Redo too (${describe(device)})`);
 
 if (failed) process.exit(1);
 console.log(`PASS F30 undo/redo through a save conflict: ${count} checks`);

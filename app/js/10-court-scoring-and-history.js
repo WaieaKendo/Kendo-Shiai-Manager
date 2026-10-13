@@ -64,7 +64,7 @@ function performCourtAction(label,fn){
   const result=fn();const after=historyComparableState(),patches=buildHistoryPatches(before,after).map(patch=>stampHistoryPatchMatchIdentity(patch,before,after));
   if(patches.length){
     const stack=state.courtActionHistory[court];
-    /* ksm:post-split-begin history-replay was:stack.push({format:'patch-v1',label:label||'Action',court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',revision:cloudSession?.revision||0,patches}); */stack.push(withCourtMatchOps({format:'patch-v1',label:label||'Action',court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',revision:cloudSession?.revision||0,patches},before.allMatches,after.allMatches));/* ksm:post-split-end */
+    /* ksm:post-split-begin history-replay was:stack.push({format:'patch-v1',label:label||'Action',court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',revision:cloudSession?.revision||0,patches}); */stack.push(withCourtHistoryIdentity({format:'patch-v1',label:label||'Action',court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',revision:cloudSession?.revision||0,patches},before,after));/* ksm:post-split-end */
     if(stack.length>KSM_HISTORY_LIMIT)stack.splice(0,stack.length-KSM_HISTORY_LIMIT);
     state.courtRedoHistory[court]=[];
   }
@@ -92,8 +92,8 @@ function applyHistoryPatch(patch,direction){
 }
 function applyHistoryValues(action,direction){
   if(action?.format==='patch-v1'&&Array.isArray(action.patches)){
-    const patches=direction==='before'?[...action.patches].reverse():action.patches;
-    patches.forEach(patch=>applyHistoryPatch(patch,direction));
+    /* ksm:post-split-begin history-replay was:const patches=direction==='before'?[...action.patches].reverse():action.patches; */ksmLastHistoryOutcome=applyCourtHistoryEntry(action,direction);/* ksm:post-split-end */
+    /* ksm:post-split-begin history-replay was:patches.forEach(patch=>applyHistoryPatch(patch,direction)); *//* ksm:post-split-end */
   }else return;
   ensureCourtHistory();
   const court=currentHistoryCourt();
@@ -143,6 +143,8 @@ function courtUndoMatchOps(matchesBefore,matchesAfter=state.allMatches){
     if(beforeIds.join('\n')===afterIds.join('\n'))return; // same matches in the same order: the index patches replay it
     if(beforeIds.some(id=>!id)||afterIds.some(id=>!id)||new Set(beforeIds).size!==beforeIds.length||new Set(afterIds).size!==afterIds.length)return;
     const op={remove:beforeIds.filter(id=>!afterIds.includes(id)),insert:[],patches:[]};
+    // The removed matches themselves (with the match they followed), so an Undo on the device can put them back (invertCourtMatchOps()).
+    if(op.remove.length)op.restore=beforeIds.map((id,i)=>afterIds.includes(id)?null:{after:i?beforeIds[i-1]:null,match:cloneJson(before[i])}).filter(Boolean);
     afterIds.forEach((id,i)=>{
       const was=beforeIds.indexOf(id);
       if(was<0){op.insert.push({after:i?afterIds[i-1]:null,match:cloneJson(after[i])});return}
@@ -168,18 +170,139 @@ function recordCourtUndoLog(court,kind,action,matchesBefore){
   log.push(entry);
   if(log.length>KSM_UNDO_LOG_LIMIT)log.splice(0,log.length-KSM_UNDO_LOG_LIMIT);
 }
+/**
+ * External PR #33 review: an ordinary Undo/Redo on the device applied the entry's patches by array
+ * index (allMatches.<div>[i]). When the other court's matches changed the list meanwhile (its Next
+ * Match inserted a playoff earlier in the division, and that reached this device by a live update or
+ * a rebase), the indexes had shifted and the Undo/Redo changed the wrong bouts (a Redo of a playoff
+ * Next Match replaced "A 3 vs A 4" with the playoff). So a new court action also records, per patch,
+ * the match identity at its index before and after (matchIdentities, when they differ) and, for the
+ * fields that hold a match index (courtState.<court>.index, current, currentByDivision.<div>), the
+ * match that index pointed to (indexRefs); applyCourtHistoryEntry() resolves them by identity.
+ * before/after: historyComparableState() before and after the action.
+ */
+function withCourtHistoryIdentity(entry,before,after){
+  entry.patches=(entry.patches||[]).map(patch=>{
+    const path=patch?.path||[];
+    if(path[0]==='allMatches'&&typeof path[2]==='number'){
+      const was=matchSyncIdentity(before?.allMatches?.[path[1]]?.[path[2]])||'',is=matchSyncIdentity(after?.allMatches?.[path[1]]?.[path[2]])||'';
+      return was===is?patch:{...patch,matchIdentities:{before:was,after:is}};
+    }
+    const refs={before:historyIndexRef(before,historyIndexDivision(path,before),patch.before),after:historyIndexRef(after,historyIndexDivision(path,after),patch.after)};
+    return refs.before||refs.after?{...patch,indexRefs:refs}:patch;
+  });
+  entry.identityStamps=1;
+  return withCourtMatchOps(entry,before?.allMatches,after?.allMatches);
+}
+/** The division whose match list a match-index field (courtState.<court>.index, current, currentByDivision.<div>) points into, in `st`. */
+function historyIndexDivision(path,st){
+  if(path.length===3&&path[0]==='courtState'&&path[2]==='index')return st?.courtState?.[path[1]]?.division??null;
+  if(path.length===1&&path[0]==='current')return st?.currentDivision??null;
+  if(path.length===2&&path[0]==='currentByDivision')return path[1];
+  return null;
+}
+/** What match index `value` points to in `st`'s list of `division`: {division,id}, {division,end:true} past the last match, or null. */
+function historyIndexRef(st,division,value){
+  const arr=division!=null?st?.allMatches?.[division]:null;
+  if(!Array.isArray(arr)||!Number.isInteger(value))return null;
+  if(value>=arr.length)return {division,end:true};
+  const id=matchSyncIdentity(arr[value]);
+  return id?{division,id}:null;
+}
+/** The index `ref` points to in the current match list (the recorded `value` when that match is gone). */
+function resolveHistoryIndexRef(ref,value){
+  const arr=state.allMatches?.[ref?.division];
+  if(!Array.isArray(arr))return value;
+  if(ref.end)return arr.length;
+  const i=arr.findIndex(match=>matchHasSyncIdentity(match,ref.id));
+  return i>=0?i:value;
+}
+/** The Undo of a division's matchOps (courtUndoMatchOps()): the inserted matches removed, the removed ones put back, the field changes reversed. Null when the removed matches were not kept. */
+function invertCourtMatchOps(op){
+  if(!op||((op.remove||[]).length&&!Array.isArray(op.restore)))return null;
+  return {remove:(op.insert||[]).map(item=>matchSyncIdentity(item?.match)).filter(Boolean),insert:cloneJson(op.restore||[]),
+    patches:[...(op.patches||[])].reverse().map(patch=>({...patch,before:patch.after,after:patch.before}))};
+}
+let ksmLastHistoryOutcome=null,ksmLastHistorySkipped=0;
+/**
+ * Applies a court action's patches for an Undo (direction 'before') or a Redo ('after') to `state`, each match by its identity.
+ * Per division: a division whose matches the action inserted or removed (entry.matchOps) is applied by identity like the rebase
+ * (replayCourtMatchOps(), inverted for an Undo): only the fields the action changed, wherever the matches now are. Otherwise, while
+ * every patched index still holds the match it was recorded on, the patches apply by index as before (also an entry recorded
+ * before identities, or a reorder); when the list has shifted each patch goes to its match's current index, and a patch whose
+ * match is gone is skipped. A match-index field (courtState.<court>.index ...) is set to where its match is now.
+ * Returns {patches: the patches applied, in the action's direction, at the indexes they applied to; skipped: how many were not}.
+ */
+function applyCourtHistoryEntry(action,direction){
+  const undoing=direction==='before',now=undoing?'after':'before',other=undoing?'before':'after';
+  const all=Array.isArray(action?.patches)?action.patches:[],matchOps=action?.matchOps&&typeof action.matchOps==='object'?action.matchOps:{};
+  const divOf=patch=>patch?.path?.[0]==='allMatches'&&typeof patch.path[2]==='number'?patch.path[1]:null;
+  const byDivision={};all.forEach(patch=>{const div=divOf(patch);if(div!=null)(byDivision[div]=byDivision[div]||[]).push(patch)});
+  const identityNow=patch=>patch.matchIdentities?patch.matchIdentities[now]:patch.matchIdentity;
+  const mode={},ops={};
+  Object.entries(byDivision).forEach(([div,list])=>{
+    const arr=state.allMatches?.[div],op=matchOps[div];
+    if(!Array.isArray(arr)||list.some(patch=>!patch.matchIdentity)){mode[div]='index';return}
+    if(op&&((op.insert||[]).length||(op.remove||[]).length)){ops[div]=undoing?invertCourtMatchOps(op):op;mode[div]=ops[div]?'ops':'skip';return}
+    const inPlace=list.every(patch=>{const want=identityNow(patch),i=patch.path[2];return want?matchHasSyncIdentity(arr[i],want):i>=arr.length});
+    if(inPlace)mode[div]='index';
+    else if(list.some(patch=>patch.path.length<4))mode[div]=action.identityStamps?'skip':'index'; // whole matches by index: only an entry recorded before identities still does that
+    else mode[div]='identity';
+  });
+  const applied=[];let skipped=0;
+  Object.entries(ops).forEach(([div,op])=>{
+    if(!op)return;
+    const result=replayCourtMatchOps(state,{[div]:op})||{applied:[],skipped:0};
+    skipped+=result.skipped;
+    result.applied.forEach(patch=>applied.push(undoing?{...patch,before:patch.after,after:patch.before}:patch));
+  });
+  const aliased=Object.keys(byDivision).find(div=>state.matches&&state.matches===state.allMatches?.[div]);
+  const ordered=undoing?[...all].reverse():all,indexFields=[];
+  ordered.forEach(patch=>{
+    const path=patch?.path||[],div=divOf(patch);
+    // state.matches is the same list as allMatches.<div>: its patches repeat those, at indexes that may be stale.
+    if(path[0]==='matches'&&aliased!=null&&mode[aliased]!=='index')return;
+    if(div==null){if(patch.indexRefs?.[direction])indexFields.push(patch);else{applyHistoryPatch(patch,direction);applied.push(patch)}return}
+    if(mode[div]==='ops')return;
+    if(mode[div]==='skip'){skipped++;return}
+    if(mode[div]==='identity'){
+      const arr=state.allMatches[div],ids=[identityNow(patch),patch.matchIdentity,patch.matchIdentities?.[other]].filter(Boolean);
+      let i=-1;for(const id of ids){i=arr.findIndex(match=>matchHasSyncIdentity(match,id));if(i>=0)break}
+      if(i<0){skipped++;return}
+      const resolved={...patch,path:['allMatches',div,i,...path.slice(3)]};
+      applyHistoryPatch(resolved,direction);applied.push(resolved);return;
+    }
+    applyHistoryPatch(patch,direction);applied.push(patch);
+  });
+  // The match-index fields last, once the match lists are as they will be.
+  indexFields.forEach(patch=>{const value=resolveHistoryIndexRef(patch.indexRefs[direction],patch[direction]);applyHistoryPatch({...patch,[direction]:value},direction);applied.push(patch)});
+  if(undoing)applied.reverse();
+  return {patches:applied,skipped};
+}
+/** `action` as its Undo/Redo was applied (for the Undo log the rebase replays): only the patches that applied, at the indexes they applied to. */
+function courtHistoryAppliedEntry(action){
+  const outcome=ksmLastHistoryOutcome;ksmLastHistoryOutcome=null;ksmLastHistorySkipped=outcome?.skipped||0;
+  return outcome?{...action,patches:outcome.patches}:action;
+}
+/** The note added to "Undid …"/"Redid …" when part of it could not be applied (its match no longer exists); also shown as a toast. */
+function courtHistorySkippedNote(kind){
+  const skipped=ksmLastHistorySkipped;ksmLastHistorySkipped=0;
+  if(!skipped)return '';
+  if(typeof showKsmToast==='function')showKsmToast(`${kind}: a match it changed no longer exists, so that part was not applied`,3500,true);
+  return ' (part of it was not applied: a match it changed no longer exists)';
+}
 /* ksm:post-split-end */
 function undo(){
   ensureCourtHistory();const court=currentHistoryCourt(),stack=state.courtActionHistory[court];const action=stack.pop();
   if(!action){updateSaveStatus('Nothing to undo');updateUndoButton();return}
-  /* ksm:post-split-begin history-replay */const matchesBefore=courtUndoMatchesBefore(action);/* ksm:post-split-end */applyHistoryValues(action,'before');/* ksm:post-split-begin history-replay */recordCourtUndoLog(court,'UNDO',action,matchesBefore);/* ksm:post-split-end */state.courtRedoHistory[court].push(action);if(state.courtRedoHistory[court].length>KSM_HISTORY_LIMIT)state.courtRedoHistory[court].shift();
-  updateUndoButton();updateSaveStatus('Undid '+action.label);criticalAutoSave('Undo: '+action.label);
+  /* ksm:post-split-begin history-replay */const matchesBefore=courtUndoMatchesBefore(action);/* ksm:post-split-end */applyHistoryValues(action,'before');/* ksm:post-split-begin history-replay */recordCourtUndoLog(court,'UNDO',courtHistoryAppliedEntry(action),matchesBefore);/* ksm:post-split-end */state.courtRedoHistory[court].push(action);if(state.courtRedoHistory[court].length>KSM_HISTORY_LIMIT)state.courtRedoHistory[court].shift();
+  updateUndoButton();/* ksm:post-split-begin history-replay was:updateSaveStatus('Undid '+action.label); */updateSaveStatus('Undid '+action.label+courtHistorySkippedNote('Undo'));/* ksm:post-split-end */criticalAutoSave('Undo: '+action.label);
 }
 function redo(){
   ensureCourtHistory();const court=currentHistoryCourt(),stack=state.courtRedoHistory[court];const action=stack.pop();
   if(!action){updateSaveStatus('Nothing to redo');updateUndoButton();return}
-  /* ksm:post-split-begin history-replay */const matchesBefore=courtUndoMatchesBefore(action);/* ksm:post-split-end */applyHistoryValues(action,'after');/* ksm:post-split-begin history-replay */recordCourtUndoLog(court,'REDO',action,matchesBefore);/* ksm:post-split-end */state.courtActionHistory[court].push(action);if(state.courtActionHistory[court].length>KSM_HISTORY_LIMIT)state.courtActionHistory[court].shift();
-  updateUndoButton();updateSaveStatus('Redid '+action.label);criticalAutoSave('Redo: '+action.label);
+  /* ksm:post-split-begin history-replay */const matchesBefore=courtUndoMatchesBefore(action);/* ksm:post-split-end */applyHistoryValues(action,'after');/* ksm:post-split-begin history-replay */recordCourtUndoLog(court,'REDO',courtHistoryAppliedEntry(action),matchesBefore);/* ksm:post-split-end */state.courtActionHistory[court].push(action);if(state.courtActionHistory[court].length>KSM_HISTORY_LIMIT)state.courtActionHistory[court].shift();
+  updateUndoButton();/* ksm:post-split-begin history-replay was:updateSaveStatus('Redid '+action.label); */updateSaveStatus('Redid '+action.label+courtHistorySkippedNote('Redo'));/* ksm:post-split-end */criticalAutoSave('Redo: '+action.label);
 }
 function point(side,letter){performCourtAction(`${side==='W'?'White':'Red'} ${letter}`,()=>{state.score[side].push(letter);syncActiveScoreToMatch();renderScore()})}
 function hansoku(side){performCourtAction(`${side==='W'?'White':'Red'} Hansoku`,()=>{if(side==='W'){state.score.WT++;if(state.score.WT%2===0)state.score.R.push('H')}else{state.score.RT++;if(state.score.RT%2===0)state.score.W.push('H')}syncActiveScoreToMatch();renderScore()})}

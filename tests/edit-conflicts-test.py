@@ -23,6 +23,11 @@ them; at the end a fresh device and a reloaded court device must still show them
      review of PR #33): pool A of a 6-player round robin ends in a three-way tie, so its playoffs
      are inserted in the middle of the match list, before pool B. Before the fix the rebase
      replayed the Next Match's index patches backwards, leaving playoffs in and overwriting pool B.
+ 11. Redo and Undo on a court after the other court's playoffs reached it (external review of PR
+     #33, no conflict): a split division, pool 1 on Court A before Court B's pool 2. Court B's
+     Next Match ends pool 2 in a tie (playoffs), Court B undoes it; Court A's Next Match then
+     inserts pool 1's playoffs before pool 2, and the live update reaches Court B. Before the fix
+     Court B's Redo and Undo applied their patches at the old indexes and changed the wrong bouts.
 
 Court vs court (both courts scoring) is e2e-two-court-sync-test.py; a Setup edit vs a court point
 saved first (F4) is sync-remote-updates-test.py; a structural edit vs a court point is
@@ -35,7 +40,7 @@ from ksm_app import KsmApp, fetch_record, sel, app_path
 from ksm_browser import launch_chromium
 from ksm_server import local_worker
 
-OPEN_A, OPEN_B, KIDS, TIE = 'Open A', 'Open B', 'Kids', 'Tie'
+OPEN_A, OPEN_B, KIDS, TIE, SPLIT = 'Open A', 'Open B', 'Kids', 'Tie', 'Split'
 
 
 def people(prefix, n):
@@ -54,6 +59,7 @@ def main():
             {'name': OPEN_B, 'format': 'Round Robin', 'court': 'B', 'entrants': people('B', 4)},
             {'name': KIDS, 'format': 'Round Robin', 'court': 'A', 'entrants': people('K', 3)},
             {'name': TIE, 'format': 'Round Robin', 'court': 'A', 'entrants': people('T', 6)},
+            {'name': SPLIT, 'format': 'Round Robin', 'court': 'split', 'entrants': people('S', 9)},
         ])
         director.save_now()
         director.wait_idle()
@@ -209,6 +215,41 @@ def main():
         court_a.wait_for(lambda: court_a.current_match() and (court_a.current_match()['white'], court_a.current_match()['red']) == ('T 5', 'T 1'),
                          message='10: pool A\'s last bout back on Court A')
 
+        # 11. Redo and Undo on Court B after Court A's playoffs reached it (no conflict).
+        court_a.switch_division(SPLIT)
+        court_b.switch_division(SPLIT)
+        settle()
+        split_matches = lambda record: [(m.get('pool'), m.get('white'), m.get('red'), bool(m.get('done')), bool(m.get('tiebreak')))
+                                        for m in state(record)['allMatches'][SPLIT]]
+        on_court = lambda record, court: [m.get('pool') for m in state(record)['allMatches'][SPLIT] if m.get('court') == court and not m.get('championship')]
+        pool_a, pool_b = on_court(server(), 'A')[0], on_court(server(), 'B')[0]
+        for _ in range(3):  # Court B's first pool, all drawn: its third Next Match adds the playoffs
+            court_b.next_match(settle=True)
+        settle()
+        with_b_playoffs = split_matches(server())
+        b_playoffs = [m for m in with_b_playoffs if m[4] and m[0] == pool_b]
+        assert b_playoffs, f'11: no playoffs for Court B\'s pool: {with_b_playoffs}'
+        court_b.undo()
+        settle()
+        assert not any(m[4] for m in split_matches(server())), f'11: the Undo left playoffs: {split_matches(server())}'
+        for _ in range(3):  # Court A's pool (before Court B's in the list): its playoffs go in before Court B's bouts
+            court_a.next_match(settle=True)
+        settle()
+        shifted = split_matches(server())
+        first_b = next(i for i, m in enumerate(shifted) if m[0] == pool_b)
+        assert any(m[4] and m[0] == pool_a for m in shifted[:first_b]), f'11: Court A\'s playoffs are not before Court B\'s pool: {shifted}'
+        court_b.wait_revision(server()['revision'])
+        court_b.redo()
+        settle()
+        last_b = max(i for i, m in enumerate(shifted) if m[0] == pool_b and not m[4])
+        expected = shifted[:last_b] + [shifted[last_b][:3] + (True, False)] + b_playoffs + shifted[last_b + 1:]
+        assert split_matches(server()) == expected, f'11: Court B\'s Redo after the list shifted:\n{split_matches(server())}\nexpected\n{expected}'
+        court_b.undo()
+        settle()
+        assert split_matches(server()) == shifted, f'11: Court B\'s Undo after the list shifted:\n{split_matches(server())}\nexpected\n{shifted}'
+        court_b.wait_for(lambda: court_b.current_match() and (court_b.current_match()['white'], court_b.current_match()['red']) == shifted[last_b][1:3],
+                         message='11: Court B\'s pool\'s last bout back on Court B')
+
         # Survives a reload: a fresh device and Court A reloaded show the saved edits.
         final = server()
         fresh = KsmApp.open_device(browser, base, 'Fresh', problems, app_path(tid))
@@ -226,7 +267,7 @@ def main():
 
         assert not problems, '\n'.join(problems)
         print(f'PASS edit conflicts: court vs Setup, hansoku/fusen-gachi vs the other court, Registration vs court (both ways), awards vs court, structural vs Registration '
-              f'(both ways), Undo and Redo vs another court (F30, also of a Next Match with playoffs) kept both edits; two Registration edits (F29) pinned '
+              f'(both ways), Undo and Redo vs another court (F30, also of a Next Match with playoffs) kept both edits; Redo/Undo after the other court\'s playoffs shifted the list; two Registration edits (F29) pinned '
               f'({time.time() - started:.0f}s)')
         browser.close()
 
