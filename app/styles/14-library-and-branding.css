@@ -58,4 +58,13 @@ body:not(.ksm-test-tools) :is([data-testid="reg-load-samples"],[data-testid="tea
 .sk-match-line-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px}
 .court-rule-tag{display:inline-block;padding:2px 10px;border:1px solid var(--line-strong,var(--line));border-radius:999px;background:var(--ivory);color:var(--muted);font-size:12px;font-weight:800;letter-spacing:.04em;white-space:nowrap}
 .court-rule-tag[data-rule="winner"]{border-color:var(--red);color:var(--red)}
+/* #38: the Fusen-sho dialog asks who won: two side buttons (the court's White and Red scoring-button looks, in the court's left/right order), Cancel quieter underneath. */
+.fusen-sides{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}
+.fusen-side{min-width:0;min-height:72px;padding:9px 7px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:13px;overflow-wrap:anywhere}
+.fusen-side-label{font-size:13px;font-weight:900;letter-spacing:.04em}
+.fusen-side-name{font-size:18px;font-weight:900;line-height:1.15}
+.fusen-side-white{background:var(--card);color:var(--ink);border:2px solid var(--ink)}
+.fusen-side-red{background:var(--redbg);color:var(--red);border:2px solid var(--red)}
+.fusen-cancel-row{margin-top:14px;padding-top:10px;border-top:1px solid var(--line)}
+.fusen-cancel{width:100%;background:transparent;border:0;color:var(--muted);font-weight:700;text-decoration:underline}
 /* ksm:post-split-end */

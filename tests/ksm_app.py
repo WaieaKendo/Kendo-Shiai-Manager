@@ -737,9 +737,14 @@ class KsmApp:
     def redo(self):
         self.click('redo')
 
-    def fusen_gachi(self, forfeiting_side):
+    def fusen_sho(self, winning_side):
+        """Fusen-sho, answering "who won?" (#38): the winning side's button."""
         self.click('fusen-gachi')
-        self.click(f'fusen-{SIDE[forfeiting_side]}')
+        self.click(f'fusen-{SIDE[winning_side]}')
+
+    def fusen_gachi(self, forfeiting_side):
+        """Fusen-sho, from the forfeiting side's point of view: presses the OTHER side's (winner's) button."""
+        self.fusen_sho('R' if forfeiting_side in ('W', 'white') else 'W')
 
     def division_options(self):
         """Divisions offered by the court's division selector."""

@@ -151,7 +151,8 @@ function ksmPublishDialogs(part,value){
 }
 function ksmNextDialogKey(){ksmShellDialogKey=(ksmShellDialogKey||0)+1;return ksmShellDialogKey}
 // openFusenDialog() / closeFusenDialog() (22).
-function ksmSetFusenOpen(open){ksmPublishDialogs('fusen',{open:!!open})}
+// #38: the dialog asks who won: it also gets the bout's fighters and the court's Red side.
+function ksmSetFusenOpen(open,info){ksmPublishDialogs('fusen',{open:!!open,...(open&&info?info:{})})}
 // closeManagementModal(id) (03): the generation check or Regenerate hidden; whether it was one of
 // them.
 function ksmCloseShellDialog(id){
