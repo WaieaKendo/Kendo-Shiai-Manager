@@ -541,7 +541,44 @@ class KsmApp:
         row.locator(sel(f'setup-division-{direction}')).click()
         self.wait_for(lambda: self.setup_division_names() != before, message=f'{name} to move {direction}')
 
-    def setup_team_event(self, fmt='3-Person Team', tournament='Single Elimination', court='Both', enabled=True):
+    def rename_division(self, name, new_name, key=None):
+        """Setup screen: the row of `name`'s Rename, `new_name` typed into the field, then Save (or
+        the `key`, e.g. 'Enter') (#25). Returns the refusal the row shows ('' once renamed); a
+        refused rename leaves the field open (cancel_rename()). Refused outright (after the draw):
+        the message, and no field opens."""
+        page = self.page
+        field, error = page.locator(sel('setup-division-rename-input')), page.locator(sel('setup-division-rename-error'))
+        self.setup_division_row(name).locator(sel('setup-division-rename')).click()
+        self.wait_for(lambda: field.count() or error.count(), message=f'the rename field of {name} or a refusal')
+        if not field.count():
+            return error.inner_text().strip()
+        field.fill(new_name)
+        if key:
+            field.press(key)
+        else:
+            self.click('setup-division-rename-save')
+        self.wait_for(lambda: not field.count() or error.count(), message=f'{name} to be renamed or refused')
+        return error.inner_text().strip() if field.count() else ''
+
+    def cancel_rename(self):
+        """Setup screen: Cancel of the open rename field (#25)."""
+        self.click('setup-division-rename-cancel')
+        self.wait_for(lambda: not self.page.locator(sel('setup-division-rename-input')).count(), message='the rename field to close')
+
+    def registration_division(self, name):
+        """Registration -> Individual: (the division shown for the player `name`, the division options of the row)."""
+        page = self.page
+        if not page.is_visible(sel('reg-add-row')):
+            self.nav('registration')
+            self.click('reg-tab-individual')
+        rows = page.locator(sel('reg-row'))
+        for i in range(rows.count()):
+            if rows.nth(i).locator(sel('reg-name')).input_value() == name:
+                return rows.nth(i).locator(sel('reg-division')).evaluate(
+                    "s => [s.selectedOptions[0]?.textContent.trim() ?? '', [...s.options].map(o => o.textContent.trim())]")
+        raise AssertionError(f'{self.name}: no registration row for {name!r}')
+
+    def setup_team_event(self,fmt='3-Person Team', tournament='Single Elimination', court='Both', enabled=True):
         """Setup screen: team tournament settings. court: 'A' | 'B' | 'Both'."""
         page = self.page
         self.nav('setup')

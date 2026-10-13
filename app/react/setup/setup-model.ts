@@ -61,6 +61,14 @@ export const MOVE_TEXTS = { up: '↑', down: '↓' } as const;
 export function moveLabel(name: string, direction: 'up' | 'down'): string {
   return `Move ${name} ${direction}`;
 }
+/** Issue #25: a row's Rename button and the rename field's texts and accessible names. */
+export const RENAME_TEXTS = { rename: 'Rename', save: 'Save', cancel: 'Cancel' } as const;
+export function renameLabel(name: string): string {
+  return `Rename ${name}`;
+}
+export function renameFieldLabel(name: string): string {
+  return `New name for ${name}`;
+}
 export const CUSTOM_TEXT = 'custom';
 export const REMOVE_TEXT = '×';
 /** The format select's options (no value attribute: the value is the text). */
@@ -92,4 +100,44 @@ export function setupDivisionRowView(row: SetupDivisionRowInput): SetupDivisionR
 /** syncSetupHeader(): the name, or "Kendo Tournament" when the field is empty. */
 export function setupHeaderText(input: SetupHeaderInput): string {
   return input.name ? input.name : SETUP_HEADER_FALLBACK;
+}
+
+// ------------------------------------------------------------------------------ rename (#25)
+
+/**
+ * The divisions table's rename, one row at a time. Open: the row's name is a text field with
+ * Save and Cancel. A refusal (the answer of the legacy ksmRenameSetupDivision() or
+ * ksmDivisionRenameBlocked()) is shown in the row: with the field still open after Save, or
+ * without a field when Rename itself was refused (after the draw).
+ */
+export interface RenameEdit {
+  /** The division being renamed (its current name). */
+  division: string;
+  /** The field's text. */
+  draft: string;
+  /** Why the rename was refused, or null. */
+  error: string | null;
+  /** The field is shown. */
+  open: boolean;
+}
+
+export type RenameAction =
+  | { type: 'open'; division: string; blocked: string | null }
+  | { type: 'draft'; draft: string }
+  | { type: 'saved'; error: string | null }
+  | { type: 'cancel' };
+
+export function renameEditReducer(edit: RenameEdit | null, action: RenameAction): RenameEdit | null {
+  switch (action.type) {
+    case 'open':
+      return action.blocked
+        ? { division: action.division, draft: '', error: action.blocked, open: false }
+        : { division: action.division, draft: action.division, error: null, open: true };
+    case 'draft':
+      return edit && edit.open ? { ...edit, draft: action.draft } : edit;
+    case 'saved':
+      return edit && action.error ? { ...edit, error: action.error } : null;
+    case 'cancel':
+      return null;
+  }
 }

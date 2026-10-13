@@ -33,11 +33,13 @@ function ksmPublishSetup(event,key,input){
 // switched-off presets in their order, then (owner decision 12) the switched-off custom divisions:
 // switching one off keeps its format and court in state (toggleDivision()), so a custom division
 // with a format that is not in state.divisions is listed, unchecked, until × removes it.
+// Issue #25: a renamed preset is still a preset (no ×, listed among the presets when switched
+// off) under its new name, and its old name is not listed again (ksmDivisionPresetNames()).
 function ksmSetupDivisionsData(){
-  const preset=d=>DIVISION_PRESETS.some(p=>p[0]===d),on=state.divisions;
+  const presets=ksmDivisionPresetNames(),preset=d=>presets.includes(d),on=state.divisions;
   const row=(d,enabled,custom,move)=>({division:String(d??''),name:ksmText(d),enabled:!!enabled,custom:!!custom,
     format:state.divisionTypes[d]??null,court:state.divisionCourts[d]||'A',move});
-  const off=DIVISION_PRESETS.map(([d])=>d).filter(d=>!on.includes(d));
+  const off=presets.filter(d=>!on.includes(d));
   const customOff=Object.keys(state.divisionTypes||{}).filter(d=>d&&!preset(d)&&!on.includes(d)&&d!=='Team Tournament'&&d!=='Exhibition Matches');
   return {rows:[...on.map((d,i)=>row(d,true,!preset(d),{up:i>0,down:i<on.length-1})),...off.map(d=>row(d,false,false,null)),...customOff.map(d=>row(d,false,true,null))]};
 }
@@ -49,6 +51,32 @@ function ksmMoveSetupDivision(d,direction){
   if(i<0||j<0||j>=state.divisions.length)return;
   [state.divisions[i],state.divisions[j]]=[state.divisions[j],state.divisions[i]];
   renderDivisionSetup();renderDivisions();renderReg();
+}
+// Issue #25: rename a division (a row's Rename, app/react/setup/Setup.tsx), preset or custom,
+// before the draw. The rules and the rewrite are app/engine/divisions.ts: the name is trimmed,
+// non-empty and unique among the divisions (case-insensitive; the team event's and exhibitions'
+// names are taken); once the tournament is generated nothing is renamed. The rename changes the
+// name everywhere it is used (the running order position kept, the format and court, every
+// competitor of the division, this device's views and court choices) and is recorded in
+// state.divisionRenames, so a save conflict replays it whole (rebaseLocalPayloadOnRecord(), 18-).
+// Returns why it was refused (shown in the row; nothing changed), or null. Saved and synced like
+// every Setup edit.
+function ksmDivisionPresetNames(){return KSMEngine.presetNames(DIVISION_PRESETS.map(p=>p[0]),state.divisionRenames)}
+function ksmDivisionRenameError(from,to){return KSMEngine.divisionRenameError(state,DIVISION_PRESETS.map(p=>p[0]),String(from??''),String(to??''))}
+// Why the row's Rename cannot open (after the draw), or null.
+function ksmDivisionRenameBlocked(d){return ksmDivisionRenameError(d,d)}
+function ksmRenameSetupDivision(from,to){
+  from=String(from??'');const name=String(to??'').trim();
+  const error=ksmDivisionRenameError(from,name);
+  if(error)return error;
+  if(name===from)return null;
+  const client=(typeof cloudSession==='object'&&cloudSession?.clientId)||'local';
+  const record={id:`${client}:${Date.now().toString(36)}:${Math.random().toString(36).slice(2,8)}`,from,to:name};
+  Object.assign(state,KSMEngine.renamedDivisionState(state,from,name,record));
+  ['A','B'].forEach(c=>{if(ksmLocalCourtDivision[c]===from)ksmLocalCourtDivision[c]=name});
+  renderDivisionSetup();renderDivisions();renderReg();renderTournamentStatus();
+  scheduleAutoSave('Division renamed');
+  return null;
 }
 function ksmRenderSetupDivisions(){
   ksmPublishSetup('ksm:setup-divisions','ksmSetupDivisionsInput',ksmSetupDivisionsData());

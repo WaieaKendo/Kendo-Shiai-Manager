@@ -267,6 +267,9 @@ const KNOWN_POST_SPLIT_CSS_EDITS = {
   // buttons only with the test tools on (20), the daihyosen label (D1).
   'owner-decisions': 1,
   'privacy-footer': 1,
+  // feat/division-rename (issue #25): app/styles/16-division-rename.css, the Setup divisions
+  // table's Rename button, rename field and refusal message (theme tokens only).
+  'division-rename': 1,
 };
 // Old functions whose body now lives in app/engine/*.ts (parameter lists without braces).
 const MOVED_TO_ENGINE = [

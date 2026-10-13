@@ -1,0 +1,16 @@
+/* ksm:post-split-begin division-rename */
+/* Issue #25: the Setup divisions table's Rename button, rename field and refusal message
+   (app/react/setup/Setup.tsx). Theme tokens only. */
+.setup-rename-btn{min-height:32px;padding:2px 10px;border-radius:8px;font-size:13px;line-height:1;vertical-align:middle}
+.setup-rename{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center;vertical-align:middle}
+td input.setup-rename-input{width:auto;min-width:12em;max-width:100%;border:1px solid var(--line);background:var(--card);padding:6px 8px}
+td input.setup-rename-input[aria-invalid="true"]{border-color:var(--red)}
+.setup-rename-error{margin-top:6px;color:var(--red);font-size:13px;font-weight:700}
+/* Phones (the table as cards, 10-layout-standard.css): the name with Rename, the rename field and the
+   message each take the cell's whole width, below the label and the move buttons. */
+@media(max-width:760px){
+  .setup-division-table td .setup-division-label,.setup-division-table td .setup-rename,.setup-division-table td .setup-rename-error{grid-column:1/-1}
+  .setup-division-table td .setup-rename-btn{width:auto}
+  .setup-division-table td .setup-rename-error{margin-top:0}
+}
+/* ksm:post-split-end */

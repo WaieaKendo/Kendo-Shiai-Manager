@@ -276,8 +276,9 @@ function cloudBaseSubset(payload){
   if(!payload)return null;
   const st=payload.state||{};
   // F10: also each division's structure (pools, matches, brackets), to tell which divisions a
-  // structural edit changed and whether the server copy changed them too.
-  return {setup:cloneJson(payload.setup||{}),state:Object.fromEntries(KSM_MERGED_STATE_KEYS.concat(KSM_STRUCTURAL_DIVISION_KEYS).filter(k=>st[k]!==undefined).map(k=>[k,cloneJson(st[k])]).concat([['managementRevision',st.managementRevision||0]]))};
+  // structural edit changed and whether the server copy changed them too. Issue #25: and the
+  // division renames, to tell which renames are new on either side.
+  return {setup:cloneJson(payload.setup||{}),state:Object.fromEntries(KSM_MERGED_STATE_KEYS.concat(KSM_STRUCTURAL_DIVISION_KEYS,['divisionRenames']).filter(k=>st[k]!==undefined).map(k=>[k,cloneJson(st[k])]).concat([['managementRevision',st.managementRevision||0]]))};
 }
 function rememberCloudBase(record){if(!record?.payload)return;KSM_CLOUD_BASE.revision=Number(record.revision||0);KSM_CLOUD_BASE.payload=cloudBaseSubset(record.payload)}
 function cloudBaseFor(revision){return KSM_CLOUD_BASE.payload&&KSM_CLOUD_BASE.revision===Number(revision||0)?KSM_CLOUD_BASE.payload:null}
@@ -350,6 +351,63 @@ function noteMergeConflicts(conflicts){
   const message=`Changed on another device at the same time, their version was kept: ${conflicts.join(', ')}`;
   writeCloudDiagnosticsState({stage:'Edit conflict: server version kept',mergeConflicts:conflicts});
   showKsmToast(message,10000,true);
+}
+// Issue #25: a division rename touches divisions, divisionTypes, divisionCourts and competitors,
+// which the merge above treats as separate values: merged one by one, a rename could be split (the
+// division renamed, its competitors left on the old name by the other device's registration edit).
+// So renames are replayed as whole operations before the merge (KSMEngine.rebaseDivisionRenames(),
+// app/engine/divisions.ts): the other devices' renames are applied to this device's state and the
+// base, this device's to the server copy and the base. A competitor the other device added to or
+// edited under the old name lands on the new one, and both edits survive. A rename of this device
+// that cannot be applied over the server copy (the draw made there, its division removed or
+// renamed there, its new name taken there) is undone with every later one: none of it is saved,
+// with a notice. Without a merge base the server copy is kept whole, as for every edit (also with
+// a notice for a rename it drops).
+// Returns the payloads to merge: {local, base, server (the server copy for the structural replay,
+// F10, with this device's renames applied), refused}.
+function rebaseDivisionRenamesForMerge(rebased,localPayload,basePayload,serverPayload){
+  const out={local:localPayload,base:basePayload,server:serverPayload,refused:[],blocked:[]};
+  const localState=localPayload?.state;
+  if(!localState)return out;
+  if(!basePayload?.state){
+    const saved=new Set((rebased.state?.divisionRenames||[]).map(r=>r.id));
+    out.refused=(localState.divisionRenames||[]).filter(r=>!saved.has(r.id)).map(rename=>({rename,reason:'it could not be combined with another device\'s save'}));
+    return out;
+  }
+  const r=KSMEngine.rebaseDivisionRenames(rebased.state||{},localState,basePayload.state,DIVISION_PRESETS.map(p=>p[0]));
+  if(!r)return out;
+  rebased.state=r.server;
+  let serverState=serverPayload?.state||{};
+  r.accepted.forEach(a=>{serverState={...serverState,...KSMEngine.renamedDivisionState(serverState,a.from,a.to)}});
+  return {local:{...localPayload,state:r.local},base:{...basePayload,state:r.base},server:{...serverPayload,state:serverState},refused:r.refused,blocked:r.blocked};
+}
+// External PR review (#36): a draw (or another structural edit) on this device racing another
+// device's rename of a division it covers. Replayed, it would be saved under the old name while
+// the registrations follow the rename: a draw separated from its division. So the structural edit
+// is not saved, all of it (a Generate is one operation; saved without the renamed division it
+// would leave a generated tournament with one division undrawn); the rename and the other device's
+// state win, and the director is told to generate again.
+function noteStructuralEditBlockedByRename(blocked){
+  if(!blocked.length)return;
+  const names=blocked.map(r=>`"${r.from}" to "${r.to}"`).join(', ');
+  writeCloudDiagnosticsState({stage:'Structural edit not saved: a division was renamed on another device',renameBlocked:blocked.map(r=>({from:r.from,to:r.to}))});
+  showKsmToast(`Your draw was not saved. Another device renamed ${names}. Generate again.`,12000,true);
+}
+// The last guard before a rebased save (#36 review): pools, matches and brackets this device would
+// add for a name that is no division (nor the team event or the exhibitions) are not saved.
+function dropOrphanedDivisionStructure(rebased,serverPayload){
+  const orphans=KSMEngine.orphanedDivisionStructure(rebased.state||{},DIVISION_PRESETS.map(p=>p[0]),serverPayload?.state||{});
+  if(!orphans.length)return orphans;
+  Object.assign(rebased.state,KSMEngine.withoutDivisionStructure(rebased.state,orphans));
+  writeCloudDiagnosticsState({stage:'Pools and matches without a division not saved',orphanedDivisions:orphans});
+  showKsmToast(`Pools and matches for ${orphans.join(', ')} were not saved: no division has that name any more. Generate again.`,12000,true);
+  return orphans;
+}
+function noteDivisionRenamesRefused(refused){
+  if(!refused.length)return;
+  const names=refused.map(x=>`"${x.rename.from}" to "${x.rename.to}"`).join(', ');
+  writeCloudDiagnosticsState({stage:'Division rename conflict: server version kept',renameConflict:refused.map(x=>({from:x.rename.from,to:x.rename.to,reason:x.reason}))});
+  showKsmToast(`Your rename of ${names} was not saved: ${refused[0].reason}. The other device's version was kept.`,10000,true);
 }
 /* ksm:post-split-end */
 /* ksm:post-split-begin structural-replay */
@@ -434,7 +492,7 @@ function rebaseLocalPayloadOnRecord(localPayload,serverRecord,originalBaseRevisi
   rebased.state.courtActionHistory=rebased.state.courtActionHistory||{A:[],B:[]};
   rebased.state.courtRedoHistory=rebased.state.courtRedoHistory||{A:[],B:[]};
   /* ksm:post-split-begin history-replay was:rebased.state.courtActionHistory[court]=mergeHistoryEntries(rebased.state.courtActionHistory[court]||[],localState.courtActionHistory?.[court]||[]);rebased.state.courtRedoHistory[court]=mergeHistoryEntries(rebased.state.courtRedoHistory[court]||[],localState.courtRedoHistory?.[court]||[]); */mergeCourtHistoryStacks(rebased.state,localState,court);/* ksm:post-split-end */
-  /* ksm:post-split-begin edit-merge */noteMergeConflicts(mergeLocalEditsThreeWay(rebased,localPayload,basePayload,replayStructuralEdit(rebased,localPayload,basePayload,serverRecord.payload)));/* ksm:post-split-end */
+  /* ksm:post-split-begin edit-merge */{const renames=rebaseDivisionRenamesForMerge(rebased,localPayload,basePayload,serverRecord.payload);noteMergeConflicts(mergeLocalEditsThreeWay(rebased,renames.local,renames.base,!renames.blocked.length&&replayStructuralEdit(rebased,renames.local,renames.base,renames.server)));noteDivisionRenamesRefused(renames.refused);noteStructuralEditBlockedByRename(renames.blocked);dropOrphanedDivisionStructure(rebased,serverRecord.payload);}/* ksm:post-split-end */
   rebased.savedAt=new Date().toISOString();
   return rebased;
 }
