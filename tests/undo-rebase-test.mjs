@@ -9,7 +9,9 @@
 //   * undo then redo of a saved point, and of an unsaved one: the point is there exactly once;
 //   * a redo of a point whose undo was already saved: the point comes back;
 //   * an Undo/Redo already in the server copy is not replayed again;
-//   * the Undo log itself is merged (both copies' entries, by identity).
+//   * the Undo log itself is merged (both copies' entries, by identity);
+//   * external PR #33 review: Redo twice after two Undos brings back both points (the Redo stack
+//     keeps this device's Undo order); an entry this device took off its stacks is not offered again.
 // edit-conflicts-test.py races the same through the real app and server (Undo, then Redo).
 import vm from 'node:vm';
 import { extractFunction, html, engine } from './lib/ksm-source.mjs';
@@ -24,7 +26,9 @@ const code = [engine, constant('KSM_LOCAL_VIEW_STATE_KEYS'), constant('KSM_UNDO_
   ...['normalizeCourt', 'cloneJson', 'isValidMatchObject', 'matchSyncIdentity', 'legacyTiebreakSyncIdentity', 'matchHasSyncIdentity',
     'individualMatchReady', 'matchBelongsToCourtInState', 'nextReadyIndexInState', 'preserveOwnedCourtRuntimeState', 'applyPatchToStateObject',
     'resolveRebasePatch', 'mergeHistoryEntries', 'historyEntryIdentity', 'pendingLocalCourtActionsForRebase', 'undoLogEntryIdentity',
-    'pendingLocalUndoLogForRebase', 'replayPendingCourtHistory', 'mergeCourtHistoryStacks', 'rebaseLocalPayloadOnRecord'].map(n => extractFunction(html, n))].join('\n');
+    'pendingLocalUndoLogForRebase', 'replayPendingCourtHistory', 'mergeCourtHistoryStacks', 'rebaseLocalPayloadOnRecord',
+    // the court's own Undo/Redo (10-), to press them on the rebased copy
+    'historyPathParent', 'applyHistoryPatch'].map(n => extractFunction(html, n))].join('\n');
 const context = {
   console,
   cloudSession: { clientId: 'court-a', court: 'A', revision: 10 },
@@ -95,6 +99,52 @@ check(wp(r) === '["M"]', `6: a saved undo is not replayed, the new point is (${w
 const M2 = action('White M', 1, t(2), 10, 'M');
 r = rebase(st({ wp: [], undone: [M2, K], log: [logEntry('UNDO', M2, t(3)), logEntry('UNDO', K, t(4))] }), st({ wp: ['K', 'M'], done: [K, M2], other: ['M'] }));
 check(wp(r) === '[]', `7: two undos replayed in order (${wp(r)})`);
+
+// Undo / Redo pressed on the rebased copy, as undo()/redo() in 10- do (the stack's last entry, its patches applied).
+const press = (s, kind) => {
+  context.state = s;
+  const action = (kind === 'REDO' ? s.courtRedoHistory : s.courtActionHistory).A.pop();
+  if (!action) return;
+  if (kind === 'REDO') { action.patches.forEach(p => context.applyHistoryPatch(p, 'after')); s.courtActionHistory.A.push(action); }
+  else { [...action.patches].reverse().forEach(p => context.applyHistoryPatch(p, 'before')); s.courtRedoHistory.A.push(action); }
+};
+
+// 8. External review of PR #33: K then M scored and saved, Undo twice (M, then K), the save meets a
+// conflict, then Redo twice: K and M come back in that order. The Redo stack is a stack in Undo
+// order (the last undone on top), not in the order the points were scored: sorting it by the
+// action time put M on top, so the first Redo wrote M at index 1 of an empty list (index 0) and
+// the second Redo's K overwrote it.
+r = rebase(st({ wp: [], undone: [M2, K], log: [logEntry('UNDO', M2, t(3)), logEntry('UNDO', K, t(4))] }), st({ wp: ['K', 'M'], done: [K, M2], other: ['M'] }));
+check(labels(r.courtRedoHistory.A) === 'White M,White K', `8: the Redo stack keeps this device's Undo order (${labels(r.courtRedoHistory.A)})`);
+press(r, 'REDO'); press(r, 'REDO');
+check(wp(r) === '["K","M"]', `8: Redo twice after the conflict brings back K and M (${wp(r)})`);
+check(labels(r.courtActionHistory.A) === 'White K,White M' && labels(r.courtRedoHistory.A) === '', `8: both back in the Undo stack (${labels(r.courtActionHistory.A)})`);
+press(r, 'UNDO'); press(r, 'UNDO');
+check(wp(r) === '[]', `8: and Undo twice takes both away again (${wp(r)})`);
+
+// 9. Interleaved: K and M saved, Undo M, Undo K, Redo K (unsaved), conflict, Redo M: K then M.
+r = rebase(st({ wp: ['K'], done: [K], undone: [M2], log: [logEntry('UNDO', M2, t(3)), logEntry('UNDO', K, t(4)), logEntry('REDO', K, t(5))] }),
+  st({ wp: ['K', 'M'], done: [K, M2], other: ['M'] }));
+check(wp(r) === '["K"]' && labels(r.courtActionHistory.A) === 'White K' && labels(r.courtRedoHistory.A) === 'White M', `9: K redone, M still undone (${wp(r)})`);
+press(r, 'REDO');
+check(wp(r) === '["K","M"]', `9: Redo M after the conflict (${wp(r)})`);
+
+// 10. The Undo stack: a saved K undone, then a new point M (which empties the Redo stack), conflict.
+// The server copy still lists K in its Undo stack (its last save had it), but this device undid it:
+// K must not be offered for Undo again (a second Undo would take away the M at index 0).
+const Mnew = action('White M', 0, t(3), 10, 'M');
+r = rebase(st({ wp: ['M'], done: [Mnew], log: [logEntry('UNDO', K, t(2))] }), st({ wp: ['K'], done: [K], other: ['M'] }));
+check(wp(r) === '["M"]', `10: K undone, M scored (${wp(r)})`);
+check(labels(r.courtActionHistory.A) === 'White M' && labels(r.courtRedoHistory.A) === '', `10: only M offered for Undo, nothing for Redo (${labels(r.courtActionHistory.A)} / ${labels(r.courtRedoHistory.A)})`);
+press(r, 'UNDO'); press(r, 'UNDO');
+check(wp(r) === '[]' && labels(r.courtRedoHistory.A) === 'White M', `10: Undo twice: M undone, nothing else (${wp(r)} / ${labels(r.courtRedoHistory.A)})`);
+
+// 11. Another device's entries for the same court (a replaced tablet) stay offered: below this
+// device's Redo entries (a Redo first redoes this device's last Undo), by time in the Undo stack.
+const other = { ...action('White D', 0, t(0), 9, 'D'), clientId: 'old-tablet' };
+r = rebase(st({ wp: [], undone: [M2, K], log: [logEntry('UNDO', M2, t(3)), logEntry('UNDO', K, t(4))] }),
+  st({ wp: ['K', 'M'], done: [K, M2], undone: [other], other: ['M'] }));
+check(labels(r.courtRedoHistory.A) === 'White D,White M,White K', `11: the other device's Redo entry below this device's (${labels(r.courtRedoHistory.A)})`);
 
 if (failed) process.exit(1);
 console.log(`PASS F30 undo/redo through a save conflict: ${count} checks`);

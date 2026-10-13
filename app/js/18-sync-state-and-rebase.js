@@ -204,12 +204,25 @@ function replayPendingCourtHistory(actions,undoLog,localState,rebasedState,serve
     }
   });
 }
-/** The Undo/Redo stacks after a rebase: both devices' entries, but an action undone here stays undone (F30) and a redone one stays redone. */
+/**
+ * The Undo/Redo stacks after a rebase: both devices' entries, but an action undone here stays undone (F30) and a redone one stays redone.
+ * This device's stacks are the truth for its own entries: one of its entries that the server copy still lists but its own stacks
+ * no longer hold was taken off here (undone, redone, or its Redo dropped by a new action), so it is not offered again. Only another
+ * device's entries for this court (a replaced tablet) are added from the server copy.
+ * The Undo stack is in the order the actions happened (merged by time). The Redo stack is in Undo order (the last undone on top),
+ * not by action time (external PR #33 review: sorted by time, Redo after two Undos redid the earlier point first and lost one):
+ * this device's Redo stack is kept as it is, in its order, with the other device's entries below it in the server's order, so a
+ * Redo first redoes this device's latest Undo.
+ */
 function mergeCourtHistoryStacks(rebasedState,localState,court){
-  const localDone=new Set((localState.courtActionHistory?.[court]||[]).map(historyEntryIdentity));
-  const localUndone=new Set((localState.courtRedoHistory?.[court]||[]).map(historyEntryIdentity));
-  rebasedState.courtActionHistory[court]=mergeHistoryEntries(rebasedState.courtActionHistory[court]||[],localState.courtActionHistory?.[court]||[]).filter(e=>!localUndone.has(historyEntryIdentity(e)));
-  rebasedState.courtRedoHistory[court]=mergeHistoryEntries(rebasedState.courtRedoHistory[court]||[],localState.courtRedoHistory?.[court]||[]).filter(e=>!localDone.has(historyEntryIdentity(e)));
+  const localDoneList=(localState.courtActionHistory?.[court]||[]).filter(e=>e?.format==='patch-v1');
+  const localUndoneList=(localState.courtRedoHistory?.[court]||[]).filter(e=>e?.format==='patch-v1');
+  const localDone=new Set(localDoneList.map(historyEntryIdentity)),localUndone=new Set(localUndoneList.map(historyEntryIdentity));
+  const fromOtherDevice=e=>e?.format==='patch-v1'&&e.clientId!==cloudSession.clientId&&!localDone.has(historyEntryIdentity(e))&&!localUndone.has(historyEntryIdentity(e));
+  rebasedState.courtActionHistory[court]=mergeHistoryEntries((rebasedState.courtActionHistory[court]||[]).filter(fromOtherDevice),localDoneList);
+  const seen=new Set();
+  rebasedState.courtRedoHistory[court]=[...(rebasedState.courtRedoHistory[court]||[]).filter(fromOtherDevice),...localUndoneList]
+    .filter(e=>{const id=historyEntryIdentity(e);if(seen.has(id))return false;seen.add(id);return true}).map(cloneJson).slice(-80);
   const byKey=new Map();[...(rebasedState.courtUndoLog?.[court]||[]),...(localState.courtUndoLog?.[court]||[])].forEach(e=>{if(e?.format==='history-op-v1')byKey.set(undoLogEntryIdentity(e),e)});
   if(byKey.size){rebasedState.courtUndoLog=rebasedState.courtUndoLog||{A:[],B:[]};rebasedState.courtUndoLog[court]=[...byKey.values()].sort((a,b)=>String(a.when||'').localeCompare(String(b.when||''))).slice(-KSM_UNDO_LOG_LIMIT)}
 }
