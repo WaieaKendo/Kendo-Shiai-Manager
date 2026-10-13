@@ -87,6 +87,10 @@ const KNOWN_POST_SPLIT_EDITS = {
   // openTournamentAccess() (33). Listed here because closeManagementModal() (03) is its first
   // region: the check compares names in order of first appearance.
   'react-shell': 23,
+  // feat/owner-decisions (issue #29, the owners' decisions on the quirk pass; #31): legacy edits
+  // that carry out a decision. 03: validateTournament() lists "No competitors registered" as an
+  // error when nothing would be generated (2).
+  'owner-decisions': 1,
   // feat/react-registration (M.13): Registration part 1's React islands (#regTable, the contents
   // of #tournamentStatusCard). With the legacy renderer removed (REMOVED_REGISTRATION_RENDERER)
   // renderReg()'s body (03) is a marked publisher and renderTournamentStatus() (03) publishes in

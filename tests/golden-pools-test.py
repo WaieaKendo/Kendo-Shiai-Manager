@@ -33,7 +33,7 @@ with Playwright's real mouse drag (locator.drag_to) in Chromium.
 
   pools-empty         Registration -> Pools before anything is generated (the default
                       division), Regenerate with nobody registered (the validation dialog
-                      passes; Cancel, then Generate: an alert), phones;
+                      refuses: Close), phones;
   pools-divisions     eight individual divisions: round robins of 3, 4, 5, 10, 14 (seeded,
                       dojo-mates spread, names and dojos with <, &, quotes), 8 and 20 split, a
                       single elimination of 6; every division chosen with the select; phones;
@@ -323,10 +323,10 @@ def pools_empty(browser, errors, react_check):
     g = open_app('pools-empty', browser, errors, react_check=react_check)
     g.do('Registration -> Pools, nothing generated', open_pools)
     phone_views(g, 'nothing generated')
-    g.do('Regenerate with nobody registered', lambda a: click(a.page, f'{ROOT} button'))
-    g.do('Regenerate: Cancel', lambda a: click(a.page, '[data-testid="generate-cancel"]'))
-    g.do('Regenerate again', lambda a: click(a.page, f'{ROOT} button'))
-    g.do('Regenerate: Generate (nobody to place: an alert)', lambda a: click(a.page, '[data-testid="generate-confirm"]'))
+    # Owner decision 2 (#29): the check refuses with nobody registered ("No competitors
+    # registered", only Close); it passed and Generate then alerted.
+    g.do('Regenerate with nobody registered (the check refuses)', lambda a: click(a.page, f'{ROOT} button'))
+    g.do('Regenerate: Close', lambda a: click(a.page, '[data-testid="validation-close"]'))
     g.finish()
 
 

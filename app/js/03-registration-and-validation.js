@@ -50,6 +50,15 @@ function validateTournament(options={}){
     if(teams.length===1)issues.push(validationIssue('error','TEAM_COUNT','Team Tournament','At least two teams are required.','Add another team or disable the team tournament.'));
     if(fmt==='Single Elimination'&&teams.length>32)issues.push(validationIssue('error','TEAM_TEMPLATE','Team Tournament','Single elimination supports no more than 32 teams.','Reduce the number of teams.'));
   }
+  /* ksm:post-split-begin owner-decisions */
+  // Owner decision 2 (#29): nothing to generate (no individual, team or exhibition entry that is
+  // not a No Show) is an error of the check itself, so Generate cannot proceed (it alerted after).
+  if(!target){
+    const st=tournamentSettings(),teamsOn=(st.teamEnabled||'Enabled')==='Enabled',exOn=st.exhibitionEnabled==='Enabled';
+    const any=state.divisions.some(d=>eligibleIndividuals(d).length)||(teamsOn&&eligibleTeams('Team Tournament').length)||(exOn&&(state.exhibitions||[]).some(e=>e&&e.status!=='NoShow'&&e.white&&e.red));
+    if(!any)issues.push(validationIssue('error','NO_ENTRIES',null,'No competitors registered.','Register competitors or teams first (No Show entries are excluded).'));
+  }
+  /* ksm:post-split-end */
   return {valid:!issues.some(x=>x.severity==='error'),issues};
 }
 function renderTournamentStatus(){
