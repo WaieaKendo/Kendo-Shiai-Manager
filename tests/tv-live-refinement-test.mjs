@@ -16,7 +16,7 @@ const checks=[
  ['TV opens separate court link',html.includes("window.open(tvLink(court),'_blank','noopener')")],
  ['TV header has no generic header chrome',html.includes('.tv-shell header{all:unset')],
  ['division larger beneath court',html.includes('.tv-context{')&&html.includes('font-size:clamp(34px,3.8vw,62px)')],
- ['pool metadata remains beneath division',html.includes("meta:ksmText(vm.meta?.line||'')")&&tvReact.indexOf('data-testid="tv-meta"')>tvReact.indexOf('data-testid="tv-division"')&&tvReact.indexOf('data-testid="tv-division"')>0],
+ ['pool metadata remains beneath division',html.includes("meta:ksmIsRoundRobinDaihyosen(vm.match)?ksmDaihyosenLabel():ksmText(vm.meta?.line||'')")&&tvReact.indexOf('data-testid="tv-meta"')>tvReact.indexOf('data-testid="tv-division"')&&tvReact.indexOf('data-testid="tv-division"')>0],
  ['individual points are medial',html.includes('grid-template-columns:minmax(0,1fr) auto auto auto minmax(0,1fr)')],
  ['individual names split first and remaining names',tvModel.includes("return rest.length ? [first, rest.join(' ')] : [first];")&&tvReact.includes('{player.nameParts.map((part, i) => <span key={i}>{part}</span>)}')],
  ['next match moved and enlarged',html.includes('align-self:end')&&html.includes('Upcoming Matches')],
