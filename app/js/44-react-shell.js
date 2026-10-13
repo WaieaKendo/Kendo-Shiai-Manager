@@ -131,6 +131,7 @@ function ksmRenderSaveStatus(text){
 // renderCloudPresence(clients) (21): the devices online (hidden).
 function ksmRenderPresence(clients){
   ksmPublishHeader({presence:clients.length?`${clients.length} online`:''});
+  ksmRefreshDeleteDevices();
 }
 
 // ---------------------------------------------------------- the dialogs
@@ -274,8 +275,122 @@ function ksmOpenDiagnostics(details,analysis,historyAnalysis,retry){
     history:['A','B'].map(court=>{const c=historyAnalysis.courts[court];return {court,entries:ksmHtmlText(`${c.entryCount}`),
       total:ksmSizeText(c.totalBytes),average:ksmSizeText(c.averageBytes),largest:ksmSizeText(c.largest?.totalBytes||0),
       cards:[ksmHistoryEntryCard('First entry',c.first),ksmHistoryEntryCard('Latest entry',c.latest),ksmHistoryEntryCard('Largest entry',c.largest)]}}),
-    retry:!!retry,testTools:ksmTestToolsOn()});
+    retry:!!retry,testTools:ksmTestToolsOn(),canDelete:ksmCanDeleteTournament()});
 }
+// ---------------------------------------------------------- Delete tournament (issue #26)
+// A staff device of the tournament deletes it from Developer Tools: a dialog says it cannot be
+// undone, how many devices are connected right now (the live presence list), offers the tournament
+// file as a backup, and enables Delete once the tournament's name is typed. The server then keeps a
+// tombstone and answers every later request for the ID with 410 {code:'tournament-deleted'}, and
+// closes the live connections ('Tournament deleted'). Every device that learns of it (the socket,
+// any 410) goes through ksmTournamentGone(): it forgets the tournament (cache, outbox, recovery,
+// session, retry timers) and returns to the Tournament Library with a message; nothing is retried.
+var ksmDeletingTournamentId=null;
+// Staff of the open cloud tournament (a spectator never sees the action).
+function ksmCanDeleteTournament(){return ksmSessionRole==='staff'&&!!cloudSession.tournamentId}
+function ksmDeleteDevices(){return (cloudSession.presence||[]).length}
+function ksmDeleteBody(patch){
+  return Object.assign({kind:'delete',name:String((window.tName&&tName.value)||''),devices:ksmDeleteDevices(),busy:false,error:''},patch);
+}
+function ksmOpenDeleteTournament(){
+  if(!ksmCanDeleteTournament())return;
+  ksmOpenCloudModal('Delete Tournament',ksmDeleteBody({}));
+}
+// Republish the open delete dialog with a changed part (the same modal: the typed name stays).
+function ksmUpdateDeleteDialog(patch){
+  const cloud=ksmShellDialogsState().cloud;
+  if(!cloud||cloud.body.kind!=='delete')return;
+  ksmPublishDialogs('cloud',{...cloud,body:{...cloud.body,...patch}});
+}
+// The devices connected change while the dialog is open.
+function ksmRefreshDeleteDevices(){
+  const cloud=ksmShellDialogs&&ksmShellDialogs.cloud;
+  if(cloud&&cloud.body.kind==='delete'&&cloud.body.devices!==ksmDeleteDevices())ksmUpdateDeleteDialog({devices:ksmDeleteDevices()});
+}
+async function ksmConfirmDeleteTournament(){
+  const id=cloudSession.tournamentId,cloud=ksmShellDialogs&&ksmShellDialogs.cloud;
+  if(!id||!cloud||cloud.body.kind!=='delete'||cloud.body.busy||!ksmCanDeleteTournament())return;
+  ksmUpdateDeleteDialog({busy:true,error:''});
+  ksmDeletingTournamentId=id;
+  try{
+    const response=await fetch(`/api/tournaments/${encodeURIComponent(id)}`,{method:'DELETE',headers:cloudHeaders()});
+    if(response.status===410){ksmDeletingTournamentId=null;ksmTournamentGone(id);return}
+    if(response.ok){
+      ksmForgetTournament(id);
+      closeCloudModal();
+      showHomePage();
+      showKsmToast('Tournament deleted',4000);
+      return;
+    }
+    const info=await response.json().catch(()=>null);
+    ksmUpdateDeleteDialog({busy:false,error:response.status===401||response.status===403
+      ?'Your Staff session is not valid any more. Use Staff Login again, then delete. Nothing was deleted.'
+      :`${(info&&info.error)||`Delete failed (${response.status})`}. Nothing was deleted.`});
+  }catch(err){
+    console.warn('Delete tournament failed',err);
+    ksmUpdateDeleteDialog({busy:false,error:'The server could not be reached. Nothing was deleted.'});
+  }finally{ksmDeletingTournamentId=null}
+}
+// Everything this device keeps for the tournament: its Library entry, queued and recovery copies,
+// the autosave, the session and any timer that would send or retry a save.
+function ksmForgetTournament(id){
+  clearTimeout(ksmQueuedSaveRetryTimer);ksmQueuedSaveRetryTimer=null;ksmQueuedSaveRetryAttempt=0;ksmOutboxMutationVersion=0;
+  clearTimeout(ksmCloudTimer);ksmCloudTimer=null;clearTimeout(ksmSaveTimer);ksmSaveTimer=null;
+  clearTimeout(ksmDeferredRemoteTimer);ksmDeferredRemoteRecord=null;
+  clearTimeout(ksmDeferredSyncTimer);ksmDeferredSyncTimer=null;ksmDeferredSyncRecord=null;
+  const waiting=ksmCloudSavePending;ksmCloudSavePending=null;
+  if(waiting)waiting.resolvers.forEach(resolve=>resolve(false));
+  disconnectCloudSocket();
+  writeTournamentLibrary(readTournamentLibrary().filter(x=>x.id!==id));
+  const outbox=readOutbox();
+  if(outbox&&outbox.tournamentId===id)clearOutbox();
+  try{
+    const recovery=JSON.parse(localStorage.getItem(KSM_CLOUD_RECOVERY_KEY)||'null');
+    if(recovery&&recovery.outbox&&recovery.outbox.tournamentId===id)localStorage.removeItem(KSM_CLOUD_RECOVERY_KEY);
+  }catch(_){localStorage.removeItem(KSM_CLOUD_RECOVERY_KEY)}
+  if(cloudSession.tournamentId===id){
+    localStorage.removeItem(KSM_SAVE_KEY);
+    cloudSession.tournamentId=null;cloudSession.revision=0;cloudSession.updatedAt=null;cloudSession.court='';cloudSession.presence=[];
+    delete cloudSession.credentials;
+    persistCloudSession();
+    KSM_CLOUD_BASE.revision=-1;KSM_CLOUD_BASE.payload=null;
+    ksmConfirmedMutationVersion=ksmLocalMutationVersion;
+    ksmSaveStatusMode='saved';ksmLastSuccessfulSaveAt=0;
+  }
+  ksmForgotTournament=true;
+  sessionStorage.removeItem(KSM_V316_STAFF_SESSION);
+  setSessionRole('spectator');
+  renderPersistentSaveStatus();
+}
+// The unload autosave (21) writes the screens' leftover data back as this device's autosave, which
+// the next start offers to restore: not for a tournament deleted here, while the Library is shown.
+var ksmForgotTournament=false;
+window.addEventListener('beforeunload',function(){
+  if(ksmForgotTournament&&!cloudSession.tournamentId&&document.body.classList.contains('ksm-home'))localStorage.removeItem(KSM_SAVE_KEY);
+});
+// This device learned that tournament `id` was deleted (the socket closed with 'Tournament deleted',
+// or a request answered 410 tournament-deleted): forget it and return to the Library. Not for the
+// device that is deleting it (its own flow finishes), nor for a tournament it no longer has open
+// (unless opening it just failed: fromLoad).
+function ksmTournamentGone(id,fromLoad){
+  if(!id||ksmDeletingTournamentId===id||(id!==cloudSession.tournamentId&&!fromLoad))return false;
+  ksmForgetTournament(id);
+  closeCloudModal();
+  showHomePage();
+  showKsmToast('This tournament was deleted',8000,true);
+  return true;
+}
+// The cloud code announces them (ksmAnnounceTournamentGone(), ksmAnnounceSocketEnd(), 21).
+window.addEventListener('ksm:tournament-gone',function(event){ksmTournamentGone(event.detail.id,event.detail.fromLoad)});
+window.addEventListener('ksm:tournament-socket-end',function(event){ksmCheckGoneAfterSocketEnd(event.detail.id,event.detail.reason)});
+// A live connection of `id` ended: told so by the server ('Tournament deleted'), or ended without
+// a reason (a refused upgrade shows only as a failed connection): ask whether it is gone.
+function ksmCheckGoneAfterSocketEnd(id,reason){
+  if(reason==='Tournament deleted'){ksmTournamentGone(id);return}
+  if(!id||id!==cloudSession.tournamentId||!navigator.onLine||location.protocol==='file:')return;
+  fetch(`/api/tournaments/${encodeURIComponent(id)}/status`,{cache:'no-store'}).then(response=>{if(response.status===410)ksmTournamentGone(id)}).catch(()=>{});
+}
+
 // confirmTournamentFileLoad() (21, roadmap 0.5): the file's and the open tournament's details,
 // what loading it does, Cancel and Replace open tournament / Load as new tournament.
 function ksmOpenFileLoadModal(title,details,message,same){

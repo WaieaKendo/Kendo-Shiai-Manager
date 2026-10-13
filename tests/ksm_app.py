@@ -465,6 +465,71 @@ class KsmApp:
         self.click('staff-auth')
         self.page.wait_for_function(f"document.querySelector('{sel('staff-auth')}').textContent.trim() === 'Staff Login'", timeout=10000)
 
+    # ------------------------------------------------------- Delete tournament (issue #26)
+    def open_developer_tools(self):
+        """Developer Tools, opened by a click on the header's connection status (every role has it); waits for the dialog."""
+        self.page.dispatch_event(sel('connection-status'), 'click')  # the nav bar overlaps the status row at some widths
+        self.page.wait_for_selector(sel('cloud-modal'))
+
+    def can_delete_tournament(self):
+        """Whether Developer Tools offers 'Delete tournament' on this device (opens and closes it)."""
+        self.open_developer_tools()
+        offered = self.page.locator(sel('diagnostics-delete')).count() == 1
+        self.page.keyboard.press('Escape')
+        self.page.wait_for_selector(sel('cloud-modal'), state='detached')
+        return offered
+
+    def open_delete_dialog(self):
+        """Developer Tools -> Delete tournament: the confirmation dialog (nothing is deleted yet)."""
+        self.open_developer_tools()
+        self.click('diagnostics-delete')
+        self.page.wait_for_selector(sel('delete-dialog'))
+
+    def type_delete_name(self, text):
+        """Type into the delete dialog's name field (replacing what is there)."""
+        self.page.fill(sel('delete-name-input'), text)
+
+    def delete_enabled(self):
+        """Whether the delete dialog's 'Delete tournament' button can be pressed."""
+        return self.page.locator(sel('delete-confirm')).is_enabled()
+
+    def delete_dialog(self):
+        """What the delete dialog shows: {required, devices, error}."""
+        return self.page.evaluate("""() => ({
+          required: document.querySelector('[data-testid="delete-required-name"]')?.textContent || null,
+          devices: document.querySelector('[data-testid="delete-devices"]')?.textContent || null,
+          error: document.querySelector('[data-testid="delete-error"]')?.textContent || '',
+        })""")
+
+    def delete_tournament(self, name):
+        """Developer Tools -> Delete tournament, type `name`, Delete: waits for the Library."""
+        self.open_delete_dialog()
+        self.type_delete_name(name)
+        self.page.wait_for_function("() => !document.querySelector('[data-testid=\"delete-confirm\"]').disabled")
+        self.click('delete-confirm')
+        self.wait_for_library()
+
+    def go_to_library(self):
+        """Save / Load -> Tournament Library."""
+        self.click('nav-save-load')
+        self.click('nav-library')
+        self.wait_for_library()
+
+    def wait_for_library(self, timeout=15):
+        """Wait for the Tournament Library (the home screen) to be shown."""
+        self.page.wait_for_function("() => document.body.classList.contains('ksm-home')", timeout=timeout * 1000)
+
+    def toast(self):
+        """The toast's text ('' when none)."""
+        return self.page.evaluate("() => document.querySelector('[data-testid=\"toast\"]')?.textContent || ''")
+
+    def wait_toast(self, text, timeout=15):
+        self.page.wait_for_function("t => (document.querySelector('[data-testid=\"toast\"]')?.textContent || '') === t", arg=text, timeout=timeout * 1000)
+
+    def library_names(self):
+        """The Tournament Library's cards, by name (the cards the Library shows right now)."""
+        return self.page.evaluate("() => [...document.querySelectorAll('[data-testid=\"home-tournament-name\"]')].map(e => e.textContent.trim())")
+
     def open_court(self, court):
         """Courts menu -> Court A/B."""
         self.click('nav-courts')
