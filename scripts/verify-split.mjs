@@ -151,7 +151,11 @@ const KNOWN_POST_SPLIT_EDITS = {
   'history-replay': 14,
   // fix/pre-event-2 (F27): maybeCreateTeamTiebreak() (13) also adds a team round robin's daihyosen
   // (KSMEngine.teamRoundRobinTiebreakPlan) when teams are level for 1st-3rd.
-  'team-rr-daihyosen': 1,
+  // Found in external PR review (#35): ksmAddDaihyosenForTeamAwards() (13) adds the daihyosen a
+  // team award mode changed after the round robin needs (with the Setup field's change listener),
+  // also after a load or live/rebased update (applyTournamentPayload(), 21); KSM_TEAM_PLACE_TIED
+  // (27), what Results and the court show for an awarded place still level.
+  'team-rr-daihyosen': 4,
   // fix/react-batch-1 (F12): Edit Pool works on a copy (41-react-pools.js): the drop handlers
   // insertPoolPlayer(), dropPoolPlayer() and movePoolPlayer() (16) move players in it (three inline
   // replacements), saveEditedPools() (16) applies it after the played-results warning (one), and

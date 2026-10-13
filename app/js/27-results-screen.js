@@ -1,16 +1,22 @@
 // ==========================================================
 // KSM v3.9.1 — Results presentation
 // ==========================================================
+/* ksm:post-split-begin team-rr-daihyosen */
+/** A team round robin's place with an award whose teams are still level (external PR review, #35). */
+const KSM_TEAM_PLACE_TIED='Tied — daihyosen needed';
+/* ksm:post-split-end */
 function resultPlacements(div){
   /* ksm:post-split-begin engine-bridge */if(!divisionComplete(div))return [];
   if(isTeamDivision(div)){
     const p=teamFinalPlacements(div);
     if(!p)return [];
     const mode=state.teamAwardMode||'top2';
-    const rows=[{place:'1st',name:p.first,tier:'gold'}];
-    if(mode!=='top1'&&p.second)rows.push({place:'2nd',name:p.second,tier:'silver'});
+    // External PR review (#35): a place with an award still level is never named alphabetically.
+    const tied=new Set(p.undecided||[]),named=(place,name)=>tied.has(place)?KSM_TEAM_PLACE_TIED:name;
+    const rows=[{place:'1st',name:named(1,p.first),tier:'gold'}];
+    if(mode!=='top1'&&(p.second||tied.has(2)))rows.push({place:'2nd',name:named(2,p.second),tier:'silver'});
     if(mode==='dual3'){
-      (p.thirds||[]).forEach(name=>rows.push({place:'3rd',name,tier:'bronze'}));
+      (tied.has(3)?[KSM_TEAM_PLACE_TIED]:(p.thirds||[])).forEach(name=>rows.push({place:'3rd',name,tier:'bronze'}));
     }
     return rows;
   }

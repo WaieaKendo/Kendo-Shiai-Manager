@@ -474,6 +474,7 @@ function applyTournamentPayload(payload,saveAfter,options={}){
   repairLoadedEliminationAdvancement(options.source||'tournament load');
   rehydrateLoadedTournamentState(options);
   restorePinnedCourt();
+  /* ksm:post-split-begin team-rr-daihyosen */if(ksmAddDaihyosenForTeamAwards().length&&!saveAfter)setTimeout(()=>scheduleAutoSave('Daihyosen for the team awards'),0);/* ksm:post-split-end */
   renderAll();
   updateUndoButton();
   if(saveAfter) autoSaveTournament();

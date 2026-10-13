@@ -328,9 +328,11 @@ function ksmFinalResults(div){
     // teamFinalResultsHtml() (09-, removed in M.13)
     const p=teamFinalPlacements(div);
     if(!p)return {kind:'results',results:null};
-    const mode=state.teamAwardMode||'top2',lines=[{place:'🥇 1st',name:ksmText(p.first)}];
-    if(mode!=='top1'&&p.second)lines.push({place:'🥈 2nd',name:ksmText(p.second)});
-    if(mode==='dual3')(p.thirds||[]).forEach(t=>lines.push({place:'🥉 3rd',name:ksmText(t)}));
+    // External PR review (#35): a place with an award still level is never named alphabetically.
+    const tied=new Set(p.undecided||[]),named=(place,name)=>ksmText(tied.has(place)?KSM_TEAM_PLACE_TIED:name);
+    const mode=state.teamAwardMode||'top2',lines=[{place:'🥇 1st',name:named(1,p.first)}];
+    if(mode!=='top1'&&(p.second||tied.has(2)))lines.push({place:'🥈 2nd',name:named(2,p.second)});
+    if(mode==='dual3')(tied.has(3)?[KSM_TEAM_PLACE_TIED]:(p.thirds||[])).forEach(t=>lines.push({place:'🥉 3rd',name:ksmText(t)}));
     return {kind:'results',results:{title:'Team Results',lines}};
   }
   const final=(state.allMatches[div]||[]).find(m=>m.championship&&m.position==='Final'&&m.done);
