@@ -12,6 +12,9 @@
 //   * the Undo log itself is merged (both copies' entries, by identity);
 //   * external PR #33 review: Redo twice after two Undos brings back both points (the Redo stack
 //     keeps this device's Undo order); an entry this device took off its stacks is not offered again.
+//   * external PR #33 review: Undo of a Next Match that inserted a playoff in the middle of the
+//     list removes the playoff (also when the server's list has shifted), Redo puts it back once;
+//     the action and the Undo/Redo are pressed through the app's own performCourtAction()/undo()/redo().
 // edit-conflicts-test.py races the same through the real app and server (Undo, then Redo).
 import vm from 'node:vm';
 import { extractFunction, html, engine } from './lib/ksm-source.mjs';
@@ -26,15 +29,21 @@ const code = [engine, constant('KSM_LOCAL_VIEW_STATE_KEYS'), constant('KSM_UNDO_
   ...['normalizeCourt', 'cloneJson', 'isValidMatchObject', 'matchSyncIdentity', 'legacyTiebreakSyncIdentity', 'matchHasSyncIdentity',
     'individualMatchReady', 'matchBelongsToCourtInState', 'nextReadyIndexInState', 'preserveOwnedCourtRuntimeState', 'applyPatchToStateObject',
     'resolveRebasePatch', 'mergeHistoryEntries', 'historyEntryIdentity', 'pendingLocalCourtActionsForRebase', 'undoLogEntryIdentity',
-    'pendingLocalUndoLogForRebase', 'replayPendingCourtHistory', 'mergeCourtHistoryStacks', 'rebaseLocalPayloadOnRecord',
-    // the court's own Undo/Redo (10-), to press them on the rebased copy
-    'historyPathParent', 'applyHistoryPatch'].map(n => extractFunction(html, n))].join('\n');
+    'pendingLocalUndoLogForRebase', 'replayPendingCourtHistory', 'replayCourtMatchOps', 'mergeCourtHistoryStacks', 'rebaseLocalPayloadOnRecord',
+    'isIndividualPoolTiebreakMatch', 'reindexPointersAfterMatchReorder', 'normalizeIndividualPoolTiebreakOrderInState', 'normalizeAllIndividualPoolTiebreakOrder',
+    // the court's own actions and Undo/Redo (10-), to press them on the device's copy and the rebased copy
+    'historyPathParent', 'applyHistoryPatch', 'cloneHistoryValue', 'historyComparableState', 'historyValuesEqual', 'buildHistoryPatches',
+    'currentHistoryCourt', 'stampHistoryPatchMatchIdentity', 'ensureCourtHistory', 'performCourtAction', 'applyHistoryValues',
+    'courtUndoMatchesBefore', 'courtUndoMatchOps', 'recordCourtUndoLog', 'undo', 'redo'].map(n => extractFunction(html, n))].join('\n')
+  + ['KSM_HISTORY_LIMIT', 'KSM_HISTORY_KEYS', 'KSM_HISTORY_MISSING'].map(constant).join('\n');
 const context = {
   console,
   cloudSession: { clientId: 'court-a', court: 'A', revision: 10 },
   state: { currentCourt: 'A' },
   pinnedCourt: () => 'A',
-  sanitizeLoadedTournamentState() {}, normalizeAllIndividualPoolTiebreakOrder() {}, repairCompletedMatchResults() {},
+  sanitizeLoadedTournamentState() {}, repairCompletedMatchResults() {},
+  // the screen side of undo()/redo() (10-)
+  applyCourtState() {}, renderAll() {}, updateUndoButton() {}, updateSaveStatus() {}, criticalAutoSave() {},
   writeCloudDiagnosticsState() {}, showKsmToast() {}, noteMergeConflicts() {}, replayStructuralEdit: () => false, mergeLocalEditsThreeWay: () => [],
 };
 vm.createContext(context);
@@ -145,6 +154,82 @@ const other = { ...action('White D', 0, t(0), 9, 'D'), clientId: 'old-tablet' };
 r = rebase(st({ wp: [], undone: [M2, K], log: [logEntry('UNDO', M2, t(3)), logEntry('UNDO', K, t(4))] }),
   st({ wp: ['K', 'M'], done: [K, M2], undone: [other], other: ['M'] }));
 check(labels(r.courtRedoHistory.A) === 'White D,White M,White K', `11: the other device's Redo entry below this device's (${labels(r.courtRedoHistory.A)})`);
+
+// 12. External review of PR #33: Undo of a Next Match that created a playoff. Division Open is split:
+// pool A on Court A, pool B on Court B, in that order in the match list. Court A's Next Match ends
+// pool A in a tie, so the playoff (a pool tiebreak) is inserted after pool A's last bout, in the
+// middle of the list. It is saved; Court A presses Undo while Court B scores and saves first.
+// After the rebase the server copy must be the list before the Next Match plus Court B's point:
+// pool A's last bout open again and no playoff. Before the fix the action's index patches were
+// replayed backwards by match identity: the playoff stayed (its fields overwritten by pool B's
+// first bout), pool B's last bout was removed and its first bout got the last one's values.
+const bout = (pool, order, white, red, court, extra = {}) => ({ division: 'Open', pool, poolOrder: order, whitePoolSlot: 'A', redPoolSlot: 'B',
+  white, red, wdojo: '', rdojo: '', done: false, wp: [], rp: [], type: 'individual', court, ...extra });
+const playoff = (pool, white, red, court) => {
+  const m = bout(pool, 0, white, red, court, { tiebreak: true, tiebreakSeries: 1, tiebreakIndex: 0, requiresWinner: true, origin: 'TIEBREAK', dynamicType: 'INDIVIDUAL_POOL_TIEBREAK' });
+  delete m.poolOrder; return m;
+};
+const deviceState = matches => ({ currentCourt: 'A', allMatches: { Open: matches, Kids: [{ ...match([]), division: 'Kids', court: 'B' }] },
+  courtState: { A: { division: 'Open', index: 1 }, B: { division: 'Open', index: 2 } }, courtActiveDivision: { A: 'Open', B: 'Open' }, currentByDivision: { Open: 1 },
+  courtActionHistory: { A: [], B: [] }, courtRedoHistory: { A: [], B: [] }, courtUndoLog: { A: [], B: [] } });
+// Court A's Next Match on pool A's last bout (index `at`): the bout done, the playoff inserted after it.
+const nextMatchWithPlayoff = (s, at, tb) => {
+  context.state = s;
+  context.performCourtAction('Next Match: A 3 vs A 4', () => {
+    const m = s.allMatches.Open[at];
+    m.done = true; m.completedResult = { winner: '', hikiwake: true };
+    s.allMatches.Open.splice(at + 1, 0, clone(tb));
+    s.courtState.A = { division: 'Open', index: at + 1 }; s.currentByDivision.Open = at + 1;
+  });
+};
+const describe = s => s.allMatches.Open.map(m => `${m.tiebreak ? 'playoff ' : ''}${m.white}-${m.red}${m.done ? ' done' : ''}${m.wp.length ? ' ' + m.wp.join('') : ''}`).join(', ');
+const rebaseOnto = (local, server) => context.rebaseLocalPayloadOnRecord({ setup: {}, state: local }, { revision: 11, payload: { setup: {}, state: server } }, 10, null).state;
+const poolA = () => [bout('A', 0, 'A 1', 'A 2', 'A', { done: true, wp: ['M'] }), bout('A', 1, 'A 3', 'A 4', 'A')];
+const poolB = () => [bout('B', 0, 'B 1', 'B 2', 'B'), bout('B', 1, 'B 3', 'B 4', 'B')];
+const TA = playoff('A', 'A 1', 'A 3', 'A');
+
+let device = deviceState([...poolA(), ...poolB()]);
+nextMatchWithPlayoff(device, 1, TA);
+let server = clone(device);                       // the Next Match is saved (revision 10)
+server.allMatches.Open[3].wp = ['K'];             // Court B scores on B 1 - B 2 and saves first (revision 11)
+context.undo();                                   // Court A's Undo, held
+check(describe(device) === 'A 1-A 2 done M, A 3-A 4, B 1-B 2, B 3-B 4', `12: the Undo on Court A's copy (${describe(device)})`);
+r = rebaseOnto(clone(device), server);
+check(describe(r) === 'A 1-A 2 done M, A 3-A 4, B 1-B 2 K, B 3-B 4', `12: Undo of a Next Match with a playoff through a conflict: the playoff is removed (${describe(r)})`);
+check(labels(r.courtActionHistory.A) === '' && labels(r.courtRedoHistory.A) === 'Next Match: A 3 vs A 4', '12: the Next Match offered for Redo');
+
+// 13. The same with the server copy's list shifted: pool Z (Court B) comes first, and Court B's own
+// Next Match inserted pool Z's playoff before pool A while Court A's Undo was held.
+const poolZ = () => [bout('Z', 0, 'Z 1', 'Z 2', 'B', { done: true }), bout('Z', 1, 'Z 3', 'Z 4', 'B')];
+device = deviceState([...poolZ(), ...poolA(), ...poolB()]);
+nextMatchWithPlayoff(device, 3, TA);
+server = clone(device);
+server.allMatches.Open[1].done = true;
+server.allMatches.Open.splice(2, 0, playoff('Z', 'Z 1', 'Z 3', 'B'));
+server.allMatches.Open[6].wp = ['K'];
+context.undo();
+r = rebaseOnto(clone(device), server);
+check(describe(r) === 'Z 1-Z 2 done, Z 3-Z 4 done, playoff Z 1-Z 3, A 1-A 2 done M, A 3-A 4, B 1-B 2 K, B 3-B 4',
+  `13: the same with the server's list shifted by Court B's playoff (${describe(r)})`);
+
+// 14. The Redo, racing the other court the same way: the playoff comes back once, after pool A.
+device = deviceState([...poolA(), ...poolB()]);
+nextMatchWithPlayoff(device, 1, TA);
+context.undo();
+server = clone(device);                           // the Undo is saved
+server.allMatches.Open[2].wp = ['K'];
+context.redo();                                   // the Redo, held
+r = rebaseOnto(clone(device), server);
+check(describe(r) === 'A 1-A 2 done M, A 3-A 4 done, playoff A 1-A 3, B 1-B 2 K, B 3-B 4', `14: Redo of the Next Match through a conflict: the playoff once (${describe(r)})`);
+
+// 15. Undo and Redo both held (the server copy has the Next Match): unchanged list, playoff once.
+device = deviceState([...poolA(), ...poolB()]);
+nextMatchWithPlayoff(device, 1, TA);
+server = clone(device);
+server.allMatches.Open[3].wp = ['K'];
+context.undo(); context.redo();
+r = rebaseOnto(clone(device), server);
+check(describe(r) === 'A 1-A 2 done M, A 3-A 4 done, playoff A 1-A 3, B 1-B 2 K, B 3-B 4', `15: Undo + Redo of the Next Match through a conflict (${describe(r)})`);
 
 if (failed) process.exit(1);
 console.log(`PASS F30 undo/redo through a save conflict: ${count} checks`);

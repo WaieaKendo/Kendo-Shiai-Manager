@@ -19,6 +19,10 @@ them; at the end a fresh device and a reloaded court device must still show them
      was lost and the undone point came back, because an undo was not an action the rebase
      replayed): the point stays undone, then comes back once.
   9. Hansoku and Fusen-gachi vs another court's point saved first.
+ 10. Undo of a Next Match that created playoffs vs another court's point saved first (external
+     review of PR #33): pool A of a 6-player round robin ends in a three-way tie, so its playoffs
+     are inserted in the middle of the match list, before pool B. Before the fix the rebase
+     replayed the Next Match's index patches backwards, leaving playoffs in and overwriting pool B.
 
 Court vs court (both courts scoring) is e2e-two-court-sync-test.py; a Setup edit vs a court point
 saved first (F4) is sync-remote-updates-test.py; a structural edit vs a court point is
@@ -31,7 +35,7 @@ from ksm_app import KsmApp, fetch_record, sel, app_path
 from ksm_browser import launch_chromium
 from ksm_server import local_worker
 
-OPEN_A, OPEN_B, KIDS = 'Open A', 'Open B', 'Kids'
+OPEN_A, OPEN_B, KIDS, TIE = 'Open A', 'Open B', 'Kids', 'Tie'
 
 
 def people(prefix, n):
@@ -49,6 +53,7 @@ def main():
             {'name': OPEN_A, 'format': 'Round Robin', 'court': 'A', 'entrants': people('A', 4)},
             {'name': OPEN_B, 'format': 'Round Robin', 'court': 'B', 'entrants': people('B', 4)},
             {'name': KIDS, 'format': 'Round Robin', 'court': 'A', 'entrants': people('K', 3)},
+            {'name': TIE, 'format': 'Round Robin', 'court': 'A', 'entrants': people('T', 6)},
         ])
         director.save_now()
         director.wait_idle()
@@ -187,6 +192,23 @@ def main():
             f'9: the hansoku or the fusen-gachi was lost: {[(m.get("wp"), m.get("rp"), m.get("rt")) for m in state(record)["allMatches"][OPEN_A]]}'
         court_b.wait_for(lambda: any(m.get('wp') == ['F', 'F'] for m in court_b.all_matches()[OPEN_A]), message='9: the fusen-gachi on Court B')
 
+        # 10. Undo of a Next Match that created playoffs vs another court's point saved first.
+        court_a.switch_division(TIE)
+        tie_matches = lambda record: [(m.get('pool'), m.get('white'), m.get('red'), bool(m.get('done')), bool(m.get('tiebreak')))
+                                      for m in state(record)['allMatches'][TIE]]
+        before_tie = tie_matches(server())
+        for _ in range(3):  # pool A's three bouts, all drawn: a three-way tie, so the third Next Match adds playoffs
+            court_a.next_match(settle=True)
+        settle()
+        played = tie_matches(server())
+        assert [m[0] for m in played if m[4]] == ['A', 'A', 'A'] and played[-4][0] == 'B', f'10: the playoffs were not inserted before pool B: {played}'
+        record = race(court_a, court_a.undo, court_b, lambda: court_b.score_point('R', 'T'))
+        assert scored(record, OPEN_B, 'rp', 'T'), '10: the other court\'s point was lost'
+        expected = [(p, w, r, done or (p == 'A' and i < 2), t) for i, (p, w, r, done, t) in enumerate(before_tie)]
+        assert tie_matches(record) == expected, f'10: the undone Next Match left its playoffs or changed pool B:\n{tie_matches(record)}\nexpected\n{expected}'
+        court_a.wait_for(lambda: court_a.current_match() and (court_a.current_match()['white'], court_a.current_match()['red']) == ('T 5', 'T 1'),
+                         message='10: pool A\'s last bout back on Court A')
+
         # Survives a reload: a fresh device and Court A reloaded show the saved edits.
         final = server()
         fresh = KsmApp.open_device(browser, base, 'Fresh', problems, app_path(tid))
@@ -204,7 +226,7 @@ def main():
 
         assert not problems, '\n'.join(problems)
         print(f'PASS edit conflicts: court vs Setup, hansoku/fusen-gachi vs the other court, Registration vs court (both ways), awards vs court, structural vs Registration '
-              f'(both ways), Undo and Redo vs another court (F30) kept both edits; two Registration edits (F29) pinned '
+              f'(both ways), Undo and Redo vs another court (F30, also of a Next Match with playoffs) kept both edits; two Registration edits (F29) pinned '
               f'({time.time() - started:.0f}s)')
         browser.close()
 

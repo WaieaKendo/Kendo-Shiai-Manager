@@ -196,12 +196,40 @@ function replayPendingCourtHistory(actions,undoLog,localState,rebasedState,serve
   steps.forEach(({entry,op})=>{
     const patches=entry.patches||[];
     if(!op){patches.forEach(apply);const id=historyEntryIdentity(entry);applied.add(id);undone.delete(id);return}
+    // A division whose matches the Undo/Redo inserted or removed is replayed by identity (entry.matchOps), not by its index patches.
+    const matchOps=entry.matchOps&&typeof entry.matchOps==='object'?entry.matchOps:null;
+    const byIndex=patch=>!(matchOps&&patch?.path?.[0]==='allMatches'&&Object.prototype.hasOwnProperty.call(matchOps,patch.path[1]));
     if(op==='UNDO'&&applied.has(entry.target)){
-      [...patches].reverse().forEach(patch=>apply({...patch,before:patch.after,after:patch.before}));
+      [...patches].reverse().filter(byIndex).forEach(patch=>apply({...patch,before:patch.after,after:patch.before}));
+      if(matchOps)replayCourtMatchOps(rebasedState,matchOps);
       applied.delete(entry.target);undone.add(entry.target);
     }else if(op==='REDO'&&undone.has(entry.target)){
-      patches.forEach(apply);undone.delete(entry.target);applied.add(entry.target);
+      patches.filter(byIndex).forEach(apply);
+      if(matchOps)replayCourtMatchOps(rebasedState,matchOps);
+      undone.delete(entry.target);applied.add(entry.target);
     }
+  });
+}
+/**
+ * Applies an Undo/Redo's match changes by identity (recordCourtUndoLog()'s matchOps, 10-) to the server copy, wherever its
+ * matches are now (another device may have inserted or moved matches meanwhile): the removed matches are taken out, the
+ * inserted ones put back after the match they followed (at the end when it is gone; never twice), the others' fields set.
+ */
+function replayCourtMatchOps(targetState,matchOps){
+  Object.entries(matchOps||{}).forEach(([div,op])=>{
+    const arr=targetState?.allMatches?.[div];
+    if(!Array.isArray(arr)||!op)return;
+    const indexOf=identity=>identity?arr.findIndex(match=>matchHasSyncIdentity(match,identity)):-1;
+    (op.remove||[]).forEach(identity=>{const i=indexOf(identity);if(i>=0)arr.splice(i,1)});
+    (op.insert||[]).forEach(({after,match})=>{
+      if(!isValidMatchObject(match)||indexOf(matchSyncIdentity(match))>=0)return;
+      const anchor=after?indexOf(after):-1;
+      arr.splice(after?(anchor>=0?anchor+1:arr.length):0,0,cloneJson(match));
+    });
+    (op.patches||[]).forEach(patch=>{
+      const i=indexOf(patch?.matchIdentity);
+      if(i>=0)applyPatchToStateObject(targetState,{...patch,path:['allMatches',div,i,...(patch.path||[]).slice(3)]});
+    });
   });
 }
 /**

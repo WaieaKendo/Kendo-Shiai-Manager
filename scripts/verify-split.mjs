@@ -133,8 +133,10 @@ const KNOWN_POST_SPLIT_EDITS = {
   'react-pools': 3,
   // fix/pre-event-2 (F30): Undo/Redo are logged per court (10-: KSM_HISTORY_KEYS, recordCourtUndoLog(),
   // undo(), redo()) and replayed in time order with the court actions by the 409 rebase (18-:
-  // replayPendingCourtHistory(), mergeCourtHistoryStacks() and their two call sites).
-  'history-replay': 7,
+  // replayPendingCourtHistory(), mergeCourtHistoryStacks() and their two call sites). PR #33 review:
+  // undo() and redo() also keep the touched divisions' matches before they apply (courtUndoMatchesBefore()),
+  // so an Undo/Redo that inserts or removes matches is logged and replayed by identity.
+  'history-replay': 9,
   // fix/pre-event-2 (F27): maybeCreateTeamTiebreak() (13) also adds a team round robin's daihyosen
   // (KSMEngine.teamRoundRobinTiebreakPlan) when teams are level for 1st-3rd.
   'team-rr-daihyosen': 1,

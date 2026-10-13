@@ -115,24 +115,59 @@ function updateUndoButton(){
 // undone point back. Each Undo/Redo is also logged here (per court, with the action's patches and
 // who/when, like a court action) so the rebase replays it in time order with the court actions.
 const KSM_UNDO_LOG_LIMIT=40;
-function recordCourtUndoLog(court,kind,action){
+/** The match lists of the divisions `action` changes, before its Undo/Redo is applied (for courtUndoMatchOps()). */
+function courtUndoMatchesBefore(action){
+  const out={};
+  (action?.patches||[]).forEach(patch=>{const div=patch?.path?.[0]==='allMatches'?patch.path[1]:null;if(div!=null&&!(div in out)&&Array.isArray(state.allMatches?.[div]))out[div]=cloneJson(state.allMatches[div])});
+  return out;
+}
+/**
+ * External PR #33 review: an action that inserts or removes matches (Next Match creating a playoff
+ * or tiebreak, appendApprovedDynamicMatches() in 13-) is recorded as index patches: every match
+ * after the insertion is "changed" into its neighbour. Replayed backwards on the server copy by
+ * match identity those patches overwrite the wrong matches and leave the playoff in. So for each
+ * division whose matches (by identity, in order) differ before and after the Undo/Redo, the log
+ * entry also keeps what it did by identity: the matches it removed, the ones it inserted (with the
+ * match they follow) and the field changes of the others. The rebase replays these for that
+ * division instead of the index patches (replayCourtMatchOps(), 18-).
+ */
+function courtUndoMatchOps(matchesBefore){
+  const ops={};
+  Object.keys(matchesBefore||{}).forEach(div=>{
+    const before=matchesBefore[div],after=Array.isArray(state.allMatches?.[div])?state.allMatches[div]:[];
+    const beforeIds=before.map(matchSyncIdentity),afterIds=after.map(matchSyncIdentity);
+    if(beforeIds.join('\n')===afterIds.join('\n'))return; // same matches in the same order: the index patches replay it
+    if(beforeIds.some(id=>!id)||afterIds.some(id=>!id)||new Set(beforeIds).size!==beforeIds.length||new Set(afterIds).size!==afterIds.length)return;
+    const op={remove:beforeIds.filter(id=>!afterIds.includes(id)),insert:[],patches:[]};
+    afterIds.forEach((id,i)=>{
+      const was=beforeIds.indexOf(id);
+      if(was<0){op.insert.push({after:i?afterIds[i-1]:null,match:cloneJson(after[i])});return}
+      buildHistoryPatches(cloneHistoryValue(before[was]),cloneHistoryValue(after[i]),['allMatches',div,i]).forEach(patch=>op.patches.push({...patch,matchIdentity:id}));
+    });
+    ops[div]=op;
+  });
+  return Object.keys(ops).length?ops:null;
+}
+function recordCourtUndoLog(court,kind,action,matchesBefore){
   state.courtUndoLog=state.courtUndoLog||{A:[],B:[]};
   const log=Array.isArray(state.courtUndoLog[court])?state.courtUndoLog[court]:(state.courtUndoLog[court]=[]);
-  log.push({format:'history-op-v1',kind,court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',revision:cloudSession?.revision||0,
-    target:historyEntryIdentity(action),label:action.label||'Action',patches:cloneJson(action.patches||[])});
+  const entry={format:'history-op-v1',kind,court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',revision:cloudSession?.revision||0,
+    target:historyEntryIdentity(action),label:action.label||'Action',patches:cloneJson(action.patches||[])};
+  const matchOps=courtUndoMatchOps(matchesBefore);if(matchOps)entry.matchOps=matchOps;
+  log.push(entry);
   if(log.length>KSM_UNDO_LOG_LIMIT)log.splice(0,log.length-KSM_UNDO_LOG_LIMIT);
 }
 /* ksm:post-split-end */
 function undo(){
   ensureCourtHistory();const court=currentHistoryCourt(),stack=state.courtActionHistory[court];const action=stack.pop();
   if(!action){updateSaveStatus('Nothing to undo');updateUndoButton();return}
-  applyHistoryValues(action,'before');/* ksm:post-split-begin history-replay */recordCourtUndoLog(court,'UNDO',action);/* ksm:post-split-end */state.courtRedoHistory[court].push(action);if(state.courtRedoHistory[court].length>KSM_HISTORY_LIMIT)state.courtRedoHistory[court].shift();
+  /* ksm:post-split-begin history-replay */const matchesBefore=courtUndoMatchesBefore(action);/* ksm:post-split-end */applyHistoryValues(action,'before');/* ksm:post-split-begin history-replay */recordCourtUndoLog(court,'UNDO',action,matchesBefore);/* ksm:post-split-end */state.courtRedoHistory[court].push(action);if(state.courtRedoHistory[court].length>KSM_HISTORY_LIMIT)state.courtRedoHistory[court].shift();
   updateUndoButton();updateSaveStatus('Undid '+action.label);criticalAutoSave('Undo: '+action.label);
 }
 function redo(){
   ensureCourtHistory();const court=currentHistoryCourt(),stack=state.courtRedoHistory[court];const action=stack.pop();
   if(!action){updateSaveStatus('Nothing to redo');updateUndoButton();return}
-  applyHistoryValues(action,'after');/* ksm:post-split-begin history-replay */recordCourtUndoLog(court,'REDO',action);/* ksm:post-split-end */state.courtActionHistory[court].push(action);if(state.courtActionHistory[court].length>KSM_HISTORY_LIMIT)state.courtActionHistory[court].shift();
+  /* ksm:post-split-begin history-replay */const matchesBefore=courtUndoMatchesBefore(action);/* ksm:post-split-end */applyHistoryValues(action,'after');/* ksm:post-split-begin history-replay */recordCourtUndoLog(court,'REDO',action,matchesBefore);/* ksm:post-split-end */state.courtActionHistory[court].push(action);if(state.courtActionHistory[court].length>KSM_HISTORY_LIMIT)state.courtActionHistory[court].shift();
   updateUndoButton();updateSaveStatus('Redid '+action.label);criticalAutoSave('Redo: '+action.label);
 }
 function point(side,letter){performCourtAction(`${side==='W'?'White':'Red'} ${letter}`,()=>{state.score[side].push(letter);syncActiveScoreToMatch();renderScore()})}
