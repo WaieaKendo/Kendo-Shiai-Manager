@@ -79,6 +79,7 @@ def main():
         stale.wait_generated()
         stale.staff_login()
         stale.open_court('A')
+        stale.wait_idle()  # whatever opening the court saved is on the server before the delete
         stale_requests = []
         stale.page.on('request', lambda r: stale_requests.append(r.method) if r.method in ('PUT', 'POST') and '/api/tournaments' in r.url else None)
 

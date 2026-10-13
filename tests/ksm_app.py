@@ -524,7 +524,13 @@ class KsmApp:
         return self.page.evaluate("() => document.querySelector('[data-testid=\"toast\"]')?.textContent || ''")
 
     def wait_toast(self, text, timeout=15):
-        self.page.wait_for_function("t => (document.querySelector('[data-testid=\"toast\"]')?.textContent || '') === t", arg=text, timeout=timeout * 1000)
+        """Wait until the toast `text` has been shown (at least once since the page opened).
+
+        Toasts are transient: the next one replaces the text, and a slow machine can miss a
+        fleeting one if the test only polls the element. KSMTest.toasts() is the history of
+        every toast the page showed, so this cannot miss one that came and went.
+        """
+        self.page.wait_for_function("t => KSMTest.toasts().includes(t)", arg=text, timeout=timeout * 1000)
 
     def library_names(self):
         """The Tournament Library's cards, by name (the cards the Library shows right now)."""
