@@ -143,40 +143,69 @@ export function tiebreakSeriesStats<M extends StandingsMatch>(matches: readonly 
   return { stats: tiebreakStats(players, done), matches: done };
 }
 
-/** Orders a tied group by its tiebreak series, one series after another. */
+/**
+ * Orders a tied group by its tiebreak series, one series after another (docs/TOURNAMENT_MANAGEMENT.md,
+ * v3.12.4: "resolves any determinable seeds"). Each series orders all of its players by their series
+ * record (wins, then points): a player alone on a record is placed (`locked`), players level on one
+ * stay tied for the next series. F26: players behind a pair still tied after a series are ordered by
+ * that series too (they kept the pool order, by name, and no tiebreak was made for them).
+ * `unresolved`: the first players still tied (the next tiebreak; while a series is unplayed, its
+ * players); `locked`: every placed player; `ordered`: everyone in place order.
+ */
 export function resolveTiebreakBaseGroup<R extends StandingRow>(matches: Matches, poolLabel: string, target: TiedGroup<R>): { locked: TiebreakStatsRow[]; unresolved: R[]; ordered: (R | TiebreakStatsRow)[]; lastStats: TiebreakStatsRow[] } {
   const base = [...target.players];
   const baseByName = new Map(base.map(x => [x.name, x]));
   const all = matches.filter(x => x.pool === poolLabel && x.tiebreak && x.type === 'individual' && baseByName.has(x.white) && baseByName.has(x.red));
   const series = [...new Set(all.map(x => Number(x.tiebreakSeries || 1)))].sort((a, b) => a - b);
-  const locked: TiebreakStatsRow[] = []; let unresolved: R[] = [...base]; let lastStats: TiebreakStatsRow[] = [];
+  // The group as blocks in place order: a placed player alone (locked), or players still level.
+  type Block = { players: (R | TiebreakStatsRow)[]; placed: boolean };
+  let blocks: Block[] = [{ players: base, placed: false }];
+  const isPlaced = (name: string) => blocks.some(b => b.placed && b.players[0]!.name === name);
+  let pending: R[] | null = null; let lastStats: TiebreakStatsRow[] = [];
   for (const seriesId of series) {
     const participantNames = [...new Set(all.filter(x => Number(x.tiebreakSeries || 1) === seriesId).flatMap(x => [x.white, x.red]))];
-    const participants = participantNames.map(n => baseByName.get(n)).filter((x): x is R => !!x).filter(x => !locked.some(l => l.name === x.name));
+    const participants = participantNames.map(n => baseByName.get(n)).filter((x): x is R => !!x).filter(x => !isPlaced(x.name));
     if (participants.length < 2) continue;
+    const names = new Set(participants.map(x => x.name));
+    const at = blocks.findIndex(b => b.players.some(x => names.has(x.name)));
     const result = tiebreakSeriesStats(matches, poolLabel, participants, seriesId);
-    if (result.matches.length === 0 || result.matches.some(x => !x.done)) { unresolved = participants; break; }
+    if (result.matches.length === 0 || result.matches.some(x => !x.done)) {
+      // Not played yet: these players are the open tiebreak, listed first in their block (in the
+      // series' order), the block's other players after them.
+      pending = participants;
+      const block = blocks[at]!;
+      block.players = [...participants, ...block.players.filter(x => !names.has(x.name))];
+      break;
+    }
     lastStats = result.stats;
-    let tieAt = -1;
+    // F26: the whole series splits the block, not only up to its first tie: a player alone on a
+    // series record is placed, players level on one stay a block (in the series' order). Block
+    // members who did not play this series stay a block right after them.
+    const split: Block[] = [];
     for (let i = 0; i < result.stats.length;) {
-      const at = (k: number): TiebreakStatsRow => result.stats[k]!;
+      const row = (k: number): TiebreakStatsRow => result.stats[k]!;
       let j = i + 1;
-      while (j < result.stats.length && at(j).wins === at(i).wins && at(j).pts === at(i).pts) j++;
-      if (j - i === 1) { locked.push(at(i)); }
-      else { tieAt = i; unresolved = result.stats.slice(i, j).map(x => baseByName.get(x.name)!); break; }
+      while (j < result.stats.length && row(j).wins === row(i).wins && row(j).pts === row(i).pts) j++;
+      split.push(j - i === 1 ? { players: [row(i)], placed: true } : { players: result.stats.slice(i, j).map(x => baseByName.get(x.name)!), placed: false });
       i = j;
     }
-    if (tieAt < 0) unresolved = [];
+    const rest = blocks[at]!.players.filter(x => !names.has(x.name));
+    if (rest.length) split.push({ players: rest, placed: false });
+    const without = (b: Block): Block => ({ ...b, players: b.players.filter(x => !names.has(x.name)) });
+    blocks = [...blocks.slice(0, at).map(without), ...split, ...blocks.slice(at + 1).map(without)].filter(b => b.players.length);
   }
-  const used = new Set([...locked, ...unresolved].map(x => x.name));
-  const remainder = base.filter(x => !used.has(x.name));
-  return { locked, unresolved, ordered: [...locked, ...unresolved, ...remainder], lastStats };
+  const locked = blocks.filter(b => b.placed).map(b => b.players[0] as TiebreakStatsRow);
+  const open = blocks.find(b => !b.placed && b.players.length > 1);
+  const unresolved: R[] = pending || (open ? open.players as R[] : blocks.length === 1 && !blocks[0]!.placed ? [...base] : []);
+  return { locked, unresolved, ordered: blocks.flatMap(b => b.players), lastStats };
 }
 
 /** Players still tied for a place that matters (up to reqSeed), or null. */
 export function unresolvedRequiredTiebreakGroup<R extends StandingRow>(matches: Matches, poolLabel: string, target: TiedGroup<R>, reqSeed: number): R[] | null {
   const resolution = resolveTiebreakBaseGroup(matches, poolLabel, target);
-  const unresolvedStart = target.start + resolution.locked.length;
+  // The first place the still-tied players can take (after every player placed ahead of them).
+  const first = resolution.unresolved[0];
+  const unresolvedStart = target.start + (first ? Math.max(0, resolution.ordered.findIndex(x => x.name === first.name)) : resolution.locked.length);
   if (unresolvedStart > reqSeed) return null;
   if (resolution.unresolved.length > 1) return resolution.unresolved;
   if (!resolution.locked.length && !resolution.unresolved.length) return target.players;

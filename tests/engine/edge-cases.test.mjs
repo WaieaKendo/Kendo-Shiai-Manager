@@ -76,7 +76,7 @@ test('2-way tie at the top of a 3-way series, then series 2 between the two: all
   assert.deepEqual(names(poolStandings(p, afterS2, 3)), ['R', 'Q', 'P']);
 });
 
-test('F26 (open): 4-way tie, series 1 orders the two players behind a still-tied pair by name, not by series 1', () => {
+test('F26 (fixed): 4-way tie, the two players behind a still-tied pair are ordered by series 1, not by name', () => {
   // Pool-only pool of 4 (places 1-3 count): every pool bout hikiwake -> 4-way tie.
   const p = pool('A', 'P', 'Q', 'R', 'S');
   const draws = [['P', 'Q'], ['R', 'S'], ['R', 'P'], ['Q', 'S'], ['Q', 'R'], ['S', 'P']].map(([a, b]) => draw(a, b));
@@ -95,10 +95,67 @@ test('F26 (open): 4-way tie, series 1 orders the two players behind a still-tied
   const order = names(poolStandings(p, afterS2, req));
   const third = individualPlacements([], () => poolStandings(p, afterS2, req))[2].name;
   // The rule (docs/TOURNAMENT_MANAGEMENT.md, v3.12.4: "resolves any determinable seeds"): S beat
-  // P in series 1, so S is 3rd. Today P (0 tiebreak wins) is 3rd: the players behind a pair
-  // still tied after series 1 keep the pool (name) order. When F26 is fixed expect Q, R, S, P.
-  assert.deepEqual(order, ['Q', 'R', 'P', 'S'], `F26 fixed? standings are now ${order}: assert Q,R,S,P and mark F26 fixed`);
-  assert.equal(third, 'P', 'F26: the bronze goes to P although S beat P in the tiebreak');
+  // P in series 1, so S is 3rd. Before the fix P (0 tiebreak wins) was 3rd: the players behind a
+  // pair still tied after series 1 kept the pool (name) order.
+  assert.deepEqual(order, ['Q', 'R', 'S', 'P'], 'F26: series 1 orders S ahead of P');
+  assert.equal(third, 'S', 'F26: the bronze goes to S, who beat P in the tiebreak');
+  // S and P were already placed by series 1 (before series 2 between Q and R).
+  const r1 = resolveTiebreakBaseGroup(afterS1, 'A', target);
+  assert.deepEqual(names(r1.ordered), ['Q', 'R', 'S', 'P']);
+  assert.deepEqual(names(r1.locked), ['S', 'P'], 'S and P placed, Q/R still level');
+  assert.deepEqual(poolStandings(p, afterS2, req).map(r => [r.name, r.wins, r.pts, r.tbWins, r.seedLocked]),
+    [['Q', 0, 0, 3, true], ['R', 0, 0, 2, true], ['S', 0, 0, 1, true], ['P', 0, 0, 0, true]]);
+});
+
+test('F26: 4-way tie, two pairs still level after series 1: the pair behind is tiebroken too when its places count', () => {
+  const p = pool('A', 'P', 'Q', 'R', 'S');
+  const draws = [['P', 'Q'], ['R', 'S'], ['R', 'P'], ['Q', 'S'], ['Q', 'R'], ['S', 'P']].map(([a, b]) => draw(a, b));
+  const base = initialPoolStandings(p, draws);
+  const target = { start: 1, end: 4, players: base };
+  // Series 1: Q and R beat P and S and draw each other; P and S draw -> Q/R 2 wins, P/S none.
+  const afterS1 = [...draws, ...playSeries(tiebreakMatchesForGroup(draws, 'Open', 'A', base, 'A'), { 'Q|P': 'Q', 'Q|S': 'Q', 'R|P': 'R', 'R|S': 'R' })];
+  assert.deepEqual(names(unresolvedRequiredTiebreakGroup(afterS1, 'A', target, 3)), ['Q', 'R'], 'first the pair for 1st');
+  const s2 = tiebreakMatchesForGroup(afterS1, 'Open', 'A', ['Q', 'R'].map(n => base.find(r => r.name === n)), 'A');
+  const afterS2 = [...afterS1, ...playSeries(s2, { 'Q|R': 'R' })];
+  // Before the fix: no tiebreak for P/S and P (by name) got the bronze. Now 3rd counts, so P and S play.
+  assert.deepEqual(names(unresolvedRequiredTiebreakGroup(afterS2, 'A', target, 3)), ['P', 'S'], 'then the pair for 3rd');
+  assert.equal(unresolvedRequiredTiebreakGroup(afterS2, 'A', target, 2), null, 'only 1st-2nd counted: no tiebreak for 3rd');
+  const s3 = tiebreakMatchesForGroup(afterS2, 'Open', 'A', ['P', 'S'].map(n => base.find(r => r.name === n)), 'A');
+  assert.deepEqual(s3.map(m => [m.white, m.red, m.tiebreakSeries, m.requiresWinner]), [['P', 'S', 3, true]]);
+  const afterS3 = [...afterS2, ...playSeries(s3, { 'P|S': 'S' })];
+  assert.equal(unresolvedRequiredTiebreakGroup(afterS3, 'A', target, 3), null);
+  assert.deepEqual(names(poolStandings(p, afterS3, 3)), ['R', 'Q', 'S', 'P']);
+  assert.equal(individualPlacements([], () => poolStandings(p, afterS3, 3))[2].name, 'S');
+});
+
+test('F26: 3-way tie, the player behind a still-tied pair is placed 3rd by series 1', () => {
+  const p = pool('A', 'P', 'Q', 'R');
+  const circle = [bout('P', 'Q', ['M'], []), bout('Q', 'R', ['M'], []), bout('R', 'P', ['M'], [])];
+  const target = { start: 1, end: 3, players: initialPoolStandings(p, circle) };
+  // Series 1: Q and R beat P, draw each other -> P placed 3rd at once, Q/R tied.
+  const afterS1 = [...circle, ...playSeries(tiebreakMatchesForGroup(circle, 'Open', 'A', target.players, 'A'), { 'Q|P': 'Q', 'R|P': 'R' })];
+  const r1 = resolveTiebreakBaseGroup(afterS1, 'A', target);
+  assert.deepEqual([names(r1.ordered), names(r1.locked), names(r1.unresolved)], [['Q', 'R', 'P'], ['P'], ['Q', 'R']]);
+  assert.equal(unresolvedRequiredTiebreakGroup(afterS1, 'A', target, 3).length, 2);
+});
+
+test('F26: 5-way tie (pool-only pool of 5): the three behind a still-tied pair are ordered by series 1', () => {
+  const p = pool('A', 'P', 'Q', 'R', 'S', 'T');
+  const all = poolMatchPairs(5).map(([w, r]) => draw(['P', 'Q', 'R', 'S', 'T'][w], ['P', 'Q', 'R', 'S', 'T'][r]));
+  const base = initialPoolStandings(p, all);
+  const target = { start: 1, end: 5, players: base };
+  const req = requiredSeedPlaces(p, [])[p.label];
+  assert.equal(req, 3);
+  // Series 1: Q and R beat S, T, P and draw each other; S beats T and P; T beats P.
+  const s1 = tiebreakMatchesForGroup(all, 'Open', 'A', base, 'A');
+  assert.equal(s1.length, 10);
+  const afterS1 = [...all, ...playSeries(s1, { 'Q|S': 'Q', 'Q|T': 'Q', 'Q|P': 'Q', 'R|S': 'R', 'R|T': 'R', 'R|P': 'R', 'S|T': 'S', 'S|P': 'S', 'T|P': 'T' })];
+  assert.deepEqual(names(unresolvedRequiredTiebreakGroup(afterS1, 'A', target, req)), ['Q', 'R']);
+  const afterS2 = [...afterS1, ...playSeries(tiebreakMatchesForGroup(afterS1, 'Open', 'A', ['Q', 'R'].map(n => base.find(r => r.name === n)), 'A'), { 'Q|R': 'Q' })];
+  assert.equal(unresolvedRequiredTiebreakGroup(afterS2, 'A', target, req), null);
+  // Before the fix: Q, R, P, S, T (the three by name) and P got the bronze.
+  assert.deepEqual(names(poolStandings(p, afterS2, req)), ['Q', 'R', 'S', 'T', 'P']);
+  assert.equal(individualPlacements([], () => poolStandings(p, afterS2, req))[2].name, 'S');
 });
 
 test('a tie below the places that count gets no tiebreak; a tie that straddles the last counted place does', () => {
