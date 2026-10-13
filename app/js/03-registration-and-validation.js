@@ -11,7 +11,7 @@ function cycleCompetitorStatus(i){
   c.status=next;
   if(next==='NoShow'&&state.generated){
     if(structuralNoShowAllowed(c.division))applyIndividualNoShow(c.division,c.name);
-    else if(state.allMatches?.[c.division])alert('This division has already started. The bracket or pools were not changed; handle the absence with Fusen-gachi.');
+    else if(state.allMatches?.[c.division])alert(/* ksm:post-split-begin owner-decisions was:'This division has already started. The bracket or pools were not changed; handle the absence with Fusen-gachi.' */'This division has already started. The bracket or pools were not changed; handle the absence with Fusen-sho.'/* ksm:post-split-end */);
   }
   renderAll();scheduleAutoSave();
 }

@@ -6,15 +6,18 @@
 import { useSyncExternalStore } from 'react';
 import { DEFAULT_COURT_ACTION_ICONS, type CourtActionIcons } from './branding.ts';
 import {
-  STATIC_ACTIONS, courtActionsView, scoreButtons,
+  STATIC_ACTIONS, courtActionsView, fusenButtonView, scoreButtons,
   type CourtActionsInput, type ScoreButton, type Side,
 } from './actions-model.ts';
+import type { ScoreboardInput } from './scoreboard-model.ts';
 
 export const ACTIONS_EVENT = 'ksm:court-actions';
 
 interface CourtWindow {
   /** Undo/Redo as the legacy updateUndoButton() last published them. */
   ksmCourtActionsInput?: CourtActionsInput;
+  /** The court's match as renderScore() last published it (ksm:court-scoreboard): Fusen-sho needs one. */
+  ksmCourtScoreboardInput?: ScoreboardInput;
   point?: (side: Side, letter: string) => void;
   hansoku?: (side: Side) => void;
   undo?: () => void;
@@ -31,6 +34,14 @@ function subscribe(onChange: () => void): () => void {
 }
 
 const snapshot = (): CourtActionsInput => courtWindow().ksmCourtActionsInput ?? STATIC_ACTIONS;
+
+const SCOREBOARD_EVENT = 'ksm:court-scoreboard';
+function subscribeMatch(onChange: () => void): () => void {
+  window.addEventListener(SCOREBOARD_EVENT, onChange);
+  return () => window.removeEventListener(SCOREBOARD_EVENT, onChange);
+}
+/** Whether the court screen shows a match (before the first publish: none). */
+const hasMatch = (): boolean => Boolean(courtWindow().ksmCourtScoreboardInput?.match);
 
 function press(b: ScoreButton) {
   const w = courtWindow();
@@ -75,6 +86,7 @@ function UndoIcon({ icon, mirrored }: { icon: CourtActionIcons['undo']; mirrored
 /** The contents of #score .bottom-action-row. icons: the tournament's (default: KSM's). */
 export function CourtActions({ icons = DEFAULT_COURT_ACTION_ICONS }: { icons?: CourtActionIcons }) {
   const view = courtActionsView(useSyncExternalStore(subscribe, snapshot, () => STATIC_ACTIONS));
+  const fusen = fusenButtonView(useSyncExternalStore(subscribeMatch, hasMatch, () => false));
   const w = courtWindow;
   return (
     <>
@@ -86,9 +98,9 @@ export function CourtActions({ icons = DEFAULT_COURT_ACTION_ICONS }: { icons?: C
         <UndoIcon icon={icons.undo} mirrored={true} />
         <span className="action-label">{view.redo.label}</span>
       </button>
-      <button className="action-btn fusen-action" onClick={() => w().openFusenDialog?.()} data-testid="fusen-gachi">
+      <button className="action-btn fusen-action" onClick={() => w().openFusenDialog?.()} disabled={fusen.disabled} data-testid="fusen-gachi">
         <span className="action-symbol flag-symbol" aria-hidden="true">{icons.fusen}</span>
-        <span>Fusen-gachi</span>
+        <span>{fusen.label}</span>
       </button>
       <button className="primary next-match-btn action-btn" onClick={() => w().nextMatch?.()} data-testid="next-match">
         <span className="action-symbol next-symbol" aria-hidden="true">{icons.next}</span>

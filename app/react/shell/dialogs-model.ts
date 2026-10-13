@@ -16,8 +16,9 @@ export interface FusenInput {
   open: boolean;
 }
 
+/** Owner decision 4 (#29): shown as "Fusen-sho" (display only; stored values keep Fusen-gachi). */
 export const FUSEN_TEXTS = {
-  title: 'Fusen-gachi',
+  title: 'Fusen-sho',
   question: 'Which side forfeited?',
   white: 'White',
   red: 'Red',

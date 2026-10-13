@@ -97,3 +97,8 @@ test('dialog texts and the Regenerate options as the legacy templates printed th
   assert.equal(regenerateOptionClass('ready'), 'regenerate-option ');
   assert.equal(regenerateOptionClass('started'), 'regenerate-option disabled');
 });
+
+test('Fusen-sho: the dialog title (owner decision 4; display only, stored labels keep Fusen-gachi)', async () => {
+  const { FUSEN_TEXTS } = await import('../../app/react/shell/dialogs-model.ts');
+  assert.equal(FUSEN_TEXTS.title, 'Fusen-sho');
+});

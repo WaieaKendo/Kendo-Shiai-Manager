@@ -89,8 +89,9 @@ const KNOWN_POST_SPLIT_EDITS = {
   'react-shell': 23,
   // feat/owner-decisions (issue #29, the owners' decisions on the quirk pass; #31): legacy edits
   // that carry out a decision. 03: validateTournament() lists "No competitors registered" as an
-  // error when nothing would be generated (2).
-  'owner-decisions': 1,
+  // error when nothing would be generated (2); cycleCompetitorStatus()'s alert says Fusen-sho (4,
+  // inline `was:`).
+  'owner-decisions': 2,
   // feat/react-registration (M.13): Registration part 1's React islands (#regTable, the contents
   // of #tournamentStatusCard). With the legacy renderer removed (REMOVED_REGISTRATION_RENDERER)
   // renderReg()'s body (03) is a marked publisher and renderTournamentStatus() (03) publishes in
@@ -484,6 +485,10 @@ const MARKUP_EDITS = [
   // feat/owner-decisions (decision 3, #29): the Pools tab's Regenerate opens Regenerate Single
   // Division for the Pools select's division (ksmRegeneratePoolDivision(), 44-react-shell.js).
   ['<button onclick="generatePools()">Regenerate</button>', '<button onclick="ksmRegeneratePoolDivision()" data-testid="pools-regenerate">Regenerate</button>'],
+  // feat/owner-decisions (decision 4): "Fusen-gachi" is shown as "Fusen-sho" (the court button and
+  // its dialog; React draws both, this is the markup without the module). Display text only.
+  ['<span>Fusen-gachi</span>', '<span>Fusen-sho</span>'],
+  ['<h2 id="fusenTitle">Fusen-gachi</h2>', '<h2 id="fusenTitle">Fusen-sho</h2>'],
   ['<button class="danger" onclick="state.teams=[];renderTeams()" data-testid="team-clear">', '<button class="danger" onclick="clearTeams()" data-testid="team-clear">'],
   ['<button class="danger" onclick="state.exhibitions=[];renderExhibitions()" data-testid="exhibition-clear">', '<button class="danger" onclick="clearExhibitions()" data-testid="exhibition-clear">'],
 ];

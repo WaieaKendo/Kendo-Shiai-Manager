@@ -240,10 +240,13 @@ function ksmOpenTournamentAccess(link,qr){
 // (snapshotAnalysisHtml()), the action history analysis (actionHistoryAnalysisHtml(),
 // historyEntryCard()) and the buttons ("Retry queued save" with work queued on a staff device).
 function ksmSizeText(bytes){return ksmHtmlText(formatSnapshotBytes(bytes))}
+// Owner decision 4 (#29): a court action's label as shown: "Fusen-gachi" reads "Fusen-sho" (the
+// stored label in state.courtActionHistory is unchanged, so saved tournaments are unaffected).
+function ksmActionLabelText(label){return String(label??'').replace(/Fusen-gachi/g,'Fusen-sho')}
 function ksmHistoryEntryCard(title,item){
   if(!item)return {title:ksmHtmlText(title),entry:null};
   const largestChanges=(item.changes||[]).slice(0,6).map(x=>`${x.key}: ${formatSnapshotBytes(x.bytes)}`).join(' • ');
-  return {title:ksmHtmlText(title),entry:{heading:`${ksmHtmlText(title)} • #${item.index+1}`,line:`${ksmHtmlText(item.label)} — ${ksmSizeText(item.totalBytes)}`,changes:ksmHtmlText(largestChanges||'No changed state properties')}};
+  return {title:ksmHtmlText(title),entry:{heading:`${ksmHtmlText(title)} • #${item.index+1}`,line:`${ksmHtmlText(ksmActionLabelText(item.label))} — ${ksmSizeText(item.totalBytes)}`,changes:ksmHtmlText(largestChanges||'No changed state properties')}};
 }
 function ksmOpenDiagnostics(details,analysis,historyAnalysis,retry){
   ksmOpenCloudModal('Developer Tools',{kind:'diagnostics',
