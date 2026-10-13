@@ -29,6 +29,7 @@ def main():
         next_btn = page.locator(f'#score {sel("next-match")}')
         next_text = lambda: next_btn.inner_text().replace('»', '').strip()
         note = page.locator(f'#score {sel("court-encho-note")}')
+        tag = page.locator(f'#score {sel("court-rule-tag")}')
 
         app.open_court('A')
         app.switch_division('Elim')
@@ -38,6 +39,7 @@ def main():
         # --- winner required, tied: encho label, Next Match disabled -------------------------
         app.wait_for(lambda: note.count() == 1 and next_btn.is_disabled(), message='encho label and disabled Next Match')
         assert note.inner_text().strip() == 'Encho — winner needed', note.inner_text()
+        assert tag.inner_text().strip() == 'Winner required', tag.inner_text()
         assert next_text() == 'Next Match', next_btn.inner_text()
         app.score_point('W', 'M')
         app.wait_for(lambda: note.count() == 0 and next_btn.is_enabled(), message='a point clears the label and enables Next Match')
@@ -54,6 +56,7 @@ def main():
         app.wait_for(lambda: app.court_screen()['division'] == 'Pool' and app.current_match() is not None, message='the pool bout')
         app.wait_for(lambda: next_text() == 'Next Match (Hikiwake)', message='"(Hikiwake)" on a tied pool bout')
         assert next_btn.is_enabled() and note.count() == 0
+        assert tag.inner_text().strip() == 'Hikiwake allowed', tag.inner_text()
         app.score_point('W', 'M')
         app.wait_for(lambda: next_text() == 'Next Match', message='a point turns the text back')
         assert next_btn.is_enabled()

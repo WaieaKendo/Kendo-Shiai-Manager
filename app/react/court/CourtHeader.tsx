@@ -52,7 +52,10 @@ export function CourtHeader({ logoSrc = DEFAULT_COURT_LOGO_SRC }: { logoSrc?: st
           </select>
         </div>
         <div className="sk-division-title" id="scoreDivisionTitle" data-testid="court-division-title">{view.divisionTitle}</div>
-        <div className="sk-match-line" id="matchMeta" data-testid="court-match-meta">{view.matchLine}</div>
+        <div className="sk-match-line-row">
+          <div className="sk-match-line" id="matchMeta" data-testid="court-match-meta">{view.matchLine}</div>
+          {view.ruleTag && <span className="court-rule-tag" data-rule={view.ruleTag === 'Winner required' ? 'winner' : 'hikiwake'} data-testid="court-rule-tag">{view.ruleTag}</span>}
+        </div>
       </div>
       <div className="scoreboard-heading-spacer" aria-hidden="true"></div>
     </>

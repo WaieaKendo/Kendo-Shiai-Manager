@@ -49,7 +49,7 @@ function renderScore(){
   let m=ensureScorableCurrentMatch();
   if(m && !matchBelongsToCourt(m,state.currentCourt||'A'))m=null;
   const meta=matchDisplayMeta(m);
-  ksmPublishCourtHeader({matchLine:meta.line,divisionTitle:m?meta.division:(state.currentDivision||'—')});
+  ksmPublishCourtHeader({matchLine:meta.line,divisionTitle:m?meta.division:(state.currentDivision||'—'),requiresWinner:m?!!matchRequiresWinner(m):null});
   ksmPublishCourtScoreboard(m);
   renderQueue();renderPublic();renderContext();
 /* ksm:post-split-end */

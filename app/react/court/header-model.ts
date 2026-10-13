@@ -20,7 +20,12 @@ export interface CourtHeaderInput {
   currentDivision: string;
   divisionTitle: string;
   matchLine: string;
+  /** #38: the engine says the court's bout needs a winner (true) or may be a hikiwake (false); null/absent: no match. */
+  requiresWinner?: boolean | null;
 }
+
+/** #38: the tag next to the bout line. */
+export const RULE_TAGS = { winner: 'Winner required', hikiwake: 'Hikiwake allowed' } as const;
 
 export interface CourtHeaderView {
   tournamentName: string;
@@ -34,6 +39,8 @@ export interface CourtHeaderView {
   selectValue: string | null;
   divisionTitle: string;
   matchLine: string;
+  /** #38: "Winner required" or "Hikiwake allowed"; absent without a match. */
+  ruleTag?: string;
 }
 
 /** The static markup (app/index.html), before any legacy writer ran. */
@@ -49,5 +56,6 @@ export function courtHeaderView(input: CourtHeaderInput): CourtHeaderView {
     selectValue: input.currentDivision ? input.currentDivision : null,
     divisionTitle: input.divisionTitle,
     matchLine: input.matchLine,
+    ...(typeof input.requiresWinner === 'boolean' ? { ruleTag: input.requiresWinner ? RULE_TAGS.winner : RULE_TAGS.hikiwake } : {}),
   };
 }

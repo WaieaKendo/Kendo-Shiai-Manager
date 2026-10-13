@@ -30,3 +30,11 @@ test('courtHeaderView: does not share the published option list', () => {
   view.divisions.push('Extra');
   assert.deepEqual(published.divisions, ['Open', 'Women']);
 });
+
+test('#38: the rule tag next to the bout line: winner required, hikiwake allowed, none without a match', async () => {
+  const { courtHeaderView: view } = await import('../../app/react/court/header-model.ts');
+  assert.equal(view(input({ requiresWinner: true })).ruleTag, 'Winner required');
+  assert.equal(view(input({ requiresWinner: false })).ruleTag, 'Hikiwake allowed');
+  assert.equal('ruleTag' in view(input({ requiresWinner: null })), false);
+  assert.equal('ruleTag' in view(input()), false);
+});
