@@ -2,9 +2,9 @@
 // division select, division title and match line, the same elements, classes, ids and test
 // IDs as the legacy markup. The division select stays a real <select> whose change calls the
 // legacy selectScorekeeperDivision(), which republishes the header.
-import { useLayoutEffect, useRef, useSyncExternalStore } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { DEFAULT_COURT_LOGO_SRC } from './branding.ts';
-import { EMPTY_HEADER, courtHeaderView, type CourtHeaderInput } from './header-model.ts';
+import { CONFIGURE_TEXTS, EMPTY_HEADER, RED_SIDE_OPTIONS, courtConfigView, courtHeaderView, type CourtHeaderInput, type RedSide } from './header-model.ts';
 
 export const HEADER_EVENT = 'ksm:court-header';
 
@@ -12,6 +12,8 @@ interface CourtWindow {
   /** The header as the legacy writers last published it. */
   ksmCourtHeaderInput?: CourtHeaderInput;
   selectScorekeeperDivision?: (division: string) => void;
+  ksmSetCourtRedSide?: (side: RedSide) => void;
+  ksmOpenCourtSetup?: () => void;
 }
 
 const courtWindow = (): CourtWindow => window as unknown as CourtWindow;
@@ -22,6 +24,58 @@ function subscribe(onChange: () => void): () => void {
 }
 
 const snapshot = (): CourtHeaderInput => courtWindow().ksmCourtHeaderInput ?? EMPTY_HEADER;
+
+/**
+ * #38: "Configure court" (staff; hidden from spectators by CSS): a small panel with the court's Red
+ * side as Setup words it, Left / Right. Choosing one edits Setup's Red side field for this court
+ * (ksmSetCourtRedSide()), which saves and syncs like typing in Setup. Escape or a click outside
+ * closes it.
+ */
+function ConfigureCourt({ input }: { input: CourtHeaderInput }) {
+  const [open, setOpen] = useState(false);
+  const wrap = useRef<HTMLDivElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  const { redSide } = courtConfigView(input);
+  useEffect(() => {
+    if (!open) return;
+    const outside = (e: MouseEvent | TouchEvent) => { if (wrap.current && !wrap.current.contains(e.target as Node)) setOpen(false); };
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); button.current?.focus(); } };
+    document.addEventListener('mousedown', outside);
+    document.addEventListener('touchstart', outside);
+    document.addEventListener('keydown', key);
+    wrap.current?.querySelector<HTMLInputElement>('input:checked')?.focus();
+    return () => {
+      document.removeEventListener('mousedown', outside);
+      document.removeEventListener('touchstart', outside);
+      document.removeEventListener('keydown', key);
+    };
+  }, [open]);
+  return (
+    <div className="court-config" ref={wrap}>
+      <button type="button" className="court-config-btn" aria-haspopup="dialog" aria-expanded={open}
+        aria-label={CONFIGURE_TEXTS.button} ref={button} onClick={() => setOpen(o => !o)} data-testid="court-configure">
+        <span aria-hidden="true">⚙</span> {CONFIGURE_TEXTS.button}
+      </button>
+      {open && (
+        <div className="court-config-panel" role="dialog" aria-label={CONFIGURE_TEXTS.button} data-testid="court-config-panel">
+          <fieldset className="court-config-fieldset">
+            <legend>{CONFIGURE_TEXTS.heading}</legend>
+            {RED_SIDE_OPTIONS.map(o => (
+              <label key={o.value} className="court-config-option">
+                <input type="radio" name="courtRedSide" value={o.value} checked={redSide === o.value}
+                  onChange={() => courtWindow().ksmSetCourtRedSide?.(o.value)} data-testid={`court-red-side-${o.value}`} />
+                <span>{o.label}</span>
+              </label>
+            ))}
+          </fieldset>
+          <button type="button" className="court-config-link" onClick={() => { setOpen(false); courtWindow().ksmOpenCourtSetup?.(); }} data-testid="court-config-setup">
+            {CONFIGURE_TEXTS.setupLink}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /** logoSrc: the tournament logo (default: the KSM logo, as the legacy markup). */
 export function CourtHeader({ logoSrc = DEFAULT_COURT_LOGO_SRC }: { logoSrc?: string }) {
@@ -58,6 +112,7 @@ export function CourtHeader({ logoSrc = DEFAULT_COURT_LOGO_SRC }: { logoSrc?: st
         </div>
       </div>
       <div className="scoreboard-heading-spacer" aria-hidden="true"></div>
+      <ConfigureCourt input={input} />
     </>
   );
 }

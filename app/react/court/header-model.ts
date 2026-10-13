@@ -22,7 +22,22 @@ export interface CourtHeaderInput {
   matchLine: string;
   /** #38: the engine says the court's bout needs a winner (true) or may be a hikiwake (false); null/absent: no match. */
   requiresWinner?: boolean | null;
+  /** #38: this court is set to Red on the left (redOnLeftForCourt(), Setup's "Red side" field). */
+  redLeft?: boolean;
 }
+
+export type RedSide = 'left' | 'right';
+
+/** #38: "Configure court" (staff): the same wording and values as Setup's "Court A/B — Red side" field. */
+export const CONFIGURE_TEXTS = {
+  button: 'Configure court',
+  heading: 'Red side (as seen from the scoring table)',
+  setupLink: 'More court settings in Setup',
+} as const;
+export const RED_SIDE_OPTIONS: ReadonlyArray<{ value: RedSide; label: string }> = [
+  { value: 'left', label: 'Left' },
+  { value: 'right', label: 'Right' },
+];
 
 /** #38: the tag next to the bout line. */
 export const RULE_TAGS = { winner: 'Winner required', hikiwake: 'Hikiwake allowed' } as const;
@@ -58,4 +73,9 @@ export function courtHeaderView(input: CourtHeaderInput): CourtHeaderView {
     matchLine: input.matchLine,
     ...(typeof input.requiresWinner === 'boolean' ? { ruleTag: input.requiresWinner ? RULE_TAGS.winner : RULE_TAGS.hikiwake } : {}),
   };
+}
+
+/** #38: the Configure court panel: the court's current Red side, shown as the chosen option. */
+export function courtConfigView(input: CourtHeaderInput): { redSide: RedSide } {
+  return { redSide: input.redLeft ? 'left' : 'right' };
 }

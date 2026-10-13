@@ -67,4 +67,16 @@ body:not(.ksm-test-tools) :is([data-testid="reg-load-samples"],[data-testid="tea
 .fusen-side-red{background:var(--redbg);color:var(--red);border:2px solid var(--red)}
 .fusen-cancel-row{margin-top:14px;padding-top:10px;border-top:1px solid var(--line)}
 .fusen-cancel{width:100%;background:transparent;border:0;color:var(--muted);font-weight:700;text-decoration:underline}
+/* #38: Configure court (staff): a small button under the bout line and its panel. */
+.court-config{position:absolute;top:0;right:0;z-index:5;display:flex;justify-content:flex-end}
+body.ksm-spectator .court-config{display:none!important}
+.scoreboard-header:has(.court-config-panel){position:relative!important;z-index:50!important}
+.court-config-btn{min-height:36px;padding:4px 12px;border-radius:999px;font-size:13px;font-weight:800;background:var(--card);color:var(--ink);border:1px solid var(--line)}
+.court-config-panel{position:absolute;top:100%;right:0;z-index:30;width:min(300px,86vw);margin-top:6px;padding:14px;text-align:left;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.court-config-fieldset{margin:0 0 10px;padding:0;border:0}
+.court-config-fieldset legend{padding:0;margin-bottom:8px;font-size:13px;font-weight:900;color:var(--muted)}
+.court-config-option{display:inline-flex;align-items:center;gap:8px;margin-right:18px;min-height:44px;font-weight:800;cursor:pointer}
+.court-config-option input{width:22px;height:22px;min-height:0;padding:0;margin:0;accent-color:var(--red)}
+.court-config-link{display:block;width:100%;min-height:44px;background:transparent;border:0;color:var(--muted);font-weight:700;text-decoration:underline;text-align:left;padding:0}
+@media(max-width:720px){.court-config{position:relative;top:auto;right:auto;justify-content:center;margin-top:6px}.court-config-panel{right:50%;transform:translateX(50%)}}
 /* ksm:post-split-end */

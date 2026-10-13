@@ -70,6 +70,21 @@ function ksmPublishCourtHeader(fields){
   window.ksmCourtHeaderInput={...(window.ksmCourtHeaderInput||ksmStaticCourtHeader()),...fields};
   window.dispatchEvent(new CustomEvent('ksm:court-header'));
 }
+// #38 "Configure court": set this court's Red side by editing Setup's field (Court A/B — Red side), so
+// it saves and syncs exactly like a Setup edit (the field's own onchange, and the document's change
+// listener that schedules the autosave).
+function ksmSetCourtRedSide(side){
+  const el=document.getElementById(normalizeCourt(state.currentCourt)==='B'?'court2RedSide':'court1RedSide');
+  if(!el||el.value===side||(side!=='left'&&side!=='right'))return;
+  el.value=side;
+  el.dispatchEvent(new Event('change',{bubbles:true}));
+}
+// "More court settings in Setup": Setup, scrolled to this court's Red side field.
+function ksmOpenCourtSetup(){
+  navigateTo('setup');
+  const el=document.getElementById(normalizeCourt(state.currentCourt)==='B'?'court2RedSide':'court1RedSide');
+  if(el){el.scrollIntoView({block:'center'});el.focus()}
+}
 function ksmPublishCourtActions(actions){
   window.ksmCourtActionsInput=actions;
   window.dispatchEvent(new CustomEvent('ksm:court-actions'));
