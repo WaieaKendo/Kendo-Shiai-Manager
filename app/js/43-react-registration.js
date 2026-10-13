@@ -162,6 +162,29 @@ function ksmRenderExhibitions(){
   if(ksmExhibitionsStale){ksmExhibitionsStale=false;input=ksmExhibitionsData()}
   ksmPublishRegistration('ksm:registration-exhibitions','ksmRegistrationExhibitionsInput',input);
 }
+// Owner decisions 16 and 17 (#29): Paste from Excel. A pasted row (the document paste listener,
+// 16-: Name, Dojo, Division, Seed, Status, tab-separated) is added only with a division that is
+// offered (empty: the first division) and a known status (empty: Registered; Registered, Checked
+// In / Checked, No Show / NoShow, in any case); other rows are not added (before: an unknown
+// division was created, an unknown status kept as typed) and ksmPasteNotice() names them.
+var ksmPasteRefused=[];
+var KSM_PASTE_STATUSES={'':'Registered','registered':'Registered','checked in':'Checked','checked':'Checked','no show':'NoShow','noshow':'NoShow'};
+function ksmPasteRow(name,dojo,division,seed,status){
+  const st=KSM_PASTE_STATUSES[String(status||'').trim().toLowerCase()],why=[];
+  if(division&&!state.divisions.includes(division))why.push(`division "${division}" is not offered`);
+  if(st===undefined)why.push(`status "${status}" is not Registered, Checked In or No Show`);
+  if(why.length){ksmPasteRefused.push(`${name}: ${why.join('; ')}`);return}
+  state.competitors.push({name,dojo:dojo||'',division:division||state.divisions[0],seed:seed||'',status:st});
+}
+function ksmPasteNotice(){
+  if(!ksmPasteRefused.length)return;
+  const rows=ksmPasteRefused;ksmPasteRefused=[];
+  alert(`Not added (${rows.length} ${rows.length===1?'row':'rows'}):\n${rows.join('\n')}\n\nUse a division offered in Setup and the status Registered, Checked In or No Show, then paste those rows again.`);
+}
+// The Paste from Excel button (app/index.html): how the paste works (decision 17).
+function ksmPasteHelp(){
+  alert('Paste from Excel: copy rows with the columns Name, Dojo, Division, Seed, Status (in that order; only Name is required) and paste them (Ctrl+V / Cmd+V) while Individual Players is shown. Division must be one offered in Setup (empty: the first division). Status: Registered, Checked In or No Show (empty: Registered). Rows with another division or status are not added; a notice lists them.');
+}
 // regTab() (23): the tab marked active.
 function ksmRenderRegistrationTab(mode){
   ksmPublishRegistration('ksm:registration-tab','ksmRegistrationTabInput',{mode:String(mode)});

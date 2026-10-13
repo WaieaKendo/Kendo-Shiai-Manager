@@ -90,8 +90,10 @@ const KNOWN_POST_SPLIT_EDITS = {
   // that carry out a decision. 03: + Add Row / + Add Team clear their filter so the new entry
   // shows (14, addRow(), addTeamRow()); cycleCompetitorStatus()'s alert says Fusen-sho (4, inline
   // `was:`); validateTournament() lists "No competitors registered" as an error when nothing would
-  // be generated (2). Listed before react-shell: addRow() (03) is its first region.
-  'owner-decisions': 4,
+  // be generated (2). 16: the Paste from Excel listener adds a row through ksmPasteRow() (16, 17;
+  // inline `was:`) and names the refused rows (ksmPasteNotice()). Listed before react-shell:
+  // addRow() (03) is its first region.
+  'owner-decisions': 6,
   'react-shell': 23,
   // feat/react-registration (M.13): Registration part 1's React islands (#regTable, the contents
   // of #tournamentStatusCard). With the legacy renderer removed (REMOVED_REGISTRATION_RENDERER)
@@ -492,6 +494,8 @@ const MARKUP_EDITS = [
   // feat/owner-decisions (decision 4): "Fusen-gachi" is shown as "Fusen-sho" (the court button and
   // its dialog; React draws both, this is the markup without the module). Display text only.
   ['<span>Fusen-gachi</span>', '<span>Fusen-sho</span>'],
+  // feat/owner-decisions (decision 17): Paste from Excel explains the paste (ksmPasteHelp(), 43-).
+  ['<button onclick="alert(\'Paste rows directly into the table from Excel.\')" data-testid="reg-paste-excel">', '<button onclick="ksmPasteHelp()" data-testid="reg-paste-excel">'],
   ['<h2 id="fusenTitle">Fusen-gachi</h2>', '<h2 id="fusenTitle">Fusen-sho</h2>'],
   ['<button class="danger" onclick="state.teams=[];renderTeams()" data-testid="team-clear">', '<button class="danger" onclick="clearTeams()" data-testid="team-clear">'],
   ['<button class="danger" onclick="state.exhibitions=[];renderExhibitions()" data-testid="exhibition-clear">', '<button class="danger" onclick="clearExhibitions()" data-testid="exhibition-clear">'],

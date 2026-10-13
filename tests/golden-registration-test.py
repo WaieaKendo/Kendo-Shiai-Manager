@@ -40,7 +40,9 @@ transitions are off.
                    off in Setup, a split court with too few players, a valid registration;
   reg-samples      Load Sample Players, Clear Registration (Cancel, then OK), Load Sample
                    Tournament, Paste from Excel (tab-separated rows pasted on Registration; CR LF
-                   line ends: F18, fixed), a live update with line breaks in a name and a dojo;
+                   line ends: F18, fixed; rows with an unknown division or status refused with a
+                   notice: owner decisions 16/17), a live update with line breaks in a name and a
+                   dojo, a live update with a status other than the three;
   reg-live         a live update arriving while a name is being typed (a staff device defers
                    it while a field is edited, then because of unsaved changes), the redraw of a
                    live update (renderAll()) while typing (the typed text is committed, the
@@ -406,7 +408,18 @@ def reg_samples(browser, react_check):
     phone_views(g, 'pasted')
     # Since F18 a paste no longer leaves a CR in a cell; synced data still can (another device, a file).
     g.do('a live update with line breaks in a name and a dojo (CR LF, CR)', lambda a: a.page.evaluate(LINE_BREAK_JS))
+    # Owner decisions 16/17: a paste refuses an unknown status (the pasted "Late" row above is not
+    # added), so a status other than the three now arrives only from another device or a file.
+    g.do('a live update with a status other than the three ("Late")', lambda a: a.page.evaluate(OTHER_STATUS_JS))
     g.finish()
+
+
+OTHER_STATUS_JS = """() => {
+  const p = tournamentPayload();
+  p.state.competitors.push({name: 'Dee', dojo: 'Kona', division: 'Women’s Open', seed: '2', status: 'Late'});
+  ksmApplyingRemoteSnapshot = true;
+  try { applyTournamentPayload(p, false, {source: 'live sync'}); } finally { ksmApplyingRemoteSnapshot = false; }
+}"""
 
 
 LINE_BREAK_JS = """() => {
@@ -484,7 +497,9 @@ def reg_live(browser, react_check):
 
 def reg_status_markup(browser):
     """F19: the legacy row printed the status into its class unescaped, so a pasted status with
-    markup ran code. The React players table escapes it: the class holds the text, nothing runs."""
+    markup ran code. The React players table escapes it: the class holds the text, nothing runs.
+    Since owner decision 16/17 a paste refuses an unknown status, so the status arrives the other
+    way it can: a live update from another device (KsmApp.apply_live_update())."""
     app = KsmApp(browser.new_page(viewport=DESKTOP), 'status markup')
     page = app.page
     errors = []
@@ -492,8 +507,12 @@ def reg_status_markup(browser):
     load_app(page)
     page.evaluate("() => { window.__pwned = 0; openRegistrationTab('individual'); }")
     evil = 'x"><img src=x onerror="window.__pwned=1">'
-    page.evaluate(PASTE_JS, f'Evil\tDojo\t{WOMEN}\t\t{evil}')
-    page.wait_for_timeout(300)
+    page.evaluate(PASTE_JS, f'Evil\tDojo\t{WOMEN}\t\t{evil}')  # refused (an unknown status; the notice dismissed)
+    assert app.payload()['state']['competitors'] == [], 'a paste added a row with an unknown status'
+    payload = app.payload()
+    payload['state']['competitors'] = [{'name': 'Evil', 'dojo': 'Dojo', 'division': WOMEN, 'seed': '', 'status': evil}]
+    app.apply_live_update(payload)
+    page.wait_for_selector(tid('reg-status'))
     assert page.evaluate('window.__pwned') == 0, 'a pasted status ran code (F19)'
     assert page.locator('#regTable img').count() == 0, 'a pasted status injected markup into the players table (F19)'
     assert page.locator(tid('reg-status')).get_attribute('class') == f'status {evil}', 'the status class is not the pasted text'
