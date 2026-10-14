@@ -20,7 +20,8 @@ concurrency:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # Pinned to 24.04 until after the 11/21 tournament (ubuntu-latest moves to Ubuntu 26 from Oct 19, 2026).
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
