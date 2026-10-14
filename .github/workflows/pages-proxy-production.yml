@@ -20,7 +20,8 @@ jobs:
   pass-through:
     name: Create/update the production Pages pass-through
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    # Pinned to 24.04 until after the 11/21 tournament (ubuntu-latest moves to Ubuntu 26 from Oct 19, 2026).
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     concurrency:
       group: pages-proxy-production
