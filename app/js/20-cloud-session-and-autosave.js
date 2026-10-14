@@ -33,11 +33,11 @@ function getSetupSnapshot(){
 function tournamentSettings(setup=getSetupSnapshot()){return KSMEngine.readSettings(setup)}
 /* ksm:post-split-end */
 function applySetupSnapshot(data){
+  if(!data) return;
 /* ksm:post-split-begin tv-red-side */
   // Old tournaments and unrecognized values retain the original audience orientation.
-  data={...data,court1TvRedSide:data?.court1TvRedSide==='left'?'left':'right',court2TvRedSide:data?.court2TvRedSide==='left'?'left':'right'};
+  data={...data,court1TvRedSide:data.court1TvRedSide==='left'?'left':'right',court2TvRedSide:data.court2TvRedSide==='left'?'left':'right'};
 /* ksm:post-split-end */
-  if(!data) return;
   Object.keys(data).forEach(id=>{const el=document.getElementById(id); if(el) el.value=data[id];});
   applyCourtSides();
   if(data.teamCourt) state.divisionCourts['Team Tournament']=data.teamCourt;
