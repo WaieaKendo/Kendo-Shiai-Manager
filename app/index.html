@@ -313,8 +313,16 @@
             <select id="court1RedSide" onchange="saveSetup();applyCourtSides();renderAll()" data-testid="setup-red-side-a"><option value="right">Red on the right</option><option value="left">Red on the left</option></select>
           </div>
           <div class="field">
+            <label for="court1TvRedSide">Court A — TV: Red side (as seen by the audience)</label>
+            <select id="court1TvRedSide" onchange="saveSetup();applyCourtSides();renderAll()" data-testid="setup-tv-red-side-a"><option value="right">Red on the right</option><option value="left">Red on the left</option></select>
+          </div>
+          <div class="field">
             <label>Court B — Red side (as seen from the scoring table)</label>
             <select id="court2RedSide" onchange="saveSetup();applyCourtSides();renderAll()" data-testid="setup-red-side-b"><option value="right">Red on the right</option><option value="left">Red on the left</option></select>
+          </div>
+          <div class="field">
+            <label for="court2TvRedSide">Court B — TV: Red side (as seen by the audience)</label>
+            <select id="court2TvRedSide" onchange="saveSetup();applyCourtSides();renderAll()" data-testid="setup-tv-red-side-b"><option value="right">Red on the right</option><option value="left">Red on the left</option></select>
           </div>
         </div>
       </section>

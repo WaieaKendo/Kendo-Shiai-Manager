@@ -190,6 +190,8 @@ const KNOWN_POST_SPLIT_EDITS = {
   // logged-out device (ksmKeepStaffOutbox() in 33's staff-hardening region), so a 401 keeps the
   // unsaved work as staff work until Staff Login.
   'staff-outbox': 1,
+  // #40: persist and normalize the audience orientation.
+  'tv-red-side': 2,
   // fix/pre-event (F11): saveAuto(), called by the awards editor but never defined (app/js/20).
   'award-save': 1,
   // fix/stuck-pending (F35, test audit N1), 21 and 33: a failed save queued in the outbox is retried
@@ -263,6 +265,7 @@ const KNOWN_POST_SPLIT_CSS_EDITS = {
   // fix/react-batch-1 (F14): the TV canvas scales to fit the window, centred (end of 13-tv.css;
   // the factor --ksm-tv-fit comes from ksmFitTv() in app/js/37-react-tv.js, react-tv region).
   'tv-fit': 1,
+  'tv-red-side': 1,
   // feat/owner-decisions (issue #29): the decisions' styles, theme tokens only, at the end of
   // 14-library-and-branding.css: hansoku on Live Scores and the TV (5), the Setup move buttons
   // (#31), the court's Continue box (7), between matches (6), read-only awards (8), the sample
@@ -503,6 +506,10 @@ const REMOVED_SHELL_RENDERER = [
 // 'now' must appear exactly once; the check puts 'before' back (before the test-ID step) and then
 // compares byte for byte, so any other markup change still fails.
 const MARKUP_EDITS = [
+  // #40: independent audience orientation for each TV.
+  ['', "          <div class=\"field\">\n            <label for=\"court1TvRedSide\">Court A \u2014 TV: Red side (as seen by the audience)</label>\n            <select id=\"court1TvRedSide\" onchange=\"saveSetup();applyCourtSides();renderAll()\" data-testid=\"setup-tv-red-side-a\"><option value=\"right\">Red on the right</option><option value=\"left\">Red on the left</option></select>\n          </div>\n"],
+  ['', "          <div class=\"field\">\n            <label for=\"court2TvRedSide\">Court B \u2014 TV: Red side (as seen by the audience)</label>\n            <select id=\"court2TvRedSide\" onchange=\"saveSetup();applyCourtSides();renderAll()\" data-testid=\"setup-tv-red-side-b\"><option value=\"right\">Red on the right</option><option value=\"left\">Red on the left</option></select>\n          </div>\n"],
+
   // feat/owner-decisions (decision 3, #29): the Pools tab's Regenerate opens Regenerate Single
   // Division for the Pools select's division (ksmRegeneratePoolDivision(), 44-react-shell.js).
   ['<button onclick="generatePools()">Regenerate</button>', '<button onclick="ksmRegeneratePoolDivision()" data-testid="pools-regenerate">Regenerate</button>'],

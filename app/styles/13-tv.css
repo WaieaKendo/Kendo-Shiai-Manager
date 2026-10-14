@@ -483,3 +483,14 @@ body.ksm-tv main{position:fixed!important;inset:0!important;width:auto!important
 body.ksm-tv main>#tv{position:absolute!important;left:50%!important;top:50%!important;margin:0!important;transform:translate(-50%,-50%) scale(var(--ksm-tv-fit,1))!important;transform-origin:center center!important}
 @supports (scale:tan(atan2(1px,1px))){body.ksm-tv main>#tv{transform:translate(-50%,-50%) scale(min(tan(atan2(100vw,1920px)),tan(atan2(100vh,1080px))))!important}}
 /* ksm:post-split-end */
+/* ksm:post-split-begin tv-red-side */
+/* Reverse the TV's side grids, keeping names and point letters readable. */
+body.ksm-tv.ksm-tv-red-left :is(.tv3-individual,.tv3-k-current,.tv3-team-grid,.tv3-k-lineups,.tv3-up-card,.tv3-team-row){direction:rtl}
+body.ksm-tv.ksm-tv-red-left :is(.tv3-individual,.tv3-k-current,.tv3-team-grid,.tv3-k-lineups,.tv3-up-card,.tv3-team-row)>*{direction:ltr}
+body.ksm-tv.ksm-tv-red-left :is(.tv3-player,.tv3-team-col,.tv3-k-team){text-align:right!important}
+body.ksm-tv.ksm-tv-red-left :is(.tv3-player,.tv3-team-col,.tv3-k-team).red{text-align:left!important}
+body.ksm-tv.ksm-tv-red-left .tv3-root .tv3-score.white{text-align:left!important;padding:0 0 0 42px!important}
+body.ksm-tv.ksm-tv-red-left .tv3-root .tv3-score.red{text-align:right!important;padding:0 42px 0 0!important}
+body.ksm-tv.ksm-tv-red-left .tv3-team-col:not(.red) .tv3-row-score{text-align:left!important}
+body.ksm-tv.ksm-tv-red-left .tv3-team-col.red .tv3-row-score{text-align:right!important}
+/* ksm:post-split-end */
