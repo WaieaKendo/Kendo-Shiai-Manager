@@ -37,8 +37,7 @@ def main():
                      message='the elimination semifinal on the court')
 
         # --- winner required, tied: encho label, Next Match disabled -------------------------
-        app.wait_for(lambda: note.count() == 1 and next_btn.is_disabled(), message='encho label and disabled Next Match')
-        assert note.inner_text().strip() == 'Encho — winner needed', note.inner_text()
+        app.wait_for(lambda: note.count() == 0 and next_btn.is_disabled(), message='no encho label at 0–0; disabled Next Match')
         assert tag.inner_text().strip() == 'Winner required', tag.inner_text()
         assert next_text() == 'Next Match', next_btn.inner_text()
         app.score_point('W', 'M')

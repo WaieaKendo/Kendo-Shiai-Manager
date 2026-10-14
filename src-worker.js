@@ -380,7 +380,20 @@ export class TournamentState {
   }
 
   webSocketMessage(socket, message) {
-    if (message === 'ping') socket.send(JSON.stringify({ type: 'pong', at: new Date().toISOString() }));
+    if (message === 'ping') {
+      socket.send(JSON.stringify({ type: 'pong', at: new Date().toISOString() }));
+      return;
+    }
+    let flash;
+    if (typeof message !== 'string') return;
+    try { flash = JSON.parse(message); } catch (_) { return; }
+    if (!flash || typeof flash !== 'object' || Array.isArray(flash)) return;
+    const keys = Object.keys(flash).sort();
+    if (keys.length !== 4 || keys.join(',') !== 'court,id,kind,type') return;
+    if (flash.type !== 'flash' || !['A', 'B'].includes(flash.court) || !['encho', 'hikiwake'].includes(flash.kind)) return;
+    if (typeof flash.id !== 'string' || !flash.id.length || flash.id.length > 40) return;
+    if (socket.deserializeAttachment()?.role !== 'staff') return;
+    this.broadcast({ type: 'flash', court: flash.court, kind: flash.kind, id: flash.id, at: new Date().toISOString() });
   }
   webSocketClose(socket, code, reason) { try { socket.close(code, reason); } catch (_) {} this.broadcastPresence(); }
   webSocketError(socket) { try { socket.close(1011, 'WebSocket error'); } catch (_) {} this.broadcastPresence(); }

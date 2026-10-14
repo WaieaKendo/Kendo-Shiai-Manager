@@ -3,6 +3,7 @@
 // legacy markup, so the court CSS (the Red/White side setting, the spectator and
 // division-complete rules) and the tests apply unchanged. Each button calls the same legacy
 // global as the legacy inline handler; the legacy updateUndoButton() publishes Undo/Redo.
+import { TieFlashButton } from '../tie-flash/TieFlash.tsx';
 import { useSyncExternalStore } from 'react';
 import { DEFAULT_COURT_ACTION_ICONS, type CourtActionIcons } from './branding.ts';
 import {
@@ -89,7 +90,8 @@ function UndoIcon({ icon, mirrored }: { icon: CourtActionIcons['undo']; mirrored
 export function CourtActions({ icons = DEFAULT_COURT_ACTION_ICONS }: { icons?: CourtActionIcons }) {
   const view = courtActionsView(useSyncExternalStore(subscribe, snapshot, () => STATIC_ACTIONS));
   const fusen = fusenButtonView(useSyncExternalStore(subscribeMatch, hasMatch, () => false));
-  const next = nextMatchView(useSyncExternalStore(subscribeMatch, scoreboard, () => EMPTY_SCOREBOARD));
+  const scoreInput = useSyncExternalStore(subscribeMatch, scoreboard, () => EMPTY_SCOREBOARD);
+  const next = nextMatchView(scoreInput);
   const w = courtWindow;
   return (
     <>
@@ -111,6 +113,7 @@ export function CourtActions({ icons = DEFAULT_COURT_ACTION_ICONS }: { icons?: C
           {next.label === HIKIWAKE_NEXT_LABEL ? <>Next Match <small className="next-sub">(Hikiwake)</small></> : next.label}
         </span>
       </button>
+      <TieFlashButton input={scoreInput} />
     </>
   );
 }

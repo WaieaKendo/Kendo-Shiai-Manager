@@ -103,13 +103,14 @@ export async function createInProcessApi({ resetKey = 'test-reset-key' } = {}) {
       const response = await call('GET', `/api/tournaments/${id}/live?${qs}`, { headers: { Upgrade: 'websocket' } });
       if (response.status !== 101) return { status: response.status };
       const client = response.webSocket;
+      const obj = objects.get(id);
       return {
         status: 101,
         messages: client.messages,
+        send(message) { return obj.instance.webSocketMessage(client.peer, message); },
         waitFor: pred => waitFor(client.messages, pred, fn => client.listeners.push(fn)),
         async close() {
           client.peer.closedByTest = true;
-          const obj = objects.get(id);
           await obj.instance.webSocketClose(client.peer, 1000, 'test done');
         },
       };

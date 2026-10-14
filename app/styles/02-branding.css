@@ -1,6 +1,10 @@
 /* KSM v3.9.1 Vector Logo + Seigaiha Wave Integration — screen-only visual language */
 @media screen{
   :root{
+/* ksm:post-split-begin tie-flash */
+    --ksm-tie-flash-bg:#ffdf00;
+    --ksm-tie-flash-ink:var(--ksm-navy);
+/* ksm:post-split-end */
     --ksm-navy:#071f33;
     --ksm-navy-2:#0c2d46;
     --ksm-navy-3:#142f45;

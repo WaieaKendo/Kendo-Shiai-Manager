@@ -203,6 +203,7 @@ const KNOWN_POST_SPLIT_EDITS = {
   // dialog and the forgetting itself are in 44 (post-split throughout). Listed here because
   // refreshTvFromCloud() (21) is its first region.
   'delete-tournament': 9,
+  'tie-flash': 5,
   // fix/stuck-pending (F35, test audit N1), 21 and 33: a failed save queued in the outbox is retried
   // with backoff (scheduleQueuedSaveRetry(), from saveTournamentToCloudWithReason() and
   // flushCloudOutbox()), the local changes a queued snapshot carries are confirmed when it is sent
@@ -268,6 +269,7 @@ const KNOWN_POST_SPLIT_EDITS = {
 };
 // The same markers in app/styles/*.css (count per name, in order of first appearance).
 const KNOWN_POST_SPLIT_CSS_EDITS = {
+  'tie-flash': 2,
   // fix/pre-event (F2): Undo/Redo stay on the division-complete court screen (08); only
   // Fusen-gachi and Next Match are hidden there.
   'undo-after-complete': 1,

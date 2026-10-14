@@ -121,6 +121,6 @@ export function scoreboardView(input: ScoreboardInput): ScoreboardView {
       hansoku: '△ '.repeat((w ? input.score.WT : input.score.RT) || 0),
     };
   };
-  const encho = m.requiresWinner && isTied(input.score) ? { encho: ENCHO_LABEL } : {};
+  const encho = m.requiresWinner && isTied(input.score) && input.score.W.length > 0 ? { encho: ENCHO_LABEL } : {};
   return { white: side('W'), red: side('R'), ...(m.rule ? { rule: m.rule } : {}), ...encho };
 }
