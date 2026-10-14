@@ -274,7 +274,7 @@ interface SetupSnapshot {
   tName?: string; tHost?: string; tDate?: string; tLocation?: string; tCourts?: string; tType?: string;
   teamEnabled?: 'Enabled' | 'Disabled'; teamFormat?: TeamFormat; teamTournamentFormat?: 'Single Elimination' | 'Round Robin';
   teamCourt?: CourtMode; teamAwardMode?: string; exhibitionEnabled?: 'Enabled' | 'Disabled';
-  court1Refs?: string; court2Refs?: string; court1RedSide?: 'left' | 'right'; court2RedSide?: 'left' | 'right';
+  court1Refs?: string; court2Refs?: string; court1RedSide?: 'left' | 'right'; court2RedSide?: 'left' | 'right'; court1TvRedSide?: 'left' | 'right'; court2TvRedSide?: 'left' | 'right';
 }
 
 /** A saved tournament: autosave, file export and the cloud record's payload. */

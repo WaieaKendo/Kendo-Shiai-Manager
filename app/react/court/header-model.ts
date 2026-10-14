@@ -24,6 +24,8 @@ export interface CourtHeaderInput {
   requiresWinner?: boolean | null;
   /** #38: this court is set to Red on the left (redOnLeftForCourt(), Setup's "Red side" field). */
   redLeft?: boolean;
+  /** #40: independent audience orientation. */
+  tvRedLeft?: boolean;
 }
 
 export type RedSide = 'left' | 'right';
@@ -32,6 +34,7 @@ export type RedSide = 'left' | 'right';
 export const CONFIGURE_TEXTS = {
   button: 'Configure court',
   heading: 'Red side (as seen from the scoring table)',
+  tvHeading: 'TV: Red side (as seen by the audience)',
   setupLink: 'More court settings in Setup',
 } as const;
 export const RED_SIDE_OPTIONS: ReadonlyArray<{ value: RedSide; label: string }> = [

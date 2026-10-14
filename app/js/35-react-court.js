@@ -67,7 +67,7 @@ function ksmPublishCourtScoreboard(m){
 // (A function, not a const: app.js publishes before this file's top level has run.)
 function ksmStaticCourtHeader(){return {tournamentName:'Kendo Tournament',court:'A',divisions:[],currentDivision:'',divisionTitle:'—',matchLine:'No active match'}}
 function ksmPublishCourtHeader(fields){
-  window.ksmCourtHeaderInput={...(window.ksmCourtHeaderInput||ksmStaticCourtHeader()),...fields};
+  window.ksmCourtHeaderInput={...(window.ksmCourtHeaderInput||ksmStaticCourtHeader()),...fields,tvRedLeft:document.getElementById(normalizeCourt(state.currentCourt)==='B'?'court2TvRedSide':'court1TvRedSide')?.value==='left'};
   window.dispatchEvent(new CustomEvent('ksm:court-header'));
 }
 // #38 "Configure court": set this court's Red side by editing Setup's field (Court A/B — Red side), so
@@ -75,6 +75,13 @@ function ksmPublishCourtHeader(fields){
 // listener that schedules the autosave).
 function ksmSetCourtRedSide(side){
   const el=document.getElementById(normalizeCourt(state.currentCourt)==='B'?'court2RedSide':'court1RedSide');
+  if(!el||el.value===side||(side!=='left'&&side!=='right'))return;
+  el.value=side;
+  el.dispatchEvent(new Event('change',{bubbles:true}));
+}
+// #40: the audience setting uses the same Setup change path, independently of the table.
+function ksmSetCourtTvRedSide(side){
+  const el=document.getElementById(normalizeCourt(state.currentCourt)==='B'?'court2TvRedSide':'court1TvRedSide');
   if(!el||el.value===side||(side!=='left'&&side!=='right'))return;
   el.value=side;
   el.dispatchEvent(new Event('change',{bubbles:true}));

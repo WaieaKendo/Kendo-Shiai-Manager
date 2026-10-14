@@ -13,6 +13,7 @@ interface CourtWindow {
   ksmCourtHeaderInput?: CourtHeaderInput;
   selectScorekeeperDivision?: (division: string) => void;
   ksmSetCourtRedSide?: (side: RedSide) => void;
+  ksmSetCourtTvRedSide?: (side: RedSide) => void;
   ksmOpenCourtSetup?: () => void;
 }
 
@@ -64,6 +65,16 @@ function ConfigureCourt({ input }: { input: CourtHeaderInput }) {
               <label key={o.value} className="court-config-option">
                 <input type="radio" name="courtRedSide" value={o.value} checked={redSide === o.value}
                   onChange={() => courtWindow().ksmSetCourtRedSide?.(o.value)} data-testid={`court-red-side-${o.value}`} />
+                <span>{o.label}</span>
+              </label>
+            ))}
+          </fieldset>
+          <fieldset className="court-config-fieldset">
+            <legend>{CONFIGURE_TEXTS.tvHeading}</legend>
+            {RED_SIDE_OPTIONS.map(o => (
+              <label key={o.value} className="court-config-option">
+                <input type="radio" name="courtTvRedSide" value={o.value} checked={(input.tvRedLeft ? 'left' : 'right') === o.value}
+                  onChange={() => courtWindow().ksmSetCourtTvRedSide?.(o.value)} data-testid={`court-tv-red-side-${o.value}`} />
                 <span>{o.label}</span>
               </label>
             ))}

@@ -894,6 +894,44 @@ class KsmApp:
         """TV display (/t/<id>/tv/a|b): court, division, meta, current names or completion, scores, team summaries."""
         return self.page.evaluate(_TV_JS)
 
+    def set_tv_red_side(self, court, side):
+        """Setup's audience orientation, using its real change handler."""
+        self.nav('setup')
+        self.page.locator(sel(f'setup-tv-red-side-{court.lower()}')).select_option(side)
+        wait_for_react(self.page)
+
+    def configure_tv_red_side(self, court, side):
+        """Configure court's audience orientation control."""
+        self.open_court(court)
+        self.click('court-configure')
+        self.page.locator(sel(f'court-tv-red-side-{side}')).check()
+        wait_for_react(self.page)
+        self.page.keyboard.press('Escape')
+
+    def set_table_red_side(self, court, side):
+        """Setup's scoring-table orientation, independent of its TV setting."""
+        self.nav('setup')
+        self.page.locator(sel(f'setup-red-side-{court.lower()}')).select_option(side)
+        wait_for_react(self.page)
+
+    def tv_layout(self):
+        """Visible side geometry, including team sheets and every upcoming card."""
+        return self.page.evaluate("""() => {
+          const box = e => { const r=e.getBoundingClientRect(); return [r.x,r.y,r.width,r.height].map(v=>Math.round(v)); };
+          const pair = (w,r) => { const a=document.querySelector(w),b=document.querySelector(r); return a&&b?[box(a),box(b)]:null; };
+          const id = s => `[data-testid="tv-${s}"]`;
+          return {
+            players:pair(id('white-name'),id('red-name')),
+            scores:pair(id('white-score'),id('red-score')),
+            hansoku:pair(id('white-hansoku'),id('red-hansoku')),
+            teams:pair(id('white-team'),id('red-team')),
+            summaries:pair(id('white-summary'),id('red-summary')),
+            lineups:pair('.tv3-k-team:not(.red)', '.tv3-k-team.red'),
+            rows:[...document.querySelectorAll('.tv3-team-col:not(.red) .tv3-team-row')].map((w,i)=>[box(w),box(document.querySelectorAll('.tv3-team-col.red .tv3-team-row')[i])]),
+            upcoming:[...document.querySelectorAll('[data-testid="tv-upcoming-card"]')].filter(e=>e.querySelector(id('upcoming-white'))).map(e=>[box(e.querySelector(id('upcoming-white'))),box(e.querySelector(id('upcoming-red')))])
+          };
+        }""")
+
     def tv_upcoming(self):
         """TV Upcoming Matches cards: [(white, red)] or None for an empty card."""
         return self.page.evaluate("""() => [...document.querySelectorAll('[data-testid="tv-upcoming-card"]')].map(c => {
