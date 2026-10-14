@@ -125,6 +125,9 @@ function validateTournamentPayload(payload) {
   }
   return null;
 }
+function tournamentGone(deletedAt, extra = {}) {
+  return json({ error: 'Tournament deleted', code: 'tournament-deleted', deletedAt, ...extra }, 410);
+}
 function publicRecord(record) {
   if (!record) return null;
   const { credentials, ...safe } = record;
@@ -239,6 +242,14 @@ export class TournamentState {
   async fetch(request) {
     const url = new URL(request.url);
 
+    // Delete is final: a deleted tournament leaves a tombstone (`deletedAt`) and every route of its
+    // object answers 410, before any authorization, so a stale device cannot recreate or reopen it.
+    // The library object and the admin reset never carry a tombstone and are not checked.
+    if (!url.pathname.startsWith('/library') && url.pathname !== '/reset-all') {
+      const deletedAt = await this.state.storage.get('deletedAt');
+      if (deletedAt) return tournamentGone(deletedAt, url.pathname === '/status' ? { exists: false, deleted: true } : {});
+    }
+
     if (request.method === 'GET' && url.pathname === '/live') {
       if ((request.headers.get('Upgrade') || '').toLowerCase() !== 'websocket') return json({ error: 'WebSocket upgrade required' }, 426);
       const role = safeRole(url.searchParams.get('role') || 'spectator');
@@ -329,7 +340,11 @@ export class TournamentState {
     if (request.method === 'DELETE' && url.pathname === '/snapshot') {
       const access = await this.staffAccess(request.headers.get('x-ksm-session-key') || '', 'Staff authorization required');
       if (!access.ok) return denied(access);
+      // deleteAll clears the staff password hash and sessions with the record; the tombstone is
+      // written after it, so it is the only thing left in storage.
       await this.state.storage.deleteAll();
+      this.verifiedPassword = null;
+      await this.state.storage.put('deletedAt', new Date().toISOString());
       this.broadcast({ type: 'deleted' });
       for (const socket of this.state.getWebSockets()) try { socket.close(1000, 'Tournament deleted'); } catch (_) {}
       return json({ ok: true });
@@ -451,7 +466,8 @@ export default {
       }
       if (!action && request.method === 'DELETE') {
         const response = await stub.fetch(new Request('https://durable-object/snapshot', { method: 'DELETE', headers: request.headers }));
-        if (response.ok) await libraryStub().fetch(new Request(`https://durable-object/library/${encodeURIComponent(id)}`, { method:'DELETE' }));
+        // A 410 (already deleted) also clears the library entry, in case an earlier delete was cut short.
+        if (response.ok || response.status === 410) await libraryStub().fetch(new Request(`https://durable-object/library/${encodeURIComponent(id)}`, { method:'DELETE' }));
         return new Response(response.body, response);
       }
       return json({ error: 'Method not allowed' }, 405);

@@ -170,3 +170,18 @@ window.KSMTest = {
     nextMatch();
   },
 };
+
+// Every toast the device showed, in order. A toast is transient (it fades after a few seconds and
+// the next one replaces its text), so a test that polls the element can miss one on a slow
+// machine; this keeps the history for KsmApp.wait_toast().
+(function recordToasts() {
+  const seen = [];
+  let last = null;
+  const read = () => {
+    const el = document.getElementById('ksmToast');
+    const text = el ? el.textContent : null;
+    if (text && text !== last) { seen.push(text); last = text; }
+  };
+  new MutationObserver(read).observe(document, {subtree: true, childList: true, characterData: true});
+  window.KSMTest.toasts = () => { read(); return seen.slice(); };
+})();

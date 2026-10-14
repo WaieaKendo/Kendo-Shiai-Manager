@@ -30,6 +30,14 @@ function scheduleTvVerification(){
   clearInterval(ksmTvVerificationTimer);
   ksmTvVerificationTimer=setInterval(()=>refreshTvFromCloud('Periodic verification',false),15000);
 }
+/* ksm:post-split-begin delete-tournament */
+// Issue #26: how the cloud code tells the app that a tournament was deleted (the answer is in
+// 44-react-shell.js: ksmTournamentGone()). Events, so the save and load code does not depend on
+// the Library and the dialogs.
+function ksmAnnounceTournamentGone(id,fromLoad){window.dispatchEvent(new CustomEvent('ksm:tournament-gone',{detail:{id,fromLoad:!!fromLoad}}))}
+function ksmAnnounceSocketEnd(id,reason){window.dispatchEvent(new CustomEvent('ksm:tournament-socket-end',{detail:{id,reason}}))}
+function ksmGoneError(){return Object.assign(new Error('Tournament deleted'),{code:'tournament-deleted'})}
+/* ksm:post-split-end */
 async function refreshTvFromCloud(reason='TV full refresh',forceApply=true){
   if(!isTvSession()||!cloudSession.tournamentId||location.protocol==='file:'||!navigator.onLine)return false;
   if(ksmTvRefreshInFlight)return ksmTvRefreshInFlight;
@@ -37,6 +45,7 @@ async function refreshTvFromCloud(reason='TV full refresh',forceApply=true){
   ksmTvRefreshInFlight=(async()=>{
     try{
       const response=await fetch(`/api/tournaments/${encodeURIComponent(cloudSession.tournamentId)}?tvRefresh=${Date.now()}`,{cache:'no-store',headers:{'cache-control':'no-cache'}});
+      /* ksm:post-split-begin delete-tournament */if(response.status===410){ksmAnnounceTournamentGone(cloudSession.tournamentId);throw ksmGoneError()}/* ksm:post-split-end */
       if(!response.ok)throw new Error(`Refresh failed (${response.status})`);
       const record=await response.json();
       const applied=applyRemoteCloudRecord(record,false,forceApply);
@@ -83,6 +92,13 @@ function connectCloudSocket(){
     if(message.type==='credential-rotated'&&message.role===ksmSessionRole){setConnectionStatus('Access key changed','offline');disconnectCloudSocket()}
   }catch(err){console.warn('Cloud sync message failed',err);updateTvRealtimeDiagnostics({lastReason:`Message error: ${err?.message||err}`})}});
   socket.addEventListener('close',()=>{if(socket!==ksmCloudSocket)return;console.info('[TV Realtime] Disconnected');ksmCloudSocket=null;clearTvSyncTimers();updateTvRealtimeDiagnostics({status:navigator.onLine?'Reconnecting':'Offline',lastReason:'Socket closed'});setConnectionStatus(navigator.onLine?'Sync reconnecting…':'Offline • local saved',navigator.onLine?'connecting':'offline');scheduleCloudReconnect()});
+/* ksm:post-split-begin delete-tournament */
+  // Issue #26: a deleted tournament closes every live connection ('Tournament deleted') after a
+  // 'deleted' message; a device that reconnects later is refused (410) and ends the same way.
+  {const tournamentId=cloudSession.tournamentId;
+  socket.addEventListener('message',event=>{try{if(JSON.parse(event.data).type==='deleted')ksmAnnounceTournamentGone(tournamentId)}catch(_){}});
+  socket.addEventListener('close',event=>{if(event.reason!=='Reconnect')ksmAnnounceSocketEnd(tournamentId,event.reason)})}
+/* ksm:post-split-end */
   socket.addEventListener('error',()=>{if(socket===ksmCloudSocket){console.warn('[TV Realtime] Socket error');updateTvRealtimeDiagnostics({status:'Interrupted',lastReason:'Socket error'});setConnectionStatus('Sync interrupted','offline')}});
 }
 window.addEventListener('online',()=>{if(isTvSession()){updateTvRealtimeDiagnostics({status:'Reconnecting',lastReason:'Network restored'});disconnectCloudSocket();connectCloudSocket()}});
@@ -190,6 +206,7 @@ async function saveTournamentToCloudWithReason(reason='Autosave',force=false){
     return true;
   }catch(err){
     console.warn('Cloud save failed',err);
+/* ksm:post-split-begin delete-tournament */if(err?.code==='tournament-deleted')return false;/* ksm:post-split-end */
     if(!String(err.message).includes('conflict'))writeOutbox(payload,reason);
     ksmSaveStatusMode=String(err.message).includes('conflict')?'error':'offline';
     setConnectionStatus(String(err.message).includes('conflict')?'Conflict':'Offline',String(err.message).includes('conflict')?'error':'offline');
@@ -229,7 +246,7 @@ async function flushCloudOutbox(){const outbox=readOutbox();if(!outbox||ksmCloud
 /* ksm:post-split-end */
   if(record?.payload){const localPayload=/* ksm:post-split-begin outbox-flush-rebase was:ksmLocalMutationVersion===mutationVersion */ksmLocalMutationVersion===mutationVersion&&ksmLocalMutationVersion<=ksmConfirmedMutationVersion/* ksm:post-split-end */?record.payload:rebaseLocalPayloadOnRecord(tournamentPayload(),record,Number(outbox.baseRevision||0)/* ksm:post-split-begin edit-merge */,outbox.payload/* ksm:post-split-end */);ksmApplyingRemoteSnapshot=true;try{applyTournamentPayload(localPayload,false,{pinnedCourt:pinnedCourt(),preserveLocalDivision:true,source:'outbox flush'});localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(localPayload))}finally{ksmApplyingRemoteSnapshot=false}}
 /* ksm:post-split-begin save-retry */confirmQueuedMutation();/* ksm:post-split-end */
-  return true}catch(err){console.warn('Queued cloud save failed',err);writeCloudDiagnosticsState({stage:'Queued save failed',errorMessage:String(err?.message||err),lastFailureAt:new Date().toISOString()});ksmSaveStatusMode='error';renderPersistentSaveStatus();/* ksm:post-split-begin save-retry */scheduleQueuedSaveRetry(err);/* ksm:post-split-end */return false}finally{ksmCloudSaveInFlight=false;await runPendingCloudSave()}}
+  return true}catch(err){console.warn('Queued cloud save failed',err);/* ksm:post-split-begin delete-tournament */if(err?.code==='tournament-deleted')return false;/* ksm:post-split-end */writeCloudDiagnosticsState({stage:'Queued save failed',errorMessage:String(err?.message||err),lastFailureAt:new Date().toISOString()});ksmSaveStatusMode='error';renderPersistentSaveStatus();/* ksm:post-split-begin save-retry */scheduleQueuedSaveRetry(err);/* ksm:post-split-end */return false}finally{ksmCloudSaveInFlight=false;await runPendingCloudSave()}}
 /* ksm:post-split-begin save-retry */
 // F35: a save that fails while the live connection stays open (a 5xx, a dropped request, one
 // that never answers) is queued in the outbox, but only the socket opening, the browser's
