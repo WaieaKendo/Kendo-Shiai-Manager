@@ -28,7 +28,7 @@ with sync_playwright() as p:
         assert box['x'] >= -0.5 and box['x']+box['width'] <= viewport['w']+0.5, (sel,box,viewport)
         checks += 1
     buttons=page.locator('.bottom-action-row button')
-    assert buttons.count()==4, buttons.count(); checks+=1  # Undo, Redo, Fusen, Next Match
+    assert buttons.count()==5, buttons.count(); checks+=1  # Undo, Redo, Fusen, Next Match, tie flash
     for i in range(buttons.count()):
         box=buttons.nth(i).bounding_box(); assert box
         assert box['x']>=0 and box['x']+box['width']<=viewport['w']+0.5

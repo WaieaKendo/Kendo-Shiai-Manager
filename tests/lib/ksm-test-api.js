@@ -82,6 +82,38 @@ window.KSMTest = {
     });
   },
   savesAsked() { const n = window.__ksmTestSaves?.count || 0; if (window.__ksmTestSaves) window.__ksmTestSaves.count = 0; return n; },
+  // Test-only realtime controls. The ping reply is a barrier: all earlier messages on this
+  // socket have been handled by the worker before the promise resolves.
+  socketBarrier(timeoutMs = 5000) {
+    const socket = typeof ksmCloudSocket === 'object' && ksmCloudSocket;
+    if (!socket || socket.readyState !== WebSocket.OPEN) return Promise.resolve(false);
+    return new Promise(resolve => {
+      const timer = setTimeout(() => finish(false), timeoutMs);
+      const finish = result => {
+        clearTimeout(timer);
+        socket.removeEventListener('message', done);
+        resolve(result);
+      };
+      const done = event => {
+        let message;
+        try { message = JSON.parse(event.data); } catch (_) { return; }
+        if (message.type !== 'pong') return;
+        finish(true);
+      };
+      socket.addEventListener('message', done);
+      socket.send('ping');
+    });
+  },
+  sendSocketMessage(message) {
+    const socket = typeof ksmCloudSocket === 'object' && ksmCloudSocket;
+    if (!socket || socket.readyState !== WebSocket.OPEN) return false;
+    socket.send(JSON.stringify(message));
+    return true;
+  },
+  dispatchTieFlash(message) {
+    window.dispatchEvent(new CustomEvent('ksm:tie-flash', {detail: message}));
+  },
+  disconnectSocket() { disconnectCloudSocket(); },
   // Show a screen without re-running its menu action ('score' has no plain nav item).
   show(view) { navigateTo(view); },
   // Owner decision 20: this device's test tools (the sample-data buttons) on or off.

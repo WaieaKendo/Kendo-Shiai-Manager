@@ -38,6 +38,7 @@ function createLiveApi() {
         ws.addEventListener('message', ev => { messages.push(JSON.parse(ev.data)); listeners.forEach(fn => fn()); });
         ws.addEventListener('open', () => resolve({
           status: 101, messages,
+          send: message => ws.send(message),
           waitFor: pred => waitFor(messages, pred, fn => listeners.push(fn)),
           close: () => new Promise(r => { ws.addEventListener('close', r); ws.close(1000, 'test done'); setTimeout(r, 500); }),
         }));
@@ -187,6 +188,32 @@ await test('presence broadcasts list connected devices with role and court', asy
   assert.equal(courtA.role, 'staff');
   assert.equal(courtA.court, 'A');
   assert.ok(msg.clients.some(c => c.clientId === 'spec-1' && c.role === 'spectator'));
+});
+
+await test('staff flash messages broadcast with a timestamp; spectator and invalid messages are ignored', async () => {
+  staffSocket.send(JSON.stringify({ type: 'flash', court: 'A', kind: 'encho', id: 'flash-1' }));
+  for (const socket of [spectator, staffSocket]) {
+    const flash = await socket.waitFor(m => m.type === 'flash' && m.id === 'flash-1');
+    assert.deepEqual({ type: flash.type, court: flash.court, kind: flash.kind, id: flash.id }, { type: 'flash', court: 'A', kind: 'encho', id: 'flash-1' });
+    assert.ok(Number.isFinite(Date.parse(flash.at)));
+  }
+
+  const invalid = [
+    [spectator, JSON.stringify({ type: 'flash', court: 'A', kind: 'hikiwake', id: 'spectator-flash' }), 'spectator-flash'],
+    [staffSocket, JSON.stringify({ type: 'flash', court: 'C', kind: 'encho', id: 'bad-court' }), 'bad-court'],
+    [staffSocket, JSON.stringify({ type: 'flash', court: 'A', kind: 'other', id: 'bad-kind' }), 'bad-kind'],
+    [staffSocket, '{invalid json', 'bad-json'],
+  ];
+  for (const [socket, message, marker] of invalid) {
+    const counts = [spectator, staffSocket].map(s => s.messages.filter(m => m.type === 'flash').length);
+    socket.send(message);
+    const barrierIndex = socket.messages.length;
+    socket.send('ping');
+    await socket.waitFor(m => m.type === 'pong' && socket.messages.indexOf(m) >= barrierIndex);
+    assert.deepEqual([spectator, staffSocket].map(s => s.messages.filter(m => m.type === 'flash').length), counts);
+    assert.ok(!spectator.messages.some(m => m.type === 'flash' && m.id === marker));
+    assert.ok(!staffSocket.messages.some(m => m.type === 'flash' && m.id === marker));
+  }
 });
 
 await test('an accepted save increments the revision and is broadcast to every socket', async () => {

@@ -8,6 +8,7 @@
 // string here too, so the page has the same text nodes. No colors or images of its own: the
 // styles are the existing Live Scores CSS (theme tokens), the team sheets and the placements
 // are the court screen's components.
+import { TieFlashBanner } from '../tie-flash/TieFlash.tsx';
 import { useSyncExternalStore } from 'react';
 import { DivisionCompletePanel } from '../court/CourtComplete.tsx';
 import { ContextPanel } from '../court/CourtContext.tsx';
@@ -96,6 +97,7 @@ function CourtCard({ card }: { card: LiveCourtView }) {
     <section className={card.className} data-testid={card.testId}>
       <div className="live-court-head"><h2>{card.title}</h2><span data-testid="live-meta">{card.meta}</span></div>
       <Body body={card.body} />
+      <TieFlashBanner court={card.title.replace('Court ', '')} />
       {card.next && (
         <div className="live-next">
           <span>Next</span>

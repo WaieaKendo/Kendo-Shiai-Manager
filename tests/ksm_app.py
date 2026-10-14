@@ -324,6 +324,49 @@ class KsmApp:
         """(test API) Saves asked for (scheduled or immediate) since the last call."""
         return self.page.evaluate('KSMTest.savesAsked()')
 
+    def socket_barrier(self, timeout=5):
+        """(test API) Wait for the cloud worker's pong after all prior socket messages."""
+        return self.page.evaluate('timeout => KSMTest.socketBarrier(timeout)', timeout * 1000)
+
+    def send_socket_message(self, message):
+        """(test API) Send a raw test message through this device's live socket."""
+        return self.page.evaluate('message => KSMTest.sendSocketMessage(message)', message)
+
+    def dispatch_tie_flash(self, message):
+        """(test API) Deliver a tie-flash event directly to exercise receiver validation."""
+        self.page.evaluate('message => KSMTest.dispatchTieFlash(message)', message)
+
+    def disconnect_socket(self):
+        """(test API) Close this device's live socket without reconnecting."""
+        self.page.evaluate('() => KSMTest.disconnectSocket()')
+
+    def tie_flash_button(self):
+        """Court's tie-flash control: its text and disabled state, or None when hidden."""
+        return self.page.evaluate("""() => {
+          const el = document.querySelector('#score [data-testid="tie-flash-button"]');
+          return el ? {text: el.innerText.replace(/\\s+/g, ' ').trim(), disabled: el.disabled} : null;
+        }""")
+
+    def tie_flash_banner(self):
+        """Visible tie-flash banner: its class, text, and inline SVG test ID, or None."""
+        return self.page.evaluate("""() => {
+          const root = document.querySelector('[data-testid="tv-canvas"]');
+          const el = root?.querySelector('[data-testid="tie-flash-banner"]');
+          return el ? {className: el.className, text: el.innerText.trim(),
+            icon: el.querySelector('svg')?.getAttribute('data-testid') || null,
+            id: el.getAttribute('data-flash-id')} : null;
+        }""")
+
+    def live_tie_flash_banner(self, court):
+        """Tie-flash banner in one Live Scores court card, or None."""
+        return self.page.evaluate("""court => {
+          const root = document.querySelector(`[data-testid="live-court-${court}"]`);
+          const el = root?.querySelector('[data-testid="tie-flash-banner"]');
+          return el ? {className: el.className, text: el.innerText.trim(),
+            icon: el.querySelector('svg')?.getAttribute('data-testid') || null,
+            id: el.getAttribute('data-flash-id')} : null;
+        }""", court)
+
     def client_id(self):
         """(test API) This device's client ID (sent with every save)."""
         return self.page.evaluate('KSMTest.clientId()')

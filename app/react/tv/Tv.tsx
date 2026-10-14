@@ -8,6 +8,7 @@
 // labels) is one text node here too. No colors or images of its own: the TV CSS (theme tokens
 // and the fixed red/white side colors); the Final Results are the court screen's
 // division-complete panel.
+import { TieFlashBanner } from '../tie-flash/TieFlash.tsx';
 import { useSyncExternalStore } from 'react';
 import { DivisionCompletePanel } from '../court/CourtComplete.tsx';
 import {
@@ -206,6 +207,7 @@ export function Tv() {
       </div>
       <Body body={view.body} />
       <Footer footer={view.footer} />
+      <TieFlashBanner court={view.header.court.replace('Court ', '')} />
     </div>
   );
 }
