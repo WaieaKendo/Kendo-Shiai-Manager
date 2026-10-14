@@ -92,7 +92,6 @@ def main():
         live_banner = spectator.live_tie_flash_banner('A')
         assert live_banner['id'] == banner['id'] and live_banner['icon'] == 'tie-flash-icon-hikiwake', live_banner
         assert spectator.live_tie_flash_banner('B') is None, 'Court A flash appeared in Live Scores Court B'
-        tvs['A'].page.screenshot(path='/tmp/tie-flash-tv-a.png')
 
         # Repeating refreshes the five-second display window.
         first_id = banner['id']
@@ -112,7 +111,6 @@ def main():
         assert banner['className'].endswith('tie-flash--encho') and banner['text'] == 'ENCHO' \
             and banner['icon'] == 'tie-flash-icon-encho', f'wrong Encho banner: {banner}'
         assert tvs['A'].tie_flash_banner() is None, 'Court B flash appeared on TV A'
-        tvs['B'].page.screenshot(path='/tmp/tie-flash-tv-b.png')
 
         # Receiver rejects stale events and ignores duplicate IDs even when their kind differs.
         tvs['B'].dispatch_tie_flash({'court': 'B', 'kind': 'encho', 'id': 'tie-flash-duplicate',
@@ -146,7 +144,6 @@ def main():
         assert not problems, '\n'.join(problems)
         browser.close()
     print('PASS tie flashes: Hikiwake/Encho labels, court-specific TV banners, five-second refresh/expiry, stale/duplicate rejection, spectator role filtering, and no saved tournament changes')
-    print('Screenshots: /tmp/tie-flash-tv-a.png and /tmp/tie-flash-tv-b.png')
 
 
 if __name__ == '__main__':
