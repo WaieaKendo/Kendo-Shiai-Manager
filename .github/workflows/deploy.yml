@@ -28,10 +28,12 @@ permissions:
   contents: read
 
 env:
-  DEV_URL: https://kendoshiaimanager-dev.samanthakodamaworkersdev.workers.dev
+  # The sites' workers.dev addresses are repository variables (Settings -> Secrets and variables ->
+  # Actions -> Variables: DEV_URL, PRODUCTION_URL), not written in the repository.
+  DEV_URL: ${{ vars.DEV_URL }}
   # Production still runs on the Worker named kendoshiaimanager-cloud-staging (renaming it is a
   # separate, supervised step: docs/DEPLOYMENT.md, "Renaming production").
-  PRODUCTION_URL: https://kendoshiaimanager-cloud-staging.samanthakodamaworkersdev.workers.dev
+  PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
 
 jobs:
   refuse:
@@ -52,6 +54,9 @@ jobs:
     outputs:
       deploy: ${{ steps.compare.outputs.deploy }}
     steps:
+      - name: PRODUCTION_URL set?
+        run: |
+          if [ -z "$PRODUCTION_URL" ]; then echo "::error::the repository variable PRODUCTION_URL is not set (Settings -> Secrets and variables -> Actions -> Variables): it is the site's workers.dev address, used by the health check."; exit 1; fi
       - uses: actions/checkout@v4
       - id: compare
         run: |
@@ -93,6 +98,9 @@ jobs:
       group: deploy-dev
       cancel-in-progress: false
     steps:
+      - name: DEV_URL set?
+        run: |
+          if [ -z "$DEV_URL" ]; then echo "::error::the repository variable DEV_URL is not set (Settings -> Secrets and variables -> Actions -> Variables): it is the site's workers.dev address, used by the health check."; exit 1; fi
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
@@ -148,6 +156,9 @@ jobs:
       - name: Only main
         run: |
           if [ "$GITHUB_REF" != "refs/heads/main" ]; then echo "::error::refusing to deploy $GITHUB_REF to production"; exit 1; fi
+      - name: PRODUCTION_URL set?
+        run: |
+          if [ -z "$PRODUCTION_URL" ]; then echo "::error::the repository variable PRODUCTION_URL is not set (Settings -> Secrets and variables -> Actions -> Variables): it is the site's workers.dev address, used by the health check."; exit 1; fi
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:

@@ -3,7 +3,7 @@
 // (a deploy with a data change, a Durable Object migration, the production rename).
 //
 //   npm run backup -- <base URL> [--out <dir>]
-//   npm run backup -- https://kendoshiaimanager-cloud-staging.samanthakodamaworkersdev.workers.dev
+//   npm run backup -- <site URL>   (e.g. the production workers.dev address, or https://ksm-tournament.pages.dev)
 //
 // Only GET requests: /api/health, /api/tournaments (the library), then /api/tournaments/<id> for
 // each one. Writes <out>/<host>-<UTC date and time>/ (default <out>: backups/, git-ignored):

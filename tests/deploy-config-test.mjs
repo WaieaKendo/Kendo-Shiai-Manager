@@ -100,6 +100,11 @@ check(/npm run proxy:dev/.test(jobs.dev) && jobs.dev.indexOf('npm run proxy:dev'
   'deploy.yml: each site\'s pass-through deploys after its Worker passed the health check');
 check(pkg.scripts['proxy:dev'] === 'node scripts/pages-proxy.mjs dev' && pkg.scripts['proxy:production'] === 'node scripts/pages-proxy.mjs production', 'npm scripts proxy:dev / proxy:production');
 
+check(/^\s+DEV_URL: \$\{\{ vars\.DEV_URL \}\}$/m.test(deploy) && /^\s+PRODUCTION_URL: \$\{\{ vars\.PRODUCTION_URL \}\}$/m.test(deploy) && !/workers\.dev\b(?! address)/.test(deploy.replace(/#[^\n]*/g, '')),
+  'deploy.yml: the workers.dev addresses come from repository variables, not the file');
+check(['release-check', 'dev', 'production'].every(job => /if \[ -z "\$(DEV|PRODUCTION)_URL" \]; then echo "::error::/.test(jobs[job])),
+  'deploy.yml: each job that uses an address stops with a clear error when its variable is not set');
+
 let failed = 0;
 for (const [ok, name] of checks) { console.log(`${ok ? 'PASS' : 'FAIL'} ${name}`); if (!ok) failed++; }
 if (failed) process.exit(1);
