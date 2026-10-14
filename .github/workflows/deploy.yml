@@ -39,7 +39,8 @@ jobs:
   refuse:
     name: Refuse production from a branch other than main
     if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main'
-    runs-on: ubuntu-latest
+    # Pinned to 24.04 until after the 11/21 tournament (ubuntu-latest moves to Ubuntu 26 from Oct 19, 2026).
+    runs-on: ubuntu-24.04
     steps:
       - run: |
           echo "::error::Deploy production only runs from main (this run is on ${GITHUB_REF}). Choose 'Branch: main' under Run workflow."
@@ -49,7 +50,7 @@ jobs:
     name: New version for production?
     # A push to main deploys production only when it carries a new version (a release).
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
       deploy: ${{ steps.compare.outputs.deploy }}
@@ -89,7 +90,7 @@ jobs:
     if: >-
       !cancelled() && needs.test.result == 'success' &&
       github.event_name == 'push' && github.ref == 'refs/heads/develop'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     # cancel-in-progress stays false: GitHub cancels the *running* job of the group with it, i.e. a
     # deploy midway. Pending runs need no setting: a newer pending job already replaces an older
@@ -146,7 +147,7 @@ jobs:
       !cancelled() && needs.test.result == 'success' && github.ref == 'refs/heads/main' && (
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'push' && needs.release-check.outputs.deploy == 'true'))
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     # Never cancelled midway (cancel-in-progress would stop a running production deploy).
     concurrency:
