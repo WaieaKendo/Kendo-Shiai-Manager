@@ -21,12 +21,12 @@
 // continueRegenerateDivision() reads the one chosen from the page.
 // No colors or images of their own (the dialog CSS and theme tokens; the QR code is the address
 // the legacy code built).
-import { Fragment, useLayoutEffect, useSyncExternalStore } from 'react';
+import { Fragment, useLayoutEffect, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  CLOUD_TEXTS, EMPTY_DIALOGS, FUSEN_TEXTS, REGENERATE_TEXTS, fusenSides, VALIDATION_TEXTS,
-  regenerateOptionClass, regenerateStatusText,
-  type CloudBody, type CloudDetail, type DialogsInput, type HistoryCourtView, type HistoryEntryView,
+  CLOUD_TEXTS, DELETE_TEXTS, EMPTY_DIALOGS, FUSEN_TEXTS, REGENERATE_TEXTS, fusenSides, VALIDATION_TEXTS,
+  deleteDevicesText, deleteEnabled, deleteRequiredName, regenerateOptionClass, regenerateStatusText,
+  type CloudBody, type DeleteBody, type CloudDetail, type DialogsInput, type HistoryCourtView, type HistoryEntryView,
   type RegenerateContent, type SnapshotAnalysisView, type ValidationContent,
 } from './dialogs-model.ts';
 import { testToolsLabel } from './dialogs-model.ts';
@@ -243,8 +243,43 @@ function HistoryAnalysis({ courts }: { courts: HistoryCourtView[] }) {
   );
 }
 
+/** Delete tournament (issue #26): the warning, the devices connected, a backup, and the name to type. */
+function DeleteTournament({ body }: { body: DeleteBody }) {
+  const w = shellWindow();
+  const [typed, setTyped] = useState('');
+  const required = deleteRequiredName(body.name);
+  const enabled = deleteEnabled(body.name, typed, body.busy);
+  return (
+    <form
+      onSubmit={e => { e.preventDefault(); if (enabled) w.ksmConfirmDeleteTournament?.(); }}
+      data-testid="delete-dialog"
+    >
+      <p data-testid="delete-warning"><b>{DELETE_TEXTS.warning}</b></p>
+      <p>{DELETE_TEXTS.disconnect}</p>
+      <p data-testid="delete-devices" role="status">{deleteDevicesText(body.devices)}</p>
+      <div className="row" ref={rawStyle('margin-top:12px')}>
+        <button type="button" className="secondary" onClick={() => { w.manualSaveTournament?.(); }} data-testid="delete-backup">{DELETE_TEXTS.backup}</button>
+      </div>
+      <p className="small">{DELETE_TEXTS.backupHint}</p>
+      <label className="small" htmlFor="deleteTournamentName" ref={rawStyle('display:block;margin-top:12px')}>{DELETE_TEXTS.label}</label>
+      <p ref={rawStyle(WRAP_STYLE)}><b data-testid="delete-required-name">{required}</b></p>
+      <input
+        id="deleteTournamentName" type="text" autoFocus autoComplete="off" autoCapitalize="off" spellCheck={false}
+        value={typed} onChange={e => { setTyped(e.target.value); }} disabled={body.busy} data-testid="delete-name-input"
+        ref={rawStyle('width:100%;box-sizing:border-box')}
+      />
+      {body.error ? <p role="alert" data-testid="delete-error"><b>{body.error}</b></p> : null}
+      <div className="row" ref={rawStyle(ACTIONS_STYLE)}>
+        <button type="button" className="secondary" onClick={() => { w.closeCloudModal?.(); }} data-testid="delete-cancel">{DELETE_TEXTS.cancel}</button>
+        <button type="submit" className="secondary danger" disabled={!enabled} data-testid="delete-confirm">{body.busy ? DELETE_TEXTS.deleting : DELETE_TEXTS.delete}</button>
+      </div>
+    </form>
+  );
+}
+
 function CloudModalBody({ body }: { body: CloudBody }) {
   const w = shellWindow();
+  if (body.kind === 'delete') return <DeleteTournament body={body} />;
   if (body.kind === 'access') {
     return (
       <>
@@ -270,6 +305,7 @@ function CloudModalBody({ body }: { body: CloudBody }) {
           <button className="secondary" onClick={() => { w.downloadActionHistorySample?.(); }}>{CLOUD_TEXTS.downloadHistory}</button>
           {body.retry ? <button className="secondary" onClick={() => { w.retryQueuedCloudSave?.(); }} data-testid="diagnostics-retry">{CLOUD_TEXTS.retry}</button> : null}
           <button className="secondary" onClick={() => { w.ksmToggleTestTools?.(); }} data-testid="diagnostics-test-tools">{testToolsLabel(body.testTools)}</button>
+          {body.canDelete ? <button className="secondary danger" onClick={() => { w.ksmOpenDeleteTournament?.(); }} data-testid="diagnostics-delete">{CLOUD_TEXTS.deleteTournament}</button> : null}
         </div>
       </>
     );

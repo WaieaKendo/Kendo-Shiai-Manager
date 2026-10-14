@@ -33,6 +33,11 @@ export interface ShellWindow {
   retryQueuedCloudSave?: () => unknown;
   replaceTournamentFromFile?: () => unknown;
   loadTournamentFileAsNew?: () => unknown;
+  /** Issue #26: Developer Tools' Delete tournament opens the confirmation; its Delete runs the request. */
+  ksmOpenDeleteTournament?: () => unknown;
+  ksmConfirmDeleteTournament?: () => unknown;
+  /** Download Tournament File (the backup the delete dialog offers). */
+  manualSaveTournament?: () => unknown;
 }
 
 export const shellWindow = (): ShellWindow => window as unknown as ShellWindow;

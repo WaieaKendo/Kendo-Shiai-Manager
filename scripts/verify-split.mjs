@@ -194,6 +194,15 @@ const KNOWN_POST_SPLIT_EDITS = {
   'tv-red-side': 2,
   // fix/pre-event (F11): saveAuto(), called by the awards editor but never defined (app/js/20).
   'award-save': 1,
+  // feat/delete-tournament (issue #26, the app side): a tournament deleted on the server (410
+  // 'tournament-deleted', or the live connection closed with 'Tournament deleted') is forgotten by
+  // the device and its save is neither queued nor retried: three announcing functions and
+  // refreshTvFromCloud(), connectCloudSocket(),
+  // saveTournamentToCloudWithReason() and flushCloudOutbox() (21); toggleStaffSession(),
+  // performCloudSave(), loadTournamentFromCloud() and openTournamentFromHome() (33). The delete
+  // dialog and the forgetting itself are in 44 (post-split throughout). Listed here because
+  // refreshTvFromCloud() (21) is its first region.
+  'delete-tournament': 9,
   // fix/stuck-pending (F35, test audit N1), 21 and 33: a failed save queued in the outbox is retried
   // with backoff (scheduleQueuedSaveRetry(), from saveTournamentToCloudWithReason() and
   // flushCloudOutbox()), the local changes a queued snapshot carries are confirmed when it is sent

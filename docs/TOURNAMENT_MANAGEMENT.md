@@ -172,3 +172,14 @@ Once a tiebreak series uniquely secures an advancing seed, that seed is frozen. 
 - A tiebreak at the second-place boundary owns only Seed 2 and cannot alter an already secured Seed 1.
 - Structural no-show handling changes only the absent entrant's pool (#24, product owner): before any of that pool's bouts is played, its bouts are rebuilt in the standard order for the new size (3 players: A–B, C–B, C–A, so nobody changes tasuki between consecutive bouts), in the pool's place and on its court, and the remaining players keep their slot letters. Every other Match Object (other pools, the championship template) retains its template order, pool identity and court assignment. A pool with a played bout is not restructured.
 - Championship seed-pair mappings are frozen at generation. A no-show does not select a different championship template, including the native six-competitor 3+3 configuration.
+
+## Deleting a tournament
+
+A tournament can only be deleted by a staff device of that tournament (Staff Login first). Open **Developer Tools** (click the connection status in the header) and press **Delete tournament**:
+
+1. Read the warning: the delete **cannot be undone**, and every device connected to the tournament is disconnected and returned to the Tournament Library. The dialog shows how many devices are connected right now.
+2. Press **Download a backup first** to save the tournament as a `.ksm` file (the same file as Save / Load, Download Tournament File). It can be loaded again as a new tournament later.
+3. Type the tournament's name exactly as shown (capital letters count; spaces around it do not). **Delete tournament** stays disabled until it matches.
+4. Press **Delete tournament** (or Enter). The device shows the Tournament Library with "Tournament deleted".
+
+Other devices show "This tournament was deleted" and return to the Library; a device that was offline shows it when it reconnects, and anything it had not saved is discarded. The server keeps only a marker that the tournament was deleted, so no device can bring it back. Spectators are not offered the action.

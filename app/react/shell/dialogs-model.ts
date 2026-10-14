@@ -185,8 +185,24 @@ export type CloudBody =
     retry: boolean;
     /** Owner decision 20: this device's test tools (the sample-data buttons) are on. */
     testTools?: boolean;
+    /** Issue #26: a staff device of this tournament: "Delete tournament". */
+    canDelete?: boolean;
   }
-  | { kind: 'file'; same: boolean; details: CloudDetail[]; message: string };
+  | { kind: 'file'; same: boolean; details: CloudDetail[]; message: string }
+  | DeleteBody;
+
+/** Issue #26: Delete tournament (staff only), asked in a dialog of its own. */
+export interface DeleteBody {
+  kind: 'delete';
+  /** The tournament's name as the header shows it (the name to type; see deleteRequiredName()). */
+  name: string;
+  /** Devices connected right now, this one included (the live presence list). */
+  devices: number;
+  /** The delete request is on its way: nothing can be pressed twice. */
+  busy: boolean;
+  /** Why the last try did not delete (empty: none). */
+  error: string;
+}
 
 export interface CloudInput {
   /** A new key for every openCloudModal() (a new modal at the end of <body>). */
@@ -218,6 +234,7 @@ export const CLOUD_TEXTS = {
   downloadAnalysis: 'Download snapshot analysis',
   downloadHistory: 'Download action history sample',
   retry: 'Retry queued save',
+  deleteTournament: 'Delete tournament',
   cancel: 'Cancel',
   replace: 'Replace open tournament',
   loadNew: 'Load as new tournament',
@@ -244,4 +261,42 @@ export const EMPTY_DIALOGS: DialogsInput = {
 /** Owner decision 20 (#29): Developer Tools' switch for this device's test tools. */
 export function testToolsLabel(on: boolean | undefined): string {
   return on ? 'Hide test tools' : 'Show test tools';
+}
+
+// ------------------------------------------------------------------------------ delete (issue #26)
+
+export const DELETE_TEXTS = {
+  title: 'Delete Tournament',
+  warning: 'This cannot be undone. The tournament, its results and its Tournament Library entry are removed from the server for good.',
+  disconnect: 'Every device connected to it is disconnected and returned to the Tournament Library.',
+  backup: 'Download a backup first',
+  backupHint: 'Saves the tournament as a .ksm file you can load again later (Save / Load, Load Tournament File).',
+  label: 'Type the tournament name to confirm',
+  cancel: 'Cancel',
+  delete: 'Delete tournament',
+  deleting: 'Deleting…',
+  /** Shown when the tournament has no name to type. */
+  untitled: 'Untitled tournament',
+} as const;
+
+/** What must be typed: the tournament's name without surrounding spaces (a nameless one: "Untitled tournament"). */
+export function deleteRequiredName(name: string): string {
+  const trimmed = name.trim();
+  return trimmed || DELETE_TEXTS.untitled;
+}
+
+/** The typed text confirms the delete: the name exactly, case-sensitive, ignoring spaces around it. */
+export function deleteNameMatches(name: string, typed: string): boolean {
+  return typed.trim() === deleteRequiredName(name);
+}
+
+/** Delete tournament can be pressed: the name is typed and no request is on its way. */
+export function deleteEnabled(name: string, typed: string, busy: boolean): boolean {
+  return !busy && deleteNameMatches(name, typed);
+}
+
+/** "3 devices are connected right now (this one included)." */
+export function deleteDevicesText(devices: number): string {
+  if (devices <= 1) return 'No other device is connected right now.';
+  return `${devices} devices are connected right now, this one included.`;
 }

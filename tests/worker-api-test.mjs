@@ -264,7 +264,7 @@ await test('delete notifies sockets, removes the snapshot and the library entry'
   assert.equal(res.status, 200);
   created.splice(created.indexOf(T), 1);
   await spectator.waitFor(m => m.type === 'deleted');
-  assert.equal((await api.call('GET', `/api/tournaments/${T}`)).status, 404);
+  assert.equal((await api.call('GET', `/api/tournaments/${T}`)).status, 410);
   const rows = await json(await api.call('GET', '/api/tournaments'));
   assert.ok(!rows.some(r => r.id === T));
 });
