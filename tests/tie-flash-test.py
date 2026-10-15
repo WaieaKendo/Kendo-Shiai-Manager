@@ -1,5 +1,5 @@
 """Tie flashes: tied scorekeeper buttons send ephemeral court-specific TV events."""
-from datetime import datetime
+from datetime import datetime, timedelta
 from playwright.sync_api import sync_playwright
 from ksm_app import KsmApp, app_path, sel
 from ksm_browser import launch_chromium
@@ -40,7 +40,7 @@ def main():
 
         spectator = KsmApp.open_device(browser, base, 'Spectator', problems, app_path(tid))
         courts = {
-            c: KsmApp.open_device(browser, base, f'Court {c}', problems, app_path(tid, 'court', c))
+            c: KsmApp.open_device(browser, base, f'Court {c}', problems, app_path(tid, 'court', c), clock=True)
             for c in 'AB'
         }
         # TVs run a controlled clock so five-second expiry and a repeated flash can be checked
@@ -52,25 +52,40 @@ def main():
         }
         for app in [spectator, *courts.values(), *tvs.values()]:
             assert app.socket_barrier(), f'{app.name}: socket did not reach its ping/pong barrier'
+        for tv in tvs.values():
+            tv.page.clock.pause_at(datetime.now() + timedelta(milliseconds=100))  # a datetime: a bare number is seconds, not Date.now() milliseconds
         for c, court in courts.items():
             court.wait_generated()
             court.staff_login()
             court.open_court(c)
             court.wait_for(court.current_match, message=f'Court {c} match')
-            assert court.tie_flash_button() is not None, f'Court {c}: tied 0-0 control is missing'
+            court.wait_for(court.timer, message='timer mounted')
+            court.timer_now = datetime.now()
+            court.page.clock.set_fixed_time(court.timer_now)
+            control = court.timer_control('timer-show-tv')
+            assert not control['disabled'], control
+            assert control['label'] == f'Show {"Encho" if c == "B" else "Hikiwake"} on TV'
+            assert control['title'] == control['label']
+            assert court.tie_flash_button() is None, f'Court {c}: redundant manual TV control'
             assert court.page.locator(sel('court-encho-note')).count() == 0, f'Court {c}: winner note shown at 0-0'
 
-        # Unequal scores hide the flash control; a 1-1 pool score shows Hikiwake,
-        # while a 1-1 single-elimination score shows Encho.
+        courts['A'].click('timer-toggle')
+        assert courts['A'].timer_control('timer-show-tv')['disabled'], 'Running clock allowed a TV banner'
+        courts['A'].click('timer-toggle')
+        assert not courts['A'].timer_control('timer-show-tv')['disabled'], 'Stopped tied clock blocked TV banner'
+
+        # Manual TV controls stay absent; only tied elimination scores show the winner note.
         courts['A'].score_point('W', 'M')
         assert courts['A'].tie_flash_button() is None, 'Court A: flash control remained visible at 1-0'
+        assert courts['A'].timer_control('timer-show-tv')['disabled'], 'Untied clock allowed TV banner'
         courts['A'].score_point('R', 'K')
         courts['B'].score_point('W', 'M')
         assert courts['B'].tie_flash_button() is None, 'Court B: flash control remained visible at 1-0'
+        assert courts['B'].timer_control('timer-show-tv')['disabled'], 'Untied clock allowed TV banner'
         courts['B'].score_point('R', 'K')
         for c, kind in [('A', 'Hikiwake'), ('B', 'Encho')]:
-            button = courts[c].tie_flash_button()
-            assert button and kind in button['text'] and not button['disabled'], f'Court {c}: wrong tied control: {button}'
+            assert courts[c].tie_flash_button() is None
+            assert not courts[c].timer_control('timer-show-tv')['disabled']
             note = courts[c].page.locator(sel('court-encho-note'))
             assert (note.count() == 1) == (kind == 'Encho'), f'Court {c}: wrong tied winner note'
 
@@ -82,7 +97,8 @@ def main():
         before = {c: {'payload': stable_payload(court), 'match': court.current_match(),
                       'next': court.page.locator(sel('next-match')).inner_text().strip()}
                   for c, court in courts.items()}
-        courts['A'].click('tie-flash-button')
+        courts['A'].click('timer-show-tv')
+        assert courts['A'].timer_control('timer-show-tv')['disabled'], 'Button stayed enabled during banner'
         tvs['A'].wait_for(lambda: tvs['A'].tie_flash_banner(), message='Court A Hikiwake flash')
         assert tvs['B'].tie_flash_banner() is None, 'Court A flash appeared on TV B'
         banner = tvs['A'].tie_flash_banner()
@@ -93,10 +109,18 @@ def main():
         assert live_banner['id'] == banner['id'] and live_banner['icon'] == 'tie-flash-icon-hikiwake', live_banner
         assert spectator.live_tie_flash_banner('B') is None, 'Court A flash appeared in Live Scores Court B'
 
-        # Repeating refreshes the five-second display window.
+        # The UI prevents a second send for the full five-second display window.
+        courts['A'].page.clock.set_fixed_time(courts['A'].timer_now + timedelta(milliseconds=4900))
+        courts['A'].page.clock.run_for(100)
+        assert courts['A'].timer_control('timer-show-tv')['disabled'], 'Banner cooldown ended early'
+        courts['A'].page.clock.set_fixed_time(courts['A'].timer_now + timedelta(seconds=5))
+        courts['A'].page.clock.run_for(100)
+        courts['A'].wait_for(lambda: not courts['A'].timer_control('timer-show-tv')['disabled'], message='TV button after five seconds')
+
+        # A repeated transport event refreshes the receiver's five-second display window.
         first_id = banner['id']
         tvs['A'].page.clock.fast_forward(4000)
-        courts['A'].click('tie-flash-button')
+        courts['A'].send_tie_flash()
         tvs['A'].wait_for(lambda: (b := tvs['A'].tie_flash_banner()) and b['id'] != first_id,
                           message='a new ID for the repeated Hikiwake flash')
         repeated_id = tvs['A'].tie_flash_banner()['id']
@@ -105,7 +129,8 @@ def main():
         tvs['A'].page.clock.fast_forward(3000)
         tvs['A'].wait_for(lambda: tvs['A'].tie_flash_banner() is None, message='Hikiwake flash expiry')
 
-        courts['B'].click('tie-flash-button')
+        courts['B'].click('timer-show-tv')
+        assert courts['B'].timer_control('timer-show-tv')['disabled']
         tvs['B'].wait_for(lambda: tvs['B'].tie_flash_banner(), message='Court B Encho flash')
         banner = tvs['B'].tie_flash_banner()
         assert banner['className'].endswith('tie-flash--encho') and banner['text'] == 'ENCHO' \
@@ -136,11 +161,20 @@ def main():
                      'next': court.page.locator(sel('next-match')).inner_text().strip()}
             assert after == before[c], f'Court {c}: flash changed score/result/Next Match/payload at {changed_paths(before[c], after)}'
             assert not court.page.evaluate('KSMTest.pending()'), f'Court {c}: flash left pending work'
+        # A fresh stopped message starts the TV's 15-second stale-state window.
+        courts['A'].click('timer-toggle')
+        tvs['A'].wait_for(lambda: not tvs['A'].tv_clock_stopped(), message='running TV border cleared')
+        courts['A'].click('timer-toggle')
+        tvs['A'].wait_for(tvs['A'].tv_clock_stopped, message='stopped TV border received')
         courts['A'].disconnect_socket()
-        courts['A'].wait_for(lambda: (b := courts['A'].tie_flash_button()) and b['disabled'],
-                             message='tie-flash button disabled after socket disconnect')
-        button = courts['A'].tie_flash_button()
-        assert 'TV not connected' in button['text'], f'disconnected hint missing: {button}'
+        courts['A'].wait_for(lambda: courts['A'].timer_control('timer-show-tv')['disabled'], message='disconnected TV button disabled')
+        assert 'TV not connected' in courts['A'].timer_control('timer-show-tv')['title']
+        courts['A'].send_tie_flash()
+        assert not courts['A'].page.evaluate('KSMTest.pending()'), 'Disconnected flash left pending work'
+        tvs['A'].page.clock.fast_forward(14999)
+        assert tvs['A'].tv_clock_stopped(), 'TV clock state expired before 15 seconds'
+        tvs['A'].page.clock.fast_forward(1)
+        tvs['A'].wait_for(lambda: not tvs['A'].tv_clock_stopped(), message='stale TV clock state expires')
         assert not problems, '\n'.join(problems)
         browser.close()
     print('PASS tie flashes: Hikiwake/Encho labels, court-specific TV banners, five-second refresh/expiry, stale/duplicate rejection, spectator role filtering, and no saved tournament changes')

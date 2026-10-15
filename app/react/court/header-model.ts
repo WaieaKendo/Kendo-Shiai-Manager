@@ -26,6 +26,8 @@ export interface CourtHeaderInput {
   redLeft?: boolean;
   /** #40: independent audience orientation. */
   tvRedLeft?: boolean;
+  timerSound?: string;
+  timerEnabled?: boolean;
 }
 
 export type RedSide = 'left' | 'right';

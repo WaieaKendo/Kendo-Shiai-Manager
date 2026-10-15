@@ -216,6 +216,43 @@ await test('staff flash messages broadcast with a timestamp; spectator and inval
   }
 });
 
+await test('court clock messages are staff-only, validated and never stored', async () => {
+  const before = await json(await api.call('GET', `/api/tournaments/${T}`));
+  const stored = LIVE ? null : structuredClone([...api.storage(T).map]);
+  for (const [court, stopped] of [['A', true], ['A', false], ['B', true], ['B', false]]) {
+    const start = [spectator, staffSocket].map(s => s.messages.length);
+    staffSocket.send(JSON.stringify({ type: 'clock', court, stopped }));
+    for (const [i, socket] of [spectator, staffSocket].entries()) {
+      const clock = await socket.waitFor(m => m.type === 'clock' && socket.messages.indexOf(m) >= start[i]);
+      assert.deepEqual(Object.keys(clock).sort(), ['at', 'court', 'stopped', 'type']);
+      assert.equal(clock.court, court);
+      assert.equal(clock.stopped, stopped);
+      assert.ok(Number.isFinite(Date.parse(clock.at)));
+    }
+  }
+  const invalid = [
+    [spectator, { type: 'clock', court: 'A', stopped: true }],
+    [staffSocket, { type: 'clock', court: 'C', stopped: true }],
+    [staffSocket, { type: 'clock', court: 'A', stopped: 'true' }],
+    [staffSocket, { type: 'clock', court: 'A', stopped: 1 }],
+    [staffSocket, { type: 'clock', court: 'A', stopped: null }],
+    [staffSocket, { type: 'clock', court: 'A' }],
+    [staffSocket, { type: 'clock', court: 'A', stopped: false, extra: true }],
+    [staffSocket, { type: 'other', court: 'A', stopped: false }],
+    [staffSocket, [{ type: 'clock', court: 'A', stopped: true }]],
+  ];
+  for (const [socket, message] of invalid) {
+    const counts = [spectator, staffSocket].map(s => s.messages.filter(m => m.type === 'clock').length);
+    socket.send(JSON.stringify(message));
+    const barrier = socket.messages.length;
+    socket.send('ping');
+    await socket.waitFor(m => m.type === 'pong' && socket.messages.indexOf(m) >= barrier);
+    assert.deepEqual([spectator, staffSocket].map(s => s.messages.filter(m => m.type === 'clock').length), counts, JSON.stringify(message));
+  }
+  assert.deepEqual(await json(await api.call('GET', `/api/tournaments/${T}`)), before);
+  if (!LIVE) assert.deepEqual([...api.storage(T).map], stored, 'Clock traffic wrote durable storage');
+});
+
 await test('an accepted save increments the revision and is broadcast to every socket', async () => {
   const next = payload(); next.state.allMatches.Open[0].wp = ['M'];
   const res = await put(T, 1, next);

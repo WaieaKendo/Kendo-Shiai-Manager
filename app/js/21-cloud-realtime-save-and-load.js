@@ -75,6 +75,10 @@ function reconnectTvRealtime(){updateTvRealtimeDiagnostics({status:'Reconnecting
 // Ephemeral live events: never enter tournament state, the outbox or the save queue.
 function ksmTieFlashConnected(){return ksmSessionRole==='staff'&&ksmCloudSocket?.readyState===WebSocket.OPEN}
 function ksmTieFlashConnectionChanged(){window.dispatchEvent(new Event('ksm:tie-flash-connection'))}
+function ksmSendCourtClock(court,stopped){
+  if(!ksmTieFlashConnected()||(court!=='A'&&court!=='B'))return;
+  try{ksmCloudSocket.send(JSON.stringify({type:'clock',court,stopped:!!stopped}))}catch(_){ksmTieFlashConnectionChanged()}
+}
 function ksmSendTieFlash(){
   const input=window.ksmCourtScoreboardInput,header=window.ksmCourtHeaderInput;
   if(!ksmTieFlashConnected()||!input?.match||!header||input.score.W.length!==input.score.R.length)return;
@@ -102,6 +106,7 @@ function connectCloudSocket(){
     }
     /* ksm:post-split-begin tie-flash */
     if(message.type==='flash')window.dispatchEvent(new CustomEvent('ksm:tie-flash',{detail:message}));
+    if(message.type==='clock')window.dispatchEvent(new CustomEvent('ksm:court-clock',{detail:message}));
     /* ksm:post-split-end */
     if(message.presence)renderCloudPresence(message.presence);if(message.type==='presence')renderCloudPresence(message.clients||[]);
     if(message.type==='credential-rotated'&&message.role===ksmSessionRole){setConnectionStatus('Access key changed','offline');disconnectCloudSocket()}
@@ -541,7 +546,7 @@ window.addEventListener('beforeunload', queueUnsyncedStaffWorkBeforeUnload);
 window.addEventListener('beforeunload', autoSaveTournament);
 document.addEventListener('input', scheduleAutoSave, true);
 document.addEventListener('change', scheduleAutoSave, true);
-document.addEventListener('click', function(e){ if(e.target.closest('button,.status,.search-item,.tab,.seg,.x')/* ksm:post-split-begin pool-edit */&&!ksmPoolEditorClick(e.target)/* ksm:post-split-end *//* ksm:post-split-begin tie-flash */&&!e.target.closest('.tie-flash-action')/* ksm:post-split-end */) scheduleAutoSave(); }, true);
+document.addEventListener('click', function(e){ if(e.target.closest('button,.status,.search-item,.tab,.seg,.x')/* ksm:post-split-begin pool-edit */&&!ksmPoolEditorClick(e.target)/* ksm:post-split-end *//* ksm:post-split-begin tie-flash */&&!e.target.closest('.tie-flash-action')/* ksm:post-split-end *//* ksm:post-split-begin match-timer */&&!e.target.closest('.match-timer')/* ksm:post-split-end */) scheduleAutoSave(); }, true);
 setInterval(()=>autoSaveTournament('10-minute safety autosave'),600000);
 setInterval(renderPersistentSaveStatus,60000);
 

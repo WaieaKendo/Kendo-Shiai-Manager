@@ -389,6 +389,13 @@ export class TournamentState {
     try { flash = JSON.parse(message); } catch (_) { return; }
     if (!flash || typeof flash !== 'object' || Array.isArray(flash)) return;
     const keys = Object.keys(flash).sort();
+    if (keys.join(',') === 'court,stopped,type') {
+      // Ephemeral court clock state for the TV border; never stored.
+      if (flash.type !== 'clock' || !['A', 'B'].includes(flash.court) || typeof flash.stopped !== 'boolean') return;
+      if (socket.deserializeAttachment()?.role !== 'staff') return;
+      this.broadcast({ type: 'clock', court: flash.court, stopped: flash.stopped, at: new Date().toISOString() });
+      return;
+    }
     if (keys.length !== 4 || keys.join(',') !== 'court,id,kind,type') return;
     if (flash.type !== 'flash' || !['A', 'B'].includes(flash.court) || !['encho', 'hikiwake'].includes(flash.kind)) return;
     if (typeof flash.id !== 'string' || !flash.id.length || flash.id.length > 40) return;

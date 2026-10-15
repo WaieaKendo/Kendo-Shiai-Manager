@@ -332,6 +332,10 @@ class KsmApp:
         """(test API) Send a raw test message through this device's live socket."""
         return self.page.evaluate('message => KSMTest.sendSocketMessage(message)', message)
 
+    def send_tie_flash(self):
+        """(test API) Exercise the transport used by automatic timer expiry."""
+        self.page.evaluate("() => KSMTest.sendTieFlash()")
+
     def dispatch_tie_flash(self, message):
         """(test API) Deliver a tie-flash event directly to exercise receiver validation."""
         self.page.evaluate('message => KSMTest.dispatchTieFlash(message)', message)
@@ -822,6 +826,75 @@ class KsmApp:
         if s['complete'] or s['meta'] in ('', 'No active match') or s['white'] in ('', '—'):
             return None
         return s
+
+    def set_timer_lengths(self, **values):
+        """Edit the tournament-wide Match timer fields through Setup."""
+        self.nav('setup')
+        for name, value in values.items():
+            field = self.page.locator(sel(f'setup-{name}'))
+            field.fill(value)
+            field.press('Tab')
+        wait_for_react(self.page)
+
+    def wait_timer_mounted(self):
+        """(test API) Wait for the timer island to catch up with the current court input."""
+        self.wait_for(lambda: self.page.evaluate('KSMTest.timerMounted()'), message='timer island matches court')
+
+    def timer(self):
+        """Court timer's rendered display and controls (None if not visible)."""
+        timer = self.page.locator(sel('match-timer'))
+        if not timer.count() or not timer.is_visible():
+            return None
+        return {'display': timer.locator(sel('timer-display')).inner_text(),
+                'status': timer.locator(sel('timer-status')).inner_text(),
+                'encho': timer.locator(sel('timer-encho')).count() > 0}
+
+    @staticmethod
+    def install_timer_probes(page):
+        """Instrument sound and wake lock before the app loads."""
+        page.add_init_script('KSMTest.installTimerProbes()')
+
+    def timer_probes(self):
+        return self.page.evaluate('KSMTest.timerProbes()')
+
+    def timer_visibility(self, visible):
+        self.page.evaluate('visible => KSMTest.timerVisibility(visible)', visible)
+
+    def configure_timer_sound(self, court, sound):
+        self.open_court(court)
+        self.click('court-configure')
+        self.page.locator(sel('court-timer-sound')).select_option(sound)
+        self.page.keyboard.press('Escape')
+
+    def timer_layout(self):
+        """Visible timer and scoring-panel bounds, including every timer control."""
+        return self.page.evaluate("""() => {
+          const box=e=>{const r=e.getBoundingClientRect();return {x:r.x,right:r.right,y:r.y,bottom:r.bottom,width:r.width,height:r.height};};
+          const q=s=>document.querySelector(s);
+          return {width:innerWidth,timer:box(q('[data-testid=match-timer]')),
+            white:box(q('#score .white-control-panel')),red:box(q('#score .red-control-panel')),
+            buttons:[...q('[data-testid=match-timer]').querySelectorAll('button')].map(box),
+            animation:getComputedStyle(q('[data-testid=timer-display]')).animationName,
+            encho:q('[data-testid=match-timer]').classList.contains('match-timer--encho')};
+        }""")
+
+    def timer_control(self, testid):
+        """Rendered timer control state, including its accessible label and disabled reason."""
+        button = self.page.locator(sel('match-timer')).locator(sel(testid))
+        return {'disabled': button.is_disabled(), 'label': button.get_attribute('aria-label'),
+                'title': button.get_attribute('title')}
+
+    def tv_clock_stopped(self):
+        """Whether the audience TV shows its stopped-clock screen-edge border."""
+        return self.page.locator('body').evaluate("el => el.classList.contains('ksm-clock-stopped')")
+
+    def timer_storage(self):
+        """Device-only persisted timer records, via the test API."""
+        return self.page.evaluate('KSMTest.timerStorage()')
+
+    def reset_timer(self, accept=True):
+        self.expect_dialog('Reset this match timer?', accept=accept)
+        self.click('timer-reset')
 
     def score_point(self, side, letter):
         """side: 'W'/'R' (or 'white'/'red'); letter: M, K, D, T."""

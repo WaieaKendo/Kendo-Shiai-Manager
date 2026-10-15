@@ -327,6 +327,22 @@
         </div>
       </section>
 
+      <section class="setup-panel setup-panel-wide" data-testid="setup-match-timer">
+        <div class="setup-panel-head"><h2>Match timer</h2></div>
+        <p class="setup-helper">Use m:ss. Blank stage lengths use Regular; blank Encho has no limit.</p>
+        <div class="setup-form-grid">
+          <div class="field"><label for="timeRegular">Regular</label><input id="timeRegular" value="3:00" placeholder="3:00" onchange="ksmSaveTimerSettings()" data-testid="setup-timeRegular"></div>
+          <div class="field"><label for="timeQuarterfinal">Quarterfinal</label><input id="timeQuarterfinal" value="" placeholder="Use Regular" onchange="ksmSaveTimerSettings()" data-testid="setup-timeQuarterfinal"></div>
+          <div class="field"><label for="timeSemifinal">Semifinal</label><input id="timeSemifinal" value="" placeholder="Use Regular" onchange="ksmSaveTimerSettings()" data-testid="setup-timeSemifinal"></div>
+          <div class="field"><label for="timeFinal">Final</label><input id="timeFinal" value="" placeholder="Use Regular" onchange="ksmSaveTimerSettings()" data-testid="setup-timeFinal"></div>
+          <div class="field"><label for="timeEncho">Encho</label><input id="timeEncho" value="3:00" placeholder="No limit" onchange="ksmSaveTimerSettings()" data-testid="setup-timeEncho"></div>
+          <div class="field"><label for="court1TimerSound">Court A time-up sound</label><select id="court1TimerSound" onchange="ksmSaveTimerSettings()" data-testid="setup-court1TimerSound"><option value="whistle01" selected>Whistle 1</option><option value="whistle02">Whistle 2</option></select></div>
+          <div class="field"><label for="court1TimerEnabled">Court A match timer</label><select id="court1TimerEnabled" onchange="ksmSaveTimerSettings()" data-testid="setup-court1TimerEnabled"><option value="On" selected>On</option><option value="Off">Off</option></select></div>
+          <div class="field"><label for="court2TimerSound">Court B time-up sound</label><select id="court2TimerSound" onchange="ksmSaveTimerSettings()" data-testid="setup-court2TimerSound"><option value="whistle01">Whistle 1</option><option value="whistle02" selected>Whistle 2</option></select></div>
+          <div class="field"><label for="court2TimerEnabled">Court B match timer</label><select id="court2TimerEnabled" onchange="ksmSaveTimerSettings()" data-testid="setup-court2TimerEnabled"><option value="On" selected>On</option><option value="Off">Off</option></select></div>
+        </div>
+      </section>
+
       <div class="setup-action-row">
         <button class="setup-primary-action" onclick="saveSetup();show('registration')" data-testid="setup-save-continue">Save Setup &amp; Continue</button>
       </div>

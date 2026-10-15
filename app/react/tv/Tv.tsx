@@ -8,8 +8,8 @@
 // labels) is one text node here too. No colors or images of its own: the TV CSS (theme tokens
 // and the fixed red/white side colors); the Final Results are the court screen's
 // division-complete panel.
-import { TieFlashBanner } from '../tie-flash/TieFlash.tsx';
-import { useSyncExternalStore } from 'react';
+import { TieFlashBanner, useCourtClockStopped } from '../tie-flash/TieFlash.tsx';
+import { useEffect, useSyncExternalStore } from 'react';
 import { DivisionCompletePanel } from '../court/CourtComplete.tsx';
 import {
   DIVISION_COMPLETE_TEXT, EMPTY_TV, NO_UPCOMING_TEXT, UPCOMING_TITLE, tvView,
@@ -197,6 +197,12 @@ function Footer({ footer }: { footer: TvFooterView }) {
 /** The contents of #tvLive. */
 export function Tv() {
   const view = tvView(useSyncExternalStore(subscribe, snapshot, snapshot));
+  const clockStopped = useCourtClockStopped(view.kind === 'empty' ? '' : view.header.court.replace('Court ', ''));
+  // The border belongs to the screen, not the scaled 1920×1080 canvas, so it is a body class.
+  useEffect(() => {
+    document.body.classList.toggle('ksm-clock-stopped', clockStopped);
+    return () => document.body.classList.remove('ksm-clock-stopped');
+  }, [clockStopped]);
   if (view.kind === 'empty') return null;
   return (
     <div className="tv3-root" data-testid="tv-canvas">

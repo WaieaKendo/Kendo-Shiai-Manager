@@ -13,6 +13,8 @@ interface CourtWindow {
   ksmCourtHeaderInput?: CourtHeaderInput;
   selectScorekeeperDivision?: (division: string) => void;
   ksmSetCourtRedSide?: (side: RedSide) => void;
+  ksmSetCourtTimerSound?: (sound: string) => void;
+  ksmSetCourtTimerEnabled?: (enabled: boolean) => void;
   ksmSetCourtTvRedSide?: (side: RedSide) => void;
   ksmOpenCourtSetup?: () => void;
 }
@@ -79,6 +81,20 @@ function ConfigureCourt({ input }: { input: CourtHeaderInput }) {
               </label>
             ))}
           </fieldset>
+          <label className="court-config-sound">
+            Match timer
+            <select value={input.timerEnabled === false ? 'Off' : 'On'}
+              onChange={e => courtWindow().ksmSetCourtTimerEnabled?.(e.target.value === 'On')} data-testid="court-timer-enabled">
+              <option value="On">On</option><option value="Off">Off (whistle and TV only)</option>
+            </select>
+          </label>
+          <label className="court-config-sound">
+            Time-up sound
+            <select value={input.timerSound || (input.court === 'B' ? 'whistle02' : 'whistle01')}
+              onChange={e => courtWindow().ksmSetCourtTimerSound?.(e.target.value)} data-testid="court-timer-sound">
+              <option value="whistle01">Whistle 1</option><option value="whistle02">Whistle 2</option>
+            </select>
+          </label>
           <button type="button" className="court-config-link" onClick={() => { setOpen(false); courtWindow().ksmOpenCourtSetup?.(); }} data-testid="court-config-setup">
             {CONFIGURE_TEXTS.setupLink}
           </button>
@@ -119,7 +135,6 @@ export function CourtHeader({ logoSrc = DEFAULT_COURT_LOGO_SRC }: { logoSrc?: st
         <div className="sk-division-title" id="scoreDivisionTitle" data-testid="court-division-title">{view.divisionTitle}</div>
         <div className="sk-match-line-row">
           <div className="sk-match-line" id="matchMeta" data-testid="court-match-meta">{view.matchLine}</div>
-          {view.ruleTag && <span className="court-rule-tag" data-rule={view.ruleTag === 'Winner required' ? 'winner' : 'hikiwake'} data-testid="court-rule-tag">{view.ruleTag}</span>}
         </div>
       </div>
       <div className="scoreboard-heading-spacer" aria-hidden="true"></div>

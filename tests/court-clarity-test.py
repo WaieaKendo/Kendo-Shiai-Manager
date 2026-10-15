@@ -29,7 +29,8 @@ def main():
         next_btn = page.locator(f'#score {sel("next-match")}')
         next_text = lambda: next_btn.inner_text().replace('»', '').strip()
         note = page.locator(f'#score {sel("court-encho-note")}')
-        tag = page.locator(f'#score {sel("court-rule-tag")}')
+        tag = page.locator(f'{sel("match-timer")} {sel("court-rule-tag")}')
+        header_tag = page.locator(f'#score .scoreboard-header {sel("court-rule-tag")}')
 
         app.open_court('A')
         app.switch_division('Elim')
@@ -38,14 +39,18 @@ def main():
 
         # --- winner required, tied: encho label, Next Match disabled -------------------------
         app.wait_for(lambda: note.count() == 0 and next_btn.is_disabled(), message='no encho label at 0–0; disabled Next Match')
-        assert tag.inner_text().strip() == 'Winner required', tag.inner_text()
+        assert header_tag.count() == 0, "Redundant header rule badge"
+        assert tag.inner_text() == "Encho — winner needed"
         assert next_text() == 'Next Match', next_btn.inner_text()
         app.score_point('W', 'M')
         app.wait_for(lambda: note.count() == 0 and next_btn.is_enabled(), message='a point clears the label and enables Next Match')
+        assert tag.inner_text() == 'Encho — winner needed'
         app.score_point('R', 'K')  # tied again at 1-1
         app.wait_for(lambda: note.count() == 1 and next_btn.is_disabled(), message='tied again: label back, Next Match disabled')
+        assert tag.count() == 0, 'Timer badge must not duplicate the scoreboard Encho note'
         app.undo()
         app.wait_for(lambda: note.count() == 0 and next_btn.is_enabled(), message='Undo of the tying point enables Next Match')
+        assert tag.inner_text() == 'Encho — winner needed'
         first = app.current_match()
         app.next_match(settle=True)
         assert (app.current_match()['white'], app.current_match()['red']) != (first['white'], first['red']), 'Next Match did not advance'
@@ -55,7 +60,7 @@ def main():
         app.wait_for(lambda: app.court_screen()['division'] == 'Pool' and app.current_match() is not None, message='the pool bout')
         app.wait_for(lambda: next_text() == 'Next Match (Hikiwake)', message='"(Hikiwake)" on a tied pool bout')
         assert next_btn.is_enabled() and note.count() == 0
-        assert tag.inner_text().strip() == 'Hikiwake allowed', tag.inner_text()
+        assert tag.count() == 0 and header_tag.count() == 0, "Pool bout must not show a winner badge"
         app.score_point('W', 'M')
         app.wait_for(lambda: next_text() == 'Next Match', message='a point turns the text back')
         assert next_btn.is_enabled()

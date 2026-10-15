@@ -9,6 +9,29 @@
 // sync status). When index.html is split into modules / React, update this file
 // (and ksm_app.py) instead of the tests.
 window.KSMTest = {
+  // Instrument browser capabilities without replacing the timer or its epoch clock.
+  installTimerProbes() {
+    const probe = window.__ksmTimerProbe = {requests:0,releases:0,buzzers:0,sounds:[],lock:null};
+    Object.defineProperty(navigator,'wakeLock',{configurable:true,value:{request:async()=>{
+      probe.requests++;
+      const lock={released:false,release:async()=>{lock.released=true;probe.releases++}};
+      probe.lock=lock;return lock;
+    }}});
+    const originalFetch=window.fetch;
+    window.fetch=(...args)=>{const url=String(args[0]);if(url.includes('/assets/sounds/'))probe.sounds.push(url);return originalFetch(...args)};
+    const NativeAudio=window.AudioContext;
+    window.AudioContext=class extends NativeAudio {
+      createBufferSource(){const oscillator=super.createBufferSource(),start=oscillator.start.bind(oscillator);
+        oscillator.start=(...args)=>{probe.buzzers++;return start(...args)};return oscillator;}
+    };
+  },
+  timerProbes() { const p=window.__ksmTimerProbe;return {requests:p.requests,releases:p.releases,buzzers:p.buzzers,sounds:p.sounds}; },
+  async timerVisibility(visible) {
+    if(!visible)await window.__ksmTimerProbe.lock?.release();
+    Object.defineProperty(document,'visibilityState',{configurable:true,value:visible?'visible':'hidden'});
+    document.dispatchEvent(new Event('visibilitychange'));
+  },
+  timerStorage() { return Object.fromEntries(Object.keys(localStorage).filter(k=>k.startsWith('ksm:match-timer:')).map(k=>[k,JSON.parse(localStorage.getItem(k))])); },
   booted() { return typeof state === 'object' && typeof cloudSession === 'object'; },
 
   // --- Cloud / sync status -----------------------------------------------------
@@ -110,6 +133,12 @@ window.KSMTest = {
     socket.send(JSON.stringify(message));
     return true;
   },
+  timerMounted() {
+    const timer = document.querySelector('[data-testid=match-timer]');
+    // Role changes hide the existing court tree before its next render; spectators must see no timer.
+    return window.ksmMatchTimerInput?.() ? !!timer : !timer || !timer.checkVisibility();
+  },
+  sendTieFlash() { ksmSendTieFlash(); },
   dispatchTieFlash(message) {
     window.dispatchEvent(new CustomEvent('ksm:tie-flash', {detail: message}));
   },

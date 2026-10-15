@@ -271,6 +271,9 @@ interface TournamentState {
 
 /** Values of the Setup form (element id -> value), saved alongside the state. */
 interface SetupSnapshot {
+  court1TimerEnabled?: 'On' | 'Off'; court2TimerEnabled?: 'On' | 'Off';
+  court1TimerSound?: 'whistle01' | 'whistle02'; court2TimerSound?: 'whistle01' | 'whistle02';
+  timeRegular?: string; timeQuarterfinal?: string; timeSemifinal?: string; timeFinal?: string; timeEncho?: string;
   tName?: string; tHost?: string; tDate?: string; tLocation?: string; tCourts?: string; tType?: string;
   teamEnabled?: 'Enabled' | 'Disabled'; teamFormat?: TeamFormat; teamTournamentFormat?: 'Single Elimination' | 'Round Robin';
   teamCourt?: CourtMode; teamAwardMode?: string; exhibitionEnabled?: 'Enabled' | 'Disabled';

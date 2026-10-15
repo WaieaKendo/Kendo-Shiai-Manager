@@ -67,7 +67,7 @@ function ksmPublishCourtScoreboard(m){
 // (A function, not a const: app.js publishes before this file's top level has run.)
 function ksmStaticCourtHeader(){return {tournamentName:'Kendo Tournament',court:'A',divisions:[],currentDivision:'',divisionTitle:'—',matchLine:'No active match'}}
 function ksmPublishCourtHeader(fields){
-  window.ksmCourtHeaderInput={...(window.ksmCourtHeaderInput||ksmStaticCourtHeader()),...fields,tvRedLeft:document.getElementById(normalizeCourt(state.currentCourt)==='B'?'court2TvRedSide':'court1TvRedSide')?.value==='left'};
+  window.ksmCourtHeaderInput={...(window.ksmCourtHeaderInput||ksmStaticCourtHeader()),...fields,timerSound:ksmNormalizeTimerSettings(getSetupSnapshot())[normalizeCourt(state.currentCourt)==='B'?'court2TimerSound':'court1TimerSound'],timerEnabled:ksmNormalizeTimerSettings(getSetupSnapshot())[normalizeCourt(state.currentCourt)==='B'?'court2TimerEnabled':'court1TimerEnabled']!=='Off',tvRedLeft:document.getElementById(normalizeCourt(state.currentCourt)==='B'?'court2TvRedSide':'court1TvRedSide')?.value==='left'};
   window.dispatchEvent(new CustomEvent('ksm:court-header'));
 }
 // #38 "Configure court": set this court's Red side by editing Setup's field (Court A/B — Red side), so
