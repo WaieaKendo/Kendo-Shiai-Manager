@@ -860,6 +860,12 @@ class KsmApp:
     def timer_visibility(self, visible):
         self.page.evaluate('visible => KSMTest.timerVisibility(visible)', visible)
 
+    def configure_timer_enabled(self, court, enabled):
+        self.open_court(court)
+        self.click('court-configure')
+        self.page.locator(sel('court-timer-enabled')).select_option('On' if enabled else 'Off')
+        self.page.keyboard.press('Escape')
+
     def configure_timer_sound(self, court, sound):
         self.open_court(court)
         self.click('court-configure')

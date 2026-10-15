@@ -136,7 +136,12 @@ window.KSMTest = {
   timerMounted() {
     const timer = document.querySelector('[data-testid=match-timer]');
     // Role changes hide the existing court tree before its next render; spectators must see no timer.
-    return window.ksmMatchTimerInput?.() ? !!timer : !timer || !timer.checkVisibility();
+    const input = window.ksmMatchTimerInput?.();
+    if (!input) return !timer;  // not merely hidden: the island unmounts on its next render (<= 250 ms)
+    if (!timer) return false;
+    // Same mode and the same tied/untied reading as the court, not just "a timer exists".
+    const tv = timer.querySelector('[data-testid=timer-show-tv]');
+    return !!timer.querySelector('[data-testid=timer-display]') === input.enabled && (!tv || tv.title.includes('not tied') === !input.tied);
   },
   sendTieFlash() { ksmSendTieFlash(); },
   dispatchTieFlash(message) {

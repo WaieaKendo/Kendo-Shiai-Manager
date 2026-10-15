@@ -53,7 +53,7 @@ def main():
             {'name': 'Pool', 'format': 'Round Robin', 'court': 'A', 'entrants': people('P')},
             {'name': 'Final', 'format': 'Single Elimination', 'court': 'B', 'entrants': people('F', 2)},
         ])
-        defaults = {'timeRegular': '3:00', 'timeQuarterfinal': '', 'timeSemifinal': '', 'timeFinal': '', 'timeEncho': '3:00', 'court1TimerSound': 'whistle01', 'court2TimerSound': 'whistle02'}
+        defaults = {'timeRegular': '3:00', 'timeQuarterfinal': '', 'timeSemifinal': '', 'timeFinal': '', 'timeEncho': '3:00', 'court1TimerSound': 'whistle01', 'court2TimerSound': 'whistle02', 'court1TimerEnabled': 'On', 'court2TimerEnabled': 'On'}
         assert all(director.payload()['setup'][k] == v for k, v in defaults.items())
         lengths = dict(timeRegular='0:30', timeQuarterfinal='0:40', timeSemifinal='0:50', timeFinal='1:00', timeEncho='')
         director.set_timer_lengths(**lengths)

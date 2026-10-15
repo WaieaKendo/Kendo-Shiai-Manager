@@ -277,7 +277,9 @@ export function MatchTimer() {
     const update = () => render(n => n + 1);
     const events = ['ksm:court-scoreboard', 'ksm:court-header', 'ksm:state-changed', 'ksm:tie-flash-connection'];
     events.forEach(e => window.addEventListener(e, update));
-    return () => events.forEach(e => window.removeEventListener(e, update));
+    // Backstop: re-read the court input shortly after any event ordering slip, so tied/untied never stays stale.
+    const id = window.setInterval(update, 250);
+    return () => { events.forEach(e => window.removeEventListener(e, update)); clearInterval(id); };
   }, []);
   const input = legacy.ksmMatchTimerInput?.();
   if (!input) return null;
