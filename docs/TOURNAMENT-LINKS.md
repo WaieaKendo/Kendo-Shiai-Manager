@@ -82,7 +82,7 @@ Library cards scenario and five shell scenarios: they cover the chip, staff
 short-name controls, the cached slug field, failed-open behavior and blocking an
 exit with unsaved work. The Library's request/response scenario now explicitly
 answers the save attempted before that blocked exit. Tournament engine outcomes
-were not regenerated. The menu was also visually checked at 390 × 844 with a long
+are unchanged. The menu was also visually checked at 390 × 844 with a long
 tournament name.
 
 The Setup geometry check waits for fonts and the resize paint cycle before
