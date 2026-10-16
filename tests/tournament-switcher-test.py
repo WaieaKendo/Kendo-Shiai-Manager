@@ -15,6 +15,8 @@ def main():
         a.wait_idle()
         assert a.address() == '/switch-a-2026'
         a.wait_for(lambda: 'Switch A' in page.locator(sel('tournament-chip')).inner_text(), message='A chip')
+        page.locator(sel('setup-tournament-name')).fill('Switch A Renamed')
+        a.wait_for(lambda: 'Switch A Renamed' in page.locator(sel('tournament-chip')).inner_text(), message='chip follows name editing')
         page.evaluate("state.divisions=['Only A'];state.competitors=[{name:'A only'}];pinCourtLocally('B');criticalAutoSave('A fixture')")
         a.wait_idle()
         page.evaluate("(id)=>localStorage.setItem('ksm:match-timer:'+JSON.stringify([id,'B','fixture']),JSON.stringify({runningSince:Date.now()}))",aid)
