@@ -196,6 +196,12 @@ class Golden:
         return self.golden_dir / f'{self.name}.json'
 
     def check(self, step):
+        # React islands (e.g. the match timer) mount from queued events; wait until the timer
+        # is on screen exactly when the app says it should be, so a capture never lands between
+        # the legacy render and the island's render (this race is worse under load).
+        # Poll from Python with plain evaluates: some suites freeze the page clock, so timers and
+        # requestAnimationFrame inside the page may never fire.
+        self.app.wait_timer_mounted()
         entry, boxes = self.capture(self.app)
         entry = {'step': step, **entry}
         if self.react_check:

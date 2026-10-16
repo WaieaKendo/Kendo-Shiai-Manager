@@ -149,6 +149,7 @@ const KNOWN_POST_SPLIT_EDITS = {
   // its patches by match identity (applyCourtHistoryEntry(), two replacements in applyHistoryValues()) and
   // undo()/redo() note a part not applied in their status (two replacements).
   'history-replay': 14,
+  'match-timer': 6,
   // fix/pre-event-2 (F27): maybeCreateTeamTiebreak() (13) also adds a team round robin's daihyosen
   // (KSMEngine.teamRoundRobinTiebreakPlan) when teams are level for 1st-3rd.
   // Found in external PR review (#35): ksmAddDaihyosenForTeamAwards() (13) adds the daihyosen a
@@ -286,6 +287,7 @@ const KNOWN_POST_SPLIT_CSS_EDITS = {
   // feat/division-rename (issue #25): app/styles/16-division-rename.css, the Setup divisions
   // table's Rename button, rename field and refusal message (theme tokens only).
   'division-rename': 1,
+  'match-timer': 1,
 };
 // Old functions whose body now lives in app/engine/*.ts (parameter lists without braces).
 const MOVED_TO_ENGINE = [
@@ -517,6 +519,7 @@ const REMOVED_SHELL_RENDERER = [
 // 'now' must appear exactly once; the check puts 'before' back (before the test-ID step) and then
 // compares byte for byte, so any other markup change still fails.
 const MARKUP_EDITS = [
+  ["", "      <section class=\"setup-panel setup-panel-wide\" data-testid=\"setup-match-timer\">\n        <div class=\"setup-panel-head\"><h2>Match timer</h2></div>\n        <p class=\"setup-helper\">Use m:ss. Blank stage lengths use Regular; blank Encho has no limit.</p>\n        <div class=\"setup-form-grid\">\n          <div class=\"field\"><label for=\"timeRegular\">Regular</label><input id=\"timeRegular\" value=\"3:00\" placeholder=\"3:00\" onchange=\"ksmSaveTimerSettings()\" data-testid=\"setup-timeRegular\"></div>\n          <div class=\"field\"><label for=\"timeQuarterfinal\">Quarterfinal</label><input id=\"timeQuarterfinal\" value=\"\" placeholder=\"Use Regular\" onchange=\"ksmSaveTimerSettings()\" data-testid=\"setup-timeQuarterfinal\"></div>\n          <div class=\"field\"><label for=\"timeSemifinal\">Semifinal</label><input id=\"timeSemifinal\" value=\"\" placeholder=\"Use Regular\" onchange=\"ksmSaveTimerSettings()\" data-testid=\"setup-timeSemifinal\"></div>\n          <div class=\"field\"><label for=\"timeFinal\">Final</label><input id=\"timeFinal\" value=\"\" placeholder=\"Use Regular\" onchange=\"ksmSaveTimerSettings()\" data-testid=\"setup-timeFinal\"></div>\n          <div class=\"field\"><label for=\"timeEncho\">Encho</label><input id=\"timeEncho\" value=\"3:00\" placeholder=\"No limit\" onchange=\"ksmSaveTimerSettings()\" data-testid=\"setup-timeEncho\"></div>\n          <div class=\"field\"><label for=\"court1TimerSound\">Court A time-up sound</label><select id=\"court1TimerSound\" onchange=\"ksmSaveTimerSettings()\" data-testid=\"setup-court1TimerSound\"><option value=\"whistle01\" selected>Whistle 1</option><option value=\"whistle02\">Whistle 2</option></select></div>\n          <div class=\"field\"><label for=\"court1TimerEnabled\">Court A match timer</label><select id=\"court1TimerEnabled\" onchange=\"ksmSaveTimerSettings()\" data-testid=\"setup-court1TimerEnabled\"><option value=\"On\" selected>On</option><option value=\"Off\">Off</option></select></div>\n          <div class=\"field\"><label for=\"court2TimerSound\">Court B time-up sound</label><select id=\"court2TimerSound\" onchange=\"ksmSaveTimerSettings()\" data-testid=\"setup-court2TimerSound\"><option value=\"whistle01\">Whistle 1</option><option value=\"whistle02\" selected>Whistle 2</option></select></div>\n          <div class=\"field\"><label for=\"court2TimerEnabled\">Court B match timer</label><select id=\"court2TimerEnabled\" onchange=\"ksmSaveTimerSettings()\" data-testid=\"setup-court2TimerEnabled\"><option value=\"On\" selected>On</option><option value=\"Off\">Off</option></select></div>\n        </div>\n      </section>\n\n"],
   // #40: independent audience orientation for each TV.
   ['', "          <div class=\"field\">\n            <label for=\"court1TvRedSide\">Court A \u2014 TV: Red side (as seen by the audience)</label>\n            <select id=\"court1TvRedSide\" onchange=\"saveSetup();applyCourtSides();renderAll()\" data-testid=\"setup-tv-red-side-a\"><option value=\"right\">Red on the right</option><option value=\"left\">Red on the left</option></select>\n          </div>\n"],
   ['', "          <div class=\"field\">\n            <label for=\"court2TvRedSide\">Court B \u2014 TV: Red side (as seen by the audience)</label>\n            <select id=\"court2TvRedSide\" onchange=\"saveSetup();applyCourtSides();renderAll()\" data-testid=\"setup-tv-red-side-b\"><option value=\"right\">Red on the right</option><option value=\"left\">Red on the left</option></select>\n          </div>\n"],

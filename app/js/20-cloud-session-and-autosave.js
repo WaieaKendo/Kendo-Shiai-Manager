@@ -22,7 +22,7 @@ function recoveryPackage(){const outbox=readOutbox();let stored=null;try{stored=
 function downloadRecoveryFile(){try{const pack=recoveryPackage();const court=pack.assignedCourt?`_Court-${pack.assignedCourt}`:'';const stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);downloadJson(pack,`KSM_Recovery${court}_${stamp}.ksm`);updateSaveStatus('Recovery file downloaded')}catch(err){console.error(err);alert('Unable to create recovery file.')}}
 function downloadCloudRecovery(){downloadRecoveryFile()}
 function getSetupSnapshot(){
-  const ids=['tName','tHost','tDate','tLocation','tCourts','tType','teamEnabled','teamFormat','teamTournamentFormat','teamCourt','teamAwardMode','exhibitionEnabled','court1Refs','court2Refs','court1RedSide','court2RedSide'/* ksm:post-split-begin tv-red-side */, 'court1TvRedSide','court2TvRedSide'/* ksm:post-split-end */];
+  const ids=['tName','tHost','tDate','tLocation','tCourts','tType','teamEnabled','teamFormat','teamTournamentFormat','teamCourt','teamAwardMode','exhibitionEnabled','court1Refs','court2Refs','court1RedSide','court2RedSide'/* ksm:post-split-begin match-timer */,'timeRegular','timeQuarterfinal','timeSemifinal','timeFinal','timeEncho','court1TimerSound','court2TimerSound','court1TimerEnabled','court2TimerEnabled'/* ksm:post-split-end *//* ksm:post-split-begin tv-red-side */, 'court1TvRedSide','court2TvRedSide'/* ksm:post-split-end */];
   const data={};
   ids.forEach(id=>{const el=document.getElementById(id); if(el) data[id]=el.value;});
   return data;
@@ -34,6 +34,9 @@ function tournamentSettings(setup=getSetupSnapshot()){return KSMEngine.readSetti
 /* ksm:post-split-end */
 function applySetupSnapshot(data){
   if(!data) return;
+/* ksm:post-split-begin match-timer */
+  data={...data,...ksmNormalizeTimerSettings(data)};
+/* ksm:post-split-end */
 /* ksm:post-split-begin tv-red-side */
   // Old tournaments and unrecognized values retain the original audience orientation.
   data={...data,court1TvRedSide:data.court1TvRedSide==='left'?'left':'right',court2TvRedSide:data.court2TvRedSide==='left'?'left':'right'};

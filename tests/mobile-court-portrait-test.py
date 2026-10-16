@@ -28,11 +28,42 @@ with sync_playwright() as p:
         assert box['x'] >= -0.5 and box['x']+box['width'] <= viewport['w']+0.5, (sel,box,viewport)
         checks += 1
     buttons=page.locator('.bottom-action-row button')
-    assert buttons.count()==5, buttons.count(); checks+=1  # Undo, Redo, Fusen, Next Match, tie flash
+    assert buttons.count()==4, buttons.count(); checks+=1  # Undo, Redo, Fusen, Next Match
     for i in range(buttons.count()):
         box=buttons.nth(i).bounding_box(); assert box
         assert box['x']>=0 and box['x']+box['width']<=viewport['w']+0.5
         checks+=1
+    app.wait_for(app.timer, message='portrait timer mounted')
+    layout = app.timer_layout()
+    left, right = sorted([layout['white'], layout['red']], key=lambda b: b['x'])
+    timer = layout['timer']
+    assert abs(left['y'] - right['y']) <= 1 and left['right'] <= right['x'] + 1, layout
+    assert timer['y'] >= max(left['bottom'], right['bottom']) - 1, layout
+    assert timer['x'] <= left['x'] + 1 and timer['right'] >= right['right'] - 1, layout
+    names = []
+    for side in ('white', 'red'):
+        name = page.locator(f'[data-testid="court-{side}-name"]').bounding_box()
+        names.append(name)
+        panel = page.locator(f'#score .{side}-control-panel')
+        panel_box = panel.bounding_box()
+        assert panel_box['y'] >= name['y'] + name['height'] - 1, (side, name, panel_box)
+        assert panel_box['x'] <= name['x'] + name['width']/2 <= panel_box['x'] + panel_box['width'], (side, name, panel_box)
+        points = panel.locator('button')
+        assert points.count() == 5
+        bounds = [points.nth(i).bounding_box() for i in range(5)]
+        assert all(b['height'] >= 48 for b in bounds), bounds
+        rows = {}
+        for box in bounds:
+            rows.setdefault(round(box['y']), []).append(box)
+        assert sorted(map(len, rows.values())) == [2, 3], rows
+    left_name, right_name = sorted(names, key=lambda b: b['x'])
+    assert left_name['x'] + left_name['width'] <= right_name['x'], names
+    sides = [page.locator(f'#score .scoreboard-{side}').bounding_box() for side in ('white', 'red')]
+    assert abs(sides[0]['y'] - sides[1]['y']) <= 1, sides
+    assert app.timer_control('timer-replay')['disabled']
+    assert app.timer_control('timer-show-tv')['disabled']
+    assert 'TV not connected' in app.timer_control('timer-show-tv')['title']
+    assert page.locator('.bottom-action-row [data-testid="tie-flash-button"]').count() == 0
     # Owner decision 4 (#29): the button reads "Fusen-sho" (was "Fusen-gachi"; display text only).
     assert page.locator('.fusen-action').inner_text().strip().endswith('Fusen-sho'); checks+=1
     row=page.locator('#courtContext .aligned-match-row').first

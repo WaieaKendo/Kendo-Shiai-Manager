@@ -31,6 +31,31 @@ window.addEventListener('ksm:tie-flash', event => {
     notify();
   }, 5000);
 });
+// Court clock state for the TV border. Every reporting device is its own source; the border shows only while
+// at least one source is stopped and none is running, so one extra device can never override the scorer.
+// A source not refreshed within 15 seconds (device gone) drops out; the scorekeeper repeats it every 5 s.
+type ClockState = 'running' | 'stopped';
+const clocks = new Map<string, Map<string, { state: ClockState; timer: number }>>();
+window.addEventListener('ksm:court-clock', event => {
+  const clock = (event as CustomEvent<{ court: string; source: string; state: string }>).detail;
+  if (!clock || !['A', 'B'].includes(clock.court) || typeof clock.source !== 'string' || !clock.source.length
+      || clock.source.length > 40 || !['running', 'stopped', 'off'].includes(clock.state)) return;
+  const sources = clocks.get(clock.court) ?? new Map();
+  clocks.set(clock.court, sources);
+  window.clearTimeout(sources.get(clock.source)?.timer);
+  if (clock.state === 'off') sources.delete(clock.source);
+  else {
+    const timer = window.setTimeout(() => { sources.delete(clock.source); notify(); }, 15000);
+    sources.set(clock.source, { state: clock.state as ClockState, timer });
+  }
+  notify();
+});
+export function useCourtClockStopped(court: string) {
+  return useSyncExternalStore(subscribe, () => {
+    const states = [...(clocks.get(court)?.values() ?? [])].map(entry => entry.state);
+    return states.includes('stopped') && !states.includes('running');
+  });
+}
 function subscribe(listener: () => void) {
   listeners.add(listener);
   return () => { listeners.delete(listener); };
@@ -56,8 +81,11 @@ export function TieFlashButton({ input }: { input: ScoreboardInput }) {
 export function TieFlashIcon({ kind }: { kind: Kind }) {
   return <svg viewBox="0 0 100 100" aria-hidden="true" data-testid={`tie-flash-icon-${kind}`}>
     {kind === 'hikiwake' ? <>
-      <path d="M22 16L80 86M78 16L20 86" fill="none" stroke="currentColor" strokeWidth="7" strokeLinecap="round" />
-      <path d="M24 18L52 12L48 39L41 40ZM76 18L48 12L52 39L59 40Z" fill="currentColor" />
+      {/* Crossed flags: poles in an X with ball tops, a white (outlined) flag flying left and a solid flag flying right. */}
+      <path d="M37 16L63 90M63 16L37 90" fill="none" stroke="currentColor" strokeWidth="7" strokeLinecap="round" />
+      <circle cx="36" cy="12" r="5" fill="currentColor" /><circle cx="64" cy="12" r="5" fill="currentColor" />
+      <path d="M36 20C26 18 20 28 6 30L15 58C28 55 36 48 47 44Z" fill="none" stroke="currentColor" strokeWidth="5" strokeLinejoin="round" />
+      <path d="M64 20C74 18 80 28 94 30L85 58C72 55 64 48 53 44Z" fill="currentColor" />
     </> : <>
       <path d="M30 88V14" fill="none" stroke="currentColor" strokeWidth="7" strokeLinecap="round" />
       <path d="M33 15H82L68 34L82 53H33Z" fill="currentColor" />

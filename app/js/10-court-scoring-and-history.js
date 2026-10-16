@@ -304,8 +304,8 @@ function redo(){
   /* ksm:post-split-begin history-replay */const matchesBefore=courtUndoMatchesBefore(action);/* ksm:post-split-end */applyHistoryValues(action,'after');/* ksm:post-split-begin history-replay */recordCourtUndoLog(court,'REDO',courtHistoryAppliedEntry(action),matchesBefore);/* ksm:post-split-end */state.courtActionHistory[court].push(action);if(state.courtActionHistory[court].length>KSM_HISTORY_LIMIT)state.courtActionHistory[court].shift();
   updateUndoButton();/* ksm:post-split-begin history-replay was:updateSaveStatus('Redid '+action.label); */updateSaveStatus('Redid '+action.label+courtHistorySkippedNote('Redo'));/* ksm:post-split-end */criticalAutoSave('Redo: '+action.label);
 }
-function point(side,letter){performCourtAction(`${side==='W'?'White':'Red'} ${letter}`,()=>{state.score[side].push(letter);syncActiveScoreToMatch();renderScore()})}
-function hansoku(side){performCourtAction(`${side==='W'?'White':'Red'} Hansoku`,()=>{if(side==='W'){state.score.WT++;if(state.score.WT%2===0)state.score.R.push('H')}else{state.score.RT++;if(state.score.RT%2===0)state.score.W.push('H')}syncActiveScoreToMatch();renderScore()})}
+function point(side,letter){performCourtAction(`${side==='W'?'White':'Red'} ${letter}`,()=>{state.score[side].push(letter);/* ksm:post-split-begin match-timer */window.dispatchEvent(new Event('ksm:timer-point'));/* ksm:post-split-end */syncActiveScoreToMatch();renderScore()})}
+function hansoku(side){performCourtAction(`${side==='W'?'White':'Red'} Hansoku`,()=>{/* ksm:post-split-begin match-timer */window.dispatchEvent(new Event('ksm:timer-point'));/* ksm:post-split-end */if(side==='W'){state.score.WT++;if(state.score.WT%2===0)state.score.R.push('H')}else{state.score.RT++;if(state.score.RT%2===0)state.score.W.push('H')}syncActiveScoreToMatch();renderScore()})}
 function fusen(side){performCourtAction(`${side==='W'?'White':'Red'} Fusen-gachi`,()=>{if(side==='W'){state.score.W=[];state.score.R=['F','F']}else{state.score.R=[];state.score.W=['F','F']}syncActiveScoreToMatch();renderScore()})}
 function matchRequiresWinner(m){
   /* ksm:post-split-begin engine-bridge */return KSMEngine.matchRequiresWinner(m);

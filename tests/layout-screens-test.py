@@ -3,7 +3,7 @@
 Bounding boxes and computed styles, not CSS source text:
   * phone portrait (390×844) and landscape (844×390): no sideways scroll; header nav
     strip fits (tiles in one row) and a long tournament name fits in at most two lines;
-  * court screen, phone landscape: both sides' five scoring buttons in one band,
+  * court screen, phone landscape: both scoring panels flank the centered timer,
     compact action buttons; Next Match stays gold;
   * Live Scores: courts stacked on a phone in portrait, side by side on desktop;
   * Results: two columns on a phone in landscape; card titles on one line;
@@ -41,7 +41,7 @@ def no_sideways_scroll(page, label):
 
 
 def court_band(page, size, label, widen=False):
-    """Phone landscape court: ten scoring buttons in one band; the four action buttons in one compact row;
+    """Phone landscape court: ten scoring buttons in matching rows; the four action buttons in one compact row;
     nothing off screen or scrolling sideways; the heading stack clear of the scores. `widen` adds letter
     spacing to every label, a stand-in for a wider font (Linux CI renders wider than macOS)."""
     page.set_viewport_size({'width': size[0], 'height': size[1]})
@@ -49,10 +49,14 @@ def court_band(page, size, label, widen=False):
         page.add_style_tag(content='#score *{letter-spacing:.06em !important}')
     page.mouse.move(0, 0)  # a hovered button lifts 1px (translateY); that is not layout
     page.wait_for_timeout(400)  # let the resize reflow and any transitions settle before measuring
+    page.evaluate('window.scrollTo(0, 0)')  # the layout is measured from the top, not from wherever the page happened to scroll
     points = boxes(page, '#score [data-testid^="point-"], #score [data-testid^="hansoku-"]')
-    assert len(points) == 10 and len({b['y'] for b in points}) == 1, f'{label}: scoring buttons not in one band: {points}'
+    assert len(points) == 10 and [b['y'] for b in points[:5]] == [b['y'] for b in points[5:]], f'{label}: scoring panels must have matching rows: {points}'
+    # The timer packs its eight controls into one row from 700 px wide; a narrower landscape phone needs two rows,
+    # which pushes the action buttons further below the fold (the page scrolls). The measurement is from the top of the page.
+    limit = 60 if size[0] >= 700 else 140
     actions = boxes(page, '#score [data-testid="undo"], #score [data-testid="redo"], #score [data-testid="fusen-gachi"], #score [data-testid="next-match"]')
-    assert len(actions) == 4 and all(b['h'] <= 40 for b in actions) and max(b['b'] for b in actions) <= size[1] + 60, \
+    assert len(actions) == 4 and all(b['h'] <= 40 for b in actions) and max(b['b'] for b in actions) <= size[1] + limit, \
         f'{label}: compact action buttons expected: {actions}'
     assert len({b['y'] for b in actions}) == 1, f'{label}: the four action buttons must share one row: {actions}'
     assert all(b['r'] <= size[0] and b['x'] >= 0 for b in points + actions), f'{label}: court controls off screen'
@@ -122,9 +126,9 @@ def main():
             assert NEXT_GOLD in (nxt['bg'] + nxt['bgi']).replace('223,161,58', NEXT_GOLD), f'Next Match is not gold at {size}: {nxt}'
 
         # A tied bout changes the labels (the encho note on a winner-required bout; "Next Match (Hikiwake)" and
-        # the rule tag on a pool bout). They must not push the four action buttons onto a second row or
+        # no extra header badge on a pool bout). They must not push the four action buttons onto a second row or
         # overflow, at the test's phone landscape and at narrower landscape widths, whatever the fonts.
-        for court, shown in (('A', 'court-encho-note'), ('B', 'court-rule-tag')):
+        for court, shown in (('A', 'court-encho-note'), ('B', 'next-match')):
             page.set_viewport_size({'width': LANDSCAPE[0], 'height': LANDSCAPE[1]})
             app.open_court(court)
             app.score_point('W', 'M')
