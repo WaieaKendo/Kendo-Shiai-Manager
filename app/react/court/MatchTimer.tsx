@@ -17,7 +17,7 @@ interface TimerWindow {
   ksmMatchTimerInput?: () => TimerInput | null;
   ksmSendTieFlash?: () => void;
   ksmTieFlashConnected?: () => boolean;
-  ksmSendCourtClock?: (court: string, stopped: boolean) => void;
+  ksmSendCourtClock?: (court: string, state: 'running' | 'stopped' | 'off') => void;
 }
 const legacy = window as unknown as TimerWindow;
 const elapsed = (s: TimerState, now = Date.now()) => s.elapsedBeforeMs +
@@ -160,9 +160,8 @@ function CourtTimer({input}: {input: TimerInput}) {
   const display = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
   // Tell the court's TV whether the clock is stopped (yellow border). Repeated so a late TV catches up.
   const clockStopped = !running;  // also at 0:00: the border sits at the screen edge, the banner in the middle
-  // One authoritative controller per court: only the device that is actually showing this court's clock reports
-  // it. Another staff device (a director on Setup, a hidden tab) keeps a mounted but invisible timer and must
-  // stay silent, or its idle "stopped" would turn the TV border on while the scorer's clock is running.
+  // Each device that is actually showing this court's clock reports it as its own source; the TV shows the border
+  // only when no source is running. A hidden timer (a director on Setup, a background tab) stays silent.
   const sectionRef = useRef<HTMLElement>(null);
   const sent = useRef(false);
   const controlling = () => document.visibilityState === 'visible' && !!sectionRef.current?.checkVisibility?.();
@@ -171,7 +170,7 @@ function CourtTimer({input}: {input: TimerInput}) {
     const send = () => {
       if (!controlling()) return;
       sent.current = true;
-      legacy.ksmSendCourtClock?.(latest.current.court, clockStopped);
+      legacy.ksmSendCourtClock?.(latest.current.court, clockStopped ? 'stopped' : 'running');
     };
     send();
     const id = window.setInterval(send, 5000);
@@ -180,8 +179,8 @@ function CourtTimer({input}: {input: TimerInput}) {
     document.addEventListener('visibilitychange', send);
     return () => { window.clearInterval(id); window.clearInterval(watch); document.removeEventListener('visibilitychange', send); };
   }, [clockStopped, tvConnected, key]);
-  // Leaving: clear the TV border, but only if this device was the one reporting.
-  useEffect(() => () => { if (sent.current) legacy.ksmSendCourtClock?.(latest.current.court, false); }, [key]);
+  // Leaving: withdraw this device's report, but only if it made one.
+  useEffect(() => () => { if (sent.current) legacy.ksmSendCourtClock?.(latest.current.court, 'off'); }, [key]);
   const tvKind = input.requiresWinner ? 'Encho' : 'Hikiwake';
   const tvLabel = `Show ${tvKind} on TV`;
   const tvWhy = !input.tied ? 'the score is not tied' : running ? 'stop the clock first' : !tvConnected ? 'TV not connected'

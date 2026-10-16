@@ -31,19 +31,30 @@ window.addEventListener('ksm:tie-flash', event => {
     notify();
   }, 5000);
 });
-// Court clock state for the TV border. The scorekeeper repeats it every few seconds, so a state not
-// refreshed within 15 seconds (scorekeeper gone) counts as unknown and shows no border.
-const clocks = new Map<string, { stopped: boolean; timer: number }>();
+// Court clock state for the TV border. Every reporting device is its own source; the border shows only while
+// at least one source is stopped and none is running, so one extra device can never override the scorer.
+// A source not refreshed within 15 seconds (device gone) drops out; the scorekeeper repeats it every 5 s.
+type ClockState = 'running' | 'stopped';
+const clocks = new Map<string, Map<string, { state: ClockState; timer: number }>>();
 window.addEventListener('ksm:court-clock', event => {
-  const clock = (event as CustomEvent<{ court: string; stopped: boolean }>).detail;
-  if (!clock || !['A', 'B'].includes(clock.court) || typeof clock.stopped !== 'boolean') return;
-  window.clearTimeout(clocks.get(clock.court)?.timer);
-  const timer = window.setTimeout(() => { clocks.delete(clock.court); notify(); }, 15000);
-  clocks.set(clock.court, { stopped: clock.stopped, timer });
+  const clock = (event as CustomEvent<{ court: string; source: string; state: string }>).detail;
+  if (!clock || !['A', 'B'].includes(clock.court) || typeof clock.source !== 'string' || !clock.source.length
+      || clock.source.length > 40 || !['running', 'stopped', 'off'].includes(clock.state)) return;
+  const sources = clocks.get(clock.court) ?? new Map();
+  clocks.set(clock.court, sources);
+  window.clearTimeout(sources.get(clock.source)?.timer);
+  if (clock.state === 'off') sources.delete(clock.source);
+  else {
+    const timer = window.setTimeout(() => { sources.delete(clock.source); notify(); }, 15000);
+    sources.set(clock.source, { state: clock.state as ClockState, timer });
+  }
   notify();
 });
 export function useCourtClockStopped(court: string) {
-  return useSyncExternalStore(subscribe, () => clocks.get(court)?.stopped === true);
+  return useSyncExternalStore(subscribe, () => {
+    const states = [...(clocks.get(court)?.values() ?? [])].map(entry => entry.state);
+    return states.includes('stopped') && !states.includes('running');
+  });
 }
 function subscribe(listener: () => void) {
   listeners.add(listener);

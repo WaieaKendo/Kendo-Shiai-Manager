@@ -75,9 +75,14 @@ function reconnectTvRealtime(){updateTvRealtimeDiagnostics({status:'Reconnecting
 // Ephemeral live events: never enter tournament state, the outbox or the save queue.
 function ksmTieFlashConnected(){return ksmSessionRole==='staff'&&ksmCloudSocket?.readyState===WebSocket.OPEN}
 function ksmTieFlashConnectionChanged(){window.dispatchEvent(new Event('ksm:tie-flash-connection'))}
-function ksmSendCourtClock(court,stopped){
-  if(!ksmTieFlashConnected()||(court!=='A'&&court!=='B'))return;
-  try{ksmCloudSocket.send(JSON.stringify({type:'clock',court,stopped:!!stopped}))}catch(_){ksmTieFlashConnectionChanged()}
+// Names this tab as one reporter of a court's clock; kept across reloads so a reload replaces its own earlier report.
+// (crypto.randomUUID needs a secure context; a tablet on a plain-http LAN address does not have it, and a top-level
+// throw here would stop the rest of this script from running.)
+function ksmClockId(){try{return crypto.randomUUID()}catch(_){return Math.random().toString(36).slice(2)+Date.now().toString(36)}}
+const ksmClockSource=(()=>{try{let id=sessionStorage.getItem('ksm:clock-source');if(!id){id=ksmClockId();sessionStorage.setItem('ksm:clock-source',id)}return id}catch(_){return ksmClockId()}})();
+function ksmSendCourtClock(court,state){
+  if(!ksmTieFlashConnected()||(court!=='A'&&court!=='B')||!['running','stopped','off'].includes(state))return;
+  try{ksmCloudSocket.send(JSON.stringify({type:'clock',court,source:ksmClockSource,state}))}catch(_){ksmTieFlashConnectionChanged()}
 }
 function ksmSendTieFlash(){
   const input=window.ksmCourtScoreboardInput,header=window.ksmCourtHeaderInput;

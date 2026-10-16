@@ -389,11 +389,13 @@ export class TournamentState {
     try { flash = JSON.parse(message); } catch (_) { return; }
     if (!flash || typeof flash !== 'object' || Array.isArray(flash)) return;
     const keys = Object.keys(flash).sort();
-    if (keys.join(',') === 'court,stopped,type') {
-      // Ephemeral court clock state for the TV border; never stored.
-      if (flash.type !== 'clock' || !['A', 'B'].includes(flash.court) || typeof flash.stopped !== 'boolean') return;
+    if (keys.join(',') === 'court,source,state,type') {
+      // Ephemeral court clock state for the TV border; never stored. Each reporting device names itself
+      // (`source`); the TV combines the sources, so a second device can never overwrite the scorer's clock.
+      if (flash.type !== 'clock' || !['A', 'B'].includes(flash.court) || !['running', 'stopped', 'off'].includes(flash.state)) return;
+      if (typeof flash.source !== 'string' || !flash.source.length || flash.source.length > 40) return;
       if (socket.deserializeAttachment()?.role !== 'staff') return;
-      this.broadcast({ type: 'clock', court: flash.court, stopped: flash.stopped, at: new Date().toISOString() });
+      this.broadcast({ type: 'clock', court: flash.court, source: flash.source, state: flash.state, at: new Date().toISOString() });
       return;
     }
     if (keys.length !== 4 || keys.join(',') !== 'court,id,kind,type') return;

@@ -219,27 +219,33 @@ await test('staff flash messages broadcast with a timestamp; spectator and inval
 await test('court clock messages are staff-only, validated and never stored', async () => {
   const before = await json(await api.call('GET', `/api/tournaments/${T}`));
   const stored = LIVE ? null : structuredClone([...api.storage(T).map]);
-  for (const [court, stopped] of [['A', true], ['A', false], ['B', true], ['B', false]]) {
+  for (const [court, state] of [['A', 'running'], ['A', 'stopped'], ['B', 'stopped'], ['B', 'off']]) {
     const start = [spectator, staffSocket].map(s => s.messages.length);
-    staffSocket.send(JSON.stringify({ type: 'clock', court, stopped }));
+    staffSocket.send(JSON.stringify({ type: 'clock', court, source: 'device-1', state }));
     for (const [i, socket] of [spectator, staffSocket].entries()) {
       const clock = await socket.waitFor(m => m.type === 'clock' && socket.messages.indexOf(m) >= start[i]);
-      assert.deepEqual(Object.keys(clock).sort(), ['at', 'court', 'stopped', 'type']);
+      assert.deepEqual(Object.keys(clock).sort(), ['at', 'court', 'source', 'state', 'type']);
       assert.equal(clock.court, court);
-      assert.equal(clock.stopped, stopped);
+      assert.equal(clock.source, 'device-1');
+      assert.equal(clock.state, state);
       assert.ok(Number.isFinite(Date.parse(clock.at)));
     }
   }
+  const ok = { type: 'clock', court: 'A', source: 'device-1', state: 'stopped' };
   const invalid = [
-    [spectator, { type: 'clock', court: 'A', stopped: true }],
-    [staffSocket, { type: 'clock', court: 'C', stopped: true }],
-    [staffSocket, { type: 'clock', court: 'A', stopped: 'true' }],
-    [staffSocket, { type: 'clock', court: 'A', stopped: 1 }],
-    [staffSocket, { type: 'clock', court: 'A', stopped: null }],
-    [staffSocket, { type: 'clock', court: 'A' }],
-    [staffSocket, { type: 'clock', court: 'A', stopped: false, extra: true }],
-    [staffSocket, { type: 'other', court: 'A', stopped: false }],
-    [staffSocket, [{ type: 'clock', court: 'A', stopped: true }]],
+    [spectator, ok],
+    [staffSocket, { ...ok, court: 'C' }],
+    [staffSocket, { ...ok, state: 'paused' }],
+    [staffSocket, { ...ok, state: true }],
+    [staffSocket, { ...ok, state: null }],
+    [staffSocket, { ...ok, source: '' }],
+    [staffSocket, { ...ok, source: 'x'.repeat(41) }],
+    [staffSocket, { ...ok, source: 7 }],
+    [staffSocket, { type: 'clock', court: 'A', state: 'stopped' }],
+    [staffSocket, { type: 'clock', court: 'A', stopped: true }],
+    [staffSocket, { ...ok, extra: true }],
+    [staffSocket, { ...ok, type: 'other' }],
+    [staffSocket, [ok]],
   ];
   for (const [socket, message] of invalid) {
     const counts = [spectator, staffSocket].map(s => s.messages.filter(m => m.type === 'clock').length);

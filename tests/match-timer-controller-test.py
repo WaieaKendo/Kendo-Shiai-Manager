@@ -4,8 +4,9 @@ from ksm_app import KsmApp, app_path, sel
 from ksm_browser import launch_chromium
 from ksm_server import local_worker
 
-"""One authoritative controller per court: a second staff device whose timer is mounted but not shown
-(a director on Setup) must not turn the TV's stopped-clock border on while the scorer's clock runs."""
+"""Court clock reports never override each other: a second staff device, hidden (a director on Setup) or even
+showing the same court with an idle clock, must not turn the TV's stopped-clock border on while the scorer's
+clock runs. The TV shows the border only when no reporting device is running."""
 import time
 
 
@@ -31,19 +32,27 @@ def main():
         court.open_court('A')
         court.wait_for(court.current_match, message='match')
         director.nav('setup')  # the director's court timer stays mounted behind Setup
+        second = KsmApp.open_device(browser, base, 'Second scorer', problems, app_path(tid, 'court', 'A'))
+        assert second.socket_barrier()
+        second.wait_generated()
+        second.staff_login()
+        second.open_court('A')  # a second device showing the same court with its own, idle, clock
+        second.wait_for(second.current_match, message='second match')
         tv.wait_for(tv.tv_clock_stopped, message='stopped border before the clock starts')
         court.click('timer-toggle')
         tv.wait_for(lambda: not tv.tv_clock_stopped(), message='running clock clears the border')
         # The director would report "stopped" within its 5 s repeat if it were allowed to.
         deadline = time.time() + 8
         while time.time() < deadline:
-            assert not tv.tv_clock_stopped(), 'a hidden staff device turned the TV border on while the clock runs'
+            assert not tv.tv_clock_stopped(), 'another staff device turned the TV border on while the scorer clock runs'
             time.sleep(0.4)
         court.click('timer-toggle')
-        tv.wait_for(tv.tv_clock_stopped, message='pausing shows the border again')
+        tv.wait_for(tv.tv_clock_stopped, message='pausing shows the border again (every device is stopped)')
+        second.page.close()
+        tv.wait_for(tv.tv_clock_stopped, message='a closed device does not break the border')
         assert not problems, '\n'.join(problems)
         browser.close()
-    print('PASS match timer controller: a hidden staff device never reports the court clock')
+    print('PASS match timer controller: no other staff device overrides a running court clock')
 
 
 main()
