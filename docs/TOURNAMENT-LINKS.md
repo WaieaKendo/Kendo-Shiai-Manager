@@ -90,3 +90,10 @@ measuring native textareas; it retains their original sizes. Socket barriers wai
 for an open socket, and timer reads take one DOM snapshot. Results captures its
 fixed bracket overlay at a deterministic scroll origin after viewport changes. None of these fixes
 adds a longer sleep or relaxes an assertion.
+
+Conflict races explicitly start pending saves and wait for live connections instead
+of relying on debounce delays. This exposed a missing retry when an update arrived
+just after blur but within the recent-input guard; that path now schedules the same
+deferred-update retry as an update received while editing. Court and layout visual
+fixtures identify an existing staff tournament so offline autosaves cannot open
+creation prompts during a click.

@@ -173,6 +173,11 @@ function applyRemoteCloudRecord(record,allowWhileEditing=false,forceApply=false)
   }
   if(!allowWhileEditing&&ksmSessionRole==='staff'&&(activeEditorHasFocus()||recentEditorActivity())){
     if(!ksmDeferredRemoteRecord||incomingRevision>Number(ksmDeferredRemoteRecord.revision||0))ksmDeferredRemoteRecord=record;
+    /* ksm:post-split-begin edit-merge */
+    // A record may arrive after focusout's callback while recent input still blocks it.
+    // Always schedule its retry; otherwise no further input means it waits forever.
+    clearTimeout(ksmDeferredRemoteTimer);ksmDeferredRemoteTimer=setTimeout(applyDeferredRemoteRecord,3200);
+    /* ksm:post-split-end */
     updateSaveStatus('Live update waiting for editing to finish');updateTvRealtimeDiagnostics({lastReason:`Deferred revision ${incomingRevision} while editing`});return false;
   }
   const outbox=readOutbox();if(outbox&&Number(outbox.baseRevision||0)<incomingRevision&&!(isReadOnlySession()&&outbox.role==='staff'&&outbox.tournamentId===record.tournamentId)){preserveRecovery(outbox,record);clearOutbox()}

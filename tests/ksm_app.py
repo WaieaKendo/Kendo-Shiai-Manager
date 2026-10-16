@@ -289,7 +289,13 @@ class KsmApp:
 
     def wait_revision(self, rev, timeout=15):
         """(test API) Wait until this device has caught up with server revision `rev`."""
-        self.page.wait_for_function('rev => KSMTest.revision() >= rev', arg=rev, timeout=timeout * 1000)
+        try:
+            self.page.wait_for_function('rev => KSMTest.revision() >= rev', arg=rev, timeout=timeout * 1000)
+        except PlaywrightTimeout:
+            details = self.page.evaluate("""() => ({revision:KSMTest.revision(),pending:KSMTest.pendingReason(),
+              focus:document.activeElement?.id,socket:ksmCloudSocket?.readyState,
+              deferred:ksmDeferredRemoteRecord?.revision,sync:ksmDeferredSyncRecord?.revision})""")
+            raise AssertionError(f'{self.name}: waiting for revision {rev}: {json.dumps(details)}') from None
 
     def wait_generated(self, timeout=20):
         """(test API) Wait until this device has a generated tournament."""
