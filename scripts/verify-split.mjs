@@ -45,7 +45,7 @@ const KNOWN_POST_SPLIT_EDITS = {
   // feat/react-setup: app/js/00-react-bridge.js + the ksm:state-changed dispatch in
   // performCourtAction() and renderAll(), so React islands re-render with `state`.
   'react-bridge': 3,
-  'tournament-switcher': 19,
+  'tournament-switcher': 23,
   // fix/react-batch-1 (F13): addDivision() (01) reads the old #newDiv / #newDivType fallbacks as
   // window properties (the page has no such fields; the bare names threw for an empty name).
   'add-division': 2,

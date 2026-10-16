@@ -97,3 +97,6 @@ just after blur but within the recent-input guard; that path now schedules the s
 deferred-update retry as an update received while editing. Court and layout visual
 fixtures identify an existing staff tournament so offline autosaves cannot open
 creation prompts during a click.
+Browser helpers also wait for cloud startup to finish, including the Library
+transition, before interacting. Loaded globals or a mounted header alone do not
+mean the initial tournament load has finished setting its role and screen.

@@ -1,5 +1,8 @@
 
-initializeCloudRoleFromUrl().catch(err=>{/* ksm:post-split-begin tournament-switcher */if(err?.code==='transition-cancelled')return;/* ksm:post-split-end */console.error('Unable to initialize cloud session',err);setConnectionStatus('Cloud load failed','offline');showHomePage()});
+/* ksm:post-split-begin tournament-switcher */var ksmBootstrapInitialization=/* ksm:post-split-end */initializeCloudRoleFromUrl().catch(err=>{/* ksm:post-split-begin tournament-switcher */if(err?.code==='transition-cancelled')return;/* ksm:post-split-end */console.error('Unable to initialize cloud session',err);setConnectionStatus('Cloud load failed','offline');/* ksm:post-split-begin tournament-switcher */return /* ksm:post-split-end */showHomePage()});
+/* ksm:post-split-begin tournament-switcher */
+ksmBootstrapInitialization.then(()=>{window.ksmBootstrapReady=true});
+/* ksm:post-split-end */
 syncSetupHeader();
 
 // Hosted mobile foundation: normal click events are authoritative.
