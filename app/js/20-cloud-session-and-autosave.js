@@ -58,7 +58,7 @@ function tournamentPayload(){
 }
 function updateSaveStatus(text){/* ksm:post-split-begin react-shell */ksmRenderSaveStatus(text);/* ksm:post-split-end */}
 function markLocalSave(reason='Local autosave'){try{localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(tournamentPayload()));return true}catch(err){console.warn('Local save failed',err);ksmSaveStatusMode='error';renderPersistentSaveStatus();return false}}
-function autoSaveTournament(reason='Autosave'){if(!markLocalSave(reason))return;if(!ksmApplyingRemoteSnapshot&&!isReadOnlySession())scheduleCloudSave(reason)}
+function autoSaveTournament(reason='Autosave'){/* ksm:post-split-begin tournament-switcher */if(document.body.classList.contains('ksm-home'))return;/* ksm:post-split-end */if(!markLocalSave(reason))return;if(!ksmApplyingRemoteSnapshot&&!isReadOnlySession())scheduleCloudSave(reason)}
 // Remote snapshots never echo into cloud: if(!ksmApplyingRemoteSnapshot)scheduleCloudSave()
 function scheduleAutoSave(reason='Edit'){noteLocalMutation();clearTimeout(ksmSaveTimer);ksmSaveTimer=setTimeout(()=>{ksmSaveTimer=null;autoSaveTournament(reason)},2000)}
 /* ksm:post-split-begin award-save */

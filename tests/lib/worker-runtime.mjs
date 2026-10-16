@@ -45,6 +45,7 @@ export function installCloudflareShims() {
 
 export class MemoryStorage {
   constructor() { this.map = new Map(); }
+  async transaction(fn) { return fn(this); }
   async get(key) { return this.map.has(key) ? structuredClone(this.map.get(key)) : undefined; }
   async put(key, value) { this.map.set(key, structuredClone(value)); }
   async delete(key) { return this.map.delete(key); }

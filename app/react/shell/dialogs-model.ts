@@ -174,7 +174,7 @@ export interface HistoryCourtView {
 
 export type CloudBody =
   /** link: as shown; copy: what Copy Link copies (the link itself); qr: the QR code image's address. */
-  | { kind: 'access'; link: string; copy: string; qr: string }
+  | { kind: 'access'; link: string; copy: string; qr: string; canEditSlug?: boolean; slug?: string }
   | {
     kind: 'diagnostics';
     details: CloudDetail[];

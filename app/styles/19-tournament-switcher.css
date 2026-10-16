@@ -2,7 +2,14 @@
 .tournament-switcher { position:relative; min-width:0; max-width:min(22rem,70vw); color:var(--ksm-navy); }
 .tournament-switcher summary { cursor:pointer; padding:10px 12px; border:1px solid var(--ksm-gold); border-radius:12px; overflow-wrap:anywhere; font-weight:700; list-style:none; background:var(--ksm-paper); }
 .tournament-switcher button { position:absolute; right:0; top:100%; z-index:110; width:max-content; max-width:80vw; margin-top:4px; }
+.tournament-switcher button + button { margin-top:48px; }
 body.ksm-tv > header.ksm-topbar { display:block !important; position:fixed; top:8px; right:8px; z-index:120; width:auto; padding:0; background:transparent; border:0; }
 body.ksm-tv > header.ksm-topbar > :not(.cloud-status-wrap), body.ksm-tv .cloud-status-wrap > :not(.tournament-switcher) { display:none !important; }
 body.ksm-tv .cloud-status-wrap { display:flex; }
+.cloud-modal-backdrop { z-index:11000; }
+@media (orientation:landscape) and (max-height:560px) and (max-width:980px) {
+  .cloud-status-wrap { grid-column:1 / -1; width:100%; flex-direction:row; align-items:center; gap:8px; }
+  .tournament-switcher { margin-right:auto; max-width:60vw; }
+  .tournament-switcher summary { padding:6px 10px; font-size:12px; line-height:1.2; }
+}
 /* ksm:post-split-end */

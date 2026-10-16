@@ -61,7 +61,7 @@ function run({ base, local, conflicts, rememberBase = true, confirmAnswer = null
     showKsmToast: (message, duration, isError) => toasts.push({ message, isError }),
     // F10's question; a test that does not expect it fails on it.
     confirm: message => { confirms.push(message); if (confirmAnswer === null) throw new Error(`unexpected confirm: ${message}`); return confirmAnswer; },
-    v316StaffPassword: () => 'pw', promptNewStaffPassword: () => 'pw', sessionStorage: { setItem() {} },
+    v316StaffPassword: () => 'pw', promptNewStaffPassword: () => 'pw', sessionStorage: { setItem() {}, removeItem() {} },
     setSessionRole() {}, persistCloudSession() {}, rememberTournament() {}, clearOutbox() {},
     setConnectionStatus() {}, renderPersistentSaveStatus() {}, connectCloudSocket() {},
     // Engine clean-ups run by the rebase: not under test here.
@@ -77,7 +77,8 @@ function run({ base, local, conflicts, rememberBase = true, confirmAnswer = null
       return { status: 200, ok: true, text: async () => JSON.stringify({ tournamentId: 't1', revision: 20, updatedAt: 'y', payload: body.payload }) };
     },
   };
-  vm.createContext(context);
+  Object.assign(context,{ksmTournamentEpoch:0,ksmPendingSlug:''});
+vm.createContext(context);
   vm.runInContext(withDependencies(html, code, { exclude: Object.keys(context) }), context);
   if (rememberBase) context.rememberCloudBase({ revision: 10, payload: base });
   if (baseOverride) { context.oldBase = baseOverride; vm.runInContext('KSM_CLOUD_BASE.payload = oldBase', context); }

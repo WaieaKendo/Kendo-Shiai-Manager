@@ -224,6 +224,9 @@ class KsmApp:
         return self.seen_dialogs
 
     def _on_dialog(self, d):
+        if d.message.startswith('Tournament short name') and not any(d.message.startswith(key) for key in self.answers):
+            d.accept(d.default_value)
+            return
         for prefix, accept in self.expected.items():
             if d.message.startswith(prefix):
                 self.seen_dialogs.append(d.message)
@@ -326,6 +329,7 @@ class KsmApp:
 
     def socket_barrier(self, timeout=5):
         """(test API) Wait for the cloud worker's pong after all prior socket messages."""
+        self.wait_for(lambda: self.page.evaluate("typeof ksmCloudSocket === 'object' && ksmCloudSocket?.readyState === WebSocket.OPEN"), timeout=timeout, message='the live socket to open before ping/pong')
         return self.page.evaluate('timeout => KSMTest.socketBarrier(timeout)', timeout * 1000)
 
     def send_socket_message(self, message):
@@ -842,12 +846,15 @@ class KsmApp:
 
     def timer(self):
         """Court timer's rendered display and controls (None if not visible)."""
-        timer = self.page.locator(sel('match-timer'))
-        if not timer.count() or not timer.is_visible():
-            return None
-        return {'display': timer.locator(sel('timer-display')).inner_text(),
-                'status': timer.locator(sel('timer-status')).inner_text(),
-                'encho': timer.locator(sel('timer-encho')).count() > 0}
+        # Read one DOM snapshot: React can replace the timer between separate
+        # locator count/visibility/text calls, especially on a paused clock.
+        return self.page.evaluate("""() => {
+          const timer=document.querySelector('[data-testid="match-timer"]');
+          if(!timer || !timer.checkVisibility())return null;
+          const text=id=>timer.querySelector(`[data-testid="${id}"]`)?.innerText || '';
+          return {display:text('timer-display'),status:text('timer-status'),
+                  encho:!!timer.querySelector('[data-testid="timer-encho"]')};
+        }""")
 
     @staticmethod
     def install_timer_probes(page):

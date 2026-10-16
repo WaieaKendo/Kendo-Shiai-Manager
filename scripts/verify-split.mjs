@@ -45,7 +45,7 @@ const KNOWN_POST_SPLIT_EDITS = {
   // feat/react-setup: app/js/00-react-bridge.js + the ksm:state-changed dispatch in
   // performCourtAction() and renderAll(), so React islands re-render with `state`.
   'react-bridge': 3,
-  'tournament-switcher': 8,
+  'tournament-switcher': 19,
   // fix/react-batch-1 (F13): addDivision() (01) reads the old #newDiv / #newDivType fallbacks as
   // window properties (the page has no such fields; the bare names threw for an empty name).
   'add-division': 2,
@@ -206,6 +206,7 @@ const KNOWN_POST_SPLIT_EDITS = {
   // refreshTvFromCloud() (21) is its first region.
   'delete-tournament': 9,
   'tie-flash': 5,
+  'friendly-links': 10,
   // fix/stuck-pending (F35, test audit N1), 21 and 33: a failed save queued in the outbox is retried
   // with backoff (scheduleQueuedSaveRetry(), from saveTournamentToCloudWithReason() and
   // flushCloudOutbox()), the local changes a queued snapshot carries are confirmed when it is sent

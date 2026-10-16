@@ -64,3 +64,5 @@ export {
   divisionRenameError, renamedDivisionState, rebaseDivisionRenames, orphanedDivisionStructure, withoutDivisionStructure,
 } from './divisions.ts';
 export type { DivisionRename, RenameState, RefusedRename, RenameRebase } from './divisions.ts';
+
+export { isValidSlug, suggestSlug, RESERVED_SLUGS } from './routes.ts';

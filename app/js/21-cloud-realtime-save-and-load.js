@@ -42,9 +42,11 @@ async function refreshTvFromCloud(reason='TV full refresh',forceApply=true){
   if(!isTvSession()||!cloudSession.tournamentId||location.protocol==='file:'||!navigator.onLine)return false;
   if(ksmTvRefreshInFlight)return ksmTvRefreshInFlight;
   updateTvRealtimeDiagnostics({status:'Verifying',lastReason:reason});
+  /* ksm:post-split-begin tournament-switcher */const refreshEpoch=ksmTournamentEpoch;/* ksm:post-split-end */
   ksmTvRefreshInFlight=(async()=>{
     try{
       const response=await fetch(`/api/tournaments/${encodeURIComponent(cloudSession.tournamentId)}?tvRefresh=${Date.now()}`,{cache:'no-store',headers:{'cache-control':'no-cache'}});
+      /* ksm:post-split-begin tournament-switcher */if(refreshEpoch!==ksmTournamentEpoch)return false;/* ksm:post-split-end */
       /* ksm:post-split-begin delete-tournament */if(response.status===410){ksmAnnounceTournamentGone(cloudSession.tournamentId);throw ksmGoneError()}/* ksm:post-split-end */
       if(!response.ok)throw new Error(`Refresh failed (${response.status})`);
       const record=await response.json();
@@ -56,7 +58,7 @@ async function refreshTvFromCloud(reason='TV full refresh',forceApply=true){
       console.warn('[TV Realtime] Full refresh failed',err);
       updateTvRealtimeDiagnostics({status:navigator.onLine?'Refresh failed':'Offline',lastReason:`${reason}: ${err?.message||err}`});
       return false;
-    }finally{ksmTvRefreshInFlight=null}
+    }finally{/* ksm:post-split-begin tournament-switcher */if(refreshEpoch===ksmTournamentEpoch)/* ksm:post-split-end */ksmTvRefreshInFlight=null}
   })();
   return ksmTvRefreshInFlight;
 }
@@ -159,6 +161,7 @@ function applyRemoteCloudRecord(record,allowWhileEditing=false,forceApply=false)
   const tvCourt=isTvSession()?tvAssignedCourt():normalizeCourt(cloudSession.court||state.publicCourt||'A');
   const priorTvDivision=state.courtActiveDivision?.[tvCourt]||state.courtState?.[tvCourt]?.division||null;
   if(!record||record.tournamentId!==cloudSession.tournamentId){updateTvRealtimeDiagnostics({ignored:ksmTvRealtimeDiagnostics.ignored+1,lastReason:'Ignored wrong tournament'});return false}
+  /* ksm:post-split-begin friendly-links */if(Number(record.revision||0)>=Number(cloudSession.revision||0))ksmCacheTournament(record);/* ksm:post-split-end */
   const incomingRevision=Number(record.revision||0);
   if(!forceApply&&canCloudWrite()&&localChangesPending())return deferRemoteRecord(record,`Revision ${incomingRevision} arrived while local Court ${pinnedCourt()||state.currentCourt||'—'} changes were pending`);
   if(!forceApply&&incomingRevision<=Number(cloudSession.revision||0)){updateTvRealtimeDiagnostics({ignored:ksmTvRealtimeDiagnostics.ignored+1,lastReason:`Ignored old revision ${incomingRevision}`});return false}
@@ -234,7 +237,7 @@ async function saveTournamentToCloudWithReason(reason='Autosave',force=false){
     return true;
   }catch(err){
     console.warn('Cloud save failed',err);
-/* ksm:post-split-begin delete-tournament */if(err?.code==='tournament-deleted')return false;/* ksm:post-split-end */
+/* ksm:post-split-begin tournament-switcher */if(err?.code==='transition-cancelled')return false;/* ksm:post-split-end *//* ksm:post-split-begin delete-tournament */if(err?.code==='tournament-deleted')return false;/* ksm:post-split-end */
     if(!String(err.message).includes('conflict'))writeOutbox(payload,reason);
     ksmSaveStatusMode=String(err.message).includes('conflict')?'error':'offline';
     setConnectionStatus(String(err.message).includes('conflict')?'Conflict':'Offline',String(err.message).includes('conflict')?'error':'offline');
@@ -274,7 +277,7 @@ async function flushCloudOutbox(){const outbox=readOutbox();if(!outbox||ksmCloud
 /* ksm:post-split-end */
   if(record?.payload){const localPayload=/* ksm:post-split-begin outbox-flush-rebase was:ksmLocalMutationVersion===mutationVersion */ksmLocalMutationVersion===mutationVersion&&ksmLocalMutationVersion<=ksmConfirmedMutationVersion/* ksm:post-split-end */?record.payload:rebaseLocalPayloadOnRecord(tournamentPayload(),record,Number(outbox.baseRevision||0)/* ksm:post-split-begin edit-merge */,outbox.payload/* ksm:post-split-end */);ksmApplyingRemoteSnapshot=true;try{applyTournamentPayload(localPayload,false,{pinnedCourt:pinnedCourt(),preserveLocalDivision:true,source:'outbox flush'});localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(localPayload))}finally{ksmApplyingRemoteSnapshot=false}}
 /* ksm:post-split-begin save-retry */confirmQueuedMutation();/* ksm:post-split-end */
-  return true}catch(err){console.warn('Queued cloud save failed',err);/* ksm:post-split-begin delete-tournament */if(err?.code==='tournament-deleted')return false;/* ksm:post-split-end */writeCloudDiagnosticsState({stage:'Queued save failed',errorMessage:String(err?.message||err),lastFailureAt:new Date().toISOString()});ksmSaveStatusMode='error';renderPersistentSaveStatus();/* ksm:post-split-begin save-retry */scheduleQueuedSaveRetry(err);/* ksm:post-split-end */return false}finally{ksmCloudSaveInFlight=false;await runPendingCloudSave()}}
+  return true}catch(err){console.warn('Queued cloud save failed',err);/* ksm:post-split-begin tournament-switcher */if(err?.code==='transition-cancelled')return false;/* ksm:post-split-end *//* ksm:post-split-begin delete-tournament */if(err?.code==='tournament-deleted')return false;/* ksm:post-split-end */writeCloudDiagnosticsState({stage:'Queued save failed',errorMessage:String(err?.message||err),lastFailureAt:new Date().toISOString()});ksmSaveStatusMode='error';renderPersistentSaveStatus();/* ksm:post-split-begin save-retry */scheduleQueuedSaveRetry(err);/* ksm:post-split-end */return false}finally{ksmCloudSaveInFlight=false;await runPendingCloudSave()}}
 /* ksm:post-split-begin save-retry */
 // F35: a save that fails while the live connection stays open (a 5xx, a dropped request, one
 // that never answers) is queued in the outbox, but only the socket opening, the browser's
@@ -341,7 +344,7 @@ async function initializeCloudRoleFromUrl(){ensureClientIdentity();const params=
   if(role&&id){role=['spectator','scorekeeper','director','admin'].includes(role)?role:'spectator';cloudSession.clientName=promptDeviceName(role,cloudSession.clientName);await loadTournamentFromCloud(id,role==='spectator'?{spectator:true,role,court}:{role,key,court});installRoleBanner(role);if(requestedView==='tv'){document.body.classList.add('ksm-tv');cloudSession.court=(court||'A').toUpperCase()==='B'?'B':'A';persistCloudSession();renderTvDisplay();renderTvRealtimeDiagnostics();show('tv')}else if(role==='spectator'){navigateTo('public')}else if(role==='scorekeeper'){chooseCourt(court||'A')}else navigateTo('director');return true}
   const creds=cloudSession.credentials||{};const savedRole=cloudSession.tournamentId?(creds.admin?'admin':creds.director?'director':creds.scorekeeper?'scorekeeper':'spectator'):'local';setSessionRole(savedRole);installRoleBanner(savedRole);return false}
 function promptDeviceName(role,current){if(role==='spectator')return current||'Spectator';const suggested=current&&current!=='KSM Device'?current:(role==='scorekeeper'?`Court Device`:'Director Device');return prompt('Name this device for live session status',suggested)||suggested}
-window.addEventListener('online',()=>{setConnectionStatus('Reconnecting','connecting');ksmSaveStatusMode=readOutbox()?'syncing':'saved';renderPersistentSaveStatus();connectCloudSocket();flushCloudOutbox()});window.addEventListener('offline',()=>{setConnectionStatus('Offline','offline');markLocalSave('Offline safety save');writeOutbox(tournamentPayload(),'Connection lost')});
+window.addEventListener('online',()=>{setConnectionStatus('Reconnecting','connecting');ksmSaveStatusMode=readOutbox()?'syncing':'saved';renderPersistentSaveStatus();connectCloudSocket();flushCloudOutbox()});window.addEventListener('offline',()=>{setConnectionStatus('Offline','offline');/* ksm:post-split-begin tournament-switcher */if(!isReadOnlySession()&&!document.body.classList.contains('ksm-home')){/* ksm:post-split-end */markLocalSave('Offline safety save');writeOutbox(tournamentPayload(),'Connection lost')/* ksm:post-split-begin tournament-switcher */}/* ksm:post-split-end */});
 
 function triggerLoadRecoveryFile(){document.getElementById('ksmRecoveryFile')?.click()}
 /* ksm:post-split-begin recovery-guard */

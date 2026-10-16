@@ -13,13 +13,16 @@ def main():
         page = a.page
         aid = a.create_tournament()
         a.wait_idle()
-        assert a.address() == f'/t/{aid}'
+        assert a.address() == '/switch-a-2026'
         a.wait_for(lambda: 'Switch A' in page.locator(sel('tournament-chip')).inner_text(), message='A chip')
         page.evaluate("state.divisions=['Only A'];state.competitors=[{name:'A only'}];pinCourtLocally('B');criticalAutoSave('A fixture')")
         a.wait_idle()
-        page.evaluate('showHomePage()')
+        page.evaluate("(id)=>localStorage.setItem('ksm:match-timer:'+JSON.stringify([id,'B','fixture']),JSON.stringify({runningSince:Date.now()}))",aid)
+        page.locator(sel('tournament-chip')+' summary').click()
+        a.click('switch-tournament')
         a.wait_for(lambda: a.visible_view() == ['home'], message='Library')
         assert a.address() == '/'
+        assert page.evaluate("(id)=>!Object.keys(localStorage).some(key=>key.startsWith('ksm:match-timer:'+JSON.stringify([id]).slice(0,-1)))",aid)
         assert page.evaluate("!cloudSession.tournamentId && !readOutbox() && !v316StaffPassword() && !state.competitors.length && !state.divisions.includes('Only A') && !localCourtDivision('B')")
         a.answers['Tournament Name'] = 'Switch B'
         bid = a.create_tournament()
@@ -49,11 +52,20 @@ def main():
         page.evaluate('showHomePage()')
         a.wait_for_dialogs()
         assert page.evaluate("cloudSession.tournamentId && readOutbox() && state.awards[0].name === 'Unsaved award' && v316StaffPassword()")
-        assert a.address() == f'/t/{aid}'
+        assert a.address() == '/switch-a-2026'
         page.context.set_offline(False)
         a.save_now();a.wait_idle()
         page.evaluate('showHomePage()')
         a.wait_for(lambda: a.visible_view() == ['home'], message='saved exit')
+        a.answers['Tournament Name'] = 'Deleted Cup'
+        deleted = a.create_tournament();a.wait_idle()
+        page.evaluate("state.divisions=['Deleted division'];criticalAutoSave('Deleted fixture')")
+        a.wait_idle()
+        a.delete_tournament('Deleted Cup')
+        assert page.evaluate("!state.divisions.includes('Deleted division') && !state.competitors.length && !v316StaffPassword()")
+        a.answers['Tournament Name'] = 'Fresh Cup'
+        a.create_tournament();a.wait_idle()
+        assert page.evaluate("!state.divisions.includes('Deleted division') && !state.divisions.includes('Only A')")
         assert not problems, problems
         browser.close()
     print('PASS tournament switcher: isolation, chip, history, reload, unsaved work')

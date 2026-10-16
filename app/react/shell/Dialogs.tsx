@@ -283,6 +283,7 @@ function CloudModalBody({ body }: { body: CloudBody }) {
   if (body.kind === 'access') {
     return (
       <>
+        {body.canEditSlug && <p className="small">Short name: {body.slug || 'Not assigned'} <button className="secondary" data-testid="edit-tournament-slug" onClick={() => { void w.ksmEditTournamentSlug?.(); }}>Edit short name</button></p>}
         <div className="access-link-box" data-testid="access-link">{body.link}</div>
         <div className="row" ref={rawStyle('margin-top:12px')}>
           <button onClick={() => { w.copyTextValue?.(body.copy, CLOUD_TEXTS.copied); }} data-testid="access-copy">{CLOUD_TEXTS.copyLink}</button>

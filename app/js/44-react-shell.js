@@ -236,7 +236,7 @@ function ksmCloseCloudModal(){
 }
 // openTournamentAccess() (33): the spectator link, Copy Link and its QR code.
 function ksmOpenTournamentAccess(link,qr){
-  ksmOpenCloudModal('Tournament Access',{kind:'access',link:ksmHtmlText(link),copy:String(link),qr:String(qr)});
+  ksmOpenCloudModal('Tournament Access',{kind:'access',link:ksmHtmlText(link),copy:String(link),qr:String(qr),canEditSlug:!isReadOnlySession(),slug:cloudSession.slug||''});
 }
 // cloudDiagnostics() (21): Developer Tools with the details, the snapshot analysis
 // (snapshotAnalysisHtml()), the action history analysis (actionHistoryAnalysisHtml(),
@@ -326,7 +326,7 @@ async function ksmConfirmDeleteTournament(){
       ksmForgetTournament(id);
       closeCloudModal();
       ksmLeaveTournamentAddress();
-      showHomePage();
+      ksmShowLibrary({deleted:true});
       showKsmToast('Tournament deleted',4000);
       return;
     }
@@ -342,6 +342,9 @@ async function ksmConfirmDeleteTournament(){
 // Everything this device keeps for the tournament: its Library entry, queued and recovery copies,
 // the autosave, the session and any timer that would send or retry a save.
 function ksmForgetTournament(id){
+  localStorage.removeItem('ksm.tournament.record:'+id);
+  if(cloudSession.tournamentId===id){clearOutbox();ksmResetTournament()}
+
   clearTimeout(ksmQueuedSaveRetryTimer);ksmQueuedSaveRetryTimer=null;ksmQueuedSaveRetryAttempt=0;ksmOutboxMutationVersion=0;
   clearTimeout(ksmCloudTimer);ksmCloudTimer=null;clearTimeout(ksmSaveTimer);ksmSaveTimer=null;
   clearTimeout(ksmDeferredRemoteTimer);ksmDeferredRemoteRecord=null;
@@ -391,7 +394,7 @@ function ksmTournamentGone(id,fromLoad){
   ksmForgetTournament(id);
   closeCloudModal();
   ksmLeaveTournamentAddress();
-  showHomePage();
+  ksmShowLibrary({deleted:true});
   showKsmToast('This tournament was deleted',8000,true);
   return true;
 }

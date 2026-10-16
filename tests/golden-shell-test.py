@@ -288,6 +288,7 @@ def nav_staff(browser, react_check):
     g = open_app('nav-staff', browser, react_check)
     page = g.app.page
     g.check('a staff device on Setup')
+    g.do('no tile active for the Library', lambda a: a.page.evaluate("ksmSetActiveNav('home')"))
     for item in ['registration', 'live-scores', 'overview', 'results', 'setup']:
         nav(g, item)
     nav(g, 'courts', 'Courts menu opened')

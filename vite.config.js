@@ -63,7 +63,7 @@ function ksmClassicBundle() {
         if (pages.includes(`${url.slice(1)}.html`)) req.url = req.url.replace(url, `${url}.html`);
         // Path URLs (M.9): /t/<id>/overlay/a is the overlay page, as src-worker.js answers it; other
         // /t/... paths get index.html from Vite's single-page fallback, as from Cloudflare's.
-        else if (url.startsWith('/t/') && servesOverlay(url)) req.url = req.url.replace(url, '/overlay.html');
+        else if (servesOverlay(url)) req.url = req.url.replace(url, '/overlay.html');
         next();
       });
     },

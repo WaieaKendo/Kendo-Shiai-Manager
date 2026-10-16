@@ -70,7 +70,7 @@ function run({ base, local, conflicts, rememberBase = true }) {
     writeCloudDiagnosticsState: d => { diagnostics.push(d); return d; },
     showKsmToast: (message, duration, isError) => toasts.push({ message, isError }),
     confirm: message => { throw new Error(`unexpected confirm: ${message}`); },
-    v316StaffPassword: () => 'pw', promptNewStaffPassword: () => 'pw', sessionStorage: { setItem() {} },
+    v316StaffPassword: () => 'pw', promptNewStaffPassword: () => 'pw', sessionStorage: { setItem() {}, removeItem() {} },
     setSessionRole() {}, persistCloudSession() {}, rememberTournament() {}, clearOutbox() {},
     setConnectionStatus() {}, renderPersistentSaveStatus() {}, connectCloudSocket() {},
     sanitizeLoadedTournamentState() {}, normalizeAllIndividualPoolTiebreakOrder() {}, repairCompletedMatchResults() {},
@@ -85,7 +85,8 @@ function run({ base, local, conflicts, rememberBase = true }) {
       return { status: 200, ok: true, text: async () => JSON.stringify({ tournamentId: 't1', revision: 20, updatedAt: 'y', payload: body.payload }) };
     },
   };
-  vm.createContext(context);
+  Object.assign(context,{ksmTournamentEpoch:0,ksmPendingSlug:''});
+vm.createContext(context);
   vm.runInContext(withDependencies(html, code, { exclude: Object.keys(context) }), context);
   if (rememberBase) context.rememberCloudBase({ revision: 10, payload: base });
   return context.performCloudSave(local, 10).then(saved => ({ saved: saved.payload, toasts, diagnostics }));

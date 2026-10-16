@@ -231,10 +231,17 @@ def in_row(name, testid):
     return f'{row(name)}//*[@data-testid="{testid}"]'
 
 
+def resize_setup(page, size):
+    page.set_viewport_size(size)
+    # Native textarea metrics settle during the resize paint, after the media query
+    # changes its font size. Measuring immediately can catch its old intrinsic height.
+    page.evaluate('() => document.fonts.ready.then(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))')
+
+
 def phone_views(g, label):
     for step, size in PHONES:
-        g.do(f'{label}: {step}', lambda a, s=size: a.page.set_viewport_size(s))
-    g.app.page.set_viewport_size(DESKTOP)
+        g.do(f'{label}: {step}', lambda a, s=size: resize_setup(a.page, s))
+    resize_setup(g.app.page, DESKTOP)
 
 
 YONENBU = 'Yonenbu (11 years and under)'

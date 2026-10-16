@@ -339,6 +339,44 @@ await test('delete notifies sockets, removes the snapshot and the library entry'
   assert.ok(!rows.some(r => r.id === T));
 });
 
+await test('slugs: unique claims, reserved roots, rename aliases and tombstones', async () => {
+  const stamp = crypto.randomUUID().slice(0,8);
+  const slug = `links-${stamp}`;
+  const a = await create({slug});
+  assert.equal(a.res.status,200);
+  assert.equal(a.body.slug,slug);
+  const id = a.body.tournamentId;
+  const lookup = async value => api.call('GET',`/api/slugs/${value}`);
+  const rename = async (value, headers=staffHeaders()) => api.call('POST',`/api/tournaments/${id}/slug`,{headers,body:{slug:value}});
+  assert.equal((await create({slug})).res.status,409);
+  for (const value of ['api','t','privacy','overlay','assets','icons','index.html','service-worker.js','tv','UPPER','bad--slug','-bad','bad-', 'a'.repeat(81)]) {
+    assert.equal((await create({slug:value})).res.status,400,value);
+    assert.equal((await rename(value)).status,400,value);
+  }
+  assert.equal((await rename(`renamed-${stamp}`,{})).status,403);
+  const newSlug = `renamed-${stamp}`;
+  assert.equal((await rename(newSlug)).status,200);
+  assert.deepEqual(await json(await lookup(slug)),{id,slug:newSlug});
+  assert.deepEqual(await json(await lookup(newSlug)),{id,slug:newSlug});
+  const alias=await api.call('GET',`/${slug}/tv/b?red=left`);
+  assert.equal(alias.status,308);
+  assert.equal(alias.headers.get('location'),`/${newSlug}/tv/b?red=left`);
+  assert.equal((await create({slug})).res.status,409);
+  // Snapshot replay cannot overwrite the server-owned name.
+  const current = await json(await api.call('GET',`/api/tournaments/${id}`));
+  const saved = await api.call('PUT',`/api/tournaments/${id}`,{headers:staffHeaders(),body:{...current,slug,payload:current.payload}});
+  assert.equal((await json(saved)).slug,newSlug);
+  assert.equal((await api.call('DELETE',`/api/tournaments/${id}`,{headers:staffHeaders()})).status,200);
+  for (const value of [slug,newSlug]) {
+    assert.equal((await lookup(value)).status,410);
+    assert.equal((await api.call('GET',`/${value}/court/a`)).status,410);
+    assert.equal((await create({slug:value})).res.status,409);
+  }
+  // Two creates racing for the same name have exactly one winner.
+  const results=await Promise.all([create({slug:`race-${stamp}`}),create({slug:`race-${stamp}`})]);
+  assert.deepEqual(results.map(r=>r.res.status).sort(),[200,409]);
+});
+
 if (!LIVE) {
   await test('admin reset requires KSM_RESET_KEY and wipes every tournament', async () => {
     const { body } = await create();

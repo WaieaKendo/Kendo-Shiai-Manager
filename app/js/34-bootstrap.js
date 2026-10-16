@@ -1,5 +1,5 @@
 
-initializeCloudRoleFromUrl().catch(err=>{console.error('Unable to initialize cloud session',err);setConnectionStatus('Cloud load failed','offline');showHomePage()});
+initializeCloudRoleFromUrl().catch(err=>{/* ksm:post-split-begin tournament-switcher */if(err?.code==='transition-cancelled')return;/* ksm:post-split-end */console.error('Unable to initialize cloud session',err);setConnectionStatus('Cloud load failed','offline');showHomePage()});
 syncSetupHeader();
 
 // Hosted mobile foundation: normal click events are authoritative.

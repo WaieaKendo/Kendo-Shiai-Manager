@@ -151,7 +151,7 @@ def main():
         court.click('nav-tv')
         court.click('nav-overlay-a')
         link = court.page.wait_for_function('window.__copied').json_value()
-        assert link == f'{base}{app_path(tid, "overlay", "A")}', link
+        assert link == f'{base}/overlay-cup-2026/overlay/a', link
         court.click('nav-tv')
         assert court.page.is_visible(sel('nav-overlay-b')), 'no Court B overlay link'
 
