@@ -7,6 +7,7 @@ import type { HeaderInput } from './header-model.ts';
 import type { NavInput } from './nav-model.ts';
 
 export interface ShellWindow {
+  showHomePage?: () => unknown;
   /** What app/js/44-react-shell.js last published. */
   ksmShellNavInput?: NavInput;
   ksmShellHeaderInput?: HeaderInput;

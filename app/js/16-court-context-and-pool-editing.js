@@ -57,7 +57,7 @@ function saveEditedPools(){
   renderPools();
   scheduleAutoSave();
 }
-function renderAll(){ensureCourtHistory();renderDivisions();renderReg();renderTeams();renderExhibitions();renderPools();renderScore();renderProgress();renderContext();saveSetup();renderTournamentStatus();updateUndoButton()/* ksm:post-split-begin react-bridge */;if(typeof ksmNotifyStateChanged==='function')ksmNotifyStateChanged('render')/* ksm:post-split-end */}
+function renderAll(){/* ksm:post-split-begin tournament-switcher */if(typeof ksmRefreshTournamentChip==='function')ksmRefreshTournamentChip();/* ksm:post-split-end */ensureCourtHistory();renderDivisions();renderReg();renderTeams();renderExhibitions();renderPools();renderScore();renderProgress();renderContext();saveSetup();renderTournamentStatus();updateUndoButton()/* ksm:post-split-begin react-bridge */;if(typeof ksmNotifyStateChanged==='function')ksmNotifyStateChanged('render')/* ksm:post-split-end */}
 function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 // A value as a JavaScript string literal inside an inline on*="..." handler. esc() alone is not enough:
 // the HTML parser decodes &#39; back to ' before the handler runs, so a name could break out of '...'.

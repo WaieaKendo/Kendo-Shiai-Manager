@@ -10,7 +10,7 @@ const libraryReact = readRepoFile('app/react/library/Library.tsx') + readRepoFil
 const checks = [
   ['dedicated home view', html.includes('id="home"') && html.includes('id="homeTournamentLibrary"') && libraryReact.includes('id="homeTournamentLibrary"')],
   ['new tournament available on home', html.includes('onclick="createNewTournament()">＋ New Tournament') && libraryReact.includes('data-testid="home-new-tournament" onClick={() => { libraryWindow().createNewTournament?.(); }}>{NEW_TOURNAMENT_TEXT}') && libraryReact.includes("NEW_TOURNAMENT_TEXT = '＋ New Tournament'")],
-  ['existing tournaments open spectator', html.includes("async function openTournamentFromHome(id){sessionStorage.removeItem(KSM_V316_STAFF_SESSION);setSessionRole('spectator')") && libraryReact.includes('libraryWindow().openTournamentFromHome?.(card.id)')],
+  ['existing tournaments open spectator', html.includes("return ksmOpenTournament(id)") && html.includes("await initializeCloudRoleFromUrl()") && libraryReact.includes('libraryWindow().openTournamentFromHome?.(card.id)')],
   ['startup opens home', html.includes('showHomePage();return true')],
   ['public link bypasses home', /classList\.remove\('ksm-home'\);if\(requestedView==='tv'\).{0,200}navigateTo\('public'\)/.test(html)],
   ['home return paths', html.includes('title="Tournament Library" onclick="showHomePage()"') && html.includes('>Tournament Library</button>')],

@@ -45,6 +45,7 @@ const KNOWN_POST_SPLIT_EDITS = {
   // feat/react-setup: app/js/00-react-bridge.js + the ksm:state-changed dispatch in
   // performCourtAction() and renderAll(), so React islands re-render with `state`.
   'react-bridge': 3,
+  'tournament-switcher': 8,
   // fix/react-batch-1 (F13): addDivision() (01) reads the old #newDiv / #newDivType fallbacks as
   // window properties (the page has no such fields; the bare names threw for an empty name).
   'add-division': 2,
@@ -288,6 +289,7 @@ const KNOWN_POST_SPLIT_CSS_EDITS = {
   // table's Rename button, rename field and refusal message (theme tokens only).
   'division-rename': 1,
   'match-timer': 1,
+  'tournament-switcher': 1,
 };
 // Old functions whose body now lives in app/engine/*.ts (parameter lists without braces).
 const MOVED_TO_ENGINE = [

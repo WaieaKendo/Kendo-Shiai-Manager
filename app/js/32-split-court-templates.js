@@ -69,6 +69,9 @@ renderScore=function(){
   setCourtCompletePresentation(div,false);renderScore_v3121();
 };
 
+/* ksm:post-split-begin tournament-switcher */
+const KSM_EMPTY_SETUP=getSetupSnapshot();
+/* ksm:post-split-end */
 if(!restoreAutoSaveIfWanted()) renderAll();
 setConnectionStatus(cloudSession.tournamentId?'Sync connecting…':'Local only',cloudSession.tournamentId?'connecting':'local');
 

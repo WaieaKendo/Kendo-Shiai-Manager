@@ -135,7 +135,7 @@ def main():
         for path, address in ((app_path('00000000-0000-4000-8000-000000000000'), app_path('00000000-0000-4000-8000-000000000000')),
                               ('/?tournament=00000000-0000-4000-8000-000000000000', app_path('00000000-0000-4000-8000-000000000000')),
                               (f'/t/{tid}/nonsense', '/'), (f'/t/{tid}/court/c?x=1', '/'), ('/t/', '/')):
-            opens(path, address, 'home', path)
+            opens(path, '/', 'home', path)
             assert page.evaluate("document.body.classList.contains('ksm-home')"), path
             page.wait_for_selector(f'{sel("home-tournament-name")}:has-text("Paths Cup")')
         # Only the three malformed paths (now /) asked; the unknown tournament's links did not.
