@@ -52,8 +52,11 @@ def court_band(page, size, label, widen=False):
     page.evaluate('window.scrollTo(0, 0)')  # the layout is measured from the top, not from wherever the page happened to scroll
     points = boxes(page, '#score [data-testid^="point-"], #score [data-testid^="hansoku-"]')
     assert len(points) == 10 and [b['y'] for b in points[:5]] == [b['y'] for b in points[5:]], f'{label}: scoring panels must have matching rows: {points}'
+    # The timer packs its eight controls into one row from 700 px wide; a narrower landscape phone needs two rows,
+    # which pushes the action buttons further below the fold (the page scrolls). The measurement is from the top of the page.
+    limit = 60 if size[0] >= 700 else 140
     actions = boxes(page, '#score [data-testid="undo"], #score [data-testid="redo"], #score [data-testid="fusen-gachi"], #score [data-testid="next-match"]')
-    assert len(actions) == 4 and all(b['h'] <= 40 for b in actions) and max(b['b'] for b in actions) <= size[1] + 140, \
+    assert len(actions) == 4 and all(b['h'] <= 40 for b in actions) and max(b['b'] for b in actions) <= size[1] + limit, \
         f'{label}: compact action buttons expected: {actions}'
     assert len({b['y'] for b in actions}) == 1, f'{label}: the four action buttons must share one row: {actions}'
     assert all(b['r'] <= size[0] and b['x'] >= 0 for b in points + actions), f'{label}: court controls off screen'

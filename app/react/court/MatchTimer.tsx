@@ -160,13 +160,28 @@ function CourtTimer({input}: {input: TimerInput}) {
   const display = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
   // Tell the court's TV whether the clock is stopped (yellow border). Repeated so a late TV catches up.
   const clockStopped = !running;  // also at 0:00: the border sits at the screen edge, the banner in the middle
+  // One authoritative controller per court: only the device that is actually showing this court's clock reports
+  // it. Another staff device (a director on Setup, a hidden tab) keeps a mounted but invisible timer and must
+  // stay silent, or its idle "stopped" would turn the TV border on while the scorer's clock is running.
+  const sectionRef = useRef<HTMLElement>(null);
+  const sent = useRef(false);
+  const controlling = () => document.visibilityState === 'visible' && !!sectionRef.current?.checkVisibility?.();
   useEffect(() => {
-    const send = () => legacy.ksmSendCourtClock?.(latest.current.court, clockStopped);
+    let was = false;
+    const send = () => {
+      if (!controlling()) return;
+      sent.current = true;
+      legacy.ksmSendCourtClock?.(latest.current.court, clockStopped);
+    };
     send();
     const id = window.setInterval(send, 5000);
-    return () => window.clearInterval(id);
+    // Report at once when this device starts showing the court (Setup -> court screen, tab brought forward).
+    const watch = window.setInterval(() => { const now = controlling(); if (now && !was) send(); was = now; }, 500);
+    document.addEventListener('visibilitychange', send);
+    return () => { window.clearInterval(id); window.clearInterval(watch); document.removeEventListener('visibilitychange', send); };
   }, [clockStopped, tvConnected, key]);
-  useEffect(() => () => legacy.ksmSendCourtClock?.(latest.current.court, false), [key]);
+  // Leaving: clear the TV border, but only if this device was the one reporting.
+  useEffect(() => () => { if (sent.current) legacy.ksmSendCourtClock?.(latest.current.court, false); }, [key]);
   const tvKind = input.requiresWinner ? 'Encho' : 'Hikiwake';
   const tvLabel = `Show ${tvKind} on TV`;
   const tvWhy = !input.tied ? 'the score is not tied' : running ? 'stop the clock first' : !tvConnected ? 'TV not connected'
@@ -191,7 +206,7 @@ function CourtTimer({input}: {input: TimerInput}) {
     title={`${n < 0 ? '−' : '+'}${Math.abs(n)} s`} onClick={() => adjust(n)}>
     <span aria-hidden="true">{n < 0 ? '−' : '+'}{Math.abs(n)}</span>
   </button>;
-  return <section className={`match-timer${timeUp ? ' match-timer--time' : ''}${running ? ' match-timer--running' : timer.hasStarted ? ' match-timer--paused' : ''}${timer.phase === 'encho' ? ' match-timer--encho' : ''}`} data-testid="match-timer" aria-label="Match timer">
+  return <section ref={sectionRef} className={`match-timer${timeUp ? ' match-timer--time' : ''}${running ? ' match-timer--running' : timer.hasStarted ? ' match-timer--paused' : ''}${timer.phase === 'encho' ? ' match-timer--encho' : ''}`} data-testid="match-timer" aria-label="Match timer">
     {input.requiresWinner && !(input.tied && input.scored) && <div className="match-timer-rule" data-testid="court-rule-tag">Encho — winner needed</div>}
     <div className="match-timer-meta">
       <span className="match-timer-phase">{timer.phase === 'encho' ? `Encho${countUp ? ' · No limit' : ''}` : 'Regulation'}</span>

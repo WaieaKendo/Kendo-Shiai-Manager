@@ -91,4 +91,21 @@ body.ksm-tv.ksm-clock-stopped::after{content:'';position:fixed;inset:0;border:ma
 /* Timer switched Off: the card is just the badge and the whistle / TV icons. */
 .match-timer--off .match-timer-rule{margin:8px auto 0}
 .match-timer--off .match-timer-replay-row{padding:4px 0}
+/* Landscape phone, wide enough (>= 700px): one row of eight controls under the readout instead of two rows, so the
+   timer card is about as tall as the scoring panels and the court needs little extra scrolling. */
+@media (orientation:landscape) and (max-height:600px) and (min-width:700px){
+  #score .score-controls-grid:has(.match-timer){grid-template-columns:minmax(0,1fr) 360px minmax(0,1fr)!important}
+  .match-timer:not(.match-timer--off){display:flex;flex-wrap:wrap;align-items:stretch}
+  .match-timer:not(.match-timer--off) :is(.match-timer-meta,output,.match-timer-rule,p){flex:0 0 100%}
+  .match-timer:not(.match-timer--off) :is(.match-timer-transport,.match-timer-replay-row){display:contents}
+  #score .match-timer:not(.match-timer--off) button{flex:1 1 0;min-width:0;height:44px;min-height:44px;background:var(--ksm-navy);margin:0}
+  #score .match-timer:not(.match-timer--off) [data-testid=timer-replay]{order:1}
+  #score .match-timer:not(.match-timer--off) [data-testid=timer-show-tv]{order:2}
+  #score .match-timer:not(.match-timer--off) [data-testid=timer-adjust--10]{order:3}
+  #score .match-timer:not(.match-timer--off) [data-testid=timer-adjust--1]{order:4}
+  #score .match-timer:not(.match-timer--off) :is([data-testid=timer-toggle],[data-testid=timer-encho]){order:5;min-height:44px}
+  #score .match-timer:not(.match-timer--off) [data-testid=timer-adjust-1]{order:6}
+  #score .match-timer:not(.match-timer--off) [data-testid=timer-adjust-10]{order:7}
+  #score .match-timer:not(.match-timer--off) [data-testid=timer-reset]{order:8}
+}
 /* ksm:post-split-end */
