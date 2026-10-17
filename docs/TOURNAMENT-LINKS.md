@@ -14,6 +14,12 @@ exits clear runtime state, court preferences, match timers, queued callbacks and
 credentials. A new tournament starts from the original setup and division defaults.
 Saved per-tournament records remain cached for offline reading. The Library does
 not generate autosaves or offline outboxes of its own.
+An active local-only draft is protected even without a cloud ID, staff session,
+outbox or pending mutation counter: switching warns and retains its autosave and
+runtime data. Save it to the cloud before switching; Tournament File download is
+also available for backup. If Back is blocked before creation has an ID, the app
+restores its previous draft address with `replaceState`, without adding a null-ID
+history entry.
 
 ## Friendly addresses
 
@@ -45,6 +51,11 @@ stable tournament ID and its current name. An alias cannot be claimed by another
 tournament, even after a rename or deletion. The original tournament may select
 one of its own aliases again.
 
+**Owner decision for this revision:** a tournament may own at most five names,
+including its current name and all aliases. A sixth new name returns `slug-limit`
+(409) without reserving it. Selecting an already-owned alias does not consume a
+slot. Staff cannot release names; administrative release is deferred to #9.
+
 Deletion keeps all reservations as tombstones; both current names and aliases
 return 410. The Worker also checks the tournament tombstone before serving a slug
 page, covering an interrupted delete before the Library update. A device that
@@ -63,8 +74,13 @@ cards include the current slug; the staff-only rename endpoint is
 No credentials appear in either metadata or resolution caches.
 
 Creation validates the payload and password before claiming a name, then writes
-the tournament. If infrastructure fails after the claim, the name stays reserved
-rather than risking reuse. Library refresh/discovery never clears reservations.
+the tournament record, password hash and creator session in one local storage
+transaction. A failed transaction rolls back all three and compensates the claim
+through an internal Library-only operation. It only releases that tournament's
+single initial name, never renamed aliases or deletion tombstones. Successful
+creation keeps the permanent reservation. A process crash or unavailable Library
+during compensation still needs administrative repair; there is no cross-Object
+transaction. Library refresh/discovery never clears reservations.
 The existing authenticated test reset explicitly clears its test namespace.
 
 The service worker serves the app shell for slug navigations as well as ID paths.
@@ -73,7 +89,21 @@ by slug and ID. After one successful online visit, a slug can reload offline wit
 its last saved record. Staff login is still required to edit after reload. The
 stream overlay remains live-only, as specified in M.9.
 
+## Static request routing
+
+Cloudflare supports negative `run_worker_first` patterns. The configuration sends
+page/API/ID/friendly routes to the Worker but excludes static directories, script
+and manifest files, and the standalone privacy/overlay assets. Static requests
+therefore invoke the Worker zero times, instead of once under `true`; they make
+zero registry calls. Friendly pages retain one Worker invocation, one Library
+resolution and one tournament-status check. This removes a Worker dispatch from
+the static latency path; it does not claim a measured production latency change.
+See [Cloudflare's routing rules](https://developers.cloudflare.com/workers/static-assets/binding/).
+
 ## Snapshot review
+
+The PR review revision changes only `nav-staff`: four local-draft warning strings.
+Its 83 captured steps, screen content and every geometry value are unchanged.
 
 All 82 changed golden fixtures were expanded and compared step by step. In 76,
 the screen content, visibility and element sizes are unchanged; only vertical

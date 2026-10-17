@@ -163,23 +163,23 @@ export class TournamentState {
   }
   // Sets the staff password (tournament creation; any future password change): revokes every
   // staff session token.
-  async setStaffPassword(password) {
+  async setStaffPassword(password, storage = this.state.storage) {
     this.verifiedPassword = null;
-    await this.state.storage.put('staffPasswordHash', await hashStaffPassword(password));
-    await this.state.storage.delete('staffSessions');
+    await storage.put('staffPasswordHash', await hashStaffPassword(password));
+    await storage.delete('staffSessions');
   }
-  async issueStaffSession() {
+  async issueStaffSession(storage = this.state.storage) {
     const token = newStaffToken();
     const id = await sha256Hex(token);
     const now = this.now();
-    const sessions = (await this.state.storage.get('staffSessions')) || {};
+    const sessions = (await storage.get('staffSessions')) || {};
     const kept = Object.entries(sessions)
       .filter(([, entry]) => entry && entry.expiresAt > now)
       .sort((a, b) => b[1].lastUsedAt - a[1].lastUsedAt)
       .slice(0, STAFF_SESSION_MAX - 1);
     const next = Object.fromEntries(kept);
     next[id] = { createdAt: now, lastUsedAt: now, expiresAt: now + STAFF_SESSION_TTL_MS };
-    await this.state.storage.put('staffSessions', next);
+    await storage.put('staffSessions', next);
     return { token, expiresAt: new Date(now + STAFF_SESSION_TTL_MS).toISOString() };
   }
   async checkStaffSession(token) {
@@ -337,14 +337,26 @@ export class TournamentState {
       const integrityError = validateTournamentPayload(incoming.payload);
       if (integrityError) return json({ error: 'Invalid tournament state', integrityError }, 422);
       const suggested = suggestSlug(String(incoming.payload?.setup?.tName || 'Tournament'), String(incoming.payload?.setup?.tDate || new Date().getFullYear()).slice(0,4));
-      const claim = await this.claimSlug(incoming.tournamentId, incoming.slug ?? suggested, incoming.slug === undefined);
-      if (!claim.ok) return claim;
-      await this.setStaffPassword(incoming.staffPassword);
       const now = new Date().toISOString();
       const record = { schemaVersion: '1.2', tournamentId: incoming.tournamentId, engineVersion: incoming.engineVersion || 'unknown', revision: 1, createdAt: now, updatedAt: now, updatedBy: { role: 'staff', clientId: '', name: 'Tournament creator', court: '' }, payload: sanitizePayload(incoming.payload) };
-      await this.state.storage.put('record', record);
-      // The creator is logged in: the session token comes in a header, so it never sits in the record.
-      const session = await this.issueStaffSession();
+      const claim = await this.claimSlug(incoming.tournamentId, incoming.slug ?? suggested, incoming.slug === undefined);
+      if (!claim.ok) return claim;
+      const {slug} = await claim.json();
+      let session;
+      try {
+        // Record and credentials either commit together or leave no partial tournament.
+        session = await this.state.storage.transaction(async tx => {
+          await this.setStaffPassword(incoming.staffPassword, tx);
+          await tx.put('record', record);
+          return this.issueStaffSession(tx);
+        });
+      } catch (error) {
+        await this.library().fetch(new Request('https://durable-object/library/slug', {
+          method:'DELETE', headers:{'content-type':'application/json'}, body:JSON.stringify({id:incoming.tournamentId,slug})
+        }));
+        throw error;
+      }
+      // The creator token is sent only in a header, never in the record.
       return json(publicRecord(record), 200, { 'x-ksm-session-token': session.token, 'x-ksm-session-expires': session.expiresAt });
     }
 
@@ -390,10 +402,26 @@ export class TournamentState {
           while (Object.hasOwn(registry.owners,chosen) && registry.owners[chosen] !== id) chosen = `${slug.slice(0,70)}-${suffix++}`;
         }
         if (Object.hasOwn(registry.owners,chosen) && registry.owners[chosen] !== id) return json({error:'That short name is already reserved.',code:'slug-taken'},409);
+        if (!Object.hasOwn(registry.owners,chosen) && Object.values(registry.owners).filter(owner=>owner===id).length >= 5) {
+          return json({error:'This tournament already has five reserved short names. Choose one of its existing names.',code:'slug-limit'},409);
+        }
         registry.owners[chosen] = id;
         registry.current[id] = chosen;
         await tx.put('slugRegistry',registry);
         return json({id,slug:chosen});
+      });
+    }
+    // Internal compensation for a failed bootstrap only. Public routing never exposes
+    // this operation; renamed aliases and tombstones cannot be released here.
+    if (request.method === 'DELETE' && url.pathname === '/library/slug') {
+      const {id,slug} = await request.json();
+      return this.state.storage.transaction(async tx => {
+        const registry = await tx.get('slugRegistry');
+        if (registry && !registry.deleted[id] && registry.current[id]===slug && registry.owners[slug]===id && Object.values(registry.owners).filter(owner=>owner===id).length===1) {
+          delete registry.owners[slug];delete registry.current[id];
+          await tx.put('slugRegistry',registry);
+        }
+        return json({ok:true});
       });
     }
     if (request.method === 'GET' && url.pathname.startsWith('/library/resolve/')) {

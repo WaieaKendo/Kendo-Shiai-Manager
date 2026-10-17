@@ -172,9 +172,13 @@ test('app/service-worker.js serves the offline app exactly for servesAppShell() 
   for (const p of PATHS) assert.equal(sw(p), servesAppShell(p), p);
 });
 
-test('wrangler.jsonc sends /t/* to the Worker first (overlay paths), /api/* as before', () => {
+test('hosting sends pages and APIs through the Worker but bypasses static resources', () => {
   const wrangler = fs.readFileSync(new URL('../../wrangler.jsonc', import.meta.url), 'utf8');
-  assert.match(wrangler, /"run_worker_first": true/);
+  const patterns = JSON.parse(wrangler.replace(/^\s*\/\/.*$/gm, '')).assets.run_worker_first;
+  const matches = (pattern, path) => new RegExp('^'+pattern.split('*').map(s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('.*')+'$').test(path);
+  const workerFirst = path => patterns.some(p=>!p.startsWith('!')&&matches(p,path)) && !patterns.some(p=>p.startsWith('!')&&matches(p.slice(1),path));
+  for (const path of ['/', '/api/health', '/api/tournaments', `/t/${ID}`, `/t/${ID}/overlay/a`, '/lokt-2027','/lokt-2027/overlay/b']) assert.equal(workerFirst(path),true,path);
+  for (const path of ['/assets/app-hash.js','/assets/sounds/whistle01.mp3','/icons/icon-192.png','/app.js','/app.css','/engine.js','/manifest.webmanifest','/service-worker.js','/index.html','/privacy','/privacy.html','/overlay','/overlay.html','/react/module.js','/styles/app.css','/js/legacy.js','/favicon.ico','/robots.txt']) assert.equal(workerFirst(path),false,path);
   assert.match(wrangler, /"not_found_handling": "single-page-application"/);
 });
 
