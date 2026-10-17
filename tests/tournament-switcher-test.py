@@ -80,9 +80,12 @@ def main():
         raw = dp.evaluate('localStorage.getItem(KSM_SAVE_KEY)')
         assert dp.evaluate('!cloudSession.tournamentId && !readOutbox() && !localChangesPending() && !v316StaffPassword()')
         draft.expect_dialog('This tournament is only saved on this device')
+        dp.evaluate('showHomePage()')
+        draft.wait_for_dialogs()
+        assert dp.evaluate('localStorage.getItem(KSM_SAVE_KEY)') == raw
         dp.locator(sel('tournament-chip')+' summary').click()
         draft.click('switch-tournament')
-        draft.wait_for_dialogs()
+        draft.wait_for_dialogs(2)
         assert dp.evaluate('localStorage.getItem(KSM_SAVE_KEY)') == raw
         assert dp.evaluate("state.competitors[0].name==='Local competitor' && !document.body.classList.contains('ksm-home')")
         draft.close()
@@ -94,9 +97,11 @@ def main():
         assert not a.tournament_id() and a.address()=='/'
         a.expect_dialog('This tournament has changes that could not be saved')
         count=len(a.seen_dialogs)
+        history_count=page.evaluate('history.length')
         page.evaluate('history.back()')
         a.wait_for_dialogs(count+1)
         a.wait_for(lambda: a.address()=='/',message='failed-create address restored after blocked Back')
+        assert page.evaluate('history.length')==history_count, 'blocked Back added a history entry for a tournament without an ID'
         assert a.address()=='/' and page.evaluate("readOutbox() && tName.value==='Failed create' && !document.body.classList.contains('ksm-home')")
         assert not problems, problems
         browser.close()

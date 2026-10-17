@@ -17,7 +17,9 @@ not generate autosaves or offline outboxes of its own.
 An active local-only draft is protected even without a cloud ID, staff session,
 outbox or pending mutation counter: switching warns and retains its autosave and
 runtime data. Save it to the cloud before switching; Tournament File download is
-also available for backup. If Back is blocked before creation has an ID, the app
+also available for backup. This guard starts after bootstrap; the initial Library
+transition keeps the autosave recovery copy without an exit warning. If Back is
+blocked before creation has an ID, the app
 restores its previous draft address with `replaceState`, without adding a null-ID
 history entry.
 

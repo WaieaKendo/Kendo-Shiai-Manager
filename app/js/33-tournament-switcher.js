@@ -17,7 +17,7 @@ async function ksmCanLeaveTournament(){
   const pending=ksmCloudSaveInFlight||ksmCloudSavePending||localChangesPending()||readOutbox();
   // Pending drafts with creation credentials still get the normal save attempt.
   // A quiet imported draft or one without credentials has no server confirmation.
-  if(!cloudSession.tournamentId&&!document.body.classList.contains('ksm-home')&&localStorage.getItem(KSM_SAVE_KEY)&&(!pending||!v316StaffPassword())){
+  if(window.ksmBootstrapReady&&!cloudSession.tournamentId&&!document.body.classList.contains('ksm-home')&&localStorage.getItem(KSM_SAVE_KEY)&&(!pending||!v316StaffPassword())){
     alert('This tournament is only saved on this device. Save it to the cloud before switching. You can also download a Tournament File to keep a backup. Your draft is still here.');
     return false;
   }
