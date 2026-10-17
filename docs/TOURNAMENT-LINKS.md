@@ -100,3 +100,6 @@ creation prompts during a click.
 Browser helpers also wait for cloud startup to finish, including the Library
 transition, before interacting. Loaded globals or a mounted header alone do not
 mean the initial tournament load has finished setting its role and screen.
+The runner budgets two CPU cores per browser job (up to six jobs); each browser
+launches multiple renderers in addition to local Workers. This avoids saturating
+eight-core desktops with six simultaneous browser suites. Timeouts are unchanged.
