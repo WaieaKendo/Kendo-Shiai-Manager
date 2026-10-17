@@ -85,6 +85,7 @@ def load_app(page, html=None, wait_until='domcontentloaded', session='staff', qu
     page.route(f'{APP_ORIGIN}/**', handle)
     page.goto(f'{APP_ORIGIN}{page_path}{query}', wait_until=wait_until)
     wait_for_react(page)
+    page.wait_for_function('window.ksmBootstrapReady === true')
     if session == 'staff':
         page.evaluate("""() => {
           document.body.classList.remove('ksm-home');

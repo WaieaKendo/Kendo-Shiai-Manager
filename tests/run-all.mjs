@@ -64,8 +64,10 @@ function run(file) {
 }
 
 // Node tests are fast and independent; Python tests each launch a browser (and some a local
-// wrangler), so run a few at a time: KSM_TEST_JOBS, or 6 on machines with 8+ cores, else 4.
-const PY_JOBS = Number(process.env.KSM_TEST_JOBS) || (os.cpus().length >= 8 ? 6 : 4);
+// wrangler). Each browser owns several renderer processes: budget two cores per job
+// instead of oversubscribing eight-core desktops with six browsers plus their Workers.
+// Keep KSM_TEST_JOBS as the explicit override for dedicated test machines.
+const PY_JOBS = Number(process.env.KSM_TEST_JOBS) || Math.max(2, Math.min(6, Math.floor(os.availableParallelism() / 2)));
 async function runPool(list, concurrency) {
   const results = [];
   let next = 0;

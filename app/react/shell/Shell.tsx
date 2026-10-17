@@ -119,10 +119,17 @@ export function Nav() {
 /** The contents of header.ksm-topbar .cloud-status-wrap. */
 export function StatusRow() {
   const h = useSyncExternalStore(subscribeHeader, headerSnapshot, () => EMPTY_HEADER);
+  const switcher = useNativeClick<HTMLButtonElement>(() => { void shellWindow().showHomePage?.(); });
+  const editSlug = useNativeClick<HTMLButtonElement>(() => { void shellWindow().ksmEditTournamentSlug?.(); });
   const staff = useNativeClick<HTMLButtonElement>(() => { shellWindow().toggleStaffSession?.(); });
   const status = useNativeClick<HTMLDivElement>(() => { shellWindow().cloudDiagnostics?.(); });
   return (
     <>
+      {h.tournamentName && <details className="tournament-switcher" data-testid="tournament-chip">
+        <summary title={h.tournamentName}>{h.tournamentName} ▾</summary>
+        {h.role.dataRole === 'staff' && <button ref={editSlug} type="button" data-testid="chip-edit-slug">Edit short name</button>}
+        <button ref={switcher} type="button" data-testid="switch-tournament">Switch tournament</button>
+      </details>}
       <button ref={staff} id="staffAuthButton" className="secondary" type="button" data-testid="staff-auth">{h.staffLabel}</button>
       <div ref={status} role="button" tabIndex={0} title={STATUS_TITLE} onKeyDown={pressOnKey}>
         <span id="sessionRole" hidden data-role={h.role.dataRole ?? undefined}>{h.role.text}</span>

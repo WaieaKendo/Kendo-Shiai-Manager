@@ -141,9 +141,9 @@ def main():
         dpage.wait_for_selector(sel('access-link'))
         assert dpage.inner_text(sel('cloud-modal-title')).strip() == 'Tournament Access'
         link = dpage.inner_text(sel('access-link')).strip()
-        assert link == f'{base}{app_path(tid)}', f'access link: {link}'
+        assert link == f'{base}/roles-cup-2026', f'access link: {link}'
         assert 'key' not in link and 'e2e-staff-pass' not in dpage.inner_text(sel('cloud-modal')), 'access modal shows a key'
-        assert tid in (dpage.get_attribute(sel('access-qr'), 'src') or ''), 'QR code does not carry the link'
+        assert 'roles-cup-2026' in (dpage.get_attribute(sel('access-qr'), 'src') or ''), 'QR code does not carry the link'
         director.click('access-copy')
         director.wait_for(lambda: dpage.evaluate('navigator.clipboard.readText()') == link, message='the link on the clipboard')
         director.click('cloud-modal-close')

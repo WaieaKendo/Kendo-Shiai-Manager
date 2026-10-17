@@ -1,6 +1,7 @@
 // The release version is written only in package.json; wrangler (esbuild) bundles it in at deploy
 // time, Node reads it directly in the tests. Only .version is used (/api/health).
 import packageJson from './package.json' with { type: 'json' };
+import { isValidSlug, suggestSlug } from './app/slug-rules.mjs';
 const APP_VERSION = packageJson.version;
 const JSON_HEADERS = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' };
 const VALID_ROLES = new Set(['spectator', 'staff']);
@@ -137,6 +138,13 @@ function publicRecord(record) {
 export class TournamentState {
   constructor(state, env) { this.state = state; this.env = env; }
 
+  library() { return this.env.TOURNAMENTS.get(this.env.TOURNAMENTS.idFromName('__ksm_library__')); }
+  async claimSlug(id, slug, automatic = false) {
+    return this.library().fetch(new Request('https://durable-object/library/slug', {
+      method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({id, slug, automatic})
+    }));
+  }
+
   async staffPasswordHash() { return (await this.state.storage.get('staffPasswordHash')) || ''; }
   now() { return Date.now(); }
   async verifyStaffPassword(password) {
@@ -155,23 +163,23 @@ export class TournamentState {
   }
   // Sets the staff password (tournament creation; any future password change): revokes every
   // staff session token.
-  async setStaffPassword(password) {
+  async setStaffPassword(password, storage = this.state.storage) {
     this.verifiedPassword = null;
-    await this.state.storage.put('staffPasswordHash', await hashStaffPassword(password));
-    await this.state.storage.delete('staffSessions');
+    await storage.put('staffPasswordHash', await hashStaffPassword(password));
+    await storage.delete('staffSessions');
   }
-  async issueStaffSession() {
+  async issueStaffSession(storage = this.state.storage) {
     const token = newStaffToken();
     const id = await sha256Hex(token);
     const now = this.now();
-    const sessions = (await this.state.storage.get('staffSessions')) || {};
+    const sessions = (await storage.get('staffSessions')) || {};
     const kept = Object.entries(sessions)
       .filter(([, entry]) => entry && entry.expiresAt > now)
       .sort((a, b) => b[1].lastUsedAt - a[1].lastUsedAt)
       .slice(0, STAFF_SESSION_MAX - 1);
     const next = Object.fromEntries(kept);
     next[id] = { createdAt: now, lastUsedAt: now, expiresAt: now + STAFF_SESSION_TTL_MS };
-    await this.state.storage.put('staffSessions', next);
+    await storage.put('staffSessions', next);
     return { token, expiresAt: new Date(now + STAFF_SESSION_TTL_MS).toISOString() };
   }
   async checkStaffSession(token) {
@@ -313,18 +321,42 @@ export class TournamentState {
       return json(safe);
     }
 
+    if (request.method === 'POST' && url.pathname === '/slug') {
+      const access = await this.staffAccess(request.headers.get('x-ksm-session-key') || '', 'Staff authorization required');
+      if (!access.ok) return denied(access);
+      const record = await this.state.storage.get('record');
+      if (!record) return json({error:'Tournament not found'},404);
+      const body = await request.json();
+      return this.claimSlug(record.tournamentId, body.slug);
+    }
+
     if (request.method === 'POST' && url.pathname === '/bootstrap') {
       if (await this.state.storage.get('record')) return json({ error: 'Tournament already exists' }, 409);
       const incoming = await request.json();
       if (!incoming.staffPassword || String(incoming.staffPassword).length < 4) return json({ error: 'Staff password required' }, 400);
       const integrityError = validateTournamentPayload(incoming.payload);
       if (integrityError) return json({ error: 'Invalid tournament state', integrityError }, 422);
-      await this.setStaffPassword(incoming.staffPassword);
+      const suggested = suggestSlug(String(incoming.payload?.setup?.tName || 'Tournament'), String(incoming.payload?.setup?.tDate || new Date().getFullYear()).slice(0,4));
       const now = new Date().toISOString();
       const record = { schemaVersion: '1.2', tournamentId: incoming.tournamentId, engineVersion: incoming.engineVersion || 'unknown', revision: 1, createdAt: now, updatedAt: now, updatedBy: { role: 'staff', clientId: '', name: 'Tournament creator', court: '' }, payload: sanitizePayload(incoming.payload) };
-      await this.state.storage.put('record', record);
-      // The creator is logged in: the session token comes in a header, so it never sits in the record.
-      const session = await this.issueStaffSession();
+      const claim = await this.claimSlug(incoming.tournamentId, incoming.slug ?? suggested, incoming.slug === undefined);
+      if (!claim.ok) return claim;
+      const {slug} = await claim.json();
+      let session;
+      try {
+        // Record and credentials either commit together or leave no partial tournament.
+        session = await this.state.storage.transaction(async tx => {
+          await this.setStaffPassword(incoming.staffPassword, tx);
+          await tx.put('record', record);
+          return this.issueStaffSession(tx);
+        });
+      } catch (error) {
+        await this.library().fetch(new Request('https://durable-object/library/slug', {
+          method:'DELETE', headers:{'content-type':'application/json'}, body:JSON.stringify({id:incoming.tournamentId,slug})
+        }));
+        throw error;
+      }
+      // The creator token is sent only in a header, never in the record.
       return json(publicRecord(record), 200, { 'x-ksm-session-token': session.token, 'x-ksm-session-expires': session.expiresAt });
     }
 
@@ -356,14 +388,67 @@ export class TournamentState {
       return json({ ok: true });
     }
 
-    // The singleton __ksm_library__ Durable Object stores only card metadata.
+    // Registry metadata is authoritative outside snapshots. One transaction owns claims,
+    // aliases and tombstones; a stale tournament snapshot can never rename or release a slug.
+    if (request.method === 'POST' && url.pathname === '/library/slug') {
+      const {id, slug, automatic} = await request.json();
+      if (!id || typeof slug !== 'string' || !isValidSlug(slug)) return json({error:'Use lowercase letters, digits and single dashes; this short name may be reserved.',code:'invalid-slug'},400);
+      return this.state.storage.transaction(async tx => {
+        const registry = (await tx.get('slugRegistry')) || {owners:{}, current:{}, deleted:{}};
+        if (registry.deleted[id]) return tournamentGone(registry.deleted[id]);
+        let chosen = slug;
+        if (automatic) {
+          let suffix = 2;
+          while (Object.hasOwn(registry.owners,chosen) && registry.owners[chosen] !== id) chosen = `${slug.slice(0,70)}-${suffix++}`;
+        }
+        if (Object.hasOwn(registry.owners,chosen) && registry.owners[chosen] !== id) return json({error:'That short name is already reserved.',code:'slug-taken'},409);
+        if (!Object.hasOwn(registry.owners,chosen) && Object.values(registry.owners).filter(owner=>owner===id).length >= 5) {
+          return json({error:'This tournament already has five reserved short names. Choose one of its existing names.',code:'slug-limit'},409);
+        }
+        registry.owners[chosen] = id;
+        registry.current[id] = chosen;
+        await tx.put('slugRegistry',registry);
+        return json({id,slug:chosen});
+      });
+    }
+    // Internal compensation for a failed bootstrap only. Public routing never exposes
+    // this operation; renamed aliases and tombstones cannot be released here.
+    if (request.method === 'DELETE' && url.pathname === '/library/slug') {
+      const {id,slug} = await request.json();
+      return this.state.storage.transaction(async tx => {
+        const registry = await tx.get('slugRegistry');
+        if (registry && !registry.deleted[id] && registry.current[id]===slug && registry.owners[slug]===id && Object.values(registry.owners).filter(owner=>owner===id).length===1) {
+          delete registry.owners[slug];delete registry.current[id];
+          await tx.put('slugRegistry',registry);
+        }
+        return json({ok:true});
+      });
+    }
+    if (request.method === 'GET' && url.pathname.startsWith('/library/resolve/')) {
+      const slug = decodeURIComponent(url.pathname.slice('/library/resolve/'.length));
+      const registry = await this.state.storage.get('slugRegistry');
+      const id = Object.hasOwn(registry?.owners||{},slug) ? registry.owners[slug] : null;
+      if (!id) return json({error:'Tournament not found'},404);
+      if (registry.deleted[id]) return tournamentGone(registry.deleted[id]);
+      return json({id,slug:registry.current[id]});
+    }
+    if (request.method === 'GET' && url.pathname.startsWith('/library/identity/')) {
+      const id = decodeURIComponent(url.pathname.slice('/library/identity/'.length));
+      const registry = await this.state.storage.get('slugRegistry');
+      if (registry?.deleted?.[id]) return tournamentGone(registry.deleted[id]);
+      return json({id,slug:registry?.current?.[id] || null});
+    }
+    // The singleton __ksm_library__ Durable Object also stores card metadata.
     if (request.method === 'GET' && url.pathname === '/library') {
       const rows = (await this.state.storage.get('library')) || {};
-      return json(Object.values(rows).sort((a,b) => String(b.updatedAt||'').localeCompare(String(a.updatedAt||''))));
+      const registry = await this.state.storage.get('slugRegistry');
+      return json(Object.values(rows).map(row=>({...row,slug:registry?.current?.[row.id]||null})).sort((a,b) => String(b.updatedAt||'').localeCompare(String(a.updatedAt||''))));
     }
     if (request.method === 'PUT' && url.pathname === '/library') {
       const item = await request.json();
       if (!item?.id) return json({ error: 'Tournament ID required' }, 400);
+      const registry = await this.state.storage.get('slugRegistry');
+      if (registry?.deleted?.[item.id]) return tournamentGone(registry.deleted[item.id]);
       const rows = (await this.state.storage.get('library')) || {};
       rows[item.id] = { id:item.id, name:String(item.name||'Kendo Tournament').slice(0,160), updatedAt:item.updatedAt||new Date().toISOString() };
       await this.state.storage.put('library', rows);
@@ -373,7 +458,12 @@ export class TournamentState {
       const id = decodeURIComponent(url.pathname.slice('/library/'.length));
       const rows = (await this.state.storage.get('library')) || {};
       delete rows[id];
-      await this.state.storage.put('library', rows);
+      await this.state.storage.transaction(async tx => {
+        const registry = (await tx.get('slugRegistry')) || {owners:{},current:{},deleted:{}};
+        registry.deleted[id] = new Date().toISOString();
+        await tx.put('slugRegistry',registry);
+        await tx.put('library',rows);
+      });
       return json({ ok:true });
     }
     return json({ error: 'Not found' }, 404);
@@ -415,6 +505,15 @@ export default {
     if (url.pathname === '/api/health') return json({ ok: true, service: 'ksm-cloud', version: APP_VERSION, realtime: true, roles: ['spectator', 'staff'], offlineOutbox: true });
 
     const libraryStub = () => env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName('__ksm_library__'));
+    const withSlug = async response => {
+      if (!response.ok) return response;
+      const record = await response.clone().json();
+      if (!record?.tournamentId) return response;
+      const identity = await libraryStub().fetch(`https://durable-object/library/identity/${encodeURIComponent(record.tournamentId)}`);
+      if (!identity.ok) return identity;
+      const {slug} = await identity.json();
+      return json({...record,slug},response.status,Object.fromEntries(response.headers));
+    };
     const updateLibrary = async (record) => {
       if (!record?.tournamentId) return;
       const setup = record.payload?.setup || {};
@@ -446,6 +545,8 @@ export default {
       return json({ ok:true, deleted:results.filter(item=>item.ok).length, attempted:ids.length, results });
     }
 
+    const slugLookup = url.pathname.match(/^\/api\/slugs\/([a-z0-9-]+)$/);
+    if (slugLookup && request.method === 'GET') return libraryStub().fetch(`https://durable-object/library/resolve/${slugLookup[1]}`);
     if (url.pathname === '/api/tournaments' && request.method === 'GET') {
       return libraryStub().fetch('https://durable-object/library');
     }
@@ -465,10 +566,10 @@ export default {
       const body = await request.json();
       const response = await stub.fetch(new Request('https://durable-object/bootstrap', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...body, tournamentId: id, revision: 0 }) }));
       if (response.ok) await updateLibrary(await response.clone().json());
-      return new Response(response.body, response);
+      return withSlug(response);
     }
 
-    const route = url.pathname.match(/^\/api\/tournaments\/([0-9a-f-]+)(?:\/(live|status|auth))?$/i);
+    const route = url.pathname.match(/^\/api\/tournaments\/([0-9a-f-]+)(?:\/(live|status|auth|slug))?$/i);
     if (route) {
       const [, id, action] = route;
       const stub = env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName(id));
@@ -477,22 +578,36 @@ export default {
         return stub.fetch(new Request(target, { method: 'GET', headers: request.headers }));
       }
       if (action === 'status' && request.method === 'GET') return stub.fetch('https://durable-object/status');
+      if (action === 'slug' && request.method === 'POST') return stub.fetch(new Request('https://durable-object/slug', {method:'POST',headers:request.headers,body:request.body}));
       if (action === 'auth' && request.method === 'POST') return stub.fetch(new Request('https://durable-object/auth', { method: 'POST', headers: request.headers, body: request.body }));
-      if (!action && request.method === 'GET') return stub.fetch('https://durable-object/snapshot');
+      if (!action && request.method === 'GET') return withSlug(await stub.fetch('https://durable-object/snapshot'));
       if (!action && request.method === 'PUT') {
         const body = await request.json();
         if (body.tournamentId && body.tournamentId !== id) return json({ error: 'Tournament ID mismatch' }, 409);
         const response = await stub.fetch(new Request('https://durable-object/snapshot', { method: 'PUT', headers: request.headers, body: JSON.stringify({ ...body, tournamentId: id }) }));
         if (response.ok) await updateLibrary(await response.clone().json());
-        return new Response(response.body, response);
+        return withSlug(response);
       }
       if (!action && request.method === 'DELETE') {
         const response = await stub.fetch(new Request('https://durable-object/snapshot', { method: 'DELETE', headers: request.headers }));
         // A 410 (already deleted) also clears the library entry, in case an earlier delete was cut short.
         if (response.ok || response.status === 410) await libraryStub().fetch(new Request(`https://durable-object/library/${encodeURIComponent(id)}`, { method:'DELETE' }));
-        return new Response(response.body, response);
+        return withSlug(response);
       }
       return json({ error: 'Method not allowed' }, 405);
+    }
+    const friendly = url.pathname.match(/^\/([a-z0-9-]+)(\/(?:live|court(?:\/[ab])?|tv(?:\/[ab])?|overlay(?:\/[ab])?))?\/?$/i);
+    if (friendly && isValidSlug(friendly[1])) {
+      const pageRoute={slug:friendly[1],screen:(friendly[2]||'').split('/')[1]?.toLowerCase()};
+      const identity = await libraryStub().fetch(`https://durable-object/library/resolve/${pageRoute.slug}`);
+      if (!identity.ok) return identity;
+      const info = await identity.json();
+      // Also check the tournament tombstone: a delete interrupted before the library update
+      // must never serve a stale alias as if it were still an active tournament.
+      const status = await env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName(info.id)).fetch('https://durable-object/status');
+      if (!status.ok) return status;
+      if (pageRoute.slug !== info.slug) return new Response(null,{status:308,headers:{location:`/${info.slug}${friendly[2]||''}`+url.search,'cache-control':'no-store'}});
+      return env.ASSETS.fetch(new Request(new URL(pageRoute.screen === 'overlay'?'/overlay':'/',url),request));
     }
     if (isOverlayPath(url.pathname)) return env.ASSETS.fetch(new Request(new URL('/overlay', url), request));
     return env.ASSETS.fetch(request);

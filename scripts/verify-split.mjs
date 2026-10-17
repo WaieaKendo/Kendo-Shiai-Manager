@@ -45,6 +45,7 @@ const KNOWN_POST_SPLIT_EDITS = {
   // feat/react-setup: app/js/00-react-bridge.js + the ksm:state-changed dispatch in
   // performCourtAction() and renderAll(), so React islands re-render with `state`.
   'react-bridge': 3,
+  'tournament-switcher': 23,
   // fix/react-batch-1 (F13): addDivision() (01) reads the old #newDiv / #newDivType fallbacks as
   // window properties (the page has no such fields; the bare names threw for an empty name).
   'add-division': 2,
@@ -182,7 +183,7 @@ const KNOWN_POST_SPLIT_EDITS = {
   // (two) and the page-unload queue pass it on (mergeQueuedStaffWork() passes the outbox's base
   // inside its outbox-flush-rebase region); 33: performCloudSave() takes, passes on and
   // remembers it, loadTournamentFromCloud() remembers it.
-  'edit-merge': 15,
+  'edit-merge': 16,
   // fix/react-batch-2 (F10): a structural edit (generate, regenerate, Edit Pool) is replayed onto
   // the server copy on a save conflict, or the director is asked (18: the replay helpers; the
   // merge base, the registration gate and the rebase's call are in edit-merge regions).
@@ -205,6 +206,7 @@ const KNOWN_POST_SPLIT_EDITS = {
   // refreshTvFromCloud() (21) is its first region.
   'delete-tournament': 9,
   'tie-flash': 5,
+  'friendly-links': 10,
   // fix/stuck-pending (F35, test audit N1), 21 and 33: a failed save queued in the outbox is retried
   // with backoff (scheduleQueuedSaveRetry(), from saveTournamentToCloudWithReason() and
   // flushCloudOutbox()), the local changes a queued snapshot carries are confirmed when it is sent
@@ -288,6 +290,7 @@ const KNOWN_POST_SPLIT_CSS_EDITS = {
   // table's Rename button, rename field and refusal message (theme tokens only).
   'division-rename': 1,
   'match-timer': 1,
+  'tournament-switcher': 1,
 };
 // Old functions whose body now lives in app/engine/*.ts (parameter lists without braces).
 const MOVED_TO_ENGINE = [

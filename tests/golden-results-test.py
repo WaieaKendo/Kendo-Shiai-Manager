@@ -137,7 +137,9 @@ def check_react(golden, step):
 def capture(app):
     """Results: (serialization, element boxes)."""
     page = app.page
-    panel = page.evaluate(PANEL_JS, ROOT)
+    # A fixed bracket overlay is positioned in the viewport. Browser scroll anchoring
+    # after phone resizes must not turn its page-coordinate snapshot into a scroll race.
+    panel = page.evaluate('root => { window.scrollTo({top:0,left:0,behavior:"instant"}); return (' + PANEL_JS + ')(root); }', ROOT)
     errors, app.page_errors[:] = list(app.page_errors), []
     shown = page.evaluate(VIEW_JS)
     entry = {

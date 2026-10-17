@@ -135,11 +135,11 @@ def main():
         for path, address in ((app_path('00000000-0000-4000-8000-000000000000'), app_path('00000000-0000-4000-8000-000000000000')),
                               ('/?tournament=00000000-0000-4000-8000-000000000000', app_path('00000000-0000-4000-8000-000000000000')),
                               (f'/t/{tid}/nonsense', '/'), (f'/t/{tid}/court/c?x=1', '/'), ('/t/', '/')):
-            opens(path, address, 'home', path)
+            opens(path, '/', 'home', path)
             assert page.evaluate("document.body.classList.contains('ksm-home')"), path
             page.wait_for_selector(f'{sel("home-tournament-name")}:has-text("Paths Cup")')
         # Only the three malformed paths (now /) asked; the unknown tournament's links did not.
-        assert len(device.seen_dialogs) == 3, device.seen_dialogs
+        assert len(device.seen_dialogs) == 0, device.seen_dialogs
 
         # --- No history entries: back leaves the app's page as before ----------------------------
         device.goto(f'/?tournament={tid}&court=B')
@@ -164,21 +164,21 @@ def main():
         director.click('nav-tournament-access')
         dpage.wait_for_selector(sel('access-link'))
         link = dpage.inner_text(sel('access-link')).strip()
-        assert link == f'{base}{app_path(tid)}', link
+        assert link == f'{base}/paths-cup-2026', link
         qr = dpage.get_attribute(sel('access-qr'), 'src') or ''
         assert urllib.parse.quote(link, safe='') in qr, qr
         director.click('access-copy')
         director.wait_for(lambda: dpage.evaluate('navigator.clipboard.readText()') == link, message='Copy Link')
         director.click('cloud-modal-close')
         for court in ('A', 'B'):
-            assert director.tv_link(court) == f'{base}{app_path(tid, "tv", court)}', director.tv_link(court)
+            assert director.tv_link(court) == f'{base}/paths-cup-2026/tv/{court.lower()}', director.tv_link(court)
             dpage.evaluate("navigator.clipboard.writeText = async t => { window.__copied = t }")
             dpage.evaluate('window.__copied = null')
             director.click('nav-tv')
             director.click(f'nav-overlay-{court.lower()}')
             copied = dpage.wait_for_function('window.__copied').json_value()
-            assert copied == f'{base}{app_path(tid, "overlay", court)}', copied
-        assert director.address() == '/', f'the director never had a link in the address: {director.address()}'
+            assert copied == f'{base}/paths-cup-2026/overlay/{court.lower()}', copied
+        assert director.address() == '/paths-cup-2026', director.address()
 
         # --- Offline: the service worker serves the app for /t/ paths -------------------------------
         court = KsmApp.open_device(browser, base, 'Offline court', problems, app_path(tid, 'court', 'a'), service_workers='allow')

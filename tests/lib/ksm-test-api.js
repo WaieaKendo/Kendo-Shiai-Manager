@@ -32,7 +32,7 @@ window.KSMTest = {
     document.dispatchEvent(new Event('visibilitychange'));
   },
   timerStorage() { return Object.fromEntries(Object.keys(localStorage).filter(k=>k.startsWith('ksm:match-timer:')).map(k=>[k,JSON.parse(localStorage.getItem(k))])); },
-  booted() { return typeof state === 'object' && typeof cloudSession === 'object'; },
+  booted() { return window.ksmBootstrapReady === true && typeof state === 'object' && typeof cloudSession === 'object'; },
 
   // --- Cloud / sync status -----------------------------------------------------
   tournamentId() { return cloudSession.tournamentId || null; },

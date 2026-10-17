@@ -7,6 +7,8 @@ import type { HeaderInput } from './header-model.ts';
 import type { NavInput } from './nav-model.ts';
 
 export interface ShellWindow {
+  ksmEditTournamentSlug?: () => unknown;
+  showHomePage?: () => unknown;
   /** What app/js/44-react-shell.js last published. */
   ksmShellNavInput?: NavInput;
   ksmShellHeaderInput?: HeaderInput;
@@ -99,6 +101,6 @@ export function useNativeClick<T extends HTMLElement>(handler: (event: MouseEven
     const click = (event: MouseEvent) => latest.current(event);
     el.addEventListener('click', click);
     return () => el.removeEventListener('click', click);
-  }, []);
+  });
   return ref;
 }

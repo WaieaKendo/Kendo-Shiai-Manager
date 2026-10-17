@@ -17,15 +17,18 @@
 // /t/<id>/court means /t/<id>; uppercase letters and a trailing slash are tidied. Any other
 // /t/... path is invalid: the app shows the Tournament Library (as for an unknown tournament).
 
+import { isValidSlug } from '../slug-rules.mjs';
+export { isValidSlug, suggestSlug, RESERVED_SLUGS } from '../slug-rules.mjs';
+
 export type RouteCourt = 'A' | 'B';
-export type Route =
+export type Route = (
   | { screen: 'home' }
   | { screen: 'tournament'; id: string }
   | { screen: 'live'; id: string }
   | { screen: 'court'; id: string; court: RouteCourt }
   | { screen: 'tv'; id: string; court: RouteCourt }
   | { screen: 'overlay'; id: string; court: RouteCourt }
-  | { screen: 'invalid' };
+  | { screen: 'invalid' }) & { slug?: string };
 
 export interface ResolvedUrl {
   route: Route;
@@ -44,7 +47,7 @@ const legacyCourt = (value: string | null): RouteCourt => (value || '').toUpperC
 /** The path of a route, e.g. /t/abc/court/a. */
 export function routePath(route: Route): string {
   if (route.screen === 'home' || route.screen === 'invalid') return '/';
-  const base = `/t/${encodeURIComponent(route.id)}`;
+  const base = route.slug && isValidSlug(route.slug) ? `/${route.slug}` : `/t/${encodeURIComponent(route.id)}`;
   switch (route.screen) {
     case 'tournament': return base;
     case 'live': return `${base}/live`;
@@ -88,7 +91,12 @@ function queryWithout(pairs: QueryPair[], keys: readonly string[], drop: (p: Que
  * else the host answers with a page): home.
  */
 export function parseRoutePath(pathname: string): Route {
-  if (pathname !== '/t' && !pathname.startsWith('/t/')) return { screen: 'home' };
+  if (pathname !== '/t' && !pathname.startsWith('/t/')) {
+    const [slug, ...rest] = pathname.slice(1).replace(/\/$/, '').split('/');
+    if (!slug || !isValidSlug(slug)) return { screen: 'home' };
+    const route = parseRoutePath(`/t/${slug}${rest.length ? '/' + rest.join('/') : ''}`);
+    return route.screen === 'home' || route.screen === 'invalid' ? route : {...route, slug};
+  }
   const segments = pathname.slice(3).replace(/\/$/, '').split('/');
   const rawId = segments[0] ?? '';
   const id = rawId ? decode(rawId) : null;
@@ -164,8 +172,8 @@ export function legacyQuery(route: Route, search: string): string {
  */
 export function servesAppShell(pathname: string): boolean {
   if (pathname === '/' || pathname === '/index.html') return true;
-  if (pathname !== '/t' && !pathname.startsWith('/t/')) return false;
-  return parseRoutePath(pathname).screen !== 'overlay';
+  const route = parseRoutePath(pathname);
+  return route.screen !== 'overlay' && (pathname === '/t' || pathname.startsWith('/t/') || (route.screen !== 'home' && route.screen !== 'invalid'));
 }
 
 /** Whether the host answers this path with the overlay page (app/overlay.html). */

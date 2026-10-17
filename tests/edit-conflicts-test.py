@@ -77,14 +77,26 @@ def main():
         devices.append(desk)
         for app in devices:
             app.watch_conflicts()
+            app.socket_barrier()
 
         def server():
             return fetch_record(base, tid)
+
+        def flush_edit(app):
+            # These races test server ordering, not the edit debounce. Start the pending
+            # save explicitly so each race does not spend seconds waiting for two timers.
+            app.page.evaluate("""() => {
+              if (!ksmSaveTimer && !ksmCloudTimer) return;
+              clearTimeout(ksmSaveTimer); ksmSaveTimer=null;
+              clearTimeout(ksmCloudTimer); ksmCloudTimer=null;
+              KSMTest.saveNow('Conflict race');
+            }""")
 
         def settle():
             """Every device idle and on the server's latest revision."""
             for app in devices:
                 app.blur()
+                flush_edit(app)
                 app.wait_idle()
             rev = server()['revision']
             for app in devices:
@@ -98,9 +110,11 @@ def main():
             seen = second.conflicts()
             second.hold_next_save()
             second_edit()
+            flush_edit(second)
             second.wait_held_save()
             first_edit()
             first.blur()
+            flush_edit(first)
             first.wait_idle()
             assert server()['revision'] > rev, f'{first.name}: its save did not reach the server first'
             second.release_save()
