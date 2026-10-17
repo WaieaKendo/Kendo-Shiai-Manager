@@ -55,6 +55,11 @@ def main():
         a.wait_for_dialogs()
         assert page.evaluate("cloudSession.tournamentId && readOutbox() && state.awards[0].name === 'Unsaved award' && v316StaffPassword()")
         assert a.address() == '/switch-a-2026'
+        blocked_count=len(a.seen_dialogs)
+        page.evaluate('history.back()')
+        a.wait_for_dialogs(blocked_count+1)
+        a.wait_for(lambda: a.address()=='/switch-a-2026',message='saved tournament address restored after blocked Back')
+        assert page.evaluate("readOutbox() && state.awards[0].name==='Unsaved award'")
         page.context.set_offline(False)
         a.save_now();a.wait_idle()
         page.evaluate('showHomePage()')
@@ -68,6 +73,31 @@ def main():
         a.answers['Tournament Name'] = 'Fresh Cup'
         a.create_tournament();a.wait_idle()
         assert page.evaluate("!state.divisions.includes('Deleted division') && !state.divisions.includes('Only A')")
+        # An imported/local draft can have neither mutation counters nor an outbox/session.
+        draft = KsmApp.local(browser.new_page(), 'Local draft', problems=problems)
+        dp = draft.page
+        dp.evaluate("tName.value='Local only';state.competitors=[{name:'Local competitor'}];markLocalSave('Imported draft');sessionStorage.removeItem(KSM_V316_STAFF_SESSION)")
+        raw = dp.evaluate('localStorage.getItem(KSM_SAVE_KEY)')
+        assert dp.evaluate('!cloudSession.tournamentId && !readOutbox() && !localChangesPending() && !v316StaffPassword()')
+        draft.expect_dialog('This tournament is only saved on this device')
+        dp.locator(sel('tournament-chip')+' summary').click()
+        draft.click('switch-tournament')
+        draft.wait_for_dialogs()
+        assert dp.evaluate('localStorage.getItem(KSM_SAVE_KEY)') == raw
+        assert dp.evaluate("state.competitors[0].name==='Local competitor' && !document.body.classList.contains('ksm-home')")
+        draft.close()
+        # A failed create has no ID; Back must preserve its draft address, never /t/null.
+        page.route('**/api/tournaments', lambda route: route.fulfill(status=503,content_type='application/json',body='{}') if route.request.method=='POST' else route.continue_())
+        a.answers['Tournament Name']='Failed create'
+        page.evaluate('createNewTournament()')
+        a.wait_for(lambda: bool(a.outbox()), message='failed create queued')
+        assert not a.tournament_id() and a.address()=='/'
+        a.expect_dialog('This tournament has changes that could not be saved')
+        count=len(a.seen_dialogs)
+        page.evaluate('history.back()')
+        a.wait_for_dialogs(count+1)
+        a.wait_for(lambda: a.address()=='/',message='failed-create address restored after blocked Back')
+        assert a.address()=='/' and page.evaluate("readOutbox() && tName.value==='Failed create' && !document.body.classList.contains('ksm-home')")
         assert not problems, problems
         browser.close()
     print('PASS tournament switcher: isolation, chip, history, reload, unsaved work')
