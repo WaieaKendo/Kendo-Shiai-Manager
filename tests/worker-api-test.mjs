@@ -12,6 +12,7 @@
 // or a future non-Cloudflare backend). Live mode creates and deletes its own
 // test tournaments and skips the in-process-only admin reset check.
 import assert from 'node:assert/strict';
+import { TournamentState } from '../src-worker.js';
 import { pkg } from './lib/ksm-source.mjs';
 import { createInProcessApi, waitFor } from './lib/worker-runtime.mjs';
 
@@ -339,7 +340,194 @@ await test('delete notifies sockets, removes the snapshot and the library entry'
   assert.ok(!rows.some(r => r.id === T));
 });
 
+await test('slugs: unique claims, reserved roots, rename aliases and tombstones', async () => {
+  const stamp = crypto.randomUUID().slice(0,8);
+  const slug = `links-${stamp}`;
+  const a = await create({slug});
+  assert.equal(a.res.status,200);
+  assert.equal(a.body.slug,slug);
+  const id = a.body.tournamentId;
+  const lookup = async value => api.call('GET',`/api/slugs/${value}`);
+  const rename = async (value, headers=staffHeaders()) => api.call('POST',`/api/tournaments/${id}/slug`,{headers,body:{slug:value}});
+  assert.equal((await create({slug})).res.status,409);
+  for (const value of ['api','t','privacy','overlay','assets','icons','index.html','service-worker.js','tv','UPPER','bad--slug','-bad','bad-', 'a'.repeat(81)]) {
+    assert.equal((await create({slug:value})).res.status,400,value);
+    assert.equal((await rename(value)).status,400,value);
+  }
+  assert.equal((await rename(`renamed-${stamp}`,{})).status,403);
+  const newSlug = `renamed-${stamp}`;
+  assert.equal((await rename(newSlug)).status,200);
+  assert.deepEqual(await json(await lookup(slug)),{id,slug:newSlug});
+  assert.deepEqual(await json(await lookup(newSlug)),{id,slug:newSlug});
+  const alias=await api.call('GET',`/${slug}/tv/b?red=left`);
+  assert.equal(alias.status,308);
+  assert.equal(alias.headers.get('location'),`/${newSlug}/tv/b?red=left`);
+  assert.equal((await create({slug})).res.status,409);
+  // Snapshot replay cannot overwrite the server-owned name.
+  const current = await json(await api.call('GET',`/api/tournaments/${id}`));
+  const saved = await api.call('PUT',`/api/tournaments/${id}`,{headers:staffHeaders(),body:{...current,slug,payload:current.payload}});
+  assert.equal((await json(saved)).slug,newSlug);
+  assert.equal((await api.call('DELETE',`/api/tournaments/${id}`,{headers:staffHeaders()})).status,200);
+  for (const value of [slug,newSlug]) {
+    assert.equal((await lookup(value)).status,410);
+    assert.equal((await api.call('GET',`/${value}/court/a`)).status,410);
+    assert.equal((await create({slug:value})).res.status,409);
+  }
+  // Two creates racing for the same name have exactly one winner.
+  const results=await Promise.all([create({slug:`race-${stamp}`}),create({slug:`race-${stamp}`})]);
+  assert.deepEqual(results.map(r=>r.res.status).sort(),[200,409]);
+});
+
+await test('a tournament may reserve five names, reuse its aliases, and never release them on deletion', async () => {
+  const stem='limited-'+Date.now();
+  const a=await create({slug:stem});
+  assert.equal(a.res.status,200);
+  const id=a.body.tournamentId;
+  const rename=value=>api.call('POST',`/api/tournaments/${id}/slug`,{headers:staffHeaders(),body:{slug:value}});
+  for(let i=2;i<=5;i++)assert.equal((await rename(stem+'-'+i)).status,200);
+  const denied=await rename(stem+'-6');
+  assert.equal(denied.status,409);
+  assert.equal((await json(denied)).code,'slug-limit');
+  assert.equal((await api.call('GET',`/api/slugs/${stem}-6`)).status,404);
+  assert.equal((await rename(stem)).status,200);
+  assert.equal((await create({slug:stem+'-6'})).res.status,200);
+  await api.call('DELETE',`/api/tournaments/${id}`,{headers:staffHeaders()});
+  for(const name of [stem,...[2,3,4,5].map(i=>stem+'-'+i)]) {
+    assert.equal((await api.call('GET',`/api/slugs/${name}`)).status,410);
+    assert.equal((await create({slug:name})).res.status,409);
+  }
+});
+
+await test('new screen paths resolve by ID and slug, preserve alias suffixes, and reserve their names', async () => {
+  const slug='screen-paths-'+Date.now();
+  const {body}=await create({slug});
+  const id=body.tournamentId;
+  const renamed=slug+'-new';
+  assert.equal((await api.call('POST',`/api/tournaments/${id}/slug`,{headers:staffHeaders(),body:{slug:renamed}})).status,200);
+  for(const screen of ['overview','results','setup','registration','pools']) {
+    for(const prefix of [`/t/${id}`,'/'+renamed]) {
+      let assetPath;
+      const assets=!LIVE&&api.durableObject(id).env.ASSETS;
+      const original=assets&&assets.fetch;
+      if(assets)assets.fetch=async request=>{assetPath=new URL(request.url).pathname;return original(request);};
+      try {
+        const response=await api.call('GET',prefix+'/'+screen);
+        assert.equal(response.status,200,prefix+'/'+screen);
+        if(assets)assert.equal(assetPath,'/',prefix+'/'+screen+' serves the app asset');
+      } finally {if(assets)assets.fetch=original;}
+    }
+    const alias=await api.call('GET',`/${slug}/${screen}?option=kept`);
+    assert.equal(alias.status,308);
+    assert.equal(alias.headers.get('location'),`/${renamed}/${screen}?option=kept`);
+    assert.equal((await api.call('GET',`/unknown-${slug}/${screen}`)).status,404);
+    assert.equal((await create({slug:screen})).res.status,400,screen);
+  }
+});
+
+await test('GET snapshot content-length matches its body or is absent', async () => {
+  const {body}=await create();
+  const response=await api.call('GET',`/api/tournaments/${body.tournamentId}`);
+  assert.equal(response.status,200);
+  const bytes=await response.arrayBuffer();
+  const length=response.headers.get('content-length');
+  assert.ok(length===null || Number(length)===bytes.byteLength);
+});
+
 if (!LIVE) {
+  await test('successful PUT survives failed registry identity lookups without retrying the save', async () => {
+    const {body}=await create();
+    const id=body.tournamentId;
+    const library=api.durableObject('__ksm_library__');
+    const original=library.fetch;
+    let revision=body.revision;
+    try {
+      for(const failure of ['response','throw']) {
+        library.fetch=async function (request) {
+          if(new URL(request.url).pathname.startsWith('/library/identity/')) {
+            if(failure==='throw')throw new Error('Registry unavailable');
+            return new Response('Registry unavailable',{status:503});
+          }
+          return original.call(this,request);
+        };
+        const response=await put(id,revision,payload({name:'Saved despite registry failure'}));
+        assert.equal(response.status,200,failure);
+        const saved=await json(response);
+        assert.equal(saved.revision,++revision);
+        assert.equal(Object.hasOwn(saved,'slug'),false);
+        const stored=await api.storage(id).get('record');
+        assert.equal(stored.revision,revision);
+        assert.equal(stored.payload.setup.tName,'Saved despite registry failure');
+      }
+    } finally {library.fetch=original;}
+  });
+
+  await test('registry identity deletion still returns 410 after a successful snapshot', async () => {
+    const {body}=await create();
+    const library=api.durableObject('__ksm_library__');
+    const original=library.fetch;
+    library.fetch=async function (request) {
+      return new URL(request.url).pathname.startsWith('/library/identity/')
+        ? new Response('Tournament deleted',{status:410}) : original.call(this,request);
+    };
+    try {
+      const response=await api.call('GET',`/api/tournaments/${body.tournamentId}`);
+      assert.equal(response.status,410);
+      assert.equal(await response.text(),'Tournament deleted');
+    } finally {library.fetch=original;}
+  });
+
+  await test('decorated snapshot drops the original body length and encoding', async () => {
+    const {body}=await create();
+    const object=api.durableObject(body.tournamentId);
+    const original=object.fetch;
+    object.fetch=async function (request) {
+      const response=await original.call(this,request);
+      if(request.method!=='GET'||new URL(request.url).pathname!=='/snapshot')return response;
+      const text=await response.text();
+      const headers=new Headers(response.headers);
+      headers.set('content-length',String(Buffer.byteLength(text)));
+      headers.set('content-encoding','identity');
+      return new Response(text,{status:response.status,headers});
+    };
+    try {
+      const response=await api.call('GET',`/api/tournaments/${body.tournamentId}`);
+      assert.equal(response.status,200);
+      assert.equal(response.headers.get('content-length'),null);
+      assert.equal(response.headers.get('content-encoding'),null);
+      assert.equal((await json(response)).slug,body.slug);
+    } finally {object.fetch=original;}
+  });
+
+  await test('static files and reserved pages never query the slug registry', async () => {
+    const library=api.durableObject('__ksm_library__');
+    const original=library.fetch;
+    library.fetch=async()=>{throw new Error('Unexpected registry request for a static path');};
+    try {
+      for(const path of ['/assets/app-hash.js','/icons/icon-192.png','/app.js','/service-worker.js','/privacy','/index.html','/overlay']) {
+        const response=await api.call('GET',path);
+        assert.equal(response.status,200,path);
+        assert.equal(await response.text(),'static asset',path);
+      }
+    } finally {library.fetch=original;}
+  });
+
+  await test('failed bootstrap releases its claim and rolls back record and credentials', async () => {
+    const slug='failed-bootstrap-'+Date.now();
+    const original=TournamentState.prototype.issueStaffSession;
+    let failedId;
+    TournamentState.prototype.issueStaffSession=async function () {
+      failedId=(await this.state.storage.get('record')).tournamentId;
+      throw new Error('Injected session storage failure after claim');
+    };
+    try {
+      assert.equal((await create({slug})).res.status,500);
+    } finally { TournamentState.prototype.issueStaffSession=original; }
+    assert.equal((await api.call('GET',`/api/slugs/${slug}`)).status,404);
+    assert.equal(await api.storage(failedId).get('record'),undefined);
+    assert.equal(await api.storage(failedId).get('staffPasswordHash'),undefined);
+    assert.equal((await create({slug})).res.status,200);
+  });
+
   await test('admin reset requires KSM_RESET_KEY and wipes every tournament', async () => {
     const { body } = await create();
     assert.equal((await api.call('DELETE', '/api/admin/reset', { headers: { 'x-ksm-reset-key': 'wrong' } })).status, 403);

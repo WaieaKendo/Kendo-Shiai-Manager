@@ -61,7 +61,7 @@ const context={
   writeCloudDiagnosticsState:()=>({}),
   v316StaffPassword:()=> 'staffpass',
   promptNewStaffPassword:()=> 'staffpass',
-  sessionStorage:{setItem(){}},
+  sessionStorage:{setItem(){},removeItem(){}},
   setSessionRole(){},persistCloudSession(){},rememberTournament(){},clearOutbox(){},
   setConnectionStatus(){},renderPersistentSaveStatus(){},connectCloudSocket(){},showKsmToast(){},
   ksmCloudAttemptCounter:0,ksmLastSuccessfulSaveAt:null,ksmSaveStatusMode:'idle',ksmCloudSocket:{},
@@ -73,6 +73,7 @@ const context={
     return {status:200,ok:true,text:async()=>JSON.stringify(record)};
   }
 };
+Object.assign(context,{ksmTournamentEpoch:0,ksmPendingSlug:''});
 vm.createContext(context);
 vm.runInContext(withDependencies(html,snippets,{exclude:Object.keys(context)}),context);
 const saved=await context.performCloudSave(localPayload,48);

@@ -10,7 +10,7 @@
 // <body>-level element before the header, see 44-) and the toast stay legacy.
 import { mountIsland } from '../island.tsx';
 import { CloudModal, FusenDialog, RegenerateDialog, ValidationDialog } from './Dialogs.tsx';
-import { Nav, StatusRow } from './Shell.tsx';
+import { Nav, StatusRow, TournamentChip } from './Shell.tsx';
 import { shellWindow, withoutPointingListeners } from './shell-dom.ts';
 
 function find(selector: string): Element {
@@ -20,6 +20,8 @@ function find(selector: string): Element {
 }
 
 const nav = find('header.ksm-topbar nav.minimal-nav');
+nav.id = 'tournamentNavigation';
+const heading = find('#tournamentHeading');
 const status = find('header.ksm-topbar .cloud-status-wrap');
 const fusen = find('#score #fusenDialog');
 const validation = find('#validationModal');
@@ -30,6 +32,7 @@ const regenerate = find('#regenerateModal');
 // The header islands' controls listen to their own clicks; their roots take none (see
 // withoutPointingListeners()).
 withoutPointingListeners(nav, () => mountIsland(nav, <Nav />));
+withoutPointingListeners(heading, () => mountIsland(heading, <TournamentChip />));
 withoutPointingListeners(status, () => mountIsland(status, <StatusRow />));
 mountIsland(fusen, <FusenDialog root={fusen} />);
 mountIsland(validation, <ValidationDialog root={validation} />);

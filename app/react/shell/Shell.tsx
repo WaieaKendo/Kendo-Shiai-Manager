@@ -18,7 +18,8 @@
 // event (they read event.target.files and clear its value).
 // No colors of their own (the header CSS and theme tokens); the tile icons come from the branding
 // module.
-import { useLayoutEffect, useRef, useSyncExternalStore } from 'react';
+import { TOURNAMENT_HOME } from '../../engine/routes.ts';
+import { useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { DEFAULT_NAV_ICONS } from '../court/branding.ts';
 import { EMPTY_HEADER, STATUS_TITLE, type HeaderInput } from './header-model.ts';
 import {
@@ -114,6 +115,70 @@ export function Nav() {
       {NAV_FILE_INPUTS.map(f => <FileInput key={f.id} input={f} />)}
     </>
   );
+}
+
+/** The primary tournament text next to the logo. */
+export function TournamentChip() {
+  const h = useSyncExternalStore(subscribeHeader, headerSnapshot, () => EMPTY_HEADER);
+  const [expanded, setExpanded] = useState(false);
+  const toggle = useNativeClick<HTMLButtonElement>(() => setExpanded(value => !value));
+  const home = useNativeClick<HTMLAnchorElement>(event => {
+    if (event.button || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    shellWindow().navigateTo?.(TOURNAMENT_HOME.view);
+    setExpanded(false);
+  });
+  useLayoutEffect(() => {
+    if (!expanded) return;
+    const nav = document.querySelector<HTMLElement>('header.ksm-topbar nav.minimal-nav');
+    if (!nav) return;
+    const marker = document.createComment('mobile navigation');
+    nav.before(marker);
+    const layer = document.createElement('div'); layer.className = 'mobile-nav-layer';
+    const backdrop = document.createElement('div'); backdrop.className = 'mobile-nav-backdrop';
+    const drawer = document.createElement('div'); drawer.className = 'mobile-nav-drawer';
+    drawer.setAttribute('role', 'dialog'); drawer.setAttribute('aria-modal', 'true'); drawer.setAttribute('aria-label', 'Tournament navigation');
+    const dismiss = document.createElement('button'); dismiss.type = 'button'; dismiss.className = 'mobile-nav-close'; dismiss.textContent = 'Close navigation ×';
+    const close = () => { setExpanded(false); shellWindow().closeNavMenus?.(); };
+    dismiss.addEventListener('click', close); backdrop.addEventListener('click', close);
+    drawer.append(dismiss, nav); layer.append(backdrop, drawer); document.body.append(layer);
+    // The nav is a separate React island: move its root, keeping its controls and listeners.
+    const background = [...document.querySelectorAll<HTMLElement>('body > header, body > main, body > footer')];
+    const inert = background.map(el => el.inert); background.forEach(el => { el.inert = true; });
+    document.body.classList.add('ksm-nav-expanded');
+    dismiss.focus();
+    const keyboard = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); close(); }
+      if (event.key === 'Tab') {
+        const controls = [...drawer.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input:not(:disabled),[tabindex="0"]')].filter(el => el.checkVisibility());
+        const first = controls[0], last = controls[controls.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+      }
+    };
+    const click = (event: MouseEvent) => {
+      const el = event.target as Element;
+      if (el.closest('.nav-dropdown button') || el.closest('.nav-tile:not([aria-haspopup])')) close();
+    };
+    const resize = () => { if (innerWidth > 900) close(); };
+    document.addEventListener('keydown', keyboard); drawer.addEventListener('click', click); window.addEventListener('resize', resize);
+    return () => {
+      document.removeEventListener('keydown', keyboard); drawer.removeEventListener('click', click); window.removeEventListener('resize', resize);
+      marker.replaceWith(nav); layer.remove(); background.forEach((el, i) => { el.inert = inert[i] ?? false; });
+      document.body.classList.remove('ksm-nav-expanded'); toggle.current?.focus();
+    };
+  }, [expanded, toggle]);
+  useLayoutEffect(() => { if (!h.tournamentName) setExpanded(false); }, [h.tournamentName]);
+  useLayoutEffect(() => {
+    document.querySelector('.nav-brand')?.setAttribute('title', h.role.dataRole === 'staff' ? 'Tournament Library' : TOURNAMENT_HOME.label);
+  }, [h.role.dataRole]);
+  if (!h.tournamentName) return null;
+  return <>
+    <a ref={home} className="tournament-home-link" data-testid="tournament-chip" href={shellWindow().ksmTournamentHomeUrl?.() ?? '/'} title={`${h.tournamentName} — ${TOURNAMENT_HOME.label}`}>
+      <span className="tournament-chip-name">{h.tournamentName}</span>
+    </a>
+    <button ref={toggle} className="mobile-nav-toggle" type="button" data-testid="nav-toggle" aria-label={expanded ? 'Close navigation' : 'Open navigation'} aria-expanded={expanded} aria-controls="tournamentNavigation">☰</button>
+  </>;
 }
 
 /** The contents of header.ksm-topbar .cloud-status-wrap. */

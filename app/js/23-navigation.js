@@ -58,6 +58,7 @@ function regTab(mode){
   if(window.poolsReg)poolsReg.classList.toggle('hidden',mode!=='pools');
   /* ksm:post-split-begin react-registration */ksmRenderRegistrationTab(mode);/* ksm:post-split-end */
   if(mode==='pools')renderPools();
+  /* ksm:post-split-begin path-urls */if(!document.getElementById('registration').classList.contains('hidden'))ksmRecordScreenPath('registration');/* ksm:post-split-end */
 }
 function renderProgress(){ return; }
 document.addEventListener('click',function(event){

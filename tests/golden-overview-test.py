@@ -301,7 +301,12 @@ def overview_static_markup(browser, errors):
         page.add_style_tag(content=NO_TRANSITIONS)
         page.evaluate(UNDRAWN_JS)
         assert page.evaluate('window.ksmOverviewInput === undefined'), f'{label}: the Overview was published before it was opened'
-        seen.append(page.evaluate(PANEL_JS, ROOT))
+        panel = page.evaluate(PANEL_JS, ROOT)
+        # Compare this island's internal layout: the React tournament chip intentionally
+        # changes the surrounding header height, unlike the static shell above the island.
+        origin = float(panel['boxes'][0].split(',')[1])
+        panel['boxes'] = [','.join(str(v - origin if i == 1 else v) for i, v in enumerate(map(float, box.split(',')))) if box else '' for box in panel['boxes']]
+        seen.append(panel)
         if html is None:
             total, owned = page.evaluate(PANEL_FIBERS_JS, ISLAND)
             assert total and total == owned, f'island before the first publish: {total - owned} of {total} elements not rendered by React'

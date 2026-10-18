@@ -22,14 +22,15 @@
 </head>
 <body>
 <header class="ksm-topbar">
-  <div class="brand nav-brand" role="button" tabindex="0" title="Tournament Library" onclick="showHomePage()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showHomePage()}">
+  <div class="brand nav-brand" role="button" tabindex="0" title="Tournament Library" onclick="ksmHeaderLogo()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();ksmHeaderLogo()}">
     <img class="nav-brand-logo" src="/assets/ksm-fuji-logo-nav.svg" alt="">
     <div class="nav-brand-copy">
       <span class="nav-brand-name">KSM</span>
       <span class="nav-brand-subtitle">Kendo Shiai Manager</span>
-      <span class="version-badge">v__KSM_VERSION__</span>
     </div>
   </div>
+
+  <div id="tournamentHeading" class="tournament-heading"></div>
 
   <nav class="minimal-nav icon-nav" aria-label="Primary navigation">
     <button class="nav-tile director-only setup-nav-tile" onclick="navigateTo('setup')" title="Setup" data-testid="nav-setup">
@@ -162,6 +163,10 @@
           <div class="field">
             <label>Tournament Name</label>
             <input id="tName" value="Aiea Taiheiji Kendo Tournament" data-testid="setup-tournament-name">
+            <div class="setup-short-url director-only">
+              <div class="setup-short-url-row"><span>Short URL: <output id="setupShortUrl" data-testid="setup-short-url"></output></span><button type="button" class="secondary" onclick="ksmEditTournamentSlug(false)" data-testid="edit-tournament-slug">Edit short URL</button></div>
+              <p class="small">Old links keep working after a rename.</p>
+            </div>
           </div>
           <div class="field">
             <label>Host Organization</label>
@@ -540,7 +545,7 @@
   </div>
 </div>
 <section id="print" class="view hidden"><div class="card wide"><div class="no-print"><h1>Print / PDF Export</h1><p class="sub">Read-only print sheets. Use your browser print dialog to print or save as PDF.</p><div class="print-controls"><select id="printDivSelect"></select><button onclick="previewSelectedDivisionSheet()">Preview Selected Division</button><button onclick="previewAllDivisionSheets()">Preview All Divisions</button><button onclick="previewResultsSheet()">Preview Results Page</button><button class="primary" onclick="previewFullPrintPacket()" data-testid="print-full-packet">Preview Full Packet</button><button onclick="window.print()">Print / Save PDF</button></div></div><div id="printBody" class="print-body" data-testid="print-body"></div></div></section>
-<footer class="privacy-footer no-print"><a href="/privacy" data-testid="privacy-link">Privacy</a></footer>
+<footer class="privacy-footer no-print"><a href="/privacy" data-testid="privacy-link">Privacy</a><span class="library-about" data-testid="library-about">About: Kendo Shiai Manager <span class="version-badge">v__KSM_VERSION__</span></span></footer>
 </main>
 <script src="/app.js"></script>
 </body></html>

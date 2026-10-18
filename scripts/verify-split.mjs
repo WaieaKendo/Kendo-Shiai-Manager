@@ -41,10 +41,11 @@ const KNOWN_POST_SPLIT_EDITS = {
   // switched to them: isTvSession(), roleLink(), tvLink(), restoreAutoSaveIfWanted() (21),
   // KSM_TV_ASSIGNED_COURT (25), spectatorLink(), initializeCloudRoleFromUrl() (33). The court-pin,
   // load-file-guard and stream-overlay regions read and write the address through them too.
-  'path-urls': 8,
+  'path-urls': 13,
   // feat/react-setup: app/js/00-react-bridge.js + the ksm:state-changed dispatch in
   // performCourtAction() and renderAll(), so React islands re-render with `state`.
   'react-bridge': 3,
+  'tournament-switcher': 23,
   // fix/react-batch-1 (F13): addDivision() (01) reads the old #newDiv / #newDivType fallbacks as
   // window properties (the page has no such fields; the bare names threw for an empty name).
   'add-division': 2,
@@ -95,7 +96,7 @@ const KNOWN_POST_SPLIT_EDITS = {
   // addRow() (03) is its first region. 03: a No Show after generation asks first
   // (cycleCompetitorStatus(), cycleTeamStatus(); 18).
   'owner-decisions': 8,
-  'react-shell': 23,
+  'react-shell': 24,
   // feat/react-registration (M.13): Registration part 1's React islands (#regTable, the contents
   // of #tournamentStatusCard). With the legacy renderer removed (REMOVED_REGISTRATION_RENDERER)
   // renderReg()'s body (03) is a marked publisher and renderTournamentStatus() (03) publishes in
@@ -182,7 +183,7 @@ const KNOWN_POST_SPLIT_EDITS = {
   // (two) and the page-unload queue pass it on (mergeQueuedStaffWork() passes the outbox's base
   // inside its outbox-flush-rebase region); 33: performCloudSave() takes, passes on and
   // remembers it, loadTournamentFromCloud() remembers it.
-  'edit-merge': 15,
+  'edit-merge': 16,
   // fix/react-batch-2 (F10): a structural edit (generate, regenerate, Edit Pool) is replayed onto
   // the server copy on a save conflict, or the director is asked (18: the replay helpers; the
   // merge base, the registration gate and the rebase's call are in edit-merge regions).
@@ -205,6 +206,7 @@ const KNOWN_POST_SPLIT_EDITS = {
   // refreshTvFromCloud() (21) is its first region.
   'delete-tournament': 9,
   'tie-flash': 5,
+  'friendly-links': 10,
   // fix/stuck-pending (F35, test audit N1), 21 and 33: a failed save queued in the outbox is retried
   // with backoff (scheduleQueuedSaveRetry(), from saveTournamentToCloudWithReason() and
   // flushCloudOutbox()), the local changes a queued snapshot carries are confirmed when it is sent
@@ -288,6 +290,7 @@ const KNOWN_POST_SPLIT_CSS_EDITS = {
   // table's Rename button, rename field and refusal message (theme tokens only).
   'division-rename': 1,
   'match-timer': 1,
+  'tournament-switcher': 1,
 };
 // Old functions whose body now lives in app/engine/*.ts (parameter lists without braces).
 const MOVED_TO_ENGINE = [
@@ -519,6 +522,12 @@ const REMOVED_SHELL_RENDERER = [
 // 'now' must appear exactly once; the check puts 'before' back (before the test-ID step) and then
 // compares byte for byte, so any other markup change still fails.
 const MARKUP_EDITS = [
+  // Link preview: a plain page title (the version moved to the About line) and Open Graph tags.
+  ["<title>Kendo Shiai Manager v__KSM_VERSION__</title>", "<title>Kendo Shiai Manager</title>\n<meta name=\"description\" content=\"Run a kendo tournament: pools, brackets, live scores and TV displays.\">\n<meta property=\"og:type\" content=\"website\">\n<meta property=\"og:site_name\" content=\"Kendo Shiai Manager\">\n<meta property=\"og:title\" content=\"Kendo Shiai Manager\">\n<meta property=\"og:description\" content=\"Live scores, pools and brackets for kendo tournaments.\">\n<meta property=\"og:image\" content=\"https://tournament.hawaiikendofederation.org/icons/icon-512.png\">\n<meta name=\"twitter:card\" content=\"summary\">"],
+  ["            <input id=\"tName\" value=\"Aiea Taiheiji Kendo Tournament\" data-testid=\"setup-tournament-name\">", "            <input id=\"tName\" value=\"Aiea Taiheiji Kendo Tournament\" data-testid=\"setup-tournament-name\">\n            <div class=\"setup-short-url director-only\">\n              <div class=\"setup-short-url-row\"><span>Short URL: <output id=\"setupShortUrl\" data-testid=\"setup-short-url\"></output></span><button type=\"button\" class=\"secondary\" onclick=\"ksmEditTournamentSlug(false)\" data-testid=\"edit-tournament-slug\">Edit short URL</button></div>\n              <p class=\"small\">Old links keep working after a rename.</p>\n            </div>"],
+  ["  <div class=\"brand nav-brand\" role=\"button\" tabindex=\"0\" title=\"Tournament Library\" onclick=\"showHomePage()\" onkeydown=\"if(event.key==='Enter'||event.key===' '){event.preventDefault();showHomePage()}\">", "  <div class=\"brand nav-brand\" role=\"button\" tabindex=\"0\" title=\"Tournament Library\" onclick=\"ksmHeaderLogo()\" onkeydown=\"if(event.key==='Enter'||event.key===' '){event.preventDefault();ksmHeaderLogo()}\">"],
+  ['    <div class="nav-brand-copy">\n      <span class="nav-brand-name">KSM</span>\n      <span class="nav-brand-subtitle">Kendo Shiai Manager</span>\n      <span class="version-badge">v__KSM_VERSION__</span>\n    </div>', '    <div class="nav-brand-copy">\n      <span class="nav-brand-name">KSM</span>\n      <span class="nav-brand-subtitle">Kendo Shiai Manager</span>\n    </div>'],
+  ['  <nav class="minimal-nav', '  <div id="tournamentHeading" class="tournament-heading"></div>\n\n  <nav class="minimal-nav'],
   ["", "      <section class=\"setup-panel setup-panel-wide\" data-testid=\"setup-match-timer\">\n        <div class=\"setup-panel-head\"><h2>Match timer</h2></div>\n        <p class=\"setup-helper\">Use m:ss. Blank stage lengths use Regular; blank Encho has no limit.</p>\n        <div class=\"setup-form-grid\">\n          <div class=\"field\"><label for=\"timeRegular\">Regular</label><input id=\"timeRegular\" value=\"3:00\" placeholder=\"3:00\" onchange=\"ksmSaveTimerSettings()\" data-testid=\"setup-timeRegular\"></div>\n          <div class=\"field\"><label for=\"timeQuarterfinal\">Quarterfinal</label><input id=\"timeQuarterfinal\" value=\"\" placeholder=\"Use Regular\" onchange=\"ksmSaveTimerSettings()\" data-testid=\"setup-timeQuarterfinal\"></div>\n          <div class=\"field\"><label for=\"timeSemifinal\">Semifinal</label><input id=\"timeSemifinal\" value=\"\" placeholder=\"Use Regular\" onchange=\"ksmSaveTimerSettings()\" data-testid=\"setup-timeSemifinal\"></div>\n          <div class=\"field\"><label for=\"timeFinal\">Final</label><input id=\"timeFinal\" value=\"\" placeholder=\"Use Regular\" onchange=\"ksmSaveTimerSettings()\" data-testid=\"setup-timeFinal\"></div>\n          <div class=\"field\"><label for=\"timeEncho\">Encho</label><input id=\"timeEncho\" value=\"3:00\" placeholder=\"No limit\" onchange=\"ksmSaveTimerSettings()\" data-testid=\"setup-timeEncho\"></div>\n          <div class=\"field\"><label for=\"court1TimerSound\">Court A time-up sound</label><select id=\"court1TimerSound\" onchange=\"ksmSaveTimerSettings()\" data-testid=\"setup-court1TimerSound\"><option value=\"whistle01\" selected>Whistle 1</option><option value=\"whistle02\">Whistle 2</option></select></div>\n          <div class=\"field\"><label for=\"court1TimerEnabled\">Court A match timer</label><select id=\"court1TimerEnabled\" onchange=\"ksmSaveTimerSettings()\" data-testid=\"setup-court1TimerEnabled\"><option value=\"On\" selected>On</option><option value=\"Off\">Off</option></select></div>\n          <div class=\"field\"><label for=\"court2TimerSound\">Court B time-up sound</label><select id=\"court2TimerSound\" onchange=\"ksmSaveTimerSettings()\" data-testid=\"setup-court2TimerSound\"><option value=\"whistle01\">Whistle 1</option><option value=\"whistle02\" selected>Whistle 2</option></select></div>\n          <div class=\"field\"><label for=\"court2TimerEnabled\">Court B match timer</label><select id=\"court2TimerEnabled\" onchange=\"ksmSaveTimerSettings()\" data-testid=\"setup-court2TimerEnabled\"><option value=\"On\" selected>On</option><option value=\"Off\">Off</option></select></div>\n        </div>\n      </section>\n\n"],
   // #40: independent audience orientation for each TV.
   ['', "          <div class=\"field\">\n            <label for=\"court1TvRedSide\">Court A \u2014 TV: Red side (as seen by the audience)</label>\n            <select id=\"court1TvRedSide\" onchange=\"saveSetup();applyCourtSides();renderAll()\" data-testid=\"setup-tv-red-side-a\"><option value=\"right\">Red on the right</option><option value=\"left\">Red on the left</option></select>\n          </div>\n"],
@@ -533,7 +542,7 @@ const MARKUP_EDITS = [
   // feat/owner-decisions (decision 17): Paste from Excel explains the paste (ksmPasteHelp(), 43-).
   ['<button onclick="alert(\'Paste rows directly into the table from Excel.\')" data-testid="reg-paste-excel">', '<button onclick="ksmPasteHelp()" data-testid="reg-paste-excel">'],
   ['<h2 id="fusenTitle">Fusen-gachi</h2>', '<h2 id="fusenTitle">Fusen-sho</h2>'],
-  ['</main>', '<footer class="privacy-footer no-print"><a href="/privacy" data-testid="privacy-link">Privacy</a></footer>\n</main>'],
+  ['</main>', '<footer class="privacy-footer no-print"><a href="/privacy" data-testid="privacy-link">Privacy</a><span class="library-about" data-testid="library-about">About: Kendo Shiai Manager <span class="version-badge">v__KSM_VERSION__</span></span></footer>\n</main>'],
   ['<button class="danger" onclick="state.teams=[];renderTeams()" data-testid="team-clear">', '<button class="danger" onclick="clearTeams()" data-testid="team-clear">'],
   ['<button class="danger" onclick="state.exhibitions=[];renderExhibitions()" data-testid="exhibition-clear">', '<button class="danger" onclick="clearExhibitions()" data-testid="exhibition-clear">'],
 ];
@@ -580,8 +589,8 @@ const MARKUP_TEST_IDS = [
 // other placeholder may exist, and the check puts the OLD file's own version (read from its badge)
 // back in their place before comparing, so every other difference still fails.
 const VERSION_PLACEHOLDERS = {
-  // app/index.html: the page title (also the About text) and the navigation version badge.
-  markup: [['<title>Kendo Shiai Manager</title>', 1], ['<span class="version-badge">v__KSM_VERSION__</span>', 1]],
+  // app/index.html: the Library footer About version badge.
+  markup: [['About: Kendo Shiai Manager <span class="version-badge">v__KSM_VERSION__</span>', 1]],
   // app/js/19-cloud-diagnostics.js: appVersion in the snapshot and action-history downloads.
   script: [["appVersion:'__KSM_VERSION__'", 2]],
 };
@@ -648,7 +657,9 @@ const outsideBlocks = headStyles.replace(/<style[^>]*>\n[\s\S]*?<\/style>/g, '')
 check(!outsideBlocks.trim(), `old <head> held only <style> blocks between <title> and </head> (${oldStyleBlocks.length} blocks)`);
 const oldMarkup = old.slice(0, old.indexOf('<style')) + STYLE_TAG + '\n' + old.slice(old.indexOf('</head>'), scriptStart) + SCRIPT_TAG + old.slice(scriptEnd + '</script>'.length);
 let markup = fillOldVersion(indexHtml(), 'markup');
-for (const [before, now] of MARKUP_EDITS) {
+for (const [beforeSource, nowSource] of MARKUP_EDITS) {
+  const before = beforeSource.replaceAll(VERSION_PLACEHOLDER, oldVersion);
+  const now = nowSource.replaceAll(VERSION_PLACEHOLDER, oldVersion);
   const count = markup.split(now).length - 1;
   if (count !== 1) check(false, `MARKUP_EDITS: ${now} appears ${count} times (expected once)`);
   else markup = markup.replace(now, () => before);

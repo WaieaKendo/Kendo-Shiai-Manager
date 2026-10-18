@@ -3,7 +3,11 @@ const DIVISION_PRESETS=[['Yonenbu (11 years and under)','Round Robin','A'],['Sho
 /** @type {TournamentState} */
 const state={brackets:{},championshipNodes:{},teamBracketState:{},teamBracketNodes:{},singleElimNodes:{},divisions:DIVISION_PRESETS.map(x=>x[0]),divisionTypes:{},divisionCourts:{},competitors:[],teams:[],exhibitions:[],awards:[],pools:{},teamPools:{},allMatches:{},currentByDivision:{},courtState:{A:{division:null,index:0},B:{division:null,index:0}},matches:[],current:0,score:{W:[],R:[],WT:0,RT:0},history:[],currentDivision:'Women’s Open',poolViewDivision:'Women’s Open',currentCourt:'A',publicCourt:'A',courtActiveDivision:{A:null,B:null},regMode:'individual',contextMode:'pool',teamAwardMode:'top2',generated:false,teamElimTeams:{},managementRevision:0,courtActionHistory:{A:[],B:[]},courtRedoHistory:{A:[],B:[]}};
 DIVISION_PRESETS.forEach(([d,f,c])=>{state.divisionTypes[d]=f;state.divisionCourts[d]=c});state.divisionCourts['Team Tournament']='Both';
-function show(id){document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');renderAll();if(id==='print')previewAllDivisionSheets()}
+/* ksm:post-split-begin tournament-switcher */
+const KSM_EMPTY_STATE=JSON.stringify(state);
+/* ksm:post-split-end */
+
+function show(id){document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');renderAll();if(id==='print')previewAllDivisionSheets();/* ksm:post-split-begin path-urls */ksmRecordScreenPath(id);/* ksm:post-split-end */}
 function saveSetup(){
   if(window.teamCourt)state.divisionCourts['Team Tournament']=teamCourt.value;
   if(window.teamAwardMode)state.teamAwardMode=teamAwardMode.value||'top2';

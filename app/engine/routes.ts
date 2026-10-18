@@ -1,12 +1,14 @@
+/** Shared landing screen for tournament links and the header name. */
+export const TOURNAMENT_HOME = { screen: 'overview', view: 'director', label: 'Overview' } as const;
+export const DEFAULT_TOURNAMENT_SCREEN = TOURNAMENT_HOME.screen;
 // Path URLs (roadmap M.9): the one place that knows the URL scheme. Pure string logic (no DOM,
 // no URL/URLSearchParams, so it fits the engine's tsconfig): the classic app reaches it as
 // KSMEngine.* (app/js/00-path-urls.js), the overlay page imports it.
 //
 //   /                          Tournament Library (home)
-//   /t/<id>                    a tournament link: Live Scores as a spectator, on the court this
-//                              device chose before (old ?tournament=<id>, ?spectator=<id>)
-//   /t/<id>/live               the same, named (Live Scores)
-//   /t/<id>/court/a|b          a court device's link: as /t/<id>, assigned Court A/B
+//   /t/<id>                    a tournament link: the configured tournament home as a spectator (old ?tournament=<id>, ?spectator=<id>)
+//   /t/<id>/live               Live Scores
+//   /t/<id>/court/a|b          a court device's link: Live Scores, assigned Court A/B
 //                              (old ?tournament=<id>&court=A)
 //   /t/<id>/tv/a|b             TV display for Court A/B (old ?role=spectator&tournament=<id>&court=A&view=tv)
 //   /t/<id>/overlay/a|b        stream overlay, app/overlay.html (old /overlay?tournament=<id>&court=A);
@@ -17,15 +19,19 @@
 // /t/<id>/court means /t/<id>; uppercase letters and a trailing slash are tidied. Any other
 // /t/... path is invalid: the app shows the Tournament Library (as for an unknown tournament).
 
+import { isValidSlug } from '../slug-rules.mjs';
+export { isValidSlug, suggestSlug, RESERVED_SLUGS } from '../slug-rules.mjs';
+
 export type RouteCourt = 'A' | 'B';
-export type Route =
+export type Route = (
   | { screen: 'home' }
   | { screen: 'tournament'; id: string }
   | { screen: 'live'; id: string }
+  | { screen: 'overview' | 'results' | 'setup' | 'registration' | 'pools'; id: string }
   | { screen: 'court'; id: string; court: RouteCourt }
   | { screen: 'tv'; id: string; court: RouteCourt }
   | { screen: 'overlay'; id: string; court: RouteCourt }
-  | { screen: 'invalid' };
+  | { screen: 'invalid' }) & { slug?: string };
 
 export interface ResolvedUrl {
   route: Route;
@@ -44,10 +50,10 @@ const legacyCourt = (value: string | null): RouteCourt => (value || '').toUpperC
 /** The path of a route, e.g. /t/abc/court/a. */
 export function routePath(route: Route): string {
   if (route.screen === 'home' || route.screen === 'invalid') return '/';
-  const base = `/t/${encodeURIComponent(route.id)}`;
+  const base = route.slug && isValidSlug(route.slug) ? `/${route.slug}` : `/t/${encodeURIComponent(route.id)}`;
   switch (route.screen) {
     case 'tournament': return base;
-    case 'live': return `${base}/live`;
+    case 'live': case 'overview': case 'results': case 'setup': case 'registration': case 'pools': return `${base}/${route.screen}`;
     default: return `${base}/${route.screen}/${courtLetter(route.court)}`;
   }
 }
@@ -88,7 +94,12 @@ function queryWithout(pairs: QueryPair[], keys: readonly string[], drop: (p: Que
  * else the host answers with a page): home.
  */
 export function parseRoutePath(pathname: string): Route {
-  if (pathname !== '/t' && !pathname.startsWith('/t/')) return { screen: 'home' };
+  if (pathname !== '/t' && !pathname.startsWith('/t/')) {
+    const [slug, ...rest] = pathname.slice(1).replace(/\/$/, '').split('/');
+    if (!slug || !isValidSlug(slug)) return { screen: 'home' };
+    const route = parseRoutePath(`/t/${slug}${rest.length ? '/' + rest.join('/') : ''}`);
+    return route.screen === 'home' || route.screen === 'invalid' ? route : {...route, slug};
+  }
   const segments = pathname.slice(3).replace(/\/$/, '').split('/');
   const rawId = segments[0] ?? '';
   const id = rawId ? decode(rawId) : null;
@@ -97,7 +108,7 @@ export function parseRoutePath(pathname: string): Route {
   if (extra.length) return { screen: 'invalid' };
   if (kind === undefined) return letter === undefined ? { screen: 'tournament', id } : { screen: 'invalid' };
   const lower = kind.toLowerCase();
-  if (lower === 'live') return letter === undefined ? { screen: 'live', id } : { screen: 'invalid' };
+  if (['live','overview','results','setup','registration','pools'].includes(lower)) return letter === undefined ? { screen: lower as 'live' | 'overview' | 'results' | 'setup' | 'registration' | 'pools', id } : { screen: 'invalid' };
   if (lower === 'court' && letter === undefined) return { screen: 'tournament', id };
   if (lower !== 'court' && lower !== 'tv' && lower !== 'overlay') return { screen: 'invalid' };
   const screen = lower as 'court' | 'tv' | 'overlay';
@@ -154,7 +165,7 @@ export function legacyQuery(route: Route, search: string): string {
   const parts = queryPairs(search).filter(p => !keys.includes(p.key)).map(p => p.raw);
   parts.push(`tournament=${encodeURIComponent(route.id)}`);
   if (route.screen === 'court' || route.screen === 'tv' || route.screen === 'overlay') parts.push(`court=${route.court}`);
-  if (route.screen === 'tv') parts.push('view=tv');
+  if (['tv','overview','results','setup','registration','pools'].includes(route.screen)) parts.push(`view=${route.screen}`);
   return parts.join('&');
 }
 
@@ -164,8 +175,8 @@ export function legacyQuery(route: Route, search: string): string {
  */
 export function servesAppShell(pathname: string): boolean {
   if (pathname === '/' || pathname === '/index.html') return true;
-  if (pathname !== '/t' && !pathname.startsWith('/t/')) return false;
-  return parseRoutePath(pathname).screen !== 'overlay';
+  const route = parseRoutePath(pathname);
+  return route.screen !== 'overlay' && (pathname === '/t' || pathname.startsWith('/t/') || (route.screen !== 'home' && route.screen !== 'invalid'));
 }
 
 /** Whether the host answers this path with the overlay page (app/overlay.html). */

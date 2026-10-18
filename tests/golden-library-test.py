@@ -165,7 +165,7 @@ class Api:
         """Until n library requests are waiting."""
         deadline = time.time() + 10
         while len(self.held) < n:
-            assert time.time() < deadline, f'expected {n} library request(s), {len(self.held)} came'
+            assert time.time() < deadline, f'expected {n} library request(s), {len(self.held)} came: {page.evaluate("({transition:ksmTournamentTransition,role:ksmSessionRole,id:cloudSession.tournamentId,online:navigator.onLine,outbox:readOutbox(),view:document.body.className})")}'
             page.wait_for_timeout(10)
 
     def answer(self, page, *answers):
@@ -197,6 +197,7 @@ def capture(app):
     shown = page.evaluate(VIEW_JS)
     entry = {
         'shown': shown,
+        'about': page.locator('[data-testid=library-about]').inner_text() if shown else None,
         'session': page.evaluate(SESSION_JS),
         'requests': requests,
         'pending': len(app.api.held),
@@ -243,7 +244,7 @@ def answers(golden, replies):
         for prefix, reply in replies.items():
             if d.message.startswith(prefix):
                 return d.dismiss() if reply is None else d.accept(reply if isinstance(reply, str) else '')
-        d.accept()
+        d.accept(d.default_value) if d.message.startswith('Tournament short name') else d.accept()
     golden.answer = answer
 
 
@@ -328,7 +329,8 @@ def library_cards(browser, errors):
     answers(g, {'Tournament Name': 'Library Cup', 'Create Staff password': 'abcd', 'Confirm Staff password': 'abcd'})
     g.do('new tournament: creating', lambda a: (click('home-new-tournament')(a), api.wait(a.page)))
     g.do('new tournament: cloud down', lambda a: api.answer(a.page, (503, {'error': 'Cloud unavailable'})))
-    library_opened(g, 'library from the staff session', SEVERAL[:2])
+    g.do('unsaved staff exit tries save', lambda a: (a.page.evaluate('() => { void showHomePage(); }'), api.wait(a.page)))
+    g.do('unsaved staff work blocks leaving', lambda a: api.answer(a.page, (503, {'error': 'Cloud unavailable'})))
     g.finish()
 
 

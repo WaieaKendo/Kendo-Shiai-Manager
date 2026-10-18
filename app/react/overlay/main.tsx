@@ -10,4 +10,14 @@ import './overlay.css';
 const resolved = resolveUrl(location.pathname, location.search);
 if (resolved.redirect !== null && resolved.route.screen === 'overlay') history.replaceState(history.state, '', resolved.redirect + location.hash);
 const root = document.getElementById('overlay-root');
-if (root) mountIsland(root, <Overlay params={parseOverlayParams(legacyQuery(resolved.route, location.search))} />);
+async function start() {
+  const route=resolved.route;
+  if (route.slug && route.screen !== 'home' && route.screen !== 'invalid') {
+    const response=await fetch('/api/slugs/'+encodeURIComponent(route.slug), {cache:'no-store'});
+    if (!response.ok) throw new Error('Tournament short name could not be resolved');
+    const info=await response.json() as {id:string};
+    route.id=info.id;
+  }
+  if (root) mountIsland(root, <Overlay params={parseOverlayParams(legacyQuery(route, location.search))} />);
+}
+void start().catch(() => { if(root)root.textContent='Tournament could not be opened. Check the link and connection.'; });

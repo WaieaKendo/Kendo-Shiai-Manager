@@ -6,6 +6,7 @@
 // Header.tsx draws it; tests/golden/shell pins it.
 
 export interface HeaderInput {
+  tournamentName?: string;
   /** #staffAuthButton's text: "Staff Login", or "Logout" in a staff session. */
   staffLabel: string;
   /** #sessionRole (hidden): its text, and its data-role once setSessionRole() set it. */

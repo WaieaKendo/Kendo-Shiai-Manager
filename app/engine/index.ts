@@ -56,7 +56,7 @@ export type { CompletedResult, CompletedResultRepair, IdentityMatch } from './in
 export { eligibleIndividuals, eligibleTeams, generateDivision, TEAM_DIVISION, EXHIBITION_DIVISION } from './generation.ts';
 export type { CompetitorRow, TeamRow, ExhibitionRow, GenerationInput, DivisionPlan, RoundRobinPool, ExhibitionMatch } from './generation.ts';
 export {
-  routePath, routeUrl, parseRoutePath, parseLegacyLink, resolveUrl, legacyQuery, servesAppShell, servesOverlay,
+  TOURNAMENT_HOME, DEFAULT_TOURNAMENT_SCREEN, routePath, routeUrl, parseRoutePath, parseLegacyLink, resolveUrl, legacyQuery, servesAppShell, servesOverlay,
 } from './routes.ts';
 export type { Route, RouteCourt, ResolvedUrl } from './routes.ts';
 export {
@@ -64,3 +64,5 @@ export {
   divisionRenameError, renamedDivisionState, rebaseDivisionRenames, orphanedDivisionStructure, withoutDivisionStructure,
 } from './divisions.ts';
 export type { DivisionRename, RenameState, RefusedRename, RenameRebase } from './divisions.ts';
+
+export { isValidSlug, suggestSlug, RESERVED_SLUGS } from './routes.ts';

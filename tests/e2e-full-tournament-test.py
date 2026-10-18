@@ -184,7 +184,7 @@ def main():
 
         # --- Followers: spectator link and Court A TV link -------------------------------
         tv_url = director.tv_link('A')
-        assert tv_url == f'{base}{app_path(tid, "tv", "A")}', tv_url
+        assert tv_url == f'{base}/e2e-full-tournament-2026/tv/a', tv_url
         spectator = KsmApp.open_device(browser, base, 'Spectator', problems, app_path(tid))
         spectator.wait_generated()
         tv = KsmApp.open_device(browser, base, 'TV Court A', problems, tv_url[tv_url.index('/', 8):],

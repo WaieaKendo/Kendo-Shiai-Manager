@@ -2,7 +2,7 @@
 function syncSetupHeader(){/* ksm:post-split-begin react-setup */
   // The hero's name is React (app/react/setup/, 42-react-setup.js): the name field's value is
   // published to it instead of written (M.13).
-  ksmRenderSetupHeader();/* ksm:post-split-end */}
+  ksmRenderSetupHeader();ksmRefreshTournamentChip();/* ksm:post-split-end */}
 if(window.tName){
   tName.addEventListener('input',syncSetupHeader);
 }

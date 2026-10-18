@@ -289,7 +289,7 @@ export function MatchTimer() {
   const [, render] = useState(0);
   useEffect(() => {
     const update = () => render(n => n + 1);
-    const events = ['ksm:court-scoreboard', 'ksm:court-header', 'ksm:state-changed', 'ksm:tie-flash-connection'];
+    const events = ['ksm:court-scoreboard', 'ksm:court-header', 'ksm:state-changed', 'ksm:tie-flash-connection', 'ksm:tournament-reset'];
     events.forEach(e => window.addEventListener(e, update));
     // Backstop: re-read the court input shortly after any event ordering slip, so tied/untied never stays stale.
     const id = window.setInterval(update, 250);

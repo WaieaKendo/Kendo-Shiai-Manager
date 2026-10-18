@@ -168,6 +168,8 @@ def main():
         legacy.expect_dialog('Restore autosaved tournament?')
         legacy.reload()
         assert legacy.has_autosave() and legacy.seen_dialogs, 'the reset ran again'
+        assert legacy.visible_view()==['home'], 'the initial Library transition was treated as leaving an active draft'
+        assert legacy.page.evaluate('k => JSON.parse(localStorage.getItem(k)).setup.tName', AUTOSAVE_KEY)=='Kept', 'startup discarded the retained local draft'
 
         assert not problems, '\n'.join(problems)
         print(f'PASS remote updates: stale/duplicate/own echo, editing hold, load repair, legacy reset; Setup edits merged on conflict ({time.time() - started:.0f}s)')

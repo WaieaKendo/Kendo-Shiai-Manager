@@ -2,7 +2,7 @@
 
 Bounding boxes and computed styles, not CSS source text:
   * phone portrait (390×844) and landscape (844×390): no sideways scroll; header nav
-    strip fits (tiles in one row) and a long tournament name fits in at most two lines;
+    collapses behind a hamburger and a long tournament name fits in at most two lines;
   * court screen, phone landscape: both scoring panels flank the centered timer,
     compact action buttons; Next Match stays gold;
   * Live Scores: courts stacked on a phone in portrait, side by side on desktop;
@@ -80,6 +80,9 @@ def main():
         page.on('pageerror', lambda e: errors.append(str(e)))
         page.on('dialog', lambda d: d.dismiss())
         app = KsmApp.local(page)
+        # Measure an existing staff tournament; offline autosaves must not open
+        # creation-password prompts in the middle of a navigation click.
+        page.evaluate("() => { cloudSession.tournamentId='layout-cup'; sessionStorage.setItem(KSM_V316_STAFF_SESSION,'ksmst_layout_fixture'); }")
         page.fill(sel('setup-tournament-name'), LONG_NAME)
         page.press(sel('setup-tournament-name'), 'Tab')
 
@@ -107,12 +110,10 @@ def main():
                 no_sideways_scroll(page, f'{label} {view}')
             app.open_court('A')
             no_sideways_scroll(page, f'{label} court')
-            # The navigation strip fits the screen (it may scroll within itself); tiles share one row.
-            strip = page.evaluate("""() => { const r = document.querySelector('[data-testid="nav-results"]').closest('nav').getBoundingClientRect();
-              return {x: r.left, r: r.right}; }""")
-            tiles = boxes(page, 'header [data-testid^="nav-"]')
-            assert strip['x'] >= 0 and strip['r'] <= w + 0.5 and len({t['y'] for t in tiles}) == 1 and len({t['h'] for t in tiles}) == 1, \
-                f'{label}: navigation {strip}, tiles {tiles}'
+            # Choosing a court collapses the mobile navigation; the toggle stays reachable.
+            assert page.locator('nav.minimal-nav').is_hidden(), f'{label}: mobile nav stays expanded'
+            toggle = boxes(page, sel('nav-toggle'))[0]
+            assert toggle['x'] >= 0 and toggle['r'] <= w and toggle['h'] >= 44, f'{label}: hamburger {toggle}'
             name = boxes(page, sel('court-tournament-name'))[0]
             assert name['r'] <= w and name['h'] <= 2 * name['lh'] + 2, f'{label}: tournament name {name}'
 

@@ -137,7 +137,9 @@ def check_react(golden, step):
 def capture(app):
     """Results: (serialization, element boxes)."""
     page = app.page
-    panel = page.evaluate(PANEL_JS, ROOT)
+    # A fixed bracket overlay is positioned in the viewport. Browser scroll anchoring
+    # after phone resizes must not turn its page-coordinate snapshot into a scroll race.
+    panel = page.evaluate('root => { window.scrollTo({top:0,left:0,behavior:"instant"}); return (' + PANEL_JS + ')(root); }', ROOT)
     errors, app.page_errors[:] = list(app.page_errors), []
     shown = page.evaluate(VIEW_JS)
     entry = {
@@ -161,7 +163,7 @@ def open_app(name, browser, errors, entries=None):
     # the mouse left it, not somewhere in between.
     app.page.add_style_tag(content=NO_TRANSITIONS)
     golden = Golden(name, app, app.page_errors, GOLDEN_DIR, capture, check_react)
-    assert app.page.evaluate('window.ksmResultsMounted === true'), f'{name}: the Results islands did not mount'
+    app.wait_for(lambda: app.page.evaluate('window.ksmResultsMounted === true'), message=f'{name}: Results islands mounted')
     assert app.page.locator('#resultsModuleMissing').count() == 0, f'{name}: "Results could not load" shown on a working page'
     if entries:
         app.configure(entries)
