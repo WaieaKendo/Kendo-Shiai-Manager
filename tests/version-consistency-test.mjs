@@ -33,7 +33,7 @@ const checks = [
   [lock.version === v && lock.packages?.['']?.version === v, 'package-lock.json version matches package.json'],
   [!hardCoded.length, `no hard-coded release version in the sources, only ${VERSION_PLACEHOLDER}${hardCoded.length ? ': ' + hardCoded.join(', ') : ''}`],
   [footer.includes(`About: Kendo Shiai Manager <span class="version-badge">v${v}</span>`), 'Library footer About version matches package.json'],
-  [builtHtml.includes(`<title>Kendo Shiai Manager v${v}</title>`), 'built HTML title/about text matches package.json'],
+  [builtHtml.includes(`<span class="version-badge">v${v}</span>`) && builtHtml.includes('<title>Kendo Shiai Manager</title>'), 'built HTML badge matches package.json; title has no version'],
   [builtJs.split(`appVersion:'${v}'`).length - 1 === 2, 'built app.js diagnostics downloads carry the version (2)'],
   [builtSw.includes(`const CACHE_NAME = 'ksm-shell-v${v}'`), 'built service worker cache name matches (forces PWA update on release)'],
   [health.version === v, `/api/health version matches (${health.version})`],

@@ -587,8 +587,8 @@ const MARKUP_TEST_IDS = [
 // other placeholder may exist, and the check puts the OLD file's own version (read from its badge)
 // back in their place before comparing, so every other difference still fails.
 const VERSION_PLACEHOLDERS = {
-  // app/index.html: the page title and the Library footer About version badge.
-  markup: [['<title>Kendo Shiai Manager v__KSM_VERSION__</title>', 1], ['About: Kendo Shiai Manager <span class="version-badge">v__KSM_VERSION__</span>', 1]],
+  // app/index.html: the plain page title (no version) and the Library footer About version badge.
+  markup: [['<title>Kendo Shiai Manager</title>', 1], ['About: Kendo Shiai Manager <span class="version-badge">v__KSM_VERSION__</span>', 1]],
   // app/js/19-cloud-diagnostics.js: appVersion in the snapshot and action-history downloads.
   script: [["appVersion:'__KSM_VERSION__'", 2]],
 };
