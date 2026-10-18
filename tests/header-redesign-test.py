@@ -65,7 +65,10 @@ def main():
                     app.click('nav-save-load' if role=='staff' else 'nav-courts')
                     dropdown=page.locator('#saveLoadMenu' if role=='staff' else '#courtsMenu')
                     bounds=dropdown.bounding_box()
-                    assert bounds['y']>=0 and bounds['y']+bounds['height']<=height,(width,height,bounds)
+                    # The submenu nests inside the menu panel; the panel (which scrolls) stays on screen.
+                    panel=page.locator('nav.minimal-nav').bounding_box()
+                    assert panel['y']>=0 and panel['y']+panel['height']<=height,(width,height,panel)
+                    assert bounds['x']>=panel['x'] and bounds['x']+bounds['width']<=panel['x']+panel['width']+1,(bounds,panel)
                     page.keyboard.press('Escape')
                     assert toggle.get_attribute('aria-expanded')=='false' and toggle.evaluate('el=>el===document.activeElement')
                     toggle.click()

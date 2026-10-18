@@ -522,6 +522,8 @@ const REMOVED_SHELL_RENDERER = [
 // 'now' must appear exactly once; the check puts 'before' back (before the test-ID step) and then
 // compares byte for byte, so any other markup change still fails.
 const MARKUP_EDITS = [
+  // Link preview: a plain page title (the version moved to the About line) and Open Graph tags.
+  ["<title>Kendo Shiai Manager v__KSM_VERSION__</title>", "<title>Kendo Shiai Manager</title>\n<meta name=\"description\" content=\"Run a kendo tournament: pools, brackets, live scores and TV displays.\">\n<meta property=\"og:type\" content=\"website\">\n<meta property=\"og:site_name\" content=\"Kendo Shiai Manager\">\n<meta property=\"og:title\" content=\"Kendo Shiai Manager\">\n<meta property=\"og:description\" content=\"Live scores, pools and brackets for kendo tournaments.\">\n<meta property=\"og:image\" content=\"https://tournament.hawaiikendofederation.org/icons/icon-512.png\">\n<meta name=\"twitter:card\" content=\"summary\">"],
   ["            <input id=\"tName\" value=\"Aiea Taiheiji Kendo Tournament\" data-testid=\"setup-tournament-name\">", "            <input id=\"tName\" value=\"Aiea Taiheiji Kendo Tournament\" data-testid=\"setup-tournament-name\">\n            <div class=\"setup-short-url director-only\">\n              <div class=\"setup-short-url-row\"><span>Short URL: <output id=\"setupShortUrl\" data-testid=\"setup-short-url\"></output></span><button type=\"button\" class=\"secondary\" onclick=\"ksmEditTournamentSlug(false)\" data-testid=\"edit-tournament-slug\">Edit short URL</button></div>\n              <p class=\"small\">Old links keep working after a rename.</p>\n            </div>"],
   ["  <div class=\"brand nav-brand\" role=\"button\" tabindex=\"0\" title=\"Tournament Library\" onclick=\"showHomePage()\" onkeydown=\"if(event.key==='Enter'||event.key===' '){event.preventDefault();showHomePage()}\">", "  <div class=\"brand nav-brand\" role=\"button\" tabindex=\"0\" title=\"Tournament Library\" onclick=\"ksmHeaderLogo()\" onkeydown=\"if(event.key==='Enter'||event.key===' '){event.preventDefault();ksmHeaderLogo()}\">"],
   ['    <div class="nav-brand-copy">\n      <span class="nav-brand-name">KSM</span>\n      <span class="nav-brand-subtitle">Kendo Shiai Manager</span>\n      <span class="version-badge">v__KSM_VERSION__</span>\n    </div>', '    <div class="nav-brand-copy">\n      <span class="nav-brand-name">KSM</span>\n      <span class="nav-brand-subtitle">Kendo Shiai Manager</span>\n    </div>'],
@@ -587,8 +589,8 @@ const MARKUP_TEST_IDS = [
 // other placeholder may exist, and the check puts the OLD file's own version (read from its badge)
 // back in their place before comparing, so every other difference still fails.
 const VERSION_PLACEHOLDERS = {
-  // app/index.html: the plain page title (no version) and the Library footer About version badge.
-  markup: [['<title>Kendo Shiai Manager</title>', 1], ['About: Kendo Shiai Manager <span class="version-badge">v__KSM_VERSION__</span>', 1]],
+  // app/index.html: the Library footer About version badge.
+  markup: [['About: Kendo Shiai Manager <span class="version-badge">v__KSM_VERSION__</span>', 1]],
   // app/js/19-cloud-diagnostics.js: appVersion in the snapshot and action-history downloads.
   script: [["appVersion:'__KSM_VERSION__'", 2]],
 };
