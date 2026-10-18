@@ -25,11 +25,14 @@ const hardCoded = [
   ['src-worker.js', worker],
 ].filter(([, text]) => text.includes(v) || /version: '\d|appVersion:'\d|ksm-shell-v\d|Kendo Shiai Manager v\d|version-badge">v\d/.test(text)).map(([f]) => f);
 
+const footer = builtHtml.match(/<footer[\s\S]*?<\/footer>/)?.[0] || '';
+const header = builtHtml.match(/<header[\s\S]*?<\/header>/)?.[0] || '';
 const checks = [
+  [!header.includes('version-badge'), 'the header has no version badge'],
   [/^\d+\.\d+\.\d+(-[\w.]+)?$/.test(v), `package.json version is semver (${v})`],
   [lock.version === v && lock.packages?.['']?.version === v, 'package-lock.json version matches package.json'],
   [!hardCoded.length, `no hard-coded release version in the sources, only ${VERSION_PLACEHOLDER}${hardCoded.length ? ': ' + hardCoded.join(', ') : ''}`],
-  [builtHtml.includes(`<span class="version-badge">v${v}</span>`), 'built HTML version badge matches package.json'],
+  [footer.includes(`About: Kendo Shiai Manager <span class="version-badge">v${v}</span>`), 'Library footer About version matches package.json'],
   [builtHtml.includes(`<title>Kendo Shiai Manager v${v}</title>`), 'built HTML title/about text matches package.json'],
   [builtJs.split(`appVersion:'${v}'`).length - 1 === 2, 'built app.js diagnostics downloads carry the version (2)'],
   [builtSw.includes(`const CACHE_NAME = 'ksm-shell-v${v}'`), 'built service worker cache name matches (forces PWA update on release)'],

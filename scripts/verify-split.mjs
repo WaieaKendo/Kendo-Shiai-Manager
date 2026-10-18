@@ -522,6 +522,8 @@ const REMOVED_SHELL_RENDERER = [
 // 'now' must appear exactly once; the check puts 'before' back (before the test-ID step) and then
 // compares byte for byte, so any other markup change still fails.
 const MARKUP_EDITS = [
+  ['    <div class="nav-brand-copy">\n      <span class="nav-brand-name">KSM</span>\n      <span class="nav-brand-subtitle">Kendo Shiai Manager</span>\n      <span class="version-badge">v__KSM_VERSION__</span>\n    </div>', '    <div class="nav-brand-copy">\n      <span class="nav-brand-name">KSM</span>\n      <span class="nav-brand-subtitle">Kendo Shiai Manager</span>\n    </div>'],
+  ['  <nav class="minimal-nav', '  <div id="tournamentHeading" class="tournament-heading"></div>\n\n  <nav class="minimal-nav'],
   ["", "      <section class=\"setup-panel setup-panel-wide\" data-testid=\"setup-match-timer\">\n        <div class=\"setup-panel-head\"><h2>Match timer</h2></div>\n        <p class=\"setup-helper\">Use m:ss. Blank stage lengths use Regular; blank Encho has no limit.</p>\n        <div class=\"setup-form-grid\">\n          <div class=\"field\"><label for=\"timeRegular\">Regular</label><input id=\"timeRegular\" value=\"3:00\" placeholder=\"3:00\" onchange=\"ksmSaveTimerSettings()\" data-testid=\"setup-timeRegular\"></div>\n          <div class=\"field\"><label for=\"timeQuarterfinal\">Quarterfinal</label><input id=\"timeQuarterfinal\" value=\"\" placeholder=\"Use Regular\" onchange=\"ksmSaveTimerSettings()\" data-testid=\"setup-timeQuarterfinal\"></div>\n          <div class=\"field\"><label for=\"timeSemifinal\">Semifinal</label><input id=\"timeSemifinal\" value=\"\" placeholder=\"Use Regular\" onchange=\"ksmSaveTimerSettings()\" data-testid=\"setup-timeSemifinal\"></div>\n          <div class=\"field\"><label for=\"timeFinal\">Final</label><input id=\"timeFinal\" value=\"\" placeholder=\"Use Regular\" onchange=\"ksmSaveTimerSettings()\" data-testid=\"setup-timeFinal\"></div>\n          <div class=\"field\"><label for=\"timeEncho\">Encho</label><input id=\"timeEncho\" value=\"3:00\" placeholder=\"No limit\" onchange=\"ksmSaveTimerSettings()\" data-testid=\"setup-timeEncho\"></div>\n          <div class=\"field\"><label for=\"court1TimerSound\">Court A time-up sound</label><select id=\"court1TimerSound\" onchange=\"ksmSaveTimerSettings()\" data-testid=\"setup-court1TimerSound\"><option value=\"whistle01\" selected>Whistle 1</option><option value=\"whistle02\">Whistle 2</option></select></div>\n          <div class=\"field\"><label for=\"court1TimerEnabled\">Court A match timer</label><select id=\"court1TimerEnabled\" onchange=\"ksmSaveTimerSettings()\" data-testid=\"setup-court1TimerEnabled\"><option value=\"On\" selected>On</option><option value=\"Off\">Off</option></select></div>\n          <div class=\"field\"><label for=\"court2TimerSound\">Court B time-up sound</label><select id=\"court2TimerSound\" onchange=\"ksmSaveTimerSettings()\" data-testid=\"setup-court2TimerSound\"><option value=\"whistle01\">Whistle 1</option><option value=\"whistle02\" selected>Whistle 2</option></select></div>\n          <div class=\"field\"><label for=\"court2TimerEnabled\">Court B match timer</label><select id=\"court2TimerEnabled\" onchange=\"ksmSaveTimerSettings()\" data-testid=\"setup-court2TimerEnabled\"><option value=\"On\" selected>On</option><option value=\"Off\">Off</option></select></div>\n        </div>\n      </section>\n\n"],
   // #40: independent audience orientation for each TV.
   ['', "          <div class=\"field\">\n            <label for=\"court1TvRedSide\">Court A \u2014 TV: Red side (as seen by the audience)</label>\n            <select id=\"court1TvRedSide\" onchange=\"saveSetup();applyCourtSides();renderAll()\" data-testid=\"setup-tv-red-side-a\"><option value=\"right\">Red on the right</option><option value=\"left\">Red on the left</option></select>\n          </div>\n"],
@@ -536,7 +538,7 @@ const MARKUP_EDITS = [
   // feat/owner-decisions (decision 17): Paste from Excel explains the paste (ksmPasteHelp(), 43-).
   ['<button onclick="alert(\'Paste rows directly into the table from Excel.\')" data-testid="reg-paste-excel">', '<button onclick="ksmPasteHelp()" data-testid="reg-paste-excel">'],
   ['<h2 id="fusenTitle">Fusen-gachi</h2>', '<h2 id="fusenTitle">Fusen-sho</h2>'],
-  ['</main>', '<footer class="privacy-footer no-print"><a href="/privacy" data-testid="privacy-link">Privacy</a></footer>\n</main>'],
+  ['</main>', '<footer class="privacy-footer no-print"><a href="/privacy" data-testid="privacy-link">Privacy</a><span class="library-about" data-testid="library-about">About: Kendo Shiai Manager <span class="version-badge">v__KSM_VERSION__</span></span></footer>\n</main>'],
   ['<button class="danger" onclick="state.teams=[];renderTeams()" data-testid="team-clear">', '<button class="danger" onclick="clearTeams()" data-testid="team-clear">'],
   ['<button class="danger" onclick="state.exhibitions=[];renderExhibitions()" data-testid="exhibition-clear">', '<button class="danger" onclick="clearExhibitions()" data-testid="exhibition-clear">'],
 ];
@@ -583,8 +585,8 @@ const MARKUP_TEST_IDS = [
 // other placeholder may exist, and the check puts the OLD file's own version (read from its badge)
 // back in their place before comparing, so every other difference still fails.
 const VERSION_PLACEHOLDERS = {
-  // app/index.html: the page title (also the About text) and the navigation version badge.
-  markup: [['<title>Kendo Shiai Manager v__KSM_VERSION__</title>', 1], ['<span class="version-badge">v__KSM_VERSION__</span>', 1]],
+  // app/index.html: the page title and the Library footer About version badge.
+  markup: [['<title>Kendo Shiai Manager v__KSM_VERSION__</title>', 1], ['About: Kendo Shiai Manager <span class="version-badge">v__KSM_VERSION__</span>', 1]],
   // app/js/19-cloud-diagnostics.js: appVersion in the snapshot and action-history downloads.
   script: [["appVersion:'__KSM_VERSION__'", 2]],
 };
@@ -651,7 +653,9 @@ const outsideBlocks = headStyles.replace(/<style[^>]*>\n[\s\S]*?<\/style>/g, '')
 check(!outsideBlocks.trim(), `old <head> held only <style> blocks between <title> and </head> (${oldStyleBlocks.length} blocks)`);
 const oldMarkup = old.slice(0, old.indexOf('<style')) + STYLE_TAG + '\n' + old.slice(old.indexOf('</head>'), scriptStart) + SCRIPT_TAG + old.slice(scriptEnd + '</script>'.length);
 let markup = fillOldVersion(indexHtml(), 'markup');
-for (const [before, now] of MARKUP_EDITS) {
+for (const [beforeSource, nowSource] of MARKUP_EDITS) {
+  const before = beforeSource.replaceAll(VERSION_PLACEHOLDER, oldVersion);
+  const now = nowSource.replaceAll(VERSION_PLACEHOLDER, oldVersion);
   const count = markup.split(now).length - 1;
   if (count !== 1) check(false, `MARKUP_EDITS: ${now} appears ${count} times (expected once)`);
   else markup = markup.replace(now, () => before);

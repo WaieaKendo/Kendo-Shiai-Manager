@@ -197,6 +197,7 @@ def capture(app):
     shown = page.evaluate(VIEW_JS)
     entry = {
         'shown': shown,
+        'about': page.locator('[data-testid=library-about]').inner_text() if shown else None,
         'session': page.evaluate(SESSION_JS),
         'requests': requests,
         'pending': len(app.api.held),

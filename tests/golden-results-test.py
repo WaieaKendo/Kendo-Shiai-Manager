@@ -163,7 +163,7 @@ def open_app(name, browser, errors, entries=None):
     # the mouse left it, not somewhere in between.
     app.page.add_style_tag(content=NO_TRANSITIONS)
     golden = Golden(name, app, app.page_errors, GOLDEN_DIR, capture, check_react)
-    assert app.page.evaluate('window.ksmResultsMounted === true'), f'{name}: the Results islands did not mount'
+    app.wait_for(lambda: app.page.evaluate('window.ksmResultsMounted === true'), message=f'{name}: Results islands mounted')
     assert app.page.locator('#resultsModuleMissing').count() == 0, f'{name}: "Results could not load" shown on a working page'
     if entries:
         app.configure(entries)

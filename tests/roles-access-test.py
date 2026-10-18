@@ -97,8 +97,10 @@ def main():
         tv_writes = record_writes(tv)
         tv.wait_generated()
         tv.page.wait_for_selector(sel('tv-display'), state='visible')
-        for testid in STAFF_ONLY + EVERYONE + ['staff-auth']:
+        for testid in STAFF_ONLY + EVERYONE:
             assert not visible(tv, testid), f'TV shows {testid}'
+
+        assert visible(tv, 'staff-auth'), 'TV header must retain Staff Login'
 
         # --- Team representative: staff choose, spectators read -----------------------------
         director.open_court('A')
