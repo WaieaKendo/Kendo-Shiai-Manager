@@ -12,7 +12,8 @@ tournament default (Overview). Reload still ends staff access as before.
 On tournament screens the header shows the logo and a quiet, truncated tournament
 name linked to the tournament home (Overview). The logo opens Overview for spectators and returns signed-in staff to the Library
 through the save guard. Direct access to `/` remains public. `TOURNAMENT_HOME` in `app/engine/routes.ts` defines the
-home route, screen and label together. Staff edit short names in Save / Load or Tournament Access.
+home route, screen and label together. Staff edit short URLs beside the tournament name in Setup. Tournament Access
+shows and copies the link without an editing control.
 At 900px or less, a hamburger opens the navigation; Escape, outside click or
 choosing a destination closes it. Spectator order: Overview, Live Scores, Courts,
 Results. Staff order: Overview, Live Scores, Courts, TV, Results, Export, Save /
@@ -37,7 +38,7 @@ history entry.
 
 New tournaments suggest a short name from the tournament name and year. A year
 already present in the name is retained. Creation asks for the short name; staff
-can change it in **Tournament Access → Edit short name**. It accepts lowercase
+can change it in **Setup → Edit short URL**. It accepts lowercase
 letters, digits and single dashes (1–80 characters), with no leading/trailing dash.
 App screen names (`overview`, `results`, `setup`, `registration`, `pools`), API
 and static-resource roots are reserved; the shared list is in

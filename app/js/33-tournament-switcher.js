@@ -5,6 +5,8 @@ var ksmTournamentEpoch=0;
 var ksmFirstLibrary=true;
 var ksmTournamentAddress=location.pathname+location.search+location.hash;
 function ksmRefreshTournamentChip(){
+  const shortUrl=document.getElementById('setupShortUrl');
+  if(shortUrl)shortUrl.textContent=cloudSession.slug?'/'+cloudSession.slug:cloudSession.tournamentId?'/t/'+cloudSession.tournamentId:ksmPendingSlug?'/'+ksmPendingSlug:'Not assigned';
   ksmPublishHeader({tournamentName:document.body.classList.contains('ksm-home')?'':String(document.getElementById('tName')?.value||'Untitled tournament')});
 }
 function ksmPushTournamentAddress(id){
@@ -100,7 +102,7 @@ async function ksmCreateTournament(){
     setSessionRole('staff');installRoleBanner('staff');navigateTo('setup');
     markLocalSave('New tournament');showKsmToast('Creating tournament in cloud…',0);
     try{await performCloudSave(tournamentPayload(),0);ksmRecordScreenPath('setup');showKsmToast('✓ Tournament created',2200)}
-    catch(err){console.error(err);writeOutbox(tournamentPayload(),'New tournament');showKsmToast((err.code==='slug-taken'||err.code==='invalid-slug')?err.message+' Use Edit short name in Save / Load.':'Tournament saved locally · Connect to sync',6000,true)}
+    catch(err){console.error(err);writeOutbox(tournamentPayload(),'New tournament');showKsmToast((err.code==='slug-taken'||err.code==='invalid-slug')?err.message+' Use Edit short URL in Setup.':'Tournament saved locally · Connect to sync',6000,true)}
   }finally{ksmTournamentTransition=false}
 }
 async function ksmOpenTournament(id,fromHistory=false){

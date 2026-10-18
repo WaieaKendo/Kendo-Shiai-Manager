@@ -156,6 +156,10 @@
           <div class="field">
             <label>Tournament Name</label>
             <input id="tName" value="Aiea Taiheiji Kendo Tournament" data-testid="setup-tournament-name">
+            <div class="setup-short-url director-only">
+              <div class="setup-short-url-row"><span>Short URL: <output id="setupShortUrl" data-testid="setup-short-url"></output></span><button type="button" class="secondary" onclick="ksmEditTournamentSlug(false)" data-testid="edit-tournament-slug">Edit short URL</button></div>
+              <p class="small">Old links keep working after a rename.</p>
+            </div>
           </div>
           <div class="field">
             <label>Host Organization</label>

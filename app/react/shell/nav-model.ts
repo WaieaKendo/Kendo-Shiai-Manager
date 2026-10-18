@@ -119,7 +119,6 @@ export const NAV_ENTRIES: readonly NavEntry[] = [
       { kind: 'heading', label: 'Tournament' },
       { kind: 'item', label: 'New Tournament', testId: 'nav-new-tournament', action: close('createNewTournament') },
       { kind: 'item', label: 'Save Now', testId: 'nav-save-now', action: close('saveNow') },
-      { kind: 'item', label: 'Edit short name', testId: 'nav-edit-slug', action: close('ksmEditTournamentSlug') },
       { kind: 'item', label: 'Tournament Library', testId: 'nav-library', action: close('showHomePage') },
       { kind: 'item', label: 'Download Tournament File', testId: 'nav-download-file', action: close('manualSaveTournament') },
       { kind: 'item', label: 'Load Tournament File', testId: 'nav-load-file', action: close('triggerLoadTournament') },

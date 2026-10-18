@@ -30,20 +30,27 @@ def main():
         for court in ['a','b']:
             with urllib.request.urlopen(base+'/lokt-2027/overlay/'+court) as response:
                 assert b'overlay-root' in response.read()
-        page.evaluate('openTournamentAccess()')
+        staff.nav('setup')
+        assert page.locator(sel('setup-short-url')).inner_text()=='/lokt-2027'
+        assert page.locator(sel('nav-edit-slug')).count()==0
         page.wait_for_selector(sel('edit-tournament-slug'))
         staff.answers[SHORT_NAME] = 'lokt-renamed-2027'
         with page.expect_response(lambda response: response.url.endswith('/slug') and response.request.method == 'POST') as renamed:
             staff.click('edit-tournament-slug')
         assert renamed.value.status == 200, (renamed.value.text(), problems)
-        staff.wait_for(lambda: staff.address() == '/lokt-renamed-2027/pools',message=f'rename address: {renamed.value.text()}, problems {problems}')
+        staff.wait_for(lambda: staff.address() == '/lokt-renamed-2027/setup',message=f'rename address: {renamed.value.text()}, problems {problems}')
+        assert page.locator(sel('setup-short-url')).inner_text()=='/lokt-renamed-2027'
+        assert page.locator(sel('cloud-modal')).count()==0
+        page.evaluate('openTournamentAccess()')
         staff.wait_for(lambda: '/lokt-renamed-2027' in page.locator(sel('access-link')).inner_text(),message='renamed generated link')
+        assert page.locator(sel('cloud-modal')).locator(sel('edit-tournament-slug')).count()==0
         assert '/lokt-renamed-2027' in urllib.parse.unquote(page.locator(sel('access-qr')).get_attribute('src'))
+        staff.click('cloud-modal-close')
         staff.answers[SHORT_NAME] = 'api'
         staff.expect_dialog('Use lowercase letters')
         staff.click('edit-tournament-slug')
         staff.wait_for_dialogs()
-        assert staff.address() == '/lokt-renamed-2027/pools'
+        assert staff.address() == '/lokt-renamed-2027/setup'
         alias = KsmApp.open_device(browser,base,'Alias',problems,'/lokt-2027/court/b?red=left')
         alias.wait_generated()
         assert alias.address() == '/lokt-renamed-2027/court/b?red=left'

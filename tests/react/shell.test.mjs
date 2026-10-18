@@ -19,7 +19,7 @@ test('the bar: tiles and menus in the order and with the test IDs of the markup'
     'nav-tv', 'nav-tv-a', 'nav-tv-b', 'nav-overlay-a', 'nav-overlay-b',
     'nav-results',
     'nav-export', 'nav-export-brackets', 'nav-export-results', 'nav-export-referees', 'nav-export-archive',
-    'nav-save-load', 'nav-new-tournament', 'nav-save-now', 'nav-edit-slug', 'nav-library', 'nav-download-file', 'nav-load-file',
+    'nav-save-load', 'nav-new-tournament', 'nav-save-now', 'nav-library', 'nav-download-file', 'nav-load-file',
     'nav-download-recovery', 'nav-load-recovery', '(Copy Tournament ID)', 'nav-tournament-access', 'nav-cloud-diagnostics',
     'nav-registration', 'nav-setup',
   ]);

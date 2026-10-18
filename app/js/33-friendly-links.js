@@ -11,7 +11,7 @@ async function ksmFetchTournament(id){
   if(!record)throw new Error('No offline copy of this tournament is available');
   return new Response(record,{headers:{'content-type':'application/json'}});
 }
-async function ksmEditTournamentSlug(){
+async function ksmEditTournamentSlug(showAccess=true){
   if(isReadOnlySession())return;
   const slug=prompt('Tournament short name (lowercase letters, digits and dashes)',cloudSession.slug||KSMEngine.suggestSlug(tName.value,String(new Date().getFullYear())));
   if(slug===null)return;
@@ -27,7 +27,8 @@ async function ksmEditTournamentSlug(){
     const route=ksmResolvedUrl().route;
     if(route.screen!=='home'&&route.screen!=='invalid')ksmReplaceUrl(KSMEngine.routePath({...route,id:cloudSession.tournamentId,slug:info.slug})+location.search);
     rememberTournament({tournamentId:cloudSession.tournamentId,slug:info.slug,payload:tournamentPayload(),revision:cloudSession.revision,updatedAt:cloudSession.updatedAt});
-    openTournamentAccess();
+    ksmRefreshTournamentChip();
+    if(showAccess)openTournamentAccess();
   }catch(err){alert(err.message)}
 }
 /* ksm:post-split-end */

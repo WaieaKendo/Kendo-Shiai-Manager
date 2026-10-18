@@ -40,4 +40,8 @@ body.ksm-tv > header.ksm-topbar { grid-template-areas:"logo tournament staff" !i
   body.ksm-nav-expanded .minimal-nav .nav-tile { display:flex; flex-direction:row; align-items:center; justify-content:flex-start; gap:10px; width:100%; min-width:0; min-height:48px; height:auto; padding:8px; }
   body.ksm-nav-expanded .minimal-nav .nav-tile img { width:24px; height:24px; }
 }
+.setup-short-url { margin-top:8px; }
+.setup-short-url-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.setup-short-url output { color:var(--ksm-slate); overflow-wrap:anywhere; }
+.setup-short-url .small { margin:4px 0 0; }
 /* ksm:post-split-end */
