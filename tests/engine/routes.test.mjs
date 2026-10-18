@@ -47,7 +47,7 @@ test('parseRoutePath: short forms, uppercase and a trailing slash are accepted',
 });
 
 test('parseRoutePath: anything else under /t/ is invalid; other paths are home', () => {
-  for (const path of ['/t', '/t/', '/t//court/a', `/t/${ID}/court/c`, `/t/${ID}/tv/ab`, `/t/${ID}/results`,
+  for (const path of ['/t', '/t/', '/t//court/a', `/t/${ID}/court/c`, `/t/${ID}/tv/ab`, `/t/${ID}/results/a`,
     `/t/${ID}/live/a`, `/t/${ID}/court/a/b`, `/t/${ID}//`, '/t/%E0%A4%A', `/t/${ID}/overlay/b/x`]) {
     assert.deepEqual(parseRoutePath(path), { screen: 'invalid' }, path);
   }
@@ -114,7 +114,7 @@ test('resolveUrl: canonical paths stay; others are tidied, their query kept; inv
   // A path wins over an old query that disagrees with it.
   assert.deepEqual(resolveUrl(`/t/${ID}/court/b`, '?tournament=other&court=A'), { route: { screen: 'court', id: ID, court: 'B' }, redirect: null });
   assert.equal(legacyQuery({ screen: 'court', id: ID, court: 'B' }, '?tournament=other&court=A'), `tournament=${ID}&court=B`);
-  for (const path of ['/t', '/t/', `/t/${ID}/court/c`, `/t/${ID}/results`]) assert.deepEqual(resolveUrl(path, '?tournament=x'), { route: { screen: 'invalid' }, redirect: '/' }, path);
+  for (const path of ['/t', '/t/', `/t/${ID}/court/c`, `/t/${ID}/results/a`]) assert.deepEqual(resolveUrl(path, '?tournament=x'), { route: { screen: 'invalid' }, redirect: '/' }, path);
   // No tournament in the query: nothing to redirect (a local copy's ?court=B stays for the TV's court).
   for (const [pathname, search] of [['/', ''], ['/', '?court=B'], ['/', '?director=x'], ['/overlay', ''], ['/overlay', '?court=B']]) {
     assert.deepEqual(resolveUrl(pathname, search), { route: { screen: 'home' }, redirect: null }, pathname + search);
@@ -152,7 +152,7 @@ test('servesAppShell / servesOverlay: which page each path gets', () => {
 const PATHS = ['/', '/index.html', '/overlay', '/overlay.html', '/app.js', '/api/tournaments', '/tv', '/t', '/t/', `/t/${ID}`, `/t/${ID}/`,
   `/t/${ID}/live`, `/t/${ID}/court/a`, `/t/${ID}/court/B`, `/t/${ID}/court`, `/t/${ID}/tv/b`, `/t/${ID}/tv`, `/t/${ID}/results`,
   `/t/${ID}/overlay/a`, `/t/${ID}/overlay/b/`, `/t/${ID}/overlay`, `/t/${ID}/Overlay/A`, `/t/${ID}/overlay/c`, `/t/${ID}/overlay/a/b`,
-  '/lokt-2027','/lokt-2027/live','/lokt-2027/live/a','/lokt-2027/court/a','/lokt-2027/tv/b','/lokt-2027/overlay/a', '/api/court/a', '/privacy/live', '/t/%E0%A4%A/overlay/a', '/t//overlay/a', '/t/a%20b/overlay/b'];
+  ...['overview','results','setup','registration','pools'].flatMap(s=>[`/t/${ID}/${s}`,'/lokt-2027/'+s]),'/lokt-2027','/lokt-2027/live','/lokt-2027/live/a','/lokt-2027/court/a','/lokt-2027/tv/b','/lokt-2027/overlay/a', '/api/court/a', '/privacy/live', '/t/%E0%A4%A/overlay/a', '/t//overlay/a', '/t/a%20b/overlay/b'];
 const rule = (file, from, to) => {
   const source = fs.readFileSync(new URL(`../../${file}`, import.meta.url), 'utf8');
   const code = source.slice(source.indexOf(from), source.indexOf(to));
@@ -206,4 +206,22 @@ test('slug suggestions preserve a named year, normalize names and avoid reserved
   for (const name of RESERVED_SLUGS) assert.equal(isValidSlug(name),false,name);
   const {servesAppShell:sw}=rule('app/service-worker.js','const OVERLAY_PATH',"self.addEventListener('install'");
   for (const name of RESERVED_SLUGS) assert.equal(sw('/'+name),servesAppShell('/'+name),name);
+});
+
+
+test('each app screen has ID and slug paths, canonical spelling and reserved roots', () => {
+  for(const screen of ['overview','results','setup','registration','pools']) {
+    assert.equal(isValidSlug(screen),false,screen);
+    assert.equal(parseRoutePath('/'+screen).screen,'home',screen);
+    for(const route of [{screen,id:ID},{screen,id:'lokt-2027',slug:'lokt-2027'}]) {
+      const path=routePath(route);
+      assert.deepEqual(parseRoutePath(path),route);
+      const prefix=route.slug?'/lokt-2027':`/t/${ID}`;
+      assert.equal(resolveUrl(prefix+'/'+screen.toUpperCase()+'/', '?option=kept').redirect,prefix+'/'+screen+'?option=kept');
+      assert.equal(new URLSearchParams(legacyQuery(route,'?option=kept')).get('view'),screen);
+      assert.equal(servesAppShell(path),true);
+      assert.equal(servesOverlay(path),false);
+      assert.equal(parseRoutePath(path+'/a').screen,'invalid');
+    }
+  }
 });

@@ -99,7 +99,7 @@ async function ksmCreateTournament(){
     sessionStorage.setItem(KSM_V316_STAFF_SESSION,password);tName.value=name;
     setSessionRole('staff');installRoleBanner('staff');navigateTo('setup');
     markLocalSave('New tournament');showKsmToast('Creating tournament in cloud…',0);
-    try{await performCloudSave(tournamentPayload(),0);showKsmToast('✓ Tournament created',2200)}
+    try{await performCloudSave(tournamentPayload(),0);ksmRecordScreenPath('setup');showKsmToast('✓ Tournament created',2200)}
     catch(err){console.error(err);writeOutbox(tournamentPayload(),'New tournament');showKsmToast((err.code==='slug-taken'||err.code==='invalid-slug')?err.message+' Use Edit short name in the tournament menu.':'Tournament saved locally · Connect to sync',6000,true)}
   }finally{ksmTournamentTransition=false}
 }
@@ -119,7 +119,7 @@ async function ksmOpenTournament(id,fromHistory=false){
 }
 window.addEventListener('popstate',async()=>{
   if(!(await ksmCanLeaveTournament())){
-    if(cloudSession.tournamentId)ksmPushTournamentAddress(cloudSession.tournamentId);
+    if(cloudSession.tournamentId)history.pushState(null,'',ksmTournamentAddress);
     else history.replaceState(null,'',ksmTournamentAddress);
     return;
   }

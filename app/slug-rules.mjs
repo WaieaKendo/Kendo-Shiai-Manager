@@ -1,7 +1,7 @@
 // App pages, static roots and device routes cannot be claimed as tournament names.
 export const RESERVED_SLUGS = ['api', 't', 'privacy', 'overlay', 'assets', 'icons', 'index.html',
   'index', 'app', 'app.js', 'app.css', 'engine.js', 'service-worker.js', 'manifest.webmanifest',
-  'favicon.ico', 'robots.txt', 'court', 'tv', 'live', 'react', 'styles', 'js', 'public', '.well-known'];
+  'favicon.ico', 'robots.txt', 'court', 'tv', 'live', 'overview', 'results', 'setup', 'registration', 'pools', 'react', 'styles', 'js', 'public', '.well-known'];
 export function isValidSlug(value) {
   return value.length <= 80 && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value) && !RESERVED_SLUGS.includes(value);
 }

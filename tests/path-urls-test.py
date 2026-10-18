@@ -147,14 +147,14 @@ def main():
         length = page.evaluate('history.length')
         device.nav('results')
         device.nav('live-scores')
-        assert page.evaluate('history.length') == length and device.address() == app_path(tid, 'court', 'b')
+        assert page.evaluate('history.length') == length and device.address() == app_path(tid, 'live')
         page.go_back(wait_until='domcontentloaded')
         page.wait_for_function('window.KSMTest && KSMTest.booted()')
         assert device.address() == '/', f'back should return to the page before the link, at {device.address()}'
         page.go_forward(wait_until='domcontentloaded')
         page.wait_for_function('window.KSMTest && KSMTest.booted()')
         device.wait_for(lambda: device.visible_view() == ['public'], message='forward: Live Scores')
-        assert device.address() == app_path(tid, 'court', 'b'), device.address()
+        assert device.address() == app_path(tid, 'live'), device.address()
         device.close()
 
         # --- Links the app makes --------------------------------------------------------------------
@@ -178,7 +178,7 @@ def main():
             director.click(f'nav-overlay-{court.lower()}')
             copied = dpage.wait_for_function('window.__copied').json_value()
             assert copied == f'{base}/paths-cup-2026/overlay/{court.lower()}', copied
-        assert director.address() == '/paths-cup-2026', director.address()
+        assert director.address() == '/paths-cup-2026/pools', director.address()
 
         # --- Offline: the service worker serves the app for /t/ paths -------------------------------
         court = KsmApp.open_device(browser, base, 'Offline court', problems, app_path(tid, 'court', 'a'), service_workers='allow')

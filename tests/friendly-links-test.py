@@ -16,7 +16,7 @@ def main():
         browser = launch_chromium(p)
         staff = KsmApp.open_device(browser, base, 'Staff', problems, tournament_name='LOKT 2027')
         tid = staff.create_tournament();staff.wait_idle()
-        assert staff.address() == '/lokt-2027'
+        assert staff.address() == '/lokt-2027/setup'
         staff.configure([{'name':'Open', 'format':'Round Robin', 'court':'A', 'entrants':[
             {'name':name,'dojo':'Dojo','seed':'','status':'Checked'} for name in ['Aoki','Baba','Chiba']]}])
         staff.save_now();staff.wait_idle()
@@ -36,14 +36,14 @@ def main():
         with page.expect_response(lambda response: response.url.endswith('/slug') and response.request.method == 'POST') as renamed:
             staff.click('edit-tournament-slug')
         assert renamed.value.status == 200, (renamed.value.text(), problems)
-        staff.wait_for(lambda: staff.address() == '/lokt-renamed-2027',message=f'rename address: {renamed.value.text()}, problems {problems}')
+        staff.wait_for(lambda: staff.address() == '/lokt-renamed-2027/pools',message=f'rename address: {renamed.value.text()}, problems {problems}')
         staff.wait_for(lambda: '/lokt-renamed-2027' in page.locator(sel('access-link')).inner_text(),message='renamed generated link')
         assert '/lokt-renamed-2027' in urllib.parse.unquote(page.locator(sel('access-qr')).get_attribute('src'))
         staff.answers[SHORT_NAME] = 'api'
         staff.expect_dialog('Use lowercase letters')
         staff.click('edit-tournament-slug')
         staff.wait_for_dialogs()
-        assert staff.address() == '/lokt-renamed-2027'
+        assert staff.address() == '/lokt-renamed-2027/pools'
         alias = KsmApp.open_device(browser,base,'Alias',problems,'/lokt-2027/court/b?red=left')
         alias.wait_generated()
         assert alias.address() == '/lokt-renamed-2027/court/b?red=left'

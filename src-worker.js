@@ -601,7 +601,7 @@ export default {
       }
       return json({ error: 'Method not allowed' }, 405);
     }
-    const friendly = url.pathname.match(/^\/([a-z0-9-]+)(\/(?:live|court(?:\/[ab])?|tv(?:\/[ab])?|overlay(?:\/[ab])?))?\/?$/i);
+    const friendly = url.pathname.match(/^\/([a-z0-9-]+)(\/(?:live|overview|results|setup|registration|pools|court(?:\/[ab])?|tv(?:\/[ab])?|overlay(?:\/[ab])?))?\/?$/i);
     if (friendly && isValidSlug(friendly[1])) {
       const pageRoute={slug:friendly[1],screen:(friendly[2]||'').split('/')[1]?.toLowerCase()};
       const identity = await libraryStub().fetch(`https://durable-object/library/resolve/${pageRoute.slug}`);
@@ -614,6 +614,7 @@ export default {
       if (pageRoute.slug !== info.slug) return new Response(null,{status:308,headers:{location:`/${info.slug}${friendly[2]||''}`+url.search,'cache-control':'no-store'}});
       return env.ASSETS.fetch(new Request(new URL(pageRoute.screen === 'overlay'?'/overlay':'/',url),request));
     }
+    if (/^\/t\/[^/]+\/(?:overview|results|setup|registration|pools)\/?$/i.test(url.pathname)) return env.ASSETS.fetch(new Request(new URL('/',url),request));
     if (isOverlayPath(url.pathname)) return env.ASSETS.fetch(new Request(new URL('/overlay', url), request));
     return env.ASSETS.fetch(request);
     } catch (error) {

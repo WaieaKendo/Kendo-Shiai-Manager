@@ -10,10 +10,11 @@
 // isTvSession(), pinnedCourt(), courtPinStorageKey(), restoreAutoSaveIfWanted(), the Load
 // Tournament File guard) reads them through ksmLinkParams(): the same names and values, from
 // the path. The links the app makes (Tournament Access and its QR code, the TV menu, the
-// stream overlay links, roleLink()) are built by ksmLinkUrl(). In-app navigation does not
-// change the address (it never did).
+// stream overlay links, roleLink()) are built by ksmLinkUrl(). In-app navigation
+// replaces the current screen path without adding a history entry.
 // Post-split code: scripts/verify-split.mjs removes the marked region before it compares.
 // ==========================================================
+var ksmRouteLoading=0;
 function ksmResolvedUrl(){return KSMEngine.resolveUrl(location.pathname||'/',location.search||'')}
 // The page's link parameters by their old names (tournament, court, view; key= and others as
 // they are), as new URLSearchParams(location.search) gave them for an old link.
@@ -40,12 +41,39 @@ async function ksmResolveSlug(){
   if(identity.slug!==route.slug)ksmReplaceUrl(KSMEngine.routePath({...route,slug:identity.slug})+location.search);
 }
 
+// The visible app screen replaces the tournament's existing history entry.
+function ksmRecordScreenPath(view){
+  if(ksmRouteLoading||!window.ksmBootstrapReady||!cloudSession.tournamentId||ksmApplyingRemoteSnapshot||document.body.classList.contains('ksm-home'))return;
+  if(view!=='tv')document.body.classList.remove('ksm-tv');
+  const screens={setup:'setup',registration:state.regMode==='pools'?'pools':'registration',score:'court',public:'live',director:'overview',results:'results',tv:'tv'};
+  const screen=screens[view];if(!screen)return;
+  const current=ksmResolvedUrl().route;
+  const slug=current.slug||(current.id?undefined:cloudSession.slug);
+  const route={screen,id:cloudSession.tournamentId,slug,court:normalizeCourt(view==='tv'?cloudSession.court:state.currentCourt)};
+  ksmReplaceUrl(KSMEngine.routePath(route)+location.search+location.hash);
+  ksmTournamentAddress=location.pathname+location.search+location.hash;
+}
+function ksmShowRequestedScreen(){
+  const screen=ksmResolvedUrl().route.screen;
+  if(screen==='overview'){navigateTo('director');return}
+  if(screen==='results'){navigateTo('results');return}
+  if(['setup','registration','pools'].includes(screen)){
+    if(!isReadOnlySession()){
+      if(screen==='setup')navigateTo('setup');else openRegistrationTab(screen==='pools'?'pools':'individual');
+      return;
+    }
+    const current=ksmResolvedUrl().route;
+    ksmReplaceUrl(KSMEngine.routePath({...current,screen:'tournament',id:cloudSession.tournamentId})+location.search+location.hash);
+  }
+  navigateTo('public');
+}
+
 // An absolute link to a route (KSMEngine.routeUrl(): path plus query pairs; empty ones left out).
 function ksmLinkUrl(route,query){
   const slug=route.id===cloudSession.tournamentId?cloudSession.slug:readTournamentLibrary().find(row=>row.id===route.id)?.slug;
   return new URL(KSMEngine.routeUrl({...route,...(slug?{slug}:{})},query||[]),location.href).toString();
 }
-function ksmReplaceUrl(path){try{history.replaceState(history.state,'',path)}catch(err){console.warn('KSM could not update the address',err)}}
+function ksmReplaceUrl(path){try{history.replaceState(history.state,'',path);if(typeof ksmTournamentAddress!=='undefined')ksmTournamentAddress=location.pathname+location.search+location.hash;}catch(err){console.warn('KSM could not update the address',err)}}
 (function ksmApplyPathRoute(){
   if(typeof location==='undefined'||typeof history==='undefined'||typeof KSMEngine==='undefined')return;
   const resolved=ksmResolvedUrl();

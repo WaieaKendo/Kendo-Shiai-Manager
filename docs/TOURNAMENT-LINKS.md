@@ -3,11 +3,16 @@
 The Library (`/`) is the start page. Opening or creating a tournament pushes its
 address into browser history. Back returns to the Library; Forward, reload and
 bookmarks reopen the tournament as a spectator. Staff Login stays per tournament.
-The address identifies the tournament and any device assignment; ordinary screen
-navigation still follows M.9 and does not add a history entry.
+Each screen has a path. Tab navigation replaces the current entry; only opening
+or switching tournaments adds an entry, so Back skips all intervening tabs.
+Overview and Results reopen on their bookmarked screen. Setup, Registration and
+Pools require staff: a spectator opening or reloading those paths lands on the
+tournament default (Live Scores). Reload still ends staff access as before.
 
-The header chip names the tournament and offers **Switch tournament**, including
-on TV devices. New UI uses existing theme tokens. Library, Switch and New Tournament
+On tournament screens the header shows the logo and a quiet, truncated tournament
+name. The chip offers **Switch tournament**, **Edit short name** for staff, and
+**Library**, including on TV devices. The Library retains its full branding and
+shows the build version in its About footer; diagnostics retain the same version. New UI uses existing theme tokens. Library, Switch and New Tournament
 share a save gate: pending work must reach the server before leaving. If it cannot,
 the app warns and stays put with the outbox and staff session intact. Successful
 exits clear runtime state, court preferences, match timers, queued callbacks and
@@ -29,7 +34,8 @@ New tournaments suggest a short name from the tournament name and year. A year
 already present in the name is retained. Creation asks for the short name; staff
 can change it in **Tournament Access → Edit short name**. It accepts lowercase
 letters, digits and single dashes (1–80 characters), with no leading/trailing dash.
-App, API and static-resource roots are reserved; the shared list is in
+App screen names (`overview`, `results`, `setup`, `registration`, `pools`), API
+and static-resource roots are reserved; the shared list is in
 `app/slug-rules.mjs`. Clients without a short name still use `/t/<id>`; existing
 tournaments gain a name through the staff editor. Older clients creating without
 a slug get a server suggestion with a numeric suffix if needed.
@@ -40,6 +46,9 @@ These forms work with either a slug or `/t/<id>`:
 - `/court/a` and `/court/b`: a court assignment.
 - `/tv/a` and `/tv/b`: TV for the chosen court.
 - `/overlay/a` and `/overlay/b`: the live stream overlay.
+- `/overview` and `/results`: spectator-accessible app screens.
+- `/setup`, `/registration` and `/pools`: staff screens; spectator links fall back
+  to the tournament root and Live Scores. Pools selects Registration’s Pools tab.
 
 Every generated access, QR, TV and overlay link uses the current short name when
 known. Existing ID paths and old query links remain supported.
@@ -104,18 +113,19 @@ See [Cloudflare's routing rules](https://developers.cloudflare.com/workers/stati
 
 ## Snapshot review
 
-The PR review revision changes only `nav-staff`: four local-draft warning strings.
-Its 83 captured steps, screen content and every geometry value are unchanged.
+The original switcher/friendly-link work reviewed its 82 changed recordings. This
+header revision updates the five Shell and three Library scenarios: Shell changes
+are the logo/chip/status-row layout and moved version; Library changes add the
+About footer text. Dialogs, saves, roles and tournament content remain exact.
+The header is tested at 375 × 812 and 812 × 375 with a 40-character name, with Staff
+Login visible and a 44px minimum target.
 
-All 82 changed golden fixtures were expanded and compared step by step. In 76,
-the screen content, visibility and element sizes are unchanged; only vertical
-positions move with the tournament header. The remaining six are the
-Library cards scenario and five shell scenarios: they cover the chip, staff
-short-name controls, the cached slug field, failed-open behavior and blocking an
-exit with unsaved work. The Library's request/response scenario now explicitly
-answers the save attempted before that blocked exit. Tournament engine outcomes
-are unchanged. The menu was also visually checked at 390 × 844 with a long
-tournament name.
+Following the owner's review preference, 76 additional screen recordings update
+only their expected vertical offsets for the new header at each viewport. Every
+expanded diff was reviewed: content, visibility, element counts, X positions,
+widths and heights are unchanged. Fixed overlays retain their expected positions.
+All snapshots continue to compare absolute geometry; no screen-origin tolerance
+or relative-position comparison is used.
 
 The Setup geometry check waits for fonts and the resize paint cycle before
 measuring native textareas; it retains their original sizes. Socket barriers wait

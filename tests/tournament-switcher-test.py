@@ -13,7 +13,7 @@ def main():
         page = a.page
         aid = a.create_tournament()
         a.wait_idle()
-        assert a.address() == '/switch-a-2026'
+        assert a.address() == '/switch-a-2026/setup'
         a.wait_for(lambda: 'Switch A' in page.locator(sel('tournament-chip')).inner_text(), message='A chip')
         page.locator(sel('setup-tournament-name')).fill('Switch A Renamed')
         a.wait_for(lambda: 'Switch A Renamed' in page.locator(sel('tournament-chip')).inner_text(), message='chip follows name editing')

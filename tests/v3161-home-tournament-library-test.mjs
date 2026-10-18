@@ -12,7 +12,7 @@ const checks = [
   ['new tournament available on home', html.includes('onclick="createNewTournament()">＋ New Tournament') && libraryReact.includes('data-testid="home-new-tournament" onClick={() => { libraryWindow().createNewTournament?.(); }}>{NEW_TOURNAMENT_TEXT}') && libraryReact.includes("NEW_TOURNAMENT_TEXT = '＋ New Tournament'")],
   ['existing tournaments open spectator', html.includes("return ksmOpenTournament(id)") && html.includes("await initializeCloudRoleFromUrl()") && libraryReact.includes('libraryWindow().openTournamentFromHome?.(card.id)')],
   ['startup opens home', html.includes('showHomePage();return true')],
-  ['public link bypasses home', /classList\.remove\('ksm-home'\);if\(requestedView==='tv'\).{0,200}navigateTo\('public'\)/.test(html)],
+  ['public link bypasses home', /classList\.remove\('ksm-home'\);if\(requestedView==='tv'\).{0,400}ksmShowRequestedScreen\(\)/.test(html)],
   ['home return paths', html.includes('title="Tournament Library" onclick="showHomePage()"') && html.includes('>Tournament Library</button>')],
   ['staff login and logout preserved', html.includes('Staff Login') && html.includes("?'Logout':'Staff Login'")],
   ['save now preserved', html.includes('>Save Now</button>')],

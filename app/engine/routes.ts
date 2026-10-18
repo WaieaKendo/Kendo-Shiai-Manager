@@ -25,6 +25,7 @@ export type Route = (
   | { screen: 'home' }
   | { screen: 'tournament'; id: string }
   | { screen: 'live'; id: string }
+  | { screen: 'overview' | 'results' | 'setup' | 'registration' | 'pools'; id: string }
   | { screen: 'court'; id: string; court: RouteCourt }
   | { screen: 'tv'; id: string; court: RouteCourt }
   | { screen: 'overlay'; id: string; court: RouteCourt }
@@ -50,7 +51,7 @@ export function routePath(route: Route): string {
   const base = route.slug && isValidSlug(route.slug) ? `/${route.slug}` : `/t/${encodeURIComponent(route.id)}`;
   switch (route.screen) {
     case 'tournament': return base;
-    case 'live': return `${base}/live`;
+    case 'live': case 'overview': case 'results': case 'setup': case 'registration': case 'pools': return `${base}/${route.screen}`;
     default: return `${base}/${route.screen}/${courtLetter(route.court)}`;
   }
 }
@@ -105,7 +106,7 @@ export function parseRoutePath(pathname: string): Route {
   if (extra.length) return { screen: 'invalid' };
   if (kind === undefined) return letter === undefined ? { screen: 'tournament', id } : { screen: 'invalid' };
   const lower = kind.toLowerCase();
-  if (lower === 'live') return letter === undefined ? { screen: 'live', id } : { screen: 'invalid' };
+  if (['live','overview','results','setup','registration','pools'].includes(lower)) return letter === undefined ? { screen: lower as 'live' | 'overview' | 'results' | 'setup' | 'registration' | 'pools', id } : { screen: 'invalid' };
   if (lower === 'court' && letter === undefined) return { screen: 'tournament', id };
   if (lower !== 'court' && lower !== 'tv' && lower !== 'overlay') return { screen: 'invalid' };
   const screen = lower as 'court' | 'tv' | 'overlay';
@@ -162,7 +163,7 @@ export function legacyQuery(route: Route, search: string): string {
   const parts = queryPairs(search).filter(p => !keys.includes(p.key)).map(p => p.raw);
   parts.push(`tournament=${encodeURIComponent(route.id)}`);
   if (route.screen === 'court' || route.screen === 'tv' || route.screen === 'overlay') parts.push(`court=${route.court}`);
-  if (route.screen === 'tv') parts.push('view=tv');
+  if (['tv','overview','results','setup','registration','pools'].includes(route.screen)) parts.push(`view=${route.screen}`);
   return parts.join('&');
 }
 

@@ -7,7 +7,7 @@ DIVISION_PRESETS.forEach(([d,f,c])=>{state.divisionTypes[d]=f;state.divisionCour
 const KSM_EMPTY_STATE=JSON.stringify(state);
 /* ksm:post-split-end */
 
-function show(id){document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');renderAll();if(id==='print')previewAllDivisionSheets()}
+function show(id){document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');renderAll();if(id==='print')previewAllDivisionSheets();/* ksm:post-split-begin path-urls */ksmRecordScreenPath(id);/* ksm:post-split-end */}
 function saveSetup(){
   if(window.teamCourt)state.divisionCourts['Team Tournament']=teamCourt.value;
   if(window.teamAwardMode)state.teamAwardMode=teamAwardMode.value||'top2';

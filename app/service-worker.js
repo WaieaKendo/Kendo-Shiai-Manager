@@ -20,13 +20,13 @@ function isOverlayPath(pathname) {
 }
 const RESERVED_SLUGS = ['api', 't', 'privacy', 'overlay', 'assets', 'icons', 'index.html',
   'index', 'app', 'app.js', 'app.css', 'engine.js', 'service-worker.js', 'manifest.webmanifest',
-  'favicon.ico', 'robots.txt', 'court', 'tv', 'live', 'react', 'styles', 'js', 'public', '.well-known'];
+  'favicon.ico', 'robots.txt', 'court', 'tv', 'live', 'overview', 'results', 'setup', 'registration', 'pools', 'react', 'styles', 'js', 'public', '.well-known'];
 function servesAppShell(pathname) {
   if (pathname === '/' || pathname === '/index.html') return true;
   if (pathname === '/t' || pathname.startsWith('/t/')) return !isOverlayPath(pathname);
-  const match=pathname.match(/^\/([a-z0-9]+(?:-[a-z0-9]+)*)(?:\/(live|court|tv)(?:\/([ab]))?)?\/?$/i);
+  const match=pathname.match(/^\/([a-z0-9]+(?:-[a-z0-9]+)*)(?:\/(live|overview|results|setup|registration|pools|court|tv)(?:\/([ab]))?)?\/?$/i);
   if (!match || match[1].length>80 || match[1]!==match[1].toLowerCase() || RESERVED_SLUGS.includes(match[1])) return false;
-  return !(match[2]?.toLowerCase()==='live' && match[3]);
+  return !(!['court','tv'].includes(match[2]?.toLowerCase()) && match[3]);
 }
 // F22: install caches /index.html through the host's redirect to / (Cloudflare's asset server), so
 // that copy is a redirected response, which a browser refuses for a navigation (net::ERR_FAILED):

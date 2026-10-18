@@ -398,6 +398,32 @@ await test('a tournament may reserve five names, reuse its aliases, and never re
   }
 });
 
+await test('new screen paths resolve by ID and slug, preserve alias suffixes, and reserve their names', async () => {
+  const slug='screen-paths-'+Date.now();
+  const {body}=await create({slug});
+  const id=body.tournamentId;
+  const renamed=slug+'-new';
+  assert.equal((await api.call('POST',`/api/tournaments/${id}/slug`,{headers:staffHeaders(),body:{slug:renamed}})).status,200);
+  for(const screen of ['overview','results','setup','registration','pools']) {
+    for(const prefix of [`/t/${id}`,'/'+renamed]) {
+      let assetPath;
+      const assets=!LIVE&&api.durableObject(id).env.ASSETS;
+      const original=assets&&assets.fetch;
+      if(assets)assets.fetch=async request=>{assetPath=new URL(request.url).pathname;return original(request);};
+      try {
+        const response=await api.call('GET',prefix+'/'+screen);
+        assert.equal(response.status,200,prefix+'/'+screen);
+        if(assets)assert.equal(assetPath,'/',prefix+'/'+screen+' serves the app asset');
+      } finally {if(assets)assets.fetch=original;}
+    }
+    const alias=await api.call('GET',`/${slug}/${screen}?option=kept`);
+    assert.equal(alias.status,308);
+    assert.equal(alias.headers.get('location'),`/${renamed}/${screen}?option=kept`);
+    assert.equal((await api.call('GET',`/unknown-${slug}/${screen}`)).status,404);
+    assert.equal((await create({slug:screen})).res.status,400,screen);
+  }
+});
+
 await test('GET snapshot content-length matches its body or is absent', async () => {
   const {body}=await create();
   const response=await api.call('GET',`/api/tournaments/${body.tournamentId}`);

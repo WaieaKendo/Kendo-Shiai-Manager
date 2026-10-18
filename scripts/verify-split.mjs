@@ -41,7 +41,7 @@ const KNOWN_POST_SPLIT_EDITS = {
   // switched to them: isTvSession(), roleLink(), tvLink(), restoreAutoSaveIfWanted() (21),
   // KSM_TV_ASSIGNED_COURT (25), spectatorLink(), initializeCloudRoleFromUrl() (33). The court-pin,
   // load-file-guard and stream-overlay regions read and write the address through them too.
-  'path-urls': 8,
+  'path-urls': 13,
   // feat/react-setup: app/js/00-react-bridge.js + the ksm:state-changed dispatch in
   // performCourtAction() and renderAll(), so React islands re-render with `state`.
   'react-bridge': 3,
