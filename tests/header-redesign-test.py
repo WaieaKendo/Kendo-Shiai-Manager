@@ -36,6 +36,19 @@ def main():
             assert page.locator('header .version-badge').count()==0
             assert chip.get_attribute('href').endswith('/t/header-fixture/overview')
             assert page.locator('details[data-testid="tournament-chip"]').count()==0
+            if width==1280:
+                chip.hover()
+                assert chip.evaluate("el=>getComputedStyle(el).textDecorationLine")=='none'
+                highlight=chip.evaluate("el=>getComputedStyle(el).backgroundColor")
+                assert highlight!='rgba(0, 0, 0, 0)'
+                page.mouse.move(0,0)
+                chip.focus()
+                page.keyboard.press('Shift+Tab');page.keyboard.press('Tab')
+                assert chip.evaluate("el=>el.matches(':focus-visible')")
+                assert chip.evaluate("el=>getComputedStyle(el).backgroundColor")==highlight
+                assert chip.evaluate("el=>getComputedStyle(el).textDecorationLine")=='none'
+                assert chip.evaluate("el=>parseFloat(getComputedStyle(el).outlineWidth)")>0
+
             toggle=page.locator(sel('nav-toggle'))
             for role,expected in [('spectator',['Overview','Live Scores','Courts','Results']),('staff',['Overview','Live Scores','Courts','TV','Results','Export','Save / Load','Registration','Setup'])]:
                 page.evaluate("role=>{setSessionRole(role);installRoleBanner(role)}",role)
