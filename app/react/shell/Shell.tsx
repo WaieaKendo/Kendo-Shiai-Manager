@@ -18,7 +18,8 @@
 // event (they read event.target.files and clear its value).
 // No colors of their own (the header CSS and theme tokens); the tile icons come from the branding
 // module.
-import { useLayoutEffect, useRef, useSyncExternalStore } from 'react';
+import { TOURNAMENT_HOME } from '../../engine/routes.ts';
+import { useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { DEFAULT_NAV_ICONS } from '../court/branding.ts';
 import { EMPTY_HEADER, STATUS_TITLE, type HeaderInput } from './header-model.ts';
 import {
@@ -119,18 +120,40 @@ export function Nav() {
 /** The primary tournament text next to the logo. */
 export function TournamentChip() {
   const h = useSyncExternalStore(subscribeHeader, headerSnapshot, () => EMPTY_HEADER);
-  const switcher = useNativeClick<HTMLButtonElement>(() => { void shellWindow().showHomePage?.(); });
-  const library = useNativeClick<HTMLButtonElement>(() => { void shellWindow().showHomePage?.(); });
-  const editSlug = useNativeClick<HTMLButtonElement>(() => { void shellWindow().ksmEditTournamentSlug?.(); });
+  const [expanded, setExpanded] = useState(false);
+  const toggle = useNativeClick<HTMLButtonElement>(() => setExpanded(value => !value));
+  const home = useNativeClick<HTMLAnchorElement>(event => {
+    if (event.button || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    shellWindow().navigateTo?.(TOURNAMENT_HOME.view);
+    setExpanded(false);
+  });
+  useLayoutEffect(() => {
+    document.body.classList.toggle('ksm-nav-expanded', expanded);
+    const close = () => { setExpanded(false); shellWindow().closeNavMenus?.(); };
+    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') { close(); toggle.current?.focus(); } };
+    const click = (event: MouseEvent) => {
+      const el = event.target as Element;
+      if (el.closest('[data-testid="nav-toggle"]')) return;
+      if (!el.closest('header.ksm-topbar') || el.closest('.nav-brand') || el.closest('.nav-dropdown button') || el.closest('.nav-tile:not([aria-haspopup])')) close();
+    };
+    const resize = () => { if (innerWidth > 900) close(); };
+    if (expanded) {
+      document.addEventListener('click', click); document.addEventListener('keydown', escape); window.addEventListener('resize', resize);
+    }
+    return () => { document.removeEventListener('click', click); document.removeEventListener('keydown', escape); window.removeEventListener('resize', resize); document.body.classList.remove('ksm-nav-expanded'); };
+  }, [expanded, toggle]);
+  useLayoutEffect(() => { if (!h.tournamentName) setExpanded(false); }, [h.tournamentName]);
+  useLayoutEffect(() => {
+    document.querySelector('.nav-brand')?.setAttribute('title', h.role.dataRole === 'staff' ? 'Tournament Library' : TOURNAMENT_HOME.label);
+  }, [h.role.dataRole]);
   if (!h.tournamentName) return null;
-  return <details className="tournament-switcher" data-testid="tournament-chip">
-    <summary title={h.tournamentName}><span className="tournament-chip-name">{h.tournamentName}</span><span aria-hidden="true"> ▾</span></summary>
-    <div className="tournament-switcher-menu">
-      <button ref={switcher} type="button" data-testid="switch-tournament">Switch tournament</button>
-      {h.role.dataRole === 'staff' && <button ref={editSlug} type="button" data-testid="chip-edit-slug">Edit short name</button>}
-      <button ref={library} type="button" data-testid="chip-library">Library</button>
-    </div>
-  </details>;
+  return <>
+    <a ref={home} className="tournament-home-link" data-testid="tournament-chip" href={shellWindow().ksmTournamentHomeUrl?.() ?? '/'} title={`${h.tournamentName} — ${TOURNAMENT_HOME.label}`}>
+      <span className="tournament-chip-name">{h.tournamentName}</span>
+    </a>
+    <button ref={toggle} className="mobile-nav-toggle" type="button" data-testid="nav-toggle" aria-label={expanded ? 'Close navigation' : 'Open navigation'} aria-expanded={expanded} aria-controls="tournamentNavigation">☰</button>
+  </>;
 }
 
 /** The contents of header.ksm-topbar .cloud-status-wrap. */

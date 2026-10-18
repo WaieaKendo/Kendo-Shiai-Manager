@@ -11,13 +11,12 @@ body:not(.ksm-home) .tournament-heading { grid-area:tournament; }
 body:not(.ksm-home) .minimal-nav { grid-area:nav; width:100%; min-width:0; }
 body:not(.ksm-home) .cloud-status-wrap { grid-area:staff; min-width:0; margin:0; padding:0; }
 #staffAuthButton { min-height:44px; flex-shrink:0; }
-.tournament-switcher { position:relative; min-width:0; color:var(--ksm-ivory); }
-.tournament-switcher summary { display:flex; align-items:center; min-height:44px; cursor:pointer; gap:6px; padding:0 4px; font-weight:700; list-style:none; background:transparent; }
-.tournament-switcher summary::-webkit-details-marker { display:none; }
+.tournament-heading { display:flex; align-items:center; gap:8px; }
+.tournament-home-link { display:flex; align-items:center; min-width:0; min-height:44px; padding:0 4px; font-weight:700; color:var(--ksm-ivory); text-decoration:none; }
+.tournament-home-link:hover { text-decoration:underline; }
+.tournament-home-link:focus-visible,.mobile-nav-toggle:focus-visible { outline:2px solid var(--ksm-ivory); outline-offset:2px; }
 .tournament-chip-name { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.tournament-switcher-menu { position:absolute; top:100%; left:0; z-index:110; width:max-content; max-width:calc(100vw - 24px); padding:6px; border:1px solid var(--ksm-line); border-radius:var(--ksm-radius-small); background:var(--ksm-paper); box-shadow:var(--ksm-shadow-card); }
-.tournament-switcher-menu button { display:block; width:100%; min-height:44px; margin:0; padding:8px 12px; border:0; text-align:left; background:transparent; color:var(--ksm-ink); box-shadow:none; }
-.tournament-switcher-menu button:hover { background:var(--ksm-mist); }
+.mobile-nav-toggle { display:none; min-width:44px; min-height:44px; padding:8px; margin:0; background:transparent; border:1px solid var(--ksm-line); color:var(--ksm-ivory); box-shadow:none; }
 .library-about { display:none; margin-left:16px; color:var(--ksm-slate); }
 body.ksm-home .library-about { display:inline; }
 .library-about .version-badge { display:inline; padding:0; border:0; background:transparent; color:inherit; font:inherit; }
@@ -30,5 +29,15 @@ body.ksm-tv > header.ksm-topbar .minimal-nav { display:none !important; }
 body.ksm-tv > header.ksm-topbar { grid-template-areas:"logo tournament staff" !important; grid-template-columns:54px minmax(0,1fr) max-content !important; }
 @media (orientation:landscape) and (max-height:560px) and (max-width:980px) {
   body:not(.ksm-home) .cloud-status-wrap { flex-direction:row; gap:4px; }
+}
+@media (max-width:900px) {
+  .minimal-nav .nav-menu:has(> .nav-dropdown.is-open) { z-index:10020 !important; }
+  .mobile-nav-toggle { display:block; flex-shrink:0; margin-left:auto; }
+  body:not(.ksm-home) header.ksm-topbar .minimal-nav { display:none !important; }
+  body.ksm-nav-expanded:not(.ksm-home) header.ksm-topbar { grid-template-areas:"logo tournament staff" "nav nav nav" !important; }
+  body.ksm-nav-expanded:not(.ksm-home) header.ksm-topbar .minimal-nav { display:grid !important; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; max-height:calc(100dvh - 100px); overflow:auto; }
+  body.ksm-nav-expanded .minimal-nav > .nav-tile,body.ksm-nav-expanded .minimal-nav > .nav-tile-wrap { width:100%; min-width:0; }
+  body.ksm-nav-expanded .minimal-nav .nav-tile { display:flex; flex-direction:row; align-items:center; justify-content:flex-start; gap:10px; width:100%; min-width:0; min-height:48px; height:auto; padding:8px; }
+  body.ksm-nav-expanded .minimal-nav .nav-tile img { width:24px; height:24px; }
 }
 /* ksm:post-split-end */

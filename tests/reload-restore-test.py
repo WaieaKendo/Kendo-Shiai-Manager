@@ -86,7 +86,7 @@ def main():
             device.wait_generated()
             assert not device.seen_dialogs, f'{device.name}: reload asked {device.seen_dialogs}'
         tv.wait_for(lambda: tv.tv_screen()['live'] and tv.tv_screen()['white'], message='TV to show the Court A match')
-        spectator.page.wait_for_selector('[data-testid="live-scores"]')
+        spectator.page.wait_for_selector('#director', state='visible')
 
         # --- Court A scorekeeper: failed save, reload, Court B scores meanwhile -------------
         court_a = KsmApp.open_device(browser, base, 'Court A', problems, app_path(tid, 'court', 'A'))

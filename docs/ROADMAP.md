@@ -393,11 +393,11 @@ Today every screen is one page driven by query parameters (`/?tournament=<id>&co
 | Path | Screen | Old link (still works: replaced by the path) |
 |---|---|---|
 | `/` | Tournament Library (home) | `/` |
-| `/t/<id>` | Live Scores as a spectator, on the court this device chose before | `/?tournament=<id>`, `/?spectator=<id>`, `/index.html?tournament=<id>` |
-| `/t/<id>/live` | the same, by name | — |
+| `/t/<id>` | configured tournament home (Overview) as a spectator | `/?tournament=<id>`, `/?spectator=<id>`, `/index.html?tournament=<id>` |
+| `/t/<id>/live` | Live Scores | — |
 | `/t/<id>/overview`, `/results` | Overview or Results, including spectator reloads/bookmarks | — |
-| `/t/<id>/setup`, `/registration`, `/pools` | staff screens; spectator/reload falls back to Live Scores at the tournament root | — |
-| `/t/<id>/court/a`, `/court/b` | a court device: as `/t/<id>`, assigned Court A/B (the court screen opens on it) | `/?tournament=<id>&court=A` |
+| `/t/<id>/setup`, `/registration`, `/pools` | staff screens; spectator/reload falls back to the configured home (Overview) | — |
+| `/t/<id>/court/a`, `/court/b` | a court device: Live Scores, assigned Court A/B (the court screen opens on it) | `/?tournament=<id>&court=A` |
 | `/t/<id>/tv/a`, `/tv/b` | TV display for Court A/B | `/?role=spectator&tournament=<id>&court=A&view=tv` (also without `role`, and `&view=tv` without a court = Court A) |
 | `/t/<id>/overlay/a`, `/overlay/b` | stream overlay page (`overlay.html`); options `red`, `pos`, `y`, `band`, `debug` stay query parameters | `/overlay?tournament=<id>&court=A&…` |
 

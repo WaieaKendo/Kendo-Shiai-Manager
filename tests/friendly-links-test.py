@@ -21,7 +21,7 @@ def main():
             {'name':name,'dojo':'Dojo','seed':'','status':'Checked'} for name in ['Aoki','Baba','Chiba']]}])
         staff.save_now();staff.wait_idle()
         page = staff.page
-        for suffix, view in [('', 'public'),('/live','public'),('/court/a','public'),('/court/b','public'),('/tv/a','tv'),('/tv/b','tv')]:
+        for suffix, view in [('', 'director'),('/live','public'),('/court/a','public'),('/court/b','public'),('/tv/a','tv'),('/tv/b','tv')]:
             device = KsmApp.open_device(browser,base,'Link',problems,'/lokt-2027'+suffix)
             device.wait_generated()
             assert device.tournament_id() == tid and device.visible_view() == [view]

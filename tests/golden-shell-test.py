@@ -250,6 +250,10 @@ def open_app(name, browser, react_check=None, viewport=DESKTOP, api=None, sessio
 
 def click(page, selector, index=0):
     """A click without moving the mouse (no hover state)."""
+    if selector.startswith('[data-testid="nav-') and selector != '[data-testid="nav-toggle"]':
+        toggle = page.locator('[data-testid="nav-toggle"]')
+        if toggle.is_visible() and toggle.get_attribute('aria-expanded') == 'false':
+            toggle.dispatch_event('click')
     page.locator(selector).nth(index).dispatch_event('click')
 
 

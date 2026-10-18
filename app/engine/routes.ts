@@ -1,12 +1,14 @@
+/** Shared landing screen for tournament links and the header name. */
+export const TOURNAMENT_HOME = { screen: 'overview', view: 'director', label: 'Overview' } as const;
+export const DEFAULT_TOURNAMENT_SCREEN = TOURNAMENT_HOME.screen;
 // Path URLs (roadmap M.9): the one place that knows the URL scheme. Pure string logic (no DOM,
 // no URL/URLSearchParams, so it fits the engine's tsconfig): the classic app reaches it as
 // KSMEngine.* (app/js/00-path-urls.js), the overlay page imports it.
 //
 //   /                          Tournament Library (home)
-//   /t/<id>                    a tournament link: Live Scores as a spectator, on the court this
-//                              device chose before (old ?tournament=<id>, ?spectator=<id>)
-//   /t/<id>/live               the same, named (Live Scores)
-//   /t/<id>/court/a|b          a court device's link: as /t/<id>, assigned Court A/B
+//   /t/<id>                    a tournament link: the configured tournament home as a spectator (old ?tournament=<id>, ?spectator=<id>)
+//   /t/<id>/live               Live Scores
+//   /t/<id>/court/a|b          a court device's link: Live Scores, assigned Court A/B
 //                              (old ?tournament=<id>&court=A)
 //   /t/<id>/tv/a|b             TV display for Court A/B (old ?role=spectator&tournament=<id>&court=A&view=tv)
 //   /t/<id>/overlay/a|b        stream overlay, app/overlay.html (old /overlay?tournament=<id>&court=A);

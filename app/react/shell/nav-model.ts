@@ -77,8 +77,8 @@ const call = (fn: string, ...args: string[]): NavAction => ({ fn, args });
 
 /** The bar, in order. */
 export const NAV_ENTRIES: readonly NavEntry[] = [
-  { kind: 'tile', className: 'nav-tile director-only setup-nav-tile', title: 'Setup', testId: 'nav-setup', icon: 'setup', label: 'Setup', action: call('navigateTo', 'setup') },
-  { kind: 'tile', className: 'nav-tile director-only', title: 'Registration', testId: 'nav-registration', icon: 'registration', label: 'Registration', action: call('openRegistrationTab', 'individual') },
+  { kind: 'tile', className: 'nav-tile role-court-access', title: 'Tournament Overview', testId: 'nav-overview', icon: 'liveScores', label: 'Overview', action: call('navigateTo', 'director') },
+  { kind: 'tile', className: 'nav-tile', title: 'Live Scores', testId: 'nav-live-scores', icon: 'liveScores', label: 'Live Scores', action: call('navigateTo', 'public') },
   {
     kind: 'menu', wrapClassName: 'nav-menu nav-tile-wrap role-court-access', menuId: 'courtsMenu', menuClassName: 'nav-dropdown',
     trigger: { title: 'Courts', testId: 'nav-courts', icon: 'courts', label: 'Courts' },
@@ -87,7 +87,6 @@ export const NAV_ENTRIES: readonly NavEntry[] = [
       { kind: 'item', label: 'Court B', testId: 'nav-court-b', action: call('chooseCourt', 'B') },
     ],
   },
-  { kind: 'tile', className: 'nav-tile', title: 'Live Scores', testId: 'nav-live-scores', icon: 'liveScores', label: 'Live Scores', action: call('navigateTo', 'public') },
   {
     kind: 'menu', wrapClassName: 'nav-menu nav-tile-wrap role-court-access tv-role-access', menuId: 'tvMenu', menuClassName: 'nav-dropdown',
     trigger: { title: 'TV Display', testId: 'nav-tv', icon: 'liveScores', label: 'TV' },
@@ -102,7 +101,6 @@ export const NAV_ENTRIES: readonly NavEntry[] = [
       })),
     ],
   },
-  { kind: 'tile', className: 'nav-tile role-court-access', title: 'Tournament Overview', testId: 'nav-overview', icon: 'liveScores', label: 'Overview', action: call('navigateTo', 'director') },
   { kind: 'tile', className: 'nav-tile', title: 'Results', testId: 'nav-results', icon: 'results', label: 'Results', action: call('navigateTo', 'results') },
   {
     kind: 'menu', wrapClassName: 'nav-menu nav-tile-wrap director-only', menuId: 'exportMenu', menuClassName: 'nav-dropdown nav-dropdown-wide',
@@ -121,6 +119,7 @@ export const NAV_ENTRIES: readonly NavEntry[] = [
       { kind: 'heading', label: 'Tournament' },
       { kind: 'item', label: 'New Tournament', testId: 'nav-new-tournament', action: close('createNewTournament') },
       { kind: 'item', label: 'Save Now', testId: 'nav-save-now', action: close('saveNow') },
+      { kind: 'item', label: 'Edit short name', testId: 'nav-edit-slug', action: close('ksmEditTournamentSlug') },
       { kind: 'item', label: 'Tournament Library', testId: 'nav-library', action: close('showHomePage') },
       { kind: 'item', label: 'Download Tournament File', testId: 'nav-download-file', action: close('manualSaveTournament') },
       { kind: 'item', label: 'Load Tournament File', testId: 'nav-load-file', action: close('triggerLoadTournament') },
@@ -137,7 +136,10 @@ export const NAV_ENTRIES: readonly NavEntry[] = [
       { kind: 'item', label: 'Cloud Diagnostics', testId: 'nav-cloud-diagnostics', action: close('cloudDiagnostics') },
     ],
   },
+  { kind: 'tile', className: 'nav-tile director-only', title: 'Registration', testId: 'nav-registration', icon: 'registration', label: 'Registration', action: call('openRegistrationTab', 'individual') },
+  { kind: 'tile', className: 'nav-tile director-only setup-nav-tile', title: 'Setup', testId: 'nav-setup', icon: 'setup', label: 'Setup', action: call('navigateTo', 'setup') },
 ];
+
 
 /** The hidden file inputs at the end of the bar: Load Tournament File and Load Recovery File
  * click them (by id) and their change event runs the loader with the event. */

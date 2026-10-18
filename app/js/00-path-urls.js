@@ -53,6 +53,8 @@ function ksmRecordScreenPath(view){
   ksmReplaceUrl(KSMEngine.routePath(route)+location.search+location.hash);
   ksmTournamentAddress=location.pathname+location.search+location.hash;
 }
+function ksmHeaderLogo(){if(!isReadOnlySession())return showHomePage();navigateTo(KSMEngine.TOURNAMENT_HOME.view)}
+function ksmTournamentHomeUrl(){return cloudSession.tournamentId?ksmLinkUrl({screen:KSMEngine.DEFAULT_TOURNAMENT_SCREEN,id:cloudSession.tournamentId}):'/'}
 function ksmShowRequestedScreen(){
   const screen=ksmResolvedUrl().route.screen;
   if(screen==='overview'){navigateTo('director');return}
@@ -63,13 +65,15 @@ function ksmShowRequestedScreen(){
       return;
     }
     const current=ksmResolvedUrl().route;
-    ksmReplaceUrl(KSMEngine.routePath({...current,screen:'tournament',id:cloudSession.tournamentId})+location.search+location.hash);
+    ksmReplaceUrl(KSMEngine.routePath({...current,screen:KSMEngine.DEFAULT_TOURNAMENT_SCREEN,id:cloudSession.tournamentId})+location.search+location.hash);
+    navigateTo(KSMEngine.TOURNAMENT_HOME.view);return;
   }
-  navigateTo('public');
+  navigateTo(screen==='tournament'?(KSMEngine.TOURNAMENT_HOME.view):'public');
 }
 
 // An absolute link to a route (KSMEngine.routeUrl(): path plus query pairs; empty ones left out).
 function ksmLinkUrl(route,query){
+  if(route.screen==='tournament')route={...route,screen:KSMEngine.DEFAULT_TOURNAMENT_SCREEN};
   const slug=route.id===cloudSession.tournamentId?cloudSession.slug:readTournamentLibrary().find(row=>row.id===route.id)?.slug;
   return new URL(KSMEngine.routeUrl({...route,...(slug?{slug}:{})},query||[]),location.href).toString();
 }

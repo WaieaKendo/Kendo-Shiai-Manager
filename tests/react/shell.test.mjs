@@ -14,14 +14,14 @@ const testIds = entries => entries.flatMap(e => e.kind === 'tile' ? [e.testId]
 
 test('the bar: tiles and menus in the order and with the test IDs of the markup', () => {
   assert.deepEqual(testIds(NAV_ENTRIES), [
-    'nav-setup', 'nav-registration',
+    'nav-overview', 'nav-live-scores',
     'nav-courts', 'nav-court-a', 'nav-court-b',
-    'nav-live-scores',
     'nav-tv', 'nav-tv-a', 'nav-tv-b', 'nav-overlay-a', 'nav-overlay-b',
-    'nav-overview', 'nav-results',
+    'nav-results',
     'nav-export', 'nav-export-brackets', 'nav-export-results', 'nav-export-referees', 'nav-export-archive',
-    'nav-save-load', 'nav-new-tournament', 'nav-save-now', 'nav-library', 'nav-download-file', 'nav-load-file',
+    'nav-save-load', 'nav-new-tournament', 'nav-save-now', 'nav-edit-slug', 'nav-library', 'nav-download-file', 'nav-load-file',
     'nav-download-recovery', 'nav-load-recovery', '(Copy Tournament ID)', 'nav-tournament-access', 'nav-cloud-diagnostics',
+    'nav-registration', 'nav-setup',
   ]);
   assert.deepEqual(NAV_ENTRIES.filter(e => e.kind === 'menu').map(e => e.menuId), ['courtsMenu', 'tvMenu', 'exportMenu', 'saveLoadMenu']);
   assert.deepEqual(NAV_FILE_INPUTS.map(f => [f.id, f.testId, f.onChange]), [
@@ -56,7 +56,7 @@ test('the tiles\' icons come from the branding module', () => {
 });
 
 test('the active tile: the first whose text starts with the screen label (setActiveNavForView())', () => {
-  assert.deepEqual(NAV_ENTRIES.map(tileText), ['Setup', 'Registration', 'Courts ▾', 'Live Scores', 'TV ▾', 'Overview', 'Results', 'Export ▾', 'Save / Load ▾']);
+  assert.deepEqual(NAV_ENTRIES.map(tileText), ['Overview', 'Live Scores', 'Courts ▾', 'TV ▾', 'Results', 'Export ▾', 'Save / Load ▾', 'Registration', 'Setup']);
   const at = label => { const i = activeEntryIndex(NAV_ENTRIES, label); return i < 0 ? null : tileText(NAV_ENTRIES[i]); };
   assert.equal(at('Courts'), 'Courts ▾');
   assert.equal(at('Export'), 'Export ▾');

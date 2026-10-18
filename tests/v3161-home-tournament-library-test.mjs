@@ -13,7 +13,7 @@ const checks = [
   ['existing tournaments open spectator', html.includes("return ksmOpenTournament(id)") && html.includes("await initializeCloudRoleFromUrl()") && libraryReact.includes('libraryWindow().openTournamentFromHome?.(card.id)')],
   ['startup opens home', html.includes('showHomePage();return true')],
   ['public link bypasses home', /classList\.remove\('ksm-home'\);if\(requestedView==='tv'\).{0,400}ksmShowRequestedScreen\(\)/.test(html)],
-  ['home return paths', html.includes('title="Tournament Library" onclick="showHomePage()"') && html.includes('>Tournament Library</button>')],
+  ['home return paths', html.includes('title="Tournament Library" onclick="ksmHeaderLogo()"') && html.includes('>Tournament Library</button>')],
   ['staff login and logout preserved', html.includes('Staff Login') && html.includes("?'Logout':'Staff Login'")],
   ['save now preserved', html.includes('>Save Now</button>')],
   ['recovery file preserved', html.includes('downloadRecoveryFile()') && html.includes('triggerLoadRecoveryFile()')],

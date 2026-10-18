@@ -2,7 +2,7 @@
 
 Against a throwaway `wrangler dev`:
   * Home library: a fresh device lists the cloud tournament by name, opens it as a
-    spectator on Live Scores, and returns to the library from the menu;
+    spectator on Overview, and returns to the library from the menu;
   * spectators see no Setup/Registration/Export/Save/TV menus, may open Court,
     Overview, Results and Live Scores and are sent to Live Scores from anything else;
     their court screen shows the court and its context but no scoring controls;
@@ -67,7 +67,7 @@ def main():
         page.wait_for_selector(f'{sel("home-tournament-name")}:has-text("Roles Cup")')
         assert visible(spectator, 'home-new-tournament'), 'home page has no New Tournament'
         page.click(f'{sel("home-tournament-name")}:has-text("Roles Cup")')
-        page.wait_for_selector(f'{sel("live-scores")}', state='visible')
+        page.wait_for_selector('#director', state='visible')
         spectator.wait_generated()
         assert spectator.page.evaluate('KSMTest.role()') == 'spectator'
         assert page.inner_text(sel('staff-auth')).strip() == 'Staff Login'
@@ -143,7 +143,7 @@ def main():
         dpage.wait_for_selector(sel('access-link'))
         assert dpage.inner_text(sel('cloud-modal-title')).strip() == 'Tournament Access'
         link = dpage.inner_text(sel('access-link')).strip()
-        assert link == f'{base}/roles-cup-2026', f'access link: {link}'
+        assert link == f'{base}/roles-cup-2026/overview', f'access link: {link}'
         assert 'key' not in link and 'e2e-staff-pass' not in dpage.inner_text(sel('cloud-modal')), 'access modal shows a key'
         assert 'roles-cup-2026' in (dpage.get_attribute(sel('access-qr'), 'src') or ''), 'QR code does not carry the link'
         director.click('access-copy')

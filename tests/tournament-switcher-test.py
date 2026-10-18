@@ -20,8 +20,7 @@ def main():
         page.evaluate("state.divisions=['Only A'];state.competitors=[{name:'A only'}];pinCourtLocally('B');criticalAutoSave('A fixture')")
         a.wait_idle()
         page.evaluate("(id)=>localStorage.setItem('ksm:match-timer:'+JSON.stringify([id,'B','fixture']),JSON.stringify({runningSince:Date.now()}))",aid)
-        page.locator(sel('tournament-chip')+' summary').click()
-        a.click('switch-tournament')
+        page.locator('.nav-brand').click()
         a.wait_for(lambda: a.visible_view() == ['home'], message='Library')
         assert a.address() == '/'
         assert page.evaluate("(id)=>!Object.keys(localStorage).some(key=>key.startsWith('ksm:match-timer:'+JSON.stringify([id]).slice(0,-1)))",aid)
@@ -54,11 +53,11 @@ def main():
         page.evaluate('showHomePage()')
         a.wait_for_dialogs()
         assert page.evaluate("cloudSession.tournamentId && readOutbox() && state.awards[0].name === 'Unsaved award' && v316StaffPassword()")
-        assert a.address() == '/switch-a-2026'
+        assert a.address() == '/switch-a-2026/overview'
         blocked_count=len(a.seen_dialogs)
         page.evaluate('history.back()')
         a.wait_for_dialogs(blocked_count+1)
-        a.wait_for(lambda: a.address()=='/switch-a-2026',message='saved tournament address restored after blocked Back')
+        a.wait_for(lambda: a.address()=='/switch-a-2026/overview',message='saved tournament address restored after blocked Back')
         assert page.evaluate("readOutbox() && state.awards[0].name==='Unsaved award'")
         page.context.set_offline(False)
         a.save_now();a.wait_idle()
@@ -83,8 +82,7 @@ def main():
         dp.evaluate('showHomePage()')
         draft.wait_for_dialogs()
         assert dp.evaluate('localStorage.getItem(KSM_SAVE_KEY)') == raw
-        dp.locator(sel('tournament-chip')+' summary').click()
-        draft.click('switch-tournament')
+        dp.evaluate('showHomePage()')
         draft.wait_for_dialogs(2)
         assert dp.evaluate('localStorage.getItem(KSM_SAVE_KEY)') == raw
         assert dp.evaluate("state.competitors[0].name==='Local competitor' && !document.body.classList.contains('ksm-home')")

@@ -19,7 +19,7 @@ def main():
             app=KsmApp.open_device(browser,base,'Tabs',problems)
             app.wait_for_library()
             app.click('home-tournament-name')
-            app.wait_for(lambda: app.tournament_id()==tid and app.visible_view()==['public'],message='Library opens tournament')
+            app.wait_for(lambda: app.tournament_id()==tid and app.visible_view()==['director'],message='Library opens tournament')
             if prefix.startswith('/t/'):
                 app.page.evaluate('(path)=>ksmReplaceUrl(path)',prefix)
             length=app.page.evaluate('history.length')
@@ -34,8 +34,8 @@ def main():
                 assert app.page.evaluate('history.length')==length,screen
                 app.blur();app.wait_idle()
                 app.reload()
-                expected_view='public' if private or screen.startswith('court/') else view
-                expected_address=prefix if private else prefix+'/'+screen
+                expected_view='director' if private else 'public' if screen.startswith('court/') else view
+                expected_address=prefix+'/overview' if private else prefix+'/'+screen
                 assert app.visible_view()==[expected_view],(screen,app.visible_view())
                 assert app.address()==expected_address,(screen,app.address())
                 assert app.tournament_id()==tid

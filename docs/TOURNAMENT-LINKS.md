@@ -7,12 +7,17 @@ Each screen has a path. Tab navigation replaces the current entry; only opening
 or switching tournaments adds an entry, so Back skips all intervening tabs.
 Overview and Results reopen on their bookmarked screen. Setup, Registration and
 Pools require staff: a spectator opening or reloading those paths lands on the
-tournament default (Live Scores). Reload still ends staff access as before.
+tournament default (Overview). Reload still ends staff access as before.
 
 On tournament screens the header shows the logo and a quiet, truncated tournament
-name. The chip offers **Switch tournament**, **Edit short name** for staff, and
-**Library**, including on TV devices. The Library retains its full branding and
-shows the build version in its About footer; diagnostics retain the same version. New UI uses existing theme tokens. Library, Switch and New Tournament
+name linked to the tournament home (Overview). The logo opens Overview for spectators and returns signed-in staff to the Library
+through the save guard. Direct access to `/` remains public. `TOURNAMENT_HOME` in `app/engine/routes.ts` defines the
+home route, screen and label together. Staff edit short names in Save / Load or Tournament Access.
+At 900px or less, a hamburger opens the navigation; Escape, outside click or
+choosing a destination closes it. Spectator order: Overview, Live Scores, Courts,
+Results. Staff order: Overview, Live Scores, Courts, TV, Results, Export, Save /
+Load, Registration, Setup. The Library retains its full branding and
+shows the build version in its About footer; diagnostics retain the same version. New UI uses existing theme tokens. Returning to the Library and New Tournament
 share a save gate: pending work must reach the server before leaving. If it cannot,
 the app warns and stays put with the outbox and staff session intact. Successful
 exits clear runtime state, court preferences, match timers, queued callbacks and
@@ -42,13 +47,14 @@ a slug get a server suggestion with a numeric suffix if needed.
 
 These forms work with either a slug or `/t/<id>`:
 
-- The base address and `/live`: Live Scores.
+- The base address: Overview (the configured tournament home).
+- `/live`: Live Scores.
 - `/court/a` and `/court/b`: a court assignment.
 - `/tv/a` and `/tv/b`: TV for the chosen court.
 - `/overlay/a` and `/overlay/b`: the live stream overlay.
 - `/overview` and `/results`: spectator-accessible app screens.
 - `/setup`, `/registration` and `/pools`: staff screens; spectator links fall back
-  to the tournament root and Live Scores. Pools selects Registration’s Pools tab.
+  to `/overview` and Overview. Pools selects Registration’s Pools tab.
 
 Every generated access, QR, TV and overlay link uses the current short name when
 known. Existing ID paths and old query links remain supported.
@@ -126,6 +132,14 @@ expanded diff was reviewed: content, visibility, element counts, X positions,
 widths and heights are unchanged. Fixed overlays retain their expected positions.
 All snapshots continue to compare absolute geometry; no screen-origin tolerance
 or relative-position comparison is used.
+
+The subsequent navigation cleanup reviews five Shell recordings (name link,
+role-specific order, hamburger state and bounded menus), one Library session
+landing change (Overview), and 54 mobile screen-offset-only recordings. The latter
+move up by 80px in portrait or 52px in compact landscape as the navigation
+collapses; content, visibility, element counts, X positions and dimensions remain
+exact. Generated tournament access links now name `/overview`. Hamburger clicks
+are excluded from the broad legacy autosave listener and create no mutations.
 
 The Setup geometry check waits for fonts and the resize paint cycle before
 measuring native textareas; it retains their original sizes. Socket barriers wait

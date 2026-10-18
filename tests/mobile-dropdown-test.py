@@ -11,7 +11,13 @@ with sync_playwright() as p:
     errors = []
     page.on("pageerror", lambda exc: errors.append(str(exc)))
     load_app(page, HTML)
-    page.wait_for_timeout(300)
+    page.get_by_test_id('nav-toggle').wait_for(state='visible')
+
+    def tap_trigger(trigger):
+        toggle = page.get_by_test_id('nav-toggle')
+        if toggle.get_attribute('aria-expanded') == 'false':
+            toggle.tap()
+        trigger.tap()
 
     contracts = [
         ("Courts", "#courtsMenu", "Court A"),
@@ -22,7 +28,7 @@ with sync_playwright() as p:
     checks = 0
     for title, menu, item in contracts:
         trigger = page.get_by_title(title)
-        trigger.tap()
+        tap_trigger(trigger)
         locator = page.locator(menu)
         locator.wait_for(state="visible")
         assert trigger.get_attribute("aria-expanded") == "true"
@@ -33,17 +39,19 @@ with sync_playwright() as p:
         assert box["x"] >= 0 and box["x"] + box["width"] <= viewport["w"]
         assert box["y"] >= 0 and box["y"] + min(box["height"], 1) <= viewport["h"]
         checks += 6
+        page.get_by_test_id('nav-toggle').tap()
+        page.get_by_test_id('nav-toggle').tap()
         page.get_by_title("Setup").tap()
         assert locator.is_hidden()
         assert trigger.get_attribute("aria-expanded") == "false"
         checks += 2
 
     trigger = page.get_by_title("Courts")
-    trigger.tap(); assert page.locator("#courtsMenu").is_visible()
-    trigger.tap(); assert page.locator("#courtsMenu").is_hidden()
+    tap_trigger(trigger); assert page.locator("#courtsMenu").is_visible()
+    tap_trigger(trigger); assert page.locator("#courtsMenu").is_hidden()
     checks += 2
 
-    trigger.tap(); assert page.locator("#courtsMenu").is_visible()
+    tap_trigger(trigger); assert page.locator("#courtsMenu").is_visible()
     page.locator("main").tap(position={"x": 10, "y": 10})
     assert page.locator("#courtsMenu").is_hidden()
     checks += 2

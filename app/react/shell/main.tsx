@@ -20,6 +20,7 @@ function find(selector: string): Element {
 }
 
 const nav = find('header.ksm-topbar nav.minimal-nav');
+nav.id = 'tournamentNavigation';
 const heading = find('#tournamentHeading');
 const status = find('header.ksm-topbar .cloud-status-wrap');
 const fusen = find('#score #fusenDialog');

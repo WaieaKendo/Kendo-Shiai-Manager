@@ -5,8 +5,13 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {
-  RESERVED_SLUGS, isValidSlug, suggestSlug, routePath, routeUrl, parseRoutePath, parseLegacyLink, resolveUrl, legacyQuery, servesAppShell, servesOverlay,
+  TOURNAMENT_HOME, DEFAULT_TOURNAMENT_SCREEN, RESERVED_SLUGS, isValidSlug, suggestSlug, routePath, routeUrl, parseRoutePath, parseLegacyLink, resolveUrl, legacyQuery, servesAppShell, servesOverlay,
 } from '../../app/engine/routes.ts';
+
+test('tournament home is configured together for links and navigation', () => {
+  assert.deepEqual(TOURNAMENT_HOME, {screen:'overview',view:'director',label:'Overview'});
+  assert.equal(DEFAULT_TOURNAMENT_SCREEN, TOURNAMENT_HOME.screen);
+});
 
 const ID = '3f1c2a9e-0b7d-4c55-9e21-7a6b5c4d3e2f';
 

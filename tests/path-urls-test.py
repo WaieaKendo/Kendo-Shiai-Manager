@@ -75,11 +75,11 @@ def main():
 
         # --- New paths ------------------------------------------------------------------------
         for path in (app_path(tid), app_path(tid, 'live')):
-            opens(path, path, 'public', path)
+            opens(path, path, 'director' if path==app_path(tid) else 'public', path)
             device.wait_generated()
             assert device.page.evaluate('KSMTest.role()') == 'spectator' and device.tournament_id() == tid
             device.reload()
-            device.wait_for(lambda: device.visible_view() == ['public'], message=f'{path} after reload')
+            device.wait_for(lambda: device.visible_view() == ['director' if path==app_path(tid) else 'public'], message=f'{path} after reload')
             assert device.address() == path
         opens(app_path(tid, 'court', 'b'), app_path(tid, 'court', 'b'), 'public', 'court B link')
         device.wait_generated()
@@ -102,9 +102,9 @@ def main():
 
         # --- Old query links: replaced by their path, same screen ----------------------------------
         old_links = [
-            (f'/?tournament={tid}', app_path(tid), 'public'),
-            (f'/?spectator={tid}', app_path(tid), 'public'),
-            (f'/index.html?tournament={tid}', app_path(tid), 'public'),
+            (f'/?tournament={tid}', app_path(tid), 'director'),
+            (f'/?spectator={tid}', app_path(tid), 'director'),
+            (f'/index.html?tournament={tid}', app_path(tid), 'director'),
             (f'/?tournament={tid}&court=B', app_path(tid, 'court', 'b'), 'public'),
             (f'/?role=spectator&tournament={tid}&court=A&view=tv', app_path(tid, 'tv', 'a'), 'tv'),
             (f'/?role=spectator&tournament={tid}&court=B&view=tv', app_path(tid, 'tv', 'b'), 'tv'),
@@ -164,7 +164,7 @@ def main():
         director.click('nav-tournament-access')
         dpage.wait_for_selector(sel('access-link'))
         link = dpage.inner_text(sel('access-link')).strip()
-        assert link == f'{base}/paths-cup-2026', link
+        assert link == f'{base}/paths-cup-2026/overview', link
         qr = dpage.get_attribute(sel('access-qr'), 'src') or ''
         assert urllib.parse.quote(link, safe='') in qr, qr
         director.click('access-copy')

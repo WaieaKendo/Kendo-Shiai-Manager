@@ -7,6 +7,8 @@ import type { HeaderInput } from './header-model.ts';
 import type { NavInput } from './nav-model.ts';
 
 export interface ShellWindow {
+  ksmTournamentHomeUrl?: () => string;
+  navigateTo?: (view: string) => unknown;
   ksmEditTournamentSlug?: () => unknown;
   showHomePage?: () => unknown;
   /** What app/js/44-react-shell.js last published. */

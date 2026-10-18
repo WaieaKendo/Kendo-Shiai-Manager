@@ -70,8 +70,8 @@ function ksmPositionNavMenu(menu,trigger){
   if(!menu||!trigger||!window.matchMedia('(max-width:900px)').matches)return;
   const rect=trigger.getBoundingClientRect();
   const margin=12;
-  const top=Math.min(window.innerHeight-80,Math.max(margin,rect.bottom+8));
-  ksmNavMenuStyle={top:`${top}px`,left:`${margin}px`,right:`${margin}px`,maxHeight:`${Math.max(120,window.innerHeight-top-margin)}px`};
+  const top=Math.max(margin,Math.min(window.innerHeight-160,rect.bottom+8));
+  ksmNavMenuStyle={top:`${top}px`,left:`${margin}px`,right:`${margin}px`,maxHeight:`${Math.max(0,window.innerHeight-top-margin)}px`};
   ksmPublishNav();
 }
 // The resize listener on a wider window: the open menu hangs from its tile again.

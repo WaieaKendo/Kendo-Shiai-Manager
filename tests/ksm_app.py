@@ -479,6 +479,10 @@ class KsmApp:
         self.page.evaluate('view => KSMTest.show(view)', view)
 
     def click(self, testid):
+        if testid.startswith('nav-') and testid != 'nav-toggle':
+            toggle = self.page.locator(sel('nav-toggle'))
+            if toggle.is_visible() and toggle.get_attribute('aria-expanded') == 'false':
+                toggle.click()
         self.page.click(sel(testid))
 
     def nav(self, item):
