@@ -31,15 +31,29 @@ body.ksm-tv > header.ksm-topbar { grid-template-areas:"logo tournament staff" !i
   body:not(.ksm-home) .cloud-status-wrap { flex-direction:row; gap:4px; }
 }
 @media (max-width:900px) {
-  .minimal-nav .nav-menu:has(> .nav-dropdown.is-open) { z-index:10020 !important; }
-  .mobile-nav-toggle { display:block; flex-shrink:0; margin-left:auto; }
+  body:not(.ksm-home) header.ksm-topbar { grid-template-columns:44px 44px minmax(0,1fr) max-content !important; grid-template-areas:"hamburger logo tournament staff" !important; column-gap:6px !important; }
+  body:not(.ksm-home) .nav-brand { width:44px !important; max-width:44px !important; }
+  body:not(.ksm-home) .nav-brand-logo { width:44px !important; height:auto !important; }
+  .tournament-heading { display:contents; }
+  .tournament-home-link { grid-area:tournament; }
+  .mobile-nav-toggle { display:block; grid-area:hamburger; }
   body:not(.ksm-home) header.ksm-topbar .minimal-nav { display:none !important; }
-  body.ksm-nav-expanded:not(.ksm-home) header.ksm-topbar { grid-template-areas:"logo tournament staff" "nav nav nav" !important; }
-  body.ksm-nav-expanded:not(.ksm-home) header.ksm-topbar .minimal-nav { display:grid !important; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; max-height:calc(100dvh - 100px); overflow:auto; }
-  body.ksm-nav-expanded .minimal-nav > .nav-tile,body.ksm-nav-expanded .minimal-nav > .nav-tile-wrap { width:100%; min-width:0; }
-  body.ksm-nav-expanded .minimal-nav .nav-tile { display:flex; flex-direction:row; align-items:center; justify-content:flex-start; gap:10px; width:100%; min-width:0; min-height:48px; height:auto; padding:8px; }
-  body.ksm-nav-expanded .minimal-nav .nav-tile img { width:24px; height:24px; }
 }
+body.ksm-nav-expanded { overflow:hidden !important; }
+.mobile-nav-layer { position:fixed; inset:0; z-index:20000; }
+.mobile-nav-backdrop { position:absolute; inset:0; background:var(--ksm-navy); opacity:.6; }
+.mobile-nav-drawer { position:absolute; inset:0 auto 0 0; width:min(340px,calc(100vw - 48px)); display:flex; flex-direction:column; overflow-y:auto; overscroll-behavior:contain; background:var(--ksm-navy); color:var(--ksm-ivory); padding:12px; box-shadow:var(--ksm-shadow-lift); animation:ksm-drawer-enter 180ms ease-out; }
+.mobile-nav-close { flex-shrink:0; margin:0 0 12px; background:transparent; color:var(--ksm-ivory); border-color:var(--ksm-line); }
+.mobile-nav-drawer .minimal-nav { background:transparent !important; border:0 !important; border-radius:0 !important; box-shadow:none !important; padding:0 !important; display:flex !important; flex-direction:column; gap:4px; width:100%; overflow:visible; }
+.mobile-nav-drawer .minimal-nav > .nav-tile,.mobile-nav-drawer .nav-tile-wrap { width:100%; min-width:0; }
+.mobile-nav-drawer .nav-tile { display:flex !important; flex-direction:row !important; flex-wrap:nowrap !important; align-items:center !important; justify-content:flex-start !important; gap:12px; width:100%; min-width:0; min-height:52px !important; height:52px !important; padding:10px 12px !important; color:var(--ksm-ivory) !important; }
+.mobile-nav-drawer .nav-tile img { position:static !important; transform:none !important; width:24px !important; height:24px !important; margin:0; flex:0 0 24px !important; align-self:center !important; }
+.mobile-nav-drawer .nav-tile span { position:static !important; transform:none !important; font-size:14px !important; align-self:center !important; width:auto !important; flex:1 1 auto; min-height:0 !important; text-align:left; color:var(--ksm-ivory); }
+.mobile-nav-drawer .nav-tile::after { display:none; }
+.mobile-nav-drawer .nav-tile.active,.mobile-nav-drawer .nav-tile:focus-visible { background:var(--ksm-navy-3) !important; }
+.mobile-nav-drawer .nav-dropdown.is-open { position:static !important; width:100% !important; max-height:none !important; margin:0; }
+@keyframes ksm-drawer-enter { from { transform:translateX(-100%); } to { transform:translateX(0); } }
+@media (prefers-reduced-motion:reduce) { .mobile-nav-drawer { animation:none; } }
 .setup-short-url { margin-top:8px; }
 .setup-short-url-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 .setup-short-url output { color:var(--ksm-slate); overflow-wrap:anywhere; }

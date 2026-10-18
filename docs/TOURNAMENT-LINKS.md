@@ -14,8 +14,11 @@ name linked to the tournament home (Overview). The logo opens Overview for spect
 through the save guard. Direct access to `/` remains public. `TOURNAMENT_HOME` in `app/engine/routes.ts` defines the
 home route, screen and label together. Staff edit short URLs beside the tournament name in Setup. Tournament Access
 shows and copies the link without an editing control.
-At 900px or less, a hamburger opens the navigation; Escape, outside click or
-choosing a destination closes it. Spectator order: Overview, Live Scores, Courts,
+At 900px or less, the hamburger sits at the far left. It opens a left-hand
+drawer over the entire page, with a dimmed backdrop and independent scrolling.
+Background controls are inert and keyboard focus stays inside the drawer; Escape,
+the close button, backdrop click or choosing a destination closes it. Reduced
+motion preferences disable the slide animation. Spectator order: Overview, Live Scores, Courts,
 Results. Staff order: Overview, Live Scores, Courts, TV, Results, Export, Save /
 Load, Registration, Setup. The Library retains its full branding and
 shows the build version in its About footer; diagnostics retain the same version. New UI uses existing theme tokens. Returning to the Library and New Tournament
@@ -141,6 +144,9 @@ move up by 80px in portrait or 52px in compact landscape as the navigation
 collapses; content, visibility, element counts, X positions and dimensions remain
 exact. Generated tournament access links now name `/overview`. Hamburger clicks
 are excluded from the broad legacy autosave listener and create no mutations.
+The drawer revision reviews five Shell fixtures (including an explicit overlay
+panel) and 54 further mobile vertical-offset diffs of -6px. Their content,
+visibility, element counts, X positions and dimensions remain exact.
 
 The Setup geometry check waits for fonts and the resize paint cycle before
 measuring native textareas; it retains their original sizes. Socket barriers wait

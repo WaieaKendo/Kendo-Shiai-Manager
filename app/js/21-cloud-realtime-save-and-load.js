@@ -559,7 +559,7 @@ window.addEventListener('beforeunload', queueUnsyncedStaffWorkBeforeUnload);
 window.addEventListener('beforeunload', autoSaveTournament);
 document.addEventListener('input', scheduleAutoSave, true);
 document.addEventListener('change', scheduleAutoSave, true);
-document.addEventListener('click', function(e){ if(e.target.closest('button,.status,.search-item,.tab,.seg,.x')/* ksm:post-split-begin react-shell */&&!e.target.closest('[data-testid="nav-toggle"]')/* ksm:post-split-end *//* ksm:post-split-begin pool-edit */&&!ksmPoolEditorClick(e.target)/* ksm:post-split-end *//* ksm:post-split-begin tie-flash */&&!e.target.closest('.tie-flash-action')/* ksm:post-split-end *//* ksm:post-split-begin match-timer */&&!e.target.closest('.match-timer')/* ksm:post-split-end */) scheduleAutoSave(); }, true);
+document.addEventListener('click', function(e){ if(e.target.closest('button,.status,.search-item,.tab,.seg,.x')/* ksm:post-split-begin react-shell */&&!e.target.closest('[data-testid="nav-toggle"],.mobile-nav-close')/* ksm:post-split-end *//* ksm:post-split-begin pool-edit */&&!ksmPoolEditorClick(e.target)/* ksm:post-split-end *//* ksm:post-split-begin tie-flash */&&!e.target.closest('.tie-flash-action')/* ksm:post-split-end *//* ksm:post-split-begin match-timer */&&!e.target.closest('.match-timer')/* ksm:post-split-end */) scheduleAutoSave(); }, true);
 setInterval(()=>autoSaveTournament('10-minute safety autosave'),600000);
 setInterval(renderPersistentSaveStatus,60000);
 

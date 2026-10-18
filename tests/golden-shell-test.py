@@ -184,6 +184,9 @@ def capture(app):
         'header': {'tree': header['tree'], 'text': header['text'] if shown else None},
     }
     boxes = {'header': header['boxes']}
+    drawer = page.evaluate(PANEL_JS, '.mobile-nav-layer')
+    entry['drawer'] = {'tree': drawer['tree'], 'text': drawer['text']} if drawer else None
+    boxes['drawer'] = drawer['boxes'] if drawer else None
     for key, root in DIALOGS.items():
         panel = page.evaluate(PANEL_JS, root)
         if panel is None:
@@ -250,6 +253,8 @@ def open_app(name, browser, react_check=None, viewport=DESKTOP, api=None, sessio
 
 def click(page, selector, index=0):
     """A click without moving the mouse (no hover state)."""
+    if selector == '.mobile-nav-backdrop' and not page.locator(selector).count():
+        selector = 'main'
     if selector.startswith('[data-testid="nav-') and selector != '[data-testid="nav-toggle"]':
         toggle = page.locator('[data-testid="nav-toggle"]')
         if toggle.is_visible() and toggle.get_attribute('aria-expanded') == 'false':
@@ -305,7 +310,7 @@ def nav_staff(browser, react_check):
     g.do('Escape closes the menu', lambda a: a.page.keyboard.press('Escape'))
     nav(g, 'save-load', 'Save / Load opened')
     g.do('a click on a menu heading (the menu stays open)', lambda a: click(a.page, '#saveLoadMenu .menu-heading'))
-    g.do('a click outside the menus closes them', lambda a: click(a.page, 'main'))
+    g.do('a click outside the menus closes them', lambda a: click(a.page, '.mobile-nav-backdrop'))
     nav(g, 'courts', 'Courts menu opened (to leave open)')
     nav(g, 'live-scores', 'Live Scores while the Courts menu is open')
     menu_item(g, 'export', 'export-brackets', 'Export: Tournament Brackets')
@@ -408,7 +413,7 @@ def nav_phones(browser, react_check):
     g.do('phone with the Export menu open (placed again)', lambda a: resize(a.page, PHONES[0][1]))
     nav(g, 'export', 'phone: Export clicked (closed)')
     nav(g, 'tv', 'phone: TV opened')
-    g.do('phone: a click outside closes it', lambda a: click(a.page, 'main'))
+    g.do('phone: a click outside closes it', lambda a: click(a.page, '.mobile-nav-backdrop'))
     g.do('phone: spectator (code)', lambda a: a.page.evaluate("() => { setSessionRole('spectator'); installRoleBanner('spectator'); navigateTo('public'); }"))
     nav(g, 'courts', 'phone spectator: Courts menu opened')
     g.do('phone spectator: landscape', lambda a: resize(a.page, PHONES[1][1]))
@@ -559,7 +564,7 @@ def cloud_modals(browser, react_check):
 
 # The shell islands (app/react/shell/main.tsx): React renders every element of the navigation
 # (nav.minimal-nav, the island's root), the status row (.cloud-status-wrap) and the dialogs' cards.
-ISLANDS = ['header.ksm-topbar nav.minimal-nav', 'header.ksm-topbar .cloud-status-wrap', '#fusenDialog', '#validationModal', '#regenerateModal']
+ISLANDS = ['#tournamentNavigation', 'header.ksm-topbar .cloud-status-wrap', '#fusenDialog', '#validationModal', '#regenerateModal']
 ROOT_JS = "s => Object.keys(document.querySelector(s)).some(k => k.startsWith('__reactContainer'))"
 # Which kinds of content the islands were given.
 VARIANTS_JS = """() => {
