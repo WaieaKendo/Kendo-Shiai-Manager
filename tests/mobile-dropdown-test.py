@@ -19,7 +19,7 @@ with sync_playwright() as p:
             toggle.tap()
         trigger.tap()
         # The drawer slides in: measure only once its animation has finished.
-        page.evaluate("Promise.all(document.getAnimations().map(a => a.finished))")
+        page.wait_for_function("(document.querySelector('.mobile-nav-drawer')?.getAnimations() || []).every(a => a.playState !== 'running')")
 
     contracts = [
         ("Courts", "#courtsMenu", "Court A"),
