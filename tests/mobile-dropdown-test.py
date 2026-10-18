@@ -18,6 +18,8 @@ with sync_playwright() as p:
         if toggle.get_attribute('aria-expanded') == 'false':
             toggle.tap()
         trigger.tap()
+        # The drawer slides in: measure only once its animation has finished.
+        page.evaluate("Promise.all(document.getAnimations().map(a => a.finished))")
 
     contracts = [
         ("Courts", "#courtsMenu", "Court A"),

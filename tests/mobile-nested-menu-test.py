@@ -20,6 +20,7 @@ with sync_playwright() as p:
         trigger.tap()
         menu = page.locator("#courtsMenu")
         menu.wait_for(state="visible")
+        page.evaluate("Promise.all(document.getAnimations().map(a => a.finished))")  # the drawer slides in
         nav = page.locator(".mobile-nav-drawer").bounding_box()
         box = menu.bounding_box()
         tbox = trigger.bounding_box()
