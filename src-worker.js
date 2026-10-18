@@ -509,10 +509,15 @@ export default {
       if (!response.ok) return response;
       const record = await response.clone().json();
       if (!record?.tournamentId) return response;
-      const identity = await libraryStub().fetch(`https://durable-object/library/identity/${encodeURIComponent(record.tournamentId)}`);
-      if (!identity.ok) return identity;
-      const {slug} = await identity.json();
-      return json({...record,slug},response.status,Object.fromEntries(response.headers));
+      try {
+        const identity = await libraryStub().fetch(`https://durable-object/library/identity/${encodeURIComponent(record.tournamentId)}`);
+        if (!identity.ok) return identity.status === 410 ? identity : response;
+        const {slug} = await identity.json();
+        const headers = new Headers(response.headers);
+        headers.delete('content-length');
+        headers.delete('content-encoding');
+        return json({...record,slug},response.status,Object.fromEntries(headers));
+      } catch (_) { return response; }
     };
     const updateLibrary = async (record) => {
       if (!record?.tournamentId) return;

@@ -398,7 +398,80 @@ await test('a tournament may reserve five names, reuse its aliases, and never re
   }
 });
 
+await test('GET snapshot content-length matches its body or is absent', async () => {
+  const {body}=await create();
+  const response=await api.call('GET',`/api/tournaments/${body.tournamentId}`);
+  assert.equal(response.status,200);
+  const bytes=await response.arrayBuffer();
+  const length=response.headers.get('content-length');
+  assert.ok(length===null || Number(length)===bytes.byteLength);
+});
+
 if (!LIVE) {
+  await test('successful PUT survives failed registry identity lookups without retrying the save', async () => {
+    const {body}=await create();
+    const id=body.tournamentId;
+    const library=api.durableObject('__ksm_library__');
+    const original=library.fetch;
+    let revision=body.revision;
+    try {
+      for(const failure of ['response','throw']) {
+        library.fetch=async function (request) {
+          if(new URL(request.url).pathname.startsWith('/library/identity/')) {
+            if(failure==='throw')throw new Error('Registry unavailable');
+            return new Response('Registry unavailable',{status:503});
+          }
+          return original.call(this,request);
+        };
+        const response=await put(id,revision,payload({name:'Saved despite registry failure'}));
+        assert.equal(response.status,200,failure);
+        const saved=await json(response);
+        assert.equal(saved.revision,++revision);
+        assert.equal(Object.hasOwn(saved,'slug'),false);
+        const stored=await api.storage(id).get('record');
+        assert.equal(stored.revision,revision);
+        assert.equal(stored.payload.setup.tName,'Saved despite registry failure');
+      }
+    } finally {library.fetch=original;}
+  });
+
+  await test('registry identity deletion still returns 410 after a successful snapshot', async () => {
+    const {body}=await create();
+    const library=api.durableObject('__ksm_library__');
+    const original=library.fetch;
+    library.fetch=async function (request) {
+      return new URL(request.url).pathname.startsWith('/library/identity/')
+        ? new Response('Tournament deleted',{status:410}) : original.call(this,request);
+    };
+    try {
+      const response=await api.call('GET',`/api/tournaments/${body.tournamentId}`);
+      assert.equal(response.status,410);
+      assert.equal(await response.text(),'Tournament deleted');
+    } finally {library.fetch=original;}
+  });
+
+  await test('decorated snapshot drops the original body length and encoding', async () => {
+    const {body}=await create();
+    const object=api.durableObject(body.tournamentId);
+    const original=object.fetch;
+    object.fetch=async function (request) {
+      const response=await original.call(this,request);
+      if(request.method!=='GET'||new URL(request.url).pathname!=='/snapshot')return response;
+      const text=await response.text();
+      const headers=new Headers(response.headers);
+      headers.set('content-length',String(Buffer.byteLength(text)));
+      headers.set('content-encoding','identity');
+      return new Response(text,{status:response.status,headers});
+    };
+    try {
+      const response=await api.call('GET',`/api/tournaments/${body.tournamentId}`);
+      assert.equal(response.status,200);
+      assert.equal(response.headers.get('content-length'),null);
+      assert.equal(response.headers.get('content-encoding'),null);
+      assert.equal((await json(response)).slug,body.slug);
+    } finally {object.fetch=original;}
+  });
+
   await test('static files and reserved pages never query the slug registry', async () => {
     const library=api.durableObject('__ksm_library__');
     const original=library.fetch;
