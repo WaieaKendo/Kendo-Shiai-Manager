@@ -129,19 +129,44 @@ export function TournamentChip() {
     setExpanded(false);
   });
   useLayoutEffect(() => {
-    document.body.classList.toggle('ksm-nav-expanded', expanded);
+    if (!expanded) return;
+    const nav = document.querySelector<HTMLElement>('header.ksm-topbar nav.minimal-nav');
+    if (!nav) return;
+    const marker = document.createComment('mobile navigation');
+    nav.before(marker);
+    const layer = document.createElement('div'); layer.className = 'mobile-nav-layer';
+    const backdrop = document.createElement('div'); backdrop.className = 'mobile-nav-backdrop';
+    const drawer = document.createElement('div'); drawer.className = 'mobile-nav-drawer';
+    drawer.setAttribute('role', 'dialog'); drawer.setAttribute('aria-modal', 'true'); drawer.setAttribute('aria-label', 'Tournament navigation');
+    const dismiss = document.createElement('button'); dismiss.type = 'button'; dismiss.className = 'mobile-nav-close'; dismiss.textContent = 'Close navigation ×';
     const close = () => { setExpanded(false); shellWindow().closeNavMenus?.(); };
-    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') { close(); toggle.current?.focus(); } };
+    dismiss.addEventListener('click', close); backdrop.addEventListener('click', close);
+    drawer.append(dismiss, nav); layer.append(backdrop, drawer); document.body.append(layer);
+    // The nav is a separate React island: move its root, keeping its controls and listeners.
+    const background = [...document.querySelectorAll<HTMLElement>('body > header, body > main, body > footer')];
+    const inert = background.map(el => el.inert); background.forEach(el => { el.inert = true; });
+    document.body.classList.add('ksm-nav-expanded');
+    dismiss.focus();
+    const keyboard = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); close(); }
+      if (event.key === 'Tab') {
+        const controls = [...drawer.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input:not(:disabled),[tabindex="0"]')].filter(el => el.checkVisibility());
+        const first = controls[0], last = controls[controls.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+      }
+    };
     const click = (event: MouseEvent) => {
       const el = event.target as Element;
-      if (el.closest('[data-testid="nav-toggle"]')) return;
-      if (!el.closest('header.ksm-topbar') || el.closest('.nav-brand') || el.closest('.nav-dropdown button') || el.closest('.nav-tile:not([aria-haspopup])')) close();
+      if (el.closest('.nav-dropdown button') || el.closest('.nav-tile:not([aria-haspopup])')) close();
     };
     const resize = () => { if (innerWidth > 900) close(); };
-    if (expanded) {
-      document.addEventListener('click', click); document.addEventListener('keydown', escape); window.addEventListener('resize', resize);
-    }
-    return () => { document.removeEventListener('click', click); document.removeEventListener('keydown', escape); window.removeEventListener('resize', resize); document.body.classList.remove('ksm-nav-expanded'); };
+    document.addEventListener('keydown', keyboard); drawer.addEventListener('click', click); window.addEventListener('resize', resize);
+    return () => {
+      document.removeEventListener('keydown', keyboard); drawer.removeEventListener('click', click); window.removeEventListener('resize', resize);
+      marker.replaceWith(nav); layer.remove(); background.forEach((el, i) => { el.inert = inert[i] ?? false; });
+      document.body.classList.remove('ksm-nav-expanded'); toggle.current?.focus();
+    };
   }, [expanded, toggle]);
   useLayoutEffect(() => { if (!h.tournamentName) setExpanded(false); }, [h.tournamentName]);
   useLayoutEffect(() => {

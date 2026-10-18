@@ -37,9 +37,12 @@ with sync_playwright() as p:
         assert box is not None
         viewport = page.evaluate("({w:innerWidth,h:innerHeight})")
         assert box["x"] >= 0 and box["x"] + box["width"] <= viewport["w"]
-        assert box["y"] >= 0 and box["y"] + min(box["height"], 1) <= viewport["h"]
+        item_control = locator.get_by_role("button", name=item)
+        item_control.scroll_into_view_if_needed()
+        item_box = item_control.bounding_box()
+        assert item_box["y"] >= 0 and item_box["y"] + item_box["height"] <= viewport["h"]
         checks += 6
-        page.get_by_test_id('nav-toggle').tap()
+        page.get_by_role('button',name='Close navigation ×').tap()
         page.get_by_test_id('nav-toggle').tap()
         page.get_by_title("Setup").tap()
         assert locator.is_hidden()
@@ -52,7 +55,7 @@ with sync_playwright() as p:
     checks += 2
 
     tap_trigger(trigger); assert page.locator("#courtsMenu").is_visible()
-    page.locator("main").tap(position={"x": 10, "y": 10})
+    page.locator(".mobile-nav-backdrop").tap(position={"x": 380, "y": 200})
     assert page.locator("#courtsMenu").is_hidden()
     checks += 2
 

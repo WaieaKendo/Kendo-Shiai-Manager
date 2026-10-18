@@ -54,10 +54,25 @@ def main():
                 page.evaluate("role=>{setSessionRole(role);installRoleBanner(role)}",role)
                 if width<=900:
                     assert toggle.is_visible() and not page.locator('nav.minimal-nav').is_visible()
+                    assert toggle.bounding_box()['x']+toggle.bounding_box()['width']<=page.locator('.nav-brand').bounding_box()['x']
+                    origin=page.locator('main').bounding_box()['y']
                     mutations=page.evaluate('headerMutations')
                     toggle.click()
                     assert page.evaluate('headerMutations')==mutations
                     assert toggle.get_attribute('aria-expanded')=='true'
+                    drawer=page.get_by_role('dialog',name='Tournament navigation')
+                    drawer.evaluate('el=>Promise.all(el.getAnimations().map(animation=>animation.finished))')
+                    assert drawer.is_visible() and drawer.bounding_box()['x']==0
+                    assert drawer.bounding_box()['height']==height
+                    item=page.locator('[data-testid="nav-overview"]')
+                    icon=item.locator('img').bounding_box();label=item.locator('span').bounding_box()
+                    assert abs(icon['y']+icon['height']/2-label['y']-label['height']/2)<1
+                    assert page.locator('main').bounding_box()['y']==origin
+                    assert page.locator('header.ksm-topbar').evaluate('el=>el.inert')
+                    close=page.get_by_role('button',name='Close navigation ×')
+                    assert close.evaluate('el=>el===document.activeElement')
+                    page.keyboard.press('Shift+Tab');page.keyboard.press('Tab')
+                    assert close.evaluate('el=>el===document.activeElement')
                 else:assert not toggle.is_visible()
                 labels=page.locator('nav.minimal-nav > button:visible, nav.minimal-nav > .nav-menu:visible > button').all_text_contents()
                 assert [label.replace('▾','').strip() for label in labels]==expected,labels
@@ -65,14 +80,11 @@ def main():
                     app.click('nav-save-load' if role=='staff' else 'nav-courts')
                     dropdown=page.locator('#saveLoadMenu' if role=='staff' else '#courtsMenu')
                     bounds=dropdown.bounding_box()
-                    # The submenu nests inside the menu panel; the panel (which scrolls) stays on screen.
-                    panel=page.locator('nav.minimal-nav').bounding_box()
-                    assert panel['y']>=0 and panel['y']+panel['height']<=height,(width,height,panel)
-                    assert bounds['x']>=panel['x'] and bounds['x']+bounds['width']<=panel['x']+panel['width']+1,(bounds,panel)
+                    assert dropdown.is_visible() and bounds['width']<=drawer.bounding_box()['width']
                     page.keyboard.press('Escape')
                     assert toggle.get_attribute('aria-expanded')=='false' and toggle.evaluate('el=>el===document.activeElement')
                     toggle.click()
-                    page.locator('main').dispatch_event('click')
+                    page.locator('.mobile-nav-backdrop').click(position={'x':width-12,'y':height//2})
                     assert toggle.get_attribute('aria-expanded')=='false'
                     toggle.click()
                     app.click('nav-live-scores')
@@ -84,6 +96,8 @@ def main():
         page.set_viewport_size({'width':375,'height':812})
         page.evaluate("setSessionRole('spectator');installRoleBanner('spectator');navigateTo('public')")
         app.click('nav-toggle')
+        assert page.locator('header.ksm-topbar').evaluate('el=>el.inert')
+        page.keyboard.press('Escape')
         page.locator('.nav-brand').click()
         app.wait_for(lambda: app.visible_view()==['director'],message='spectator logo opens Overview')
         assert page.locator(sel('nav-toggle')).get_attribute('aria-expanded')=='false'

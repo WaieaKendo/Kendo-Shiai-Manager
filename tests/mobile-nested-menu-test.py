@@ -1,4 +1,4 @@
-"""Hamburger menu on phones: a submenu nests inside the menu panel (an accordion), not a floating card."""
+"""Mobile drawer: a submenu nests inside the drawer (an accordion), not a floating card."""
 import os
 from playwright.sync_api import sync_playwright
 from ksm_browser import launch_chromium, load_app
@@ -20,7 +20,7 @@ with sync_playwright() as p:
         trigger.tap()
         menu = page.locator("#courtsMenu")
         menu.wait_for(state="visible")
-        nav = page.locator("header.ksm-topbar .minimal-nav").bounding_box()
+        nav = page.locator(".mobile-nav-drawer").bounding_box()
         box = menu.bounding_box()
         tbox = trigger.bounding_box()
         assert page.evaluate("getComputedStyle(document.querySelector('#courtsMenu')).position") == "static", size
