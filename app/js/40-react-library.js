@@ -37,7 +37,7 @@ function ksmOpenLocalDraft(){
 }
 function ksmDiscardLocalDraft(){
   if(!ksmReadLocalDraft())return;
-  localStorage.removeItem(KSM_SAVE_KEY);
+  ksmClearAutosave();
   ksmPublishLibrary({...window.ksmLibraryInput,draft:null});
 }
 

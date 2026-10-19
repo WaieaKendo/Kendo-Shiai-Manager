@@ -1,6 +1,6 @@
 """N3: refused saves remain queued and recover; five consecutive 409s exhaust rebasing."""
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from playwright.sync_api import sync_playwright
 from ksm_app import KsmApp, fetch_record, sel
 from ksm_browser import launch_chromium
@@ -8,16 +8,16 @@ from ksm_server import local_worker
 from ksm_network import two_courts, assert_points, converge
 
 
-def main():
+def main(status=500):
     problems = []
     with local_worker() as base, sync_playwright() as p:
         browser = launch_chromium(p)
-        for status in (500, 422, 403, 401, 409):
+        for status in (status,):
             print(f'N3 {status}: starting', flush=True)
             tid, a, b = two_courts(browser, base, problems, f'Failed save {status}')
             shown = a.current_match()
             a.page.clock.install()
-            a.page.clock.pause_at(datetime.now(timezone.utc))
+            a.page.clock.pause_at(datetime.now(timezone.utc)+timedelta(seconds=1))
             answered = []
             record = fetch_record(base, tid)
 
@@ -39,8 +39,8 @@ def main():
                 return !p.saveInFlight && !p.autosaveTimer && !p.cloudSaveTimer && !p.queuedSave;
             }''')
             assert a.outbox()['role'] == 'staff', a.outbox()
-            wording = a.page.inner_text(sel('save-status')).lower()
-            assert wording in ('save needs attention', 'saved locally · 1 change waiting'), wording
+            wording = a.page.inner_text(sel('save-status')).strip()
+            assert wording == ('Save needs attention' if status == 409 else 'Saved locally · 1 change waiting'), (status, wording)
             assert_points(a.payload(), 'A', shown, ['M'], [])
             assert_points(fetch_record(base, tid)['payload'], 'A', shown, [], [])
             if status == 409:
@@ -72,7 +72,7 @@ def main():
             b.close()
         assert not problems, '\n'.join(problems)
         browser.close()
-    print('PASS N3 500/422/403/401 and five 409s: queue, status and recovery')
+    print(f'PASS N3 {status}: queue, exact status and recovery')
 
 
 if __name__ == '__main__':

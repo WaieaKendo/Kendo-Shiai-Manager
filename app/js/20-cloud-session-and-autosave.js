@@ -63,6 +63,7 @@ const KSM_AUTOSAVE_CLOUD_ID=KSM_SAVE_KEY+':cloud-id';
 if(localStorage.getItem(KSM_SAVE_KEY)&&localStorage.getItem(KSM_AUTOSAVE_CLOUD_ID)===null&&cloudSession.tournamentId){
   localStorage.setItem(KSM_AUTOSAVE_CLOUD_ID,cloudSession.tournamentId);
 }
+function ksmClearAutosave(){localStorage.removeItem(KSM_SAVE_KEY);localStorage.removeItem(KSM_AUTOSAVE_CLOUD_ID)}
 function ksmStoreAutosave(payload,id=cloudSession.tournamentId){
   localStorage.setItem(KSM_AUTOSAVE_CLOUD_ID,id||'');
   localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(payload));

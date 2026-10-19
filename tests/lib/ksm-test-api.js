@@ -63,6 +63,27 @@ window.KSMTest = {
   diagnostics() { return readCloudDiagnosticsState(); },
   // Snapshot queued for the cloud (offline, failed save, reload before a save): who queued it, for which tournament.
   outbox() { const o = readOutbox(); return o ? {tournamentId: o.tournamentId, role: o.role, baseRevision: o.baseRevision, reason: o.actions?.[0]?.reason || ''} : null; },
+  manualSave() { return saveNow(); },
+  autosavePayload() { return JSON.parse(localStorage.getItem(KSM_SAVE_KEY)||'null'); },
+  autosaveOrigin() { return localStorage.getItem(KSM_AUTOSAVE_CLOUD_ID); },
+  legacyFixture(cloud) {
+    return {saveKey:KSM_SAVE_KEY, originKey:KSM_AUTOSAVE_CLOUD_ID,
+      sessionKey:KSM_CLOUD_SESSION_KEY,payload:tournamentPayload(),storage:{...localStorage},
+      session:cloud?{...cloudSession}: {}};
+  },
+  seedLegacy(fixture) {
+    Object.entries(fixture.storage).forEach(([key,value])=>localStorage.setItem(key,value));
+    localStorage.setItem(fixture.saveKey,JSON.stringify(fixture.payload));
+    localStorage.removeItem(fixture.originKey);
+    localStorage.setItem(fixture.sessionKey,JSON.stringify(fixture.session));
+    window.__originWrites=[];
+    const set=Storage.prototype.setItem;
+    Storage.prototype.setItem=function(key,value){
+      if(this===localStorage&&key===fixture.originKey)window.__originWrites.push(String(value));
+      return set.call(this,key,value);
+    };
+  },
+  originWrites() { return window.__originWrites || []; },
   hasAutosave() { return !!localStorage.getItem(KSM_SAVE_KEY); },
   // Deliver a record as if it arrived on the live socket; returns whether it was applied.
   receive(record) { return applyRemoteCloudRecord(record, false, false); },
