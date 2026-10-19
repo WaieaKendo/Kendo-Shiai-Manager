@@ -20,14 +20,13 @@ def main():
         revision = fetch_record(base, aid)['revision']
         for path, view in [(app_path(aid), 'director'), (app_path(aid, 'court', 'A'), 'public'),
                            (app_path(aid, 'setup'), 'setup'), ('/', 'home')]:
-            if path == '/':
-                # #72 owns the existing autosave prompt; leave that behavior unchanged.
-                a.expect_dialog('Restore autosaved tournament?', accept=False)
             a.goto(path)
             a.reload()
             assert a.page.evaluate('KSMTest.role()') == 'staff', path
             assert a.staff_session() == token, path
             assert a.visible_view() == [view], (path, a.visible_view())
+            if path == '/':
+                assert a.page.evaluate('ksmCloudSocket === null'), 'Library boot kept a live staff socket'
         assert fetch_record(base, aid)['revision'] == revision, 'session checks wrote a snapshot'
 
         b = KsmApp.open_device(browser, base, 'Other', problems, tournament_name='Refresh B')

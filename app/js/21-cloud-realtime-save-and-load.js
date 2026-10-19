@@ -98,6 +98,7 @@ function disconnectCloudSocket(){clearTimeout(ksmCloudReconnectTimer);ksmCloudRe
 function scheduleCloudReconnect(){clearTimeout(ksmCloudReconnectTimer);if(!cloudSession.tournamentId||location.protocol==='file:')return;ksmCloudReconnectTimer=setTimeout(()=>connectCloudSocket(),2000)}
 function renderCloudPresence(clients=[]){cloudSession.presence=clients;/* ksm:post-split-begin react-shell */ksmRenderPresence(clients);/* ksm:post-split-end */}
 function connectCloudSocket(){
+  /* ksm:post-split-begin startup-recovery */if((document.body.classList.contains('ksm-home')&&!ksmLinkParams().get('tournament')&&!ksmLinkParams().get('spectator'))||ksmStartupLoadFailed)return;/* ksm:post-split-end */
   if(!cloudSession.tournamentId||location.protocol==='file:'||!location.host)return;
   if(ksmCloudSocket&&(ksmCloudSocket.readyState===WebSocket.OPEN||ksmCloudSocket.readyState===WebSocket.CONNECTING))return;
   clearTimeout(ksmCloudReconnectTimer);setConnectionStatus('Sync connecting…','connecting');
@@ -533,6 +534,7 @@ function applyTournamentPayload(payload,saveAfter,options={}){
   if(saveAfter) autoSaveTournament();
 }
 function restoreAutoSaveIfWanted(){
+  /* ksm:post-split-begin startup-recovery */return false;/* ksm:post-split-end */
   try{
     // A tournament link (spectator, TV, court device) always loads the cloud copy, which would
     // replace anything restored here. Unsynced staff work is kept in the outbox instead.
@@ -554,7 +556,7 @@ function restoreAutoSaveIfWanted(){
 // A reload before the debounced cloud save runs must not drop staff work: queue it in the
 // outbox, which survives the reload and is flushed once staff access is back.
 // An older queued snapshot keeps its base revision so the flush still replays its court actions.
-function queueUnsyncedStaffWorkBeforeUnload(){if(isReadOnlySession()||!cloudSession.tournamentId||!localChangesPending())return;const earlier=readOutbox();if(earlier?.tournamentId&&earlier.tournamentId!==cloudSession.tournamentId)return;writeOutbox(tournamentPayload(),'Unsynced changes at page unload');if(earlier){const queued=readOutbox();/* ksm:post-split-begin edit-merge was:queued.baseRevision=Math.min(Number(earlier.baseRevision||0),Number(queued.baseRevision||0)); */if(Number(earlier.baseRevision||0)<Number(queued.baseRevision||0)){queued.baseRevision=Number(earlier.baseRevision||0);queued.basePayload=earlier.basePayload||null}/* ksm:post-split-end */localStorage.setItem(KSM_CLOUD_OUTBOX_KEY,JSON.stringify(queued))}}
+function queueUnsyncedStaffWorkBeforeUnload(){/* ksm:post-split-begin startup-recovery */if(ksmStartupLoadFailed&&!ksmStartupHasCache)return;/* ksm:post-split-end */if(isReadOnlySession()||!cloudSession.tournamentId||!localChangesPending())return;const earlier=readOutbox();if(earlier?.tournamentId&&earlier.tournamentId!==cloudSession.tournamentId)return;writeOutbox(tournamentPayload(),'Unsynced changes at page unload');if(earlier){const queued=readOutbox();/* ksm:post-split-begin edit-merge was:queued.baseRevision=Math.min(Number(earlier.baseRevision||0),Number(queued.baseRevision||0)); */if(Number(earlier.baseRevision||0)<Number(queued.baseRevision||0)){queued.baseRevision=Number(earlier.baseRevision||0);queued.basePayload=earlier.basePayload||null}/* ksm:post-split-end */localStorage.setItem(KSM_CLOUD_OUTBOX_KEY,JSON.stringify(queued))}}
 window.addEventListener('beforeunload', queueUnsyncedStaffWorkBeforeUnload);
 window.addEventListener('beforeunload', autoSaveTournament);
 document.addEventListener('input', scheduleAutoSave, true);

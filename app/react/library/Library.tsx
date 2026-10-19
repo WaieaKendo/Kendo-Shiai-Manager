@@ -7,7 +7,7 @@
 // legacy functions the inline handlers called: createNewTournament() (its prompts are kept) and
 // openTournamentFromHome(id). No colors of its own (the library CSS and theme tokens); the logo
 // and the card mark come from the branding module.
-import { useSyncExternalStore } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { DEFAULT_HOME_LOGO_SRC, DEFAULT_LIBRARY_CARD_MARK } from '../court/branding.ts';
 import {
   EMPTY_LIBRARY, HOME_SUBTITLE, HOME_TITLE, LIBRARY_HEADING, LIBRARY_INTRO, NEW_TOURNAMENT_TEXT,
@@ -19,6 +19,8 @@ export const LIBRARY_EVENT = 'ksm:library';
 interface LibraryWindow {
   /** The library as paintHomeTournamentLibrary() last published it. */
   ksmLibraryInput?: LibraryInput;
+  ksmOpenLocalDraft?: () => void;
+  ksmDiscardLocalDraft?: () => void;
   createNewTournament?: () => unknown;
   openTournamentFromHome?: (id: string) => unknown;
 }
@@ -46,7 +48,10 @@ function LibraryCard({ card }: { card: LibraryCardView }) {
 
 /** The contents of #home .home-shell. */
 export function Library() {
-  const view = libraryView(useSyncExternalStore(subscribe, snapshot, () => EMPTY_LIBRARY));
+  const input = useSyncExternalStore(subscribe, snapshot, () => EMPTY_LIBRARY);
+  const view = libraryView(input);
+  const draft = input.kind === 'library' ? input.draft : null;
+  const [discarding, setDiscarding] = useState(false);
   return (
     <>
       <div className="home-brand">
@@ -57,6 +62,17 @@ export function Library() {
         <div><h2>{LIBRARY_HEADING}</h2><p>{LIBRARY_INTRO}</p></div>
         <button className="home-new-button" type="button" data-testid="home-new-tournament" onClick={() => { libraryWindow().createNewTournament?.(); }}>{NEW_TOURNAMENT_TEXT}</button>
       </div>
+      {draft && <div className="home-empty" data-testid="local-draft">
+        <b>Draft on this device: {draft.name}, saved {draft.saved}</b>
+        <div className="actions">
+          <button type="button" onClick={() => libraryWindow().ksmOpenLocalDraft?.()}>Open</button>
+          {discarding ? <>
+            <span>Discard this draft?</span>
+            <button type="button" onClick={() => { libraryWindow().ksmDiscardLocalDraft?.(); setDiscarding(false); }}>Discard draft</button>
+            <button type="button" onClick={() => setDiscarding(false)}>Cancel</button>
+          </> : <button type="button" onClick={() => setDiscarding(true)}>Discard</button>}
+        </div>
+      </div>}
       <div id="homeTournamentLibrary" className="home-library-grid">
         {view.message !== null
           ? <div className="home-empty"><b>{view.message}</b></div>

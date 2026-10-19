@@ -1,6 +1,42 @@
 /* ksm:post-split-begin tournament-switcher */
 // Issue #42: all tournament boundaries share the save gate and the same reset.
 let ksmTournamentTransition=false;
+var ksmStartupLoadFailed=false;
+var ksmStartupHasCache=false;
+var ksmBootAutosaveCloudId=cloudSession.tournamentId||'';
+function ksmKeepFailedStartup(err){
+  const params=ksmLinkParams(),id=params.get('tournament')||params.get('spectator');
+  if(!id||!navigator.onLine||err?.code==='tournament-deleted'||/\((404|410)\)/.test(err?.message||''))return false;
+  ksmStartupLoadFailed=true;
+  disconnectCloudSocket();
+  const staff=ksmStaffToken(sessionStorage.getItem(KSM_V316_STAFF_SESSION))&&sessionStorage.getItem(KSM_STAFF_TOURNAMENT)===id&&!ksmExplicitSpectatorUrl&&params.get('view')!=='tv'&&params.get('role')!=='spectator'&&!params.has('spectator');
+  cloudSession.tournamentId=id;
+  setSessionRole(staff?'staff':'spectator');installRoleBanner(ksmSessionRole);
+  document.body.classList.remove('ksm-home');
+  let record;
+  try{record=JSON.parse(localStorage.getItem('ksm.tournament.record:'+id)||'null')}catch(_){}
+  ksmStartupHasCache=Boolean(record?.tournamentId===id&&record.payload?.state);
+  if(ksmStartupHasCache){
+    cloudSession.revision=record.revision;cloudSession.slug=record.slug||null;
+    applyTournamentPayload(record.payload,false);if(staff)mergeQueuedStaffWork();
+    ksmShowRequestedScreen();
+  }else{document.querySelectorAll('main section.view').forEach(el=>el.classList.add('hidden'));}
+  let notice=document.getElementById('startupLoadFailure');
+  if(!notice){
+    notice=document.createElement('div');notice.id='startupLoadFailure';notice.className='card';notice.setAttribute('role','status');
+    const heading=document.createElement('h1');heading.textContent='Cloud load failed';
+    const detail=document.createElement('p');detail.className='sub';detail.textContent=record?'Showing the cached copy on this device. Retry to reconnect.':'Check your connection and retry.';
+    const retry=document.createElement('button');retry.type='button';retry.textContent='Retry';
+    retry.onclick=async()=>{
+      retry.disabled=true;
+      try{await initializeCloudRoleFromUrl();ksmStartupLoadFailed=false;notice.remove();await flushCloudOutbox()}
+      catch(error){if(!ksmKeepFailedStartup(error)){notice.remove();if(/\((404|410)\)/.test(error?.message||''))await ksmShowLibrary({deleted:true});else await showHomePage()}}
+      finally{retry.disabled=false}
+    };
+    notice.append(heading,detail,retry);document.querySelector('main').prepend(notice);
+  }
+  setConnectionStatus('Cloud load failed','offline');return true;
+}
 var ksmTournamentEpoch=0;
 var ksmFirstLibrary=true;
 var ksmTournamentAddress=location.pathname+location.search+location.hash;
@@ -16,6 +52,7 @@ function ksmPushTournamentAddress(id){
   ksmTournamentAddress=location.pathname+location.search+location.hash;
 }
 async function ksmCanLeaveTournament(){
+  if(document.body.classList.contains('ksm-home'))disconnectCloudSocket();
   const pending=ksmCloudSaveInFlight||ksmCloudSavePending||localChangesPending()||readOutbox();
   // Pending drafts with creation credentials still get the normal save attempt.
   // A quiet imported draft or one without credentials has no server confirmation.
@@ -39,6 +76,7 @@ async function ksmCanLeaveTournament(){
   return true;
 }
 function ksmResetTournament(){
+  ksmStartupLoadFailed=false;ksmStartupHasCache=false;document.getElementById('startupLoadFailure')?.remove();
   ksmTournamentEpoch++;
   const id=cloudSession.tournamentId||'local';
   disconnectCloudSocket();ksmTvRefreshInFlight=null;ksmTvLastVerifiedAt=0;
@@ -72,9 +110,14 @@ async function ksmShowLibrary(options={}){
   if(ksmTournamentTransition)return false;
   ksmTournamentTransition=true;
   try{
+    if(!window.ksmBootstrapReady&&!options.deleted){
+      ksmFirstLibrary=false;disconnectCloudSocket();
+      document.body.classList.add('ksm-home');installRoleBanner('home');
+      setSessionRole('spectator');renderHomeTournamentLibrary();show('home');return true;
+    }
     if(!options.deleted&&!(await ksmCanLeaveTournament()))return false;
     const startup=ksmFirstLibrary;
-    const startupDraft=ksmFirstLibrary&&!cloudSession.tournamentId?localStorage.getItem(KSM_SAVE_KEY):null;ksmFirstLibrary=false;
+    const startupDraft=ksmFirstLibrary?localStorage.getItem(KSM_SAVE_KEY):null;ksmFirstLibrary=false;
     ksmResetTournament();
     if(startup)ksmForgotTournament=false;
     if(startupDraft)localStorage.setItem(KSM_SAVE_KEY,startupDraft);

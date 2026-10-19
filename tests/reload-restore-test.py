@@ -10,7 +10,7 @@ Against a throwaway `wrangler dev`:
     opens while another save is in flight (F6);
   * a Court A scorekeeper reloads right after scoring, before the debounced save
     ran: the point is queued at unload and reaches the cloud after login;
-  * a device opened without a tournament link still offers the local autosave.
+  * a device opened without a tournament link ignores a cloud autosave.
 """
 import time
 
@@ -174,11 +174,11 @@ def main():
 
         # --- Without a tournament link the local autosave is still offered -------------------
         home = KsmApp(director.page.context.new_page(), 'Home', problems)
-        home.expect_dialog(PROMPT)
         home.page.on('dialog', home._on_dialog)
         home.page.goto(base + '/', wait_until='domcontentloaded')
         home.page.wait_for_function('window.KSMTest && KSMTest.booted()')
-        assert home.seen_dialogs, 'a plain start with a local autosave no longer offers to restore it'
+        assert not home.seen_dialogs, 'plain starts must never prompt'
+        assert home.page.get_by_test_id('local-draft').count() == 0
 
         assert not problems, '\n'.join(problems)
         print(f'PASS reload without restore prompt: TV, spectator, scorekeeper (queued + unload) in {time.time() - started:.0f}s')
