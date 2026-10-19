@@ -11,7 +11,7 @@ def main():
         browser = launch_chromium(p)
         a = KsmApp.open_device(browser, base, 'Drafts', problems)
         tid = a.create_tournament(); a.wait_idle()
-        payload = a.page.evaluate('tournamentPayload()')
+        payload = a.page.evaluate('KSMTest.app.tournamentPayload()')
         a.goto('/')
         def no_dialog(dialog):
             problems.append('Unexpected boot dialog: ' + dialog.message)
@@ -21,10 +21,10 @@ def main():
         assert a.page.get_by_test_id('local-draft').count() == 0
         # Start with a local-only autosave, without a persisted cloud identity.
         a.page.evaluate('''payload=>{
-          disconnectCloudSocket();sessionStorage.clear();
-          cloudSession.tournamentId=null;persistCloudSession();localStorage.removeItem(KSM_AUTOSAVE_CLOUD_ID);
+          KSMTest.app.disconnectCloudSocket();sessionStorage.clear();
+          KSMTest.app.cloudSession.tournamentId=null;KSMTest.app.persistCloudSession();localStorage.removeItem(KSMTest.app.KSM_AUTOSAVE_CLOUD_ID);
           payload.setup.tName='Local draft';
-          localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(payload));
+          localStorage.setItem(KSMTest.app.KSM_SAVE_KEY,JSON.stringify(payload));
           document.body.classList.add('ksm-home');
         }''', payload)
         a.reload()
@@ -38,15 +38,15 @@ def main():
         assert draft.is_visible()
         draft.get_by_role('button', name='Discard', exact=True).click()
         draft.get_by_role('button', name='Cancel', exact=True).click()
-        assert a.page.evaluate('Boolean(localStorage.getItem(KSM_SAVE_KEY))')
-        a.page.evaluate("localStorage.setItem(KSM_CLOUD_OUTBOX_KEY, JSON.stringify({sentinel:'keep'}))")
+        assert a.page.evaluate('Boolean(localStorage.getItem(KSMTest.app.KSM_SAVE_KEY))')
+        a.page.evaluate("localStorage.setItem(KSMTest.app.KSM_CLOUD_OUTBOX_KEY, JSON.stringify({sentinel:'keep'}))")
         draft.get_by_role('button', name='Discard', exact=True).click()
         draft.get_by_role('button', name='Discard draft', exact=True).click()
         assert draft.count() == 0
-        assert not a.page.evaluate('localStorage.getItem(KSM_SAVE_KEY)')
-        assert a.page.evaluate('readOutbox().sentinel') == 'keep'
-        a.page.evaluate('localStorage.removeItem(KSM_CLOUD_OUTBOX_KEY)')
-        a.page.evaluate('(payload)=>localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(payload))', payload)
+        assert not a.page.evaluate('localStorage.getItem(KSMTest.app.KSM_SAVE_KEY)')
+        assert a.page.evaluate('KSMTest.app.readOutbox().sentinel') == 'keep'
+        a.page.evaluate('localStorage.removeItem(KSMTest.app.KSM_CLOUD_OUTBOX_KEY)')
+        a.page.evaluate('(payload)=>localStorage.setItem(KSMTest.app.KSM_SAVE_KEY,JSON.stringify(payload))', payload)
         a.goto(f'/?spectator={tid}')
         assert a.page.get_by_test_id('local-draft').count() == 0
         assert not problems, problems

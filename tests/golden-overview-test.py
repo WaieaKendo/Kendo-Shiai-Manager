@@ -71,8 +71,8 @@ ROOT = '#director'
 DESKTOP = {'width': 1280, 'height': 720}
 PHONES = [('phone portrait', {'width': 390, 'height': 844}), ('phone landscape', {'width': 844, 'height': 390})]
 # What a court's buttons call (app/js/10-court-scoring-and-history.js).
-POINT_JS = "([side, letter]) => point(side, letter)"
-NEXT_JS = "() => nextMatch()"
+POINT_JS = "([side, letter]) => KSMTest.app.point(side, letter)"
+NEXT_JS = "() => KSMTest.app.nextMatch()"
 SHOW_OVERVIEW_JS = "() => KSMTest.show('director')"
 VIEW_JS = f"() => !document.querySelector('{ROOT}').classList.contains('hidden')"
 NO_TRANSITIONS = '*, *::before, *::after { transition: none !important; animation: none !important; }'
@@ -91,7 +91,7 @@ REFRESH_TIMER_INIT = """(() => {
   window.__ksmOverviewTick = () => { [...timers.values()].forEach(fn => fn()); return timers.size; };
 })();"""
 TICK_JS = '() => window.__ksmOverviewTick()'
-SUMMARY_JS = '() => tournamentSummary()'
+SUMMARY_JS = '() => KSMTest.app.tournamentSummary()'
 SCROLL_JS = '() => [document.documentElement.scrollWidth, innerWidth]'
 
 # The Overview island (app/react/overview/main.tsx): React renders every element of the
@@ -218,11 +218,11 @@ def overview_rr_4(browser, errors):
     g.do('match 1: points scored (Overview shown)', lambda a: None)
     g.do('match 1: next match while the Overview is shown', lambda a: a.page.evaluate(NEXT_JS))
     g.do('5 s later', lambda a: a.page.evaluate(TICK_JS))
-    m = page.evaluate("() => { const m = state.matches[state.current]; return m ? {white: m.white, red: m.red, mustWin: !!KSMTest.mustWin(m)} : null; }")
+    m = page.evaluate("() => { const m = KSMTest.app.state.matches[KSMTest.app.state.current]; return m ? {white: m.white, red: m.red, mustWin: !!KSMTest.mustWin(m)} : null; }")
     for side, letter in match_points(m, False):
         page.evaluate(POINT_JS, [side, letter])
     g.do('match 2: next match while the Overview is shown', lambda a: a.page.evaluate(NEXT_JS))
-    g.do('match 2: a live update (renderAll())', lambda a: a.page.evaluate('() => renderAll()'))
+    g.do('match 2: a live update (renderAll())', lambda a: a.page.evaluate('() => KSMTest.app.renderAll()'))
     g.do('Live Scores opened', lambda a: a.nav('live-scores'))
     g.do('5 s later with the Overview hidden', lambda a: a.page.evaluate(TICK_JS))
     g.do('Overview opened again', lambda a: a.nav('overview'))

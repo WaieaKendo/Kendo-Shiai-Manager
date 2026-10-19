@@ -37,10 +37,10 @@ def cloud_origin(browser, base, problems):
     a = KsmApp.open_device(browser, base, 'Origin', problems, tournament_name='Origin cloud X')
     tid = a.create_tournament(); a.wait_idle()
     # Exercise both ordinary autosaves and the cloud-load writer.
-    a.page.evaluate("markLocalSave('Origin check')")
-    marked_origin = a.page.evaluate('localStorage.getItem(KSM_SAVE_KEY+":cloud-id")')
+    a.page.evaluate("KSMTest.app.markLocalSave('Origin check')")
+    marked_origin = a.page.evaluate('localStorage.getItem(KSMTest.app.KSM_SAVE_KEY+":cloud-id")')
     a.reload()
-    loaded_origin = a.page.evaluate('localStorage.getItem(KSM_SAVE_KEY+":cloud-id")')
+    loaded_origin = a.page.evaluate('localStorage.getItem(KSMTest.app.KSM_SAVE_KEY+":cloud-id")')
     reject_dialogs(a, problems)
     missing='00000000-0000-4000-8000-000000000077'
     a.page.route(f'**/api/tournaments/{missing}', lambda route: route.fulfill(status=404, body='Not found'))
@@ -50,9 +50,9 @@ def cloud_origin(browser, base, problems):
     assert a.page.get_by_test_id('local-draft').count() == 0, 'cloud autosave became a local draft after 404 and reload'
     assert marked_origin == loaded_origin == tid
     a.page.evaluate('''() => {
-      cloudSession.tournamentId=null;persistCloudSession();
+      KSMTest.app.cloudSession.tournamentId=null;KSMTest.app.persistCloudSession();
       document.body.classList.add('ksm-home');
-      tName.value='Genuine local draft';markLocalSave('Local draft');
+      tName.value='Genuine local draft';KSMTest.app.markLocalSave('Local draft');
     }''')
     a.reload()
     assert 'Genuine local draft' in a.page.get_by_test_id('local-draft').inner_text()
@@ -88,10 +88,10 @@ def cache_base(browser, base, problems):
     endpoint, block = fail_load(a, tid)
     freeze(a)
     shown_a, shown_b = a.current_match(), b.current_match()
-    a.page.evaluate("navigateTo('setup')")
+    a.page.evaluate("KSMTest.app.navigateTo('setup')")
     a.page.get_by_test_id('setup-host').fill('Cached host')
     a.open_court('A'); a.score_point('W', 'M')
-    b.page.evaluate("navigateTo('setup')")
+    b.page.evaluate("KSMTest.app.navigateTo('setup')")
     b.page.get_by_test_id('setup-location').fill('Other court hall')
     b.open_court('B'); b.score_point('R', 'K'); b.save_now(); b.wait_idle()
     conflicts=[]
@@ -101,7 +101,7 @@ def cache_base(browser, base, problems):
     # The failed Retry writes an outbox at the cache's original revision.
     retry_button(a).click()
     a.wait_for(lambda: retry_button(a).is_enabled(), message='cached queue captured')
-    assert a.page.evaluate('Boolean(readOutbox().basePayload)'), 'cached edits have no three-way merge base'
+    assert a.page.evaluate('Boolean(KSMTest.app.readOutbox().basePayload)'), 'cached edits have no three-way merge base'
     a.page.unroute(endpoint, block)
     retry_button(a).click()
     a.wait_for(lambda: not a.page.locator('#startupLoadFailure').count() and not a.outbox(), message='conflicting Retry flush')
@@ -126,14 +126,14 @@ def offline_retry(browser, base, problems):
         fail_load(a, tid)
         reject_dialogs(a, problems)
         token = a.staff_session()
-        a.page.evaluate("writeOutbox(ksmStartupHasCache?tournamentPayload():JSON.parse(localStorage.getItem(KSM_SAVE_KEY)),'Existing queued work')")
-        before = a.page.evaluate('readOutbox().payload.state')
+        a.page.evaluate("KSMTest.app.writeOutbox(KSMTest.app.ksmStartupHasCache?KSMTest.app.tournamentPayload():JSON.parse(localStorage.getItem(KSMTest.app.KSM_SAVE_KEY)),'Existing queued work')")
+        before = a.page.evaluate('KSMTest.app.readOutbox().payload.state')
         a.page.context.set_offline(True)
         retry_button(a).click()
         assert a.page.locator('#startupLoadFailure').is_visible()
         assert 'home' not in a.visible_view()
         assert a.staff_session() == token
-        assert a.page.evaluate('readOutbox().payload.state') == before
+        assert a.page.evaluate('KSMTest.app.readOutbox().payload.state') == before
         assert 'Offline' in a.page.get_by_test_id('connection-status').get_attribute('title')
         a.close()
 
@@ -144,14 +144,14 @@ def no_cache_saves(browser, base, problems):
     a.page.evaluate('(id)=>localStorage.removeItem("ksm.tournament.record:"+id)', tid)
     fail_load(a, tid)
     reject_dialogs(a, problems)
-    before = a.page.evaluate('[localStorage.getItem(KSM_SAVE_KEY),localStorage.getItem(KSM_CLOUD_OUTBOX_KEY)]')
+    before = a.page.evaluate('[localStorage.getItem(KSMTest.app.KSM_SAVE_KEY),localStorage.getItem(KSMTest.app.KSM_CLOUD_OUTBOX_KEY)]')
     puts = []
     a.page.on('request', lambda request: puts.append(request.url) if request.method == 'PUT' else None)
     a.page.evaluate('KSMTest.manualSave()')
     a.save_now('Critical path while empty')
     # Wait for any forbidden request to finish before asserting the storage and request log.
     a.page.wait_for_function('!KSMTest.pendingReason().saveInFlight')
-    assert a.page.evaluate('[localStorage.getItem(KSM_SAVE_KEY),localStorage.getItem(KSM_CLOUD_OUTBOX_KEY)]') == before
+    assert a.page.evaluate('[localStorage.getItem(KSMTest.app.KSM_SAVE_KEY),localStorage.getItem(KSMTest.app.KSM_CLOUD_OUTBOX_KEY)]') == before
     assert not puts, puts
     a.close()
 

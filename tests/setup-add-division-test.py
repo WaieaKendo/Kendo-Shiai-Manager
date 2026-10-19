@@ -27,7 +27,7 @@ def main():
             page.fill(sel('custom-division-name'), name)
             assert page.locator(sel('custom-division-add')).is_disabled()
             # The direct legacy operation also remains safe for callers and old integrations.
-            page.evaluate('addCustomDivision()')
+            page.evaluate('KSMTest.app.addCustomDivision()')
             assert not problems, f'+ Add Division with the name {name!r} (F13): {problems}'
             assert app.payload()['state']['divisions'] == divisions, f'a division was added for {name!r}: {app.payload()["state"]["divisions"]}'
             assert page.locator(sel('setup-division-row')).count() == rows

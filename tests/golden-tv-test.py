@@ -61,13 +61,13 @@ ROOT = '#tv'
 TV = {'width': 1920, 'height': 1080}
 OTHER_SIZES = [('1280x720', {'width': 1280, 'height': 720}), ('3840x2160', {'width': 3840, 'height': 2160})]
 # A TV device as initializeCloudRoleFromUrl() (33-) sets it up for a TV link (/t/<id>/tv/a|b).
-TV_MODE_JS = "() => { document.body.classList.add('ksm-tv'); renderTvDisplay(); show('tv'); }"
+TV_MODE_JS = "() => { document.body.classList.add('ksm-tv'); KSMTest.app.renderTvDisplay(); KSMTest.app.show('tv'); }"
 # What a live update does on a TV device (applyRemoteCloudRecord(), 21-): redraw the TV.
-TV_UPDATE_JS = "() => { renderTvDisplay(); show('tv'); }"
-POINT_JS = "([side, letter]) => point(side, letter)"
-NEXT_JS = "() => nextMatch()"
+TV_UPDATE_JS = "() => { KSMTest.app.renderTvDisplay(); KSMTest.app.show('tv'); }"
+POINT_JS = "([side, letter]) => KSMTest.app.point(side, letter)"
+NEXT_JS = "() => KSMTest.app.nextMatch()"
 # The court screen's division select (CourtHeader -> selectScorekeeperDivision()).
-SWITCH_JS = "([court, division]) => { chooseCourt(court); selectScorekeeperDivision(division); }"
+SWITCH_JS = "([court, division]) => { KSMTest.app.chooseCourt(court); KSMTest.app.selectScorekeeperDivision(division); }"
 SCROLL_JS = "() => [document.documentElement.scrollWidth, document.documentElement.scrollHeight]"
 LIVE = '#tv #tvLive'
 # Which kinds of TV content the React island was given.
@@ -118,7 +118,7 @@ def open_tv(name, browser, errors, court, entries=None, react_check=None):
     app = KsmApp(browser.new_page(viewport=TV), name)
     load_app(app.page, query=f'?court={court}')
     golden = Golden(name, app, errors, GOLDEN_DIR, capture, react_check)
-    assert app.page.evaluate('tvAssignedCourt()') == court, f'{name}: the TV is not assigned to Court {court}'
+    assert app.page.evaluate('KSMTest.app.tvAssignedCourt()') == court, f'{name}: the TV is not assigned to Court {court}'
     assert app.page.evaluate('window.ksmTvMounted === true'), f'{name}: the TV island did not mount'
     assert app.page.locator('#tvModuleMissing').count() == 0, f'{name}: "TV display could not load" shown on a working page'
     if entries:
@@ -224,7 +224,7 @@ def tv_a_team_playoff(browser, errors, react_check):
         return act
 
     g.do('white representative', on_court('A', representative('white')))
-    assert page.evaluate("() => (state.allMatches['Team Tournament'] || []).some(m => m.type === 'teamPlayoff')"), \
+    assert page.evaluate("() => (KSMTest.app.state.allMatches['Team Tournament'] || []).some(m => m.type === 'teamPlayoff')"), \
         'expected a representative playoff after three drawn bouts'
     g.do('red representative', on_court('A', representative('red', 1)))
     g.do('playoff point', on_court('A', lambda a: a.score_point('W', 'M')))

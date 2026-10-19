@@ -26,28 +26,28 @@ def main():
                 elif route.request.method == 'PUT': route.abort()
                 else: route.continue_()
             a.page.route(endpoint, blocked)
-            a.page.evaluate("state.awards=[{name:'Keep this work'}];criticalAutoSave('Queue recovery')")
+            a.page.evaluate("KSMTest.app.state.awards=[{name:'Keep this work'}];KSMTest.app.criticalAutoSave('Queue recovery')")
             a.wait_for(a.outbox, message='work queued')
-            queued = a.page.evaluate('readOutbox().payload.state')
+            queued = a.page.evaluate('KSMTest.app.readOutbox().payload.state')
             if not cached:
                 a.page.evaluate('(id)=>localStorage.removeItem("ksm.tournament.record:"+id)', tid)
             a.reload()
             assert a.page.locator('#startupLoadFailure').is_visible()
             if cached:
-                assert a.page.evaluate('state.awards[0].name') == 'Keep this work'
+                assert a.page.evaluate('KSMTest.app.state.awards[0].name') == 'Keep this work'
             else:
                 assert a.visible_view() == []
             assert 'home' not in a.visible_view()
             assert a.staff_session() == token
             assert a.page.evaluate('KSMTest.role()') == 'staff'
             assert a.page.get_by_role('button', name='Logout', exact=True).is_visible()
-            assert a.page.evaluate('readOutbox().payload.state') == queued
+            assert a.page.evaluate('KSMTest.app.readOutbox().payload.state') == queued
             if not cached:
                 retry = a.page.locator('#startupLoadFailure').get_by_role('button', name='Retry', exact=True)
                 retry.click()
                 a.wait_for(lambda: retry.is_enabled(), message='failed Retry completed')
                 a.reload()
-                assert a.page.evaluate('readOutbox().payload.state') == queued
+                assert a.page.evaluate('KSMTest.app.readOutbox().payload.state') == queued
             a.page.unroute(endpoint, blocked)
             a.page.locator('#startupLoadFailure').get_by_role('button', name='Retry', exact=True).click()
             a.wait_for(lambda: not a.page.locator('#startupLoadFailure').count() and not a.outbox(), message='Retry and queue flush')

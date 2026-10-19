@@ -86,9 +86,9 @@ def main():
             # These races test server ordering, not the edit debounce. Start the pending
             # save explicitly so each race does not spend seconds waiting for two timers.
             app.page.evaluate("""() => {
-              if (!ksmSaveTimer && !ksmCloudTimer) return;
-              clearTimeout(ksmSaveTimer); ksmSaveTimer=null;
-              clearTimeout(ksmCloudTimer); ksmCloudTimer=null;
+              if (!KSMTest.app.ksmSaveTimer && !KSMTest.app.ksmCloudTimer) return;
+              clearTimeout(KSMTest.app.ksmSaveTimer); KSMTest.app.ksmSaveTimer=null;
+              clearTimeout(KSMTest.app.ksmCloudTimer); KSMTest.app.ksmCloudTimer=null;
               KSMTest.saveNow('Conflict race');
             }""")
 

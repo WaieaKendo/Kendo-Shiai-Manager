@@ -60,7 +60,7 @@ def offline_tied_check(browser, problems):
     app.configure([{'team': True, 'format': '3-Person Team', 'tournament': 'Round Robin', 'teams': 4, 'court': 'A'}])
     assert play_round_robin(app) is None, 'Champion only: a daihyosen for 2nd'
     # The mode names 2nd, but the state has no daihyosen for it (set without the Setup field).
-    shown = page.evaluate("() => { state.teamAwardMode = 'top2'; return resultPlacements('Team Tournament').map(r => [r.place, r.name]); }")
+    shown = page.evaluate("() => { KSMTest.app.state.teamAwardMode = 'top2'; return KSMTest.app.resultPlacements('Team Tournament').map(r => [r.place, r.name]); }")
     assert shown == [['1st', 'Team A'], ['2nd', TIED]], f'an awarded place still level was named: {shown}'
     page.close()
 

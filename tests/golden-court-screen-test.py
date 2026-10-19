@@ -208,7 +208,7 @@ def open_app(browser, name, entries, errors, court='A', tournament_name=None):
     load_app(app.page)
     # This visual fixture represents an existing staff tournament. Without an ID,
     # its offline autosave can open a creation-password prompt during a mouse click.
-    app.page.evaluate("() => { cloudSession.tournamentId='golden-court'; sessionStorage.setItem(KSM_V316_STAFF_SESSION,'ksmst_golden_fixture'); }")
+    app.page.evaluate("() => { KSMTest.app.cloudSession.tournamentId='golden-court'; sessionStorage.setItem(KSMTest.app.KSM_V316_STAFF_SESSION,'ksmst_golden_fixture'); }")
     golden = Golden(name, app, errors, GOLDEN_DIR, capture, check_react, result='screen')
     assert app.page.evaluate('window.ksmCourtScreenMounted === true'), f'{name}: the court module did not mount'
     assert app.page.locator('#courtModuleMissing').count() == 0, f'{name}: "court screen could not load" shown on a working page'

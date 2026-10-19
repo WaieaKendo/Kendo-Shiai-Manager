@@ -9,9 +9,19 @@ a test, e.g. `npm run test:e2e:watch`.
 """
 import mimetypes
 import os
+from pathlib import Path
 from ksm_source import DIST, ensure_built
 
 APP_ORIGIN = 'http://ksm.test'
+API_JS = (Path(__file__).resolve().parent / 'lib' / 'ksm-test-api.js').read_text(encoding='utf-8')
+
+
+def install_test_api(page):
+    """Inject window.KSMTest (tests/lib/ksm-test-api.js) into every document the page opens; once per page.
+    KsmApp does this for its devices; load_app() for tests that open the app without KsmApp."""
+    if not getattr(page, '_ksm_test_api', False):
+        page.add_init_script(API_JS)
+        page._ksm_test_api = True
 
 
 def watch_mode():
@@ -66,6 +76,7 @@ def load_app(page, html=None, wait_until='domcontentloaded', session='staff', qu
     library responses, tests/golden-library-test.py).
     """
     ensure_built()
+    install_test_api(page)
 
     def handle(route):
         path = route.request.url[len(APP_ORIGIN):].split('?', 1)[0].split('#', 1)[0]
@@ -89,7 +100,7 @@ def load_app(page, html=None, wait_until='domcontentloaded', session='staff', qu
     if session == 'staff':
         page.evaluate("""() => {
           document.body.classList.remove('ksm-home');
-          setSessionRole('staff');
-          installRoleBanner('staff');
-          navigateTo('setup');
+          KSMTest.app.setSessionRole('staff');
+          KSMTest.app.installRoleBanner('staff');
+          KSMTest.app.navigateTo('setup');
         }""")

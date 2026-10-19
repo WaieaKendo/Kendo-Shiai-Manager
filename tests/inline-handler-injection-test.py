@@ -26,10 +26,10 @@ with sync_playwright() as p:
     # Custom divisions with hostile names, shown in the Setup division table.
     page.evaluate("""names => {
       window.__pwned = 0; window.__calls = [];
-      names.forEach(n => { state.divisions.push(n); state.divisionTypes[n] = 'Round Robin'; state.divisionCourts[n] = 'A'; });
+      names.forEach(n => { KSMTest.app.state.divisions.push(n); KSMTest.app.state.divisionTypes[n] = 'Round Robin'; KSMTest.app.state.divisionCourts[n] = 'A'; });
       const orig = window.setDivisionCourt;
       window.setDivisionCourt = (d, v) => { window.__calls.push(d); return orig(d, v); };
-      navigateTo('setup'); renderDivisionSetup();
+      KSMTest.app.navigateTo('setup'); KSMTest.app.renderDivisionSetup();
     }""", EVIL)
     page.wait_for_timeout(200)
 
@@ -44,11 +44,11 @@ with sync_playwright() as p:
       return window.__calls.filter(n => names.includes(n));
     }""", EVIL)
     assert sorted(fired) == sorted(EVIL), ('handler received wrong names', fired); checks += 1
-    assert all(page.evaluate("n => state.divisionCourts[n]", n) == 'B' for n in EVIL); checks += 1
+    assert all(page.evaluate("n => KSMTest.app.state.divisionCourts[n]", n) == 'B' for n in EVIL); checks += 1
 
     # Dojo profile links built from dojo names.
     page.evaluate("""n => { window.__dojo = null; window.showDojoProfile = d => { window.__dojo = d; };
-      const b = document.createElement('div'); b.innerHTML = `<button id="dj" onclick="showDojoProfile(${jsArg(n)})">x</button>`;
+      const b = document.createElement('div'); b.innerHTML = `<button id="dj" onclick="showDojoProfile(${KSMTest.app.jsArg(n)})">x</button>`;
       document.body.appendChild(b); document.getElementById('dj').click(); }""", EVIL[0])
     assert page.evaluate("window.__dojo") == EVIL[0]; checks += 1
 

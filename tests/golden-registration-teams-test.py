@@ -113,15 +113,15 @@ FIELDS_JS = f"""() => {{
   return {{fields, focus: name(a), connected: a ? a.isConnected : null}};
 }}"""
 STATE_JS = """() => ({
-  teams: state.teams,
-  exhibitions: state.exhibitions,
-  regMode: state.regMode ?? null,
+  teams: KSMTest.app.state.teams,
+  exhibitions: KSMTest.app.state.exhibitions,
+  regMode: KSMTest.app.state.regMode ?? null,
   cards: ['indReg', 'teamReg', 'exhibitionReg', 'poolsReg'].filter(id => !document.getElementById(id).classList.contains('hidden')),
   setup: ['teamEnabled', 'teamFormat', 'teamTournamentFormat', 'exhibitionEnabled'].map(id => document.getElementById(id).value),
-  validation: validateTournament(),
-  generated: !!state.generated,
-  teamMatches: (state.allMatches?.['Team Tournament'] || []).length,
-  deferred: [!!ksmDeferredRemoteRecord, !!ksmDeferredSyncRecord],
+  validation: KSMTest.app.validateTournament(),
+  generated: !!KSMTest.app.state.generated,
+  teamMatches: (KSMTest.app.state.allMatches?.['Team Tournament'] || []).length,
+  deferred: [!!KSMTest.app.ksmDeferredRemoteRecord, !!KSMTest.app.ksmDeferredSyncRecord],
 })"""
 
 
@@ -229,20 +229,20 @@ def tabs_empty(browser, react_check):
         g.do(f'tab: {t}', lambda a, t=t: click(a.page, tid(f'reg-tab-{t}')))
     g.do('the same tab again (team)', lambda a: click(a.page, tid('reg-tab-team')))
     phone_views(g, 'teams')
-    g.do('Exhibition from the code (regTab)', lambda a: a.page.evaluate("() => regTab('exhibition')"))
+    g.do('Exhibition from the code (regTab)', lambda a: a.page.evaluate("() => KSMTest.app.regTab('exhibition')"))
     phone_views(g, 'exhibitions')
-    g.do('an unknown tab from the code (regTab)', lambda a: a.page.evaluate("() => regTab('bogus')"))
-    g.do('Pools from the code (regTab)', lambda a: a.page.evaluate("() => regTab('pools')"))
+    g.do('an unknown tab from the code (regTab)', lambda a: a.page.evaluate("() => KSMTest.app.regTab('bogus')"))
+    g.do('Pools from the code (regTab)', lambda a: a.page.evaluate("() => KSMTest.app.regTab('pools')"))
     g.do('Setup', lambda a: click(a.page, tid('nav-setup')))
-    g.do('Team Registration from the code (openRegistrationTab)', lambda a: a.page.evaluate("() => openRegistrationTab('team')"))
+    g.do('Team Registration from the code (openRegistrationTab)', lambda a: a.page.evaluate("() => KSMTest.app.openRegistrationTab('team')"))
     g.do('Registration from the menu (Individual Players)', lambda a: click(a.page, tid('nav-registration')))
     g.do('tab: team (keyboard Enter on the tab)', lambda a: (a.page.locator(tid('reg-tab-team')).focus(), a.page.keyboard.press('Enter')))
     leave(g.app.page)
     g.do('Setup', lambda a: click(a.page, tid('nav-setup')))
     g.do('spectator', lambda a: a.page.evaluate(SPECTATOR_JS))
-    g.do('spectator: Registration from the code (Live Scores instead)', lambda a: a.page.evaluate("() => navigateTo('registration')"))
-    g.do('spectator: openRegistrationTab() (nothing)', lambda a: a.page.evaluate("() => openRegistrationTab('team')"))
-    g.do('spectator: regTab() from the code', lambda a: a.page.evaluate("() => regTab('exhibition')"))
+    g.do('spectator: Registration from the code (Live Scores instead)', lambda a: a.page.evaluate("() => KSMTest.app.navigateTo('registration')"))
+    g.do('spectator: openRegistrationTab() (nothing)', lambda a: a.page.evaluate("() => KSMTest.app.openRegistrationTab('team')"))
+    g.do('spectator: regTab() from the code', lambda a: a.page.evaluate("() => KSMTest.app.regTab('exhibition')"))
     g.finish()
 
 
@@ -372,15 +372,15 @@ REMOTE_JS = """() => {
 }"""
 DEFER_JS = f"""() => {{
   const payload = ({REMOTE_JS})();
-  const record = {{tournamentId: cloudSession.tournamentId, revision: Number(cloudSession.revision || 0) + 5,
+  const record = {{tournamentId: KSMTest.app.cloudSession.tournamentId, revision: Number(KSMTest.app.cloudSession.revision || 0) + 5,
                   updatedAt: new Date().toISOString(), updatedBy: {{clientId: 'another-device', name: 'Director 2'}}, payload}};
-  window.__ksmDeferred = applyRemoteCloudRecord(record);
+  window.__ksmDeferred = KSMTest.app.applyRemoteCloudRecord(record);
 }}"""
-CONFIRMED_JS = '() => { clearTimeout(ksmSaveTimer); ksmSaveTimer = null; clearTimeout(ksmCloudTimer); ksmCloudTimer = null; ksmConfirmedMutationVersion = ksmLocalMutationVersion; }'
+CONFIRMED_JS = '() => { clearTimeout(KSMTest.app.ksmSaveTimer); KSMTest.app.ksmSaveTimer = null; clearTimeout(KSMTest.app.ksmCloudTimer); KSMTest.app.ksmCloudTimer = null; KSMTest.app.ksmConfirmedMutationVersion = KSMTest.app.ksmLocalMutationVersion; }'
 APPLY_JS = f"""() => {{
   const payload = ({REMOTE_JS})();
-  ksmApplyingRemoteSnapshot = true;
-  try {{ applyTournamentPayload(payload, false, {{source: 'live sync'}}); }} finally {{ ksmApplyingRemoteSnapshot = false; }}
+  KSMTest.app.ksmApplyingRemoteSnapshot = true;
+  try {{ KSMTest.app.applyTournamentPayload(payload, false, {{source: 'live sync'}}); }} finally {{ KSMTest.app.ksmApplyingRemoteSnapshot = false; }}
 }}"""
 
 
@@ -400,20 +400,20 @@ def teams_live(browser, react_check):
     g.do('editing ended: the update still waits (unsaved changes)', lambda a: a.page.wait_for_timeout(3600))
     g.do('Load Sample Teams again', lambda a: click(a.page, button(TEAMS, 'Load Sample Teams')))
     g.do('team 3: chuken being typed', lambda a: type_into(a.page, team_field('team-member-chuken', 2), 'Maed'))
-    g.do("a live update's redraw (renderAll()) while typing", lambda a: a.page.evaluate('() => renderAll()'))
+    g.do("a live update's redraw (renderAll()) while typing", lambda a: a.page.evaluate('() => KSMTest.app.renderAll()'))
     g.do('typing on after the redraw', lambda a: a.page.keyboard.type('a!'))
     leave(page)
     g.do('a live update applied while a team member has the focus', lambda a: (
         type_into(a.page, team_field('team-member-taisho', 0), 'Half'), a.page.evaluate(APPLY_JS)))
     leave(page)
     g.do('the filter typed, then a redraw (the filter keeps its text and focus)', lambda a: (
-        type_into(a.page, '#teamFilter', 'remote'), a.page.evaluate('() => renderAll()')))
+        type_into(a.page, '#teamFilter', 'remote'), a.page.evaluate('() => KSMTest.app.renderAll()')))
     g.do('filter cleared', lambda a: type_into(a.page, '#teamFilter', ''))
     leave(page)
     g.do('tab: exhibition', lambda a: click(a.page, tid('reg-tab-exhibition')))
     g.do('+ 3 Matches', lambda a: click(a.page, tid('exhibition-add-3')))
     g.do('match 2: white being typed', lambda a: type_into(a.page, ex_field('exhibition-white', 1), 'Kai'))
-    g.do("a live update's redraw (renderAll()) while typing a player", lambda a: a.page.evaluate('() => renderAll()'))
+    g.do("a live update's redraw (renderAll()) while typing a player", lambda a: a.page.evaluate('() => KSMTest.app.renderAll()'))
     g.do('typing on after the redraw (exhibition)', lambda a: a.page.keyboard.type('!'))
     leave(page)
     g.do('a live update applied while a player has the focus', lambda a: (
@@ -427,7 +427,7 @@ def teams_live(browser, react_check):
     g.do('generated: a team to No Show (taken out of the bracket)', lambda a: click(a.page, team_field('team-status', 0)))
     g.do('generated: on to Registered (not added again)', lambda a: click(a.page, team_field('team-status', 0)))
     g.do('a team match done (the division has started)', lambda a: a.page.evaluate(
-        "() => { state.allMatches['Team Tournament'][0].done = true; renderTeams(); }"))
+        "() => { KSMTest.app.state.allMatches['Team Tournament'][0].done = true; KSMTest.app.renderTeams(); }"))
     g.do('started: a team to No Show (the alert, nothing changed)', lambda a: click(a.page, team_field('team-status', 1)))
     g.finish()
 
@@ -494,7 +494,7 @@ def teams_module_missing(browser):
     for tab, card, testid, title, table in (
             ('team', '#teamReg', 'registration-teams-module-missing', 'Teams could not load', '#teamTable'),
             ('exhibition', '#exhibitionReg', 'registration-exhibitions-module-missing', 'Exhibitions could not load', '#exhibitionTable')):
-        page.evaluate(f"() => openRegistrationTab('{tab}')")
+        page.evaluate(f"() => KSMTest.app.openRegistrationTab('{tab}')")
         assert page.locator(card).is_visible(), f'{card}: regTab() did not show the card without the React module'
         notice = page.locator(f'{card} {tid(testid)}')
         assert notice.is_visible(), f'no "{title}" notice without the React module'
@@ -506,7 +506,7 @@ def teams_module_missing(browser):
     assert page.evaluate('window.ksmRegistrationTeamsInput.cards.length') == 1, 'renderTeams() did not publish without the island'
     assert page.evaluate('window.ksmRegistrationExhibitionsInput.rows.length') == 1, 'renderExhibitions() did not publish without the island'
     page.locator(tid('reg-tab-pools')).click()
-    assert page.locator('#poolsReg').is_visible() and page.evaluate('state.regMode') == 'pools', 'the tabs do not switch without the React module'
+    assert page.locator('#poolsReg').is_visible() and page.evaluate('KSMTest.app.state.regMode') == 'pools', 'the tabs do not switch without the React module'
     assert page.evaluate('window.ksmRegistrationTabInput.mode') == 'pools', 'regTab() did not publish without the island'
     assert not errors, errors
     page.close()

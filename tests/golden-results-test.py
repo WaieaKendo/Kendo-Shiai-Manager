@@ -74,8 +74,8 @@ ROOT = '#results'
 DESKTOP = {'width': 1280, 'height': 720}
 PHONES = [('phone portrait', {'width': 390, 'height': 844}), ('phone landscape', {'width': 844, 'height': 390})]
 # What a court's buttons call (app/js/10-court-scoring-and-history.js).
-POINT_JS = "([side, letter]) => point(side, letter)"
-NEXT_JS = "() => nextMatch()"
+POINT_JS = "([side, letter]) => KSMTest.app.point(side, letter)"
+NEXT_JS = "() => KSMTest.app.nextMatch()"
 SHOW_RESULTS_JS = "() => KSMTest.show('results')"
 VIEW_JS = f"() => !document.querySelector('{ROOT}').classList.contains('hidden')"
 # The awards editor's inputs (values, which one has the focus), state.awards and the modal.
@@ -85,7 +85,7 @@ EDITOR_JS = """() => {
   return {
     values: inputs.map(i => i.value),
     focus: focused >= 0 ? focused : null,
-    awards: JSON.parse(JSON.stringify(state.awards || [])),
+    awards: JSON.parse(JSON.stringify(KSMTest.app.state.awards || [])),
     modal: !document.getElementById('resultsBracketModal').classList.contains('hidden'),
   };
 }"""
@@ -315,11 +315,11 @@ def awards_typing_stability(browser, errors):
     page.on('pageerror', lambda e: page_errors.append(str(e)))
     load_app(page)
     app.configure([{'name': 'Open', 'format': 'Round Robin', 'court': 'A', 'entrants': people('P', 3)}])
-    page.evaluate("() => { state.awards = [{award: 'Fighting Spirit', name: 'P 1', dojo: 'D 1'}, {award: 'Kantosho', name: '', dojo: ''}]; }")
+    page.evaluate("() => { KSMTest.app.state.awards = [{award: 'Fighting Spirit', name: 'P 1', dojo: 'D 1'}, {award: 'Kantosho', name: '', dojo: ''}]; }")
     app.nav('results')
     award = AWARD_INPUT.format(row=1, label='Award name')
     page.fill(award, 'Best Ki')
-    page.evaluate("() => { state.awards[0].name = 'P 2'; state.awards[1].dojo = 'Other Dojo'; renderResultsDashboard(); }")
+    page.evaluate("() => { KSMTest.app.state.awards[0].name = 'P 2'; KSMTest.app.state.awards[1].dojo = 'Other Dojo'; KSMTest.app.renderResultsDashboard(); }")
     got = page.evaluate(EDITOR_JS)
     assert got['focus'] == 0 and got['values'][:3] == ['Best Ki', 'P 2', 'D 1'] and got['values'][5] == 'Other Dojo', \
         f'a redraw while typing: {got}'
@@ -328,7 +328,7 @@ def awards_typing_stability(browser, errors):
     got = page.evaluate(EDITOR_JS)
     assert got['awards'][0]['award'] == 'Best Kiai' and got['focus'] == 1, f'the typed award after Tab: {got}'
     # A redraw with nothing typed shows state.awards again (no stale text kept).
-    page.evaluate("() => { state.awards[0].award = 'Changed elsewhere'; document.activeElement.blur(); renderResultsDashboard(); }")
+    page.evaluate("() => { KSMTest.app.state.awards[0].award = 'Changed elsewhere'; document.activeElement.blur(); KSMTest.app.renderResultsDashboard(); }")
     got = page.evaluate(EDITOR_JS)
     assert got['values'][0] == 'Changed elsewhere' and got['focus'] is None, f'a redraw without focus: {got}'
     assert page_errors == [], f'page errors in the awards editor (F11 fixed: saveAuto() is defined): {page_errors}'

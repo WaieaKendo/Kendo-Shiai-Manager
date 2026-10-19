@@ -57,18 +57,18 @@ class Lab:
 def reset_individual(page, n: int, fmt: str, court: str, division: str = "Test") -> None:
     page.evaluate(
         """({n,fmt,court,division})=>{
-          state.generated=false;
-          state.divisions=[division];
-          state.divisionTypes={[division]:fmt};
-          state.divisionCourts={[division]:court};
-          state.competitors=Array.from({length:n},(_,i)=>({
+          KSMTest.app.state.generated=false;
+          KSMTest.app.state.divisions=[division];
+          KSMTest.app.state.divisionTypes={[division]:fmt};
+          KSMTest.app.state.divisionCourts={[division]:court};
+          KSMTest.app.state.competitors=Array.from({length:n},(_,i)=>({
             name:`P${i+1}`,dojo:`D${i+1}`,division,seed:i<4?String(i+1):'',status:'Checked'
           }));
-          state.teams=[];state.pools={};state.allMatches={};state.singleElimNodes={};
-          state.singleElimComps={};state.teamBracketNodes={};state.teamPools={};
-          state.brackets={};state.championshipNodes={};state.byeWinners={};state.currentByDivision={};state.courtState={};
-          state.courtActiveDivision={};state.currentDivision=division;state.currentCourt='A';
-          generateDivisionState(division);state.generated=true;initCourtStates();
+          KSMTest.app.state.teams=[];KSMTest.app.state.pools={};KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={};
+          KSMTest.app.state.singleElimComps={};KSMTest.app.state.teamBracketNodes={};KSMTest.app.state.teamPools={};
+          KSMTest.app.state.brackets={};KSMTest.app.state.championshipNodes={};KSMTest.app.state.byeWinners={};KSMTest.app.state.currentByDivision={};KSMTest.app.state.courtState={};
+          KSMTest.app.state.courtActiveDivision={};KSMTest.app.state.currentDivision=division;KSMTest.app.state.currentCourt='A';
+          KSMTest.app.generateDivisionState(division);KSMTest.app.state.generated=true;KSMTest.app.initCourtStates();
         }""",
         {"n": n, "fmt": fmt, "court": court, "division": division},
     )
@@ -76,27 +76,27 @@ def reset_individual(page, n: int, fmt: str, court: str, division: str = "Test")
 
 def scenario_single_elim_exhaustion(page, n: int, court: str) -> int:
     reset_individual(page, n, "Single Elimination", court)
-    initial = page.evaluate("state.allMatches.Test.length")
+    initial = page.evaluate("KSMTest.app.state.allMatches.Test.length")
     page.evaluate(
         """()=>{
           let guard=0;
           while(guard++<500){
-            syncIndividualSingleElim('Test',state.allMatches.Test,state.singleElimComps.Test||[]);
-            const ready=state.allMatches.Test.filter(m=>m.singleElim&&!m.done&&m.ready);
+            KSMTest.app.syncIndividualSingleElim('Test',KSMTest.app.state.allMatches.Test,KSMTest.app.state.singleElimComps.Test||[]);
+            const ready=KSMTest.app.state.allMatches.Test.filter(m=>m.singleElim&&!m.done&&m.ready);
             if(!ready.length)break;
             ready.forEach(m=>{m.done=true;m.wp=['M'];m.rp=[];});
           }
-          syncIndividualSingleElim('Test',state.allMatches.Test,state.singleElimComps.Test||[]);
+          KSMTest.app.syncIndividualSingleElim('Test',KSMTest.app.state.allMatches.Test,KSMTest.app.state.singleElimComps.Test||[]);
         }"""
     )
     data = page.evaluate(
         """()=>({
           initial:%d,
-          total:state.allMatches.Test.length,
-          ids:state.allMatches.Test.filter(m=>m.singleElim).map(m=>m.elimNodeId),
-          finals:state.allMatches.Test.filter(m=>m.singleElim&&m.position==='Final'),
-          unfinished:state.allMatches.Test.filter(m=>m.singleElim&&m.ready&&!m.done).length,
-          nodes:(state.singleElimNodes.Test||[]).length
+          total:KSMTest.app.state.allMatches.Test.length,
+          ids:KSMTest.app.state.allMatches.Test.filter(m=>m.singleElim).map(m=>m.elimNodeId),
+          finals:KSMTest.app.state.allMatches.Test.filter(m=>m.singleElim&&m.position==='Final'),
+          unfinished:KSMTest.app.state.allMatches.Test.filter(m=>m.singleElim&&m.ready&&!m.done).length,
+          nodes:(KSMTest.app.state.singleElimNodes.Test||[]).length
         })""" % initial
     )
     assert data["total"] == initial, f"Match count changed {initial} → {data['total']}"
@@ -114,40 +114,40 @@ def scenario_pool_clean_exhaustion(page, n: int, court: str) -> int:
         """()=>{
           let guard=0;
           while(guard++<1000){
-            const pending=state.allMatches.Test.filter(m=>!m.done&&!m.championship&&!m.tiebreak);
+            const pending=KSMTest.app.state.allMatches.Test.filter(m=>!m.done&&!m.championship&&!m.tiebreak);
             if(!pending.length)break;
             pending.forEach(m=>{
               const wi=Number(String(m.white||'').replace(/\\D/g,''))||9999;
               const ri=Number(String(m.red||'').replace(/\\D/g,''))||9999;
               m.done=true;
               if(wi<ri){m.wp=['M'];m.rp=[];}else{m.wp=[];m.rp=['M'];}
-              maybeCreateChampionship(m);
+              KSMTest.app.maybeCreateChampionship(m);
             });
           }
-          syncChampionshipTemplate('Test');
+          KSMTest.app.syncChampionshipTemplate('Test');
           guard=0;
           while(guard++<500){
-            syncChampionshipTemplate('Test');
-            const ready=state.allMatches.Test.filter(m=>m.championship&&!m.done&&individualMatchReady(m));
+            KSMTest.app.syncChampionshipTemplate('Test');
+            const ready=KSMTest.app.state.allMatches.Test.filter(m=>m.championship&&!m.done&&KSMTest.app.individualMatchReady(m));
             if(!ready.length)break;
             ready.forEach(m=>{
               const wi=Number(String(m.white||'').replace(/\\D/g,''))||9999;
               const ri=Number(String(m.red||'').replace(/\\D/g,''))||9999;
               m.done=true;
               if(wi<ri){m.wp=['M'];m.rp=[];}else{m.wp=[];m.rp=['M'];}
-              maybeAdvanceChampionship(m);
+              KSMTest.app.maybeAdvanceChampionship(m);
             });
           }
-          syncChampionshipTemplate('Test');
+          KSMTest.app.syncChampionshipTemplate('Test');
         }"""
     )
     data = page.evaluate(
         """()=>({
-          labels:(state.pools.Test||[]).map(p=>p.label),
-          baseDone:state.allMatches.Test.filter(m=>!m.championship&&!m.tiebreak).every(m=>m.done),
-          finals:state.allMatches.Test.filter(m=>m.championship&&m.position==='Final'),
-          duplicateKeys:(()=>{const ks=state.allMatches.Test.filter(m=>m.championship).map(individualLogicalMatchKey);return ks.length-new Set(ks).size})(),
-          pendingTB:state.allMatches.Test.some(m=>m.tiebreak&&!m.done)
+          labels:(KSMTest.app.state.pools.Test||[]).map(p=>p.label),
+          baseDone:KSMTest.app.state.allMatches.Test.filter(m=>!m.championship&&!m.tiebreak).every(m=>m.done),
+          finals:KSMTest.app.state.allMatches.Test.filter(m=>m.championship&&m.position==='Final'),
+          duplicateKeys:(()=>{const ks=KSMTest.app.state.allMatches.Test.filter(m=>m.championship).map(KSMTest.app.individualLogicalMatchKey);return ks.length-new Set(ks).size})(),
+          pendingTB:KSMTest.app.state.allMatches.Test.some(m=>m.tiebreak&&!m.done)
         })"""
     )
     assert data["labels"] == sorted(data["labels"]), "Pool labels reordered"
@@ -167,20 +167,20 @@ def scenario_no_show_matrix(page, n: int, court: str) -> int:
         # #24: the no-show's pool is rebuilt in the standard order for its new size (in the pool's
         # place, the remaining players in slot order); every other match keeps its order.
         before = page.evaluate(
-            """name=>{const pool=state.pools.Test.find(p=>p.players.some(x=>x.name===name));const rest=pool.players.filter(x=>x.name!==name);
-              const rebuilt=poolMatchPairs(rest.length).map(([w,r])=>({pool:pool.label,white:rest[w].name,red:rest[r].name,championship:false,key:null}));
-              const out=[];let placed=false;state.allMatches.Test.forEach(m=>{
+            """name=>{const pool=KSMTest.app.state.pools.Test.find(p=>p.players.some(x=>x.name===name));const rest=pool.players.filter(x=>x.name!==name);
+              const rebuilt=KSMTest.app.poolMatchPairs(rest.length).map(([w,r])=>({pool:pool.label,white:rest[w].name,red:rest[r].name,championship:false,key:null}));
+              const out=[];let placed=false;KSMTest.app.state.allMatches.Test.forEach(m=>{
                 if(!m.championship&&m.pool===pool.label){if(!placed){out.push(...rebuilt);placed=true}return}
-                out.push({pool:m.pool,white:m.white,red:m.red,championship:!!m.championship,key:individualLogicalMatchKey(m)});
+                out.push({pool:m.pool,white:m.white,red:m.red,championship:!!m.championship,key:KSMTest.app.individualLogicalMatchKey(m)});
               });return out}""",
             name,
         )
-        applied = page.evaluate("name=>applyIndividualNoShow('Test',name)", name)
+        applied = page.evaluate("name=>KSMTest.app.applyIndividualNoShow('Test',name)", name)
         assert applied, f"No-show rejected for {name}"
         after = page.evaluate(
             """()=>({
-              pools:state.pools.Test.map(p=>p.label),
-              matches:state.allMatches.Test.map(m=>({pool:m.pool,white:m.white,red:m.red,championship:!!m.championship,key:individualLogicalMatchKey(m)}))
+              pools:KSMTest.app.state.pools.Test.map(p=>p.label),
+              matches:KSMTest.app.state.allMatches.Test.map(m=>({pool:m.pool,white:m.white,red:m.red,championship:!!m.championship,key:KSMTest.app.individualLogicalMatchKey(m)}))
             })"""
         )
         assert after["pools"] == sorted(after["pools"]), f"Pool order changed for {name}"
@@ -195,8 +195,8 @@ def scenario_split_queue_order(page, n: int) -> int:
     reset_individual(page, n, "Single Elimination", "split")
     data = page.evaluate(
         """()=>{
-          const nodes=state.singleElimNodes.Test||[];
-          const arr=state.allMatches.Test||[];
+          const nodes=KSMTest.app.state.singleElimNodes.Test||[];
+          const arr=KSMTest.app.state.allMatches.Test||[];
           const byCourt=c=>nodes.filter(n=>(n.round==='Final'?'A':n.court)===c).map(n=>n.id);
           const matchByCourt=c=>arr.filter(m=>m.singleElim&&m.court===c).map(m=>m.elimNodeId);
           return {aNodes:byCourt('A'),bNodes:byCourt('B'),aMatches:matchByCourt('A'),bMatches:matchByCourt('B')};
@@ -213,17 +213,17 @@ def scenario_tiebreak_seed_contract(page) -> int:
         """()=>{
           let count=0;
           const A={name:'A',dojo:'X',wins:2,pts:3},B={name:'B',dojo:'Y',wins:2,pts:3},C={name:'C',dojo:'Z',wins:0,pts:0};
-          const oldInitial=initialPoolStandings,oldResolve=resolveTiebreakBaseGroup,oldFinished=poolFinished,oldPending=pendingTiebreak;
+          const oldInitial=KSMTest.app.initialPoolStandings,oldResolve=KSMTest.app.resolveTiebreakBaseGroup,oldFinished=KSMTest.app.poolFinished,oldPending=KSMTest.app.pendingTiebreak;
           try{
-            state.currentDivision='TB';state.brackets={TB:[['A1','A2']]};state.pools={TB:[{label:'A',players:[A,B,C]}]};state.allMatches={TB:[]};
-            poolFinished=()=>true;pendingTiebreak=()=>false;initialPoolStandings=()=>[A,B,C];
-            resolveTiebreakBaseGroup=()=>({locked:[A,B],unresolved:[],ordered:[A,B]});
-            let r=poolSeedResolution('A','TB');
+            KSMTest.app.state.currentDivision='TB';KSMTest.app.state.brackets={TB:[['A1','A2']]};KSMTest.app.state.pools={TB:[{label:'A',players:[A,B,C]}]};KSMTest.app.state.allMatches={TB:[]};
+            KSMTest.app.poolFinished=()=>true;KSMTest.app.pendingTiebreak=()=>false;KSMTest.app.initialPoolStandings=()=>[A,B,C];
+            KSMTest.app.resolveTiebreakBaseGroup=()=>({locked:[A,B],unresolved:[],ordered:[A,B]});
+            let r=KSMTest.app.poolSeedResolution('A','TB');
             if(!(r.complete&&r.seeds[1]?.name==='A'&&r.seeds[2]?.name==='B'))throw new Error('Tie for first did not resolve Seeds 1 and 2');count+=3;
-            resolveTiebreakBaseGroup=()=>({locked:[A],unresolved:[],ordered:[A,B]});
-            r=poolSeedResolution('A','TB');
+            KSMTest.app.resolveTiebreakBaseGroup=()=>({locked:[A],unresolved:[],ordered:[A,B]});
+            r=KSMTest.app.poolSeedResolution('A','TB');
             if(r.seeds[1]?.name!=='A')throw new Error('Secured Seed 1 changed');count++;
-          } finally {initialPoolStandings=oldInitial;resolveTiebreakBaseGroup=oldResolve;poolFinished=oldFinished;pendingTiebreak=oldPending;}
+          } finally {KSMTest.app.initialPoolStandings=oldInitial;KSMTest.app.resolveTiebreakBaseGroup=oldResolve;KSMTest.app.poolFinished=oldFinished;KSMTest.app.pendingTiebreak=oldPending;}
           return count;
         }"""
     )
@@ -231,11 +231,11 @@ def scenario_tiebreak_seed_contract(page) -> int:
 
 def scenario_save_load_roundtrip(page) -> int:
     reset_individual(page, 8, "Single Elimination", "split")
-    payload = page.evaluate("tournamentPayload()")
+    payload = page.evaluate("KSMTest.app.tournamentPayload()")
     # Mutate then restore through the actual payload loader.
-    page.evaluate("state.competitors=[];state.allMatches={};state.singleElimNodes={}")
-    page.evaluate("p=>applyTournamentPayload(p,false)", payload)
-    data = page.evaluate("()=>({n:state.competitors.length,m:state.allMatches.Test.length,nodes:state.singleElimNodes.Test.length,mode:state.divisionCourts.Test})")
+    page.evaluate("KSMTest.app.state.competitors=[];KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={}")
+    page.evaluate("p=>KSMTest.app.applyTournamentPayload(p,false)", payload)
+    data = page.evaluate("()=>({n:KSMTest.app.state.competitors.length,m:KSMTest.app.state.allMatches.Test.length,nodes:KSMTest.app.state.singleElimNodes.Test.length,mode:KSMTest.app.state.divisionCourts.Test})")
     assert data["n"] == 8, data
     assert data["m"] == data["nodes"], data
     assert data["mode"] == "split", data

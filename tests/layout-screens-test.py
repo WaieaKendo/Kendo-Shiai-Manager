@@ -82,7 +82,7 @@ def main():
         app = KsmApp.local(page)
         # Measure an existing staff tournament; offline autosaves must not open
         # creation-password prompts in the middle of a navigation click.
-        page.evaluate("() => { cloudSession.tournamentId='layout-cup'; sessionStorage.setItem(KSM_V316_STAFF_SESSION,'ksmst_layout_fixture'); }")
+        page.evaluate("() => { KSMTest.app.cloudSession.tournamentId='layout-cup'; sessionStorage.setItem(KSMTest.app.KSM_V316_STAFF_SESSION,'ksmst_layout_fixture'); }")
         page.fill(sel('setup-tournament-name'), LONG_NAME)
         page.press(sel('setup-tournament-name'), 'Tab')
 

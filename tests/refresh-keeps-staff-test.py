@@ -26,7 +26,7 @@ def main():
             assert a.staff_session() == token, path
             assert a.visible_view() == [view], (path, a.visible_view())
             if path == '/':
-                assert a.page.evaluate('ksmCloudSocket === null'), 'Library boot kept a live staff socket'
+                assert a.page.evaluate('KSMTest.app.ksmCloudSocket === null'), 'Library boot kept a live staff socket'
         assert fetch_record(base, aid)['revision'] == revision, 'session checks wrote a snapshot'
 
         b = KsmApp.open_device(browser, base, 'Other', problems, tournament_name='Refresh B')
@@ -35,7 +35,7 @@ def main():
         a.page.on('request', lambda req: sent.append((req.url, req.headers.get('x-ksm-session-key', '')))
                   if '/api/tournaments/' in req.url else None)
         a.page.on('websocket', lambda ws: sent.append((ws.url, parse_qs(urlparse(ws.url).query).get('key', [''])[0])))
-        a.page.evaluate('(id)=>openTournamentFromHome(id)', bid)
+        a.page.evaluate('(id)=>KSMTest.app.openTournamentFromHome(id)', bid)
         a.wait_for(lambda: a.tournament_id() == bid, message='B opened from Library')
         assert a.page.evaluate('KSMTest.role()') == 'spectator'
         assert not a.staff_session()
@@ -53,7 +53,7 @@ def main():
         a.goto(app_path(aid)); a.staff_login(); a.staff_logout(); a.reload()
         assert not a.staff_session() and a.page.evaluate('KSMTest.role()') == 'spectator'
         a.staff_login()
-        a.page.evaluate('showHomePage()')
+        a.page.evaluate('KSMTest.app.showHomePage()')
         a.wait_for(lambda: a.visible_view() == ['home'], message='Browse Library')
         a.reload()
         assert a.staff_session() and a.page.evaluate('KSMTest.role()') == 'staff'
@@ -62,7 +62,7 @@ def main():
         # Old plain tokens have no reliable tab-local tournament identity: require login once.
         a.goto(app_path(aid))
         assert a.page.evaluate('KSMTest.role()') == 'staff'
-        a.page.evaluate("sessionStorage.removeItem(KSM_STAFF_TOURNAMENT)")
+        a.page.evaluate("sessionStorage.removeItem(KSMTest.app.KSM_STAFF_TOURNAMENT)")
         a.reload()
         assert not a.staff_session() and a.page.evaluate('KSMTest.role()') == 'spectator'
 
@@ -80,9 +80,9 @@ def main():
         other = KsmApp.open_device(browser, base, 'Password changer', problems, app_path(aid))
         other.staff_login()
         a.page.context.set_offline(True)
-        a.page.evaluate("state.awards=[{name:'Queued award'}];criticalAutoSave('Offline award')")
+        a.page.evaluate("KSMTest.app.state.awards=[{name:'Queued award'}];KSMTest.app.criticalAutoSave('Offline award')")
         a.wait_for(a.outbox, message='offline work queued')
-        queued = a.page.evaluate('readOutbox().payload.state')
+        queued = a.page.evaluate('KSMTest.app.readOutbox().payload.state')
         for _ in range(51):
             response = other.page.request.post(f'{base}/api/tournaments/{aid}/auth',
                         data={'password': 'e2e-staff-pass'})
@@ -92,7 +92,7 @@ def main():
         assert a.page.evaluate('KSMTest.role()') == 'spectator'
         assert not a.staff_session()
         assert a.outbox()['role'] == 'staff' and a.outbox()['tournamentId'] == aid
-        assert a.page.evaluate('readOutbox().payload.state') == queued, 'revocation lost queued work'
+        assert a.page.evaluate('KSMTest.app.readOutbox().payload.state') == queued, 'revocation lost queued work'
         a.staff_login()
         a.wait_for(lambda: not a.outbox(), message='queued work saved after login')
         assert fetch_record(base, aid)['payload']['state']['awards'][0]['name'] == 'Queued award'
