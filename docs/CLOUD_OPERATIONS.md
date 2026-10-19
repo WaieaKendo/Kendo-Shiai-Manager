@@ -29,7 +29,7 @@ This deliberately avoids unsafe automatic merges of tournament engine state.
 
 ## Conflict recovery
 
-Use **Save / Load → Download Recovery Copy**. Review the recovery file separately before deciding whether any data needs to be manually re-entered. Never replace a live cloud tournament blindly during an active event.
+Use **Setup → Advanced → Backup → Download Recovery File**. Review the recovery file separately before deciding whether any data needs to be manually re-entered. Never replace a live cloud tournament blindly during an active event.
 
 ## Production checks
 

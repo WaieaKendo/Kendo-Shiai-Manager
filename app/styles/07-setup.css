@@ -266,10 +266,16 @@
 
 
 /* ksm:post-split-begin library-setup */
-#setup-tournament-actions { scroll-margin-top: 10rem; }
+.setup-short-url-input { display: flex; align-items: center; gap: .5rem; }
+.setup-short-url-input input { min-width: 0; width: 100%; }
+.setup-short-url-input:has(input[readonly]) { color: var(--muted); }
+.setup-short-url-input input[readonly] { border: 0; background: transparent; box-shadow: none; padding-left: 0; }
+.custom-division-row button:disabled { opacity: .5; cursor: default; transform: none; }
+.setup-division-added { animation: setup-division-added 2s ease-out; }
+@keyframes setup-division-added { from { background: var(--ksm-gold); } to { background: transparent; } }
+.setup-tournament-actions details > div { margin: 1rem 0; }
+
 body.ksm-spectator #setup-tournament-actions { display: none; }
-.setup-page .setup-actions-jump { display: flex; justify-content: flex-start; margin-bottom: 1rem; padding: 0; border: 0; background: transparent; box-shadow: none; }
-.setup-actions-jump a { color: var(--ksm-navy); font-weight: 700; }
 .setup-tournament-actions { display: grid; gap: 1rem; margin-top: 1.5rem; border-top: 1px solid var(--line); padding-top: 1rem; }
 .setup-tournament-actions h3 { margin: 0 0 .5rem; }
 .setup-tournament-actions .actions { display: flex; flex-wrap: wrap; gap: .5rem; }
@@ -278,7 +284,7 @@ body.ksm-spectator #setup-tournament-actions { display: none; }
 .home-card-actions { display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap; }
 .home-card-actions .actions { display: grid; gap: .35rem; }
 .home-card-actions summary { cursor: pointer; padding: .5rem; }
-.save-warning #saveStatus { color: var(--ksm-gold) !important; }
+.save-warning #saveStatus { --ksm-save-status-color: var(--ksm-gold); }
 .cloud-status-wrap { cursor: default; }
 .cloud-status-wrap [role="button"] { cursor: pointer; }
 .cloud-status-wrap:has([data-testid="header-save-now"]) { display: grid; grid-template-columns: auto auto; grid-template-areas: "auth retry" "status status"; column-gap: .5rem; }

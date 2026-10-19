@@ -283,7 +283,7 @@ def menu_item(g, menu, item, label, wait=False):
 def setup_action(g, item, label, wait=False):
     nav(g, 'setup', f'{label}: Setup opened')
     def act(a):
-        if item == 'cloud-diagnostics':
+        if item in ('cloud-diagnostics','download-file','download-recovery','load-recovery','export-brackets','export-results'):
             a.page.locator('#setup-tournament-actions details').evaluate('(el) => { el.open = true }')
         click(a.page, tid(f'setup-{item}'))
         if wait:

@@ -40,16 +40,12 @@ def main():
         a.nav('setup');a.wait_idle()
         assert page.locator('#setup-tournament-actions').is_visible()
         assert not page.locator('#setup-tournament-actions details').evaluate('el => el.open')
-        for testid in ['setup-tournament-access', 'setup-copy-id', 'setup-download-file',
-                       'setup-download-recovery', 'setup-load-recovery', 'setup-export-brackets', 'setup-export-results']:
+        for testid in ['setup-tournament-access', 'setup-copy-id']:
             assert page.locator(sel(testid)).is_visible(), testid
-        assert page.get_by_role('button', name='Edit short name', exact=True).is_visible()
-        assert page.locator('[href="#setup-tournament-actions"]').is_visible()
-        jump_context=page.evaluate('({url:location.href,id:cloudSession.tournamentId,revision:cloudSession.revision,role:ksmSessionRole})')
-        page.evaluate('window.__jumpSocket=ksmCloudSocket')
-        page.locator('[href="#setup-tournament-actions"]').click()
-        assert page.evaluate('({url:location.href,id:cloudSession.tournamentId,revision:cloudSession.revision,role:ksmSessionRole})')==jump_context
-        assert page.evaluate('ksmCloudSocket === window.__jumpSocket')
+        for testid in ['setup-download-file','setup-download-recovery','setup-load-recovery','setup-export-brackets','setup-export-results']:
+            assert not page.locator(sel(testid)).is_visible(), testid
+        assert page.locator(sel('setup-short-url')).is_visible()
+        assert page.locator('[href="#setup-tournament-actions"]').count()==0
         page.context.grant_permissions(['clipboard-read','clipboard-write'],origin=base)
         a.click('setup-copy-id')
         a.wait_for(lambda: page.evaluate('navigator.clipboard.readText()')==aid,message='Setup Copy Tournament ID')

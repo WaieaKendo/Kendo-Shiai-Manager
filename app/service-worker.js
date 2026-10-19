@@ -7,7 +7,6 @@ const APP_SHELL = [
   '/assets/nav-icons/setup.svg', '/assets/nav-icons/registration.svg', '/assets/nav-icons/courts.svg',
   '/assets/nav-icons/live-scores.svg', '/assets/nav-icons/search.svg', '/assets/nav-icons/results.svg',
   '/assets/sounds/whistle01.mp3', '/assets/sounds/whistle02.mp3',
-  '/assets/nav-icons/export.svg', '/assets/nav-icons/save-load.svg'
 ];
 // Path URLs (M.9, the scheme in app/engine/routes.ts): the app answers /, /index.html and every
 // /t/... path (/t/<id>, /t/<id>/court/a, /t/<id>/tv/b, ...) except the stream overlay's

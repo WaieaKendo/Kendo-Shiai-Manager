@@ -52,7 +52,7 @@ function LibraryCard({ card, canManage }: { card: LibraryCardView; canManage: bo
         <details data-testid="library-export"><summary>Export</summary><div className="actions">
           <button type="button" data-testid="library-export-brackets" onClick={() => libraryWindow().ksmExportLibraryTournament?.(card.id, 'brackets')}>Tournament Brackets</button>
           <button type="button" data-testid="library-export-results" onClick={() => libraryWindow().ksmExportLibraryTournament?.(card.id, 'results')}>Results &amp; Awards</button>
-          <button type="button" data-testid="library-export-file" onClick={() => libraryWindow().ksmExportLibraryTournament?.(card.id, 'file')}>Tournament File / Archive</button>
+          <button type="button" data-testid="library-export-file" onClick={() => libraryWindow().ksmExportLibraryTournament?.(card.id, 'file')}>Tournament File / Archive (server copy)</button>
         </div></details>
         <button type="button" data-testid="library-delete" onClick={() => libraryWindow().ksmDeleteLibraryTournament?.(card.id)}>Delete</button>
       </div>}

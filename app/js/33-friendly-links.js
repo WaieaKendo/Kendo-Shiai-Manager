@@ -15,20 +15,30 @@ async function ksmEditTournamentSlug(showAccess=true){
   if(isReadOnlySession())return;
   const slug=prompt('Tournament short name (lowercase letters, digits and dashes)',cloudSession.slug||KSMEngine.suggestSlug(tName.value,String(new Date().getFullYear())));
   if(slug===null)return;
-  try{
+  try{await ksmRenameTournamentSlug(slug);if(showAccess)openTournamentAccess()}catch(err){alert(err.message)}
+}
+async function ksmRenameTournamentSlug(slug){
+    if(isReadOnlySession())return;
+    if(!KSMEngine.isValidSlug(slug))throw new Error('Choose a valid, non-reserved tournament short name.');
     if(!cloudSession.tournamentId){
-      if(!KSMEngine.isValidSlug(slug))throw new Error('Choose a valid, non-reserved tournament short name.');
       ksmPendingSlug=slug;sessionStorage.setItem('ksm.pending-slug',slug);await saveNow();return;
     }
     const response=await fetch(`/api/tournaments/${cloudSession.tournamentId}/slug`,{method:'POST',headers:cloudHeaders(),body:JSON.stringify({slug})});
-    const info=await response.json();if(!response.ok)throw new Error(info.error||'Unable to change short name');
+    const info=await response.json();if(!response.ok)throw new Error(info.code==='slug-taken'?'That name is taken':info.error||'Unable to change short name');
     const old=cloudSession.slug;cloudSession.slug=info.slug;persistCloudSession();
     if(old)localStorage.setItem('ksm.slug:'+old,JSON.stringify(info));
     const route=ksmResolvedUrl().route;
     if(route.screen!=='home'&&route.screen!=='invalid')ksmReplaceUrl(KSMEngine.routePath({...route,id:cloudSession.tournamentId,slug:info.slug})+location.search);
     rememberTournament({tournamentId:cloudSession.tournamentId,slug:info.slug,payload:tournamentPayload(),revision:cloudSession.revision,updatedAt:cloudSession.updatedAt});
     ksmRefreshTournamentChip();
-    if(showAccess)openTournamentAccess();
-  }catch(err){alert(err.message)}
+}
+let ksmShortUrlSaving=false;
+async function ksmSaveShortUrl(input){
+  if(isReadOnlySession()||ksmShortUrlSaving||input.value===(cloudSession.slug||ksmPendingSlug||''))return;
+  ksmShortUrlSaving=true;input.disabled=true;
+  const hint=document.getElementById('setupShortUrlStatus');
+  try{await ksmRenameTournamentSlug(input.value.trim());hint.textContent='Saved';input.value=cloudSession.slug||ksmPendingSlug||''}
+  catch(err){hint.textContent=err.message;input.setAttribute('aria-invalid','true')}
+  finally{ksmShortUrlSaving=false;input.disabled=false}
 }
 /* ksm:post-split-end */

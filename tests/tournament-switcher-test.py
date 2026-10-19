@@ -49,6 +49,7 @@ def main():
         a.staff_login()
         page.context.set_offline(True)
         page.evaluate("state.awards=[{name:'Unsaved award'}];criticalAutoSave('Offline award')")
+        return_address,return_view=a.address(),a.visible_view()
         page.evaluate('showHomePage()')
         a.wait_for_library()
         a.expect_dialog('This tournament has changes that could not be saved')
@@ -57,7 +58,7 @@ def main():
         assert page.evaluate("cloudSession.tournamentId && readOutbox() && state.awards[0].name === 'Unsaved award' && v316StaffPassword()")
         assert a.address() == '/'
         page.locator(sel('library-return')).click()
-        a.wait_for(lambda: a.address()=='/switch-a-2026/setup',message='return to active tournament')
+        a.wait_for(lambda: a.address()==return_address and a.visible_view()==return_view,message='return to previous active screen')
         assert page.evaluate("readOutbox() && state.awards[0].name==='Unsaved award'")
         page.context.set_offline(False)
         a.save_now();a.wait_idle()

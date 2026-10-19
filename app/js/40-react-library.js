@@ -18,6 +18,10 @@
 // paintHomeTournamentLibrary(), libraryCardMarkup()) was removed in M.13.
 // Draft recovery is explicit and never runs while following a tournament or display link.
 function ksmReadLocalDraft(){
+  try{
+    const detached=JSON.parse(localStorage.getItem(KSM_DETACHED_DRAFT_KEY)||'null');
+    if(detached?.state)return detached;
+  }catch(_){}
   // An active local tournament keeps its safety copy; only detached drafts can be discarded.
   if(v316StaffPassword())return null;
   const params=ksmLinkParams();
@@ -32,14 +36,18 @@ function ksmLocalDraftSummary(){
   const payload=ksmReadLocalDraft();
   return payload?{name:payload.setup?.tName||'Untitled tournament',saved:payload.savedAt?new Date(payload.savedAt).toLocaleString():'unknown time'}:null;
 }
-function ksmOpenLocalDraft(){
+async function ksmOpenLocalDraft(){
   const payload=ksmReadLocalDraft();if(!payload)return;
-  document.body.classList.remove('ksm-home');setSessionRole('staff');installRoleBanner('staff');applyTournamentPayload(payload,false);
+  if(!(await ksmCanLeaveTournament()))return;
+  ksmResetTournament();localStorage.removeItem(KSM_DETACHED_DRAFT_KEY);
+  history.pushState(null,'','/');
+  document.body.classList.remove('ksm-home');setSessionRole('staff');installRoleBanner('staff');applyTournamentPayload(payload,false);ksmStoreAutosave(payload);
   updateSaveStatus('Restored autosave');navigateTo('setup');
 }
 function ksmDiscardLocalDraft(){
   if(!ksmReadLocalDraft())return;
-  ksmClearAutosave();
+  if(localStorage.getItem(KSM_DETACHED_DRAFT_KEY))localStorage.removeItem(KSM_DETACHED_DRAFT_KEY);
+  else ksmClearAutosave();
   ksmPublishLibrary({...window.ksmLibraryInput,draft:null});
 }
 
@@ -93,7 +101,7 @@ async function ksmAuthorizeLibraryTournament(id){
 // existing save/replacement gates. In particular, browsing and exporting cannot clear a queue.
 function ksmReturnFromLibrary(){
   if(!cloudSession.tournamentId&&!v316StaffPassword())return;
-  document.body.classList.remove('ksm-home');show(isReadOnlySession()?'public':'setup');ksmRefreshTournamentChip();
+  document.body.classList.remove('ksm-home');show(isReadOnlySession()?'public':ksmLibraryReturnView);connectCloudSocket();ksmRefreshTournamentChip();
 }
 async function ksmExportLibraryTournament(id,kind){
   if(!ksmCanManageLibraryTournament(id))return;

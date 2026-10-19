@@ -450,8 +450,7 @@ In M.13 (`feat/react-results`) the legacy Results renderer was removed, and two 
 ### Library and Setup action cleanup (#70)
 
 `library-setup-actions-test.py` runs against the local Worker with KsmApp/window.KSMTest, routed
-failures and clock controls. It covers action locations and access restrictions, Setup jump
-scrolling without route/session/socket changes; healthy, saving,
+failures and clock controls. It covers action locations and access restrictions, collapsed Advanced actions; healthy, saving,
 queued, offline-hint and expired-session manual retry; no-cache startup save protection; and
 exporting B while A has queued scoring work. For each export it compares A's state, setup, session,
 outbox, autosave, `:cloud-id`, mutation counters and socket identity, then verifies A's queued
@@ -461,6 +460,11 @@ tournament from a file; read-only imports offer a new tournament instead. Existi
 startup, access and export tests use the new Library/Setup controls.
 Shell, Setup and Library goldens intentionally track the new navigation, grouped actions and
 per-row staff controls. Re-recorded files and reasons are listed in the PR.
+
+`pr82-review-fixes-test.py` covers draft New/Open preservation, court return, socket reconnection
+and remote updates, Short URL rename/taken/read-only feedback without tournament autosave, legacy
+`tType` loading and the enabled/highlighted/announced Add division flow. `KSM_REVIEW_CASE` selects
+one case for local revert verification.
 
 Run build-producing runners sequentially: concurrent run-all invocations share `dist/`.
 F36 remains an expected-failure pin in `network-two-tabs-test.py`, tracked separately in #81.

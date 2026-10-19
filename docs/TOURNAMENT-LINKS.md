@@ -41,7 +41,7 @@ history entry.
 
 New tournaments suggest a short name from the tournament name and year. A year
 already present in the name is retained. Creation asks for the short name; staff
-can change it in **Setup → Edit short URL**. It accepts lowercase
+can change it in **Setup → Short URL**. It accepts lowercase
 letters, digits and single dashes (1–80 characters), with no leading/trailing dash.
 App screen names (`overview`, `results`, `setup`, `registration`, `pools`), API
 and static-resource roots are reserved; the shared list is in

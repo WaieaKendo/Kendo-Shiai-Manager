@@ -485,7 +485,7 @@ class KsmApp:
             toggle = self.page.locator(sel('nav-toggle'))
             if toggle.is_visible() and toggle.get_attribute('aria-expanded') == 'false':
                 toggle.click()
-        if testid == 'setup-cloud-diagnostics':
+        if testid in ('setup-cloud-diagnostics','setup-download-file','setup-download-recovery','setup-load-recovery','setup-export-brackets','setup-export-results'):
             self.page.locator('#setup-tournament-actions details').evaluate('(el) => { el.open = true }')
         self.page.click(sel(testid))
 

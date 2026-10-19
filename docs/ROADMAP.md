@@ -641,9 +641,12 @@ and delete through the existing typed-name confirmation. Exports fetch the targe
 reuse print sheets against that snapshot; printable HTML downloads contain no application script.
 Open the HTML in a browser to print or save as PDF. A draft need not be exported from the Library.
 
-Setup's jump link leads to one Tournament Details section: short name next to the name, Sharing &
-access (links/QR and Copy ID), Backup (tournament and recovery files), Export, and initially collapsed
-Advanced / Cloud Diagnostics. The header's saved/saving line has no save button during normal work.
+Tournament Details includes a Short URL input that renames on blur or Enter, with inline feedback.
+Sharing & access (links/QR and Copy ID) sits below Match timer. Initially collapsed Advanced holds
+Backup (tournament and recovery files), Export and Cloud Diagnostics. There is no Setup jump link
+or obsolete Tournament Type field. Add division enables when named, then highlights and announces
+the added row. Back to tournament restores the prior screen and reconnects live updates. Boot-time
+local drafts remain separately available after New/Open. Library archives are labelled server copies. The header's saved/saving line has no save button during normal work.
 Queued/failed work shows “Save now”; its wording says changes are waiting, because the outbox is
 one snapshot, not an action counter. Manual retry attempts the network even with an offline hint,
 reports through a toast and routes expired staff sessions to Staff Login. A failed startup without
