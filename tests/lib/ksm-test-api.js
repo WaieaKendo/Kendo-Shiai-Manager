@@ -252,6 +252,7 @@ window.KSMTest = {
     ksmDeleteLibraryTournament: (...a) => ksmDeleteLibraryTournament(...a),
     ksmExportLibraryTournament: (...a) => ksmExportLibraryTournament(...a),
     ksmOpenDeleteTournament: (...a) => ksmOpenDeleteTournament(...a),
+    ksmPersistentSaveStatusText: (...a) => ksmPersistentSaveStatusText(...a),
     ksmReplaceUrl: (...a) => ksmReplaceUrl(...a),
     ksmSaveShortUrl: (...a) => ksmSaveShortUrl(...a),
     ksmSetActiveNav: (...a) => ksmSetActiveNav(...a),

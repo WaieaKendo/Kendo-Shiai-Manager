@@ -97,6 +97,7 @@
  "pool-only-bracket-message-test.py": 1,
  "pools-regenerate-division-test.py": 3,
  "pr82-review-fixes-test.py": 13,
+ "print-guide-test.py": 7,
  "react-unit-test.mjs": 3,
  "realtime-sync-test.mjs": 0,
  "refresh-keeps-staff-test.py": 12,

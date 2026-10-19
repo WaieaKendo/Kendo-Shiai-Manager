@@ -62,7 +62,7 @@ def main():
         # Use the golden fixture to verify Setup placement and current button names.
         app = KsmApp(browser.new_page(), 'Print labels')
         load_app(app.page)
-        app.page.evaluate("() => { cloudSession.tournamentId='print-fixture'; sessionStorage.setItem(KSM_V316_STAFF_SESSION,'ksmst_golden_fixture'); }")
+        app.page.evaluate("() => { KSMTest.app.cloudSession.tournamentId='print-fixture'; sessionStorage.setItem(KSMTest.app.KSM_V316_STAFF_SESSION,'ksmst_golden_fixture'); }")
         link = app.page.locator('#setup-tournament-actions .setup-print-group a')
         assert link.inner_text() == 'Scorekeeper guide (print)'
         assert link.get_attribute('target') == '_blank'
@@ -90,16 +90,16 @@ def main():
         ]
         for mode, minutes, queued, expected, quoted in save_cases:
             actual = app.page.evaluate("""({mode, minutes, queued}) => {
-              clearOutbox();
-              if (queued) writeOutbox(tournamentPayload(), 'Guide status test');
-              ksmSaveStatusMode = mode;
-              ksmLastSuccessfulSaveAt = Date.now() - minutes * 60000;
-              renderPersistentSaveStatus();
-              return ksmPersistentSaveStatusText();
+              KSMTest.app.clearOutbox();
+              if (queued) KSMTest.app.writeOutbox(KSMTest.app.tournamentPayload(), 'Guide status test');
+              KSMTest.app.ksmSaveStatusMode = mode;
+              KSMTest.app.ksmLastSuccessfulSaveAt = Date.now() - minutes * 60000;
+              KSMTest.app.renderPersistentSaveStatus();
+              return KSMTest.app.ksmPersistentSaveStatusText();
             }""", {'mode': mode, 'minutes': minutes, 'queued': queued})
             assert actual.startswith(expected) if minutes == 90 else actual == expected, (mode, actual)
             assert quoted in guide, f'Guide missing real save-status wording: {quoted}'
-        app.page.evaluate("setConnectionStatus('No connection', 'offline')")
+        app.page.evaluate("KSMTest.app.setConnectionStatus('No connection', 'offline')")
         app.page.wait_for_function("document.querySelector('[data-testid=connection-status]').textContent.includes('Offline')")
         assert 'Offline' in guide
         app.open_court('A')
