@@ -23,6 +23,7 @@
 // app/js/19-cloud-diagnostics.js, the service worker CACHE_NAME); the build (and the dev
 // server) replace it with withVersion(). src-worker.js imports package.json itself.
 import fs from 'node:fs';
+import { printDocuments } from '../app/print-documents.mjs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { rolldown } from 'rolldown';
@@ -48,7 +49,7 @@ export const scriptFiles = () => ordered(path.join(APP_DIR, 'js'), '.js');
 const concat = files => files.map(f => fs.readFileSync(f, 'utf8')).join('');
 
 /** Extra entry pages: every app/*.html except index.html (file names, sorted). */
-export const extraPages = () => fs.readdirSync(APP_DIR).filter(f => f.endsWith('.html') && f !== 'index.html').sort();
+export const extraPages = () => fs.readdirSync(APP_DIR).filter(f => f.endsWith('.html') && f !== 'index.html').sort().concat(Object.values(printDocuments));
 
 export const appStyles = () => concat(styleFiles());
 export const appScript = () => concat(scriptFiles());

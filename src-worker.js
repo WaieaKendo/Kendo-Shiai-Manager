@@ -1,3 +1,4 @@
+import { printDocumentPage } from './app/print-documents.mjs';
 // The release version is written only in package.json; wrangler (esbuild) bundles it in at deploy
 // time, Node reads it directly in the tests. Only .version is used (/api/health).
 import packageJson from './package.json' with { type: 'json' };
@@ -600,6 +601,12 @@ export default {
         return withSlug(response);
       }
       return json({ error: 'Method not allowed' }, 405);
+    }
+    const printPage = printDocumentPage(url.pathname);
+    if (printPage) {
+      const assetUrl = new URL(url);
+      assetUrl.pathname = '/' + printPage.replace(/\.html$/, '');
+      return env.ASSETS.fetch(new Request(assetUrl, request));
     }
     const friendly = url.pathname.match(/^\/([a-z0-9-]+)(\/(?:live|overview|results|setup|registration|pools|court(?:\/[ab])?|tv(?:\/[ab])?|overlay(?:\/[ab])?))?\/?$/i);
     if (friendly && isValidSlug(friendly[1])) {

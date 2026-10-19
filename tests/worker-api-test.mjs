@@ -340,6 +340,21 @@ await test('delete notifies sockets, removes the snapshot and the library entry'
   assert.ok(!rows.some(r => r.id === T));
 });
 
+if (!LIVE) await test('legacy print slug remains accessible through its tournament ID', async () => {
+  const {body} = await create();
+  const id = body.tournamentId;
+  const storage = api.storage('__ksm_library__');
+  const registry = await storage.get('slugRegistry');
+  registry.owners.print = id;
+  registry.current[id] = 'print';
+  await storage.put('slugRegistry', registry);
+  assert.equal((await json(await api.call('GET', `/api/tournaments/${id}`))).slug, 'print');
+  assert.equal((await api.call('GET', `/t/${id}`)).status, 200);
+  assert.equal((await api.call('GET', `/t/${id}/court/a`)).status, 200);
+  // Reserved-root routing must not redirect the ID URL back to /print.
+  assert.equal((await api.call('GET', `/t/${id}`)).headers.get('location'), null);
+});
+
 await test('slugs: unique claims, reserved roots, rename aliases and tombstones', async () => {
   const stamp = crypto.randomUUID().slice(0,8);
   const slug = `links-${stamp}`;
@@ -350,7 +365,7 @@ await test('slugs: unique claims, reserved roots, rename aliases and tombstones'
   const lookup = async value => api.call('GET',`/api/slugs/${value}`);
   const rename = async (value, headers=staffHeaders()) => api.call('POST',`/api/tournaments/${id}/slug`,{headers,body:{slug:value}});
   assert.equal((await create({slug})).res.status,409);
-  for (const value of ['api','t','privacy','overlay','assets','icons','index.html','service-worker.js','tv','UPPER','bad--slug','-bad','bad-', 'a'.repeat(81)]) {
+  for (const value of ['api','t','print','privacy','overlay','assets','icons','index.html','service-worker.js','tv','UPPER','bad--slug','-bad','bad-', 'a'.repeat(81)]) {
     assert.equal((await create({slug:value})).res.status,400,value);
     assert.equal((await rename(value)).status,400,value);
   }

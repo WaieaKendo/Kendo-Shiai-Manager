@@ -6,6 +6,8 @@
 // The one transform: package.json "version" fills in the __KSM_VERSION__ placeholders (withVersion).
 // run-all.mjs builds dist/ before the tests run.
 import fs from 'node:fs';
+import { printTheme } from '../scripts/print-theme.mjs';
+import { printDocuments } from '../app/print-documents.mjs';
 import vm from 'node:vm';
 import path from 'node:path';
 import { APP_DIR, DIST_DIR, STYLE_TAG, SCRIPT_TAG, VERSION_PLACEHOLDER, withVersion, indexHtml, appStyles, appScript, engineScript, serviceWorker, extraPages } from '../scripts/app-sources.mjs';
@@ -32,11 +34,26 @@ check(engine && dist(engine) === await engineScript() && /^var KSMEngine = /.tes
 check(css && dist(css) === appStyles(), 'stylesheet = app/styles/*.css in order, untransformed');
 check(js && dist(js) === withVersion(appScript()), 'script = app/js/*.js in order, untransformed apart from the version');
 
+const theme = dist('print/theme.css');
+const printCss = fs.readFileSync(path.join(APP_DIR, 'print/print.css'), 'utf8');
+const tokens = [...new Set([...printCss.matchAll(/var\((--[\w-]+)/g)].map(m => m[1]))];
+check(theme.startsWith(':root{') && tokens.every(t => theme.includes(t + ':')),
+  'print theme starts with :root{ and contains every colour token used by print CSS');
+check(printTheme('/* before */ body{margin:0} :root {--ink:blue;}') === ':root{--ink:blue;}',
+  'print theme finds :root after comments and other rules');
+let missingRootFailed = false;
+try { printTheme('body{color:blue}'); } catch { missingRootFailed = true; }
+check(missingRootFailed, 'print theme fails explicitly when the token block is missing');
+check(!fs.existsSync(path.join(DIST_DIR, 'print/scorekeeper-guide.pdf')), 'build does not publish the review PDF');
+
 const sw = dist('service-worker.js');
-check(sw === withVersion(serviceWorker()).replace("'/app.css', '/app.js'", [css, engine, js, ...courtFiles].map(f => `'/${f}'`).join(', ')),
+const printShellText = sw.match(/'\/print\/theme\.css', ([^\n]+),\n/)?.[1];
+const printShell = printShellText ? JSON.parse('[' + printShellText + ']') : [];
+check(Object.values(printDocuments).every(p => printShell.includes('/' + p.replace(/\.html$/, ''))), 'every registered print page is precached');
+check(sw === withVersion(serviceWorker()).replace('/* PRINT_SHELL */', printShellText).replace("'/app.css', '/app.js'", [css, engine, js, ...courtFiles].map(f => `'/${f}'`).join(', ')),
   'service worker = app/service-worker.js with the version and the bundle URLs (engine and screens module included) in APP_SHELL');
-const shell = [...sw.match(/const APP_SHELL = \[([\s\S]*?)\];/)[1].matchAll(/'([^']+)'/g)].map(m => m[1]);
-const missing = shell.filter(url => url !== '/' && !fs.existsSync(path.join(DIST_DIR, url)));
+const shell = [...sw.match(/const APP_SHELL = \[([\s\S]*?)\];/)[1].matchAll(/['\"]([^'\"]+)['\"]/g)].map(m => m[1]);
+const missing = shell.filter(url => url !== '/' && !fs.existsSync(path.join(DIST_DIR, url)) && !fs.existsSync(path.join(DIST_DIR, url + '.html')));
 check(!missing.length, `every APP_SHELL file exists in dist/ (${shell.length} entries)${missing.length ? ': missing ' + missing.join(', ') : ''}`);
 
 // Extra pages (app/*.html, e.g. overlay.html): built next to index.html, with their own
@@ -62,7 +79,7 @@ const swShell = (() => {
 const extraUrls = pages.flatMap(page => [`/${page}`, `/${page.replace(/\.html$/, '')}`]).concat(['/t/x/overlay/a']);
 check(/mode === 'navigate' && !servesAppShell\(url\.pathname\)\) return;/.test(sw) && swShell
   && ['/', '/index.html', '/t/x', '/t/x/court/a', '/t/x/tv/b'].every(swShell) && !extraUrls.some(swShell),
-  `service worker leaves navigations to extra pages to the network (${pages.length ? pages.join(', ') : 'none yet'}; /t/<id>/overlay/a) and serves the app for /t/ paths`);
+  `service worker keeps extra pages outside the app-shell navigation fallback (${pages.length ? pages.join(', ') : 'none yet'}; /t/<id>/overlay/a) and serves the app for /t/ paths`);
 
 const leftover = fs.readdirSync(DIST_DIR, { recursive: true }).filter(f => /\.(html|js|css)$/.test(f) && dist(f).includes(VERSION_PLACEHOLDER));
 check(!leftover.length, `no ${VERSION_PLACEHOLDER} left in dist/${leftover.length ? ': ' + leftover.join(', ') : ''}`);
