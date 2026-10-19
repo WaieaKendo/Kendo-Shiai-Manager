@@ -47,7 +47,7 @@ def main():
         assert a.outbox()['role'] == 'staff'
         assert a.page.inner_text(sel('staff-auth')).strip() == 'Staff Login'
         assert a.diagnostics()['stage'] in ('Staff session expired', 'Cloud save failed')
-        assert a.page.inner_text(sel('save-status')).strip() == 'Saved locally · 1 change waiting'
+        assert a.page.inner_text(sel('save-status')).strip() == 'Not saved · Changes waiting'
         assert 'Staff session expired' in a.toast()
         b.score_point('W', 'M'); b.save_now(); b.wait_idle()
         a.wait_revision(b.revision())

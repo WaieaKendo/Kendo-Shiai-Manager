@@ -24,8 +24,6 @@ with sync_playwright() as p:
     contracts = [
         ("Courts", "#courtsMenu", "Court A"),
         ("TV Display", "#tvMenu", "Court A TV"),  # Live Scores became a direct link; TV Display is the dropdown
-        ("Export", "#exportMenu", "Tournament Brackets"),
-        ("Save or Load", "#saveLoadMenu", "Save Now"),
     ]
     checks = 0
     for title, menu, item in contracts:

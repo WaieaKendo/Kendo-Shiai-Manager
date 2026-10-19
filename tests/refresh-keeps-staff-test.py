@@ -54,12 +54,14 @@ def main():
         assert not a.staff_session() and a.page.evaluate('KSMTest.role()') == 'spectator'
         a.staff_login()
         a.page.evaluate('showHomePage()')
-        a.wait_for(lambda: a.visible_view() == ['home'], message='Switch tournament')
+        a.wait_for(lambda: a.visible_view() == ['home'], message='Browse Library')
         a.reload()
-        assert not a.staff_session() and a.page.evaluate('KSMTest.role()') == 'spectator'
+        assert a.staff_session() and a.page.evaluate('KSMTest.role()') == 'staff'
+        assert a.visible_view() == ['home'] and a.tournament_id() == aid
 
         # Old plain tokens have no reliable tab-local tournament identity: require login once.
-        a.goto(app_path(aid)); a.staff_login()
+        a.goto(app_path(aid))
+        assert a.page.evaluate('KSMTest.role()') == 'staff'
         a.page.evaluate("sessionStorage.removeItem(KSM_STAFF_TOURNAMENT)")
         a.reload()
         assert not a.staff_session() and a.page.evaluate('KSMTest.role()') == 'spectator'

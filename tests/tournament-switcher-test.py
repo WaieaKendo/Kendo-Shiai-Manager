@@ -23,8 +23,8 @@ def main():
         page.locator('.nav-brand').click()
         a.wait_for(lambda: a.visible_view() == ['home'], message='Library')
         assert a.address() == '/'
-        assert page.evaluate("(id)=>!Object.keys(localStorage).some(key=>key.startsWith('ksm:match-timer:'+JSON.stringify([id]).slice(0,-1)))",aid)
-        assert page.evaluate("!cloudSession.tournamentId && !readOutbox() && !v316StaffPassword() && !state.competitors.length && !state.divisions.includes('Only A') && !localCourtDivision('B')")
+        assert page.evaluate("(id)=>Object.keys(localStorage).some(key=>key.startsWith('ksm:match-timer:'+JSON.stringify([id]).slice(0,-1)))",aid)
+        assert page.evaluate("cloudSession.tournamentId && v316StaffPassword() && state.competitors[0].name==='A only' && state.divisions.includes('Only A')")
         a.answers['Tournament Name'] = 'Switch B'
         bid = a.create_tournament()
         a.wait_idle()
@@ -49,15 +49,16 @@ def main():
         a.staff_login()
         page.context.set_offline(True)
         page.evaluate("state.awards=[{name:'Unsaved award'}];criticalAutoSave('Offline award')")
-        a.expect_dialog('This tournament has changes that could not be saved')
+        return_address,return_view=a.address(),a.visible_view()
         page.evaluate('showHomePage()')
+        a.wait_for_library()
+        a.expect_dialog('This tournament has changes that could not be saved')
+        page.evaluate('(id)=>openTournamentFromHome(id)',bid)
         a.wait_for_dialogs()
         assert page.evaluate("cloudSession.tournamentId && readOutbox() && state.awards[0].name === 'Unsaved award' && v316StaffPassword()")
-        assert a.address() == '/switch-a-2026/overview'
-        blocked_count=len(a.seen_dialogs)
-        page.evaluate('history.back()')
-        a.wait_for_dialogs(blocked_count+1)
-        a.wait_for(lambda: a.address()=='/switch-a-2026/overview',message='saved tournament address restored after blocked Back')
+        assert a.address() == '/'
+        page.locator(sel('library-return')).click()
+        a.wait_for(lambda: a.address()==return_address and a.visible_view()==return_view,message='return to previous active screen')
         assert page.evaluate("readOutbox() && state.awards[0].name==='Unsaved award'")
         page.context.set_offline(False)
         a.save_now();a.wait_idle()

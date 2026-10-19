@@ -40,7 +40,7 @@ def main(status=500):
             }''')
             assert a.outbox()['role'] == 'staff', a.outbox()
             wording = a.page.inner_text(sel('save-status')).strip()
-            assert wording == ('Save needs attention' if status == 409 else 'Saved locally · 1 change waiting'), (status, wording)
+            assert wording == 'Not saved · Changes waiting', (status, wording)
             assert_points(a.payload(), 'A', shown, ['M'], [])
             assert_points(fetch_record(base, tid)['payload'], 'A', shown, [], [])
             if status == 409:
@@ -57,7 +57,7 @@ def main(status=500):
                 a.staff_login()
             elif status == 403:
                 # Authorization refusals deliberately suppress automatic retries.
-                a.click('save-status')
+                a.click('connection-status')
                 a.click('diagnostics-retry')
                 a.wait_for(lambda: not a.outbox(), message='403: Retry queued save to flush the queue')
                 a.page.clock.resume()

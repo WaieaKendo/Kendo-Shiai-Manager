@@ -92,8 +92,8 @@ def main():
         assert 'Winner of Semifinal Match 1' in text('court-queue'), 'championship left the court queue after Edit Pool'
 
         # --- Print sheet slot letters ---------------------------------------------------------------
-        app.click('nav-export')
-        app.click('nav-export-brackets')
+        app.nav('setup')
+        app.click('setup-export-brackets')
         printed = page.evaluate("""() => [...document.querySelectorAll('[data-testid="print-pool"]')].map(p =>
           [...p.querySelectorAll('[data-testid="print-pool-player"]')].map(r => r.innerText.replace(/\\s+/g, ' ').trim()))""")
         want = [[f'{letter} {name}' for letter, name in zip('ABCD', players)] for players in (after['A'], after['B'])]

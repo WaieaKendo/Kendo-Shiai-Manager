@@ -29,7 +29,7 @@ for (const rel of required.filter(x=>x.startsWith('assets/'))) {
 if (!html.includes(`v${appVersion}`) || !html.includes("engineVersion:'3.12.9'")) { console.error('Version marker missing'); failed = true; }
 if (html.includes("document.addEventListener('touchend'")) { console.error('Legacy touchend click shim still present'); failed = true; }
 
-for (const id of ['courtsMenu','exportMenu','saveLoadMenu']) {
+for (const id of ['courtsMenu','tvMenu']) {
   if (!html.includes(`aria-controls="${id}"`) || !html.includes(`id="${id}" role="menu"`)) {
     console.error(`ACCESSIBILITY CONTRACT MISSING: ${id}`); failed = true;
   }

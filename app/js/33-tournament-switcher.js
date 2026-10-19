@@ -48,10 +48,19 @@ function ksmKeepFailedStartup(err){
 }
 var ksmTournamentEpoch=0;
 var ksmFirstLibrary=true;
+var ksmLibraryReturnView='setup';
+const KSM_DETACHED_DRAFT_KEY=KSM_SAVE_KEY+':library-draft';
 var ksmTournamentAddress=location.pathname+location.search+location.hash;
 function ksmRefreshTournamentChip(){
   const shortUrl=document.getElementById('setupShortUrl');
-  if(shortUrl)shortUrl.textContent=cloudSession.slug?'/'+cloudSession.slug:cloudSession.tournamentId?'/t/'+cloudSession.tournamentId:ksmPendingSlug?'/'+ksmPendingSlug:'Not assigned';
+  if(shortUrl){
+    shortUrl.readOnly=isReadOnlySession();
+    const value=cloudSession.slug||ksmPendingSlug||'',identity=(cloudSession.tournamentId||'local')+':'+value;
+    if(document.activeElement!==shortUrl&&shortUrl.dataset.identity!==identity){
+      shortUrl.dataset.identity=identity;shortUrl.value=value;shortUrl.removeAttribute('aria-invalid');
+      document.getElementById('setupShortUrlStatus').textContent='Old links keep working after a rename.';
+    }
+  }
   ksmPublishHeader({tournamentName:document.body.classList.contains('ksm-home')?'':String(document.getElementById('tName')?.value||'Untitled tournament')});
 }
 function ksmPushTournamentAddress(id){
@@ -61,11 +70,12 @@ function ksmPushTournamentAddress(id){
   ksmTournamentAddress=location.pathname+location.search+location.hash;
 }
 async function ksmCanLeaveTournament(){
-  if(document.body.classList.contains('ksm-home'))disconnectCloudSocket();
+  // A boot-time draft is detached; New/Open preserve it rather than replacing it.
+  if(document.body.classList.contains('ksm-home')&&!cloudSession.tournamentId&&!v316StaffPassword())return true;
   const pending=ksmCloudSaveInFlight||ksmCloudSavePending||localChangesPending()||readOutbox();
   // Pending drafts with creation credentials still get the normal save attempt.
   // A quiet imported draft or one without credentials has no server confirmation.
-  if(window.ksmBootstrapReady&&!cloudSession.tournamentId&&!document.body.classList.contains('ksm-home')&&localStorage.getItem(KSM_SAVE_KEY)&&(!pending||!v316StaffPassword())){
+  if(window.ksmBootstrapReady&&!cloudSession.tournamentId&&localStorage.getItem(KSM_SAVE_KEY)&&(!pending||!v316StaffPassword())){
     alert('This tournament is only saved on this device. Save it to the cloud before switching. You can also download a Tournament File to keep a backup. Your draft is still here.');
     return false;
   }
@@ -85,6 +95,10 @@ async function ksmCanLeaveTournament(){
   return true;
 }
 function ksmResetTournament(){
+  if(document.body.classList.contains('ksm-home')&&!cloudSession.tournamentId&&!v316StaffPassword()&&!localStorage.getItem(KSM_AUTOSAVE_CLOUD_ID)){
+    const draft=localStorage.getItem(KSM_SAVE_KEY);
+    if(draft&&!localStorage.getItem(KSM_DETACHED_DRAFT_KEY))localStorage.setItem(KSM_DETACHED_DRAFT_KEY,draft);
+  }
   ksmStartupLoadFailed=false;ksmStartupHasCache=false;document.getElementById('startupLoadFailure')?.remove();
   ksmTournamentEpoch++;
   const id=cloudSession.tournamentId||'local';
@@ -123,6 +137,13 @@ async function ksmShowLibrary(options={}){
       ksmFirstLibrary=false;disconnectCloudSocket();
       document.body.classList.add('ksm-home');installRoleBanner('home');
       setSessionRole('spectator');renderHomeTournamentLibrary();show('home');return true;
+    }
+    if(!options.deleted&&(cloudSession.tournamentId||(!document.body.classList.contains('ksm-home')&&v316StaffPassword()))){
+      if(!document.body.classList.contains('ksm-home'))ksmLibraryReturnView=document.querySelector('main .view:not(.hidden)')?.id||'setup';
+      document.body.classList.add('ksm-home');
+      if(location.pathname!=='/')history.pushState(null,'','/');
+      ksmTournamentAddress=location.pathname+location.search+location.hash;
+      renderHomeTournamentLibrary();show('home');ksmRefreshTournamentChip();return true;
     }
     if(!options.deleted&&!(await ksmCanLeaveTournament()))return false;
     const startup=ksmFirstLibrary;

@@ -19,6 +19,11 @@ export const LIBRARY_EVENT = 'ksm:library';
 interface LibraryWindow {
   /** The library as paintHomeTournamentLibrary() last published it. */
   ksmLibraryInput?: LibraryInput;
+  ksmAuthorizeLibraryTournament?: (id: string) => unknown;
+  triggerLoadTournament?: () => void;
+  ksmReturnFromLibrary?: () => void;
+  ksmExportLibraryTournament?: (id: string, kind: string) => unknown;
+  ksmDeleteLibraryTournament?: (id: string) => unknown;
   ksmOpenLocalDraft?: () => void;
   ksmDiscardLocalDraft?: () => void;
   createNewTournament?: () => unknown;
@@ -34,7 +39,7 @@ function subscribe(onChange: () => void): () => void {
 const snapshot = (): LibraryInput => libraryWindow().ksmLibraryInput ?? EMPTY_LIBRARY;
 
 /** libraryCardMarkup(x): the card and the name below it, both opening the tournament. */
-function LibraryCard({ card }: { card: LibraryCardView }) {
+function LibraryCard({ card, canManage }: { card: LibraryCardView; canManage: boolean }) {
   const open = () => { libraryWindow().openTournamentFromHome?.(card.id); };
   return (
     <div className="home-tournament-item" data-testid="home-tournament">
@@ -42,6 +47,15 @@ function LibraryCard({ card }: { card: LibraryCardView }) {
         <span className="home-card-placeholder" aria-hidden="true">{DEFAULT_LIBRARY_CARD_MARK}</span>
       </button>
       <button className="home-card-name-below" type="button" onClick={open} data-testid="home-tournament-name">{card.name}</button>
+      {!canManage && <button type="button" data-testid="library-staff-actions" onClick={() => libraryWindow().ksmAuthorizeLibraryTournament?.(card.id)}>Staff actions</button>}
+      {canManage && <div className="home-card-actions">
+        <details data-testid="library-export"><summary>Export</summary><div className="actions">
+          <button type="button" data-testid="library-export-brackets" onClick={() => libraryWindow().ksmExportLibraryTournament?.(card.id, 'brackets')}>Tournament Brackets</button>
+          <button type="button" data-testid="library-export-results" onClick={() => libraryWindow().ksmExportLibraryTournament?.(card.id, 'results')}>Results &amp; Awards</button>
+          <button type="button" data-testid="library-export-file" onClick={() => libraryWindow().ksmExportLibraryTournament?.(card.id, 'file')}>Tournament File / Archive (server copy)</button>
+        </div></details>
+        <button type="button" data-testid="library-delete" onClick={() => libraryWindow().ksmDeleteLibraryTournament?.(card.id)}>Delete</button>
+      </div>}
     </div>
   );
 }
@@ -50,6 +64,8 @@ function LibraryCard({ card }: { card: LibraryCardView }) {
 export function Library() {
   const input = useSyncExternalStore(subscribe, snapshot, () => EMPTY_LIBRARY);
   const view = libraryView(input);
+  const canManage = input.kind === 'library' && !!input.canManage;
+  const activeId = input.kind === 'library' ? input.activeId ?? '' : '';
   const draft = input.kind === 'library' ? input.draft : null;
   const [discarding, setDiscarding] = useState(false);
   return (
@@ -60,7 +76,11 @@ export function Library() {
       </div>
       <div className="home-head">
         <div><h2>{LIBRARY_HEADING}</h2><p>{LIBRARY_INTRO}</p></div>
+        <div className="actions">
+        {input.kind === 'library' && input.hasActive && <button type="button" data-testid="library-return" onClick={() => libraryWindow().ksmReturnFromLibrary?.()}>Back to tournament</button>}
+        <button type="button" data-testid="library-load-file" onClick={() => libraryWindow().triggerLoadTournament?.()}>Load Tournament File</button>
         <button className="home-new-button" type="button" data-testid="home-new-tournament" onClick={() => { libraryWindow().createNewTournament?.(); }}>{NEW_TOURNAMENT_TEXT}</button>
+        </div>
       </div>
       {draft && <div className="home-empty" data-testid="local-draft">
         <b>Draft on this device: {draft.name}, saved {draft.saved}</b>
@@ -77,7 +97,7 @@ export function Library() {
         {view.message !== null
           ? <div className="home-empty"><b>{view.message}</b></div>
           // The rows' order is the key: IDs may repeat (the cache and the cloud are not checked).
-          : view.cards.map((card, i) => <LibraryCard key={i} card={card} />)}
+          : view.cards.map((card, i) => <LibraryCard key={i} card={card} canManage={(canManage && activeId === card.id) || (input.kind === 'library' && !!input.authorizedIds?.includes(card.id))} />)}
       </div>
     </>
   );

@@ -75,8 +75,8 @@ def main():
         app.next_match()
         done = [m for m in app.payload()['state']['allMatches']['Open'] if m.get('done')]
         assert done and done[0]['completedResult']['winner'] == match['white'], f'White should be the winner: {done}'
-        app.click('nav-save-load')
-        app.click('nav-cloud-diagnostics')
+        app.nav('setup')
+        app.click('setup-cloud-diagnostics')
         page.wait_for_selector(sel('cloud-modal'))
         text = page.inner_text(sel('cloud-modal'))
         assert 'Red Fusen-sho' in text and 'Fusen-gachi' not in text, f'Developer Tools history: {text}'

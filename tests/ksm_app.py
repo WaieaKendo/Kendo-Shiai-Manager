@@ -480,9 +480,13 @@ class KsmApp:
 
     def click(self, testid):
         if testid.startswith('nav-') and testid != 'nav-toggle':
+            if self.page.evaluate("document.body.classList.contains('ksm-home')") and self.page.locator(sel('library-return')).is_visible():
+                self.page.locator(sel('library-return')).click()
             toggle = self.page.locator(sel('nav-toggle'))
             if toggle.is_visible() and toggle.get_attribute('aria-expanded') == 'false':
                 toggle.click()
+        if testid in ('setup-cloud-diagnostics','setup-download-file','setup-download-recovery','setup-load-recovery','setup-export-brackets','setup-export-results'):
+            self.page.locator('#setup-tournament-actions details').evaluate('(el) => { el.open = true }')
         self.page.click(sel(testid))
 
     def nav(self, item):
@@ -491,8 +495,9 @@ class KsmApp:
 
     def create_tournament(self, timeout=20):
         """Home page '+ New Tournament' (answers name/password prompts); waits for the cloud ID."""
+        previous = self.tournament_id()
         self.click('home-new-tournament')
-        self.page.wait_for_function('KSMTest.tournamentId()', timeout=timeout * 1000)
+        self.page.wait_for_function('(previous) => KSMTest.tournamentId() && KSMTest.tournamentId() !== previous', arg=previous, timeout=timeout * 1000)
         return self.tournament_id()
 
     def staff_login(self):
@@ -571,9 +576,9 @@ class KsmApp:
         self.wait_for_library()
 
     def go_to_library(self):
-        """Save / Load -> Tournament Library."""
-        self.click('nav-save-load')
-        self.click('nav-library')
+        """Header logo -> Tournament Library."""
+        if not self.page.evaluate("document.body.classList.contains('ksm-home')"):
+            self.page.locator('.nav-brand').click()
         self.wait_for_library()
 
     def wait_for_library(self, timeout=15):
@@ -966,7 +971,7 @@ class KsmApp:
 
     # ------------------------------------------------------------------ files
     def download(self, testid, menu=None):
-        """Click a control that downloads a file (opening `menu` first, e.g. 'nav-save-load').
+        """Click a control that downloads a file (opening the action's screen first, e.g. 'nav-setup').
 
         Returns (suggested file name, local path of the downloaded file).
         """
@@ -977,23 +982,25 @@ class KsmApp:
         return dl.value.suggested_filename, dl.value.path()
 
     def download_tournament_file(self):
-        """Save / Load -> Download Tournament File: (the parsed .ksm file, its local path)."""
-        _, path = self.download('nav-download-file', menu='nav-save-load')
+        """Setup -> Download Tournament File: (the parsed .ksm file, its local path)."""
+        view = self.visible_view()[0]
+        _, path = self.download('setup-download-file', menu='nav-setup')
+        self.show_screen(view)
         return json.loads(Path(path).read_text(encoding='utf-8')), path
 
     def _choose_file(self, testid, path):
-        self.click('nav-save-load')
+        self.nav('setup') if testid == 'setup-load-recovery' else self.go_to_library()
         with self.page.expect_file_chooser() as chooser:
             self.click(testid)
         chooser.value.set_files(str(path))
 
     def load_tournament_file(self, path):
-        """Save / Load -> Load Tournament File, picking `path` in the file chooser."""
-        self._choose_file('nav-load-file', path)
+        """Library -> Load Tournament File, picking `path` in the file chooser."""
+        self._choose_file('library-load-file', path)
 
     def load_recovery_file(self, path):
-        """Save / Load -> Load Recovery File, picking `path` in the file chooser."""
-        self._choose_file('nav-load-recovery', path)
+        """Setup -> Load Recovery File, picking `path` in the file chooser."""
+        self._choose_file('setup-load-recovery', path)
 
     # ------------------------------------------------------------ audience views
     def placements(self):

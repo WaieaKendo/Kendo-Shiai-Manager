@@ -46,7 +46,7 @@ def main():
         app.wait_for(lambda: hidden('regenerate-modal'), message='the Regenerate confirmation closed by Escape')
         assert app.structure() == revision, 'Escape regenerated the division'
 
-        page.locator('.cloud-status-wrap > div[role="button"]').click()
+        page.locator(sel('connection-status')).click()
         page.wait_for_selector(sel('cloud-modal'))
         page.keyboard.press('Escape')
         page.wait_for_selector(sel('cloud-modal'), state='detached')

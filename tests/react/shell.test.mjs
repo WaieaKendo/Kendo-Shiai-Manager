@@ -18,12 +18,9 @@ test('the bar: tiles and menus in the order and with the test IDs of the markup'
     'nav-courts', 'nav-court-a', 'nav-court-b',
     'nav-tv', 'nav-tv-a', 'nav-tv-b', 'nav-overlay-a', 'nav-overlay-b',
     'nav-results',
-    'nav-export', 'nav-export-brackets', 'nav-export-results', 'nav-export-referees', 'nav-export-archive',
-    'nav-save-load', 'nav-new-tournament', 'nav-save-now', 'nav-library', 'nav-download-file', 'nav-load-file',
-    'nav-download-recovery', 'nav-load-recovery', '(Copy Tournament ID)', 'nav-tournament-access', 'nav-cloud-diagnostics',
     'nav-registration', 'nav-setup',
   ]);
-  assert.deepEqual(NAV_ENTRIES.filter(e => e.kind === 'menu').map(e => e.menuId), ['courtsMenu', 'tvMenu', 'exportMenu', 'saveLoadMenu']);
+  assert.deepEqual(NAV_ENTRIES.filter(e => e.kind === 'menu').map(e => e.menuId), ['courtsMenu', 'tvMenu']);
   assert.deepEqual(NAV_FILE_INPUTS.map(f => [f.id, f.testId, f.onChange]), [
     ['ksmLoadFile', 'load-file-input', 'loadTournamentFromFile'], ['ksmRecoveryFile', 'recovery-file-input', 'loadRecoveryFile']]);
   assert.equal(NAV_FILE_STYLE, 'display:none');
@@ -38,13 +35,8 @@ test('every control calls what its inline handler called', () => {
   assert.deepEqual(actions['nav-court-b'], { fn: 'chooseCourt', args: ['B'] });
   assert.deepEqual(actions['nav-tv-a'], { fn: 'launchTvDisplay', args: ['A'] });
   assert.deepEqual(actions['nav-overlay-b'], { fn: 'copyStreamOverlayLink', args: ['B'] });
-  assert.deepEqual(actions['nav-export-brackets'], { fn: 'exportTournamentBrackets', args: [] });
   // The placeholders closed the menus and showed their message.
-  assert.deepEqual(actions['nav-export-referees'], { fn: 'alert', args: ['Referee assignment export will be added with the Referee Assignment module.'], close: true });
   // Save / Load closes the menus first.
-  assert.deepEqual(actions['nav-save-now'], { fn: 'saveNow', args: [], close: true });
-  assert.deepEqual(actions['Copy Tournament ID'], { fn: 'copyTournamentId', args: [], close: true });
-  assert.deepEqual(actions['nav-cloud-diagnostics'], { fn: 'cloudDiagnostics', args: [], close: true });
 });
 
 test('the tiles\' icons come from the branding module', () => {
@@ -56,10 +48,10 @@ test('the tiles\' icons come from the branding module', () => {
 });
 
 test('the active tile: the first whose text starts with the screen label (setActiveNavForView())', () => {
-  assert.deepEqual(NAV_ENTRIES.map(tileText), ['Overview', 'Live Scores', 'Courts ▾', 'TV ▾', 'Results', 'Export ▾', 'Save / Load ▾', 'Registration', 'Setup']);
+  assert.deepEqual(NAV_ENTRIES.map(tileText), ['Overview', 'Live Scores', 'Courts ▾', 'TV ▾', 'Results', 'Registration', 'Setup']);
   const at = label => { const i = activeEntryIndex(NAV_ENTRIES, label); return i < 0 ? null : tileText(NAV_ENTRIES[i]); };
   assert.equal(at('Courts'), 'Courts ▾');
-  assert.equal(at('Export'), 'Export ▾');
+  assert.equal(at('Export'), null);
   assert.equal(at('Live Scores'), 'Live Scores');
   // Quirk kept: "TV Display" is not the start of "TV ▾", so the TV tile is never marked.
   assert.equal(at('TV Display'), null);

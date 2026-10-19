@@ -1,6 +1,6 @@
 """Golden (snapshot) test of the Setup screen (#setup; roadmap M.13).
 
-Setup shows the tournament details (name, host, date, location, courts, tournament type), the
+Setup shows the tournament details (name, Short URL, host, date, location, courts), the
 Individual Divisions table (#divisionSetupRows: a row per preset division and per custom
 division, with Use, the name, the format and the court; a custom row has × to remove it) and
 Add Custom Division, the Team Tournament settings (enabled, team match format, tournament
@@ -160,6 +160,9 @@ def check_react(golden, step):
 def capture(app):
     """The Setup screen: (serialization, element boxes)."""
     page = app.page
+    # Transient addition feedback has separate clock-controlled coverage. Capture the settled row.
+    page.evaluate("() => new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))")
+    page.locator('.setup-division-added').evaluate_all("rows=>rows.forEach(row=>row.dispatchEvent(new Event('animationend')))")
     panel = page.evaluate(PANEL_JS, ROOT)
     errors, app.page_errors[:] = list(app.page_errors), []
     shown = page.evaluate(SHOWN_JS)
@@ -271,13 +274,11 @@ def setup_details(browser, react_check):
     g.do('name: cleared', lambda a: (a.page.keyboard.press('ControlOrMeta+a'), a.page.keyboard.press('Backspace')))
     for part in ['Ann', ' & <Bo>', ' "Cup"', " O'ahu 🏆"]:
         g.do(f'name: typed {part!r}', lambda a, p=part: a.page.keyboard.type(p))
-    g.do('name: Tab to the host', lambda a: a.page.keyboard.press('Tab'))
+    g.do('name: Tab to Short URL', lambda a: a.page.keyboard.press('Tab'))
     g.do('host typed', lambda a: type_into(a.page, '#tHost', 'Hilo Kendo & Iaido <Club>'))
     g.do('date filled', lambda a: a.page.locator('#tDate').fill('2026-11-14'))
     g.do('location typed', lambda a: type_into(a.page, '#tLocation', 'Kalakaua "Gym", Honolulu'))
     g.do('courts typed', lambda a: type_into(a.page, '#tCourts', '3'))
-    for opt in ['Individual', 'Team', 'Individual + Team']:
-        g.do(f'tournament type: {opt}', lambda a, o=opt: a.page.select_option('#tType', label=o))
     leave(page)
     g.do('team: Disabled', lambda a: a.page.select_option(tid('team-enabled'), label='Disabled'))
     g.do('team: Enabled', lambda a: a.page.select_option(tid('team-enabled'), label='Enabled'))
@@ -334,8 +335,8 @@ def setup_divisions(browser, react_check):
     g.do('custom: Single Elimination', lambda a: a.page.select_option(tid('custom-division-format'), label='Single Elimination'))
     g.do('custom: split', lambda a: a.page.select_option(tid('custom-division-court'), value='split'))
     g.do('custom: + Add Division', lambda a: click(a.page, tid('custom-division-add')))
-    g.do('custom: + Add Division with no name (nothing)', lambda a: click(a.page, tid('custom-division-add')))
-    g.do('custom: spaces only (nothing)', lambda a: (type_into(a.page, tid('custom-division-name'), '   '), click(a.page, tid('custom-division-add'))))
+    g.do('custom: Add division disabled with no name', lambda a: click(a.page, tid('custom-division-add')))
+    g.do('custom: spaces only stays disabled', lambda a: (type_into(a.page, tid('custom-division-name'), '   '), click(a.page, tid('custom-division-add'))))
     g.do("custom 2: O'ahu Juniors, Round Robin, Court B", lambda a: (
         type_into(a.page, tid('custom-division-name'), "  O'ahu Juniors  "),
         a.page.select_option(tid('custom-division-format'), label='Round Robin'),

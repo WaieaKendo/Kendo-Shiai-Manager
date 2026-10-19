@@ -26,8 +26,8 @@ def visible(app):
 
 
 def developer_tools(app, button):
-    app.click('nav-save-load')
-    app.click('nav-cloud-diagnostics')
+    app.nav('setup')
+    app.click('setup-cloud-diagnostics')
     app.page.wait_for_selector(sel('cloud-modal'))
     toggle = app.page.locator(sel('diagnostics-test-tools'))
     assert toggle.inner_text().strip() == button, toggle.inner_text()

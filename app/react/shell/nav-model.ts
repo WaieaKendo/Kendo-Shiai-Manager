@@ -19,7 +19,7 @@ export interface NavMenuStyle {
 }
 
 export interface NavInput {
-  /** The id of the open menu (courtsMenu, tvMenu, exportMenu, saveLoadMenu), or null. */
+  /** The id of the open menu (courtsMenu, tvMenu), or null. */
   open: string | null;
   /** The open menu's placement on a phone or tablet; null on a wider window. */
   style: NavMenuStyle | null;
@@ -72,7 +72,6 @@ export interface NavMenu {
 
 export type NavEntry = NavTile | NavMenu;
 
-const close = (fn: string, ...args: string[]): NavAction => ({ fn, args, close: true });
 const call = (fn: string, ...args: string[]): NavAction => ({ fn, args });
 
 /** The bar, in order. */
@@ -102,39 +101,6 @@ export const NAV_ENTRIES: readonly NavEntry[] = [
     ],
   },
   { kind: 'tile', className: 'nav-tile', title: 'Results', testId: 'nav-results', icon: 'results', label: 'Results', action: call('navigateTo', 'results') },
-  {
-    kind: 'menu', wrapClassName: 'nav-menu nav-tile-wrap director-only', menuId: 'exportMenu', menuClassName: 'nav-dropdown nav-dropdown-wide',
-    trigger: { title: 'Export', testId: 'nav-export', icon: 'export', label: 'Export' },
-    entries: [
-      { kind: 'item', label: 'Tournament Brackets', testId: 'nav-export-brackets', action: call('exportTournamentBrackets') },
-      { kind: 'item', label: 'Results & Awards', testId: 'nav-export-results', action: call('exportResultsAwards') },
-      { kind: 'item', label: 'Referee Assignments', testId: 'nav-export-referees', action: close('alert', 'Referee assignment export will be added with the Referee Assignment module.') },
-      { kind: 'item', label: 'Tournament Archive', testId: 'nav-export-archive', action: close('alert', 'Tournament Archive export will be added with the archive module.') },
-    ],
-  },
-  {
-    kind: 'menu', wrapClassName: 'nav-menu nav-tile-wrap director-only', menuId: 'saveLoadMenu', menuClassName: 'nav-dropdown nav-dropdown-wide',
-    trigger: { title: 'Save or Load', testId: 'nav-save-load', icon: 'saveLoad', label: 'Save / Load' },
-    entries: [
-      { kind: 'heading', label: 'Tournament' },
-      { kind: 'item', label: 'New Tournament', testId: 'nav-new-tournament', action: close('createNewTournament') },
-      { kind: 'item', label: 'Save Now', testId: 'nav-save-now', action: close('saveNow') },
-      { kind: 'item', label: 'Tournament Library', testId: 'nav-library', action: close('showHomePage') },
-      { kind: 'item', label: 'Download Tournament File', testId: 'nav-download-file', action: close('manualSaveTournament') },
-      { kind: 'item', label: 'Load Tournament File', testId: 'nav-load-file', action: close('triggerLoadTournament') },
-      { kind: 'divider' },
-      { kind: 'heading', label: 'Recovery' },
-      { kind: 'item', label: 'Download Recovery File', testId: 'nav-download-recovery', action: close('downloadRecoveryFile') },
-      { kind: 'item', label: 'Load Recovery File', testId: 'nav-load-recovery', action: close('triggerLoadRecoveryFile') },
-      { kind: 'divider' },
-      { kind: 'heading', label: 'Sharing' },
-      { kind: 'item', label: 'Copy Tournament ID', action: close('copyTournamentId') },
-      { kind: 'item', label: 'Tournament Access', testId: 'nav-tournament-access', action: close('openTournamentAccess') },
-      { kind: 'divider' },
-      { kind: 'heading', label: 'Cloud' },
-      { kind: 'item', label: 'Cloud Diagnostics', testId: 'nav-cloud-diagnostics', action: close('cloudDiagnostics') },
-    ],
-  },
   { kind: 'tile', className: 'nav-tile director-only', title: 'Registration', testId: 'nav-registration', icon: 'registration', label: 'Registration', action: call('openRegistrationTab', 'individual') },
   { kind: 'tile', className: 'nav-tile director-only setup-nav-tile', title: 'Setup', testId: 'nav-setup', icon: 'setup', label: 'Setup', action: call('navigateTo', 'setup') },
 ];

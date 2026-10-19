@@ -629,9 +629,35 @@ Two separate questions: **who are you** (authentication) and **what may you do**
 - Useful now, whatever is chosen: an in-app login dialog instead of `prompt()`, a limit on login attempts, a salted slow hash (PBKDF2 in Workers), a short-lived session token instead of the password on every save.
 - **Device identity must be part of this decision.** Today each browser makes up its own device ID once (`ensureClientIdentity()`, `app/js/20`: `crypto.randomUUID()`, kept in local storage). Saves, court actions and the live connection carry it: a staff device uses it to ignore its own echoed save, the conflict rebase replays only the actions with this device's ID (F4, F6 rely on it), and presence lists devices by it. Limits: it identifies a browser, not a device or a tab (a staff tab and a TV tab in one browser share it; the code has a special case for that); clearing site data makes a new identity; it proves nothing (any device can claim any ID); and `crypto.randomUUID()` exists only on secure pages (https or localhost), so on a plain `http://` address startup fails before the device has an ID. Proposal: the identity comes from the server with the login, i.e. the device-pairing key (court tablets) or the signed-in director's session is the device's identity (unforgeable, revocable, tied to role and court), plus a per-tab ID in `sessionStorage` for recognising the tab's own saves. Then `crypto.randomUUID()` is no longer needed for identity. Not fixed on its own before the login decision (the deployed site is https).
 
-### Backups and replacing Save/Load (for the meeting)
+### Tournament Library and Setup actions (#70)
 
-Today the only cloud storage is one Durable Object per tournament (`TournamentState`, SQLite); there is no automatic backup, and docs/CLOUD_OPERATIONS.md asks staff to download a `.ksm` file before the event. Proposal: backups happen by themselves, and Save/Load leaves the main navigation.
+Save / Load and Export no longer occupy navigation tiles. Use the logo to browse the Tournament
+Library without discarding the open tournament, its staff session, autosave, queue or live socket.
+Open/New and file import still enforce the existing unsaved-work and replacement protections.
+The Library has New Tournament, Load Tournament File, the local draft's Open/inline Discard, and
+per-tournament Staff actions. Staff authentication for a Library row stays in memory, separate from
+the open tournament's session. Staff can export brackets, results/awards or a full `.ksm` archive,
+and delete through the existing typed-name confirmation. Exports fetch the target read-only and
+reuse print sheets against that snapshot; printable HTML downloads contain no application script.
+Open the HTML in a browser to print or save as PDF. A draft need not be exported from the Library.
+
+Tournament Details includes a Short URL input that renames on blur or Enter, with inline feedback.
+Sharing & access (links/QR and Copy ID) sits below Match timer. Initially collapsed Advanced holds
+Backup (tournament and recovery files), Export and Cloud Diagnostics. There is no Setup jump link
+or obsolete Tournament Type field. Add division enables when named, then highlights and announces
+the added row. Back to tournament restores the prior screen and reconnects live updates. Boot-time
+local drafts remain separately available after New/Open. Library archives are labelled server copies. The header's saved/saving line has no save button during normal work.
+Queued/failed work shows “Save now”; its wording says changes are waiting, because the outbox is
+one snapshot, not an action counter. Manual retry attempts the network even with an offline hint,
+reports through a toast and routes expired staff sessions to Staff Login. A failed startup without
+cached data cannot save its empty screen.
+
+F36 remains open in #81, pinned by `network-two-tabs-test.py`. This UI cleanup does not change
+cross-tab ownership of the shared outbox or claim to fix that finding.
+
+### Future automatic backups (for the meeting)
+
+Today the only cloud storage is one Durable Object per tournament (`TournamentState`, SQLite); there is no automatic backup, and docs/CLOUD_OPERATIONS.md asks staff to download a `.ksm` file before the event. Proposal: backups happen by themselves; #70 has already removed Save/Load from the main navigation.
 
 1. **Version history in the tournament's Durable Object**: restore points as SQLite rows at generation, end of pools, each bracket stage and the final, plus the last N saves. A director picks one and restores it (e.g. "before Regenerate Single Division"). Lost if the object itself is reset or deleted, so not a backup on its own.
 2. **Cloudflare point-in-time recovery** of SQLite-backed Durable Objects (currently about 30 days; confirm limits): whole-object restore for disasters, operated by an admin.

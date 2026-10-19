@@ -20,7 +20,7 @@ from ksm_app import KsmApp, sel, app_path
 from ksm_browser import launch_chromium
 from ksm_server import local_worker
 
-STAFF_ONLY = ['nav-setup', 'nav-registration', 'nav-export', 'nav-save-load', 'nav-tv']
+STAFF_ONLY = ['nav-setup', 'nav-registration', 'nav-tv']
 EVERYONE = ['nav-courts', 'nav-live-scores', 'nav-overview', 'nav-results']
 VIEWS = ['setup', 'registration', 'print', 'score', 'public', 'results', 'director']
 VISIBLE_VIEW_JS = "() => [...document.querySelectorAll('main > .view')].filter(v => getComputedStyle(v).display !== 'none').map(v => v.id)"
@@ -138,8 +138,8 @@ def main():
         # --- Tournament Access -----------------------------------------------------------------
         dpage = director.page
         dpage.context.grant_permissions(['clipboard-read', 'clipboard-write'], origin=base)
-        director.click('nav-save-load')
-        director.click('nav-tournament-access')
+        director.nav('setup')
+        director.click('setup-tournament-access')
         dpage.wait_for_selector(sel('access-link'))
         assert dpage.inner_text(sel('cloud-modal-title')).strip() == 'Tournament Access'
         link = dpage.inner_text(sel('access-link')).strip()
@@ -157,10 +157,9 @@ def main():
         for testid in STAFF_ONLY:
             assert not visible(director, testid), f'logged-out staff still sees {testid}'
         director.staff_login()
-        director.click('nav-save-load')
-        director.click('nav-library')
+        director.go_to_library()
         dpage.wait_for_selector(f'{sel("home-tournament-name")}:has-text("Roles Cup")', state='visible')
-        assert dpage.inner_text(sel('staff-auth')).strip() == 'Staff Login', 'the library should end the staff session'
+        assert dpage.inner_text(sel('staff-auth')).strip() == 'Logout', 'browsing the library must preserve the active staff session'
 
         assert not problems, '\n'.join(problems)
         print(f'PASS roles and access: library, spectator/TV navigation and screens, no cloud writes, '

@@ -4,9 +4,9 @@ One staff device (with Playwright's clock, so minutes can pass) against a
 throwaway `wrangler dev`:
   * a point is saved to the cloud after the 2 s + 1.2 s debounce, not at once;
   * save status wording: "✓ Saved just now", "✓ Saved 1 min ago", offline
-    "Saved locally · 1 change waiting"; connection "🟢 Online" / "🟠 Offline";
+    "Not saved · Changes waiting"; connection "🟢 Online" / "🟠 Offline";
   * scoring offline queues the change and it reaches the cloud when back online;
-  * Save Now saves at once ("✓ Tournament saved"); offline it says "Saved locally · Waiting to sync";
+  * Save Now saves at once ("✓ Tournament saved"); offline it says "Not saved · Changes waiting";
   * the 10-minute safety autosave saves to the cloud without any action;
   * a rejected save is shown in Cloud Diagnostics (stage, HTTP status, server response)
     and "Retry queued save" sends it;
@@ -73,10 +73,9 @@ def main():
         page.context.set_offline(True)
         app.wait_for(lambda: connection() == '🟠 Offline', message='offline status')
         app.score_point('R', 'K')
-        app.wait_for(lambda: status() == 'Saved locally · 1 change waiting', message=f'offline save status (shows {status()!r})')
-        app.click('nav-save-load')
-        app.click('nav-save-now')
-        app.wait_for(lambda: toast() == 'Saved locally · Waiting to sync', message=f'offline Save Now toast (shows {toast()!r})')
+        app.wait_for(lambda: status() == 'Not saved · Changes waiting', message=f'offline save status (shows {status()!r})')
+        app.click('header-save-now')
+        app.wait_for(lambda: toast() == 'Not saved · Changes waiting', message=f'offline Save Now toast (shows {toast()!r})')
         rev = server()['revision']
         page.context.set_offline(False)
         app.wait_for(lambda: server()['revision'] > rev, message='the offline change to reach the cloud')
@@ -87,8 +86,8 @@ def main():
 
         # --- Save Now -----------------------------------------------------------------------------
         rev = server()['revision']
-        app.click('nav-save-load')
-        app.click('nav-save-now')
+        page.evaluate("writeOutbox(tournamentPayload(),'Manual retry fixture')")
+        app.click('header-save-now')
         app.wait_for(lambda: toast() == '✓ Tournament saved', message=f'Save Now toast (shows {toast()!r})')
         assert server()['revision'] == rev + 1, 'Save Now did not save'
 
@@ -111,7 +110,7 @@ def main():
                 if 'to the past' not in str(error) or attempt == 19:
                     raise
         page.unroute('**/api/tournaments/**', reject)
-        app.click('save-status')  # the status area opens Cloud Diagnostics
+        app.click('connection-status')  # the status area opens Cloud Diagnostics
         page.wait_for_selector(sel('cloud-modal'))
         text = page.inner_text(sel('cloud-modal'))
         assert page.inner_text(sel('cloud-modal-title')).strip() == 'Developer Tools', text[:200]
@@ -133,9 +132,9 @@ def main():
         # --- Recovery file: download, then load on a fresh device ----------------------------------
         page.context.set_offline(True)
         app.score_point('R', 'T')
-        app.click('nav-save-load')
+        app.nav('setup')
         with page.expect_download() as dl:
-            app.click('nav-download-recovery')
+            app.click('setup-download-recovery')
         pack = json.loads(open(dl.value.path()).read())
         page.context.set_offline(False)
         assert pack['fileType'] == 'KSM_RECOVERY' and pack['tournamentId'] == tid and pack['assignedCourt'] == 'B', \
@@ -149,10 +148,10 @@ def main():
         fresh.create_tournament()  # a replacement device needs a staff session to see the menu
         # That tournament is open, so loading the recovery file asks first (F7) and leaves it unchanged.
         fresh.expect_dialog('Load this recovery file as a new tournament?', accept=True)
-        fresh.click('nav-save-load')
-        fresh.click('nav-load-recovery')
+        fresh.nav('setup')
+        fresh.click('setup-load-recovery')
         fresh.page.set_input_files(sel('recovery-file-input'), str(dl.value.path()) + '.ksm')
-        fresh.wait_for(lambda: fresh.page.inner_text(sel('save-status')).strip() == 'Recovery file loaded', message='the recovery file to load')
+        fresh.wait_for(lambda: fresh.page.inner_text(sel('save-status')).strip().endswith('Recovery file loaded'), message='the recovery file to load')
         fresh.save_now()
         fresh.wait_idle()
         new_tid = fresh.tournament_id()

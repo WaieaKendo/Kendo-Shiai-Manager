@@ -160,8 +160,8 @@ def main():
         # --- Links the app makes --------------------------------------------------------------------
         dpage = director.page
         dpage.context.grant_permissions(['clipboard-read', 'clipboard-write'], origin=base)
-        director.click('nav-save-load')
-        director.click('nav-tournament-access')
+        director.nav('setup')
+        director.click('setup-tournament-access')
         dpage.wait_for_selector(sel('access-link'))
         link = dpage.inner_text(sel('access-link')).strip()
         assert link == f'{base}/paths-cup-2026/overview', link
@@ -178,7 +178,7 @@ def main():
             director.click(f'nav-overlay-{court.lower()}')
             copied = dpage.wait_for_function('window.__copied').json_value()
             assert copied == f'{base}/paths-cup-2026/overlay/{court.lower()}', copied
-        assert director.address() == '/paths-cup-2026/pools', director.address()
+        assert director.address() == '/paths-cup-2026/setup', director.address()
 
         # --- Offline: the service worker serves the app for /t/ paths -------------------------------
         court = KsmApp.open_device(browser, base, 'Offline court', problems, app_path(tid, 'court', 'a'), service_workers='allow')

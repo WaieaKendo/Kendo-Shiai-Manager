@@ -17,6 +17,8 @@ export interface HeaderInput {
   presence: string;
   /** #saveStatus: "Not saved yet", "✓ Saved 5 min ago", "Saved locally · 1 change waiting", ... */
   save: string;
+  retry?: boolean;
+  warning?: boolean;
 }
 
 /** Nothing published yet: the static markup. */

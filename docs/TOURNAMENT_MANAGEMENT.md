@@ -178,7 +178,7 @@ Once a tiebreak series uniquely secures an advancing seed, that seed is frozen. 
 A tournament can only be deleted by a staff device of that tournament (Staff Login first). Open **Developer Tools** (click the connection status in the header) and press **Delete tournament**:
 
 1. Read the warning: the delete **cannot be undone**, and every device connected to the tournament is disconnected and returned to the Tournament Library. The dialog shows how many devices are connected right now.
-2. Press **Download a backup first** to save the tournament as a `.ksm` file (the same file as Save / Load, Download Tournament File). It can be loaded again as a new tournament later.
+2. Press **Download a backup first** to save the tournament as a `.ksm` file (the same file as Setup → Advanced → Backup → Download Tournament File). It can be loaded again as a new tournament later.
 3. Type the tournament's name exactly as shown (capital letters count; spaces around it do not). **Delete tournament** stays disabled until it matches.
 4. Press **Delete tournament** (or Enter). The device shows the Tournament Library with "Tournament deleted".
 

@@ -1,5 +1,5 @@
 // The app shell's islands in the page header (header.ksm-topbar): the navigation bar (the contents
-// of nav.minimal-nav: the tiles, the Courts / TV / Export / Save / Load menus, the hidden file
+// of nav.minimal-nav: the tiles, the Courts / TV menus, the hidden file
 // inputs) and the status row (the contents of .cloud-status-wrap: Staff Login / Logout and the
 // status line), with the same elements, classes, ids, titles and test IDs as the static markup of
 // app/index.html (and the overlay items app/js added to the TV menu), so the header CSS and every
@@ -18,17 +18,17 @@
 // event (they read event.target.files and clear its value).
 // No colors of their own (the header CSS and theme tokens); the tile icons come from the branding
 // module.
+import { pressOnKey } from '../keyboard.ts';
 import { TOURNAMENT_HOME } from '../../engine/routes.ts';
 import { useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { DEFAULT_NAV_ICONS } from '../court/branding.ts';
-import { EMPTY_HEADER, STATUS_TITLE, type HeaderInput } from './header-model.ts';
+import { EMPTY_HEADER, type HeaderInput } from './header-model.ts';
 import {
   EMPTY_NAV, NAV_ENTRIES, NAV_FILE_ACCEPT, NAV_FILE_INPUTS, NAV_FILE_STYLE, NAV_MENU_ARROW,
   activeEntryIndex, menuClass, tileClass,
   type NavAction, type NavFileInput, type NavInput, type NavMenu, type NavMenuEntry, type NavTile,
 } from './nav-model.ts';
 import { rawStyle, shellWindow, subscribeTo, useNativeClick } from './shell-dom.ts';
-import { pressOnKey } from '../keyboard.ts';
 
 export const NAV_EVENT = 'ksm:shell-nav';
 export const HEADER_EVENT = 'ksm:shell-header';
@@ -185,17 +185,19 @@ export function TournamentChip() {
 export function StatusRow() {
   const h = useSyncExternalStore(subscribeHeader, headerSnapshot, () => EMPTY_HEADER);
   const staff = useNativeClick<HTMLButtonElement>(() => { shellWindow().toggleStaffSession?.(); });
-  const status = useNativeClick<HTMLDivElement>(() => { shellWindow().cloudDiagnostics?.(); });
+  const diagnostics = useNativeClick<HTMLSpanElement>(() => shellWindow().cloudDiagnostics?.());
+  const retry = useNativeClick<HTMLButtonElement>(() => { shellWindow().saveNow?.(); });
   return (
     <>
       <button ref={staff} id="staffAuthButton" className="secondary" type="button" data-testid="staff-auth">{h.staffLabel}</button>
-      <div ref={status} role="button" tabIndex={0} title={STATUS_TITLE} onKeyDown={pressOnKey}>
+      <div className={h.warning ? 'save-warning' : undefined} role="status">
         <span id="sessionRole" hidden data-role={h.role.dataRole ?? undefined}>{h.role.text}</span>
-        <span id="connectionStatus" className="small nav-save-status" data-testid="connection-status"
+        <span ref={diagnostics} role="button" tabIndex={0} onKeyDown={pressOnKey} id="connectionStatus" className="small nav-save-status" data-testid="connection-status"
           data-mode={h.connection.mode ?? undefined} title={h.connection.title ?? undefined}>{h.connection.text}</span>
         <span id="cloudPresence" hidden>{h.presence}</span>
         <span id="saveStatus" className="small nav-save-status" data-testid="save-status">{h.save}</span>
       </div>
+      {h.retry && <button ref={retry} type="button" data-testid="header-save-now"><span className="retry-warning">Not saved</span>Save now</button>}
     </>
   );
 }
