@@ -261,6 +261,7 @@ const KNOWN_POST_SPLIT_EDITS = {
   // attempts (HTTP 429, attempt limit) and keeps the session token it returns instead of the
   // password; performCloudSave() creates a tournament with the new password (never a token), keeps
   // the token the creation returns, and turns the device into a spectator on 401 (session expired).
+  'refresh-keeps-staff': 6,
   'staff-hardening': 5,
   // feat/react-library (M.13): the Tournament Library's React island. With the legacy renderer
   // removed (REMOVED_LIBRARY_RENDERER) paintHomeTournamentLibrary()'s body (33) is a marked call of

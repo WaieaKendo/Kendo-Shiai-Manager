@@ -3,7 +3,7 @@
   * session token: creating a tournament logs the creator in with a session token (no second
     password prompt); Staff Login on another device gets its own token; from then on saves
     (x-ksm-session-key) and the live connection (its `key`) carry the token, never the password;
-  * scoring, a reload (then Staff Login again) and a second staff device keep working, and both
+  * scoring, a reload (with the same staff session) and a second staff device keep working, and both
     devices' points reach the cloud;
   * compatibility for one release: a save that still sends the password (the previous app) is
     accepted;
@@ -94,13 +94,12 @@ def main():
         assert_tokens_only('Court A', court_keys, court_token)
         director.wait_for(lambda: director.court_screen()['red_points'] == 'K', message='the director to see Court A\'s point')
 
-        # ------------------------------------------------- reload: Staff Login again, scoring works
+        # ------------------------------------------------- reload: staff stays logged in, scoring works
         before_reload = len(court_keys)
         court.reload()
         court.wait_generated()
-        court.staff_login()
         court_token_2 = court.staff_session()
-        assert court_token_2.startswith('ksmst_') and court_token_2 != court_token
+        assert court_token_2.startswith('ksmst_') and court_token_2 == court_token
         court.open_court('A')
         court.score_point('W', 'K')
         court.wait_idle()

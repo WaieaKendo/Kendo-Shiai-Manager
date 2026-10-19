@@ -79,7 +79,7 @@ def main():
         app.wait_idle()
         app.goto(app_path(tid, 'court', 'A'))
         app.wait_revision(fetch_record(base, tid)['revision'])
-        app.staff_login()
+        assert app.page.evaluate('KSMTest.role()') == 'staff'
         app.open_court('A')
         app.wait_for(lambda: page.evaluate("document.body.classList.contains('ksm-red-left')"), message='Red side kept after reload')
         assert field() == 'left'

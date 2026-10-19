@@ -84,7 +84,7 @@ def main():
             app.wait_revision(final['revision'])
             assert app.payload()['state']['allMatches'] == final['payload']['state']['allMatches'], f'{app.name}: matches differ from the server'
             assert app.structure()[OPEN]['pools'][0]['players'] == [a, b, d], f'{app.name}: {app.structure()[OPEN]["pools"]}'
-        court.staff_login()
+        assert court.page.evaluate('KSMTest.role()') == 'staff'
         court.open_court('A')
         court.wait_for(lambda: court.court_pool_bouts().get(title) == expected, message='the played order on the reloaded Court A')
 

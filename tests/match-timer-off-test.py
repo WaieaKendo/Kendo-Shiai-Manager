@@ -82,7 +82,7 @@ def main():
         court.wait_idle()
         court.reload()
         court.wait_generated()
-        court.staff_login()
+        assert court.page.evaluate('KSMTest.role()') == 'staff'
         court.open_court('A')
         assert_off(court)
         assert court.timer_storage() == saved

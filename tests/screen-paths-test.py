@@ -24,7 +24,8 @@ def main():
                 app.page.evaluate('(path)=>ksmReplaceUrl(path)',prefix)
             length=app.page.evaluate('history.length')
             for screen,view,private in [('setup','setup',True),('registration','registration',True),('pools','registration',True),('overview','director',False),('results','results',False),('live','public',False),('court/b','score',False)]:
-                app.staff_login()
+                if app.page.evaluate('KSMTest.role()') != 'staff':
+                    app.staff_login()
                 if screen=='pools':
                     app.nav('registration');app.click('reg-tab-pools')
                 elif screen=='court/b':app.open_court('B')
@@ -34,8 +35,8 @@ def main():
                 assert app.page.evaluate('history.length')==length,screen
                 app.blur();app.wait_idle()
                 app.reload()
-                expected_view='director' if private else 'public' if screen.startswith('court/') else view
-                expected_address=prefix+'/overview' if private else prefix+'/'+screen
+                expected_view='public' if screen.startswith('court/') else view
+                expected_address=prefix+'/'+screen
                 assert app.visible_view()==[expected_view],(screen,app.visible_view())
                 assert app.address()==expected_address,(screen,app.address())
                 assert app.tournament_id()==tid

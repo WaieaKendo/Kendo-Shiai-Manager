@@ -166,7 +166,7 @@ def main():
 
         # 7. Kept on reload.
         director.goto(app_path(tid))
-        director.staff_login()
+        assert director.page.evaluate('KSMTest.role()') == 'staff'
         director.nav('setup')
         director.wait_for(lambda: director.setup_division_names()[0] == 'Children', message='the rename after a reload')
         assert 'Seniors' in director.setup_division_names() and YONENBU not in director.setup_division_names(), director.setup_division_names()

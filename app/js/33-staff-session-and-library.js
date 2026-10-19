@@ -1,7 +1,42 @@
 // ---------- KSM v3.16.2 Spectator / Staff and Tournament Library ----------
 const KSM_V316_STAFF_SESSION='ksm.staff.session.v3_16';
 const KSM_V316_LIBRARY='ksm.tournament.library.v3_16';
-function v316StaffPassword(){return sessionStorage.getItem(KSM_V316_STAFF_SESSION)||''}
+/* ksm:post-split-begin refresh-keeps-staff */
+const KSM_STAFF_TOURNAMENT='ksm.staff.tournament.v1';
+function ksmStoreStaffToken(token,id=cloudSession.tournamentId){
+  sessionStorage.setItem(KSM_V316_STAFF_SESSION,token);
+  sessionStorage.setItem(KSM_STAFF_TOURNAMENT,id||'');
+}
+function ksmExpireStaffSession(payload){
+  if(!ksmStaffToken(v316StaffPassword()))return;
+  if(payload)writeOutbox(payload,'Staff session expired');
+  sessionStorage.removeItem(KSM_V316_STAFF_SESSION);
+  sessionStorage.removeItem(KSM_STAFF_TOURNAMENT);
+  setSessionRole('spectator');installRoleBanner('spectator');disconnectCloudSocket();connectCloudSocket();
+  showKsmToast('Staff session expired · use Staff Login again',4000,true);
+}
+async function ksmResumeStaffSession(id){
+  if(!v316StaffPassword()||!navigator.onLine)return;
+  // Authorization precedes revision validation. -1 can never match a server revision:
+  // a valid session gets 409 without writing, an expired/revoked one gets the usual 401.
+  const epoch=ksmTournamentEpoch;
+  let response;
+  try{
+    response=await fetch(`/api/tournaments/${encodeURIComponent(id)}`,{
+      method:'PUT',headers:cloudHeaders(),body:JSON.stringify({revision:-1}),signal:cloudSaveTimeoutSignal(id)
+    });
+  }catch(_){setConnectionStatus('Offline · session check pending','offline');return}
+  if(epoch!==ksmTournamentEpoch)throw Object.assign(new Error('Tournament changed'),{code:'transition-cancelled'});
+  if(response.status===410){ksmAnnounceTournamentGone(id,true);throw ksmGoneError()}
+  if(response.status===401)ksmExpireStaffSession();
+  else if(response.status!==409)setConnectionStatus('Session check unavailable','offline');
+}
+/* ksm:post-split-end */
+function v316StaffPassword(){/* ksm:post-split-begin refresh-keeps-staff was:return sessionStorage.getItem(KSM_V316_STAFF_SESSION)||'' */
+  const token=sessionStorage.getItem(KSM_V316_STAFF_SESSION)||'';
+  if(!ksmStaffToken(token))return token; // Temporary creation password, never a persisted login.
+  return sessionStorage.getItem(KSM_STAFF_TOURNAMENT)===cloudSession.tournamentId?token:'';
+/* ksm:post-split-end */}
 /* ksm:post-split-begin staff-hardening */
 // Staff session (issue #9): KSM_V316_STAFF_SESSION holds the session token the server returned at
 // Staff Login or tournament creation (sent as x-ksm-session-key and the live connection's key),
@@ -20,7 +55,7 @@ function sessionKey(){return v316StaffPassword()}
 function cloudHeaders(){return {'content-type':'application/json','x-ksm-role':ksmSessionRole==='staff'?'staff':'spectator','x-ksm-session-key':sessionKey(),'x-ksm-client-id':cloudSession.clientId||'','x-ksm-client-name':cloudSession.clientName||'KSM Device','x-ksm-court':cloudSession.court||''}}
 function cloudSocketUrl(id){const protocol=location.protocol==='https:'?'wss:':'ws:';const url=new URL(`${protocol}//${location.host}/api/tournaments/${encodeURIComponent(id)}/live`);url.searchParams.set('role',ksmSessionRole==='staff'?'staff':'spectator');if(sessionKey())url.searchParams.set('key',sessionKey());url.searchParams.set('clientId',cloudSession.clientId||'');url.searchParams.set('name',cloudSession.clientName||'KSM Device');if(cloudSession.court)url.searchParams.set('court',cloudSession.court);return url.toString()}
 function promptNewStaffPassword(){const a=prompt('Create Staff password');if(!a)return '';if(a.length<4){alert('Staff password must be at least 4 characters.');return ''}const b=prompt('Confirm Staff password');if(a!==b){alert('Passwords do not match.');return ''}return a}
-async function toggleStaffSession(){if(ksmSessionRole==='staff'){sessionStorage.removeItem(KSM_V316_STAFF_SESSION);setSessionRole('spectator');installRoleBanner('spectator');disconnectCloudSocket();connectCloudSocket();navigateTo('public');return}if(!cloudSession.tournamentId){alert('Create or load a tournament before Staff Login.');return}const password=prompt('Enter Staff password');if(!password)return;try{const response=await fetch(`/api/tournaments/${encodeURIComponent(cloudSession.tournamentId)}/auth`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password})});/* ksm:post-split-begin delete-tournament */if(response.status===410){ksmAnnounceTournamentGone(cloudSession.tournamentId);return}/* ksm:post-split-end *//* ksm:post-split-begin staff-hardening was:if(!response.ok)throw new Error();sessionStorage.setItem(KSM_V316_STAFF_SESSION,password); */const info=await response.json().catch(()=>null);if(!response.ok){if(response.status===429&&info?.error){alert(info.error);return}throw new Error()}sessionStorage.setItem(KSM_V316_STAFF_SESSION,info?.token||password);/* ksm:post-split-end */setSessionRole('staff');installRoleBanner('staff');/* ksm:post-split-begin outbox-flush-rebase */mergeQueuedStaffWork();/* ksm:post-split-end */disconnectCloudSocket();connectCloudSocket();showKsmToast('✓ Staff access enabled',1500)}catch(_){alert('Incorrect Staff password.')}}
+async function toggleStaffSession(){if(ksmSessionRole==='staff'){sessionStorage.removeItem(KSM_V316_STAFF_SESSION);setSessionRole('spectator');installRoleBanner('spectator');disconnectCloudSocket();connectCloudSocket();navigateTo('public');return}if(!cloudSession.tournamentId){alert('Create or load a tournament before Staff Login.');return}/* ksm:post-split-begin refresh-keeps-staff */const loginTournament=cloudSession.tournamentId,loginEpoch=ksmTournamentEpoch;/* ksm:post-split-end */const password=prompt('Enter Staff password');if(!password)return;try{const response=await fetch(`/api/tournaments/${encodeURIComponent(cloudSession.tournamentId)}/auth`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password})});/* ksm:post-split-begin delete-tournament */if(response.status===410){ksmAnnounceTournamentGone(cloudSession.tournamentId);return}/* ksm:post-split-end *//* ksm:post-split-begin staff-hardening was:if(!response.ok)throw new Error();sessionStorage.setItem(KSM_V316_STAFF_SESSION,password); */const info=await response.json().catch(()=>null);if(!response.ok){if(response.status===429&&info?.error){alert(info.error);return}throw new Error()}if(loginEpoch!==ksmTournamentEpoch||loginTournament!==cloudSession.tournamentId)return;ksmStoreStaffToken(info?.token||password,loginTournament);/* ksm:post-split-end */setSessionRole('staff');installRoleBanner('staff');/* ksm:post-split-begin outbox-flush-rebase */mergeQueuedStaffWork();/* ksm:post-split-end */disconnectCloudSocket();connectCloudSocket();showKsmToast('✓ Staff access enabled',1500)}catch(_){alert('Incorrect Staff password.')}}
 function installRoleBanner(role){document.querySelector('.spectator-readonly-banner')?.remove();if(role!=='spectator')return;const banner=document.createElement('div');banner.className='spectator-readonly-banner';banner.textContent='LIVE SPECTATOR VIEW • READ ONLY';document.body.prepend(banner)}
 function readTournamentLibrary(){try{return JSON.parse(localStorage.getItem(KSM_V316_LIBRARY)||'[]')}catch(_){return []}}
 function writeTournamentLibrary(list){localStorage.setItem(KSM_V316_LIBRARY,JSON.stringify((list||[]).slice(0,100)))}
@@ -102,7 +137,7 @@ async function performCloudSave(payload=tournamentPayload(),baseRevision=cloudSe
   if(response.status===401){
     writeCloudDiagnosticsState({attemptId,stage:'Staff session expired',errorMessage:(parsed&&parsed.error)||'Staff session expired'});
     // F33: queue the unsaved work as staff work before the role changes (writeOutbox() stamps the role).
-    if(ksmStaffToken(v316StaffPassword())){writeOutbox(payload,'Staff session expired');sessionStorage.removeItem(KSM_V316_STAFF_SESSION);setSessionRole('spectator');installRoleBanner('spectator');disconnectCloudSocket();connectCloudSocket();showKsmToast('Staff session expired · use Staff Login again',4000,true)}
+    ksmExpireStaffSession(payload);
     throw new Error('Session authorization required');
   }
   /* ksm:post-split-end */
@@ -168,7 +203,7 @@ async function performCloudSave(payload=tournamentPayload(),baseRevision=cloudSe
   /* ksm:post-split-begin tournament-switcher */if(!existing)ksmPushTournamentAddress(record.tournamentId);/* ksm:post-split-end */
   /* ksm:post-split-begin staff-hardening */
   // Creating the tournament logged this device in: keep the session token instead of the password.
-  if(!existing){const token=response.headers.get('x-ksm-session-token');if(ksmStaffToken(token))sessionStorage.setItem(KSM_V316_STAFF_SESSION,token)}
+  if(!existing){const token=response.headers.get('x-ksm-session-token');if(ksmStaffToken(token))ksmStoreStaffToken(token,record.tournamentId)}
   /* ksm:post-split-end */
   setSessionRole(v316StaffPassword()?'staff':'spectator');
   clearOutbox();
@@ -190,5 +225,14 @@ async function performCloudSave(payload=tournamentPayload(),baseRevision=cloudSe
   if(idChanged||!ksmCloudSocket)connectCloudSocket();
   return record;
 }
-async function loadTournamentFromCloud(tournamentId,options={}){const id=(tournamentId||cloudSession.tournamentId||'').trim();if(!id)throw new Error('Tournament ID required');setConnectionStatus('Loading cloud…','connecting');/* ksm:post-split-begin friendly-links was:const response=await fetch(`/api/tournaments/${encodeURIComponent(id)}`); */const epoch=ksmTournamentEpoch;const response=await ksmFetchTournament(id);if(epoch!==ksmTournamentEpoch)throw Object.assign(new Error('Tournament changed'),{code:'transition-cancelled'});/* ksm:post-split-end *//* ksm:post-split-begin delete-tournament */if(response.status===410){ksmAnnounceTournamentGone(id,true);throw ksmGoneError()}/* ksm:post-split-end */if(!response.ok)throw new Error(`Cloud load failed (${response.status})`);const record=await response.json();/* ksm:post-split-begin friendly-links */cloudSession.slug=record.slug||null;/* ksm:post-split-end */const requestedCourt=options.court?normalizeCourt(options.court):pinnedCourt();cloudSession.tournamentId=record.tournamentId;if(requestedCourt)pinCourtLocally(requestedCourt);disconnectCloudSocket();ksmApplyingRemoteSnapshot=true;try{applyTournamentPayload(record.payload,false,{pinnedCourt:requestedCourt});localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(record.payload))}finally{ksmApplyingRemoteSnapshot=false}cloudSession.tournamentId=record.tournamentId;cloudSession.revision=record.revision;cloudSession.updatedAt=record.updatedAt;cloudSession.court=requestedCourt||'';persistCloudSession();/* ksm:post-split-begin edit-merge */rememberCloudBase(record);/* ksm:post-split-end */rememberTournament(record);ksmLastSuccessfulSaveAt=Date.parse(record.updatedAt)||Date.now();ksmSaveStatusMode='saved';setSessionRole(v316StaffPassword()?'staff':'spectator');installRoleBanner(ksmSessionRole);connectCloudSocket();setConnectionStatus('Connected','online');renderPersistentSaveStatus();return record}
-async function initializeCloudRoleFromUrl(){/* ksm:post-split-begin path-urls */ksmRouteLoading++;try{/* ksm:post-split-end *//* ksm:post-split-begin friendly-links */await ksmResolveSlug();/* ksm:post-split-end */ensureClientIdentity();const params=/* ksm:post-split-begin path-urls was:new URLSearchParams(location.search) */ksmLinkParams()/* ksm:post-split-end */;const id=params.get('tournament')||params.get('spectator')||'';const requestedView=params.get('view')||'';const requestedCourt=/* ksm:post-split-begin court-pin was:(params.get('court')||'A').toUpperCase()==='B'?'B':'A' */params.get('court')?normalizeCourt(params.get('court')):(requestedView!=='tv'&&id&&storedCourtPin(id))||'A'/* ksm:post-split-end */;if(id){sessionStorage.removeItem(KSM_V316_STAFF_SESSION);await loadTournamentFromCloud(id,{spectator:true,court:requestedCourt});setSessionRole('spectator');installRoleBanner('spectator');document.body.classList.remove('ksm-home');if(requestedView==='tv'){document.body.classList.add('ksm-tv');cloudSession.court=requestedCourt;persistCloudSession();renderTvDisplay();renderTvRealtimeDiagnostics();show('tv')}else{document.body.classList.remove('ksm-tv');/* ksm:post-split-begin path-urls was:navigateTo('public') */ksmShowRequestedScreen()/* ksm:post-split-end */}return true}/* ksm:post-split-begin tournament-switcher */await /* ksm:post-split-end */showHomePage();return true/* ksm:post-split-begin path-urls */}finally{ksmRouteLoading--;}/* ksm:post-split-end */}
+async function loadTournamentFromCloud(tournamentId,options={}){const id=(tournamentId||cloudSession.tournamentId||'').trim();if(!id)throw new Error('Tournament ID required');setConnectionStatus('Loading cloud…','connecting');/* ksm:post-split-begin friendly-links was:const response=await fetch(`/api/tournaments/${encodeURIComponent(id)}`); */const epoch=ksmTournamentEpoch;const response=await ksmFetchTournament(id);if(epoch!==ksmTournamentEpoch)throw Object.assign(new Error('Tournament changed'),{code:'transition-cancelled'});/* ksm:post-split-end *//* ksm:post-split-begin delete-tournament */if(response.status===410){ksmAnnounceTournamentGone(id,true);throw ksmGoneError()}/* ksm:post-split-end */if(!response.ok)throw new Error(`Cloud load failed (${response.status})`);const record=await response.json();/* ksm:post-split-begin friendly-links */cloudSession.slug=record.slug||null;/* ksm:post-split-end */const requestedCourt=options.court?normalizeCourt(options.court):pinnedCourt();cloudSession.tournamentId=record.tournamentId;if(requestedCourt)pinCourtLocally(requestedCourt);disconnectCloudSocket();ksmApplyingRemoteSnapshot=true;try{applyTournamentPayload(record.payload,false,{pinnedCourt:requestedCourt});localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(record.payload))}finally{ksmApplyingRemoteSnapshot=false}cloudSession.tournamentId=record.tournamentId;cloudSession.revision=record.revision;cloudSession.updatedAt=record.updatedAt;cloudSession.court=requestedCourt||'';persistCloudSession();/* ksm:post-split-begin edit-merge */rememberCloudBase(record);/* ksm:post-split-end */rememberTournament(record);ksmLastSuccessfulSaveAt=Date.parse(record.updatedAt)||Date.now();ksmSaveStatusMode='saved';/* ksm:post-split-begin refresh-keeps-staff was:setSessionRole(v316StaffPassword()?'staff':'spectator');installRoleBanner(ksmSessionRole);connectCloudSocket(); */setSessionRole(v316StaffPassword()?'staff':'spectator');if(!isReadOnlySession())mergeQueuedStaffWork();installRoleBanner(ksmSessionRole);if(!options.resumeStaff)connectCloudSocket();/* ksm:post-split-end */setConnectionStatus('Connected','online');renderPersistentSaveStatus();return record}
+async function initializeCloudRoleFromUrl(){/* ksm:post-split-begin path-urls */ksmRouteLoading++;try{/* ksm:post-split-end *//* ksm:post-split-begin friendly-links */await ksmResolveSlug();/* ksm:post-split-end */ensureClientIdentity();const params=/* ksm:post-split-begin path-urls was:new URLSearchParams(location.search) */ksmLinkParams()/* ksm:post-split-end */;const id=params.get('tournament')||params.get('spectator')||'';const requestedView=params.get('view')||'';const requestedCourt=/* ksm:post-split-begin court-pin was:(params.get('court')||'A').toUpperCase()==='B'?'B':'A' */params.get('court')?normalizeCourt(params.get('court')):(requestedView!=='tv'&&id&&storedCourtPin(id))||'A'/* ksm:post-split-end */;if(id){/* ksm:post-split-begin refresh-keeps-staff was:sessionStorage.removeItem(KSM_V316_STAFF_SESSION);await loadTournamentFromCloud(id,{spectator:true,court:requestedCourt});setSessionRole('spectator');installRoleBanner('spectator'); */const staff=ksmStaffToken(sessionStorage.getItem(KSM_V316_STAFF_SESSION))&&sessionStorage.getItem(KSM_STAFF_TOURNAMENT)===id&&!ksmExplicitSpectatorUrl&&requestedView!=='tv'&&params.get('role')!=='spectator'&&!params.has('spectator');if(!staff)sessionStorage.removeItem(KSM_V316_STAFF_SESSION);await loadTournamentFromCloud(id,{spectator:!staff,court:requestedCourt,resumeStaff:staff});if(staff){await ksmResumeStaffSession(id);connectCloudSocket()}installRoleBanner(ksmSessionRole);/* ksm:post-split-end */document.body.classList.remove('ksm-home');if(requestedView==='tv'){document.body.classList.add('ksm-tv');cloudSession.court=requestedCourt;persistCloudSession();renderTvDisplay();renderTvRealtimeDiagnostics();show('tv')}else{document.body.classList.remove('ksm-tv');/* ksm:post-split-begin path-urls was:navigateTo('public') */ksmShowRequestedScreen()/* ksm:post-split-end */}return true}/* ksm:post-split-begin refresh-keeps-staff */
+// The Library URL has no ID. Only this tab's explicitly scoped token may restore its context.
+const savedId=sessionStorage.getItem(KSM_STAFF_TOURNAMENT);
+if(!window.ksmBootstrapReady&&savedId&&ksmStaffToken(sessionStorage.getItem(KSM_V316_STAFF_SESSION))){
+  await loadTournamentFromCloud(savedId,{resumeStaff:true});await ksmResumeStaffSession(savedId);connectCloudSocket();
+  document.body.classList.add('ksm-home');installRoleBanner('home');renderHomeTournamentLibrary();show('home');return true;
+}
+// Unscoped legacy tokens are intentionally discarded; a fresh login binds them safely.
+sessionStorage.removeItem(KSM_V316_STAFF_SESSION);
+/* ksm:post-split-end *//* ksm:post-split-begin tournament-switcher */await /* ksm:post-split-end */showHomePage();return true/* ksm:post-split-begin path-urls */}finally{ksmRouteLoading--;}/* ksm:post-split-end */}
