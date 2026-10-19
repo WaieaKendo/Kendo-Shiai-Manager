@@ -61,16 +61,19 @@ def main():
             director.pools(DIV)
             director.click('pool-edit')
             director.pool_edit_move(1)
+            director.watch_conflicts()
+            director.hold_next_save()
             director.click('pool-edit-save')
+            director.wait_held_save()
             edited = names(director.structure()[DIV]['pools'])
             record = fetch_record(base, tid)
             before = names(record['payload']['state']['pools'][DIV])
             assert edited != before, 'the pool edit changed nothing'
             server_edit(record['payload']['state']['allMatches'])
             put_record(base, tid, record['payload'], record['revision'])
-            time.sleep(4)
+            director.release_save()
             director.wait_idle()
-            assert director.diagnostics().get('rebaseAttempt', 0) >= 1, 'the director save did not conflict: the test no longer races'
+            assert director.conflicts() >= 1, 'the held pool-edit save did not conflict'
             return before, edited, fetch_record(base, tid)
 
         def first_open(matches, div):

@@ -36,8 +36,10 @@ def _healthy(base):
 
 
 @contextlib.contextmanager
-def local_worker(timeout=60):
+def local_worker(timeout=60, restartable=False):
     if os.environ.get('KSM_BASE_URL'):
+        if restartable:
+            raise RuntimeError('Restart tests need their own worker; unset KSM_BASE_URL')
         yield os.environ['KSM_BASE_URL'].rstrip('/')
         return
     wrangler = ROOT / 'node_modules' / '.bin' / 'wrangler'
@@ -47,26 +49,48 @@ def local_worker(timeout=60):
     port = _free_port()
     state_dir = tempfile.mkdtemp(prefix='ksm-e2e-')
     log = open(Path(state_dir) / 'wrangler.log', 'w')
-    proc = subprocess.Popen(
-        # Own inspector port too (default 9229), so several e2e tests can run in parallel.
-        [str(wrangler), 'dev', '--ip', '127.0.0.1', '--port', str(port), '--inspector-port', str(_free_port()),
-         '--persist-to', state_dir, '--log-level', 'warn'],
-        cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
-        env={**os.environ, 'WRANGLER_SEND_METRICS': 'false', 'CI': '1'},
-        start_new_session=True,
-    )
+    proc = None
     base = f'http://127.0.0.1:{port}'
-    try:
+
+    def stop():
+        nonlocal proc
+        if proc is not None:
+            os.killpg(proc.pid, 15)
+            proc.wait(timeout=10)
+            proc = None
+
+    def start():
+        nonlocal proc
+        if proc is not None:
+            raise RuntimeError('Stop the worker before starting it again')
+        proc = subprocess.Popen(
+            # Same port and persisted storage on restart; separate inspector port per worker.
+            [str(wrangler), 'dev', '--ip', '127.0.0.1', '--port', str(port), '--inspector-port', str(_free_port()),
+             '--persist-to', state_dir, '--log-level', 'warn'],
+            cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
+            env={**os.environ, 'WRANGLER_SEND_METRICS': 'false', 'CI': '1'},
+            start_new_session=True,
+        )
         deadline = time.time() + timeout
         while not _healthy(base):
             if proc.poll() is not None or time.time() > deadline:
                 log.flush()
                 raise RuntimeError('wrangler dev did not start:\n' + (Path(state_dir) / 'wrangler.log').read_text()[-3000:])
             time.sleep(0.3)
-        yield base
+
+    class RestartableURL(str):
+        """URL compatible with existing helpers; restart retains Durable Object storage."""
+        def stop(self):
+            stop()
+
+        def start(self):
+            start()
+
+    try:
+        start()
+        yield RestartableURL(base) if restartable else base
     finally:
         with contextlib.suppress(Exception):
-            os.killpg(proc.pid, 15)
-            proc.wait(timeout=10)
+            stop()
         log.close()
         shutil.rmtree(state_dir, ignore_errors=True)

@@ -105,15 +105,19 @@ def main():
         court.wait_idle()
         director.wait_revision(court.revision())
         director.nav('setup')
-        court.score_point('R', 'K')
-        time.sleep(1)  # the court's save goes first, the director's save then conflicts
+        director.watch_conflicts()
+        director.hold_next_save()
         director.page.fill(sel('setup-tournament-name'), 'Renamed Cup')
         director.page.press(sel('setup-tournament-name'), 'Tab')
-        time.sleep(4)
+        director.wait_held_save()
+        court.score_point('R', 'K')
+        court.save_now()
+        court.wait_idle()
+        director.release_save()
         director.wait_idle()
         court.wait_idle()
         final = fetch_record(base, tid)
-        assert director.diagnostics().get('rebaseAttempt', 0) >= 1, 'the director save did not conflict: the test no longer races'
+        assert director.conflicts() >= 1, 'the held director save did not conflict'
         assert any(m.get('rp') == ['K'] for m in final['payload']['state']['allMatches']['Elim']), 'the court point was lost'
         assert final['payload']['setup']['tName'] == 'Renamed Cup' and name_field(director) == 'Renamed Cup', \
             f'F4: the rename was lost in the conflict ({final["payload"]["setup"]["tName"]!r}, field {name_field(director)!r})'
@@ -123,13 +127,17 @@ def main():
             """Director edits a Setup field; before its save goes out another device saves `server_edit`."""
             director.wait_idle()
             director.wait_revision(fetch_record(base, tid)['revision'])
+            director.watch_conflicts()
+            director.hold_next_save()
             director.page.fill(sel(testid), value)
             director.page.press(sel(testid), 'Tab')
+            director.wait_held_save()
             record = fetch_record(base, tid)
             server_edit(record['payload'])
             put_record(base, tid, record['payload'], record['revision'])
-            time.sleep(4)
+            director.release_save()
             director.wait_idle()
+            assert director.conflicts() >= 1, 'the held Setup save did not conflict'
             return fetch_record(base, tid)['payload']
 
         # Unrelated fields on both sides: both survive.
