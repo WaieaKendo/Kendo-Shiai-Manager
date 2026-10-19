@@ -16,6 +16,7 @@ def main():
             a = KsmApp.open_device(browser, base, failure, problems, tournament_name=f'Startup {failure} {cached}')
             tid = a.create_tournament(); a.wait_idle()
             token = a.staff_session()
+            a.page.on('dialog', lambda dialog: problems.append('Unexpected startup dialog: '+dialog.message))
             # Block saves without emitting an offline event (navigator.onLine stays true).
             endpoint = f'**/api/tournaments/{tid}'
             def blocked(route):
@@ -54,16 +55,18 @@ def main():
             assert a.staff_session() == token
             a.socket_barrier()
             a.close()
-        a = KsmApp.open_device(browser, base, '404', problems)
-        tid = a.create_tournament(); a.wait_idle()
-        a.page.route(f'**/api/tournaments/{tid}', lambda route: route.fulfill(status=404, body='Not found') if route.request.method == 'GET' else route.continue_())
-        a.reload()
-        assert a.visible_view() == ['home']
-        assert not a.staff_session()
-        assert not a.page.locator('#startupLoadFailure').count()
+        for status in (404, 410):
+            a = KsmApp.open_device(browser, base, str(status), problems, tournament_name=f'Gone {status}')
+            tid = a.create_tournament(); a.wait_idle()
+            a.page.on('dialog', lambda dialog: problems.append('Unexpected startup dialog: '+dialog.message))
+            a.page.route(f'**/api/tournaments/{tid}', lambda route: route.fulfill(status=status, body='Not found') if route.request.method == 'GET' else route.continue_())
+            a.reload()
+            assert a.visible_view() == ['home']
+            assert not a.staff_session()
+            assert not a.page.locator('#startupLoadFailure').count()
         assert not problems, problems
         browser.close()
-    print('PASS startup load recovery: 503, dropped request, no cache, Retry, staff, queue, 404')
+    print('PASS startup load recovery: 503, dropped request, no cache, Retry, staff, queue, 404/410')
 
 
 if __name__ == '__main__': main()

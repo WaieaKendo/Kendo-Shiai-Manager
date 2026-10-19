@@ -195,7 +195,8 @@ const KNOWN_POST_SPLIT_EDITS = {
   // #40: persist and normalize the audience orientation.
   'tv-red-side': 2,
   // fix/pre-event (F11): saveAuto(), called by the awards editor but never defined (app/js/20).
-  'startup-recovery': 4,
+  'autosave-origin': 8,
+  'startup-recovery': 6,
   'award-save': 1,
   // feat/delete-tournament (issue #26, the app side): a tournament deleted on the server (410
   // 'tournament-deleted', or the live connection closed with 'Tournament deleted') is forgotten by

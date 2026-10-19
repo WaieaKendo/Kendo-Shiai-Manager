@@ -22,7 +22,7 @@ def main():
         # Start with a local-only autosave, without a persisted cloud identity.
         a.page.evaluate('''payload=>{
           disconnectCloudSocket();sessionStorage.clear();
-          cloudSession.tournamentId=null;persistCloudSession();
+          cloudSession.tournamentId=null;persistCloudSession();localStorage.removeItem(KSM_AUTOSAVE_CLOUD_ID);
           payload.setup.tName='Local draft';
           localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(payload));
           document.body.classList.add('ksm-home');

@@ -22,7 +22,7 @@ function ksmReadLocalDraft(){
   if(params.get('tournament')||params.get('spectator')||params.get('view')==='tv'||ksmExplicitSpectatorUrl)return null;
   try{
     const payload=JSON.parse(localStorage.getItem(KSM_SAVE_KEY)||'null');
-    if(!payload?.state||payload.tournamentId||payload.cloud?.tournamentId||ksmBootAutosaveCloudId||cloudSession.tournamentId)return null;
+    if(!payload?.state||localStorage.getItem(KSM_AUTOSAVE_CLOUD_ID)||cloudSession.tournamentId)return null;
     return payload;
   }catch(_){return null}
 }
