@@ -95,7 +95,7 @@ Test names drop `-test.py`/`-test.mjs`; `vm` tests run extracted app code in Nod
 
 - **51 edit paths** (12 court actions, 8 Setup, 10 Registration, 4 structural, 1 awards, 4 files, 3 library, 9 sync paths).
 - **Fully covered** (every applicable column ✅, C6 hantei not counted): **21** after this audit (C1, C2, C3, C5, C7, C12, S1, R1, G2, A1, F4, L1–L3, Y1–Y4, Y6, Y7, Y9; R1, Y6 and Y7 with an open finding pinned). **Before the audit: 15**: C2, C3, S1, R1, G2 and A1 lacked the second-device, reload or conflict check that `edit-conflicts`/`edit-sync` add. Of the other 30, most miss only the conflict column (covered by the vm merge tests, not end to end).
-- **Gaps by risk** (below): 17 ranked gaps (5 high event impact, 8 medium, 4 low): 3 closed in part 1 (ranks 4, 5, 6 apart from its conflict case), 3 pinned by expected-failure checks (ranks 1, 2, 11), 11 with a planned test; plus 10 network cases for part 2.
+- **Gaps by risk** (below): 17 ranked gaps (5 high event impact, 8 medium, 4 low): 3 closed in part 1 (ranks 4, 5, 6 apart from its conflict case), 3 pinned by expected-failure checks (ranks 1, 2, 11), 11 with a planned test; plus 10 network cases for part 2: **5 covered** (N1–N4, N6), **5 planned** (N5, N7–N10).
 - **Findings:** F26–F31 (F31 fixed here; F26, F27, F30 fixed in `fix/pre-event-2`; F29 open and pinned by an expected-failure check; F28 a note).
 
 ## Gaps, ranked by risk
@@ -127,18 +127,20 @@ Risk = what could go wrong at an event × how likely the store refactor (2.8 com
 | # | Case | What exists | Planned test |
 |---|---|---|---|
 | N1 | **A save that never answers.** `performCloudSave()` had no timeout; while a request hung `ksmCloudSaveInFlight` stayed true and every later save only queued behind it. **Fixed with F35** (docs/ROADMAP.md): a save to an existing tournament is given up after 20 s and queued; a queued save is retried by itself (it was sent only when the socket reopened, on `online` or with the next edit, so one 503 with the socket open left a device "unsaved": the CI `wait_idle()` flakes) | `save-retry-test.py` | ✅ done: `hold_next_save()` never released (`drop_held_save()`), Playwright clock past the timeout; a 503 with the socket open. `wait_idle()` now reports why a device is still unsaved (`KSMTest.pendingReason()`) |
-| N2 | Offline mid-match while the other court keeps saving, then reconnect | sync-saving (offline queue), reload-restore | Court A offline for three points and a Next Match while Court B scores; both survive the flush + rebase |
-| N3 | Failed saves: 500, 422 (integrity), 403/401, and 409 more than `KSM_CLOUD_REBASE_MAX_ATTEMPTS` (4) times in a row | sync-saving (rejected save, retry), staff-login-hardening (401) | Route answers per case: the work stays queued, the status says so, nothing is lost |
-| N4 | Reload while a save is in flight (not only before it) | reload-restore (before the debounced save) | Hold a save, reload: the work is in the outbox and reaches the server after login |
+| N2 | Offline mid-match while the other court keeps saving, then reconnect | `network-offline-test.py` | ✅ done: Court A offline for three points and Next Match while Court B saves twice; assert a 409 rebase, both courts’ exact points and completion on server/both devices, and the advanced match on both devices |
+| N3 | Failed saves: 500, 422 (integrity), 403/401, and 409 more than `KSM_CLOUD_REBASE_MAX_ATTEMPTS` (4) times in a row | `network-failed-saves-test.py` | ✅ done: route each refusal (five consecutive 409s, four rebases); staff outbox retained, status warns, server unchanged; clear route and recover without another edit (401: Staff Login; 403: Retry queued save); exact point on server/both devices |
+| N4 | Reload while a save is in flight (not only before it) | `network-reload-test.py` | ✅ done: hold save, reload, observe staff outbox before recovery, release/drop the old request; same staff token and Logout survive refresh (#74); exact point reaches server/both devices without Staff Login |
 | N5 | Stale tab: a device asleep for hours saves from a very old base; a staff token expired (F25) | none (F25 noted) | Old base revision + rebase; F25's status row |
-| N6 | Server restart (wrangler restart / Durable Object evicted) | none | Restart the local worker mid-match: sockets reconnect, revisions continue, queued work flushes |
+| N6 | Server restart (wrangler restart / Durable Object evicted) | `network-restart-test.py` | ✅ done: stop/start the real local worker on the same port and persisted storage; score during outage, observe queue; both sockets reconnect and answer ping/pong, revisions continue, exact points converge without duplicates |
 | N7 | Late, duplicate and out-of-order socket messages, one arriving during a rebase | sync-remote-updates (stale, duplicate, own echo) | Deliver an older record after a newer one during a held save; a delete broadcast |
 | N8 | Two tabs of one browser on the same tournament (shared localStorage outbox and autosave) | none | Two pages in one context: queued work of one is not cleared or blocked by the other |
 | N9 | App update mid-event (service worker) with queued work in the old format | path-urls (offline copy) | Queue work on version N, load N+1: the outbox still flushes |
 | N10 | Device clocks that disagree (history entries are keyed and sorted by device time) | none | Two courts with skewed clocks (Playwright clock) through a rebase: no history entry lost or duplicated |
 
+The first #60 PR stops at N6 in the requested execution order (N2, N3, N4, N6). N5 and N7–N10 remain planned for the next PR; N9 still needs a reliable old/new service-worker fixture. No new F-findings in these cases.
+
 ### Harness notes
 
-- Save races are now made deterministic by holding a save at the network (`KsmApp.hold_next_save()` / `wait_held_save()` / `release_save()`, counted by `conflicts()`). `sync-remote-updates-test.py` (F4) and `structural-edit-conflict-test.py` (F10) still race with fixed sleeps (`time.sleep(1)`/`(4)`); move them to the hold helpers in part 2 (CI runs on Linux under load).
+- Save races are now made deterministic by holding a save at the network (`KsmApp.hold_next_save()` / `wait_held_save()` / `release_save()`, counted by `conflicts()`). `sync-remote-updates-test.py` (F4, including its additional Setup merge races) and `structural-edit-conflict-test.py` (all three F10 choices) now hold the director’s save until the competing save completes and assert `conflicts() >= 1`; no fixed sleeps remain in these race tests.
 - The test API gained `watchConflicts()`/`conflicts()`; KsmApp gained `set_competitor_field`, `regenerate_division`, `add_award`/`awards`, `blur` (docs/TESTING.md).
 - Kachinuki rule (pinned, not a finding; **confirmed by the owners**): a team's last player must **lose** for the team to lose; a draw eliminates only the other team's player while that team still has players (the current behaviour).
