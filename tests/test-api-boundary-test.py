@@ -50,13 +50,15 @@ def app_globals():
 def build_pattern(names):
     alt = '|'.join(sorted(map(re.escape, names), key=len, reverse=True))
     # A bare identifier: not a property (.x), not part of a data-testid / CSS / path word (x-, -x, /x, #x).
-    return re.compile(r'(?<![\w$.\-\'"/#])(' + alt + r')(?![\w$\-\'"])|\bwindow\.(' + alt + r')\b')
+    # Or the same global through window / globalThis / self, as .name or ["name"].
+    return re.compile(r'(?<![\w$.\-\'"/#])(' + alt + r')(?![\w$\-\'"])'
+                      r'|\b(?:window|globalThis|self)\s*(?:\.\s*(' + alt + r')\b|\[\s*[\'"](' + alt + r')[\'"]\s*\])')
 
 
 def is_reference(text, m):
     """Whether the match is a use of the app global (not an object key such as `{state: 1}`, and a
     word like `show` only when called or assigned)."""
-    name = m.group(1) or m.group(2)
+    name = m.group(1) or m.group(2) or m.group(3)
     after = text[m.end():]
     if m.group(1):
         before = text[:m.start()].rstrip()
@@ -97,7 +99,7 @@ def violations(source, pattern, filename='<test>'):
             for text, line in strings_in(node, consts):
                 for m in pattern.finditer(text):
                     if is_reference(text, m):
-                        found.setdefault(m.group(1) or m.group(2), line)
+                        found.setdefault(m.group(1) or m.group(2) or m.group(3), line)
     return found
 
 
@@ -111,6 +113,9 @@ def main():
     assert not violations("page.evaluate('KSMTest.app.state.competitors.length')", pattern)
     assert not violations("page.evaluate('() => document.querySelector(\"[data-testid=x]\").dataset.state')", pattern)
     assert not violations("page.evaluate('({state: 1}).state')", pattern)
+    assert violations("page.evaluate('window[\"state\"].x')", pattern) == {'state': 1}
+    assert violations("page.evaluate('globalThis.renderAll()')", pattern) == {'renderAll': 1}
+    assert violations("page.evaluate('self.state')", pattern) == {'state': 1}
 
     # Every KSMTest.app.<name> a test uses is defined in the test API (a typo would only fail when that test runs).
     api = (TESTS / 'lib' / 'ksm-test-api.js').read_text(encoding='utf-8')
@@ -118,6 +123,14 @@ def main():
     for f in sorted(TESTS.glob('*.py')):
         for name in sorted(set(re.findall(r'KSMTest\.app\.([A-Za-z_$][\w$]*)', f.read_text(encoding='utf-8'))) - defined):
             problems.append(f'{f.name}: KSMTest.app.{name} is not defined in tests/lib/ksm-test-api.js')
+
+    # Assigning KSMTest.app.<name> = ... needs a setter (a stub that does not reach the app is silently ignored).
+    setters = set(re.findall(r'set ([A-Za-z_$][\w$]*)\(v\)', api))
+    for f in sorted(TESTS.glob('*.py')):
+        for name in sorted(set(re.findall(r'KSMTest\.app\.([A-Za-z_$][\w$]*)\s*=(?![=>])', f.read_text(encoding='utf-8'))) - setters):
+            problems.append(f'{f.name}: KSMTest.app.{name} is assigned but has no setter in tests/lib/ksm-test-api.js')
+    assert re.search(r'KSMTest\.app\.([A-Za-z_$][\w$]*)\s*=(?![=>])', 'KSMTest.app.poolFinished=()=>1').group(1) == 'poolFinished'
+    assert not re.search(r'KSMTest\.app\.([A-Za-z_$][\w$]*)\s*=(?![=>])', 'KSMTest.app.state == 1')
 
     used = set()
     for f in sorted(TESTS.glob('*.py')):

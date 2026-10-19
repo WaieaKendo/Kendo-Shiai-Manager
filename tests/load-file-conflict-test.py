@@ -80,8 +80,9 @@ def main():
         assert played(server_copy, 'Open A') == [('OA 1', 'OA 2', ['K'], [])] and played(server_copy, 'Open B') == [('OB 1', 'OB 2', [], ['D'])], \
             f'F37 fixed? Replace no longer loses to the other save: {played(server_copy, "Open A")} {played(server_copy, "Open B")}: assert the new behaviour and mark F37 fixed'
         assert not [d for d in director.seen_dialogs if 'Re-apply' in d or 'replace' in d.lower()], f'F37 fixed? the director is asked: {director.seen_dialogs}'
-        toasts = ' | '.join(director.page.evaluate('KSMTest.toasts()'))
-        assert 'not saved' not in toasts and 'Replace' not in toasts, f'F37 fixed? the director is told: {toasts}'
+        # Every toast the director saw: sign-in and tournament creation only (the exact texts), nothing about the file.
+        toasts = director.page.evaluate('KSMTest.toasts()')
+        assert toasts == ['Creating tournament in cloud…', '✓ Tournament created'], f'F37 fixed? the director is told something: {toasts}'
         for app in (director, a, b):
             assert played(app.payload(), 'Open A') == played(server_copy, 'Open A') and played(app.payload(), 'Open B') == played(server_copy, 'Open B'), \
                 f'2: {app.name} differs from the server'

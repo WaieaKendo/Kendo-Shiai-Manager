@@ -181,7 +181,8 @@ window.KSMTest = {
   // build a tournament state by hand, the golden tests that stage a screen) reach it as
   // KSMTest.app.<name>, never as a bare global, so the day the store (#15) replaces `state`, the
   // functions or the sync variables, only this table changes. Functions are thin pass-throughs;
-  // variables are accessors; the few functions a test replaces (stubs) have setters.
+  // variables are accessors; the few functions a test replaces (stubs) have setters. Assigning to a name
+  // without a setter throws (see the Proxy below), so a stub can never silently miss the app.
   // tests/test-api-boundary-test.py fails if a test script reaches an internal any other way.
   app: {
     // Tournament data and settings (objects: read, and change their fields)
@@ -275,9 +276,9 @@ window.KSMTest = {
     point: (...a) => point(...a),
     get poolFinished() { return poolFinished; }, set poolFinished(v) { poolFinished = v; },
     poolMatchPairs: (...a) => poolMatchPairs(...a),
-    poolPositionsResolved: (...a) => poolPositionsResolved(...a),
+    get poolPositionsResolved() { return poolPositionsResolved; }, set poolPositionsResolved(v) { poolPositionsResolved = v; },
     poolSeedResolution: (...a) => poolSeedResolution(...a),
-    poolStandings: (...a) => poolStandings(...a),
+    get poolStandings() { return poolStandings; }, set poolStandings(v) { poolStandings = v; },
     printDivisionSheet: (...a) => printDivisionSheet(...a),
     readOutbox: (...a) => readOutbox(...a),
     recomputeChampionshipAdvancement: (...a) => recomputeChampionshipAdvancement(...a),
@@ -409,6 +410,17 @@ window.KSMTest = {
     nextMatch();
   },
 };
+
+// A test that assigns KSMTest.app.<name> must reach the app's own global: only names with a setter
+// accept an assignment, anything else throws instead of overwriting a gateway property.
+KSMTest.app = new Proxy(KSMTest.app, {
+  set(target, key, value, receiver) {
+    if (Object.getOwnPropertyDescriptor(target, key)?.set) return Reflect.set(target, key, value, receiver);
+    throw new TypeError(`KSMTest.app.${String(key)} has no setter: add one to tests/lib/ksm-test-api.js to stub it`);
+  },
+  defineProperty() { throw new TypeError('KSMTest.app cannot be redefined'); },
+  deleteProperty() { throw new TypeError('KSMTest.app cannot be changed'); },
+});
 
 // Every toast the device showed, in order. A toast is transient (it fades after a few seconds and
 // the next one replaces its text), so a test that polls the element can miss one on a slow
