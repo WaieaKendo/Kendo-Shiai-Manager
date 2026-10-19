@@ -1,7 +1,7 @@
 """Tournament files: Download / Load Tournament File (.ksm) and Load Recovery File.
 
 Roadmap 0.5 and M.12. Two staff devices on a throwaway `wrangler dev`, everything through
-the Save / Load menu (test IDs, Playwright's download and file-chooser APIs):
+Library and Setup actions (test IDs, Playwright's download and file-chooser APIs):
   * Download Tournament File writes the tournament (setup, state) with its tournament ID and
     cloud revision;
   * loading that file on the same tournament asks first (file name, saved date, revision, ID
@@ -99,7 +99,7 @@ def main():
         director.wait_idle()
         before = server(tid)['payload']['state']
         director.expect_dialog('Unable to load')
-        recovery_name, recovery_path = director.download('nav-download-recovery', menu='nav-save-load')
+        recovery_name, recovery_path = director.download('setup-download-recovery', menu='nav-setup')
         invalid = [
             (write_text(tmp / 'not-json.ksm', '{not json'), 'Unable to load this tournament file.'),
             (write_json(tmp / 'no-state.ksm', {'setup': saved['setup']}), 'Unable to load no-state.ksm: it holds no tournament data. Nothing was changed.'),
@@ -190,6 +190,7 @@ def main():
         refused = 'This device has changes that could not be saved to the cloud yet.'
         director.expect_dialog(refused)
         page.context.set_offline(True)
+        director.open_court('A')
         director.score_point('R', 'D')
         director.wait_for(director.outbox, message='the offline point to be queued')
         director.seen_dialogs.clear()
@@ -206,7 +207,7 @@ def main():
         before = server(tid)
         director.seen_dialogs.clear()
         director.load_recovery_file(recovery_path)
-        director.wait_for(lambda: page.inner_text(sel('save-status')).strip() == 'Recovery file loaded', message='the recovery file to load')
+        director.wait_for(lambda: page.inner_text(sel('save-status')).strip().endswith('Recovery file loaded'), message='the recovery file to load')
         director.save_now()
         director.wait_for(lambda: director.tournament_id() not in (None, tid), message='the recovered tournament')
         director.wait_idle()

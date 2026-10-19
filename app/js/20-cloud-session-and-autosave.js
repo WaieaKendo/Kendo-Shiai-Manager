@@ -70,15 +70,37 @@ function ksmStoreAutosave(payload,id=cloudSession.tournamentId){
 }
 /* ksm:post-split-end */
 function markLocalSave(reason='Local autosave'){try{/* ksm:post-split-begin autosave-origin was:localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(tournamentPayload())) */ksmStoreAutosave(tournamentPayload())/* ksm:post-split-end */;return true}catch(err){console.warn('Local save failed',err);ksmSaveStatusMode='error';renderPersistentSaveStatus();return false}}
-function autoSaveTournament(reason='Autosave'){/* ksm:post-split-begin tournament-switcher */if(document.body.classList.contains('ksm-home')||(ksmStartupLoadFailed&&!ksmStartupHasCache))return;/* ksm:post-split-end */if(!markLocalSave(reason))return;if(!ksmApplyingRemoteSnapshot&&!isReadOnlySession())scheduleCloudSave(reason)}
+function autoSaveTournament(reason='Autosave'){/* ksm:post-split-begin tournament-switcher */if((document.body.classList.contains('ksm-home')&&!cloudSession.tournamentId&&!v316StaffPassword())||(ksmStartupLoadFailed&&!ksmStartupHasCache))return;/* ksm:post-split-end */if(!markLocalSave(reason))return;if(!ksmApplyingRemoteSnapshot&&!isReadOnlySession())scheduleCloudSave(reason)}
 // Remote snapshots never echo into cloud: if(!ksmApplyingRemoteSnapshot)scheduleCloudSave()
-function scheduleAutoSave(reason='Edit'){/* ksm:post-split-begin startup-recovery */if(ksmStartupLoadFailed&&!ksmStartupHasCache)return;/* ksm:post-split-end */noteLocalMutation();clearTimeout(ksmSaveTimer);ksmSaveTimer=setTimeout(()=>{ksmSaveTimer=null;autoSaveTournament(reason)},2000)}
+function scheduleAutoSave(reason='Edit'){/* ksm:post-split-begin library-setup */
+  // Read-only controls must not create mutations or rewrite the autosave/outbox.
+  if(reason instanceof Event&&reason.target?.closest?.('#home, .cloud-status-wrap, #ksmCloudModal, .setup-tournament-actions, .setup-short-url, input[type="file"]'))return;
+/* ksm:post-split-end *//* ksm:post-split-begin startup-recovery */if(ksmStartupLoadFailed&&!ksmStartupHasCache)return;/* ksm:post-split-end */noteLocalMutation();clearTimeout(ksmSaveTimer);ksmSaveTimer=setTimeout(()=>{ksmSaveTimer=null;autoSaveTournament(reason)},2000)}
 /* ksm:post-split-begin award-save */
 // F11: the Results awards editor calls saveAuto() (add, remove, edit), which was never defined, so
 // every award action threw: award edits were never autosaved and add/remove did not redraw.
 // It is an ordinary edit, saved like the others.
 function saveAuto(){scheduleAutoSave('Awards')}
 /* ksm:post-split-end */
-async function saveNow(){/* ksm:post-split-begin startup-recovery */if(ksmStartupLoadFailed&&!ksmStartupHasCache)return;/* ksm:post-split-end */markLocalSave('Manual Save Now');showKsmToast('Saving…',0);const saved=await saveTournamentToCloudWithReason('Manual Save Now',true);if(saved){showKsmToast('✓ Tournament saved',2000)}else if(!navigator.onLine){showKsmToast('Saved locally · Waiting to sync',3000)}else{showKsmToast('Unable to save to cloud',3500,true)}}
+async function saveNow(){/* ksm:post-split-begin library-setup was:markLocalSave('Manual Save Now');showKsmToast('Saving…',0);const saved=await saveTournamentToCloudWithReason('Manual Save Now',true);if(saved){showKsmToast('✓ Tournament saved',2000)}else if(!navigator.onLine){showKsmToast('Saved locally · Waiting to sync',3000)}else{showKsmToast('Unable to save to cloud',3500,true)} */
+  if(ksmStartupLoadFailed&&!ksmStartupHasCache)return;
+  if(isReadOnlySession()){
+    if(ksmKeepStaffOutbox())return toggleStaffSession();
+    return;
+  }
+  clearTimeout(ksmSaveTimer);ksmSaveTimer=null;clearTimeout(ksmCloudTimer);ksmCloudTimer=null;
+  clearTimeout(ksmQueuedSaveRetryTimer);ksmQueuedSaveRetryTimer=null;
+  const queued=readOutbox();
+  if(queued?.tournamentId&&queued.tournamentId!==cloudSession.tournamentId){showKsmToast('Queued work belongs to another tournament',4000,true);return}
+  if(queued)mergeQueuedStaffWork();
+  if(!markLocalSave('Manual Save Now')){showKsmToast('Unable to save on this device',3500,true);return}
+  showKsmToast('Saving…',0);
+  const saved=await saveTournamentToCloudWithReason('Manual Save Now',true);
+  if(isReadOnlySession()&&ksmKeepStaffOutbox()){
+    showKsmToast('Staff Login required to save queued work',3500,true);
+    return toggleStaffSession();
+  }
+  showKsmToast(saved?'✓ Tournament saved':'Not saved · Changes waiting',saved?2000:3500,!saved);
+/* ksm:post-split-end */}
 function criticalAutoSave(reason){/* ksm:post-split-begin startup-recovery */if(ksmStartupLoadFailed&&!ksmStartupHasCache)return;/* ksm:post-split-end */noteLocalMutation();markLocalSave(reason);if(!isReadOnlySession())saveTournamentToCloudWithReason(reason,true)}
 

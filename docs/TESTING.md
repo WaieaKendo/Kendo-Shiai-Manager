@@ -446,3 +446,21 @@ Likewise, `spectator-experience-test.py`'s Live Scores checks ("mobile split nam
 The shell greps on code removed with the legacy shell (M.13, `feat/react-shell`) now read the code that implements the same rule: `shared-views-tv-display` "court specific TV links" checked the rows of the first `openTournamentAccess()` (21-, overridden by 33-'s and never run) and now reads the TV menu's Court A / Court B TV items (`app/react/shell/nav-model.ts`) and `launchTvDisplay()`/`tvLink()`; `tournament-day-experience` "tournament access links" ("Spectator View", a row of the same dead function) now reads the live Tournament Access (`ksmOpenTournamentAccess()` in 44-, `spectatorLink()`, the React modal's QR line); `v316-auth-tournament-library` "single public access" reads `ksmOpenCloudModal('Tournament Access'` and the React modal's QR alt text; `v3175` "state breakdown" / "nested paths" and `v3176` "read only diagnostic statement" read the React Developer Tools (and 44-'s use of the analysis). `tournament-day-polish` "qr remains open with back" was removed: it pinned the Back button of `showQr()`, which only that dead `openTournamentAccess()` called. Two golden tests' module-missing checks were adapted: `golden-overview-test.py` keeps the static header for its static-markup comparison (`window.ksmShellMounted = true`, as it sets `ksmOverviewMounted`), and `golden-court-screen-test.py` reaches the court screen without the React module through the Court A item's click (`chooseCourt('A')`), since the Courts menu no longer opens without it.
 
 In M.13 (`feat/react-results`) the legacy Results renderer was removed, and two checks that read it were retargeted at the code implementing the same rule: `final-medal-team-context-polish-test.py`'s four Wins/Points label checks (and "team metric header present", now also required in the React markup) read `teamResultsBracketHtml()` (28-) and now read the court screen's React sources (`court_react_source()`: the `Bracket` component in `app/react/court/CourtContext.tsx`, which draws the team bracket in the court context and the Results modal); `tests/engine/teams.test.mjs` "award mode: top1 / top2 / dual3 rows" ran `teamFinalResultsHtml()` (09-, removed) and now runs `resultPlacements()` (27-: Results, the division-complete panels, print) and `ksmFinalResults()` (35-: the court queue's team results, which mirrors `teamFinalResultsHtml()`, incl. "Completed" without placements as `results: null`). No check was removed.
+
+### Library and Setup action cleanup (#70)
+
+`library-setup-actions-test.py` runs against the local Worker with KsmApp/window.KSMTest, routed
+failures and clock controls. It covers action locations and access restrictions, Setup jump
+scrolling without route/session/socket changes; healthy, saving,
+queued, offline-hint and expired-session manual retry; no-cache startup save protection; and
+exporting B while A has queued scoring work. For each export it compares A's state, setup, session,
+outbox, autosave, `:cloud-id`, mutation counters and socket identity, then verifies A's queued
+point reaches the server. Staff actions for B and deletion of B also leave A's session intact.
+A remembered ID without a loaded staff context cannot return to an empty screen or replace its
+tournament from a file; read-only imports offer a new tournament instead. Existing file/recovery,
+startup, access and export tests use the new Library/Setup controls.
+Shell, Setup and Library goldens intentionally track the new navigation, grouped actions and
+per-row staff controls. Re-recorded files and reasons are listed in the PR.
+
+Run build-producing runners sequentially: concurrent run-all invocations share `dist/`.
+F36 remains an expected-failure pin in `network-two-tabs-test.py`, tracked separately in #81.

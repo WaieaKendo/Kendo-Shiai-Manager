@@ -83,9 +83,7 @@ def main():
         # --- Placeholder buttons (meeting decision: implement or remove) ------------------------
         placeholders = [('reg-import-csv', None, 'CSV import will be added in the production build.'),
                         # Owner decision 17 (#29): the button explains the paste (was "Paste rows directly into the table from Excel.").
-                        ('reg-paste-excel', None, 'Paste from Excel: copy rows with the columns Name, Dojo, Division, Seed, Status (in that order; only Name is required) and paste them (Ctrl+V / Cmd+V) while Individual Players is shown. Division must be one offered in Setup (empty: the first division). Status: Registered, Checked In or No Show (empty: Registered). Rows with another division or status are not added; a notice lists them.'),
-                        ('nav-export-referees', 'nav-export', 'Referee assignment export will be added with the Referee Assignment module.'),
-                        ('nav-export-archive', 'nav-export', 'Tournament Archive export will be added with the archive module.')]
+                        ('reg-paste-excel', None, 'Paste from Excel: copy rows with the columns Name, Dojo, Division, Seed, Status (in that order; only Name is required) and paste them (Ctrl+V / Cmd+V) while Individual Players is shown. Division must be one offered in Setup (empty: the first division). Status: Registered, Checked In or No Show (empty: Registered). Rows with another division or status are not added; a notice lists them.')]
         for testid, menu, message in placeholders:
             app.expect_dialog(message, accept=True)
             if menu:
@@ -160,13 +158,13 @@ def main():
             assert [(pl.lower(), n) for pl, n in results_screen[div]][:len(rows)] == rows, f'Results screen for {div}: {results_screen[div]} (court showed {rows})'
 
         # --- Exports and print -------------------------------------------------------------------------
-        app.click('nav-export')
-        app.click('nav-export-brackets')
+        app.nav('setup')
+        app.click('setup-export-brackets')
         sheets = page.inner_text(sel('print-body')).lower()  # print headings are upper-cased by CSS
         for needle in (f'{MAIN} • Round Robin • Court A', f'{SECOND} • Single Elimination • Court B', 'Pool A', 'Aoki Ren', 'Eto Yui', 'Team A', 'Sensei Ono'):
             assert needle.lower() in sheets, f'Tournament Brackets lack {needle!r}:\n{sheets[:1500]}'
-        app.click('nav-export')
-        app.click('nav-export-results')
+        app.nav('setup')
+        app.click('setup-export-results')
         results = page.inner_text(sel('print-body')).lower()
         assert 'division results' in results and 'no awards entered.' in results, results[:1500]
         assert placements.get(MAIN), f'{MAIN} should have placements on the Results screen: {placements}'

@@ -109,6 +109,8 @@ function ksmPublishHeader(patch){
 // setSessionRole() (33): the role (hidden) and the staff button.
 function ksmRenderSessionRole(){
   ksmPublishHeader({role:{text:ksmSessionRole==='staff'?'Staff':'Spectator',dataRole:String(ksmSessionRole)},staffLabel:ksmSessionRole==='staff'?'Logout':'Staff Login'});
+  ksmRenderSaveStatus(ksmPersistentSaveStatusText());
+  if(window.ksmLibraryInput?.kind==='library')ksmRenderLibrary(readTournamentLibrary());
 }
 // setConnectionStatus(text,mode) (20): the mode's label, the mode and the text as the tooltip.
 function ksmRenderConnectionStatus(text,mode='local'){
@@ -120,13 +122,19 @@ function ksmRenderConnectionStatus(text,mode='local'){
 function ksmPersistentSaveStatusText(){
   if(ksmSaveStatusMode==='saving')return 'Saving…';
   if(ksmSaveStatusMode==='syncing')return 'Synchronizing…';
-  if(ksmSaveStatusMode==='offline')return `Saved locally${readOutbox()?' · 1 change waiting':''}`;
-  if(ksmSaveStatusMode==='error')return 'Save needs attention';
+  if(readOutbox())return 'Not saved · Changes waiting';
+  if(ksmSaveStatusMode==='offline'||ksmSaveStatusMode==='error')return 'Save needs attention';
   return humanSaveAge();
 }
 // renderPersistentSaveStatus() and updateSaveStatus(text) (20): the save status (textContent).
 function ksmRenderSaveStatus(text){
-  ksmPublishHeader({save:text==null?'':String(text)});
+  const warning=!!readOutbox()||['offline','error'].includes(ksmSaveStatusMode);
+  const blocked=ksmStartupLoadFailed&&!ksmStartupHasCache;
+  const retry=warning&&!blocked&&(!isReadOnlySession()||ksmKeepStaffOutbox())&&!['saving','syncing'].includes(ksmSaveStatusMode);
+  const message=text==null?'':String(text),persistent=ksmPersistentSaveStatusText();
+  // A backup/load notice must not hide the warning that cloud work is still waiting.
+  const save=warning&&message!==persistent?persistent+(message?' · '+message:''):message;
+  ksmPublishHeader({save,warning,retry});
 }
 // renderCloudPresence(clients) (21): the devices online (hidden).
 function ksmRenderPresence(clients){
@@ -306,21 +314,25 @@ function ksmUpdateDeleteDialog(patch){
 // The devices connected change while the dialog is open.
 function ksmRefreshDeleteDevices(){
   const cloud=ksmShellDialogs&&ksmShellDialogs.cloud;
-  if(cloud&&cloud.body.kind==='delete'&&cloud.body.devices!==ksmDeleteDevices())ksmUpdateDeleteDialog({devices:ksmDeleteDevices()});
+  if(cloud&&cloud.body.kind==='delete'&&!cloud.body.libraryId&&cloud.body.devices!==ksmDeleteDevices())ksmUpdateDeleteDialog({devices:ksmDeleteDevices()});
 }
 async function ksmConfirmDeleteTournament(){
-  const id=cloudSession.tournamentId,cloud=ksmShellDialogs&&ksmShellDialogs.cloud;
+  const cloud=ksmShellDialogs&&ksmShellDialogs.cloud,id=cloud?.body?.libraryId||cloudSession.tournamentId;
   if(!id||!cloud||cloud.body.kind!=='delete'||cloud.body.busy)return;
   // A save refused with 401 while the dialog was open made this device a spectator (F33): say so
   // instead of a Delete that silently does nothing; Staff Login, then Delete works again.
-  if(!ksmCanDeleteTournament()){
+  if(cloud.body.libraryId?!ksmCanManageLibraryTournament(id):!ksmCanDeleteTournament()){
     ksmUpdateDeleteDialog({busy:false,error:'This device is no longer logged in as Staff. Use Staff Login again, then delete. Nothing was deleted.'});
     return;
   }
   ksmUpdateDeleteDialog({busy:true,error:''});
   ksmDeletingTournamentId=id;
   try{
-    const response=await fetch(`/api/tournaments/${encodeURIComponent(id)}`,{method:'DELETE',headers:cloudHeaders()});
+    const response=await fetch(`/api/tournaments/${encodeURIComponent(id)}`,{method:'DELETE',headers:cloud.body.libraryId?{...cloudHeaders(),'x-ksm-role':'staff','x-ksm-session-key':ksmLibraryStaffTokens.get(id)}:cloudHeaders()});
+    if(cloud.body.libraryId&&id!==cloudSession.tournamentId&&(response.ok||response.status===410)){
+      ksmLibraryStaffTokens.delete(id);localStorage.removeItem('ksm.tournament.record:'+id);
+      writeTournamentLibrary(readTournamentLibrary().filter(row=>row.id!==id));closeCloudModal();renderHomeTournamentLibrary();showKsmToast('Tournament deleted',4000);return;
+    }
     if(response.status===410){ksmDeletingTournamentId=null;ksmTournamentGone(id);return}
     if(response.ok){
       ksmForgetTournament(id);
@@ -331,6 +343,7 @@ async function ksmConfirmDeleteTournament(){
       return;
     }
     const info=await response.json().catch(()=>null);
+    if(cloud.body.libraryId&&[401,403].includes(response.status))ksmLibraryStaffTokens.delete(id);
     ksmUpdateDeleteDialog({busy:false,error:response.status===401||response.status===403
       ?'Your Staff session is not valid any more. Use Staff Login again, then delete. Nothing was deleted.'
       :`${(info&&info.error)||`Delete failed (${response.status})`}. Nothing was deleted.`});

@@ -19,6 +19,7 @@ export interface ShellWindow {
   ksmShellMounted?: boolean;
   toggleNavMenu?: (id: string, event: Event) => unknown;
   closeNavMenus?: (exceptId?: string) => unknown;
+  saveNow?: () => unknown;
   toggleStaffSession?: () => unknown;
   cloudDiagnostics?: () => unknown;
   confirmFusen?: (side: 'W' | 'R') => unknown;
@@ -41,6 +42,7 @@ export interface ShellWindow {
   ksmOpenDeleteTournament?: () => unknown;
   ksmConfirmDeleteTournament?: () => unknown;
   /** Download Tournament File (the backup the delete dialog offers). */
+  ksmDownloadDeleteBackup?: () => unknown;
   manualSaveTournament?: () => unknown;
 }
 

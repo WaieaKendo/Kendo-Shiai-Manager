@@ -197,7 +197,8 @@ export interface DeleteBody {
   /** The tournament's name as the header shows it (the name to type; see deleteRequiredName()). */
   name: string;
   /** Devices connected right now, this one included (the live presence list). */
-  devices: number;
+  devices: number | null;
+  libraryId?: string;
   /** The delete request is on its way: nothing can be pressed twice. */
   busy: boolean;
   /** Why the last try did not delete (empty: none). */
@@ -270,7 +271,7 @@ export const DELETE_TEXTS = {
   warning: 'This cannot be undone. The tournament, its results and its Tournament Library entry are removed from the server for good.',
   disconnect: 'Every device connected to it is disconnected and returned to the Tournament Library.',
   backup: 'Download a backup first',
-  backupHint: 'Saves the tournament as a .ksm file you can load again later (Save / Load, Load Tournament File).',
+  backupHint: 'Saves the tournament as a .ksm file you can load again later (Tournament Library, Load Tournament File).',
   label: 'Type the tournament name to confirm',
   cancel: 'Cancel',
   delete: 'Delete tournament',
@@ -296,7 +297,8 @@ export function deleteEnabled(name: string, typed: string, busy: boolean): boole
 }
 
 /** "3 devices are connected right now (this one included)." */
-export function deleteDevicesText(devices: number): string {
+export function deleteDevicesText(devices: number | null): string {
+  if (devices === null) return 'Other devices may be connected to this tournament.';
   if (devices <= 1) return 'No other device is connected right now.';
   return `${devices} devices are connected right now, this one included.`;
 }

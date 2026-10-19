@@ -58,6 +58,7 @@ Approve an intended change (review the JSON diff, commit it with the code change
     KSM_UPDATE_GOLDEN=1 .venv/bin/python tests/golden-library-test.py [scenario ...]
 """
 import json
+from datetime import datetime, timezone
 import re
 import time
 from pathlib import Path
@@ -214,6 +215,7 @@ def open_app(name, browser, viewport=DESKTOP, cached=None, react_check=check_rea
     """A copy of the app on its home page (the real boot: spectator), its library list held."""
     context = browser.new_context(viewport=viewport, service_workers='block')
     page = context.new_page()
+    page.clock.set_fixed_time(datetime(2026, 10, 1, 9, tzinfo=timezone.utc))
     app = KsmApp(page, name)
     app.page_errors, app.console, app.api = [], [], Api()
     # The message's first line (a stack trace names positions in the built bundle).
@@ -329,8 +331,8 @@ def library_cards(browser, errors):
     answers(g, {'Tournament Name': 'Library Cup', 'Create Staff password': 'abcd', 'Confirm Staff password': 'abcd'})
     g.do('new tournament: creating', lambda a: (click('home-new-tournament')(a), api.wait(a.page)))
     g.do('new tournament: cloud down', lambda a: api.answer(a.page, (503, {'error': 'Cloud unavailable'})))
-    g.do('unsaved staff exit tries save', lambda a: (a.page.evaluate('() => { void showHomePage(); }'), api.wait(a.page)))
-    g.do('unsaved staff work blocks leaving', lambda a: api.answer(a.page, (503, {'error': 'Cloud unavailable'})))
+    g.do('browse Library with unsaved staff work', lambda a: (a.page.evaluate('() => { void showHomePage(); }'), api.wait(a.page)))
+    g.do('browse: discover answered, staff work preserved', lambda a: api.answer(a.page, SEVERAL))
     g.finish()
 
 

@@ -265,3 +265,34 @@
 }
 
 
+/* ksm:post-split-begin library-setup */
+#setup-tournament-actions { scroll-margin-top: 10rem; }
+body.ksm-spectator #setup-tournament-actions { display: none; }
+.setup-page .setup-actions-jump { display: flex; justify-content: flex-start; margin-bottom: 1rem; padding: 0; border: 0; background: transparent; box-shadow: none; }
+.setup-actions-jump a { color: var(--ksm-navy); font-weight: 700; }
+.setup-tournament-actions { display: grid; gap: 1rem; margin-top: 1.5rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+.setup-tournament-actions h3 { margin: 0 0 .5rem; }
+.setup-tournament-actions .actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.setup-tournament-actions summary { cursor: pointer; font-weight: 600; margin-bottom: .5rem; }
+.home-head > .actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+.home-card-actions { display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap; }
+.home-card-actions .actions { display: grid; gap: .35rem; }
+.home-card-actions summary { cursor: pointer; padding: .5rem; }
+.save-warning #saveStatus { color: var(--ksm-gold) !important; }
+.cloud-status-wrap { cursor: default; }
+.cloud-status-wrap [role="button"] { cursor: pointer; }
+.cloud-status-wrap:has([data-testid="header-save-now"]) { display: grid; grid-template-columns: auto auto; grid-template-areas: "auth retry" "status status"; column-gap: .5rem; }
+.cloud-status-wrap:has([data-testid="header-save-now"]) #staffAuthButton { grid-area: auth; }
+.cloud-status-wrap > [role="status"] { grid-area: status; }
+[data-testid="header-save-now"] { grid-area: retry; }
+.retry-warning { display: none; }
+@media (max-width:1120px) {
+  .cloud-status-wrap:has([data-testid="header-save-now"]) { display: flex; flex-direction: row; gap: 6px; min-height: 46px; }
+  .cloud-status-wrap > .save-warning { display: none; }
+  [data-testid="header-save-now"] { padding: 4px 8px; font-size: 12px; }
+  .retry-warning { display: block; color: var(--ksm-red); font-size: 10px; }
+}
+@media (orientation:landscape) and (max-height:560px) and (max-width:980px) {
+  .cloud-status-wrap:has([data-testid="header-save-now"]) { min-height: 44px; }
+}
+/* ksm:post-split-end */

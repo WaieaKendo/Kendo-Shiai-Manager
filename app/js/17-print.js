@@ -1,5 +1,41 @@
+/* ksm:post-split-begin library-setup */
+// One renderer for Setup and Library exports. Its input is a snapshot, never the live app.
+// Shadow only the read dependencies of the original print operations; no payload application,
+// session, storage, navigation or socket operations occur in this renderer.
+function ksmPrintRenderer(payload){
+  const state=payload.state,setup=payload.setup||{};
+  const tName={value:setup.tName},tDate={value:setup.tDate},tLocation={value:setup.tLocation},teamFormat={value:setup.teamFormat};
+  const matches=div=>state.allMatches?.[div]||[];
+  const eligibleTeams=()=>KSMEngine.eligibleTeams(state.teams||[]);
+  const isTeamDivision=div=>div==='Team Tournament'||/team|kachinuki/i.test(state.divisionTypes?.[div]||'');
+  const championshipLabels=div=>KSMEngine.championshipLabels(state.generated,state.brackets?.[div],state.pools?.[div]||[]);
+  const isPoolOnlyDivision=div=>!isTeamDivision(div)&&(state.divisionTypes?.[div]||'Round Robin')==='Round Robin'&&(state.pools?.[div]||[]).length===1&&!championshipLabels(div).length;
+  const requiredSeedPlaces=div=>KSMEngine.requiredSeedPlaces(isPoolOnlyDivision(div)?state.pools[div][0]:null,isPoolOnlyDivision(div)?[]:championshipLabels(div));
+  const seedNameForLabel=(div,label,finalized)=>KSMEngine.seedNameForLabel(label,poolLabel=>KSMEngine.poolSeedResolution((state.pools?.[div]||[]).find(p=>p.label===poolLabel),poolLabel,matches(div),requiredSeedPlaces(div)[poolLabel]||2),finalized);
+  const sideLabelGeneric=(side,div)=>KSMEngine.sideLabelGeneric(side,state.singleElimComps?.[div]||[],state.singleElimNodes?.[div]||[]);
+  const redOnLeftForCourt=court=>setup[court==='B'?'court2RedSide':'court1RedSide']==='left';
+  const isTeamRoundRobinDivision=div=>isTeamDivision(div)&&!(state.teamBracketNodes?.[div]||[]).length&&matches(div).some(m=>m.teamPair&&['teamPosition','teamPlayoff','kachinuki'].includes(m.type));
+  const divisionComplete=div=>{const ms=matches(div).filter(KSMEngine.isValidMatchObject);return ms.some(m=>m.championship&&m.position==='Final'&&m.done)||((isTeamDivision(div)||isPoolOnlyDivision(div))&&ms.length&&ms.every(m=>m.done))};
+  const teamStandings=div=>KSMEngine.teamStandings(matches(div),eligibleTeams(),KSMEngine.teamRoundRobinCountedPlaces(state.teamAwardMode));
+  const teamPairIds=div=>KSMEngine.teamPairIds(matches(div));
+  const teamPairSummary=(div,pair)=>KSMEngine.teamPairSummary(matches(div),pair);
+  const teamRoundRobinPairResolved=(div,pair)=>KSMEngine.teamRoundRobinPairResolved(matches(div),pair);
+  const teamWinner=(div,pair)=>KSMEngine.teamWinner(matches(div),pair);
+  const teamSideLabel=(side,div)=>{if(!side)return 'TBD';if(side.team)return eligibleTeams()[side.team-1]?.team||'Team '+side.team;if(side.ref)return (state.teamBracketNodes?.[div]||[]).find(n=>n.id===side.ref)?.winner||'Winner '+side.ref;return 'TBD'};
+  const resultPlacements=div=>{
+    if(!divisionComplete(div))return [];
+    if(!isTeamDivision(div))return KSMEngine.individualPlacements(matches(div),isPoolOnlyDivision(div)?()=>KSMEngine.poolStandings(state.pools[div][0],matches(div),requiredSeedPlaces(div)[state.pools[div][0].label]||2):null);
+    const p=isTeamRoundRobinDivision(div)?KSMEngine.teamRoundRobinPlacements(true,matches(div),eligibleTeams(),KSMEngine.teamRoundRobinCountedPlaces(state.teamAwardMode)):KSMEngine.teamFinalPlacements(state.teamBracketNodes?.[div]||[],eligibleTeams());
+    if(!p)return [];
+    const tied=new Set(p.undecided||[]),named=(place,name)=>tied.has(place)?KSM_TEAM_PLACE_TIED:name,mode=state.teamAwardMode||'top2';
+    const rows=[{place:'1st',name:named(1,p.first)}];
+    if(mode!=='top1'&&(p.second||tied.has(2)))rows.push({place:'2nd',name:named(2,p.second)});
+    if(mode==='dual3')(tied.has(3)?[KSM_TEAM_PLACE_TIED]:(p.thirds||[])).forEach(name=>rows.push({place:'3rd',name}));
+    return rows;
+  };
+/* ksm:post-split-end */
 // ---------- KSM v3.2.1 Print / PDF Export (read-only) ----------
-function printMetaLine(){let bits=[];if(window.tDate&&tDate.value)bits.push(tDate.value);if(window.tLocation&&tLocation.value)bits.push(tLocation.value);return bits.join(' • ')}
+function printMetaLine(){let bits=[];if(/* ksm:post-split-begin library-setup was:window.tDate&&tDate.value */tDate.value/* ksm:post-split-end */)bits.push(tDate.value);if(/* ksm:post-split-begin library-setup was:window.tLocation&&tLocation.value */tLocation.value/* ksm:post-split-end */)bits.push(tLocation.value);return bits.join(' • ')}
 function printSheet(title,subtitle,body,kicker='Kendo Shiai Manager'){return `<article class="print-sheet"><div class="print-head"><div class="print-kicker">${esc(kicker)}</div><div class="print-title">${esc(title)}</div><div class="print-subtitle">${esc(subtitle||'')}</div></div>${body}</article>`}
 function printNameBlock(name,dojo){return `<div><div class="print-name">${esc(name||'TBD')}</div>${dojo?`<div class="print-dojo">${esc(dojo)}</div>`:''}</div>`}
 function printableDivisions(){let out=Object.keys(state.allMatches||{});return out.length?out:state.divisions.filter(d=>state.divisions.includes(d));}
@@ -36,3 +72,28 @@ function printPlacementsForDivision(div){/* ksm:post-split-begin print-placement
 function printResultsSheet(){let divs=printableDivisions();let rows=divs.map(div=>{let placements=printPlacementsForDivision(div);return `<div class="print-results-row"><div><div class="print-name">${esc(div)}</div></div><div>${placements.length?placements.map(([place,name])=>`<div class="print-placement"><span class="print-place-label">${esc(place)}</span><b>${esc(name)}</b></div>`).join(''):'<span class="print-dojo">Results pending</span>'}</div></div>`}).join('');let awards=(state.awards||[]).filter(a=>a.award||a.name||a.dojo);let awardHtml=`<div class="print-section-title">Awards</div>`+(awards.length?`<div class="print-card">${awards.map(a=>`<div class="print-award-row"><b>${esc(a.award)}</b><span>${esc(a.name)}</span><span class="print-dojo">${esc(a.dojo)}</span></div>`).join('')}</div>`:'<div class="print-card soft"><div class="print-dojo">No awards entered.</div></div>');return printSheet(tName?.value||'Kendo Tournament',`Results${printMetaLine()?' • '+printMetaLine():''}`,`<div class="print-section-title">Division Results</div><div class="print-card">${rows||'<div class="print-dojo">No generated divisions.</div>'}</div>${awardHtml}`,'Results + Awards')}
 
 
+
+/* ksm:post-split-begin library-setup */
+  return {printMetaLine,printSheet,printNameBlock,printableDivisions,refreshPrintDivisionSelect,previewSelectedDivisionSheet,previewAllDivisionSheets,previewResultsSheet,previewFullPrintPacket,printDivisionSheet,printIndividualDivisionSheet,printMatchLine,printBracketCards,printSingleElimBracketCards,printTeamRoundRobinStandings,printTeamDivisionSheet,printTeamRosterRows,printTeamBracketCards,printPlacementsForDivision,printResultsSheet};
+}
+const printMetaLine=(...args)=>ksmPrintRenderer(tournamentPayload()).printMetaLine(...args);
+const printSheet=(...args)=>ksmPrintRenderer(tournamentPayload()).printSheet(...args);
+const printNameBlock=(...args)=>ksmPrintRenderer(tournamentPayload()).printNameBlock(...args);
+const printableDivisions=(...args)=>ksmPrintRenderer(tournamentPayload()).printableDivisions(...args);
+const refreshPrintDivisionSelect=(...args)=>ksmPrintRenderer(tournamentPayload()).refreshPrintDivisionSelect(...args);
+const previewSelectedDivisionSheet=(...args)=>ksmPrintRenderer(tournamentPayload()).previewSelectedDivisionSheet(...args);
+const previewAllDivisionSheets=(...args)=>ksmPrintRenderer(tournamentPayload()).previewAllDivisionSheets(...args);
+const previewResultsSheet=(...args)=>ksmPrintRenderer(tournamentPayload()).previewResultsSheet(...args);
+const previewFullPrintPacket=(...args)=>ksmPrintRenderer(tournamentPayload()).previewFullPrintPacket(...args);
+const printDivisionSheet=(...args)=>ksmPrintRenderer(tournamentPayload()).printDivisionSheet(...args);
+const printIndividualDivisionSheet=(...args)=>ksmPrintRenderer(tournamentPayload()).printIndividualDivisionSheet(...args);
+const printMatchLine=(...args)=>ksmPrintRenderer(tournamentPayload()).printMatchLine(...args);
+const printBracketCards=(...args)=>ksmPrintRenderer(tournamentPayload()).printBracketCards(...args);
+const printSingleElimBracketCards=(...args)=>ksmPrintRenderer(tournamentPayload()).printSingleElimBracketCards(...args);
+const printTeamRoundRobinStandings=(...args)=>ksmPrintRenderer(tournamentPayload()).printTeamRoundRobinStandings(...args);
+const printTeamDivisionSheet=(...args)=>ksmPrintRenderer(tournamentPayload()).printTeamDivisionSheet(...args);
+const printTeamRosterRows=(...args)=>ksmPrintRenderer(tournamentPayload()).printTeamRosterRows(...args);
+const printTeamBracketCards=(...args)=>ksmPrintRenderer(tournamentPayload()).printTeamBracketCards(...args);
+const printPlacementsForDivision=(...args)=>ksmPrintRenderer(tournamentPayload()).printPlacementsForDivision(...args);
+const printResultsSheet=(...args)=>ksmPrintRenderer(tournamentPayload()).printResultsSheet(...args);
+/* ksm:post-split-end */

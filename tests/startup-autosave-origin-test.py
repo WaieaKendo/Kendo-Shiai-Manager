@@ -27,12 +27,12 @@ def main():
                 assert 'Legacy origin' in app.page.get_by_test_id('local-draft').inner_text()
             app.close()
         # A recovery load first saves a local origin; cloud creation then tags that autosave.
-        _, recovery = source.download('nav-download-recovery', menu='nav-save-load')
+        _, recovery = source.download('setup-download-recovery', menu='nav-setup')
         source.wait_idle()
         local = source
         local.expect_dialog('Load this recovery file as a new tournament?', accept=True)
         local.load_recovery_file(recovery)
-        local.wait_for(lambda: local.page.get_by_test_id('save-status').inner_text() == 'Recovery file loaded',
+        local.wait_for(lambda: local.page.get_by_test_id('save-status').inner_text().endswith('Recovery file loaded'),
                        message='recovery loaded locally')
         assert local.page.evaluate('KSMTest.autosaveOrigin()') == ''
         assert local.tournament_id() is None

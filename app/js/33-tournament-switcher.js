@@ -61,11 +61,11 @@ function ksmPushTournamentAddress(id){
   ksmTournamentAddress=location.pathname+location.search+location.hash;
 }
 async function ksmCanLeaveTournament(){
-  if(document.body.classList.contains('ksm-home'))disconnectCloudSocket();
+  // Browsing the Library does not disconnect the active tournament.
   const pending=ksmCloudSaveInFlight||ksmCloudSavePending||localChangesPending()||readOutbox();
   // Pending drafts with creation credentials still get the normal save attempt.
   // A quiet imported draft or one without credentials has no server confirmation.
-  if(window.ksmBootstrapReady&&!cloudSession.tournamentId&&!document.body.classList.contains('ksm-home')&&localStorage.getItem(KSM_SAVE_KEY)&&(!pending||!v316StaffPassword())){
+  if(window.ksmBootstrapReady&&!cloudSession.tournamentId&&localStorage.getItem(KSM_SAVE_KEY)&&(!pending||!v316StaffPassword())){
     alert('This tournament is only saved on this device. Save it to the cloud before switching. You can also download a Tournament File to keep a backup. Your draft is still here.');
     return false;
   }
@@ -123,6 +123,12 @@ async function ksmShowLibrary(options={}){
       ksmFirstLibrary=false;disconnectCloudSocket();
       document.body.classList.add('ksm-home');installRoleBanner('home');
       setSessionRole('spectator');renderHomeTournamentLibrary();show('home');return true;
+    }
+    if(!options.deleted&&(cloudSession.tournamentId||(!document.body.classList.contains('ksm-home')&&v316StaffPassword()))){
+      document.body.classList.add('ksm-home');
+      if(location.pathname!=='/')history.pushState(null,'','/');
+      ksmTournamentAddress=location.pathname+location.search+location.hash;
+      renderHomeTournamentLibrary();show('home');ksmRefreshTournamentChip();return true;
     }
     if(!options.deleted&&!(await ksmCanLeaveTournament()))return false;
     const startup=ksmFirstLibrary;

@@ -81,47 +81,11 @@
       <span>Results</span>
     </button>
 
-    <div class="nav-menu nav-tile-wrap director-only">
-      <button class="nav-tile nav-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="exportMenu" onclick="toggleNavMenu('exportMenu',event)" title="Export" data-testid="nav-export">
-        <img src="/assets/nav-icons/export.svg" alt="">
-        <span>Export <b aria-hidden="true">▾</b></span>
-      </button>
-      <div id="exportMenu" role="menu" class="nav-dropdown nav-dropdown-wide hidden">
-        <button onclick="exportTournamentBrackets()" data-testid="nav-export-brackets">Tournament Brackets</button>
-        <button onclick="exportResultsAwards()" data-testid="nav-export-results">Results &amp; Awards</button>
-        <button onclick="closeNavMenus();alert('Referee assignment export will be added with the Referee Assignment module.')" data-testid="nav-export-referees">Referee Assignments</button>
-        <button onclick="closeNavMenus();alert('Tournament Archive export will be added with the archive module.')" data-testid="nav-export-archive">Tournament Archive</button>
-      </div>
-    </div>
-
-    <div class="nav-menu nav-tile-wrap director-only">
-      <button class="nav-tile nav-menu-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="saveLoadMenu" onclick="toggleNavMenu('saveLoadMenu',event)" title="Save or Load" data-testid="nav-save-load">
-        <img src="/assets/nav-icons/save-load.svg" alt="">
-        <span>Save / Load <b aria-hidden="true">▾</b></span>
-      </button>
-      <div id="saveLoadMenu" role="menu" class="nav-dropdown nav-dropdown-wide hidden">
-        <div class="menu-heading">Tournament</div>
-        <button onclick="closeNavMenus();createNewTournament()" data-testid="nav-new-tournament">New Tournament</button>
-        <button onclick="closeNavMenus();saveNow()" data-testid="nav-save-now">Save Now</button>
-        <button onclick="closeNavMenus();showHomePage()" data-testid="nav-library">Tournament Library</button>
-        <button onclick="closeNavMenus();manualSaveTournament()" data-testid="nav-download-file">Download Tournament File</button>
-        <button onclick="closeNavMenus();triggerLoadTournament()" data-testid="nav-load-file">Load Tournament File</button>
-        <div class="menu-divider"></div><div class="menu-heading">Recovery</div>
-        <button onclick="closeNavMenus();downloadRecoveryFile()" data-testid="nav-download-recovery">Download Recovery File</button>
-        <button onclick="closeNavMenus();triggerLoadRecoveryFile()" data-testid="nav-load-recovery">Load Recovery File</button>
-        <div class="menu-divider"></div><div class="menu-heading">Sharing</div>
-        <button onclick="closeNavMenus();copyTournamentId()">Copy Tournament ID</button>
-        <button onclick="closeNavMenus();openTournamentAccess()" data-testid="nav-tournament-access">Tournament Access</button>
-        <div class="menu-divider"></div><div class="menu-heading">Cloud</div>
-        <button onclick="closeNavMenus();cloudDiagnostics()" data-testid="nav-cloud-diagnostics">Cloud Diagnostics</button>
-      </div>
-    </div>
-
     <input id="ksmLoadFile" type="file" accept=".ksm,application/json" style="display:none" onchange="loadTournamentFromFile(event)" data-testid="load-file-input">
     <input id="ksmRecoveryFile" data-testid="recovery-file-input" type="file" accept=".ksm,application/json" style="display:none" onchange="loadRecoveryFile(event)">
   </nav>
 
-  <div class="row cloud-status-wrap"><button id="staffAuthButton" class="secondary" type="button" onclick="toggleStaffSession()" data-testid="staff-auth">Staff Login</button><div onclick="cloudDiagnostics()" role="button" tabindex="0" title="Open Cloud Diagnostics"><span id="sessionRole" hidden>Spectator</span><span id="connectionStatus" class="small nav-save-status" data-testid="connection-status">Local</span><span id="cloudPresence" hidden></span><span id="saveStatus" class="small nav-save-status" data-testid="save-status">Not saved yet</span></div></div>
+  <div class="row cloud-status-wrap"><button id="staffAuthButton" class="secondary" type="button" onclick="toggleStaffSession()" data-testid="staff-auth">Staff Login</button><div role="status"><span id="sessionRole" hidden>Spectator</span><span onclick="cloudDiagnostics()" role="button" tabindex="0" id="connectionStatus" class="small nav-save-status" data-testid="connection-status">Local</span><span id="cloudPresence" hidden></span><span id="saveStatus" class="small nav-save-status" data-testid="save-status">Not saved yet</span></div></div>
 </header>
 <main>
 
@@ -133,7 +97,8 @@
     </div>
     <div class="home-head">
       <div><h2>Your Tournaments</h2><p>Create a new tournament or open an existing tournament in Spectator mode.</p></div>
-      <button class="home-new-button" type="button" data-testid="home-new-tournament" onclick="createNewTournament()">＋ New Tournament</button>
+      <div class="actions"><button type="button" data-testid="library-load-file" onclick="triggerLoadTournament()">Load Tournament File</button>
+      <button class="home-new-button" type="button" data-testid="home-new-tournament" onclick="createNewTournament()">＋ New Tournament</button></div>
     </div>
     <div id="homeTournamentLibrary" class="home-library-grid"></div>
   </div>
@@ -151,8 +116,11 @@
       </div>
     </div>
 
+
+    <nav class="setup-actions-jump director-only" aria-label="Setup sections"><a href="#setup-tournament-actions" onclick="event.preventDefault();document.getElementById('setup-tournament-actions').scrollIntoView({block:'start'})">Tournament details, sharing, backup &amp; export</a></nav>
+
     <div class="setup-layout">
-      <section class="setup-panel setup-panel-wide">
+      <section class="setup-panel setup-panel-wide" id="setup-tournament-actions">
         <div class="setup-panel-head">
           <div>
             <div class="setup-panel-eyebrow">Tournament</div>
@@ -164,7 +132,7 @@
             <label>Tournament Name</label>
             <input id="tName" value="Aiea Taiheiji Kendo Tournament" data-testid="setup-tournament-name">
             <div class="setup-short-url director-only">
-              <div class="setup-short-url-row"><span>Short URL: <output id="setupShortUrl" data-testid="setup-short-url"></output></span><button type="button" class="secondary" onclick="ksmEditTournamentSlug(false)" data-testid="edit-tournament-slug">Edit short URL</button></div>
+              <div class="setup-short-url-row"><span>Short URL: <output id="setupShortUrl" data-testid="setup-short-url"></output></span><button type="button" class="secondary" onclick="ksmEditTournamentSlug(false)" data-testid="edit-tournament-slug">Edit short name</button></div>
               <p class="small">Old links keep working after a rename.</p>
             </div>
           </div>
@@ -193,6 +161,24 @@
             </select>
           </div>
         </div>
+
+        <div class="setup-tournament-actions">
+          <div><h3>Sharing &amp; access</h3><div class="actions">
+            <button type="button" onclick="openTournamentAccess()" data-testid="setup-tournament-access">Tournament Access · Links &amp; QR codes</button>
+            <button type="button" onclick="copyTournamentId()" data-testid="setup-copy-id">Copy Tournament ID</button>
+          </div></div>
+          <div><h3>Backup</h3><div class="actions">
+            <button type="button" onclick="manualSaveTournament()" data-testid="setup-download-file">Download Tournament File</button>
+            <button type="button" onclick="downloadRecoveryFile()" data-testid="setup-download-recovery">Download Recovery File</button>
+            <button type="button" onclick="triggerLoadRecoveryFile()" data-testid="setup-load-recovery">Load Recovery File</button>
+          </div></div>
+          <div><h3>Export</h3><div class="actions">
+            <button type="button" onclick="exportTournamentBrackets()" data-testid="setup-export-brackets">Tournament Brackets</button>
+            <button type="button" onclick="exportResultsAwards()" data-testid="setup-export-results">Results &amp; Awards</button>
+          </div></div>
+          <details><summary>Advanced</summary><button type="button" onclick="cloudDiagnostics()" data-testid="setup-cloud-diagnostics">Cloud Diagnostics</button></details>
+        </div>
+
       </section>
 
       <section class="setup-panel setup-panel-wide">

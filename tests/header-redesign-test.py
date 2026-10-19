@@ -50,7 +50,7 @@ def main():
                 assert chip.evaluate("el=>parseFloat(getComputedStyle(el).outlineWidth)")>0
 
             toggle=page.locator(sel('nav-toggle'))
-            for role,expected in [('spectator',['Overview','Live Scores','Courts','Results']),('staff',['Overview','Live Scores','Courts','TV','Results','Export','Save / Load','Registration','Setup'])]:
+            for role,expected in [('spectator',['Overview','Live Scores','Courts','Results']),('staff',['Overview','Live Scores','Courts','TV','Results','Registration','Setup'])]:
                 page.evaluate("role=>{setSessionRole(role);installRoleBanner(role)}",role)
                 if width<=900:
                     assert toggle.is_visible() and not page.locator('nav.minimal-nav').is_visible()
@@ -77,8 +77,8 @@ def main():
                 labels=page.locator('nav.minimal-nav > button:visible, nav.minimal-nav > .nav-menu:visible > button').all_text_contents()
                 assert [label.replace('▾','').strip() for label in labels]==expected,labels
                 if width<=900:
-                    app.click('nav-save-load' if role=='staff' else 'nav-courts')
-                    dropdown=page.locator('#saveLoadMenu' if role=='staff' else '#courtsMenu')
+                    app.click('nav-courts')
+                    dropdown=page.locator('#courtsMenu')
                     bounds=dropdown.bounding_box()
                     assert dropdown.is_visible() and bounds['width']<=drawer.bounding_box()['width']
                     page.keyboard.press('Escape')

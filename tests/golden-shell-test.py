@@ -280,6 +280,17 @@ def menu_item(g, menu, item, label, wait=False):
     nav(g, item, label, wait)
 
 
+def setup_action(g, item, label, wait=False):
+    nav(g, 'setup', f'{label}: Setup opened')
+    def act(a):
+        if item == 'cloud-diagnostics':
+            a.page.locator('#setup-tournament-actions details').evaluate('(el) => { el.open = true }')
+        click(a.page, tid(f'setup-{item}'))
+        if wait:
+            settle(a.page)
+    g.do(label, act)
+
+
 def resize(page, size):
     """The window resized, and the app's resize listener run (the browser fires the event with its
     next frame)."""
@@ -306,38 +317,27 @@ def nav_staff(browser, react_check):
     nav(g, 'court-a', 'Courts: Court A')
     menu_item(g, 'courts', 'court-b', 'Courts: Court B')
     nav(g, 'tv', 'TV menu opened')
-    nav(g, 'export', 'Export opened while TV is open (TV closes)')
-    g.do('Escape closes the menu', lambda a: a.page.keyboard.press('Escape'))
-    nav(g, 'save-load', 'Save / Load opened')
-    g.do('a click on a menu heading (the menu stays open)', lambda a: click(a.page, '#saveLoadMenu .menu-heading'))
-    g.do('a click outside the menus closes them', lambda a: click(a.page, '.mobile-nav-backdrop'))
+    g.do('Escape closes the TV menu', lambda a: a.page.keyboard.press('Escape'))
     nav(g, 'courts', 'Courts menu opened (to leave open)')
     nav(g, 'live-scores', 'Live Scores while the Courts menu is open')
-    menu_item(g, 'export', 'export-brackets', 'Export: Tournament Brackets')
-    menu_item(g, 'export', 'export-results', 'Export: Results & Awards')
-    menu_item(g, 'export', 'export-referees', 'Export: Referee Assignments')
-    menu_item(g, 'export', 'export-archive', 'Export: Tournament Archive')
+    setup_action(g, 'export-brackets', 'Setup: Tournament Brackets')
+    setup_action(g, 'export-results', 'Setup: Results & Awards')
     nav(g, 'setup')
     menu_item(g, 'tv', 'tv-a', 'TV: Court A TV (not in the cloud)', wait=True)
     menu_item(g, 'tv', 'overlay-b', 'TV: copy the Court B overlay link (not in the cloud)', wait=True)
-    menu_item(g, 'save-load', 'save-now', 'Save / Load: Save Now (offline)', wait=True)
-    g.answer = lambda d: d.dismiss()
-    menu_item(g, 'save-load', 'new-tournament', 'Save / Load: New Tournament (name cancelled)')
-    g.answer = None
-    nav(g, 'save-load', 'Save / Load: Download Tournament File: menu opened')
+    g.do('queued save warning (code)', lambda a: a.page.evaluate("() => writeOutbox(tournamentPayload(), 'Golden queued work')"))
+    g.do('Header: Save now (offline)', lambda a: (click(a.page, tid('header-save-now')), settle(a.page)))
+    nav(g, 'setup')
     with page.expect_download():
-        g.do('Save / Load: Download Tournament File', lambda a: click(a.page, tid('nav-download-file')))
-    nav(g, 'save-load', 'Save / Load: Download Recovery File: menu opened')
+        g.do('Setup: Download Tournament File', lambda a: click(a.page, tid('setup-download-file')))
     with page.expect_download():
-        g.do('Save / Load: Download Recovery File', lambda a: click(a.page, tid('nav-download-recovery')))
-    menu_item(g, 'save-load', 'load-file', 'Save / Load: Load Tournament File (no file chosen)')
-    menu_item(g, 'save-load', 'load-recovery', 'Save / Load: Load Recovery File (no file chosen)')
-    nav(g, 'save-load', 'Save / Load: Copy Tournament ID: menu opened')
-    g.do('Save / Load: Copy Tournament ID (offline)', lambda a: (click(a.page, '#saveLoadMenu button:text-is("Copy Tournament ID")'), settle(a.page)))
-    menu_item(g, 'save-load', 'tournament-access', 'Save / Load: Tournament Access (offline)', wait=True)
-    menu_item(g, 'save-load', 'cloud-diagnostics', 'Save / Load: Cloud Diagnostics')
+        g.do('Setup: Download Recovery File', lambda a: click(a.page, tid('setup-download-recovery')))
+    setup_action(g, 'load-recovery', 'Setup: Load Recovery File (no file chosen)')
+    setup_action(g, 'copy-id', 'Setup: Copy Tournament ID (offline)', wait=True)
+    setup_action(g, 'tournament-access', 'Setup: Tournament Access (offline)', wait=True)
+    setup_action(g, 'cloud-diagnostics', 'Setup: Advanced / Cloud Diagnostics')
     g.do('Developer Tools: Close', lambda a: click(a.page, tid('cloud-modal-close')))
-    g.do('the status line opens Developer Tools', lambda a: click(a.page, '.cloud-status-wrap > div[role="button"]'))
+    g.do('the connection status opens Developer Tools', lambda a: click(a.page, tid('connection-status')))
     g.do('Developer Tools: a click inside (stays open)', lambda a: click(a.page, tid('cloud-modal-title')))
     g.do('Developer Tools: a click on the backdrop closes it', lambda a: click(a.page, '#ksmCloudModal'))
     # The status line as the sync code sets it.
@@ -351,10 +351,10 @@ def nav_staff(browser, react_check):
         g.do(f'save status: {mode} (code)', lambda a, m=mode: a.page.evaluate('m => { ksmSaveStatusMode = m; renderPersistentSaveStatus(); }', m))
     for label, ago in [('just now', 0), ('5 min ago', 5 * 60000), ('2 hours ago', 2 * 3600000)]:
         g.do(f'save status: saved {label} (code)', lambda a, ms=ago: a.page.evaluate(
-            'ms => { ksmSaveStatusMode = "saved"; ksmLastSuccessfulSaveAt = Date.now() - ms; renderPersistentSaveStatus(); }', ms))
+            'ms => { clearOutbox(); ksmSaveStatusMode = "saved"; ksmLastSuccessfulSaveAt = Date.now() - ms; renderPersistentSaveStatus(); }', ms))
     g.do('save status: a message (code)', lambda a: a.page.evaluate("() => updateSaveStatus('Loaded <b>x</b>.ksm')"))
     g.do('a minute passes (the save status refresh, autosave)', lambda a: (a.page.clock.run_for(60000), settle(a.page)))
-    menu_item(g, 'save-load', 'library', 'Save / Load: Tournament Library')
+    g.do('the brand clicked (Tournament Library)', lambda a: click(a.page, '.nav-brand'))
     g.do('a staff session again (test)', lambda a: a.page.evaluate(STAFF_JS))
     g.do('the brand clicked (Tournament Library)', lambda a: click(a.page, '.nav-brand'))
     g.do('a staff session again (test) 2', lambda a: a.page.evaluate(STAFF_JS))
@@ -388,7 +388,7 @@ def nav_spectator(browser, react_check):
     nav(g, 'registration', 'staff: Registration')
     g.do('staff: Logout', lambda a: (click(a.page, tid('staff-auth')), settle(a.page)))
     g.do('the live socket opens again', lambda a: (poll(a.page, "() => ksmCloudSocket && ksmCloudSocket.readyState === 1", 'the live socket'), settle(a.page)))
-    g.do('spectator: the status line (Developer Tools)', lambda a: click(a.page, '.cloud-status-wrap > div[role="button"]'))
+    g.do('spectator: the status line (Developer Tools)', lambda a: click(a.page, tid('connection-status')))
     g.do('spectator: Developer Tools closed', lambda a: click(a.page, tid('cloud-modal-close')))
     g.finish()
 
@@ -398,20 +398,20 @@ def nav_phones(browser, react_check):
     page = g.app.page
     for label, size in PHONES:
         g.do(f'{label}', lambda a, s=size: resize(a.page, s))
-        for item in ['courts', 'tv', 'export', 'save-load']:
+        for item in ['courts', 'tv']:
             nav(g, item, f'{label}: {item} menu opened')
         g.do(f'{label}: Escape', lambda a: a.page.keyboard.press('Escape'))
         nav(g, 'courts', f'{label}: Courts menu opened again')
         nav(g, 'court-b', f'{label}: Court B')
     resize(page, PHONES[0][1])
-    nav(g, 'save-load', 'phone: Save / Load opened')
+    nav(g, 'courts', 'phone: Courts opened')
     g.do('phone: turned to landscape with the menu open', lambda a: resize(a.page, PHONES[1][1]))
     g.do('phone: back to portrait with the menu open', lambda a: resize(a.page, PHONES[0][1]))
     g.do('desktop with the menu open', lambda a: resize(a.page, DESKTOP))
-    nav(g, 'save-load', 'desktop: Save / Load clicked (closed)')
-    nav(g, 'export', 'desktop: Export opened')
-    g.do('phone with the Export menu open (placed again)', lambda a: resize(a.page, PHONES[0][1]))
-    nav(g, 'export', 'phone: Export clicked (closed)')
+    nav(g, 'courts', 'desktop: Courts clicked (closed)')
+    nav(g, 'tv', 'desktop: TV opened')
+    g.do('phone with the TV menu open (placed again)', lambda a: resize(a.page, PHONES[0][1]))
+    nav(g, 'tv', 'phone: TV clicked (closed)')
     nav(g, 'tv', 'phone: TV opened')
     g.do('phone: a click outside closes it', lambda a: click(a.page, '.mobile-nav-backdrop'))
     g.do('phone: spectator (code)', lambda a: a.page.evaluate("() => { setSessionRole('spectator'); installRoleBanner('spectator'); navigateTo('public'); }"))
@@ -520,25 +520,25 @@ def cloud_modals(browser, react_check):
     g = open_app('cloud-modals', browser, react_check)
     page = g.app.page
     g.do('a cloud tournament is open (code)', lambda a: a.page.evaluate("() => { cloudSession.tournamentId = 'golden-cup'; cloudSession.revision = 4; }"))
-    menu_item(g, 'save-load', 'tournament-access', 'Save / Load: Tournament Access')
+    setup_action(g, 'tournament-access', 'Setup: Tournament Access')
     g.do('Tournament Access: the QR code loaded', lambda a: poll(
         a.page, "() => [...document.querySelectorAll('#ksmCloudModal img')].every(i => i.complete && i.naturalWidth)", 'the QR code'))
     g.do('Tournament Access: Copy Link', lambda a: (click(a.page, tid('access-copy')), settle(a.page)))
     g.do('Tournament Access: Close', lambda a: click(a.page, tid('cloud-modal-close')))
-    menu_item(g, 'save-load', 'tournament-access', 'Save / Load: Tournament Access again')
+    setup_action(g, 'tournament-access', 'Setup: Tournament Access again')
     g.do('Tournament Access: the backdrop', lambda a: click(a.page, '#ksmCloudModal'))
     g.do('work queued for the cloud (code)', lambda a: a.page.evaluate("() => writeOutbox(tournamentPayload(), 'Golden queued work')"))
-    menu_item(g, 'save-load', 'cloud-diagnostics', 'Developer Tools with work queued')
+    setup_action(g, 'cloud-diagnostics', 'Developer Tools with work queued')
     g.do('Developer Tools: Close focused, Developer Tools opened again (code)', lambda a: (
         a.page.locator(tid('cloud-modal-close')).focus(), a.page.evaluate('() => cloudDiagnostics()')))
     g.do('Developer Tools: Close (queued)', lambda a: click(a.page, tid('cloud-modal-close')))
     g.do('a spectator (code)', lambda a: a.page.evaluate("() => { setSessionRole('spectator'); installRoleBanner('spectator'); }"))
-    g.do('spectator: Developer Tools from the status line', lambda a: click(a.page, '.cloud-status-wrap > div[role="button"]'))
+    g.do('spectator: Developer Tools from the status line', lambda a: click(a.page, tid('connection-status')))
     g.do('spectator: Developer Tools closed', lambda a: click(a.page, tid('cloud-modal-close')))
     g.do('a staff session again (test)', lambda a: a.page.evaluate(f"() => {{ clearOutbox(); {STAFF} }}"))
     with tempfile.TemporaryDirectory() as tmp:
         files = write_files(Path(tmp), page)
-        menu_item(g, 'save-load', 'load-file', 'Load Tournament File: the menu item')
+        g.do('Library: Load Tournament File', lambda a: (click(a.page, '.nav-brand'), click(a.page, tid('library-load-file'))))
         g.do('Load Tournament File: not a tournament file', lambda a: choose(a.page, '#ksmLoadFile', files['broken.ksm']))
         g.do('Load Tournament File: a recovery file', lambda a: choose(a.page, '#ksmLoadFile', files['recovery.ksm']))
         g.do('Load Tournament File: this tournament (same ID)', lambda a: choose(a.page, '#ksmLoadFile', files['same.ksm']))
@@ -668,9 +668,9 @@ def main():
             print(f'  {name}: ok')
         if not ONLY and not UPDATE:
             expected = {
-                'menu: none', 'menu: courtsMenu', 'menu: tvMenu', 'menu: exportMenu', 'menu: saveLoadMenu', 'menu placed',
+                'menu: none', 'menu: courtsMenu', 'menu: tvMenu', 'menu placed',
                 'active: none', 'active: Setup', 'active: Registration', 'active: Courts', 'active: Live Scores', 'active: Overview',
-                'active: Results', 'active: Export', 'staff button: Staff Login', 'staff button: Logout',
+                'active: Results', 'staff button: Staff Login', 'staff button: Logout',
                 'connection: online', 'connection: offline', 'connection: connecting', 'connection: error', 'connection: local',
                 'connection: bogus', 'devices online', 'fusen', 'validation: valid', 'validation: issues', 'regenerate: list',
                 'regenerate: confirm', 'regenerate: done', 'cloud: access', 'cloud: diagnostics', 'cloud: diagnostics retry',

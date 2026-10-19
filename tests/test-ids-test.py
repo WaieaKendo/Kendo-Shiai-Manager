@@ -11,10 +11,10 @@ from ksm_browser import launch_chromium
 SINGLETONS = [
     # header / navigation
     'nav-setup', 'nav-registration', 'nav-courts', 'nav-court-a', 'nav-court-b', 'nav-live-scores',
-    'nav-tv', 'nav-tv-a', 'nav-tv-b', 'nav-overlay-a', 'nav-overlay-b', 'nav-overview', 'nav-results', 'nav-export', 'nav-save-load',
-    'nav-new-tournament', 'nav-save-now', 'nav-library', 'nav-tournament-access',
-    'nav-export-brackets', 'nav-cloud-diagnostics', 'nav-download-recovery', 'nav-load-recovery', 'recovery-file-input',
-    'nav-download-file', 'nav-load-file', 'load-file-input', 'nav-export-results', 'nav-export-referees', 'nav-export-archive',
+    'nav-tv', 'nav-tv-a', 'nav-tv-b', 'nav-overlay-a', 'nav-overlay-b', 'nav-overview', 'nav-results',
+    'setup-tournament-access',
+    'setup-export-brackets', 'setup-cloud-diagnostics', 'setup-download-recovery', 'setup-load-recovery', 'recovery-file-input',
+    'setup-download-file', 'library-load-file', 'load-file-input', 'setup-export-results',
     'staff-auth', 'connection-status', 'save-status', 'home-new-tournament',
     # setup
     'setup-tournament-name', 'setup-host', 'setup-location', 'setup-division-rows', 'custom-division-name', 'custom-division-format',

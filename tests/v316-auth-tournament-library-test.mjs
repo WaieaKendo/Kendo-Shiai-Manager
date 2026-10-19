@@ -13,7 +13,7 @@ const checks = [
   ['staff login', html.includes('Staff Login') && html.includes("?'Logout':'Staff Login'")],
   ['new tournament', html.includes('createNewTournament()')],
   ['library cards', html.includes('tournament-library-grid') && html.includes('tournament-card') && libraryReact.includes('className="home-tournament-card"')],
-  ['save now preserved', html.includes('>Save Now</button>')],
+  ['save now preserved', shellReact.includes('h.retry && <button') && shellReact.includes('data-testid="header-save-now"')],
   ['recovery download preserved', html.includes('downloadRecoveryFile()')],
   ['single public access', html.includes("ksmOpenCloudModal('Tournament Access'") && shellReact.includes('Tournament access QR code')],
   ['staff auth endpoint', worker.includes("url.pathname === '/auth'")],

@@ -258,7 +258,7 @@ function DeleteTournament({ body }: { body: DeleteBody }) {
       <p>{DELETE_TEXTS.disconnect}</p>
       <p data-testid="delete-devices" role="status">{deleteDevicesText(body.devices)}</p>
       <div className="row" ref={rawStyle('margin-top:12px')}>
-        <button type="button" className="secondary" onClick={() => { w.manualSaveTournament?.(); }} data-testid="delete-backup">{DELETE_TEXTS.backup}</button>
+        <button type="button" className="secondary" onClick={() => { w.ksmDownloadDeleteBackup?.(); }} data-testid="delete-backup">{DELETE_TEXTS.backup}</button>
       </div>
       <p className="small">{DELETE_TEXTS.backupHint}</p>
       <label className="small" htmlFor="deleteTournamentName" ref={rawStyle('display:block;margin-top:12px')}>{DELETE_TEXTS.label}</label>

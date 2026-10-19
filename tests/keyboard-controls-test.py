@@ -54,7 +54,7 @@ def main():
         assert press_chip(page, 'exhibition-row', 'exhibition-status', 'Enter') != before
         assert app.payload()['state']['exhibitions'][-1]['status'] == 'Checked'
 
-        status_row = page.locator('.cloud-status-wrap > div[role="button"]')
+        status_row = page.locator(sel('connection-status'))
         for key in ('Enter', ' '):
             assert focusable(page, status_row), 'the status row takes no focus'
             page.keyboard.press(key)
