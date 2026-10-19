@@ -77,7 +77,7 @@ VIEW_JS = f"() => !document.querySelector('{ROOT}').classList.contains('hidden')
 SCROLL_JS = '() => [document.documentElement.scrollWidth, innerWidth]'
 SESSION_JS = """() => ({
   body: [...document.body.classList].sort(),
-  role: ksmSessionRole,
+  role: KSMTest.app.ksmSessionRole,
   banner: document.querySelector('.spectator-readonly-banner')?.textContent ?? null,
   staffAuth: document.getElementById('staffAuthButton')?.textContent ?? null,
   cache: localStorage.getItem('ksm.tournament.library.v3_16'),
@@ -166,7 +166,7 @@ class Api:
         """Until n library requests are waiting."""
         deadline = time.time() + 10
         while len(self.held) < n:
-            assert time.time() < deadline, f'expected {n} library request(s), {len(self.held)} came: {page.evaluate("({transition:ksmTournamentTransition,role:ksmSessionRole,id:cloudSession.tournamentId,online:navigator.onLine,outbox:readOutbox(),view:document.body.className})")}'
+            assert time.time() < deadline, f'expected {n} library request(s), {len(self.held)} came: {page.evaluate("({transition:KSMTest.app.ksmTournamentTransition,role:KSMTest.app.ksmSessionRole,id:KSMTest.app.cloudSession.tournamentId,online:navigator.onLine,outbox:KSMTest.app.readOutbox(),view:document.body.className})")}'
             page.wait_for_timeout(10)
 
     def answer(self, page, *answers):
@@ -269,7 +269,7 @@ def phone_views(g, label):
 def library_opened(g, label, *replies):
     """The library opened again (the brand, nav "Tournament Library": showHomePage()): pending, then answered."""
     api = g.app.api
-    g.do(f'{label}: requested', lambda a: (a.page.evaluate('() => showHomePage()'), api.wait(a.page)))
+    g.do(f'{label}: requested', lambda a: (a.page.evaluate('() => KSMTest.app.showHomePage()'), api.wait(a.page)))
     g.do(f'{label}: answered', lambda a: api.answer(a.page, *replies))
 
 
@@ -285,11 +285,11 @@ def library_empty(browser, errors):
     library_opened(g, 'reply not a list', {'error': 'not a list'})
     library_opened(g, 'reply null', None)
     phone_views(g, 'unable to load')
-    g.do('offline: library opened', lambda a: (a.page.context.set_offline(True), a.page.evaluate('() => showHomePage()'), settle(a.page)))
+    g.do('offline: library opened', lambda a: (a.page.context.set_offline(True), a.page.evaluate('() => KSMTest.app.showHomePage()'), settle(a.page)))
     phone_views(g, 'offline')
     page.context.set_offline(False)
     library_opened(g, 'one tournament', ONE)
-    g.do('offline with one cached', lambda a: (a.page.context.set_offline(True), a.page.evaluate('() => showHomePage()'), settle(a.page)))
+    g.do('offline with one cached', lambda a: (a.page.context.set_offline(True), a.page.evaluate('() => KSMTest.app.showHomePage()'), settle(a.page)))
     page.context.set_offline(False)
     library_opened(g, 'online again: discover', [])
     g.finish()
@@ -301,7 +301,7 @@ def library_cards(browser, errors):
     g.do('boot: library requested', lambda a: api.wait(a.page))
     g.do('boot: several tournaments', lambda a: api.answer(a.page, SEVERAL))
     phone_views(g, 'several')
-    g.do('opened again: cached while discover is pending', lambda a: (a.page.evaluate('() => showHomePage()'), api.wait(a.page)))
+    g.do('opened again: cached while discover is pending', lambda a: (a.page.evaluate('() => KSMTest.app.showHomePage()'), api.wait(a.page)))
     g.do('opened again: discover answered', lambda a: api.answer(a.page, SEVERAL[:5]))
     library_opened(g, 'discover fails (500)', (500, {'error': 'Library unavailable'}))
     library_opened(g, 'discover network error', 'network error')
@@ -313,7 +313,7 @@ def library_cards(browser, errors):
     g.do('card clicked: opening', lambda a: (click_card(a, 5), api.wait(a.page)))
     g.do('card: tournament not found', lambda a: api.answer(a.page, (404, {'error': 'Tournament not found'})))
     g.do('card: library again', lambda a: api.answer(a.page, SEVERAL))
-    payload = page.evaluate("() => { const p = tournamentPayload(); p.setup = {...p.setup, tName: 'Aiea <Taikai> & \"Co\" \\'Kendo\\' >'}; return p; }")
+    payload = page.evaluate("() => { const p = KSMTest.app.tournamentPayload(); p.setup = {...p.setup, tName: 'Aiea <Taikai> & \"Co\" \\'Kendo\\' >'}; return p; }")
     record = {'tournamentId': SEVERAL[2]['id'], 'revision': 3, 'updatedAt': UPDATED_AT, 'payload': payload}
     g.do('name clicked: opening', lambda a: (click('home-tournament-name', 2)(a), api.wait(a.page)))
     g.do('name: opened (Live Scores)', lambda a: api.answer(a.page, record))
@@ -331,7 +331,7 @@ def library_cards(browser, errors):
     answers(g, {'Tournament Name': 'Library Cup', 'Create Staff password': 'abcd', 'Confirm Staff password': 'abcd'})
     g.do('new tournament: creating', lambda a: (click('home-new-tournament')(a), api.wait(a.page)))
     g.do('new tournament: cloud down', lambda a: api.answer(a.page, (503, {'error': 'Cloud unavailable'})))
-    g.do('browse Library with unsaved staff work', lambda a: (a.page.evaluate('() => { void showHomePage(); }'), api.wait(a.page)))
+    g.do('browse Library with unsaved staff work', lambda a: (a.page.evaluate('() => { void KSMTest.app.showHomePage(); }'), api.wait(a.page)))
     g.do('browse: discover answered, staff work preserved', lambda a: api.answer(a.page, SEVERAL))
     g.finish()
 

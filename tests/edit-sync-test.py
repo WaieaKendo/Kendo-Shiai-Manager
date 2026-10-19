@@ -9,7 +9,9 @@ kind of edit through the UI (test IDs) that no other test follows past the editi
   * Registration: Paste from Excel (F31: was never autosaved), × on a player, a status changed,
     an exhibition match added and named, a team member changed;
   * structural no-shows after generation: a player (the pool is rebuilt) and a whole team (its
-    pairings removed).
+    pairings removed);
+  * (audit ranks 13 and 16) a team's plain status change and × a team; Clear Teams: Cancel changes
+    nothing on the server or Court B, OK reaches the server and Court B and survives a reload.
 
 After each edit the director's save must reach the server and Court B must show it (Court B's
 court screen mirrors for the red side; its Pools view drops the no-show). At the end Court B is
@@ -134,6 +136,13 @@ def main():
         director.page.locator(sel('team-card')).last.locator(sel('team-status')).click()  # Team C: Checked In -> No Show
         saved(lambda pl: not in_matches(pl, TEAM, 'Team C') and in_matches(pl, TEAM, 'Team A'), 'the team no-show')
 
+        # Audit rank 16 (R8): a team's plain status change and × a team reach the server and Court B.
+        director.page.locator(sel('team-card')).last.locator(sel('team-status')).click()  # Team C: No Show -> Registered
+        saved(lambda pl: st(pl)['teams'][2]['team'] == 'Team C' and st(pl)['teams'][2]['status'] == 'Registered'
+              and not in_matches(pl, TEAM, 'Team C'), 'the team status change')
+        director.page.locator(sel('team-card')).last.locator(sel('team-remove')).click()  # × Team C (no bouts left, so it does not ask)
+        saved(lambda pl: [t['team'] for t in st(pl)['teams']] == ['Team A', 'Team B'], 'the removed team')
+
         # --- Survives a reload: Court B reloaded and a fresh device -------------------------------
         final = fetch_record(base, tid)
         court.reload()
@@ -147,11 +156,39 @@ def main():
             got = players(pl)
             assert 'L 1' in got and 'L 3' not in got and got['L 2']['status'] == 'NoShow', f'{app.name}: registration {sorted(got)}'
             assert st(pl)['teams'][0].get('senpo') == 'New Senpo', f'{app.name}: team member'
+            assert [t['team'] for t in st(pl)['teams']] == ['Team A', 'Team B'], f'{app.name}: the removed team'
             assert any(e.get('white') == 'Sensei Ono' for e in st(pl).get('exhibitions') or []), f'{app.name}: exhibition'
             assert not in_pools(pl, OPEN_A, 'A 4') and not in_matches(pl, TEAM, 'Team C'), f'{app.name}: no-shows'
             assert st(pl)['allMatches'] == final['payload']['state']['allMatches'], f'{app.name}: matches differ from the server'
         court.open_court('B')
         assert (lambda x: x[1] < x[0])(court.page.evaluate(NAME_X_JS)), 'Court B is not mirrored after the reload'
+
+        # --- Clear Teams (audit rank 13): Cancel sends nothing; OK reaches the server and Court B ---------
+        director.nav('registration')
+        director.click('reg-tab-team')
+        director.wait_idle()
+        before = fetch_record(base, tid)
+        director.expect_dialog('Clear all teams?', accept=False)
+        director.click('team-clear')
+        director.wait_for_dialogs(1)
+        director.wait_idle()  # like any button click, the click asks for an autosave (a no-op save may move the revision)
+        # (the device's own pointers, currentDivision / matches / currentCourt, ride along in a no-op save)
+        data = lambda record: {k: record['payload']['state'][k] for k in ('teams', 'competitors', 'allMatches', 'pools', 'divisions')}
+        assert data(fetch_record(base, tid)) == data(before), 'Cancel on Clear Teams changed the tournament on the server'
+        assert [t['team'] for t in director.payload()['state']['teams']] == ['Team A', 'Team B'], 'Cancel on Clear Teams removed teams'
+        court.wait_revision(fetch_record(base, tid)['revision'])
+        assert [t['team'] for t in court.payload()['state']['teams']] == ['Team A', 'Team B'], 'Cancel on Clear Teams reached Court B'
+        rev = fetch_record(base, tid)['revision']
+        director.expect_dialog('Clear all teams?', accept=True)
+        director.click('team-clear')
+        saved(lambda pl: st(pl)['teams'] == [], 'Clear Teams')
+        assert fetch_record(base, tid)['revision'] > rev
+        for app in (court, fresh):
+            app.wait_revision(fetch_record(base, tid)['revision'])
+            assert app.payload()['state']['teams'] == [], f'{app.name}: the cleared teams'
+        court.reload()
+        court.wait_revision(fetch_record(base, tid)['revision'])
+        assert court.payload()['state']['teams'] == [], 'Court B after a reload still has the cleared teams'
 
         assert not problems, '\n'.join(problems)
         print(f'PASS edit sync: Setup (red side, team awards, custom division, exhibitions), Registration (paste, remove, status, '

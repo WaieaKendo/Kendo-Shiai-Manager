@@ -11,10 +11,10 @@ def main():
         browser=launch_chromium(p)
         app=KsmApp.local(browser.new_page())
         page=app.page
-        page.evaluate("window.headerMutations=0;const headerNote=noteLocalMutation;noteLocalMutation=(...args)=>{headerMutations++;return headerNote(...args)}")
-        page.evaluate("cloudSession.tournamentId='header-fixture';tName.value='ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890ABCD';syncSetupHeader()")
+        page.evaluate("window.headerMutations=0;const headerNote=KSMTest.app.noteLocalMutation;KSMTest.app.noteLocalMutation=(...args)=>{headerMutations++;return headerNote(...args)}")
+        page.evaluate("KSMTest.app.cloudSession.tournamentId='header-fixture';tName.value='ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890ABCD';KSMTest.app.syncSetupHeader()")
         for width,height in [(375,812),(812,375),(1280,900)]:
-            page.evaluate("setSessionRole('spectator');installRoleBanner('spectator')")
+            page.evaluate("KSMTest.app.setSessionRole('spectator');KSMTest.app.installRoleBanner('spectator')")
             page.set_viewport_size({'width':width,'height':height})
             page.evaluate('document.fonts.ready')
             chip=page.locator(sel('tournament-chip'))
@@ -51,7 +51,7 @@ def main():
 
             toggle=page.locator(sel('nav-toggle'))
             for role,expected in [('spectator',['Overview','Live Scores','Courts','Results']),('staff',['Overview','Live Scores','Courts','TV','Results','Registration','Setup'])]:
-                page.evaluate("role=>{setSessionRole(role);installRoleBanner(role)}",role)
+                page.evaluate("role=>{KSMTest.app.setSessionRole(role);KSMTest.app.installRoleBanner(role)}",role)
                 if width<=900:
                     assert toggle.is_visible() and not page.locator('nav.minimal-nav').is_visible()
                     assert toggle.bounding_box()['x']+toggle.bounding_box()['width']<=page.locator('.nav-brand').bounding_box()['x']
@@ -94,7 +94,7 @@ def main():
             chip.click()
             app.wait_for(lambda: app.visible_view()==['director'],message='name links to Overview')
         page.set_viewport_size({'width':375,'height':812})
-        page.evaluate("setSessionRole('spectator');installRoleBanner('spectator');navigateTo('public')")
+        page.evaluate("KSMTest.app.setSessionRole('spectator');KSMTest.app.installRoleBanner('spectator');KSMTest.app.navigateTo('public')")
         app.click('nav-toggle')
         assert page.locator('header.ksm-topbar').evaluate('el=>el.inert')
         page.keyboard.press('Escape')
@@ -103,7 +103,7 @@ def main():
         assert page.locator(sel('nav-toggle')).get_attribute('aria-expanded')=='false'
         assert page.locator('.nav-brand').get_attribute('title')=='Overview'
         # This isolated header fixture has no server; discard its simulated pending saves.
-        page.evaluate("clearTimeout(ksmSaveTimer);ksmSaveTimer=null;clearTimeout(ksmCloudTimer);ksmCloudTimer=null;clearOutbox();ksmCloudSaveInFlight=false;ksmCloudSavePending=false;ksmConfirmedMutationVersion=ksmLocalMutationVersion;setSessionRole('staff');installRoleBanner('staff')")
+        page.evaluate("clearTimeout(KSMTest.app.ksmSaveTimer);KSMTest.app.ksmSaveTimer=null;clearTimeout(KSMTest.app.ksmCloudTimer);KSMTest.app.ksmCloudTimer=null;KSMTest.app.clearOutbox();KSMTest.app.ksmCloudSaveInFlight=false;KSMTest.app.ksmCloudSavePending=false;KSMTest.app.ksmConfirmedMutationVersion=KSMTest.app.ksmLocalMutationVersion;KSMTest.app.setSessionRole('staff');KSMTest.app.installRoleBanner('staff')")
         page.locator('.nav-brand').click()
         app.wait_for(lambda: app.visible_view()==['home'],message='staff logo opens selector')
         assert page.locator('.home-brand').is_visible()

@@ -56,7 +56,7 @@ def main():
         # Another device sees the awards.
         other = KsmApp.open_device(browser, base, 'Spectator', problems, app_path(tid))
         other.wait_generated()
-        other.wait_for(lambda: (other.page.evaluate('state.awards') or []) == want[1:], message='the second device to see the award')
+        other.wait_for(lambda: (other.page.evaluate('KSMTest.app.state.awards') or []) == want[1:], message='the second device to see the award')
 
         assert not problems, '\n'.join(problems)
         print(f'PASS awards: add/remove redraw at once, edits autosave to the cloud, second device sees them ({time.time() - started:.0f}s)')

@@ -192,7 +192,7 @@ def main():
         for path, address in ((app_path(tid, 'court', 'a'), app_path(tid, 'court', 'a')), (app_path(tid, 'tv', 'b'), app_path(tid, 'tv', 'b')),
                               (f'/?tournament={tid}&court=A', app_path(tid, 'court', 'a'))):
             court.goto(path)
-            assert cpage.evaluate("typeof initializeCloudRoleFromUrl === 'function' && Boolean(document.querySelector('#score'))"), f'offline {path}: not the app'
+            assert cpage.evaluate("KSMTest.booted() && Boolean(document.querySelector('#score'))"), f'offline {path}: not the app'
             assert court.address() == address, f'offline {path}: {court.address()}'
         try:
             cpage.goto(f'{base}{app_path(tid, "overlay", "a")}', wait_until='domcontentloaded')

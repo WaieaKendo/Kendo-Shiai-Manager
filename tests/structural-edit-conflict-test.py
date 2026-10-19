@@ -13,6 +13,9 @@ another device saves first, so the director's save conflicts (409) and is rebase
   3. the same, OK: the director's pools replace the other device's version (the point is gone,
      as the question says).
 
+After the three races the director, the court and a fresh device are reloaded: all show the re-applied
+pools and matches (audit rank 14).
+
 Before F10 the rebase kept the server's pools and matches in all three, without a word.
 """
 
@@ -111,6 +114,19 @@ def main():
         assert any(m.get('wp') == ['M'] for m in server['allMatches'][OTHER]), 'OK: the other division keeps its point'
         court.wait_revision(record['revision'])
         court.wait_for(lambda: names(court.structure()[DIV]['pools']) == edited, message='the re-applied edit to reach Court B')
+
+        # Audit rank 14: the re-applied Edit Pool survives a reload of the director, the court and a fresh device.
+        director.wait_idle()
+        final = fetch_record(base, tid)
+        assert names(final['payload']['state']['pools'][DIV]) == edited, 'the edited pools are not on the server'
+        director.reload()
+        court.reload()
+        fresh = KsmApp.open_device(browser, base, 'Fresh', problems, app_path(tid))
+        for app in (director, court, fresh):
+            app.wait_generated()
+            app.wait_revision(final['revision'])
+            assert names(app.structure()[DIV]['pools']) == edited, f'{app.name}: the edited pools after a reload'
+            assert app.payload()['state']['allMatches'][DIV] == final['payload']['state']['allMatches'][DIV], f'{app.name}: the division\'s matches after a reload'
 
         assert not problems, '\n'.join(problems)
         print(f'PASS structural edit on a save conflict: replayed when the other save changed another division; '

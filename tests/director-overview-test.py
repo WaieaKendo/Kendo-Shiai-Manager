@@ -9,12 +9,12 @@ with sync_playwright() as p:
  errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
  load_app(page, HTML)
  page.evaluate("""
- state.allMatches={Test:[
+ KSMTest.app.state.allMatches={Test:[
  {division:'Test',pool:'A',white:'W1',red:'R1',done:true,wp:['M'],rp:[]},
  {division:'Test',pool:'A',white:'W2',red:'R2',done:false,wp:[],rp:[]},
  {division:'Test',pool:'A',white:'W3',red:'R3',done:false,wp:[],rp:[]},
  {division:'Test',pool:'A',white:'W4',red:'R4',done:false,wp:[],rp:[]}
- ]};state.divisionCourts={Test:'A'};state.courtState.A={division:'Test',index:1};state.courtState.B={division:null,index:0};renderDirector();document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));document.querySelector('#director').classList.remove('hidden');
+ ]};KSMTest.app.state.divisionCourts={Test:'A'};KSMTest.app.state.courtState.A={division:'Test',index:1};KSMTest.app.state.courtState.B={division:null,index:0};KSMTest.app.renderDirector();document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));document.querySelector('#director').classList.remove('hidden');
  """)
  assert page.locator('#directorOverallCount').inner_text()=='1 / 4 Matches'
  assert page.locator('.director-court-card').first.locator('.director-division').inner_text()=='Test'

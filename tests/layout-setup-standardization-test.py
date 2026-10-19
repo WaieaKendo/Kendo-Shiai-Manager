@@ -28,7 +28,7 @@ with sync_playwright() as p:
         assert max(widths)-min(widths)<=1.0,(width,widths); checks+=1
         assert max(tops)-min(tops)<=1.0,(width,tops); checks+=1
         if mobile:
-            page.evaluate("document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));setup.classList.remove('hidden');renderDivisionSetup()")
+            page.evaluate("document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));setup.classList.remove('hidden');KSMTest.app.renderDivisionSetup()")
             page.wait_for_timeout(100)
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth') is True; checks+=1
             hero=page.locator('.setup-hero').bounding_box(); panel=page.locator('.setup-panel').first.bounding_box()

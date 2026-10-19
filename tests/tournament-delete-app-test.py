@@ -57,15 +57,15 @@ def relogin_staff(app):
     # a spectator when it lands): let it land first, or the login below is undone by it
     app.page.wait_for_function(
         "() => { const r = KSMTest.pendingReason(); return !r.saveInFlight && !r.autosaveTimer && !r.cloudSaveTimer; }")
-    app.page.evaluate("() => ksmSessionRole !== 'staff' ? toggleStaffSession() : null")
-    app.page.wait_for_function("() => ksmSessionRole === 'staff'", timeout=10000)
+    app.page.evaluate("() => KSMTest.app.ksmSessionRole !== 'staff' ? KSMTest.app.toggleStaffSession() : null")
+    app.page.wait_for_function("() => KSMTest.app.ksmSessionRole === 'staff'", timeout=10000)
 
 
 def print_delete_diagnostics(app, trace):
     """On a failed wait for the Library: what the page was doing (CI logs are all there is to go on)."""
     try:
         state = app.page.evaluate("""() => ({
-          body: document.body.className, role: typeof ksmSessionRole !== 'undefined' ? ksmSessionRole : null,
+          body: document.body.className, role: typeof KSMTest.app.ksmSessionRole !== 'undefined' ? KSMTest.app.ksmSessionRole : null,
           staffSession: KSMTest.staffSession(), tournamentId: KSMTest.tournamentId(),
           toasts: KSMTest.toasts ? KSMTest.toasts() : null,
           dialog: document.querySelector('[data-testid="delete-dialog"]')?.innerText || null,
@@ -113,7 +113,7 @@ def main():
 
         # ------------------------------------------------ only staff are offered Delete tournament
         assert not spectator.can_delete_tournament(), 'a spectator is offered Delete tournament'
-        spectator.page.evaluate('ksmOpenDeleteTournament()')  # even the function does nothing for a spectator
+        spectator.page.evaluate('KSMTest.app.ksmOpenDeleteTournament()')  # even the function does nothing for a spectator
         assert spectator.page.locator(sel('delete-dialog')).count() == 0
         assert director.can_delete_tournament(), 'staff are not offered Delete tournament'
 
@@ -179,7 +179,7 @@ def main():
             # a device that stopped being staff while the dialog was open: Delete says so, deletes nothing
             director.page.wait_for_function("() => !KSMTest.pendingReason().saveInFlight")  # the login's save is done
             # what a refused save does to the device (33): the session is dropped, the device is a spectator
-            director.page.evaluate("([key]) => { sessionStorage.removeItem(key); setSessionRole('spectator'); }", [STAFF_SESSION_KEY])
+            director.page.evaluate("([key]) => { sessionStorage.removeItem(key); KSMTest.app.setSessionRole('spectator'); }", [STAFF_SESSION_KEY])
             director.type_delete_name('Delete Cup')
             director.wait_for(director.delete_enabled, message='Delete to be enabled for the typed name')
             director.click('delete-confirm')

@@ -33,13 +33,13 @@ SCENARIOS = ['individual-and-team', 'multi-division-two-courts', 'rr-12-split', 
 # sort match lists and move the court position in place, as it does on the TV.
 TV_JS = """(court) => {
   const snap = JSON.parse(JSON.stringify({...state, courtActionHistory: undefined, courtRedoHistory: undefined, history: undefined, matches: undefined}));
-  const vm = buildTV3ViewModel(court);
+  const vm = KSMTest.app.buildTV3ViewModel(court);
   let tv = null;
   if (!vm.empty && vm.format !== 'results') {
     const m = vm.match;
     tv = {division: m.division, meta: vm.meta.line,
-          white: vm.teamMode ? (m.white || 'TBD') : tvIndividualSideLabel(m, 'white'),
-          red: vm.teamMode ? (m.red || 'TBD') : tvIndividualSideLabel(m, 'red'),
+          white: vm.teamMode ? (m.white || 'TBD') : KSMTest.app.tvIndividualSideLabel(m, 'white'),
+          red: vm.teamMode ? (m.red || 'TBD') : KSMTest.app.tvIndividualSideLabel(m, 'red'),
           white_points: (m.wp || []).join(' '), red_points: (m.rp || []).join(' '),
           upcoming: vm.upcoming.filter(Boolean).map(u => `${u.left} vs ${u.right}`)};
   }

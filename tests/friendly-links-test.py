@@ -40,7 +40,7 @@ def main():
         staff.wait_for(lambda: staff.address() == '/lokt-renamed-2027/setup',message=f'rename address: {renamed.value.text()}, problems {problems}')
         assert page.locator(sel('setup-short-url')).input_value()=='lokt-renamed-2027'
         assert page.locator(sel('cloud-modal')).count()==0
-        page.evaluate('openTournamentAccess()')
+        page.evaluate('KSMTest.app.openTournamentAccess()')
         staff.wait_for(lambda: '/lokt-renamed-2027' in page.locator(sel('access-link')).inner_text(),message='renamed generated link')
         assert page.locator(sel('cloud-modal')).locator(sel('edit-tournament-slug')).count()==0
         assert '/lokt-renamed-2027' in urllib.parse.unquote(page.locator(sel('access-qr')).get_attribute('src'))

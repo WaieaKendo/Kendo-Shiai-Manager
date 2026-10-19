@@ -151,20 +151,20 @@ STATE_JS = f"""() => {{
   const a = document.activeElement;
   const toast = document.getElementById('ksmToast');
   return {{
-    role: ksmSessionRole,
+    role: KSMTest.app.ksmSessionRole,
     body: document.body.className,
     // The body's elements (not the scripts): the banner first, the toast and the cloud modal last.
     top: [...document.body.children].filter(e => e.tagName !== 'SCRIPT').map(e => [e.tagName.toLowerCase(), e.id, e.className, e.children.length ? null : e.textContent]),
     staffSession: !!sessionStorage.getItem('ksm.staff.session.v3_16'),
-    tournamentId: cloudSession.tournamentId || null,
-    revision: Number(cloudSession.revision) || 0,
+    tournamentId: KSMTest.app.cloudSession.tournamentId || null,
+    revision: Number(KSMTest.app.cloudSession.revision) || 0,
     toast: toast ? [toast.className, toast.textContent] : null,
     focus: name(a), connected: a ? a.isConnected : null,
   }};
 }}"""
 SHOWN_JS = "s => { const el = document.querySelector(s); return !!el && el.checkVisibility(); }"
 # A staff session again, as load_app() starts one (createNewTournament() minus the cloud).
-STAFF = "document.body.classList.remove('ksm-home'); setSessionRole('staff'); installRoleBanner('staff'); navigateTo('setup');"
+STAFF = "document.body.classList.remove('ksm-home'); KSMTest.app.setSessionRole('staff'); KSMTest.app.installRoleBanner('staff'); KSMTest.app.navigateTo('setup');"
 STAFF_JS = f"() => {{ {STAFF} }}"
 
 
@@ -308,7 +308,7 @@ def nav_staff(browser, react_check):
     g = open_app('nav-staff', browser, react_check)
     page = g.app.page
     g.check('a staff device on Setup')
-    g.do('no tile active for the Library', lambda a: a.page.evaluate("ksmSetActiveNav('home')"))
+    g.do('no tile active for the Library', lambda a: a.page.evaluate("KSMTest.app.ksmSetActiveNav('home')"))
     for item in ['registration', 'live-scores', 'overview', 'results', 'setup']:
         nav(g, item)
     nav(g, 'courts', 'Courts menu opened')
@@ -325,7 +325,7 @@ def nav_staff(browser, react_check):
     nav(g, 'setup')
     menu_item(g, 'tv', 'tv-a', 'TV: Court A TV (not in the cloud)', wait=True)
     menu_item(g, 'tv', 'overlay-b', 'TV: copy the Court B overlay link (not in the cloud)', wait=True)
-    g.do('queued save warning (code)', lambda a: a.page.evaluate("() => writeOutbox(tournamentPayload(), 'Golden queued work')"))
+    g.do('queued save warning (code)', lambda a: a.page.evaluate("() => KSMTest.app.writeOutbox(KSMTest.app.tournamentPayload(), 'Golden queued work')"))
     g.do('Header: Save now (offline)', lambda a: (click(a.page, tid('header-save-now')), settle(a.page)))
     nav(g, 'setup')
     with page.expect_download():
@@ -343,16 +343,16 @@ def nav_staff(browser, react_check):
     # The status line as the sync code sets it.
     for mode, text in [('online', 'Live sync'), ('connecting', 'Sync connecting…'), ('error', 'Save <failed> & "x"'),
                        ('local', ''), ('bogus', 'Unknown mode'), ('offline', 'Offline')]:
-        g.do(f'connection status: {mode} (code)', lambda a, m=mode, t=text: a.page.evaluate('([t, m]) => setConnectionStatus(t, m)', [t, m]))
-    g.do('connection status: no mode (code)', lambda a: a.page.evaluate("() => setConnectionStatus('Plain')"))
-    g.do('devices online: 3 (code)', lambda a: a.page.evaluate("() => renderCloudPresence([{}, {}, {}])"))
-    g.do('devices online: none (code)', lambda a: a.page.evaluate("() => renderCloudPresence([])"))
+        g.do(f'connection status: {mode} (code)', lambda a, m=mode, t=text: a.page.evaluate('([t, m]) => KSMTest.app.setConnectionStatus(t, m)', [t, m]))
+    g.do('connection status: no mode (code)', lambda a: a.page.evaluate("() => KSMTest.app.setConnectionStatus('Plain')"))
+    g.do('devices online: 3 (code)', lambda a: a.page.evaluate("() => KSMTest.app.renderCloudPresence([{}, {}, {}])"))
+    g.do('devices online: none (code)', lambda a: a.page.evaluate("() => KSMTest.app.renderCloudPresence([])"))
     for mode in ['saving', 'syncing', 'offline', 'error']:
-        g.do(f'save status: {mode} (code)', lambda a, m=mode: a.page.evaluate('m => { ksmSaveStatusMode = m; renderPersistentSaveStatus(); }', m))
+        g.do(f'save status: {mode} (code)', lambda a, m=mode: a.page.evaluate('m => { KSMTest.app.ksmSaveStatusMode = m; KSMTest.app.renderPersistentSaveStatus(); }', m))
     for label, ago in [('just now', 0), ('5 min ago', 5 * 60000), ('2 hours ago', 2 * 3600000)]:
         g.do(f'save status: saved {label} (code)', lambda a, ms=ago: a.page.evaluate(
-            'ms => { clearOutbox(); ksmSaveStatusMode = "saved"; ksmLastSuccessfulSaveAt = Date.now() - ms; renderPersistentSaveStatus(); }', ms))
-    g.do('save status: a message (code)', lambda a: a.page.evaluate("() => updateSaveStatus('Loaded <b>x</b>.ksm')"))
+            'ms => { KSMTest.app.clearOutbox(); KSMTest.app.ksmSaveStatusMode = "saved"; KSMTest.app.ksmLastSuccessfulSaveAt = Date.now() - ms; KSMTest.app.renderPersistentSaveStatus(); }', ms))
+    g.do('save status: a message (code)', lambda a: a.page.evaluate("() => KSMTest.app.updateSaveStatus('Loaded <b>x</b>.ksm')"))
     g.do('a minute passes (the save status refresh, autosave)', lambda a: (a.page.clock.run_for(60000), settle(a.page)))
     g.do('the brand clicked (Tournament Library)', lambda a: click(a.page, '.nav-brand'))
     g.do('a staff session again (test)', lambda a: a.page.evaluate(STAFF_JS))
@@ -367,14 +367,14 @@ def nav_staff(browser, react_check):
 
 def nav_spectator(browser, react_check):
     g = open_app('nav-spectator', browser, react_check, api=Api('golden-cup', 'golden-pass'))
-    g.do('a spectator (code)', lambda a: a.page.evaluate("() => { setSessionRole('spectator'); installRoleBanner('spectator'); navigateTo('public'); }"))
+    g.do('a spectator (code)', lambda a: a.page.evaluate("() => { KSMTest.app.setSessionRole('spectator'); KSMTest.app.installRoleBanner('spectator'); KSMTest.app.navigateTo('public'); }"))
     for item in ['results', 'overview', 'live-scores']:
         nav(g, item, f'spectator: {item}')
     nav(g, 'courts', 'spectator: Courts menu opened')
     nav(g, 'court-a', 'spectator: Court A')
-    g.do('spectator: Setup from the code (Live Scores instead)', lambda a: a.page.evaluate("() => navigateTo('setup')"))
+    g.do('spectator: Setup from the code (Live Scores instead)', lambda a: a.page.evaluate("() => KSMTest.app.navigateTo('setup')"))
     g.do('spectator: Staff Login without a tournament', lambda a: (click(a.page, tid('staff-auth')), settle(a.page)))
-    g.do('a cloud tournament is open (code)', lambda a: a.page.evaluate("() => { cloudSession.tournamentId = 'golden-cup'; cloudSession.revision = 3; }"))
+    g.do('a cloud tournament is open (code)', lambda a: a.page.evaluate("() => { KSMTest.app.cloudSession.tournamentId = 'golden-cup'; KSMTest.app.cloudSession.revision = 3; }"))
     g.answer = lambda d: d.dismiss()
     g.do('spectator: Staff Login cancelled', lambda a: (click(a.page, tid('staff-auth')), settle(a.page)))
     g.answer = lambda d: d.accept('wrong') if d.type == 'prompt' else d.accept()
@@ -414,7 +414,7 @@ def nav_phones(browser, react_check):
     nav(g, 'tv', 'phone: TV clicked (closed)')
     nav(g, 'tv', 'phone: TV opened')
     g.do('phone: a click outside closes it', lambda a: click(a.page, '.mobile-nav-backdrop'))
-    g.do('phone: spectator (code)', lambda a: a.page.evaluate("() => { setSessionRole('spectator'); installRoleBanner('spectator'); navigateTo('public'); }"))
+    g.do('phone: spectator (code)', lambda a: a.page.evaluate("() => { KSMTest.app.setSessionRole('spectator'); KSMTest.app.installRoleBanner('spectator'); KSMTest.app.navigateTo('public'); }"))
     nav(g, 'courts', 'phone spectator: Courts menu opened')
     g.do('phone spectator: landscape', lambda a: resize(a.page, PHONES[1][1]))
     nav(g, 'court-a', 'phone spectator: Court A')
@@ -432,11 +432,11 @@ def dialogs(browser, react_check):
     g.do('Generate again', lambda a: click(a.page, tid('generate-button')))
     g.do('the check: Close again', lambda a: click(a.page, tid('validation-close')))
     g.do('registration with issues (code)', lambda a: a.page.evaluate("""() => {
-      state.competitors = [
-        {name: 'Ann <A>', dojo: 'Hilo & Co', division: state.divisions[0], seed: 'x', status: 'Checked'},
-        {name: 'Ann <A>', dojo: 'Hilo & Co', division: state.divisions[0], seed: '', status: 'Checked'},
-        {name: '', dojo: 'Kona', division: state.divisions[0], seed: '', status: 'Registered'}];
-      renderReg(); renderTournamentStatus();
+      KSMTest.app.state.competitors = [
+        {name: 'Ann <A>', dojo: 'Hilo & Co', division: KSMTest.app.state.divisions[0], seed: 'x', status: 'Checked'},
+        {name: 'Ann <A>', dojo: 'Hilo & Co', division: KSMTest.app.state.divisions[0], seed: '', status: 'Checked'},
+        {name: '', dojo: 'Kona', division: KSMTest.app.state.divisions[0], seed: '', status: 'Registered'}];
+      KSMTest.app.renderReg(); KSMTest.app.renderTournamentStatus();
     }"""))
     g.do('Generate with issues', lambda a: click(a.page, tid('generate-button')))
     g.do('the check: Close', lambda a: click(a.page, tid('validation-close')))
@@ -445,7 +445,7 @@ def dialogs(browser, react_check):
     g.do('Generate with issues a third time', lambda a: click(a.page, tid('generate-button')))
     g.do('the check: Close again', lambda a: click(a.page, tid('validation-close')))
     g.do('Generate with issues, Close focused', lambda a: (click(a.page, tid('generate-button')), a.page.locator(tid('validation-close')).focus()))
-    g.do('the check drawn afresh while Close has the focus (code)', lambda a: a.page.evaluate('() => requestTournamentGeneration()'))
+    g.do('the check drawn afresh while Close has the focus (code)', lambda a: a.page.evaluate('() => KSMTest.app.requestTournamentGeneration()'))
     g.do('the check: Close with the keyboard', lambda a: (a.page.locator(tid('validation-close')).focus(), a.page.keyboard.press('Enter'), leave(a.page)))
     g.do('a tournament generated (test API configure())', lambda a: a.configure([
         {'name': 'Open <A>', 'format': 'Round Robin', 'court': 'A', 'entrants': people('O', 4)},
@@ -465,7 +465,7 @@ def dialogs(browser, react_check):
     g.do('Fusen-gachi opened (Red forfeits)', lambda a: click(a.page, tid('fusen-gachi')))
     g.do('Fusen-gachi: White won (Red forfeits)', lambda a: click(a.page, tid('fusen-white')))
     g.do('Fusen-gachi opened from the code with no match (nothing)', lambda a: a.page.evaluate(
-        "() => { const c = state.current; state.current = 999; openFusenDialog(); state.current = c; }"))
+        "() => { const c = KSMTest.app.state.current; KSMTest.app.state.current = 999; KSMTest.app.openFusenDialog(); KSMTest.app.state.current = c; }"))
     nav(g, 'registration')
     g.do('Regenerate Single Division opened', lambda a: click(a.page, tid('regenerate-division-button')))
     g.do('Regenerate: x', lambda a: click(a.page, tid('regenerate-modal-close')))
@@ -481,13 +481,13 @@ def dialogs(browser, react_check):
     g.do('Regenerate: Cancel with the keyboard', lambda a: (
         a.page.locator('#regenerateModalActions button:text-is("Cancel")').focus(), a.page.keyboard.press('Enter'), leave(a.page)))
     g.do('Women down to one player (code)', lambda a: a.page.evaluate(
-        "() => { state.competitors = state.competitors.filter(c => !c.division.startsWith('Women') || c.name === 'W 1'); }"))
+        "() => { KSMTest.app.state.competitors = KSMTest.app.state.competitors.filter(c => !c.division.startsWith('Women') || c.name === 'W 1'); }"))
     g.do('Regenerate opened (Women fails the check)', lambda a: click(a.page, tid('regenerate-division-button')))
     g.do('Regenerate: Continue (Women)', lambda a: click(a.page, tid('regenerate-continue')))
     g.do('Regenerate: Regenerate (the check fails)', lambda a: click(a.page, tid('regenerate-confirm')))
     g.do('the check: Close (after Regenerate)', lambda a: click(a.page, tid('validation-close')))
     g.do('every division started (code)', lambda a: a.page.evaluate(
-        "() => Object.values(state.allMatches).forEach(ms => { if (ms[0]) ms[0].done = true; })"))
+        "() => Object.values(KSMTest.app.state.allMatches).forEach(ms => { if (ms[0]) ms[0].done = true; })"))
     g.do('Regenerate opened (no division ready)', lambda a: click(a.page, tid('regenerate-division-button')))
     g.do('Regenerate: Continue (nothing chosen: the alert)', lambda a: click(a.page, tid('regenerate-continue')))
     g.do('Regenerate: x (end)', lambda a: click(a.page, tid('regenerate-modal-close')))
@@ -497,7 +497,7 @@ def dialogs(browser, react_check):
 def write_files(folder, page):
     """Tournament files: this tournament's, another's, an older one without an ID, a recovery file
     and one that is not JSON."""
-    base = page.evaluate('() => tournamentFilePayload()')
+    base = page.evaluate('() => KSMTest.app.tournamentFilePayload()')
     same = {**base, 'setup': {**(base.get('setup') or {}), 'tName': 'Same <Cup> & "Co"'}, 'savedAt': '2026-11-20T09:15:00.000Z', 'revision': 5}
     other = {**same, 'tournamentId': 'other-cup', 'revision': 12, 'setup': {**same['setup'], 'tName': 'Other Cup'}}
     older = {k: v for k, v in same.items() if k not in ('tournamentId', 'revision', 'savedAt')}
@@ -519,7 +519,7 @@ def choose(page, selector, path):
 def cloud_modals(browser, react_check):
     g = open_app('cloud-modals', browser, react_check)
     page = g.app.page
-    g.do('a cloud tournament is open (code)', lambda a: a.page.evaluate("() => { cloudSession.tournamentId = 'golden-cup'; cloudSession.revision = 4; }"))
+    g.do('a cloud tournament is open (code)', lambda a: a.page.evaluate("() => { KSMTest.app.cloudSession.tournamentId = 'golden-cup'; KSMTest.app.cloudSession.revision = 4; }"))
     setup_action(g, 'tournament-access', 'Setup: Tournament Access')
     g.do('Tournament Access: the QR code loaded', lambda a: poll(
         a.page, "() => [...document.querySelectorAll('#ksmCloudModal img')].every(i => i.complete && i.naturalWidth)", 'the QR code'))
@@ -527,15 +527,15 @@ def cloud_modals(browser, react_check):
     g.do('Tournament Access: Close', lambda a: click(a.page, tid('cloud-modal-close')))
     setup_action(g, 'tournament-access', 'Setup: Tournament Access again')
     g.do('Tournament Access: the backdrop', lambda a: click(a.page, '#ksmCloudModal'))
-    g.do('work queued for the cloud (code)', lambda a: a.page.evaluate("() => writeOutbox(tournamentPayload(), 'Golden queued work')"))
+    g.do('work queued for the cloud (code)', lambda a: a.page.evaluate("() => KSMTest.app.writeOutbox(KSMTest.app.tournamentPayload(), 'Golden queued work')"))
     setup_action(g, 'cloud-diagnostics', 'Developer Tools with work queued')
     g.do('Developer Tools: Close focused, Developer Tools opened again (code)', lambda a: (
-        a.page.locator(tid('cloud-modal-close')).focus(), a.page.evaluate('() => cloudDiagnostics()')))
+        a.page.locator(tid('cloud-modal-close')).focus(), a.page.evaluate('() => KSMTest.app.cloudDiagnostics()')))
     g.do('Developer Tools: Close (queued)', lambda a: click(a.page, tid('cloud-modal-close')))
-    g.do('a spectator (code)', lambda a: a.page.evaluate("() => { setSessionRole('spectator'); installRoleBanner('spectator'); }"))
+    g.do('a spectator (code)', lambda a: a.page.evaluate("() => { KSMTest.app.setSessionRole('spectator'); KSMTest.app.installRoleBanner('spectator'); }"))
     g.do('spectator: Developer Tools from the status line', lambda a: click(a.page, tid('connection-status')))
     g.do('spectator: Developer Tools closed', lambda a: click(a.page, tid('cloud-modal-close')))
-    g.do('a staff session again (test)', lambda a: a.page.evaluate(f"() => {{ clearOutbox(); {STAFF} }}"))
+    g.do('a staff session again (test)', lambda a: a.page.evaluate(f"() => {{ KSMTest.app.clearOutbox(); {STAFF} }}"))
     with tempfile.TemporaryDirectory() as tmp:
         files = write_files(Path(tmp), page)
         g.do('Library: Load Tournament File', lambda a: (click(a.page, '.nav-brand'), click(a.page, tid('library-load-file'))))
@@ -552,7 +552,7 @@ def cloud_modals(browser, react_check):
         g.do('Load Tournament File: an older file without an ID', lambda a: choose(a.page, '#ksmLoadFile', files['older.ksm']))
         g.do('file: Load as new tournament (unsaved work: the alert)', lambda a: (click(a.page, tid('file-load-new')), settle(a.page)))
         g.do('file: Cancel (older)', lambda a: click(a.page, tid('file-load-cancel')))
-        g.do('no cloud tournament open (code)', lambda a: a.page.evaluate("() => { cloudSession.tournamentId = null; cloudSession.revision = 0; }"))
+        g.do('no cloud tournament open (code)', lambda a: a.page.evaluate("() => { KSMTest.app.cloudSession.tournamentId = null; KSMTest.app.cloudSession.revision = 0; }"))
         g.do('Load Tournament File: another tournament (none open)', lambda a: choose(a.page, '#ksmLoadFile', files['other.ksm']))
         g.answer = lambda d: d.dismiss() if d.type == 'prompt' else d.accept()
         g.do('file: Load as new tournament (password prompt cancelled)', lambda a: (click(a.page, tid('file-load-new')), settle(a.page)))
@@ -631,10 +631,10 @@ def shell_module_missing(browser):
     page.locator(tid('nav-courts')).dispatch_event('click')
     assert page.evaluate('window.ksmShellNavInput.open') == 'courtsMenu', 'toggleNavMenu() did not publish without the island'
     assert page.locator('#courtsMenu').is_hidden(), 'something opened the menu without the React module'
-    page.evaluate('() => requestTournamentGeneration()')
+    page.evaluate('() => KSMTest.app.requestTournamentGeneration()')
     assert page.evaluate('window.ksmShellDialogsInput.validation.open') and page.locator('#validationModal').is_hidden(), \
         'showValidationDialog() did not publish, or something showed the dialog, without the React module'
-    page.evaluate('() => cloudDiagnostics()')
+    page.evaluate('() => KSMTest.app.cloudDiagnostics()')
     assert page.locator('#ksmCloudModal').count() == 0 and page.evaluate('window.ksmShellDialogsInput.cloud.title') == 'Developer Tools', \
         'cloudDiagnostics() did not publish, or something drew the modal, without the React module'
     assert not errors, errors

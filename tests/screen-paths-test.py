@@ -21,7 +21,7 @@ def main():
             app.click('home-tournament-name')
             app.wait_for(lambda: app.tournament_id()==tid and app.visible_view()==['director'],message='Library opens tournament')
             if prefix.startswith('/t/'):
-                app.page.evaluate('(path)=>ksmReplaceUrl(path)',prefix)
+                app.page.evaluate('(path)=>KSMTest.app.ksmReplaceUrl(path)',prefix)
             length=app.page.evaluate('history.length')
             for screen,view,private in [('setup','setup',True),('registration','registration',True),('pools','registration',True),('overview','director',False),('results','results',False),('live','public',False),('court/b','score',False)]:
                 if app.page.evaluate('KSMTest.role()') != 'staff':
@@ -47,7 +47,7 @@ def main():
             app.page.evaluate('history.forward()')
             # A browser evaluation pumps Playwright events; page.url alone is cached.
             app.wait_for(lambda: app.tournament_id()==tid,message='Forward restores tournament '+prefix)
-            assert app.address()==prefix+'/court/b',(prefix,app.address(),app.page.evaluate('({history:history.length,loading:ksmRouteLoading,role:ksmSessionRole})'),problems)
+            assert app.address()==prefix+'/court/b',(prefix,app.address(),app.page.evaluate('({history:history.length,loading:KSMTest.app.ksmRouteLoading,role:KSMTest.app.ksmSessionRole})'),problems)
             app.close()
         offline=KsmApp.open_device(browser,base,'Offline',problems,'/screen-paths-2027/overview',service_workers='allow')
         offline.page.evaluate('navigator.serviceWorker.ready.then(()=>true)')

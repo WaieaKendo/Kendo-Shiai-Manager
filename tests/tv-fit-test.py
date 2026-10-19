@@ -17,7 +17,7 @@ from ksm_app import KsmApp
 from ksm_browser import launch_chromium, load_app
 
 SIZES = [(1920, 1080), (1280, 720), (3840, 2160), (1366, 768), (1024, 768), (2560, 1080), (1080, 1920), (800, 450)]
-TV_MODE_JS = "() => { document.body.classList.add('ksm-tv'); renderTvDisplay(); show('tv'); }"
+TV_MODE_JS = "() => { document.body.classList.add('ksm-tv'); KSMTest.app.renderTvDisplay(); KSMTest.app.show('tv'); }"
 MEASURE_JS = """() => {
   const r = document.querySelector('#tvLive .tv3-root').getBoundingClientRect();
   const se = document.scrollingElement;

@@ -19,9 +19,8 @@ from pathlib import Path
 
 from playwright.sync_api import TimeoutError as PlaywrightTimeout
 
-from ksm_browser import load_app, wait_for_react
+from ksm_browser import API_JS, install_test_api, load_app, wait_for_react
 
-API_JS = (Path(__file__).resolve().parent / 'lib' / 'ksm-test-api.js').read_text(encoding='utf-8')
 SIDE = {'W': 'white', 'R': 'red', 'white': 'white', 'red': 'red'}
 STATUS_CLICKS = {'Registered': 0, 'Checked': 1, 'NoShow': 2}  # Registered -> Checked In -> No Show
 
@@ -154,7 +153,7 @@ class KsmApp:
         self.name = name
         self.problems = problems if problems is not None else []
         self.answers, self.expected, self.seen_dialogs = {}, {}, []
-        page.add_init_script(API_JS)
+        install_test_api(page)
 
     # ------------------------------------------------------------------ devices
     @classmethod

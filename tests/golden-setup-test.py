@@ -113,12 +113,12 @@ FIELDS_JS = f"""() => {{
   return {{fields, focus: name(document.activeElement), connected: document.activeElement ? document.activeElement.isConnected : null}};
 }}"""
 STATE_JS = """() => ({
-  setup: getSetupSnapshot(),
-  settings: tournamentSettings(),
-  divisions: state.divisions,
-  types: state.divisionTypes,
-  courts: state.divisionCourts,
-  teamAwardMode: state.teamAwardMode,
+  setup: KSMTest.app.getSetupSnapshot(),
+  settings: KSMTest.app.tournamentSettings(),
+  divisions: KSMTest.app.state.divisions,
+  types: KSMTest.app.state.divisionTypes,
+  courts: KSMTest.app.state.divisionCourts,
+  teamAwardMode: KSMTest.app.state.teamAwardMode,
   redLeft: document.body.classList.contains('ksm-red-left'),
 })"""
 
@@ -261,7 +261,7 @@ def setup_defaults(browser, react_check):
     g.do('Registration', lambda a: click(a.page, tid('nav-registration')))
     g.do('Setup from the menu', lambda a: click(a.page, tid('nav-setup')))
     g.do('spectator (Setup hidden)', lambda a: a.page.evaluate(SPECTATOR_JS))
-    g.do('spectator: Setup from the menu (Live Scores instead)', lambda a: a.page.evaluate("() => navigateTo('setup')"))
+    g.do('spectator: Setup from the menu (Live Scores instead)', lambda a: a.page.evaluate("() => KSMTest.app.navigateTo('setup')"))
     g.finish()
 
 
@@ -373,7 +373,7 @@ def setup_divisions(browser, react_check):
     g.do("Rename Women's Open (the field opens with the name, focused)", lambda a: (
         a.page.locator(in_row(WOMEN, 'setup-division-rename')).focus(), a.page.keyboard.press('Enter')))
     g.do('rename: a name typed', lambda a: type_into(a.page, tid('setup-division-rename-input'), 'Women & <Girls>'))
-    g.do('rename: a redraw (renderAll()) keeps the text and the focus', lambda a: a.page.evaluate('renderAll()'))
+    g.do('rename: a redraw (renderAll()) keeps the text and the focus', lambda a: a.page.evaluate('KSMTest.app.renderAll()'))
     g.do("rename: another division's name in other case, Save (refused, the field stays)", lambda a: (
         type_into(a.page, tid('setup-division-rename-input'), ' yonenbu (11 YEARS and under) '), click(a.page, tid('setup-division-rename-save'))))
     g.do('rename: spaces only, Enter (refused)', lambda a: (type_into(a.page, tid('setup-division-rename-input'), '   '), a.page.keyboard.press('Enter')))
@@ -408,14 +408,14 @@ REMOTE_JS = """() => {
 }"""
 DEFER_JS = f"""() => {{
   const payload = ({REMOTE_JS})();
-  const record = {{tournamentId: cloudSession.tournamentId, revision: Number(cloudSession.revision || 0) + 5,
+  const record = {{tournamentId: KSMTest.app.cloudSession.tournamentId, revision: Number(KSMTest.app.cloudSession.revision || 0) + 5,
                   updatedAt: new Date().toISOString(), updatedBy: {{clientId: 'another-device', name: 'Director 2'}}, payload}};
-  window.__ksmDeferred = applyRemoteCloudRecord(record);
+  window.__ksmDeferred = KSMTest.app.applyRemoteCloudRecord(record);
 }}"""
 APPLY_JS = f"""() => {{
   const payload = ({REMOTE_JS})();
-  ksmApplyingRemoteSnapshot = true;
-  try {{ applyTournamentPayload(payload, false, {{source: 'live sync'}}); }} finally {{ ksmApplyingRemoteSnapshot = false; }}
+  KSMTest.app.ksmApplyingRemoteSnapshot = true;
+  try {{ KSMTest.app.applyTournamentPayload(payload, false, {{source: 'live sync'}}); }} finally {{ KSMTest.app.ksmApplyingRemoteSnapshot = false; }}
 }}"""
 
 
@@ -427,14 +427,14 @@ def setup_live(browser, react_check):
     g.do('a live update arrives while typing (deferred)', lambda a: a.page.evaluate(DEFER_JS))
     assert page.evaluate('window.__ksmDeferred') is False, 'the live update was not deferred while typing'
     g.do('name: typing on', lambda a: a.page.keyboard.type('ed Name'))
-    g.do("a live update's redraw (renderAll()) while typing in the name", lambda a: a.page.evaluate('() => renderAll()'))
+    g.do("a live update's redraw (renderAll()) while typing in the name", lambda a: a.page.evaluate('() => KSMTest.app.renderAll()'))
     g.do('name: typing on after the redraw', lambda a: a.page.keyboard.type('!'))
     g.do("a live update's redraw with the focus in a division's format", lambda a: (
-        a.page.locator(in_row(WOMEN, 'setup-division-format')).focus(), a.page.evaluate('() => renderAll()')))
+        a.page.locator(in_row(WOMEN, 'setup-division-format')).focus(), a.page.evaluate('() => KSMTest.app.renderAll()')))
     g.do("a live update's redraw with the focus on a division's Use box", lambda a: (
-        a.page.locator(in_row(WOMEN, 'setup-division-enabled')).focus(), a.page.evaluate('() => renderAll()')))
+        a.page.locator(in_row(WOMEN, 'setup-division-enabled')).focus(), a.page.evaluate('() => KSMTest.app.renderAll()')))
     g.do('referees: typing', lambda a: type_into(a.page, '#court2Refs', 'Ref One\nRef T'))
-    g.do("a live update's redraw while typing referees", lambda a: a.page.evaluate('() => renderAll()'))
+    g.do("a live update's redraw while typing referees", lambda a: a.page.evaluate('() => KSMTest.app.renderAll()'))
     g.do('referees: typing on', lambda a: a.page.keyboard.type('wo'))
     g.do('a live update applied while the name has the focus (it replaces the typed name)', lambda a: (
         a.page.locator('#tName').focus(), a.page.evaluate(APPLY_JS)))
@@ -471,7 +471,7 @@ def setup_module_missing(browser):
     assert page.locator('#setupTournamentName').text_content() == 'Kendo Tournament', 'the hero changed without the React module'
     assert page.evaluate('window.ksmSetupDivisionsInput.rows.length') == 7, 'renderDivisionSetup() did not publish without the island'
     type_into(page, '#tName', 'Still Works')
-    assert page.evaluate('getSetupSnapshot().tName') == 'Still Works', 'the Setup fields do not work without the React module'
+    assert page.evaluate('KSMTest.app.getSetupSnapshot().tName') == 'Still Works', 'the Setup fields do not work without the React module'
     assert page.evaluate('window.ksmSetupHeaderInput.name') == 'Still Works', 'syncSetupHeader() did not publish without the island'
     assert not errors, errors
     page.close()

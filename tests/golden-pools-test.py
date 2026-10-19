@@ -91,10 +91,10 @@ ROOT = '#poolsReg'
 DESKTOP = {'width': 1280, 'height': 720}
 PHONES = [('phone portrait', {'width': 390, 'height': 844}), ('phone landscape', {'width': 844, 'height': 390})]
 # What a court's buttons call (app/js/10-court-scoring-and-history.js).
-POINT_JS = "([side, letter]) => point(side, letter)"
-NEXT_JS = "() => nextMatch()"
+POINT_JS = "([side, letter]) => KSMTest.app.point(side, letter)"
+NEXT_JS = "() => KSMTest.app.nextMatch()"
 # Registration -> Pools as the nav item and the tab do.
-SHOW_POOLS_JS = "() => { KSMTest.show('registration'); regTab('pools'); }"
+SHOW_POOLS_JS = "() => { KSMTest.show('registration'); KSMTest.app.regTab('pools'); }"
 VIEW_JS = f"() => !document.querySelector('{ROOT}').classList.contains('hidden') && !document.getElementById('registration').classList.contains('hidden')"
 NO_TRANSITIONS = '*, *::before, *::after { transition: none !important; animation: none !important; }'
 SCROLL_JS = '() => [document.documentElement.scrollWidth, innerWidth]'
@@ -111,19 +111,19 @@ SAVES_INIT_JS = """() => {
 SAVES_JS = '() => { const s = window.__ksmSaves; window.__ksmSaves = []; return s; }'
 # Every division's pools and matches, the courts and the revision.
 STATE_JS = """() => {
-  const divs = [...new Set([...(state.divisions || []), ...Object.keys(state.pools || {}), ...Object.keys(state.allMatches || {})])];
+  const divs = [...new Set([...(KSMTest.app.state.divisions || []), ...Object.keys(KSMTest.app.state.pools || {}), ...Object.keys(KSMTest.app.state.allMatches || {})])];
   return {
     select: document.getElementById('poolDiv').value,
-    poolViewDivision: state.poolViewDivision || null,
+    poolViewDivision: KSMTest.app.state.poolViewDivision || null,
     divisions: Object.fromEntries(divs.map(d => {
-      const ms = state.allMatches?.[d] || [];
+      const ms = KSMTest.app.state.allMatches?.[d] || [];
       return [d, {
-        pools: (state.pools?.[d] || []).map(p => [p.label, (p.players || []).map(x => `${x.poolSlot || ''}:${x.name}`)]),
+        pools: (KSMTest.app.state.pools?.[d] || []).map(p => [p.label, (p.players || []).map(x => `${x.poolSlot || ''}:${x.name}`)]),
         matches: [ms.filter(m => !m.championship).length, ms.filter(m => m.championship).length, ms.filter(m => m.done).length],
       }];
     })),
-    courts: ['A', 'B'].map(c => { const s = state.courtState?.[c]; return s ? `${s.division}#${s.index}` : null; }),
-    revision: state.managementRevision || 0,
+    courts: ['A', 'B'].map(c => { const s = KSMTest.app.state.courtState?.[c]; return s ? `${s.division}#${s.index}` : null; }),
+    revision: KSMTest.app.state.managementRevision || 0,
   };
 }"""
 VALIDATION_JS = "() => !document.getElementById('validationModal').classList.contains('hidden')"
@@ -424,7 +424,7 @@ def pools_edit(browser, errors, react_check):
     g.do('Cancel (the moves are undone)', lambda a: click(a.page, f'{ROOT} #poolOutput .toolbar button', 1))
     g.do('Edit Pool again', lambda a: click(a.page, '[data-testid="pool-edit"]'))
     drag(g, 'pool C\'s third player onto pool A', 11, (POOL, 0), over=False)
-    g.do('a live update while editing (renderAll())', lambda a: a.page.evaluate('() => renderAll()'))
+    g.do('a live update while editing (renderAll())', lambda a: a.page.evaluate('() => KSMTest.app.renderAll()'))
     g.do('Edit Pool again (2)', lambda a: click(a.page, '[data-testid="pool-edit"]'))
     g.do('select Kids while editing', lambda a: choose(a, 'Kids'))
     g.do('Kids: Edit Pool', lambda a: click(a.page, '[data-testid="pool-edit"]'))

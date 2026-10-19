@@ -1,14 +1,19 @@
 name: Tests
 
-# Runs the full regression suite (npm test: builds dist/ first) once per change, to save GitHub
-# Actions minutes (private repository: 2,000 free minutes a month, ~15 min per run):
-#   - on every pull request (each push to a PR branch); a newer push cancels the older run;
+# Runs the full regression suite (npm test: builds dist/ first) once per change. The suite is split
+# into 4 shards (tests/run-all.mjs --shard i/4, balanced by tests/test-durations.json) that run in
+# parallel; the final "test" job is the single required check and the one deploy.yml waits for.
+#   - on every pull request (each push to a PR branch; docs-only changes are skipped); a newer
+#     push cancels the older run;
 #   - when deploy.yml calls it (workflow_call): every push to develop and every production deploy,
 #     so nothing deploys without a green suite.
 # Plain pushes to branches without a PR don't run it (they used to run it a second time next to
 # the pull_request run). Run it by hand with "Run workflow" if needed.
 on:
   pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
   workflow_call:
   workflow_dispatch:
 
@@ -19,10 +24,15 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  test:
+  shard:
+    name: shard ${{ matrix.shard }}/4
     # Pinned to 24.04 until after the 11/21 tournament (ubuntu-latest moves to Ubuntu 26 from Oct 19, 2026).
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -41,15 +51,38 @@ jobs:
       - name: Install Node dependencies (wrangler, vite, typescript)
         run: npm ci
 
-      - name: Install Playwright + Chromium
+      - name: Install Playwright
         run: |
           python -m venv .venv
           .venv/bin/pip install -q playwright
-          .venv/bin/python -m playwright install --with-deps chromium
+          echo "PLAYWRIGHT_VERSION=$(.venv/bin/pip show playwright | sed -n 's/^Version: //p')" >> "$GITHUB_ENV"
 
-      - name: Run all tests
-        run: npm test
+      - name: Cache the Chromium download
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ env.PLAYWRIGHT_VERSION }}
+
+      # With a warm cache this only fetches the system libraries (the browser itself is reused).
+      - name: Install Chromium system dependencies
+        run: .venv/bin/python -m playwright install --with-deps chromium
+
+      - name: Run test shard ${{ matrix.shard }}/4
+        run: node tests/run-all.mjs --shard ${{ matrix.shard }}/4
         env:
           # GitHub's runners are slower than a laptop; the snapshot tests replay whole
           # tournaments, so give each test up to 7 minutes here (180 s locally).
           KSM_TEST_TIMEOUT_MS: '420000'
+
+  # The one check to require: green only when every shard passed (also when a shard was cancelled or skipped).
+  test:
+    name: test
+    needs: shard
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: All shards passed
+        run: |
+          echo "shards: ${{ needs.shard.result }}"
+          test "${{ needs.shard.result }}" = "success"

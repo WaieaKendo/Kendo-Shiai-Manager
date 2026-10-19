@@ -86,7 +86,7 @@ def main():
 
         # --- Save Now -----------------------------------------------------------------------------
         rev = server()['revision']
-        page.evaluate("writeOutbox(tournamentPayload(),'Manual retry fixture')")
+        page.evaluate("KSMTest.app.writeOutbox(KSMTest.app.tournamentPayload(),'Manual retry fixture')")
         app.click('header-save-now')
         app.wait_for(lambda: toast() == '✓ Tournament saved', message=f'Save Now toast (shows {toast()!r})')
         assert server()['revision'] == rev + 1, 'Save Now did not save'
