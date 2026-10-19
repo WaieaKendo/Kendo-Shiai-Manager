@@ -178,7 +178,9 @@ Tests must not depend on how a screen is implemented: the front end is moving to
 
 ## Continuous integration
 
-`.github/workflows/test.yml` runs `npm test` on every push and pull request on GitHub (Ubuntu, Node 22, Python 3.12, Playwright Chromium).
+`.github/workflows/test.yml` runs the suite on every push and on pull requests that change more than docs (`docs/**`, `*.md` are ignored on `pull_request`), as **4 parallel shards** (Ubuntu, Node 22, Python 3.12, Playwright Chromium, cached on `~/.cache/ms-playwright` by Playwright version). A final job `test` fails unless every shard passed, so the required check name (and `deploy.yml`'s `needs: test`) did not change.
+
+**Sharding.** `node tests/run-all.mjs --shard 2/4` (or `KSM_TEST_SHARD=2/4`) runs the 2nd of 4 shards; the files are packed longest-first by the seconds recorded in `tests/test-durations.json` (a file without a record counts as the median), so every file lands in exactly one shard and the same files always land together. To run one shard locally: `node tests/run-all.mjs --shard 3/4`. After adding, splitting or slowing tests, refresh the record from a full local run: `KSM_WRITE_DURATIONS=tests/test-durations.json node tests/run-all.mjs`. The 20-minute job limit and the 180 s per-file limit are unchanged. Do not run two `run-all` processes at once on one checkout: both rebuild `dist/`.
 
 ## Writing tests
 
