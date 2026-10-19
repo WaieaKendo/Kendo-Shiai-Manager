@@ -17,14 +17,14 @@ Test names drop `-test.py`/`-test.mjs`; `vm` tests run extracted app code in Nod
 | C1 | Point (M/K/D/T) | `10:point()` → `performCourtAction()` | ✅ court-actions, golden-court-screen | ✅ court-actions, sync-saving | ✅ e2e-two-court-sync, e2e-full-tournament, tv-display, overlay, live-scores-courts | ✅ reload-restore, e2e-full-tournament, edit-conflicts | ✅ e2e-two-court-sync, sync-remote-updates (F4), edit-conflicts 1–3, 5 |
 | C2 | Hansoku (two give the opponent H) | `10:hansoku()` | ✅ court-actions | ✅ court-actions | ✅ overlay, edit-conflicts 9 | ✅ reload-restore | ✅ edit-conflicts 9 |
 | C3 | Fusen-gachi | `22:openFusenDialog()/confirmFusen()` → `10:fusen()` | ✅ court-actions | ✅ court-actions | ✅ edit-conflicts 9 | ✅ edit-conflicts (reload) | ✅ edit-conflicts 9 |
-| C4 | Hikiwake (Next Match on a level score) | `10:nextMatch()` | ✅ golden-engine, golden-court-screen | ✅ e2e-full-tournament (scripted draw) | ✅ e2e-full-tournament | ◐ e2e-full-tournament (TV/spectator reload) | ✗ e2e-two-court-sync plays wins only |
+| C4 | Hikiwake (Next Match on a level score) | `10:nextMatch()` | ✅ golden-engine, golden-court-screen | ✅ e2e-full-tournament (scripted draw) | ✅ e2e-full-tournament | ✅ e2e-full-tournament (TV/spectator reload), court-state-conflict 10 (courts reloaded) | ✅ court-state-conflict 10 (0-0 and 1-1 draws on both courts) |
 | C5 | Encho / must-win bout refuses a draw | `10:nextMatch()` alert, `matchRequiresWinner()` | ✅ split-court-stabilization, engine/edge-cases | — nothing saved | — | — | — |
 | C6 | Hantei | not modelled: entered as a point (**F28**) | — | — | — | — | — |
 | C7 | Next Match: completion + tiebreaks, championship, single-elim, team bracket, kachinuki | `10:nextMatch()` → `maybeCreateTiebreaks()` … `maybeAdvanceIndividualSingleElim()` | ✅ golden-engine (76 tournaments), court-actions | ✅ court-actions, e2e-full-tournament | ✅ e2e-two-court-sync, e2e-full-tournament, tv-display | ✅ e2e-full-tournament, reload-restore | ✅ e2e-two-court-sync; vm v31712, v31715–v31720 |
 | C8 | Undo | `10:undo()` | ✅ court-actions, undo-division-complete | ✅ court-actions, edit-conflicts 8 | ✅ edit-conflicts 8 | ◐ edit-conflicts (the reload at the end) | ✅ edit-conflicts 8, undo-rebase (**F30**, fixed) |
 | C9 | Redo | `10:redo()` | ✅ court-actions | ✅ court-actions, edit-conflicts 8 | ✅ edit-conflicts 8 | ◐ as Undo | ✅ edit-conflicts 8, undo-rebase (F30, fixed) |
-| C10 | Team representative pick | `09:setRepresentative()` (a court action) | ✅ roles-access, golden-court-screen | ✅ roles-access | ✅ roles-access | ✗ | ✗ |
-| C11 | Court division select | `08:selectScorekeeperDivision()` (court runtime state) | ✅ e2e-full-tournament, court-screen-details | ◐ | ◐ vm v31719 (TV follows) | ◐ sync-saving (court pin) | ◐ vm v31711 (own court kept) |
+| C10 | Team representative pick | `09:setRepresentative()` (a court action) | ✅ roles-access, golden-court-screen | ✅ roles-access | ✅ roles-access | ✅ court-state-conflict 8 | ✅ court-state-conflict 8 |
+| C11 | Court division select | `08:selectScorekeeperDivision()` (court runtime state) | ✅ e2e-full-tournament, court-screen-details | ✅ court-state-conflict 9 (court state on the server) | ◐ vm v31719 (TV follows) | ✅ sync-saving (court pin), court-state-conflict 9 | ✅ court-state-conflict 9 (both courts switch while the other saves) |
 | C12 | Court choice on a device | `23:chooseCourt()`, `18:pinCourtLocally()` (device-local) | ✅ sync-saving | — | — | ✅ sync-saving (F3) | — |
 
 ### Setup
@@ -49,29 +49,29 @@ Test names drop `-test.py`/`-test.mjs`; `vm` tests run extracted app code in Nod
 | R3 | × a player | `43:ksmRemoveCompetitor()` | ✅ golden-registration | ✅ edit-sync | ✅ edit-sync | ✅ edit-sync | ◐ vm |
 | R4 | Paste from Excel | `16:` paste listener | ✅ registration-paste | ✅ edit-sync (**F31**, fixed) | ✅ edit-sync | ✅ edit-sync | ◐ vm |
 | R5 | Load Sample Players / Teams / Tournament | `03:loadSamples()/loadTeamSamples()/loadFullTournament()` | ✅ sample-load-confirm, goldens | ✗ | ✗ | ✗ | ✗ |
-| R6 | Clear Registration / Teams / Exhibitions | `03:clearCompetitors()/clearTeams()/clearExhibitions()` | ✅ registration-screen | ✗ | ✗ | ✗ | ✗ |
+| R6 | Clear Registration / Teams / Exhibitions | `03:clearCompetitors()/clearTeams()/clearExhibitions()` | ✅ registration-screen | ◐ edit-sync (Clear Teams) | ◐ edit-sync (Clear Teams) | ◐ edit-sync (Clear Teams) | ✗ **accepted**, see rank 13 |
 | R7 | Team add / + 3 / auto team / team name and members | `03:addTeamRow()/addAutoTeam()`, `43:ksmSetTeamField()` | ✅ golden-registration-teams | ✅ e2e-full-tournament, edit-sync | ✅ e2e-full-tournament, edit-sync | ✅ edit-sync | ◐ vm |
-| R8 | Team status / × a team | `03:cycleTeamStatus()`, `43:ksmRemoveTeam()` | ✅ golden-registration-teams | ◐ e2e-full-tournament | ◐ | ✗ | ◐ vm |
+| R8 | Team status / × a team | `03:cycleTeamStatus()`, `43:ksmRemoveTeam()` | ✅ golden-registration-teams | ✅ edit-sync | ✅ edit-sync | ✅ edit-sync | ◐ vm |
 | R9 | Exhibition match add / names / status / × | `03:addExhibitionRow()`, `43:ksmSetExhibitionField()/ksmCycleExhibitionStatus()/ksmRemoveExhibition()` | ✅ registration-screen | ✅ edit-sync | ✅ edit-sync | ✅ edit-sync | ◐ vm |
-| R10 | A field being edited when an update is applied (F17/F20) | `43:ksmUpdateCompetitor()/ksmSetTeamField()/ksmSetExhibitionField()` | ✅ registration-live-edit, registration-teams-live-edit (offline, test API) | ✗ | ✗ | — | ✗ the real triggers (409 rebase on the editing device, Staff Login merge) |
+| R10 | A field being edited when an update is applied (F17/F20) | `43:ksmUpdateCompetitor()/ksmSetTeamField()/ksmSetExhibitionField()` | ✅ registration-live-edit, registration-teams-live-edit (offline, test API) | ✅ registration-focus-conflict | ✅ registration-focus-conflict | — | ✅ registration-focus-conflict (409 rebase on the editing device; a held update from another desk, F29 pinned). Staff Login merge: accepted, see rank 3 |
 
 ### Generation and structure
 
 | # | Edit | Where | (1) | (2) | (3) | (4) | (5) |
 |---|---|---|---|---|---|---|---|
-| G1 | Generate Tournament | `03:requestTournamentGeneration()` → `08:generatePools()` | ✅ registration-screen, e2e-full-tournament | ✅ e2e-full-tournament | ✅ e2e-full-tournament | ✅ e2e-full-tournament | ◐ conflict-merge (vm) |
+| G1 | Generate Tournament | `03:requestTournamentGeneration()` → `08:generatePools()` | ✅ registration-screen, e2e-full-tournament | ✅ e2e-full-tournament | ✅ e2e-full-tournament | ✅ e2e-full-tournament | ✅ structural-race 4 (asked about the division a court changed); conflict-merge |
 | G2 | Regenerate Single Division | `03:continueRegenerateDivision()` → `08:regenerateSingleDivision()` | ✅ registration-screen | ✅ edit-conflicts | ✅ edit-conflicts | ✅ edit-conflicts | ✅ edit-conflicts 6, 7; conflict-merge |
-| G3 | Edit Pool → Save Pool Changes | `41:ksmPoolEditToSave()` → `16:saveEditedPools()` | ✅ pool-edit-safety, golden-pools | ✅ structural-edit-conflict | ✅ structural-edit-conflict | ✗ | ✅ structural-edit-conflict (F10) |
-| G4 | No Show after generation (player: pool rebuilt in the standard order for its new size, #24; team: pairings removed) | `08:applyIndividualNoShow()/applyWholeTeamNoShow()` | ✅ tournament-management-engine, edit-sync, engine/pools, no-show-pool-order | ✅ edit-sync | ✅ edit-sync | ✅ edit-sync | ✗ |
+| G3 | Edit Pool → Save Pool Changes | `41:ksmPoolEditToSave()` → `16:saveEditedPools()` | ✅ pool-edit-safety, golden-pools | ✅ structural-edit-conflict | ✅ structural-edit-conflict | ✅ structural-edit-conflict (director, court and a fresh device reloaded) | ✅ structural-edit-conflict (F10) |
+| G4 | No Show after generation (player: pool rebuilt in the standard order for its new size, #24; team: pairings removed) | `08:applyIndividualNoShow()/applyWholeTeamNoShow()` | ✅ tournament-management-engine, edit-sync, engine/pools, no-show-pool-order | ✅ edit-sync | ✅ edit-sync | ✅ edit-sync | ✅ structural-race 1–3 (replayed silently beside another division's point; asked beside its own: Cancel and OK) |
 
 ### Awards, files, library
 
 | # | Edit | Where | (1) | (2) | (3) | (4) | (5) |
 |---|---|---|---|---|---|---|---|
 | A1 | Special awards add / edit / × | `27:addResultAward()/removeResultAward()`, `38:ksmSetResultAward()` | ✅ golden-results, awards-save | ✅ awards-save | ✅ awards-save, edit-conflicts | ✅ edit-conflicts | ✅ edit-conflicts 5, conflict-merge |
-| F1 | Load Tournament File: replace the open tournament | `21:replaceTournamentFromFile()` | ✅ file-import-export | ✅ file-import-export | ✗ | ✗ | ✗ |
-| F2 | Load Tournament File as a new tournament | `21:loadTournamentFileAsNew()` | ✅ file-import-export | ✅ file-import-export | — | ✗ | — |
-| F3 | Load Recovery File | `21:loadRecoveryFile()` | ✅ file-import-export, sync-saving | ✅ file-import-export | — | ✗ | — (F7 guard ✅) |
+| F1 | Load Tournament File: replace the open tournament | `21:replaceTournamentFromFile()` | ✅ file-import-export | ✅ file-import-export | ✅ load-file-conflict 1 (Court B follows) | ✅ load-file-conflict (reloaded court, fresh device) | ✗ **F37** pinned: load-file-conflict 2 |
+| F2 | Load Tournament File as a new tournament | `21:loadTournamentFileAsNew()` | ✅ file-import-export | ✅ file-import-export | — | ✅ file-import-export | — |
+| F3 | Load Recovery File | `21:loadRecoveryFile()` | ✅ file-import-export, sync-saving | ✅ file-import-export | — | ✅ file-import-export | — (F7 guard ✅) |
 | F4 | Restore autosaved tournament (no link) | `21:restoreAutoSaveIfWanted()` | ✅ reload-restore | — | — | ✅ reload-restore | — |
 | L1 | New Tournament (create, staff password) | `33:createNewTournament()` | ✅ most server tests | ✅ | ✅ roles-access (library) | ✅ | — |
 | L2 | Delete a tournament / admin reset | API only (`src-worker.js`), no app control | ✅ worker-api, cloud-release | ✅ | ✅ worker-api (delete broadcast) | — | — |
@@ -94,9 +94,9 @@ Test names drop `-test.py`/`-test.mjs`; `vm` tests run extracted app code in Nod
 ### Headline numbers
 
 - **51 edit paths** (12 court actions, 8 Setup, 10 Registration, 4 structural, 1 awards, 4 files, 3 library, 9 sync paths).
-- **Fully covered** (every applicable column ✅, C6 hantei not counted): **22** after this audit (C1, C2, C3, C5, C7, C12, S1, R1, G2, A1, F4, L1–L3, Y1–Y7, Y9; R1, Y6 and Y7 with an open finding pinned). **Before the audit: 15**: C2, C3, S1, R1, G2 and A1 lacked the second-device, reload or conflict check that `edit-conflicts`/`edit-sync` add. Y5 gains the held-save conflict check in network part 2. Of the other 29, most miss only the conflict column (covered by the vm merge tests, not end to end).
-- **Gaps by risk** (below): 17 ranked gaps (5 high event impact, 8 medium, 4 low): 3 closed in part 1 (ranks 4, 5, 6 apart from its conflict case), 3 pinned by expected-failure checks (ranks 1, 2, 11), 11 with a planned test; plus 10 network cases for part 2: **9 covered** (N1–N8, N10; N8 pins F36), **1 accepted gap** (N9).
-- **Findings:** F36 (shared-tab outbox loss, open and pinned below); F26–F31 (F31 fixed here; F26, F27, F30 fixed in `fix/pre-event-2`; F29 open and pinned by an expected-failure check; F28 a note).
+- **Fully covered** (every applicable column ✅, C6 hantei not counted): **30** after this audit (C1, C2, C3, C4, C5, C7, C10, C12, S1, R1, R10, G1, G2, G3, G4, A1, F2, F3, F4, L1–L3, Y1–Y7, Y9; R1, Y6 and Y7 with an open finding pinned). **Before the audit: 15**; **22 after part 1**; the other 29 miss a column, most only the conflict column (covered by the vm merge tests, not end to end). F1 (replace the open tournament) has its conflict cell pinned (F37).
+- **Gaps by risk** (below): 17 ranked gaps (5 high event impact, 8 medium, 4 low), **all closed, pinned or accepted**: 15 closed with a test (ranks 1, 3–11, 13–17; 3 of them in part 1), 2 pinned by expected-failure checks (rank 2 / F29, rank 12 / F37; rank 12's no-conflict half is closed), and the residual items listed under the table recorded as accepted with a reason; plus 10 network cases for part 2: **9 covered** (N1–N8, N10; N8 pins F36), **1 accepted gap** (N9).
+- **Findings:** F37 (a Load Tournament File Replace that meets a save conflict is dropped silently; open and pinned below), F36 (shared-tab outbox loss, open and pinned below); F26–F31 (F31 fixed here; F26, F27, F30 fixed in `fix/pre-event-2`; F29 open and pinned by an expected-failure check, now also seen from the desk that is typing, `registration-focus-conflict` 2; F28 a note).
 
 ## Gaps, ranked by risk
 
@@ -104,23 +104,44 @@ Risk = what could go wrong at an event × how likely the store refactor (2.8 com
 
 | Rank | Gap | Event impact | Refactor risk | State / planned test |
 |---|---|---|---|---|
-| 1 | Undo/Redo whose save conflicts (C8, C9, Y6): **F30**, the undone point came back | High: a wrong result stays after the scorekeeper fixed it | High: undo becomes a command | **Closed** in `fix/pre-event-2` (F30 fixed): `edit-conflicts` 8 races Undo and then Redo against the other court's save; `undo-rebase` (vm) covers a point undone before it was saved, undo + redo of a saved and an unsaved point, a redo after a saved undo, two undos in a row and a saved undo not replayed twice. Still planned: Undo of Next Match through a conflict, Undo after a reload |
+| 1 | Undo/Redo whose save conflicts (C8, C9, Y6): **F30**, the undone point came back | High: a wrong result stays after the scorekeeper fixed it | High: undo becomes a command | **Closed** in `fix/pre-event-2` (F30 fixed): `edit-conflicts` 8 races Undo and then Redo against the other court's save, `edit-conflicts` 10 races the Undo of a Next Match with playoffs; `undo-rebase` (vm) covers a point undone before it was saved, undo + redo of a saved and an unsaved point, a redo after a saved undo, two undos in a row and a saved undo not replayed twice. Undo after a reload: **closed** (`court-state-conflict` 11) |
 | 2 | Two Registration edits at once (R1, Y7): **F29**, one desk's change dropped (with a notice) | High at check-in | High: 2.9 changes the merge | **Pinned** (`edit-conflicts` 4). When fixed: two desks adding, renaming and no-showing different players; the same player on both (still a conflict) |
-| 3 | Registration fields being edited when an update is applied by the real triggers (R10, F17/F20) | High: typed text into the wrong player | High: the `3N-react-*` glue goes | Planned: a desk typing (field focused) while its own held save conflicts, and while Staff Login merges queued work; the text stays with its player or is dropped with a notice, on the server too |
+| 3 | Registration fields being edited when an update is applied by the real triggers (R10, F17/F20) | High: typed text into the wrong player | High: the `3N-react-*` glue goes | **Closed** (`registration-focus-conflict`): a desk typing in a Dojo field (focused, not yet left) while its own held save conflicts keeps the text with its player; a held update from another desk applies after the field is left, the typed text is then dropped with a notice, never written to another player (F29, pinned). Accepted: the Staff Login merge trigger (the same applied-update path, covered offline by `registration-live-edit` and by `reload-restore` for the merge) |
 | 4 | Hansoku / Fusen-gachi to other devices and through a conflict (C2, C3) | High: results | High: court commands | **Closed** (`edit-conflicts` 9 + reload) |
 | 5 | Registration remove / status / paste / exhibitions / teams reaching the server and devices (R2–R4, R7, R9) | High: lost registrations | High | **Closed** (`edit-sync`); found and fixed **F31** (paste never saved) |
-| 6 | Setup rows, red side, team awards, exhibitions to devices and reload (S3–S8) | Medium: wrong court colours, wrong award rows | High: Setup moves off the DOM (`getSetupSnapshot()`) | **Closed** for (2)–(4) (`edit-sync`). Still planned: a division format/court change racing a court save (e2e of the per-field merge) |
-| 7 | Structural no-show after generation through a conflict (G4) | Medium | High: structural commands | Planned: a no-show in Kids racing a court point in Open (replayed silently) and racing a point in Kids (the F10 question) |
-| 8 | Representative pick after a reload and through a conflict (C10) | Medium: the wrong player in a playoff | High: court command | Planned: pick while the other court saves first; reload the court device |
-| 9 | Court division select / court runtime state through a rebase and a reload (C11) | Medium: a court jumps to another division | High: 2.8's main point (device state out of tournament data) | Planned: both courts switch divisions while the other saves; each keeps its own after the rebase and a reload |
-| 10 | Hikiwake completion through a conflict (C4) | Medium: a draw replayed as unfinished | Medium | Planned: e2e-two-court-sync with drawn pool bouts on both courts |
+| 6 | Setup rows, red side, team awards, exhibitions to devices and reload (S3–S8) | Medium: wrong court colours, wrong award rows | High: Setup moves off the DOM (`getSetupSnapshot()`) | **Closed** for (2)–(4) (`edit-sync`) and for a division format/court change racing a court save (`court-state-conflict` 6) |
+| 7 | Structural no-show after generation through a conflict (G4) | Medium | High: structural commands | **Closed** (`structural-race` 1–3): a No Show in Kids racing a point in another division is replayed silently, racing a point in the same division it asks (F10): Cancel keeps their version with a notice and the status, OK re-applies |
+| 8 | Representative pick after a reload and through a conflict (C10) | Medium: the wrong player in a playoff | High: court command | **Closed** (`court-state-conflict` 8): the pick made while the other court saves first is on the server, on Court A and after a reload |
+| 9 | Court division select / court runtime state through a rebase and a reload (C11) | Medium: a court jumps to another division | High: 2.8's main point (device state out of tournament data) | **Closed** (`court-state-conflict` 9): both courts switch division while the other saves; each keeps its own after the rebase and after a reload |
+| 10 | Hikiwake completion through a conflict (C4) | Medium: a draw replayed as unfinished | Medium | **Closed** (`court-state-conflict` 10): 0-0 and 1-1 draws on both courts stay finished through the conflict and after a reload |
 | 11 | Engine: 4-way tie ordering (**F26**), team round-robin ties by name (**F27**), hantei (**F28**) | Medium: a wrong bronze / medal order | Low (engine is pure, unchanged by 2.8) | **Closed** for F26 and F27 in `fix/pre-event-2` (`engine/edge-cases`, `engine/teams`, `team-daihyosen` e2e); F28 a note; plus the edge-case checks that pass |
-| 12 | Load Tournament File (replace) while another device saves; other devices follow it (F1) | Medium (recovery situations) | Medium | Planned: replace while a court scores: which copy wins, is anyone told; Court B follows the replaced copy |
-| 13 | Load samples / Clear on a cloud tournament (R5, R6) | Medium: one tap wipes (they ask first, F8/F24) | Medium | Planned: Clear Teams (OK) reaches the server and Court B; Cancel sends nothing |
-| 14 | Edit Pool survives a reload (G3) | Low | Medium | Planned: reload the director and the court after structural-edit-conflict's first race |
-| 15 | Generate Tournament racing a court save (G1) | Low (generated before the courts start) | Medium | vm only (conflict-merge); planned with rank 7 |
-| 16 | Team status / × a team to the server (R8) | Low | Medium | Planned: add to `edit-sync` |
-| 17 | Load Recovery / file as new survive a reload (F2, F3) | Low | Low | Planned: reload after the load in file-import-export |
+| 12 | Load Tournament File (replace) while another device saves; other devices follow it (F1) | Medium (recovery situations) | Medium | **Closed** without a race (`load-file-conflict` 1: the file's copy reaches the server, Court B follows, its next point saves cleanly); with a race **pinned as F37** (`load-file-conflict` 2) |
+| 13 | Load samples / Clear on a cloud tournament (R5, R6) | Medium: one tap wipes (they ask first, F8/F24) | Medium | **Closed** for Clear Teams (`edit-sync`: Cancel changes nothing, OK reaches the server, Court B and a reload). Accepted: Clear Registration / Exhibitions and Load Samples (same `confirm` → mutate → autosave path as Clear Teams; each asks first, F8/F24) |
+| 14 | Edit Pool survives a reload (G3) | Low | Medium | **Closed** (`structural-edit-conflict`: director, court and a fresh device reloaded after the three races) |
+| 15 | Generate Tournament racing a court save (G1) | Low (generated before the courts start) | Medium | **Closed** (`structural-race` 4: Generate racing a court point asks about the division the court changed; Cancel keeps the point, OK rebuilds it) |
+| 16 | Team status / × a team to the server (R8) | Low | Medium | **Closed** (`edit-sync`: status change and × a team reach the server, Court B and a reload) |
+| 17 | Load Recovery / file as new survive a reload (F2, F3) | Low | Low | **Closed** (`file-import-export`: the tournaments made from a file and from a recovery file reopen with their data after a reload) |
+
+### Edit-path gaps closed (part 3, issue #59)
+
+New files: `registration-focus-conflict` (rank 3), `structural-race` (ranks 7, 15), `court-state-conflict` (ranks 1, 6, 8, 9, 10) and `load-file-conflict` (rank 12); added cases in `edit-sync` (ranks 13, 16), `structural-edit-conflict` (rank 14) and `file-import-export` (rank 17). They share `tests/ksm_races.py` (`Races.race()`: hold the second device's save, let the first save, release: a deterministic 409). No sleeps, no timeout changed.
+
+**F37 (open, pinned in `load-file-conflict` 2): a Load Tournament File Replace that meets a save conflict is dropped silently.** Replace applies the file locally and saves it like any edit. When another device saved first (HTTP 409) the rebase takes the server copy and replays only court actions and the Setup/Registration lists; a file's matches are neither, so the file's copy is discarded: the server keeps both courts' points, the director's screen goes back to them, there is no question and no notice, and the status says Saved. Without a race Replace works (case 1). When fixed (the file wins, or the director is asked or told the Replace was not saved), change the assertions in case 2 and mark F37 fixed.
+
+**F29 seen from the desk that is typing (`registration-focus-conflict` 2):** the update from the other desk is held while the field is being edited, as designed; when the field is left, the typed text is dropped with the F29 notice (never written to another player). Same expected-failure convention as `edit-conflicts` 4.
+
+**Accepted, with reasons:**
+- Rank 3, the Staff Login merge as a trigger for the focused-field case: it reaches the same `applyTournamentPayload()` path as the 409 rebase that `registration-focus-conflict` 1 follows end to end, and `registration-live-edit` / `registration-teams-live-edit` cover that path offline; Staff Login's merge itself is covered by `reload-restore`.
+- Rank 13, Clear Registration / Clear Exhibitions / Load Samples: the same confirm → change → autosave path as Clear Teams, each already asks first (F8/F24, `registration-screen`, `sample-load-confirm`).
+- Cancel on a confirm (Clear Teams) still asks for an autosave: every button click does (document-wide listener, `scheduleAutoSave()`), and the no-op save moves the revision and carries the device's own pointers (`currentDivision`, `matches`, `currentCourt`). The tournament data is unchanged, which is what `edit-sync` asserts; not a finding.
+
+**Mutation checks** (each temporary source change restored; the new case fails without the guarded behaviour):
+- `registration-focus-conflict` 1: `ksmUpdateCompetitor()` finds the competitor by row number instead of identity (F17 undone) fails case 1 (typed text lands on the wrong player); both deferral guards in `applyRemoteCloudRecord()` removed fails the file (either guard alone keeps it passing: they cover each other).
+- `structural-race`: `replayStructuralEdit()` disabled fails case 1 (the No Show is lost); the F10 `confirm()` skipped fails case 2.
+- `court-state-conflict`: patches to `done` not replayed fails 10 (a draw replayed unfinished); `preserveOwnedCourtRuntimeState()` and `localCourtDivision()` both disabled fails 9; patches to `white` not replayed fails 8 (the representative pick is lost); `divisionCourts` dropped from `KSM_MERGED_STATE_KEYS` fails 6; the court's history dropped when a saved copy is loaded after a reload fails 11 (Undo).
+- `load-file-conflict`: Replace without the save (`applyTournamentFilePayload(..., false)`) fails case 1.
+- `edit-sync`: `clearTeams()` not clearing, ignoring Cancel, `ksmRemoveTeam()` not removing, and `cycleTeamStatus()` not changing the status each fail their step.
+- `structural-edit-conflict` (rank 14) and `file-import-export` (rank 17, file as new): a corruption of the loaded copy applied only after a page reload (pools reordered, matches reversed) fails the new reload steps. The recovery-file reload step has the same assertions but was not separately broken.
 
 ### Network cases (part 2)
 

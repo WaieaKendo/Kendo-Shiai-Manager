@@ -13,7 +13,9 @@ Library and Setup actions (test IDs, Playwright's download and file-chooser APIs
   * invalid files (not JSON, no tournament data, a recovery file) are refused and change nothing;
   * Load Recovery File refuses a file that is not a recovery file and a cancelled password,
     changing nothing; it asks before loading as a new tournament (Cancel changes nothing) and
-    refuses while work for the open tournament is still queued, which then reaches the cloud (F7).
+    refuses while work for the open tournament is still queued, which then reaches the cloud (F7);
+  * (audit rank 17) the tournaments made from a file and from a recovery file are still open, with
+    their data, after a reload.
 """
 import json
 import tempfile
@@ -143,6 +145,13 @@ def main():
         assert untouched['setup']['tName'] == 'Other Cup' and untouched['state'] == other_before['payload']['state'], \
             'the open tournament was changed'
         assert server(tid)['payload']['state']['allMatches'] == saved['state']['allMatches'], 'the file\'s own tournament was changed'
+        # Audit rank 17: the tournament made from the file is still open, with the file's data, after a reload.
+        other.reload()
+        other.wait_for(lambda: other.tournament_id() == new_tid, message='the tournament made from the file to reopen after a reload')
+        other.wait_generated()
+        other.wait_revision(created['revision'])
+        assert other.payload()['state']['allMatches'] == saved['state']['allMatches'] and other.payload()['setup']['tName'] == 'Files Cup', \
+            'after a reload the tournament made from the file differs from the file'
         other.close()
 
         # A file without a tournament ID (saved before 0.5) is never taken for the open tournament.
@@ -213,6 +222,15 @@ def main():
         director.wait_idle()
         after = server(tid)['payload']['state']['allMatches']
         assert after == before['payload']['state']['allMatches'] and has_point(), 'loading the recovery file changed the open tournament'
+        # Audit rank 17: the tournament made from the recovery file is still open, with its data, after a reload.
+        recovered_tid = director.tournament_id()
+        recovered = server(recovered_tid)
+        director.reload()
+        director.wait_for(lambda: director.tournament_id() == recovered_tid, message='the recovered tournament to reopen after a reload')
+        director.wait_generated()
+        director.wait_revision(recovered['revision'])
+        assert director.payload()['state']['allMatches'] == recovered['payload']['state']['allMatches'], 'after a reload the recovered tournament differs from the server'
+        assert recovered['payload']['state']['competitors'] == server(tid)['payload']['state']['competitors'], 'the recovered tournament lost its players'
 
         assert not problems, '\n'.join(problems)
         print(f'PASS tournament files: download/load round trip, same-tournament confirm, other tournament as new, '
