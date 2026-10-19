@@ -68,7 +68,7 @@ def main():
 
         director.goto(app_path(tid))  # the page loaded again from the tournament's link
         director.wait_generated()
-        director.staff_login()  # a reload ends the staff session (Staff Login again)
+        assert director.page.evaluate('KSMTest.role()') == 'staff'
         director.nav('setup')
         assert director.setup_division_names()[:3] == ['Juniors', 'Kids', 'Masters'], f'after a reload: {director.setup_division_names()}'
         assert not problems, '\n'.join(problems)

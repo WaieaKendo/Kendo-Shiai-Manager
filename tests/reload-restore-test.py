@@ -106,7 +106,15 @@ def main():
         assert court_a.outbox()['role'] == 'staff', court_a.outbox()
         court_a.page.unroute('**/api/tournaments/**', is_put)
 
+        # Exercise the logged-out queue path explicitly: this boot's session is revoked.
+        def revoked_boot(route):
+            if route.request.method == 'PUT' and route.request.post_data_json.get('revision') == -1:
+                route.fulfill(status=401, content_type='application/json', body='{"code":"session-expired"}')
+            else:
+                route.continue_()
+        court_a.page.route('**/api/tournaments/**', revoked_boot)
         court_a.reload()
+        court_a.page.unroute('**/api/tournaments/**', revoked_boot)
         court_a.wait_generated()
         assert not court_a.seen_dialogs, f'Court A: reload asked {court_a.seen_dialogs}'
         # Court B saves while Court A is a read-only device: the queued work must survive it.
@@ -136,7 +144,10 @@ def main():
 
         # --- Reload before the debounced save ran: the point is queued at unload ------------
         court_a.score_point('W', 'K')
+        # Revoke this boot too, retaining the unload-queue login/rebase regression.
+        court_a.page.route('**/api/tournaments/**', revoked_boot)
         court_a.reload()
+        court_a.page.unroute('**/api/tournaments/**', revoked_boot)
         court_a.wait_for(court_a.outbox, message='the unload queue to be restored')
         assert court_a.outbox()['reason'] == 'Unsynced changes at page unload', court_a.outbox()
         assert not court_a.seen_dialogs, f'Court A: reload asked {court_a.seen_dialogs}'

@@ -183,7 +183,7 @@ def main():
         keeper.show_screen('score')
         assert keeper.court_screen()['court'] == 'A', f'&court=A did not override the stored Court B: {keeper.court_screen()}'
         # A TV link keeps its fixed court, before and after a reload, whatever the device chose for scoring.
-        keeper.staff_login()
+        assert keeper.page.evaluate('KSMTest.role()') == 'staff'
         keeper.open_court('B')
         goto(keeper, app_path(tid, 'tv', 'A'))
         keeper.wait_for(lambda: keeper.tv_screen()['court'] == 'A', message='the Court A TV display')

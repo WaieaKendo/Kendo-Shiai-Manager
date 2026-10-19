@@ -124,7 +124,7 @@ def main():
         check(a, '0:27', 'Running')
         a.reload()
         a.wait_generated()
-        a.staff_login()
+        assert a.page.evaluate('KSMTest.role()') == 'staff'
         a.open_court('A')
         check(a, '0:27', 'Running')
         advance(a, 2000)
@@ -181,7 +181,7 @@ def main():
         assert all(b.payload()['setup'][k] == v for k, v in lengths.items())
         b.reload()
         b.wait_generated()
-        b.staff_login()
+        assert b.page.evaluate('KSMTest.role()') == 'staff'
         b.open_court('B')
         check(b, '3:07')
         # Settings sync over a real connection after both devices already exist.

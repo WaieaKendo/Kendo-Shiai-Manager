@@ -15,6 +15,8 @@
 // Post-split code: scripts/verify-split.mjs removes the marked region before it compares.
 // ==========================================================
 var ksmRouteLoading=0;
+// Preserve an explicit read-only query before the path migration removes legacy keys.
+var ksmExplicitSpectatorUrl=new URLSearchParams(location.search).get('role')==='spectator'||new URLSearchParams(location.search).has('spectator');
 function ksmResolvedUrl(){return KSMEngine.resolveUrl(location.pathname||'/',location.search||'')}
 // The page's link parameters by their old names (tournament, court, view; key= and others as
 // they are), as new URLSearchParams(location.search) gave them for an old link.
