@@ -159,7 +159,7 @@ def main():
         court.wait_revision(record['revision'])
         echo = copy.deepcopy(record)
         echo['revision'] = record['revision'] + 1
-        echo['updatedBy'] = {'role': 'staff', 'clientId': court.client_id(), 'name': 'Court B'}
+        echo['updatedBy'] = {'role': 'staff', 'clientId': court.writer_id(), 'name': 'Court B'}  # F36: this tab's saves
         echo['payload']['setup']['tName'] = 'Echo Cup'
         assert court.receive(echo) is False, 'a staff device applied its own echo'
         assert name_field(court) != 'Echo Cup' and court.revision() == record['revision'] + 1

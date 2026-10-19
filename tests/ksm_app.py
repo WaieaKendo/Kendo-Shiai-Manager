@@ -381,8 +381,12 @@ class KsmApp:
         }""", court)
 
     def client_id(self):
-        """(test API) This device's client ID (sent with every save)."""
+        """(test API) This device's client ID (shared by its tabs; presence and history entries)."""
         return self.page.evaluate('KSMTest.clientId()')
+
+    def writer_id(self):
+        """(test API) What this tab's saves record as updatedBy.clientId: clientId/tab id (F36)."""
+        return self.page.evaluate('KSMTest.writerId()')
 
     def diagnostics(self):
         """(test API) Cloud diagnostics state (rebase attempts etc.)."""

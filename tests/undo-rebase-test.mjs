@@ -31,11 +31,13 @@ const clone = v => JSON.parse(JSON.stringify(v));
 
 // The rebase and the sync helpers it calls (the engine clean-ups and the F4/F10 merges are stubbed below).
 const constant = name => html.match(new RegExp(`const ${name}=[^\\n]*`))[0];
-const code = [engine, constant('KSM_LOCAL_VIEW_STATE_KEYS'), constant('KSM_UNDO_LOG_LIMIT'),
+const code = [engine, constant('KSM_LOCAL_VIEW_STATE_KEYS'), constant('KSM_UNDO_LOG_LIMIT'), constant('KSM_TAB_ID'),
   ...['normalizeCourt', 'cloneJson', 'isValidMatchObject', 'matchSyncIdentity', 'legacyTiebreakSyncIdentity', 'matchHasSyncIdentity',
     'individualMatchReady', 'matchBelongsToCourtInState', 'nextReadyIndexInState', 'preserveOwnedCourtRuntimeState', 'applyPatchToStateObject',
     'resolveRebasePatch', 'mergeHistoryEntries', 'historyEntryIdentity', 'pendingLocalCourtActionsForRebase', 'undoLogEntryIdentity',
     'pendingLocalUndoLogForRebase', 'replayPendingCourtHistory', 'replayCourtMatchOps', 'mergeCourtHistoryStacks', 'rebaseLocalPayloadOnRecord',
+    // F36: per-tab ownership of history entries and the other court's replay (18-two-tabs.js)
+    'ksmOwnHistoryEntry', 'ksmOtherRebaseCourts',
     'isIndividualPoolTiebreakMatch', 'reindexPointersAfterMatchReorder', 'normalizeIndividualPoolTiebreakOrderInState', 'normalizeAllIndividualPoolTiebreakOrder',
     // the court's own actions and Undo/Redo (10-), to press them on the device's copy and the rebased copy
     'historyPathParent', 'applyHistoryPatch', 'cloneHistoryValue', 'historyComparableState', 'historyValuesEqual', 'buildHistoryPatches',

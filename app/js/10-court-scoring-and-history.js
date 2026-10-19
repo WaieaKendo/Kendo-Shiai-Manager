@@ -64,7 +64,7 @@ function performCourtAction(label,fn){
   const result=fn();const after=historyComparableState(),patches=buildHistoryPatches(before,after).map(patch=>stampHistoryPatchMatchIdentity(patch,before,after));
   if(patches.length){
     const stack=state.courtActionHistory[court];
-    /* ksm:post-split-begin history-replay was:stack.push({format:'patch-v1',label:label||'Action',court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',revision:cloudSession?.revision||0,patches}); */stack.push(withCourtHistoryIdentity({format:'patch-v1',label:label||'Action',court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',revision:cloudSession?.revision||0,patches},before,after));/* ksm:post-split-end */
+    /* ksm:post-split-begin history-replay was:stack.push({format:'patch-v1',label:label||'Action',court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',revision:cloudSession?.revision||0,patches}); */stack.push(withCourtHistoryIdentity({format:'patch-v1',label:label||'Action',court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',tabId:KSM_TAB_ID,revision:cloudSession?.revision||0,patches},before,after));/* ksm:post-split-end */
     if(stack.length>KSM_HISTORY_LIMIT)stack.splice(0,stack.length-KSM_HISTORY_LIMIT);
     state.courtRedoHistory[court]=[];
   }
@@ -164,7 +164,7 @@ function withCourtMatchOps(entry,beforeAll,afterAll){
 function recordCourtUndoLog(court,kind,action,matchesBefore){
   state.courtUndoLog=state.courtUndoLog||{A:[],B:[]};
   const log=Array.isArray(state.courtUndoLog[court])?state.courtUndoLog[court]:(state.courtUndoLog[court]=[]);
-  const entry={format:'history-op-v1',kind,court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',revision:cloudSession?.revision||0,
+  const entry={format:'history-op-v1',kind,court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',tabId:KSM_TAB_ID,revision:cloudSession?.revision||0,
     target:historyEntryIdentity(action),label:action.label||'Action',patches:cloneJson(action.patches||[])};
   const matchOps=courtUndoMatchOps(matchesBefore);if(matchOps)entry.matchOps=matchOps;
   log.push(entry);
