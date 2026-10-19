@@ -360,7 +360,7 @@ function ksmForgetTournament(id){
     if(recovery&&recovery.outbox&&recovery.outbox.tournamentId===id)localStorage.removeItem(KSM_CLOUD_RECOVERY_KEY);
   }catch(_){localStorage.removeItem(KSM_CLOUD_RECOVERY_KEY)}
   if(cloudSession.tournamentId===id){
-    localStorage.removeItem(KSM_SAVE_KEY);
+    ksmClearAutosave();
     cloudSession.tournamentId=null;cloudSession.revision=0;cloudSession.updatedAt=null;cloudSession.court='';cloudSession.presence=[];
     delete cloudSession.credentials;
     persistCloudSession();
@@ -383,7 +383,7 @@ function ksmLeaveTournamentAddress(){
 // the next start offers to restore: not for a tournament deleted here, while the Library is shown.
 var ksmForgotTournament=false;
 window.addEventListener('beforeunload',function(){
-  if(ksmForgotTournament&&!cloudSession.tournamentId&&document.body.classList.contains('ksm-home'))localStorage.removeItem(KSM_SAVE_KEY);
+  if(ksmForgotTournament&&!cloudSession.tournamentId&&document.body.classList.contains('ksm-home'))ksmClearAutosave();
 });
 // This device learned that tournament `id` was deleted (the socket closed with 'Tournament deleted',
 // or a request answered 410 tournament-deleted): forget it and return to the Library. Not for the

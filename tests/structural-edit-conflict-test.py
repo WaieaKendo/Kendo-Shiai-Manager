@@ -15,7 +15,6 @@ another device saves first, so the director's save conflicts (409) and is rebase
 
 Before F10 the rebase kept the server's pools and matches in all three, without a word.
 """
-import time
 
 from playwright.sync_api import sync_playwright
 from ksm_app import KsmApp, fetch_record, put_record, sel, app_path
@@ -37,7 +36,6 @@ def names(pools):
 
 def main():
     problems = []
-    started = time.time()
     with local_worker() as base, sync_playwright() as p:
         browser = launch_chromium(p)
         director = KsmApp.open_device(browser, base, 'Director', problems, tournament_name='Structural Cup')
@@ -116,7 +114,7 @@ def main():
 
         assert not problems, '\n'.join(problems)
         print(f'PASS structural edit on a save conflict: replayed when the other save changed another division; '
-              f'asked when it changed the same one (Cancel keeps theirs with a notice, OK re-applies) ({time.time() - started:.0f}s)')
+              f'asked when it changed the same one (Cancel keeps theirs with a notice, OK re-applies)')
         browser.close()
 
 

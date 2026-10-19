@@ -13,7 +13,6 @@ Director, a Court B scorekeeper and a spectator against a throwaway `wrangler de
   * old local data from before v3.17.3 is cleared once, and only once.
 """
 import copy
-import time
 
 from playwright.sync_api import sync_playwright
 from ksm_app import KsmApp, fetch_record, put_record, sel, app_path
@@ -30,7 +29,6 @@ def people(prefix, n):
 
 def main():
     problems = []
-    started = time.time()
     with local_worker() as base, sync_playwright() as p:
         browser = launch_chromium(p)
         director = KsmApp.open_device(browser, base, 'Director', problems, tournament_name='Updates Cup')
@@ -180,7 +178,7 @@ def main():
         assert legacy.page.evaluate('k => JSON.parse(localStorage.getItem(k)).setup.tName', AUTOSAVE_KEY)=='Kept', 'startup discarded the retained local draft'
 
         assert not problems, '\n'.join(problems)
-        print(f'PASS remote updates: stale/duplicate/own echo, editing hold, load repair, legacy reset; Setup edits merged on conflict ({time.time() - started:.0f}s)')
+        print(f'PASS remote updates: stale/duplicate/own echo, editing hold, load repair, legacy reset; Setup edits merged on conflict')
         browser.close()
 
 

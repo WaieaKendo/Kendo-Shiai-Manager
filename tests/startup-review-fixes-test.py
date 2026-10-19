@@ -1,6 +1,6 @@
 """PR #77: autosave origin, cached Retry/rebase, offline Retry and empty-screen save gates."""
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from playwright.sync_api import sync_playwright
 from ksm_app import KsmApp, app_path, fetch_record
 from ksm_browser import launch_chromium
@@ -30,7 +30,7 @@ def fail_load(app, tid):
 
 def freeze(app):
     app.page.clock.install()
-    app.page.clock.pause_at(datetime.now(timezone.utc))
+    app.page.clock.pause_at(datetime.now(timezone.utc)+timedelta(seconds=1))
 
 
 def cloud_origin(browser, base, problems):
@@ -147,7 +147,7 @@ def no_cache_saves(browser, base, problems):
     before = a.page.evaluate('[localStorage.getItem(KSM_SAVE_KEY),localStorage.getItem(KSM_CLOUD_OUTBOX_KEY)]')
     puts = []
     a.page.on('request', lambda request: puts.append(request.url) if request.method == 'PUT' else None)
-    a.click('nav-save-load'); a.click('nav-save-now')
+    a.page.evaluate('KSMTest.manualSave()')
     a.save_now('Critical path while empty')
     # Wait for any forbidden request to finish before asserting the storage and request log.
     a.page.wait_for_function('!KSMTest.pendingReason().saveInFlight')
