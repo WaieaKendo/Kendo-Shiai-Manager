@@ -75,6 +75,33 @@ def main():
         popup.value.close()
         app.configure([{'name': 'Open', 'format': 'Single Elimination', 'court': 'A', 'entrants': [
             {'name': name, 'dojo': 'Dojo', 'seed': '', 'status': 'Checked'} for name in ['A', 'B', 'C', 'D']]}])
+        # A pre-existing reserved slug must not replace its working ID URL.
+        assert app.page.evaluate("KSMEngine.routePath({screen:'tournament', id:'legacy-print-id', slug:'print'})") == '/t/legacy-print-id'
+        # Exercise the production status functions, including all Saved age variants.
+        save_cases = [
+            ('saving', 0, False, 'Saving…', 'Saving…'),
+            ('syncing', 0, False, 'Synchronizing…', 'Synchronizing…'),
+            ('saved', 0, False, '✓ Saved just now', '✓ Saved …'),
+            ('saved', 5, False, '✓ Saved 5 min ago', '✓ Saved …'),
+            ('saved', 90, False, '✓ Saved at ', '✓ Saved …'),
+            ('offline', 0, False, 'Save needs attention', 'Save needs attention'),
+            ('error', 0, False, 'Save needs attention', 'Save needs attention'),
+            ('offline', 0, True, 'Not saved · Changes waiting', 'Not saved · Changes waiting'),
+        ]
+        for mode, minutes, queued, expected, quoted in save_cases:
+            actual = app.page.evaluate("""({mode, minutes, queued}) => {
+              clearOutbox();
+              if (queued) writeOutbox(tournamentPayload(), 'Guide status test');
+              ksmSaveStatusMode = mode;
+              ksmLastSuccessfulSaveAt = Date.now() - minutes * 60000;
+              renderPersistentSaveStatus();
+              return ksmPersistentSaveStatusText();
+            }""", {'mode': mode, 'minutes': minutes, 'queued': queued})
+            assert actual.startswith(expected) if minutes == 90 else actual == expected, (mode, actual)
+            assert quoted in guide, f'Guide missing real save-status wording: {quoted}'
+        app.page.evaluate("setConnectionStatus('No connection', 'offline')")
+        app.page.wait_for_function("document.querySelector('[data-testid=connection-status]').textContent.includes('Offline')")
+        assert 'Offline' in guide
         app.open_court('A')
         for testid, label in LABELS.items():
             if testid.startswith('_'):

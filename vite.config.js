@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { printTheme } from './scripts/print-theme.mjs';
 import { printDocumentPage } from './app/print-documents.mjs';
 import path from 'node:path';
 import { defineConfig } from 'vite';
@@ -38,7 +39,9 @@ function indexModuleFiles(bundle, page = 'index.html') {
     if (!chunk || files.has(chunk.fileName)) return;
     files.add(chunk.fileName);
     for (const css of chunk.viteMetadata?.importedCss || []) files.add(css);
-    for (const name of [...chunk.imports, ...chunk.dynamicImports]) visit(chunks.find(c => c.fileName === name));
+    // Preserve the main app's existing static-import precache scope.
+    const imports = page.startsWith('print/') ? [...chunk.imports, ...chunk.dynamicImports] : chunk.imports;
+    for (const name of imports) visit(chunks.find(c => c.fileName === name));
   };
   visit(entry);
   return [...files];
@@ -55,7 +58,7 @@ function ksmClassicBundle() {
       server.middlewares.use(async (req, res, next) => {
         const url = req.url.split('?')[0];
         const send = (type, body) => { res.setHeader('Content-Type', type); res.setHeader('Cache-Control', 'no-store'); res.end(body); };
-        if (url === '/print/theme.css') return send('text/css; charset=utf-8', appStyles().split('}')[0] + '}');
+        if (url === '/print/theme.css') return send('text/css; charset=utf-8', printTheme(appStyles()));
         if (url === STYLE_URL) return send('text/css; charset=utf-8', appStyles());
         if (url === SCRIPT_URL) return send('text/javascript; charset=utf-8', withVersion(appScript()));
         if (url === ENGINE_URL) return send('text/javascript; charset=utf-8', await engineScript());
@@ -91,7 +94,7 @@ function ksmClassicBundle() {
       },
     },
     generateBundle(_options, bundle) {
-      this.emitFile({ type: 'asset', fileName: 'print/theme.css', source: built.css.split('}')[0] + '}' });
+      this.emitFile({ type: 'asset', fileName: 'print/theme.css', source: printTheme(built.css) });
       this.emitFile({ type: 'asset', fileName: built.cssFile, source: built.css });
       this.emitFile({ type: 'asset', fileName: built.jsFile, source: built.js });
       this.emitFile({ type: 'asset', fileName: built.engineFile, source: built.engine });

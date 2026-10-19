@@ -18,13 +18,13 @@ import subprocess
 names = json.loads(subprocess.check_output(['node', '--input-type=module', '-e', "import {printDocuments} from './app/print-documents.mjs'; console.log(JSON.stringify(Object.keys(printDocuments)))"], cwd=root))
 if args.document not in names:
     parser.error(f'Unknown document. Choose: {names}')
-out = args.out or root / 'dist' / 'print' / f'{args.document}.pdf'
+out = args.out or root / 'docs' / f'{args.document}.pdf'
 with local_worker() as base, sync_playwright() as p:
     browser = launch_chromium(p)
     page = browser.new_page()
     response = page.goto(f'{base}/print/{args.document}', wait_until='networkidle')
     assert response.status == 200
-    page.evaluate('document.fonts.ready')
+    page.evaluate('async () => { await document.fonts.ready; }')
     assert page.locator('img').evaluate_all('(images) => images.every(i => i.complete && i.naturalWidth > 0)')
     out.parent.mkdir(parents=True, exist_ok=True)
     page.pdf(path=str(out), format='Letter', print_background=True)

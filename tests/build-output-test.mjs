@@ -6,6 +6,7 @@
 // The one transform: package.json "version" fills in the __KSM_VERSION__ placeholders (withVersion).
 // run-all.mjs builds dist/ before the tests run.
 import fs from 'node:fs';
+import { printTheme } from '../scripts/print-theme.mjs';
 import { printDocuments } from '../app/print-documents.mjs';
 import vm from 'node:vm';
 import path from 'node:path';
@@ -32,6 +33,18 @@ check(built.replace(modules[0]?.[0] ?? '', '') === withVersion(indexHtml()).repl
 check(engine && dist(engine) === await engineScript() && /^var KSMEngine = /.test(dist(engine)), 'engine script = app/engine/index.ts as a classic IIFE defining KSMEngine');
 check(css && dist(css) === appStyles(), 'stylesheet = app/styles/*.css in order, untransformed');
 check(js && dist(js) === withVersion(appScript()), 'script = app/js/*.js in order, untransformed apart from the version');
+
+const theme = dist('print/theme.css');
+const printCss = fs.readFileSync(path.join(APP_DIR, 'print/print.css'), 'utf8');
+const tokens = [...new Set([...printCss.matchAll(/var\((--[\w-]+)/g)].map(m => m[1]))];
+check(theme.startsWith(':root{') && tokens.every(t => theme.includes(t + ':')),
+  'print theme starts with :root{ and contains every colour token used by print CSS');
+check(printTheme('/* before */ body{margin:0} :root {--ink:blue;}') === ':root{--ink:blue;}',
+  'print theme finds :root after comments and other rules');
+let missingRootFailed = false;
+try { printTheme('body{color:blue}'); } catch { missingRootFailed = true; }
+check(missingRootFailed, 'print theme fails explicitly when the token block is missing');
+check(!fs.existsSync(path.join(DIST_DIR, 'print/scorekeeper-guide.pdf')), 'build does not publish the review PDF');
 
 const sw = dist('service-worker.js');
 const printShellText = sw.match(/'\/print\/theme\.css', ([^\n]+),\n/)?.[1];

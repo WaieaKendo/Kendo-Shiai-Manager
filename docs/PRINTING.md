@@ -13,7 +13,7 @@ npm run guide
 ```
 
 This recreates the sample court screenshots through the golden tests' KsmApp/KSMTest
-fixture, rebuilds the app and writes `dist/print/scorekeeper-guide.pdf` and its review copy `docs/scorekeeper-guide.pdf`.
+fixture, rebuilds the app and writes the review PDF to `docs/scorekeeper-guide.pdf` (outside public build assets).
 Do this after #85 or any other court-screen change; never hand-edit the images.
 The fixture uses a tablet landscape viewport. Save states are deterministic inputs to
 the production status renderer, not hand-written screenshot labels.
@@ -29,7 +29,8 @@ npm run print-pdf -- scorekeeper-guide --out /tmp/scorekeeper-guide.pdf
 
 PDF generation starts a throwaway local built worker, uses Playwright `page.pdf()`
 with Letter and print backgrounds, and shuts it down. `KSM_BASE_URL` can reuse an
-already running local worker. `--out` selects a different output location.
+already running local worker. `--out` selects a different output location. PDFs default to `docs/<document>.pdf`;
+only an explicit `--out dist/...` makes a PDF a public build asset.
 
 ## Add a document (next: tournament program, #63)
 

@@ -61,7 +61,7 @@
     "proxy:production": "node scripts/pages-proxy.mjs production",
     "guide:screenshots": ".venv/bin/python scripts/guide-screenshots.py",
     "print-pdf": ".venv/bin/python scripts/print-pdf.py",
-    "guide": "npm run guide:screenshots && npm run build && npm run print-pdf -- scorekeeper-guide && cp dist/print/scorekeeper-guide.pdf docs/scorekeeper-guide.pdf"
+    "guide": "npm run guide:screenshots && npm run build && npm run print-pdf -- scorekeeper-guide"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",
