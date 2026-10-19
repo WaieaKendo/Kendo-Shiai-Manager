@@ -57,16 +57,27 @@ function tournamentPayload(){
   };
 }
 function updateSaveStatus(text){/* ksm:post-split-begin react-shell */ksmRenderSaveStatus(text);/* ksm:post-split-end */}
-function markLocalSave(reason='Local autosave'){try{localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(tournamentPayload()));return true}catch(err){console.warn('Local save failed',err);ksmSaveStatusMode='error';renderPersistentSaveStatus();return false}}
-function autoSaveTournament(reason='Autosave'){/* ksm:post-split-begin tournament-switcher */if(document.body.classList.contains('ksm-home'))return;/* ksm:post-split-end */if(!markLocalSave(reason))return;if(!ksmApplyingRemoteSnapshot&&!isReadOnlySession())scheduleCloudSave(reason)}
+/* ksm:post-split-begin autosave-origin */
+const KSM_AUTOSAVE_CLOUD_ID=KSM_SAVE_KEY+':cloud-id';
+// Upgrade existing autosaves while their persisted session still identifies their origin.
+if(localStorage.getItem(KSM_SAVE_KEY)&&localStorage.getItem(KSM_AUTOSAVE_CLOUD_ID)===null&&cloudSession.tournamentId){
+  localStorage.setItem(KSM_AUTOSAVE_CLOUD_ID,cloudSession.tournamentId);
+}
+function ksmStoreAutosave(payload,id=cloudSession.tournamentId){
+  localStorage.setItem(KSM_AUTOSAVE_CLOUD_ID,id||'');
+  localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(payload));
+}
+/* ksm:post-split-end */
+function markLocalSave(reason='Local autosave'){try{/* ksm:post-split-begin autosave-origin was:localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(tournamentPayload())) */ksmStoreAutosave(tournamentPayload())/* ksm:post-split-end */;return true}catch(err){console.warn('Local save failed',err);ksmSaveStatusMode='error';renderPersistentSaveStatus();return false}}
+function autoSaveTournament(reason='Autosave'){/* ksm:post-split-begin tournament-switcher */if(document.body.classList.contains('ksm-home')||(ksmStartupLoadFailed&&!ksmStartupHasCache))return;/* ksm:post-split-end */if(!markLocalSave(reason))return;if(!ksmApplyingRemoteSnapshot&&!isReadOnlySession())scheduleCloudSave(reason)}
 // Remote snapshots never echo into cloud: if(!ksmApplyingRemoteSnapshot)scheduleCloudSave()
-function scheduleAutoSave(reason='Edit'){noteLocalMutation();clearTimeout(ksmSaveTimer);ksmSaveTimer=setTimeout(()=>{ksmSaveTimer=null;autoSaveTournament(reason)},2000)}
+function scheduleAutoSave(reason='Edit'){/* ksm:post-split-begin startup-recovery */if(ksmStartupLoadFailed&&!ksmStartupHasCache)return;/* ksm:post-split-end */noteLocalMutation();clearTimeout(ksmSaveTimer);ksmSaveTimer=setTimeout(()=>{ksmSaveTimer=null;autoSaveTournament(reason)},2000)}
 /* ksm:post-split-begin award-save */
 // F11: the Results awards editor calls saveAuto() (add, remove, edit), which was never defined, so
 // every award action threw: award edits were never autosaved and add/remove did not redraw.
 // It is an ordinary edit, saved like the others.
 function saveAuto(){scheduleAutoSave('Awards')}
 /* ksm:post-split-end */
-async function saveNow(){markLocalSave('Manual Save Now');showKsmToast('Saving…',0);const saved=await saveTournamentToCloudWithReason('Manual Save Now',true);if(saved){showKsmToast('✓ Tournament saved',2000)}else if(!navigator.onLine){showKsmToast('Saved locally · Waiting to sync',3000)}else{showKsmToast('Unable to save to cloud',3500,true)}}
-function criticalAutoSave(reason){noteLocalMutation();markLocalSave(reason);if(!isReadOnlySession())saveTournamentToCloudWithReason(reason,true)}
+async function saveNow(){/* ksm:post-split-begin startup-recovery */if(ksmStartupLoadFailed&&!ksmStartupHasCache)return;/* ksm:post-split-end */markLocalSave('Manual Save Now');showKsmToast('Saving…',0);const saved=await saveTournamentToCloudWithReason('Manual Save Now',true);if(saved){showKsmToast('✓ Tournament saved',2000)}else if(!navigator.onLine){showKsmToast('Saved locally · Waiting to sync',3000)}else{showKsmToast('Unable to save to cloud',3500,true)}}
+function criticalAutoSave(reason){/* ksm:post-split-begin startup-recovery */if(ksmStartupLoadFailed&&!ksmStartupHasCache)return;/* ksm:post-split-end */noteLocalMutation();markLocalSave(reason);if(!isReadOnlySession())saveTournamentToCloudWithReason(reason,true)}
 

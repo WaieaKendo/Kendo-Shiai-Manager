@@ -173,9 +173,9 @@ def main():
         legacy.reload()
         assert not legacy.has_autosave(), 'legacy local data survived the one-time reset'
         legacy.page.evaluate('k => localStorage.setItem(k, JSON.stringify({setup: {tName: "Kept"}, state: {}}))', AUTOSAVE_KEY)
-        legacy.expect_dialog('Restore autosaved tournament?')
         legacy.reload()
-        assert legacy.has_autosave() and legacy.seen_dialogs, 'the reset ran again'
+        assert legacy.has_autosave() and not legacy.seen_dialogs, 'the reset ran again'
+        assert legacy.page.get_by_test_id('local-draft').is_visible()
         assert legacy.visible_view()==['home'], 'the initial Library transition was treated as leaving an active draft'
         assert legacy.page.evaluate('k => JSON.parse(localStorage.getItem(k)).setup.tName', AUTOSAVE_KEY)=='Kept', 'startup discarded the retained local draft'
 

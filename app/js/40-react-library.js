@@ -16,6 +16,31 @@
 // The island's buttons call createNewTournament() and openTournamentFromHome(id) (33), as the
 // inline handlers did. The legacy library renderer (the DOM writing of
 // paintHomeTournamentLibrary(), libraryCardMarkup()) was removed in M.13.
+// Draft recovery is explicit and never runs while following a tournament or display link.
+function ksmReadLocalDraft(){
+  const params=ksmLinkParams();
+  if(params.get('tournament')||params.get('spectator')||params.get('view')==='tv'||ksmExplicitSpectatorUrl)return null;
+  try{
+    const payload=JSON.parse(localStorage.getItem(KSM_SAVE_KEY)||'null');
+    if(!payload?.state||localStorage.getItem(KSM_AUTOSAVE_CLOUD_ID)||cloudSession.tournamentId)return null;
+    return payload;
+  }catch(_){return null}
+}
+function ksmLocalDraftSummary(){
+  const payload=ksmReadLocalDraft();
+  return payload?{name:payload.setup?.tName||'Untitled tournament',saved:payload.savedAt?new Date(payload.savedAt).toLocaleString():'unknown time'}:null;
+}
+function ksmOpenLocalDraft(){
+  const payload=ksmReadLocalDraft();if(!payload)return;
+  document.body.classList.remove('ksm-home');setSessionRole('staff');installRoleBanner('staff');applyTournamentPayload(payload,false);
+  updateSaveStatus('Restored autosave');navigateTo('setup');
+}
+function ksmDiscardLocalDraft(){
+  if(!ksmReadLocalDraft())return;
+  localStorage.removeItem(KSM_SAVE_KEY);
+  ksmPublishLibrary({...window.ksmLibraryInput,draft:null});
+}
+
 // If the React module does not load, the library shows a notice (the end of this file).
 // Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
@@ -30,7 +55,7 @@ function ksmLibraryCard(x){
 // paintHomeTournamentLibrary(list,message) as data: the cards, or the message when there are none.
 function ksmRenderLibrary(list,message){
   const cards=list.length?list.map(ksmLibraryCard):[];
-  ksmPublishLibrary({kind:'library',cards,message:ksmText(message)});
+  ksmPublishLibrary({kind:'library',cards,message:ksmText(message),draft:ksmLocalDraftSummary()});
 }
 
 // If the React module (app/react/main.tsx, a module script after app.js) did not run, say so on

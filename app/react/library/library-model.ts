@@ -25,6 +25,7 @@ export type LibraryInput =
   | { kind: 'empty' }
   | {
     kind: 'library';
+    draft?: { name: string; saved: string } | null;
     /** The rows, in the order given; with none the message is shown instead. */
     cards: LibraryCardInput[];
     /** paintHomeTournamentLibrary()'s message, as esc() showed it. */
