@@ -302,3 +302,6 @@ body.ksm-spectator #setup-tournament-actions { display: none; }
   .cloud-status-wrap:has([data-testid="header-save-now"]) { min-height: 44px; }
 }
 /* ksm:post-split-end */
+/* ksm:post-split-begin print-guide */
+.setup-print-group{margin-top:14px;color:var(--ink)}.setup-print-group h4{margin:0 0 8px}.setup-print-group a{color:var(--ink);text-decoration:underline}
+/* ksm:post-split-end */

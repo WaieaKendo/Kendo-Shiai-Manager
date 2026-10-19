@@ -1,5 +1,6 @@
 const CACHE_NAME = 'ksm-shell-v__KSM_VERSION__';
 const APP_SHELL = [
+  '/print/theme.css', /* PRINT_SHELL */,
   '/', '/index.html', '/app.css', '/app.js', '/manifest.webmanifest',
   '/icons/icon-192.png', '/icons/icon-512.png', '/icons/apple-touch-icon.png',
   '/assets/ksm-fuji-logo.svg', '/assets/ksm-fuji-logo-nav.svg',
@@ -17,7 +18,7 @@ function isOverlayPath(pathname) {
   if (!match) return false;
   try { return Boolean(decodeURIComponent(match[1])); } catch (_) { return false; }
 }
-const RESERVED_SLUGS = ['api', 't', 'privacy', 'overlay', 'assets', 'icons', 'index.html',
+const RESERVED_SLUGS = ['api', 't', 'print', 'privacy', 'overlay', 'assets', 'icons', 'index.html',
   'index', 'app', 'app.js', 'app.css', 'engine.js', 'service-worker.js', 'manifest.webmanifest',
   'favicon.ico', 'robots.txt', 'court', 'tv', 'live', 'overview', 'results', 'setup', 'registration', 'pools', 'react', 'styles', 'js', 'public', '.well-known'];
 function servesAppShell(pathname) {
@@ -49,6 +50,10 @@ self.addEventListener('fetch', event => {
   // Only the app itself is the offline shell (servesAppShell(): /, /index.html, /t/...). Other
   // pages (the overlay: /overlay, /t/<id>/overlay/a) are live-only: the network answers them, so
   // they are never cached as /index.html.
+  if (event.request.mode === 'navigate' && url.pathname.startsWith('/print/')) {
+    event.respondWith(caches.match(url.pathname.replace(/\/$/, '')).then(cached => cached ? offlineCopy(cached) : fetch(event.request)));
+    return;
+  }
   if (event.request.mode === 'navigate' && !servesAppShell(url.pathname)) return;
   if (event.request.mode === 'navigate') {
     event.respondWith(fetch(event.request).then(response => {

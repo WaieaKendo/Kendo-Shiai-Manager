@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { printDocumentPage } from './app/print-documents.mjs';
 import path from 'node:path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -28,16 +29,16 @@ self.addEventListener('activate', event => event.waitUntil(caches.keys().then(ke
 const SCREENS_MODULE = '/react/main.tsx';
 const SCREENS_TAG = `<script type="module" src="${SCREENS_MODULE}"></script>`;
 
-// The bundled files index.html's module scripts load: entry chunk, imported chunks, their CSS.
-function indexModuleFiles(bundle) {
+// A page module’s entry chunk, imported chunks and CSS, for offline precaching.
+function indexModuleFiles(bundle, page = 'index.html') {
   const chunks = Object.values(bundle).filter(c => c.type === 'chunk');
-  const entry = chunks.find(c => c.isEntry && c.facadeModuleId && path.basename(c.facadeModuleId) === 'index.html');
+  const entry = chunks.find(c => c.isEntry && c.facadeModuleId && c.facadeModuleId.endsWith('/' + page));
   const files = new Set();
   const visit = chunk => {
     if (!chunk || files.has(chunk.fileName)) return;
     files.add(chunk.fileName);
     for (const css of chunk.viteMetadata?.importedCss || []) files.add(css);
-    for (const name of chunk.imports) visit(chunks.find(c => c.fileName === name));
+    for (const name of [...chunk.imports, ...chunk.dynamicImports]) visit(chunks.find(c => c.fileName === name));
   };
   visit(entry);
   return [...files];
@@ -54,13 +55,15 @@ function ksmClassicBundle() {
       server.middlewares.use(async (req, res, next) => {
         const url = req.url.split('?')[0];
         const send = (type, body) => { res.setHeader('Content-Type', type); res.setHeader('Cache-Control', 'no-store'); res.end(body); };
+        if (url === '/print/theme.css') return send('text/css; charset=utf-8', appStyles().split('}')[0] + '}');
         if (url === STYLE_URL) return send('text/css; charset=utf-8', appStyles());
         if (url === SCRIPT_URL) return send('text/javascript; charset=utf-8', withVersion(appScript()));
         if (url === ENGINE_URL) return send('text/javascript; charset=utf-8', await engineScript());
         // No offline cache in dev, so edits show on reload: this worker only clears old caches.
         if (url === '/service-worker.js') return send('text/javascript; charset=utf-8', DEV_SERVICE_WORKER);
         // Extra pages at their clean URL (/overlay), as Cloudflare's asset server does.
-        if (pages.includes(`${url.slice(1)}.html`)) req.url = req.url.replace(url, `${url}.html`);
+        if (printDocumentPage(url)) req.url = req.url.replace(url, '/' + printDocumentPage(url));
+        else if (pages.includes(`${url.slice(1)}.html`)) req.url = req.url.replace(url, `${url}.html`);
         // Path URLs (M.9): /t/<id>/overlay/a is the overlay page, as src-worker.js answers it; other
         // /t/... paths get index.html from Vite's single-page fallback, as from Cloudflare's.
         else if (servesOverlay(url)) req.url = req.url.replace(url, '/overlay.html');
@@ -88,21 +91,25 @@ function ksmClassicBundle() {
       },
     },
     generateBundle(_options, bundle) {
+      this.emitFile({ type: 'asset', fileName: 'print/theme.css', source: built.css.split('}')[0] + '}' });
       this.emitFile({ type: 'asset', fileName: built.cssFile, source: built.css });
       this.emitFile({ type: 'asset', fileName: built.jsFile, source: built.js });
       this.emitFile({ type: 'asset', fileName: built.engineFile, source: built.engine });
       const sw = withVersion(serviceWorker());
       if (!sw.includes(`'${STYLE_URL}', '${SCRIPT_URL}'`)) throw new Error('app/service-worker.js APP_SHELL must list /app.css and /app.js');
       const screens = indexModuleFiles(bundle);
+      const printAssets = pages.filter(p => p.startsWith('print/')).flatMap(p => indexModuleFiles(bundle, p));
+      const printShell = [...new Set([...pages.filter(p => p.startsWith('print/')).map(p => '/' + p.replace(/\.html$/, '')), ...printAssets.map(p => '/' + p), ...Object.keys(bundle).filter(p => /\.(png|webp)$/.test(p)).map(p => '/' + p)])].filter(p => !screens.includes(p.slice(1)));
       if (!screens.length) throw new Error(`index.html must load ${SCREENS_MODULE}`);
       const shell = [built.cssFile, built.engineFile, built.jsFile, ...screens].map(f => `'/${f}'`).join(', ');
-      this.emitFile({ type: 'asset', fileName: 'service-worker.js', source: sw.replace(`'${STYLE_URL}', '${SCRIPT_URL}'`, shell) });
+      this.emitFile({ type: 'asset', fileName: 'service-worker.js', source: sw.replace(`'${STYLE_URL}', '${SCRIPT_URL}'`, shell).replace('/* PRINT_SHELL */', printShell.map(p => JSON.stringify(p)).join(', ')) });
     },
   };
 }
 
 export default defineConfig({
   root: APP_DIR,
+  define: { __PRINT_VERSION__: JSON.stringify(withVersion("__KSM_VERSION__")) },
   publicDir: 'public',
   plugins: [react(), ksmClassicBundle(), {
     // Vite drops the vite-ignore attribute but leaves its space behind.
