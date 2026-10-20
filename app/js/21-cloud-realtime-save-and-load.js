@@ -207,7 +207,7 @@ async function runPendingCloudSave(){
 }
 async function saveTournamentToCloudWithReason(reason='Autosave',force=false){
   if(location.protocol==='file:'||ksmApplyingRemoteSnapshot||isReadOnlySession()||!canCloudWrite())return false;
-  if(ksmCloudSaveInFlight)return queuePendingCloudSave(reason,force);
+  if(ksmCloudSaveInFlight/* ksm:post-split-begin replace-conflict */||ksmFileReplace/* ksm:post-split-end */)return queuePendingCloudSave(reason,force);
   const payload=tournamentPayload();
   /* ksm:post-split-begin library-setup was:if(!navigator.onLine){ */if(!navigator.onLine&&!force){/* ksm:post-split-end */writeOutbox(payload,reason);/* ksm:post-split-begin save-retry */noteQueuedMutation(payload,ksmLocalMutationVersion);/* ksm:post-split-end */setConnectionStatus('Offline','offline');return false}
   ksmCloudSaveInFlight=true;
@@ -277,7 +277,7 @@ function mergeQueuedStaffWork(){
   return true;
 }
 /* ksm:post-split-end */
-async function flushCloudOutbox(){const outbox=readOutbox();if(!outbox||ksmCloudSaveInFlight||isReadOnlySession()||!navigator.onLine)return false;/* ksm:post-split-begin two-tabs */if(outbox.peeked)return false;if(outbox.adoptedFrom!=null)return ksmSendAdoptedOutbox();/* ksm:post-split-end */if(outbox.tournamentId&&outbox.tournamentId!==cloudSession.tournamentId){writeCloudDiagnosticsState({stage:'Outbox blocked',errorMessage:'Queued snapshot belongs to a different tournament',queuedTournamentId:outbox.tournamentId||'',activeTournamentId:cloudSession.tournamentId||''});return false}ksmCloudSaveInFlight=true;ksmSaveStatusMode='syncing';writeCloudDiagnosticsState({stage:'Retrying queued snapshot',lastAttemptAt:new Date().toISOString(),baseRevision:outbox.baseRevision||0,snapshotBytes:payloadByteSize(outbox.payload),retryCount:(readCloudDiagnosticsState().retryCount||0)+1});renderPersistentSaveStatus();const mutationVersion=ksmLocalMutationVersion;try{const record=await performCloudSave(outbox.payload,outbox.baseRevision/* ksm:post-split-begin edit-merge */,0,outbox.baseRevision,outbox.basePayload||cloudBaseFor(outbox.baseRevision)/* ksm:post-split-end */);
+async function flushCloudOutbox(){const outbox=readOutbox();if(!outbox||ksmCloudSaveInFlight||/* ksm:post-split-begin replace-conflict */ksmFileReplace||/* ksm:post-split-end */isReadOnlySession()||!navigator.onLine)return false;/* ksm:post-split-begin two-tabs */if(outbox.peeked)return false;if(outbox.adoptedFrom!=null)return ksmSendAdoptedOutbox();/* ksm:post-split-end */if(outbox.tournamentId&&outbox.tournamentId!==cloudSession.tournamentId){writeCloudDiagnosticsState({stage:'Outbox blocked',errorMessage:'Queued snapshot belongs to a different tournament',queuedTournamentId:outbox.tournamentId||'',activeTournamentId:cloudSession.tournamentId||''});return false}ksmCloudSaveInFlight=true;ksmSaveStatusMode='syncing';writeCloudDiagnosticsState({stage:'Retrying queued snapshot',lastAttemptAt:new Date().toISOString(),baseRevision:outbox.baseRevision||0,snapshotBytes:payloadByteSize(outbox.payload),retryCount:(readCloudDiagnosticsState().retryCount||0)+1});renderPersistentSaveStatus();const mutationVersion=ksmLocalMutationVersion;try{const record=await performCloudSave(outbox.payload,outbox.baseRevision/* ksm:post-split-begin edit-merge */,0,outbox.baseRevision,outbox.basePayload||cloudBaseFor(outbox.baseRevision)/* ksm:post-split-end */);
   // After a reload the screen shows the older cloud copy and our own echo is ignored: show what
   // was just saved, replaying court actions taken while the flush was in flight (as a rebase does).
 /* ksm:post-split-begin outbox-flush-rebase */
@@ -345,7 +345,7 @@ async function copyDirectorLink(){const link=directorLink();if(!link||!cloudSess
 // Court access helpers remain available: copyScorekeeperLink('A') copyScorekeeperLink('B')
 async function copyScorekeeperLink(court){const link=roleLink('scorekeeper',court);if(!link||!cloudSession.credentials?.scorekeeper){alert('This device does not have the scorekeeper credential.');return}await copyTextValue(link,`Court ${court} scorekeeper link copied`)}
 async function copyAdminLink(){const link=roleLink('admin');if(!link||!cloudSession.credentials?.admin){alert('This device does not have admin access.');return}await copyTextValue(link,'Admin link copied')}
-function closeCloudModal(){/* ksm:post-split-begin react-shell */ksmCloseCloudModal();/* ksm:post-split-end */}
+function closeCloudModal(){/* ksm:post-split-begin replace-conflict */if(ksmFileReplace?.record)return ksmCancelReplace();/* ksm:post-split-end *//* ksm:post-split-begin react-shell */ksmCloseCloudModal();/* ksm:post-split-end */}
 function installRoleBanner(role){document.querySelector('.spectator-readonly-banner')?.remove();if(!['spectator','scorekeeper'].includes(role))return;const banner=document.createElement('div');banner.className='spectator-readonly-banner';banner.textContent=role==='spectator'?'LIVE SPECTATOR VIEW • READ ONLY':`COURT ${cloudSession.court||'—'} SCOREKEEPER • LIVE SYNC`;document.body.prepend(banner)}
 function cloudDiagnostics(){const outbox=readOutbox(),presence=cloudSession.presence||[],diag=readCloudDiagnosticsState(),currentAnalysis=analyzeTournamentSnapshot(),analysis=diag.snapshotAnalysis||currentAnalysis,historyAnalysis=analyzeCourtActionHistory();const details=[['Connection',navigator.onLine?'Online':'Offline'],['Realtime',ksmCloudSocket?.readyState===1?'Connected':'Not connected'],['Last successful save',ksmLastSuccessfulSaveAt?new Date(ksmLastSuccessfulSaveAt).toLocaleString():'None'],['Pending offline changes',outbox?'1 queued snapshot':'None'],['Tournament ID',cloudSession.tournamentId||'None'],['Role',ksmSessionRole],['Pinned court',pinnedCourt()||'—'],['Displayed court',state.currentCourt||'—'],['Local changes pending',localChangesPending()?'Yes':'No'],['Court',cloudSession.court||state.currentCourt||'—'],['Connected devices',String(presence.length)],['Cloud revision',String(cloudSession.revision||0)],['Last save stage',diag.stage||'No diagnostic attempt recorded'],['Last attempt',formatDiagnosticTime(diag.lastAttemptAt)],['HTTP status',diag.httpStatus==null?'None':String(diag.httpStatus)],['Last error',diag.errorMessage||'None'],['Server response',diag.errorBody||'None'],['Retry count',String(diag.retryCount||0)],['Queued base revision',outbox?String(outbox.baseRevision||0):'None'],['Queued since',outbox?formatDiagnosticTime(outbox.queuedAt):'None'],['Snapshot size',formatSnapshotBytes(outbox?payloadByteSize(outbox.payload):(diag.snapshotBytes||currentAnalysis.totalBytes))]];/* ksm:post-split-begin react-shell */ksmOpenDiagnostics(details,analysis,historyAnalysis,outbox&&!isReadOnlySession());/* ksm:post-split-end */}
 async function initializeCloudRoleFromUrl(){ensureClientIdentity();const params=new URLSearchParams(location.search);let role=params.get('role'),id=params.get('tournament'),key=params.get('key'),court=params.get('court')||'',requestedView=params.get('view')||'';
@@ -448,7 +448,123 @@ function replaceTournamentFromFile(){
   if(isReadOnlySession()){showKsmToast('Staff Login required to replace this tournament',3500,true);return}
   const pending=ksmPendingTournamentFile;ksmPendingTournamentFile=null;closeCloudModal();
   if(!pending||pending.payload.tournamentId!==cloudSession.tournamentId)return;
-  if(applyTournamentFilePayload(pending.payload,true))updateSaveStatus('Loaded '+pending.fileName);
+  // F37 (#88): Replace is saved on its own (never merged into another device's save), so it needs the
+  // cloud now: queued for later it would meet that save silently.
+  if(!navigator.onLine||ksmFileReplace){alert('Connect to the internet to replace the tournament. Nothing was changed.');return}
+  const before={payload:tournamentPayload(),outbox:localStorage.getItem(ksmOutboxKey()),pending:localChangesPending()};
+  if(!applyTournamentFilePayload(pending.payload,false))return;
+  noteLocalMutation();markLocalSave('Tournament file replace');updateSaveStatus('Loaded '+pending.fileName);
+  // The file as applied: what Replace sends, also after a save in flight has applied its own result meanwhile.
+  // version: the local changes the file stands for (an edit made later, e.g. while asked, is saved after it).
+  ksmSendFileReplace({fileName:pending.fileName,before,record:null,payload:tournamentPayload(),version:ksmLocalMutationVersion});
+}
+// F37 (#88): the Replace in progress: {fileName, before: what to put back if it fails, record: the other
+// device's copy while the director is asked}. Ordinary saves wait meanwhile (they would merge the file away).
+let ksmFileReplace=null;
+// baseRevision: Replace anyway's (the other device's copy); else this device's after its own save in flight.
+async function ksmSendFileReplace(replace,baseRevision=null){
+  ksmFileReplace=replace;
+  clearTimeout(ksmSaveTimer);ksmSaveTimer=null;clearTimeout(ksmCloudTimer);ksmCloudTimer=null;
+  let waited=false;
+  for(let i=0;ksmCloudSaveInFlight&&i<250;i++){waited=true;await new Promise(resolve=>setTimeout(resolve,100))}
+  if(ksmFileReplace!==replace)return;  // the tournament was closed meanwhile
+  // That save may have applied its (rebased) result over the file: show the file again.
+  if(waited){ksmApplyingRemoteSnapshot=true;try{applyTournamentPayload(replace.payload,false,{pinnedCourt:pinnedCourt(),preserveLocalDivision:true,source:'file replace'})}finally{ksmApplyingRemoteSnapshot=false};ksmStoreAutosave(replace.payload)}
+  if(baseRevision==null)baseRevision=Number(cloudSession.revision)||0;
+  const version=replace.version;
+  // The file replaces this device's queued work: dropped now, so the save's success cannot give a closed
+  // tab's work it took over back as a new queue (it would replay over the file). Put back if it fails.
+  // A copy survives a crash meanwhile (no beforeunload): released as a closed tab's work (18-two-tabs.js).
+  if(replace.before.outbox)localStorage.setItem(KSM_REPLACE_BACKUP_PREFIX+KSM_TAB_ID,replace.before.outbox);
+  localStorage.removeItem(ksmOutboxKey());
+  ksmCloudSaveInFlight=true;ksmSaveStatusMode='saving';renderPersistentSaveStatus();
+  try{
+    await performCloudSave({...replace.payload,savedAt:new Date().toISOString()},baseRevision,0,baseRevision,null,{wholeReplace:true});
+    ksmConfirmedMutationVersion=Math.max(ksmConfirmedMutationVersion,version);
+    ksmFileReplace=null;localStorage.removeItem(KSM_REPLACE_BACKUP_PREFIX+KSM_TAB_ID);
+    // Edits made while it was sent or asked are saved on top of it.
+    if(ksmLocalMutationVersion>version&&!ksmCloudSavePending)scheduleCloudSave('Changes during the replace');
+    // The file is the tournament now, on every device: work queued here before it, and closed tabs' work
+    // for it, is replaced too.
+    ksmDropOutboxesFor(cloudSession.tournamentId);
+    showKsmToast(`✓ Tournament replaced from ${replace.fileName}`,2600);
+  }catch(err){
+    console.warn('Replace from file failed',err);
+    if(err?.code==='replace-conflict'){
+      replace.record=err.record;
+      ksmOpenCloudModal('Another device changed the tournament during the replace.',{kind:'replace-conflict',fileName:ksmHtmlText(replace.fileName)});
+      return;
+    }
+    if(err?.code==='transition-cancelled'||err?.code==='tournament-deleted'){ksmFileReplace=null;return}
+    const message=String(err?.message||err||'');
+    // A request that failed or timed out may still have reached the server: it decides.
+    if(!/authorization|conflict|invalid|rejected|\(4\d\d\)/i.test(message)&&await ksmFileReplaceLanded(baseRevision)){
+      ksmFileReplace=null;ksmConfirmedMutationVersion=Math.max(ksmConfirmedMutationVersion,version);
+      localStorage.removeItem(KSM_REPLACE_BACKUP_PREFIX+KSM_TAB_ID);
+      ksmDropOutboxesFor(cloudSession.tournamentId);
+      if(ksmLocalMutationVersion>version&&!ksmCloudSavePending)scheduleCloudSave('Changes during the replace');
+      showKsmToast(`✓ Tournament replaced from ${replace.fileName}`,2600);
+      return;
+    }
+    ksmFileReplace=null;
+    ksmUndoFileReplace(replace,null);
+    const reason=/authorization/i.test(message)?'Staff Login required':/fetch|network|timed out|abort|failed \(5/i.test(message)?'the cloud could not be reached':message;
+    showKsmToast(`Tournament file not loaded · ${reason}`,4000,true);
+  }finally{
+    ksmCloudSaveInFlight=false;
+    if(!ksmFileReplace){await runPendingCloudSave();if(!localChangesPending())applyDeferredSyncRecord()}
+  }
+}
+// Replace anyway: the file again, against the other device's revision (asked again if yet another save came first).
+function ksmReplaceAnyway(){
+  const replace=ksmFileReplace;if(!replace?.record)return;
+  const revision=Number(replace.record.revision)||0;
+  replace.record=null;ksmCloseCloudModal();
+  ksmSendFileReplace(replace,revision);
+}
+// Cancel (also closing the question): the other device's copy stays; this device follows it.
+function ksmCancelReplace(){
+  const replace=ksmFileReplace;if(!replace?.record)return;
+  ksmFileReplace=null;ksmCloseCloudModal();
+  ksmUndoFileReplace(replace,replace.record);
+  const waiting=ksmCloudSavePending;ksmCloudSavePending=null;waiting?.resolvers.forEach(resolve=>resolve(false));
+  showKsmToast('Tournament file not loaded · the other device\'s change was kept',4000,true);
+  if(!localChangesPending())applyDeferredSyncRecord();
+}
+// Puts back the copy from before the Replace (or the server's newer one) and this device's queued work.
+function ksmUndoFileReplace(replace,record){
+  ksmApplyingRemoteSnapshot=true;
+  try{
+    const payload=record?.payload||replace.before.payload;
+    applyTournamentPayload(payload,false,{pinnedCourt:pinnedCourt(),preserveLocalDivision:true,source:'replace undone'});ksmStoreAutosave(payload);
+    if(record){cloudSession.revision=Number(record.revision)||0;cloudSession.updatedAt=record.updatedAt;persistCloudSession();rememberCloudBase(record)}
+  }finally{ksmApplyingRemoteSnapshot=false}
+  if(replace.before.outbox)localStorage.setItem(ksmOutboxKey(),replace.before.outbox);else localStorage.removeItem(ksmOutboxKey());
+  localStorage.removeItem(KSM_REPLACE_BACKUP_PREFIX+KSM_TAB_ID);
+  if(!replace.before.pending||record)ksmConfirmedMutationVersion=ksmLocalMutationVersion;
+  else scheduleCloudSave('Changes before the replace');
+  renderPersistentSaveStatus();
+}
+// Whether this tab's Replace reached the server although its answer did not: the next revision is this
+// tab's save (F36: updatedBy.clientId is this tab's writer id).
+async function ksmFileReplaceLanded(baseRevision){
+  try{
+    const response=await fetch(`/api/tournaments/${encodeURIComponent(cloudSession.tournamentId)}`,{cache:'no-store'});
+    if(!response.ok)return false;
+    const record=await response.json();
+    if(Number(record.revision)!==Number(baseRevision)+1||record.updatedBy?.clientId!==ksmWriterId())return false;
+    cloudSession.revision=Number(record.revision);cloudSession.updatedAt=record.updatedAt;persistCloudSession();rememberCloudBase(record);
+    return true;
+  }catch(_){return false}
+}
+// A reload or a closed tab while a Replace is unsettled: the file is not queued (a later flush would merge
+// it into the other device's copy without asking); what was queued and autosaved before it is put back.
+function ksmFileReplaceBeforeUnload(){
+  const replace=ksmFileReplace;if(!replace)return false;
+  if(replace.before.outbox)localStorage.setItem(ksmOutboxKey(),replace.before.outbox);else localStorage.removeItem(ksmOutboxKey());
+  localStorage.removeItem(KSM_REPLACE_BACKUP_PREFIX+KSM_TAB_ID);
+  ksmStoreAutosave(replace.before.payload);
+  return true;
 }
 async function loadTournamentFileAsNew(){
   const pending=ksmPendingTournamentFile;if(!pending)return;
@@ -560,7 +676,7 @@ function restoreAutoSaveIfWanted(){
 // A reload before the debounced cloud save runs must not drop staff work: queue it in the
 // outbox, which survives the reload and is flushed once staff access is back.
 // An older queued snapshot keeps its base revision so the flush still replays its court actions.
-function queueUnsyncedStaffWorkBeforeUnload(){/* ksm:post-split-begin startup-recovery */if(ksmStartupLoadFailed&&!ksmStartupHasCache)return;/* ksm:post-split-end */if(isReadOnlySession()||!cloudSession.tournamentId||!localChangesPending())return;const earlier=readOutbox();if(earlier?.tournamentId&&earlier.tournamentId!==cloudSession.tournamentId)return;writeOutbox(tournamentPayload(),'Unsynced changes at page unload');if(earlier/* ksm:post-split-begin two-tabs */&&earlier.adoptedFrom==null/* ksm:post-split-end */){const queued=readOutbox();/* ksm:post-split-begin edit-merge was:queued.baseRevision=Math.min(Number(earlier.baseRevision||0),Number(queued.baseRevision||0)); */if(Number(earlier.baseRevision||0)<Number(queued.baseRevision||0)){queued.baseRevision=Number(earlier.baseRevision||0);queued.basePayload=earlier.basePayload||null}/* ksm:post-split-end *//* ksm:post-split-begin two-tabs was:localStorage.setItem(KSM_CLOUD_OUTBOX_KEY,JSON.stringify(queued)) */localStorage.setItem(ksmOutboxKey(),JSON.stringify(queued))/* ksm:post-split-end */}}
+function queueUnsyncedStaffWorkBeforeUnload(){/* ksm:post-split-begin startup-recovery */if(ksmStartupLoadFailed&&!ksmStartupHasCache)return;/* ksm:post-split-end *//* ksm:post-split-begin replace-conflict */if(ksmFileReplaceBeforeUnload())return;/* ksm:post-split-end */if(isReadOnlySession()||!cloudSession.tournamentId||!localChangesPending())return;const earlier=readOutbox();if(earlier?.tournamentId&&earlier.tournamentId!==cloudSession.tournamentId)return;writeOutbox(tournamentPayload(),'Unsynced changes at page unload');if(earlier/* ksm:post-split-begin two-tabs */&&earlier.adoptedFrom==null/* ksm:post-split-end */){const queued=readOutbox();/* ksm:post-split-begin edit-merge was:queued.baseRevision=Math.min(Number(earlier.baseRevision||0),Number(queued.baseRevision||0)); */if(Number(earlier.baseRevision||0)<Number(queued.baseRevision||0)){queued.baseRevision=Number(earlier.baseRevision||0);queued.basePayload=earlier.basePayload||null}/* ksm:post-split-end *//* ksm:post-split-begin two-tabs was:localStorage.setItem(KSM_CLOUD_OUTBOX_KEY,JSON.stringify(queued)) */localStorage.setItem(ksmOutboxKey(),JSON.stringify(queued))/* ksm:post-split-end */}}
 window.addEventListener('beforeunload', queueUnsyncedStaffWorkBeforeUnload);
 window.addEventListener('beforeunload', autoSaveTournament);
 document.addEventListener('input', scheduleAutoSave, true);

@@ -189,6 +189,8 @@ export type CloudBody =
     canDelete?: boolean;
   }
   | { kind: 'file'; same: boolean; details: CloudDetail[]; message: string }
+  /** F37 (#88): a Replace from a tournament file met another device's save. */
+  | { kind: 'replace-conflict'; fileName: string }
   | DeleteBody;
 
 /** Issue #26: Delete tournament (staff only), asked in a dialog of its own. */
@@ -238,6 +240,8 @@ export const CLOUD_TEXTS = {
   deleteTournament: 'Delete tournament',
   cancel: 'Cancel',
   replace: 'Replace open tournament',
+  replaceAnyway: 'Replace anyway',
+  replaceConflict: (file: string) => `Replace anyway puts ${file} on every device again: the other device's change is lost. Cancel keeps the other device's version: the file is not loaded.`,
   loadNew: 'Load as new tournament',
 } as const;
 

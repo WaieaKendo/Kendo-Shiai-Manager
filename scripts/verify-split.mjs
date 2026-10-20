@@ -202,6 +202,11 @@ const KNOWN_POST_SPLIT_EDITS = {
   'tv-red-side': 2,
   // fix/pre-event (F11): saveAuto(), called by the awards editor but never defined (app/js/20).
   'autosave-origin': 8,
+  // fix/f37-replace-conflict (F37, #88): Load Tournament File → Replace is saved on its own and never
+  // rebased; on a 409 the director is asked (Replace anyway / Cancel). performCloudSave()'s options and
+  // its 409 hand-off (33), ordinary saves and the outbox flush wait while the question is open, and
+  // closing the question is Cancel (21); no autosave while it is unsettled (20). The Replace itself is in the load-file-guard region.
+  'replace-conflict': 7,
   'startup-recovery': 5,
   'award-save': 1,
   // feat/delete-tournament (issue #26, the app side): a tournament deleted on the server (410

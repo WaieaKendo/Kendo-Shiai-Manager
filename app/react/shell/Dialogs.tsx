@@ -280,6 +280,17 @@ function DeleteTournament({ body }: { body: DeleteBody }) {
 function CloudModalBody({ body }: { body: CloudBody }) {
   const w = shellWindow();
   if (body.kind === 'delete') return <DeleteTournament body={body} />;
+  if (body.kind === 'replace-conflict') {
+    return (
+      <>
+        <p data-testid="replace-conflict-message">{CLOUD_TEXTS.replaceConflict(body.fileName)}</p>
+        <div className="row" ref={rawStyle(ACTIONS_STYLE)}>
+          <button className="secondary" onClick={() => { w.ksmCancelReplace?.(); }} data-testid="replace-conflict-cancel">{CLOUD_TEXTS.cancel}</button>
+          <button className="primary" autoFocus onClick={() => { w.ksmReplaceAnyway?.(); }} data-testid="replace-conflict-anyway">{CLOUD_TEXTS.replaceAnyway}</button>
+        </div>
+      </>
+    );
+  }
   if (body.kind === 'access') {
     return (
       <>

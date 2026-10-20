@@ -68,7 +68,7 @@ async function openTournamentFromHome(id){/* ksm:post-split-begin tournament-swi
 async function openTournamentLibrary(){showHomePage()}
 function spectatorLink(){/* ksm:post-split-begin path-urls was:if(!cloudSession.tournamentId)return '';const url=new URL(location.href);url.search='';url.hash='';url.searchParams.set('tournament',cloudSession.tournamentId);return url.toString() */if(!cloudSession.tournamentId)return '';return ksmLinkUrl({screen:'tournament',id:cloudSession.tournamentId})/* ksm:post-split-end */}
 async function openTournamentAccess(){if(!cloudSession.tournamentId)await saveNow();if(!cloudSession.tournamentId){alert('Connect to the internet and save the tournament first.');return}const link=spectatorLink();const qr=`https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(link)}`;/* ksm:post-split-begin react-shell */ksmOpenTournamentAccess(link,qr);/* ksm:post-split-end */}
-async function performCloudSave(payload=tournamentPayload(),baseRevision=cloudSession.revision||0,rebaseAttempt=0,originalBaseRevision=baseRevision/* ksm:post-split-begin edit-merge */,basePayload=cloudBaseFor(baseRevision)/* ksm:post-split-end */){
+async function performCloudSave(payload=tournamentPayload(),baseRevision=cloudSession.revision||0,rebaseAttempt=0,originalBaseRevision=baseRevision/* ksm:post-split-begin edit-merge */,basePayload=cloudBaseFor(baseRevision)/* ksm:post-split-end *//* ksm:post-split-begin replace-conflict */,options={}/* ksm:post-split-end */){
   /* ksm:post-split-begin tournament-switcher */const savingEpoch=ksmTournamentEpoch;/* ksm:post-split-end */
   const existing=cloudSession.tournamentId;
   const attemptId=++ksmCloudAttemptCounter;
@@ -144,6 +144,14 @@ async function performCloudSave(payload=tournamentPayload(),baseRevision=cloudSe
   /* ksm:post-split-begin friendly-links */if(parsed?.code==='slug-taken'||parsed?.code==='invalid-slug')throw Object.assign(new Error(parsed.error),{code:parsed.code});/* ksm:post-split-end */
   if(response.status===409){
     const conflict=parsed||{},serverRecord=conflict.record;
+    /* ksm:post-split-begin replace-conflict */
+    // F37 (#88): a whole-tournament Replace is never rebased (that kept the server copy and dropped the
+    // file silently): the caller asks the director.
+    if(options.wholeReplace&&serverRecord){
+      writeCloudDiagnosticsState({attemptId,stage:'Replace met another save',serverRevision:serverRecord.revision||null});
+      throw Object.assign(new Error('Replace conflict'),{code:'replace-conflict',record:serverRecord});
+    }
+    /* ksm:post-split-end */
     if(serverRecord&&existing&&rebaseAttempt<KSM_CLOUD_REBASE_MAX_ATTEMPTS){
       const serverRevision=Number(serverRecord.revision||0);
       const replayActions=pendingLocalCourtActionsForRebase(payload,serverRecord,originalBaseRevision);

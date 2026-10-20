@@ -72,7 +72,8 @@ const KSM_OUTBOX_CLAIM_KEY='ksm.cloud.outbox.claim.v1',KSM_OUTBOX_CLAIM_MS=250;
 let ksmOutboxClaimTimer=null;
 function ksmNewId(){try{return crypto.randomUUID()}catch(_){return Math.random().toString(36).slice(2)+Date.now().toString(36)}}
 function ksmAdoptOrphanOutbox(){
-  if(ksmSessionRole!=='staff'||ksmTabClosing||ksmOutboxClaimTimer||localStorage.getItem(ksmOutboxKey()))return;
+  // Not during a Replace from a file (F37): it replaces that work.
+  if(ksmSessionRole!=='staff'||ksmTabClosing||ksmOutboxClaimTimer||ksmFileReplace||localStorage.getItem(ksmOutboxKey()))return;
   const slot=ksmOrphanOutboxes().find(ksmOrphanForThisTab);
   if(!slot)return;
   const held=ksmReadOutboxKey(KSM_OUTBOX_CLAIM_KEY);
@@ -89,7 +90,7 @@ function ksmAdoptOrphanOutbox(){
 }
 function ksmTakeOrphan(slot){
   const entry=ksmReadOutboxKey(slot.key);
-  if(!entry||ksmSessionRole!=='staff'||localStorage.getItem(ksmOutboxKey())||(entry.tournamentId||'')!==(cloudSession.tournamentId||''))return null;
+  if(!entry||ksmSessionRole!=='staff'||ksmFileReplace||localStorage.getItem(ksmOutboxKey())||(entry.tournamentId||'')!==(cloudSession.tournamentId||''))return null;
   ksmRetagHistory(entry,KSM_TAB_ID);
   const adopted={...entry,writer:KSM_TAB_ID,adoptedFrom:slot.tabId};
   localStorage.setItem(ksmOutboxKey(),JSON.stringify(adopted));
@@ -101,7 +102,7 @@ function ksmTakeOrphan(slot){
  * tab's work without waiting for a claim, unless another live tab has just claimed it.
  */
 function ksmTakeOrphanNow(){
-  if(ksmSessionRole!=='staff'||localStorage.getItem(ksmOutboxKey()))return null;
+  if(ksmSessionRole!=='staff'||ksmFileReplace||localStorage.getItem(ksmOutboxKey()))return null;
   const slot=ksmOrphanOutboxes().find(ksmOrphanForThisTab);
   if(!slot)return null;
   const held=ksmReadOutboxKey(KSM_OUTBOX_CLAIM_KEY);
@@ -170,10 +171,24 @@ function ksmDropOutboxesFor(id){
   if(ksmReadOutboxKey(ksmOutboxKey())?.tournamentId===id)localStorage.removeItem(ksmOutboxKey());
   ksmOrphanOutboxes().filter(slot=>slot.meta.tournamentId===id).forEach(slot=>localStorage.removeItem(slot.key));
 }
+// F37: while a Replace from a file is unsettled, the tab keeps its queued work here instead of its slot.
+// If the tab died meanwhile (no beforeunload: a crash), the work is released as a closed tab's.
+const KSM_REPLACE_BACKUP_PREFIX='ksm.cloud.replace-backup.v1:';
+function ksmReleaseReplaceBackups(){
+  try{Object.keys(localStorage).forEach(key=>{
+    if(!key.startsWith(KSM_REPLACE_BACKUP_PREFIX))return;
+    const tabId=key.slice(KSM_REPLACE_BACKUP_PREFIX.length);
+    if(ksmTabAlive(tabId))return;
+    const raw=localStorage.getItem(key);
+    if(raw)localStorage.setItem(ksmOutboxKey('released-'+ksmNewId()),raw);
+    localStorage.removeItem(key);
+  })}catch(_){}
+}
+setTimeout(ksmReleaseReplaceBackups,0);
 window.addEventListener('ksm:outbox-adopted',()=>ksmSendAdoptedOutbox());
 ksmTabBeat();
 setInterval(()=>{
-  ksmTabBeat();
+  ksmTabBeat();ksmReleaseReplaceBackups();
   // Work left by a tab that closed while this one stays open and idle.
   if(ksmSessionRole==='staff'&&navigator.onLine&&!ksmCloudSaveInFlight&&cloudSession.tournamentId&&readOutbox()?.adoptedFrom!=null)ksmSendAdoptedOutbox();
 },KSM_TAB_BEAT_MS);

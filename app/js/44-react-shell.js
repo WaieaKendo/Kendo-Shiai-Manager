@@ -234,6 +234,8 @@ document.addEventListener('keydown',function(e){
 // openCloudModal(title,body) (21): a new cloud modal at the end of <body> (the one open closed
 // first).
 function ksmOpenCloudModal(title,body){
+  // F37: another dialog never silently replaces the Replace question: that is Cancel first.
+  if(ksmFileReplace?.record&&body?.kind!=='replace-conflict')ksmCancelReplace();
   ksmShellBlurIn(document.getElementById('ksmCloudModal'));
   ksmPublishDialogs('cloud',{key:ksmNextDialogKey(),title:ksmHtmlText(title),body});
 }
@@ -355,6 +357,7 @@ async function ksmConfirmDeleteTournament(){
 // Everything this device keeps for the tournament: its Library entry, queued and recovery copies,
 // the autosave, the session and any timer that would send or retry a save.
 function ksmForgetTournament(id){
+  if(cloudSession.tournamentId===id)ksmFileReplace=null;
   localStorage.removeItem('ksm.tournament.record:'+id);
   if(cloudSession.tournamentId===id){clearOutbox();ksmResetTournament()}
 
