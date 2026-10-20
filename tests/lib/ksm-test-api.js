@@ -196,6 +196,8 @@ window.KSMTest = {
     mergeLocalEditsThreeWay: (...a) => mergeLocalEditsThreeWay(...a),
     rebaseLocalPayloadOnRecord: (...a) => rebaseLocalPayloadOnRecord(...a),
     ksmUpNext: (...a) => ksmUpNext(...a),
+    toggleDivision: (...a) => toggleDivision(...a),
+    selectScorekeeperDivision: (...a) => selectScorekeeperDivision(...a),
 
     // Tournament data and settings (objects: read, and change their fields)
     get state() { return state; },
@@ -364,6 +366,12 @@ window.KSMTest = {
     state.competitors.push(...entrants.map(e => ({...e, division: name}))); renderDivisionSetup(); renderDivisions();
   },
   openRegenerate() { openRegenerateDivisionDialog(); },
+  // #86: grand champion rows (Setup's island calls the same actions).
+  grandChampions() { return JSON.parse(JSON.stringify(ksmGrandChampions())); },
+  addGrandChampion(sources, patch = {}) { const id = ksmAddGrandChampion(); if (id) ksmUpdateGrandChampion(id, {sources, ...patch}); return id; },
+  updateGrandChampion(id, patch) { return ksmUpdateGrandChampion(id, patch); },
+  removeGrandChampion(id) { return ksmRemoveGrandChampion(id); },
+  grandChampionQuestion() { const c = ksmShellDialogs?.cloud; return c?.body?.kind === 'grand-champion' ? {title: c.title, message: c.body.message, choices: c.body.choices.map(x => x.id)} : null; },
   configure(entries) {
     const divs = entries.filter(d => !d.team), team = entries.find(d => d.team);
     state.divisions = divs.map(d => d.name);

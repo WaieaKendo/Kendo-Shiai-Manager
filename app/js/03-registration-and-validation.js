@@ -51,6 +51,9 @@ function validateTournament(options={}){
     if(teams.length===1)issues.push(validationIssue('error','TEAM_COUNT',d.id,d.name+': at least two teams are required.','Add another team or disable the team tournament.'));
     if(d.teamTournamentFormat==='Single Elimination'&&teams.length>32)issues.push(validationIssue('error','TEAM_TEMPLATE',d.id,d.name+': single elimination supports no more than 32 teams.','Reduce the number of teams.'));
   });
+/* ksm:post-split-end */  /* ksm:post-split-begin grand-champion */
+  // #86: a grand champion row that cannot be drawn as set up stops Generate, like a division's error.
+  if(!target)ksmGrandChampions().forEach(gc=>{const error=ksmGrandChampionError(gc);if(error)issues.push(validationIssue('error','GRAND_CHAMPION',gc.id,`${gc.name||'Grand Champion'}: ${error}`,'Fix the grand champion row in Setup, or remove it.'))});
 /* ksm:post-split-end */  /* ksm:post-split-begin owner-decisions */
   // Owner decision 2 (#29): nothing to generate (no individual, team or exhibition entry that is
   // not a No Show) is an error of the check itself, so Generate cannot proceed (it alerted after).

@@ -89,7 +89,7 @@ function autoSaveTournament(reason='Autosave'){/* ksm:post-split-begin replace-c
 function scheduleAutoSave(reason='Edit'){/* ksm:post-split-begin library-setup */
   // Read-only controls must not create mutations or rewrite the autosave/outbox.
   if(reason instanceof Event&&reason.target?.closest?.('#home, .cloud-status-wrap, #ksmCloudModal, .setup-tournament-actions, .setup-short-url, input[type="file"]'))return;
-/* ksm:post-split-end *//* ksm:post-split-begin startup-recovery */if(ksmStartupLoadFailed&&!ksmStartupHasCache)return;/* ksm:post-split-end */noteLocalMutation();clearTimeout(ksmSaveTimer);ksmSaveTimer=setTimeout(()=>{ksmSaveTimer=null;autoSaveTournament(reason)},2000)}
+/* ksm:post-split-end *//* ksm:post-split-begin startup-recovery */if(ksmStartupLoadFailed&&!ksmStartupHasCache)return;/* ksm:post-split-end *//* ksm:post-split-begin grand-champion */ksmSyncGrandChampions(typeof reason==='string'?reason:'edit');/* ksm:post-split-end */noteLocalMutation();clearTimeout(ksmSaveTimer);ksmSaveTimer=setTimeout(()=>{ksmSaveTimer=null;autoSaveTournament(reason)},2000)}
 /* ksm:post-split-begin award-save */
 // F11: the Results awards editor calls saveAuto() (add, remove, edit), which was never defined, so
 // every award action threw: award edits were never autosaved and add/remove did not redraw.
@@ -117,5 +117,5 @@ async function saveNow(){/* ksm:post-split-begin library-setup was:markLocalSave
   showKsmToast(saved?'✓ Tournament saved':'Not saved · Changes waiting',saved?2000:3500,!saved);
   return !!saved;
 /* ksm:post-split-end */}
-function criticalAutoSave(reason){/* ksm:post-split-begin startup-recovery */if(ksmStartupLoadFailed&&!ksmStartupHasCache)return;/* ksm:post-split-end */noteLocalMutation();markLocalSave(reason);if(!isReadOnlySession())saveTournamentToCloudWithReason(reason,true)}
+function criticalAutoSave(reason){/* ksm:post-split-begin startup-recovery */if(ksmStartupLoadFailed&&!ksmStartupHasCache)return;/* ksm:post-split-end *//* ksm:post-split-begin grand-champion */ksmSyncGrandChampions(reason);/* ksm:post-split-end */noteLocalMutation();markLocalSave(reason);if(!isReadOnlySession())saveTournamentToCloudWithReason(reason,true)}
 

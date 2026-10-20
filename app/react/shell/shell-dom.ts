@@ -40,6 +40,8 @@ export interface ShellWindow {
   loadTournamentFileAsNew?: () => unknown;
   ksmReplaceAnyway?: () => unknown;
   ksmCancelReplace?: () => unknown;
+  /** #86: a grand champion question's choice (app/js/01-grand-champion.js). */
+  ksmGrandChampionChoose?: (choice: string) => unknown;
   /** Issue #26: Developer Tools' Delete tournament opens the confirmation; its Delete runs the request. */
   ksmOpenDeleteTournament?: () => unknown;
   ksmConfirmDeleteTournament?: () => unknown;

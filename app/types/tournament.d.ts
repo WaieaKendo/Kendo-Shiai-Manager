@@ -224,8 +224,11 @@ interface Award { award: string; name: string; dojo: string }
 interface Exhibition { white: string; red: string; division: string; status: EntryStatus }
 
 /** All tournament data plus some per-device view state (see KSM_LOCAL_VIEW_STATE_KEYS). */
+type GrandChampion = import('../engine/grand-champion.ts').GrandChampion;
 interface TournamentState {
   teamDivisions?: TeamDivision[];
+  /** #86: grand champion rows; each row's draw is the division keyed by its id ('gc:<hex>'). */
+  grandChampions?: GrandChampion[];
   divisions: string[];
   divisionTypes: ByDivision<DivisionFormat>;
   divisionCourts: ByDivision<CourtMode>;

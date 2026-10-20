@@ -361,6 +361,11 @@ function ksmFinalResults(div){
     if(mode==='dual3')(tied.has(3)?[KSM_TEAM_PLACE_TIED]:(p.thirds||[])).forEach(t=>lines.push({place:'🥉 3rd',name:ksmText(t)}));
     return {kind:'results',results:{title:'Team Results',lines}};
   }
+  // #86: a grand champion shows its awards (Results' placements), for a bracket or a pool of winners.
+  if(ksmGrandChampion(div)){
+    if(!divisionComplete(div))return null;
+    return {kind:'results',results:{title:ksmText(ksmDivisionName(div)),lines:resultPlacements(div).map(p=>({place:ksmText(p.place),name:ksmText(p.name)}))}};
+  }
   const final=(state.allMatches[div]||[]).find(m=>m.championship&&m.position==='Final'&&m.done);
   if(!final)return null;
   const first=winnerOf(final),second=first===final.red?final.white:final.red;

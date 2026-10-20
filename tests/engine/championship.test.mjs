@@ -154,7 +154,8 @@ const STUBS = `
 function divisionCourtMode(div){return state.divisionCourts[div]||'A'}
 function isPoolOnlyDivision(div){return !!state.poolOnly[div]}
 function divisionComplete(div){return true}
-function isTeamDivision(div){return false}`;
+function isTeamDivision(div){return false}
+function ksmGrandChampion(div){return null}`;
 
 function statesFromGoldens() {
   const dir = new URL('../golden/engine/', import.meta.url);
