@@ -277,6 +277,9 @@ const KNOWN_POST_SPLIT_EDITS = {
   // the token the creation returns, and turns the device into a spectator on 401 (session expired).
   'refresh-keeps-staff': 6,
   'staff-hardening': 5,
+  // #95 review (version gate): cloudHeaders() sends x-ksm-client-schema and performCloudSave() handles
+  // the server's 426 (reload, no retry) (33).
+  'client-schema': 2,
   // feat/react-library (M.13): the Tournament Library's React island. With the legacy renderer
   // removed (REMOVED_LIBRARY_RENDERER) paintHomeTournamentLibrary()'s body (33) is a marked call of
   // ksmRenderLibrary(), and app/js/40-react-library.js publishes the library as plain data and

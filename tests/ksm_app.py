@@ -27,6 +27,11 @@ STATUS_CLICKS = {'Registered': 0, 'Checked': 1, 'NoShow': 2}  # Registered -> Ch
 DEFAULT_PASSWORD = 'e2e-staff-pass'
 
 
+# The saved format the app understands (KSM_CLIENT_SCHEMA, app/js/01-team-divisions.js): the server refuses
+# saves without it (src-worker.js MIN_CLIENT_SCHEMA), as from an app loaded before an update.
+CLIENT_SCHEMA = {'x-ksm-client-schema': '2'}
+
+
 def app_path(tid, screen=None, court=None):
     """The app's path URL for a tournament (roadmap M.9, the scheme in app/engine/routes.ts).
 
@@ -60,7 +65,7 @@ def staff_token(base, tid, password=DEFAULT_PASSWORD):
     key = (base, tid, password)
     if key not in _STAFF_TOKENS:
         req = urllib.request.Request(f'{base}/api/tournaments/{tid}/auth', data=json.dumps({'password': password}).encode(),
-                                     method='POST', headers={'content-type': 'application/json'})
+                                     method='POST', headers={'content-type': 'application/json', **CLIENT_SCHEMA})
         with urllib.request.urlopen(req) as r:
             _STAFF_TOKENS[key] = json.load(r)['token']
     return _STAFF_TOKENS[key]
@@ -75,7 +80,7 @@ def put_record(base, tid, payload, revision, password=DEFAULT_PASSWORD, client_i
     key = password if legacy_password else staff_token(base, tid, password)
     req = urllib.request.Request(f'{base}/api/tournaments/{tid}', data=body, method='PUT', headers={
         'content-type': 'application/json', 'x-ksm-role': 'staff', 'x-ksm-session-key': key,
-        'x-ksm-client-id': client_id, 'x-ksm-client-name': name})
+        'x-ksm-client-id': client_id, 'x-ksm-client-name': name, **CLIENT_SCHEMA})
     with urllib.request.urlopen(req) as r:
         return json.load(r)
 

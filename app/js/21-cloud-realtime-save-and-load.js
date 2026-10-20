@@ -307,7 +307,7 @@ function scheduleQueuedSaveRetry(err){
   const outbox=readOutbox();
   if(ksmQueuedSaveRetryTimer||!outbox||isReadOnlySession()||(outbox.tournamentId&&outbox.tournamentId!==cloudSession.tournamentId))return;
   // A refused staff session needs Staff Login, not another try.
-  if(/authorization required|password required/i.test(String(err?.message||'')))return;
+  if(/authorization required|password required|reload the page/i.test(String(err?.message||'')))return;
   const delay=KSM_QUEUED_SAVE_RETRY_MS[Math.min(ksmQueuedSaveRetryAttempt++,KSM_QUEUED_SAVE_RETRY_MS.length-1)];
   ksmQueuedSaveRetryTimer=setTimeout(async()=>{
     ksmQueuedSaveRetryTimer=null;
