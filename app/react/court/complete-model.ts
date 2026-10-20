@@ -26,8 +26,12 @@ export interface CourtCompleteInput {
   /** Court screen only (owner decision 7, #31): the court and its completed division. */
   court?: string;
   division?: string;
+  /** Stable team division key; names may change while results remain on screen. */
+  divisionId?: string;
   /** The division to continue to (the next in the court's running order with a match ready here), or null. */
   next?: string | null;
+  /** Display label; next remains the navigation key. */
+  nextName?: string;
 }
 
 /** Before the legacy app published anything: the static markup (no panel). */
@@ -87,10 +91,10 @@ export function continueBoxView(input: CourtCompleteInput, kept: boolean): Conti
   const message = `${input.division} is complete. Final results are showing on the Court ${input.court} TV.`;
   if (!input.next) return { kind: 'done', message, doneText: `All divisions on Court ${input.court} are done.` };
   if (kept) return { kind: 'kept', message, next: input.next };
-  return { kind: 'offer', message, next: input.next, continueLabel: continueLabel(input.next) };
+  return { kind: 'offer', message, next: input.next, continueLabel: continueLabel(input.nextName || input.next) };
 }
 
 /** What "Keep showing results" remembers: the court and division it was pressed for. */
 export function keptKey(input: CourtCompleteInput): string {
-  return `${input.court ?? ''}|${input.division ?? ''}`;
+  return `${input.court ?? ''}|${input.divisionId ?? input.division ?? ''}`;
 }

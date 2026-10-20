@@ -86,3 +86,12 @@ test('championship placeholders use the TV labels', () => {
   // Upcoming lists the Final before it is ready, with the TV's placeholder names.
   assert.equal(v.next, 'Winner of Semifinal Match 2 vs Winner of Semifinal Match 1');
 });
+
+test('team division overlay labels use names for active and idle courts without changing selection IDs',()=>{
+  const id='team-stable-id',match=ind('A1','A2',{division:id,type:'teamPosition',teamWhite:'Team A',teamRed:'Team B'});
+  const state=stateWith([],{allMatches:{[id]:[match]},divisionCourts:{[id]:'A'},courtState:{A:{division:id,index:0}},courtActiveDivision:{A:id},teamDivisions:[{id,name:'Adult Open'}]});
+  assert.equal(selectCourtMatch(state,'A').division,id);
+  assert.equal(overlayView(state,'A').division,'Adult Open');
+  match.done=true;
+  assert.equal(overlayView(state,'A').division,'Adult Open');
+});

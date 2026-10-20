@@ -117,7 +117,7 @@ function ksmRemoveCompetitor(i){
 // so both ask first (cycleCompetitorStatus(), cycleTeamStatus() in 03; ksmRemoveCompetitor(),
 // ksmRemoveTeam() here). Before generation nothing asks.
 function ksmConfirmNoShow(name,division){
-  return confirm(`Mark ${name} as No Show? ${division} is already generated: ${name} is taken out of its pools or bracket.`);
+  return confirm(`Mark ${name} as No Show? ${ksmDivisionName(division)} is already generated: ${name} is taken out of its pools or bracket.`);
 }
 function ksmInGeneratedDivision(name,division,team){
   if(!state.generated||!name)return false;
@@ -125,7 +125,7 @@ function ksmInGeneratedDivision(name,division,team){
     ||(state.pools?.[division]||[]).some(p=>(p.players||[]).some(x=>x&&x.name===name));
 }
 function ksmConfirmRemove(name,division){
-  return confirm(`Remove ${name}? ${division} is already generated: removing the entry does not change its pools, bracket or matches (regenerate the division for that).`);
+  return confirm(`Remove ${name}? ${ksmDivisionName(division)} is already generated: removing the entry does not change its pools, bracket or matches (regenerate the division for that).`);
 }
 
 // ---------------------------------------------------------- Registration part 2

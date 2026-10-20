@@ -112,7 +112,9 @@ function ksmDivisionCompleteInput(div,complete){
 function ksmPublishCourtComplete(input){
   if(input&&input.complete){
     const court=state.currentCourt||'A',division=state.currentDivision||'';
-    input={...input,court:ksmText(court),division:ksmText(ksmDivisionName(division)),next:division?ksmNextCourtDivision(court,division):null};
+    const name=ksmDivisionName(division),next=division?ksmNextCourtDivision(court,division):null,nextName=next?ksmDivisionName(next):null;
+    input={...input,court:ksmText(court),division:ksmText(name),next,
+      ...(name!==division?{divisionId:division}:{}),...(next&&nextName!==next?{nextName}:{})};
   }
   window.ksmCourtCompleteInput=input;
   window.dispatchEvent(new CustomEvent('ksm:court-complete'));

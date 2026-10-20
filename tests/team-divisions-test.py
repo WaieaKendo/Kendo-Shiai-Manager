@@ -137,6 +137,16 @@ def local_cases(browser):
     bouts=app.payload()['state']['allMatches'][second]
     assert len(bouts)==3 and all(m['done'] for m in bouts), bouts
     assert any(m.get('rIndex')==2 for m in bouts), 'last player never lost'
+    # Continue and Up next display names while their actions keep persisted IDs.
+    page.evaluate("""id=>{KSMTest.app.state.generated=false;KSMTest.updateTeamDivision(id,{court:'A'});KSMTest.moveTeamDivision(id,'down');KSMTest.app.generatePools({validated:true});}""",second)
+    app.open_court('A')
+    assert page.evaluate('id=>KSMTest.app.ksmUpNext("A",id).division',first)=='Adult Open'
+    for _ in range(3):
+        page.evaluate("()=>{KSMTest.prepareCourt('A');KSMTest.play([['W','M']]);}")
+    page.wait_for_selector(sel('court-continue'))
+    assert page.locator(sel('court-continue')).inner_text()=='Continue to Adult Open →'
+    app.click('court-continue')
+    assert app.payload()['state']['courtState']['A']['division']==second, 'Continue selected a label instead of its stable ID'
     assert not problems, problems
     page.close()
 

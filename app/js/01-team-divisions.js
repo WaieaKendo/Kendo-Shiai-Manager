@@ -7,7 +7,7 @@ function ksmTeamDivisions(){
   return [...state.teamDivisions].sort((a,b)=>a.order-b.order||a.id.localeCompare(b.id));
 }
 function ksmTeamDivision(id){return (state.teamDivisions||[]).find(d=>d.id===id)}
-function ksmDivisionName(id){return ksmTeamDivision(id)?.name||id}
+function ksmDivisionName(id){return KSMEngine.teamDivisionName(state.teamDivisions,id)}
 // Legacy controls serialize old files, but cannot override authoritative division records.
 function ksmSyncLegacyTeamDivision(){
   const d=ksmTeamDivision('Team Tournament');if(!d)return;

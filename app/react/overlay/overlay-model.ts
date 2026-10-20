@@ -1,5 +1,6 @@
 // Pure logic of the stream overlay page (/t/<id>/overlay/a|b, app/overlay.html): URL options, what the bar shows,
 // and where it sits (normal lower third, or "band mode" for PRISM's portrait widgets).
+import { teamDivisionName } from '../../engine/team-divisions.ts';
 import { courtDivision, individualSideLabel, matchMetaLine, selectCourtMatch } from './court-match.ts';
 
 export interface OverlayParams {
@@ -100,7 +101,10 @@ export type OverlayView =
 
 export function overlayView(state: Partial<TournamentState> | null | undefined, court: Court): OverlayView {
   const found = selectCourtMatch(state, court);
-  if (!state || !found) return { kind: 'idle', court, division: courtDivision(state, court) };
+  if (!state || !found) {
+    const id=courtDivision(state,court);
+    return { kind:'idle',court,division:id?teamDivisionName(state?.teamDivisions,id):null };
+  }
   const m = found.match;
   const side = (s: 'white' | 'red'): OverlaySide => {
     const white = s === 'white';
@@ -115,7 +119,7 @@ export function overlayView(state: Partial<TournamentState> | null | undefined, 
   return {
     kind: 'match',
     court,
-    division: m.division || found.division,
+    division: teamDivisionName(state.teamDivisions,m.division || found.division),
     meta: matchMetaLine(m),
     teamMode: found.teamMode,
     white: side('white'),

@@ -199,7 +199,8 @@ teams asks for confirmation and names the remaining division those teams will mo
 division first if the only division still contains teams.
 
 Generation builds each competition independently. Courts, Live Scores, TV, Results & Awards,
-Overview, and printable exports show its name. A 3-person bracket on Court A and a 5-person round
+Overview, stream overlays, and printable exports show its name. Continue and Up next also use
+the division name; their selection remains tied to its persisted ID. A 3-person bracket on Court A and a 5-person round
 robin on Court B can run in the same tournament. Kachinuki uses the same rules in every division:
 the opposing last player must lose before the pairing ends.
 

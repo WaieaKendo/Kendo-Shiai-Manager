@@ -195,6 +195,7 @@ window.KSMTest = {
     ksmRenameTournamentSlug: (...a) => ksmRenameTournamentSlug(...a),
     mergeLocalEditsThreeWay: (...a) => mergeLocalEditsThreeWay(...a),
     rebaseLocalPayloadOnRecord: (...a) => rebaseLocalPayloadOnRecord(...a),
+    ksmUpNext: (...a) => ksmUpNext(...a),
 
     // Tournament data and settings (objects: read, and change their fields)
     get state() { return state; },

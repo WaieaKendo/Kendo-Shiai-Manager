@@ -180,7 +180,7 @@ function ksmShowValidationDialog(result,onConfirm){
   ksmPublishDialogs('validation',{open:true,key:ksmNextDialogKey(),
     title:result.valid?'Tournament Validation Passed':'Tournament Validation',
     content:result.valid?{valid:true}:{valid:false,issues:result.issues.map(x=>({
-      severity:ksmHtmlText(x.severity),division:ksmHtmlText(x.divisionId||'Tournament'),message:ksmHtmlText(x.message),
+      severity:ksmHtmlText(x.severity),division:ksmHtmlText(ksmDivisionName(x.divisionId||'Tournament')),message:ksmHtmlText(x.message),
       action:x.suggestedAction?ksmHtmlText(x.suggestedAction):'',
     }))}});
 }
@@ -202,7 +202,7 @@ function ksmShowRegenerate(title,content){
 function ksmOpenRegenerateDialog(preferred){
   let all=[...new Set([...state.divisions,...Object.keys(state.allMatches||{})])].filter(Boolean);let selected='';
   if(preferred!==undefined)selected=divisionRegenerationStatus(preferred)==='ready'?preferred:null;
-  const options=all.map(d=>{let st=divisionRegenerationStatus(d),ready=st==='ready';if(ready&&!selected&&selected!==null)selected=d;return {name:ksmHtmlText(d),status:st,checked:ready&&d===selected}});
+  const options=all.map(d=>{let st=divisionRegenerationStatus(d),ready=st==='ready';if(ready&&!selected&&selected!==null)selected=d;return {name:ksmHtmlText(d),label:ksmHtmlText(ksmDivisionName(d)),status:st,checked:ready&&d===selected}});
   ksmShowRegenerate('Regenerate Division',{view:'list',options});
 }
 // The Pools tab's Regenerate button (app/index.html): Regenerate Single Division for the division
@@ -216,11 +216,11 @@ function ksmRegeneratePoolDivision(){
 // confirm.
 function ksmContinueRegenerateDivision(){
   let selected=document.querySelector('input[name="regenDiv"]:checked')?.value;if(!selected){alert('No division is ready to regenerate.');return}if(divisionRegenerationStatus(selected)!=='ready'){alert('This division cannot be regenerated.');return}
-  ksmShowRegenerate(`Regenerate ${selected}?`,{view:'confirm',division:selected});
+  ksmShowRegenerate(`Regenerate ${ksmDivisionName(selected)}?`,{view:'confirm',division:selected});
 }
 // regenerateSingleDivision(div) (08): done.
 function ksmRegenerateDone(div){
-  ksmShowRegenerate('Division Regenerated',{view:'done',division:ksmHtmlText(div)});
+  ksmShowRegenerate('Division Regenerated',{view:'done',division:ksmHtmlText(div),label:ksmHtmlText(ksmDivisionName(div))});
 }
 // Escape closes the generation check, Regenerate Single Division and the cloud modal (Tournament
 // Access, Developer Tools, the Load Tournament File confirmation) as their Close / Cancel button

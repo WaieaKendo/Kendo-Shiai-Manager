@@ -75,3 +75,8 @@ export function reconcileTeamAssignments<S extends TeamDivisionState>(state: S, 
   });
   return { ...state, teamDivisions: divisions, teams };
 }
+
+/** Display text is separate from the persisted key used by scoring and navigation. */
+export function teamDivisionName(divisions: readonly Pick<TeamDivision, 'id' | 'name'>[] | undefined, id: string): string {
+  return divisions?.find(d => d.id === id)?.name || id;
+}

@@ -89,7 +89,7 @@ function ksmUpNext(court,own){
     if(isTeamMatch(m)){const key=m.teamPair||m.teamNodeId||`${m.teamWhite}|${m.teamRed}`;if(seen.has(key))continue;seen.add(key);matches.push({white:ksmText(m.teamWhite||'TBD'),red:ksmText(m.teamRed||'TBD')})}
     else matches.push({white:ksmText(m.white||'TBD'),red:ksmText(m.red||'TBD')});
   }
-  return matches.length?{division:ksmText(next),matches}:null;
+  return matches.length?{division:ksmText(ksmDivisionName(next)),matches}:null;
 }
 function ksmBetweenMatches(court,own){
   return {reason:own?ksmWaitingReason(court,own):null,upNext:ksmUpNext(court,own)};

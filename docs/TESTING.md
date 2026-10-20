@@ -523,3 +523,8 @@ confirmed to fail before the compatibility adapters were synchronized from the r
 Recovery coverage rebases a legacy local snapshot and legacy merge base against a legacy server
 copy, with independent edits to different teams. All three pass through the same pure migration
 before merging; the test was confirmed to fail when only the server copy was migrated.
+
+Continuation coverage puts both team divisions on one court, checks named Up next / Continue
+labels, and presses Continue to verify selection still uses the persisted ID. Pure view tests
+cover name-independent kept results and named active/idle stream overlays; both cases were
+confirmed to fail against the old ID-only presentation.
