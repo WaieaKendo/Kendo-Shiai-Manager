@@ -305,3 +305,9 @@ body.ksm-spectator #setup-tournament-actions { display: none; }
 /* ksm:post-split-begin print-guide */
 .setup-print-group{margin-top:14px;color:var(--ink)}.setup-print-group h4{margin:0 0 8px}.setup-print-group a{color:var(--ink);text-decoration:underline}
 /* ksm:post-split-end */
+/* ksm:post-split-begin team-divisions */
+/* #85: disabled team setup looks disabled (teams off, or fixed after generation). */
+#teamDivisionSetup[data-teams-off="1"]{opacity:.5}
+#teamDivisionSetup :is(input,select,button):disabled,[data-testid="team-division-add"]:disabled{opacity:.55;cursor:not-allowed}
+.team-division-note{margin:0;color:var(--muted)}
+/* ksm:post-split-end */
