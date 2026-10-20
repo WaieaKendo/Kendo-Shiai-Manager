@@ -79,7 +79,8 @@ test('after the start a correction is the director\'s decision, remembered by si
   drawn.matches = drawn.matches.map(m => ({ ...m, wp: ['M'] }));
   const corrected = grandChampionEntrants(row, { ...results, Open: done('Ben', 'Aki') });
   const ask = grandChampionPlan(row, corrected, drawn);
-  assert.deepEqual(ask, { kind: 'ask', signature: grandChampionSignature(corrected.entrants), ready: true });
+  assert.equal(ask.kind, 'ask'); assert.equal(ask.ready, true);
+  assert.ok(ask.signature.startsWith(grandChampionSignature(corrected.entrants) + '|'), ask.signature);
   assert.deepEqual(grandChampionPlan({ keep: ask.signature }, corrected, drawn), { kind: 'none' });
   assert.equal(grandChampionPlan({ rebuild: ask.signature }, corrected, drawn).kind, 'draw');
   // A further correction asks again.
@@ -90,6 +91,14 @@ test('after the start a correction is the director\'s decision, remembered by si
   const askUndone = grandChampionPlan(row, undone, drawn);
   assert.equal(askUndone.kind, 'ask'); assert.equal(askUndone.ready, false);
   assert.deepEqual(grandChampionPlan({ rebuild: askUndone.signature }, undone, drawn), { kind: 'clear' });
+  // Review #86: a decision is never reused for another draw. "Draw again" for Ben vs Cora, that draw is
+  // played, the sources move on and come back to Ben vs Cora: asked, not silently drawn again.
+  const redrawn = draw(row, corrected.entrants);
+  redrawn.matches = redrawn.matches.map(m => ({ ...m, wp: ['K'] }));
+  const later = grandChampionEntrants(row, { ...results, Open: done('Ben', 'Aki'), Women: done('Dee', 'Cora') });
+  const back = grandChampionEntrants(row, { ...results, Open: done('Aki', 'Ben') });
+  assert.equal(grandChampionPlan({ rebuild: ask.signature }, back, redrawn).kind, 'ask');
+  assert.equal(grandChampionPlan({ rebuild: ask.signature }, later, redrawn).kind, 'ask');
 });
 
 test('a withdrawal by Fusen-sho loses the entrant\'s unplayed bouts, never a scored one', () => {
@@ -108,6 +117,8 @@ test('awards: Grand Champion, and Runner-up only when the row gives it', () => {
   assert.deepEqual(grandChampionPlacements(placements, 'top1'), [{ place: 'Grand Champion', name: 'Aki', tier: 'gold' }]);
   assert.deepEqual(grandChampionPlacements(placements, 'top2'), [{ place: 'Grand Champion', name: 'Aki', tier: 'gold' }, { place: 'Runner-up', name: 'Cora', tier: 'silver' }]);
   assert.deepEqual(grandChampionPlacements([], 'top2'), []);
+  // A finalist who withdrew (Fusen-sho) is not the Runner-up.
+  assert.deepEqual(grandChampionPlacements(placements, 'top2', ['Cora']), [{ place: 'Grand Champion', name: 'Aki', tier: 'gold' }]);
 });
 
 test('setup checks: individual divisions in use, two or more, a pool of 3–5', () => {

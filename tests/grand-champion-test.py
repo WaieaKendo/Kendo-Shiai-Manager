@@ -144,6 +144,11 @@ def local_cases(browser):
     final = gc_matches(app, gc)
     assert open_runner_up in (final[0]['white'], final[0]['red']), 'the runner-up did not step in'
     assert f'{open_runner_up} (for Open, runner-up)' in status(app)
+    # Review #86: a runner-up standing in is not withdrawn again here (that is the court's Fusen-sho).
+    app.click('grand-champion-withdraw')
+    q = page.evaluate('KSMTest.grandChampionQuestion()')
+    assert 'source:Open' not in q['choices'], q
+    choose(app, q['choices'][0]); choose(app, 'cancel')
 
     # Encho: a tie is refused; then a winner gives the Grand Champion award everywhere.
     app.open_court('B')
@@ -202,6 +207,11 @@ def pool_and_fusen_cases(browser):
     play_court(app, 'A', [['W', 'M']])
     placements = page.evaluate('id=>KSMTest.finalState()[id].placements', gc)
     assert [p['place'] for p in placements] == ['Grand Champion'] and placements[0]['name'] != women, placements
+    # Review #86: switching a source division off after the grand champion was played keeps it.
+    played = gc_matches(app, gc)
+    page.evaluate("KSMTest.app.toggleDivision('Masters',false);KSMTest.saveNow('source off')")
+    assert gc_matches(app, gc) == played, 'a played grand champion was deleted when a source was switched off'
+    page.evaluate("KSMTest.app.toggleDivision('Masters',true)")
 
     # The same person won two sources: no draw until the director picks the runner-up for one.
     page.evaluate("""()=>{const st=KSMTest.app.state;st.generated=false;
@@ -282,6 +292,21 @@ def merge_cases(browser, base):
     assert {redrawn['white'], redrawn['red']} != old_pair, redrawn
     assert redrawn['wp'] == [] and redrawn['rp'] == [] and not redrawn['done'], f'a point for the old players landed on the new pairing: {redrawn}'
     b.wait_toast('Grand Champion: the players changed on another device, so this court\'s score for the old players was not saved.')
+
+    # Review #86: B finishes the last source and scores the grand champion before its save lands; the
+    # server copy has no draw yet (A saved meanwhile). B's draw and score are kept.
+    a.page.evaluate('KSMTest.app.state.generated=false')
+    late = a.page.evaluate("KSMTest.addGrandChampion(['Open','Women'],{court:'B',name:'Late'})")
+    a.page.evaluate('KSMTest.app.generatePools({validated:true})')
+    play_court(a, 'A', [['W', 'M']])
+    a.save_now(); a.wait_idle(); b.wait_revision(fetch_record(base, tid)['revision'])
+    def finish_and_score_on_b():
+        play_court(b, 'B', [['W', 'M']])
+        b.page.evaluate("id=>{KSMTest.prepareCourt('B');}", late); b.open_court('B'); b.switch_division('Late'); b.score_point('R', 'K')
+    st = race(finish_and_score_on_b, lambda: a.page.evaluate("id=>KSMTest.updateGrandChampion(id,{awardMode:'top2'})", late))
+    got = st['allMatches'].get(late) or []
+    assert len(got) == 1 and got[0]['rp'] == ['K'], f'B\'s grand champion score was lost in the rebase: {got}'
+    assert next(g for g in st['grandChampions'] if g['id'] == late)['awardMode'] == 'top2'
     assert b.conflicts() >= 3, b.conflicts()
     assert not problems, problems
     a.close(); b.close()

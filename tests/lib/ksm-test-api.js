@@ -196,6 +196,7 @@ window.KSMTest = {
     mergeLocalEditsThreeWay: (...a) => mergeLocalEditsThreeWay(...a),
     rebaseLocalPayloadOnRecord: (...a) => rebaseLocalPayloadOnRecord(...a),
     ksmUpNext: (...a) => ksmUpNext(...a),
+    toggleDivision: (...a) => toggleDivision(...a),
 
     // Tournament data and settings (objects: read, and change their fields)
     get state() { return state; },

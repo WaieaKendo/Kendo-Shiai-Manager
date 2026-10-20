@@ -41,9 +41,9 @@ export interface GrandChampion {
   awardMode: GrandChampionAwardMode;
   order: number;
   standIns?: Record<string, GrandChampionStandIn>;
-  /** The entrants' signature the director kept a started grand champion against. */
+  /** The decision's signature (the sources' entrants and the started draw) the director kept it for. */
   keep?: string;
-  /** The entrants' signature the director had a started grand champion drawn again for. */
+  /** The decision's signature the director had the started draw made again (or cleared) for. */
   rebuild?: string;
 }
 
@@ -148,7 +148,9 @@ export function grandChampionPlan(gc: Pick<GrandChampion, 'keep' | 'rebuild'>, n
   if (now.ready && sameEntrants(drawn, wanted)) return { kind: 'none' };
   const follow: GrandChampionAction = now.ready ? { kind: 'draw', entrants: wanted } : { kind: 'clear' };
   if (!grandChampionStarted(structure.matches)) return follow;
-  const signature = grandChampionSignature(now.entrants);
+  // The decision names the new entrants and the draw it was made against: it is never reused for
+  // another draw (a later change back to the same players asks again).
+  const signature = `${grandChampionSignature(now.entrants)}|${JSON.stringify(drawn.map(key).sort())}`;
   if (gc.keep === signature) return { kind: 'none' };
   if (gc.rebuild === signature) return follow;
   return { kind: 'ask', signature, ready: now.ready };
@@ -173,12 +175,18 @@ export function grandChampionFusenBouts(matches: GrandChampionStructure['matches
 
 export interface Placement { place: string; name: string; tier: string }
 /** The division's placements as awards: 1st is the Grand Champion; 2nd the Runner-up (top2). */
-export function grandChampionPlacements(placements: readonly Placement[], awardMode: GrandChampionAwardMode | string | undefined): Placement[] {
+export function grandChampionPlacements(placements: readonly Placement[], awardMode: GrandChampionAwardMode | string | undefined, withdrawn: readonly string[] = []): Placement[] {
   const first = placements.find(p => p.place === '1st'), second = placements.find(p => p.place === '2nd');
   const rows: Placement[] = [];
   if (first) rows.push({ place: 'Grand Champion', name: first.name, tier: 'gold' });
-  if (first && second && awardMode === 'top2') rows.push({ place: 'Runner-up', name: second.name, tier: 'silver' });
+  // A finalist who withdrew (Fusen-sho) gets no Runner-up award.
+  if (first && second && awardMode === 'top2' && !withdrawn.includes(second.name)) rows.push({ place: 'Runner-up', name: second.name, tier: 'silver' });
   return rows;
+}
+
+/** Names of winners the row has withdrawn by Fusen-sho (for the awards). */
+export function grandChampionWithdrawn(gc: Pick<GrandChampion, 'standIns'>): string[] {
+  return Object.values(gc.standIns || {}).filter(s => s && s.kind === 'fusen-sho').map(s => s.winner);
 }
 
 /** Why the row cannot be drawn as set up (shown in Setup and by the generation check), or null. */

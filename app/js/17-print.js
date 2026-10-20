@@ -31,7 +31,7 @@ function ksmPrintRenderer(payload){
     if(!divisionComplete(div))return [];
     if(!isTeamDivision(div)){
       const placements=KSMEngine.individualPlacements(matches(div),isPoolOnlyDivision(div)?()=>KSMEngine.poolStandings(state.pools[div][0],matches(div),requiredSeedPlaces(div)[state.pools[div][0].label]||2):null);
-      return ksmGrandChampion(div)?KSMEngine.grandChampionPlacements(placements,ksmGrandChampion(div).awardMode):placements;
+      return ksmGrandChampion(div)?KSMEngine.grandChampionPlacements(placements,ksmGrandChampion(div).awardMode,KSMEngine.grandChampionWithdrawn(ksmGrandChampion(div))):placements;
     }
     const p=isTeamRoundRobinDivision(div)?KSMEngine.teamRoundRobinPlacements(true,matches(div),eligibleTeams(div),KSMEngine.teamRoundRobinCountedPlaces(ksmTeamSettings(div).teamAwardMode)):KSMEngine.teamFinalPlacements(state.teamBracketNodes?.[div]||[],eligibleTeams(div));
     if(!p)return [];

@@ -49,9 +49,10 @@ const KNOWN_POST_SPLIT_EDITS = {
   // questions, Setup's island data); the draw follows the sources after every edit and court action
   // (scheduleAutoSave(), criticalAutoSave(), 20) and every load (applyTournamentPayload(), 21); a row
   // that cannot be drawn is a generation error (03); a printed sheet shows the row's name and format (17);
-  // a save conflict does not move a court's points onto a grand champion drawn again with other players (18).
+  // a save conflict carries this device's draw into a server copy without one and does not move a court's
+  // points onto a grand champion drawn again with other players (18, three regions).
   // Listed here because 01-grand-champion.js is its first region: names in order of first appearance.
-  'grand-champion': 7,
+  'grand-champion': 9,
   'tournament-switcher': 23,
   'team-divisions': 32,
   // fix/react-batch-1 (F13): addDivision() (01) reads the old #newDiv / #newDivType fallbacks as

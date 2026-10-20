@@ -73,7 +73,7 @@ export {
   GRAND_CHAMPION_PREFIX, GRAND_CHAMPION_FORMATS, GRAND_CHAMPION_POOL_MIN, GRAND_CHAMPION_POOL_MAX, isGrandChampionId, grandChampionEntrants,
   grandChampionSignature, grandChampionFormat, grandChampionCompetitors, drawnEntrants, grandChampionStarted, grandChampionPlan,
   grandChampionFusenBouts, grandChampionPlacements, grandChampionSetupError, newGrandChampion, migrateGrandChampions, sortGrandChampions,
-  renameGrandChampionSources, grandChampionName,
+  renameGrandChampionSources, grandChampionName, grandChampionWithdrawn,
 } from './grand-champion.ts';
 export type {
   GrandChampion, GrandChampionStandIn, GrandChampionFormat, GrandChampionAwardMode, SourceResult, GrandChampionEntrant,

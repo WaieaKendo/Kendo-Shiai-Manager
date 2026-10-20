@@ -25,7 +25,7 @@ function resultPlacements(div){
   const placements=KSMEngine.individualPlacements(matches,isPoolOnlyDivision(div)?()=>poolStandings(state.pools[div][0].label,div):null);
   // #86: a grand champion's places are its awards (Grand Champion, and Runner-up when the row gives it).
   const gc=ksmGrandChampion(div);
-  return gc?KSMEngine.grandChampionPlacements(placements,gc.awardMode):placements;
+  return gc?KSMEngine.grandChampionPlacements(placements,gc.awardMode,KSMEngine.grandChampionWithdrawn(gc)):placements;
   /* ksm:post-split-end */
 }
 function addResultAward(){
