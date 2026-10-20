@@ -87,7 +87,8 @@ export const VALIDATION_TEXTS = {
 
 // ------------------------------------------------------------------------------ Regenerate
 
-export type RegenerateStatus = 'ready' | 'started' | 'not-generated';
+/** 'new': a division added after generation, not drawn yet (drawn on its own here). */
+export type RegenerateStatus = 'ready' | 'started' | 'not-generated' | 'new';
 
 export interface RegenerateOption {
   label?: string;
@@ -100,7 +101,7 @@ export interface RegenerateOption {
 
 export type RegenerateContent =
   | { view: 'list'; options: RegenerateOption[] }
-  | { view: 'confirm'; division: string }
+  | { view: 'confirm'; division: string; isNew?: boolean }
   | { view: 'done'; division: string; label?: string };
 
 export interface RegenerateInput {
@@ -122,6 +123,8 @@ export const REGENERATE_TEXTS = {
   rebuild: 'This will rebuild this division’s pools or bracket, Match Objects, court queues, Court Context, Results state, and Director progress.',
   others: 'All other divisions will remain unchanged.',
   regenerate: 'Regenerate',
+  draw: 'Draw',
+  drawNew: 'This draws this division’s pools or bracket and adds its matches to its court’s queue.',
   done: ' successfully regenerated.',
   doneDetail: 'Pools/bracket, Match Objects, queues, Court Context, Results, and Director progress were updated. Other divisions were not changed.',
   ok: 'OK',
@@ -129,12 +132,12 @@ export const REGENERATE_TEXTS = {
 
 /** An option's status label. */
 export function regenerateStatusText(status: RegenerateStatus): string {
-  return status === 'ready' ? 'Ready' : status === 'started' ? 'Matches Started' : 'Not Generated';
+  return status === 'ready' ? 'Ready' : status === 'started' ? 'Matches Started' : status === 'new' ? 'Not drawn yet' : 'Not Generated';
 }
 
 /** An option's class (`regenerate-option ${ready?'':'disabled'}`: a ready one keeps the space). */
 export function regenerateOptionClass(status: RegenerateStatus): string {
-  return `regenerate-option ${status === 'ready' ? '' : 'disabled'}`;
+  return `regenerate-option ${status === 'ready' || status === 'new' ? '' : 'disabled'}`;
 }
 
 // ------------------------------------------------------------------------------ cloud modal

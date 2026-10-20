@@ -119,6 +119,9 @@ const KNOWN_POST_SPLIT_EDITS = {
   // Listed here because renderTournamentStatus() (03) is its
   // first region: the check compares names in order of first appearance.
   'react-registration': 6,
+  // feat/team-division-after-draw: a division added after generation ('new') is drawn on its own by
+  // Regenerate Single Division: divisionRegenerationStatus() (03) and regenerateSingleDivision() (08).
+  'draw-new-division': 2,
   // fix/quirks-pass (Registration): renderReg(), renderTeams() and renderExhibitions() (03) also
   // refresh the tournament status card, so it is never stale after + Add Row, samples, Clear,
   // a paste or a team/exhibition edit; Load Sample Players, Load Sample Teams and Load Sample

@@ -1,5 +1,5 @@
 /* ksm:post-split-begin team-divisions */
-function ksmNewTeamRows(rows){const division=ksmTeamDivisions()[0];return rows.map(t=>({...t,id:ksmNewTeamIdentity(),teamDivisionId:division?.id||''}))}
+function ksmNewTeamRows(rows){const division=ksmDefaultTeamDivisionId();return rows.map(t=>({...t,id:ksmNewTeamIdentity(),teamDivisionId:division}))}
 // The saved format this app understands (team divisions = 2, grand champion #86 = 3), sent with every
 // save (cloudHeaders(), 33). The server refuses saves from apps below its MIN_CLIENT_SCHEMA
 // (src-worker.js): raise both together.
@@ -34,8 +34,14 @@ function ksmTeamSettings(id){
   const d=ksmTeamDivision(id)||(!id?ksmTeamDivisions()[0]:null),settings=tournamentSettings();
   return d?{...settings,teamFormat:d.teamFormat,teamTournamentFormat:d.teamTournamentFormat,teamCourt:d.court,teamAwardMode:d.awardMode}:settings;
 }
+// A team division is fixed once it has a draw (its matches refer to its teams by position): format,
+// court, removal and its team list. Like individual divisions, a team division without a draw can still
+// be added, changed and removed after the tournament is generated, and drawn on its own
+// (Regenerate Single Division).
+function ksmTeamDivisionDrawn(id){return Boolean(id)&&(state.allMatches?.[id]||[]).length>0}
+/** Where a new team goes: the first team division without a draw (after generation), else the first. */
+function ksmDefaultTeamDivisionId(){const rows=ksmTeamDivisions();return (rows.find(d=>!ksmTeamDivisionDrawn(d.id))||rows[0])?.id||''}
 function ksmAddTeamDivision(name='Team division'){
-  if(state.generated){alert('Team divisions cannot be added after generation.');return null}
   const divisions=ksmTeamDivisions(),id=ksmNewTeamIdentity();
   state.teamDivisions.push({id,name,teamFormat:'3-Person Team',teamTournamentFormat:'Single Elimination',court:'Both',awardMode:'top2',order:Math.max(-1,...divisions.map(d=>d.order))+1});
   state.divisionCourts[id]='Both';
@@ -45,7 +51,7 @@ function ksmAddTeamDivision(name='Team division'){
 function ksmUpdateTeamDivision(id,patch){
   const d=ksmTeamDivision(id);if(!d)return 'Team division no longer exists';
   if(patch.name!==undefined&&!String(patch.name).trim())return 'Enter a division name';
-  if(state.generated&&Object.keys(patch).some(k=>!['name','order','awardMode'].includes(k)))return 'Match format and court cannot change after generation';
+  if(ksmTeamDivisionDrawn(id)&&Object.keys(patch).some(k=>!['name','order','awardMode'].includes(k)))return 'Match format and court cannot change once this division is drawn';
   Object.assign(d,patch,{id:d.id,name:String(patch.name??d.name).trim()});
   if(patch.court)state.divisionCourts[id]=d.court;
   if(patch.teamFormat)state.teams.filter(t=>t.teamDivisionId===id).forEach(t=>t.type=d.teamFormat);
@@ -60,16 +66,18 @@ function ksmMoveTeamDivision(id,direction){
 }
 function ksmRemoveTeamDivision(id){
   const rows=ksmTeamDivisions(),d=rows.find(d=>d.id===id);if(!d)return false;
-  if(state.generated){alert('Team divisions cannot be removed after generation.');return false}
-  const fallback=rows.find(d=>d.id!==id),teams=state.teams.filter(t=>t.teamDivisionId===id);
-  if(teams.length&&!fallback){alert('Add another team division before removing one with teams.');return false}
+  if(ksmTeamDivisionDrawn(id)){alert(`${d.name} is drawn: it cannot be removed.`);return false}
+  // Its teams move to a division without a draw (moving them into a drawn one would change its draw).
+  const fallback=rows.find(x=>x.id!==id&&!ksmTeamDivisionDrawn(x.id))||(state.generated?null:rows.find(x=>x.id!==id)),teams=state.teams.filter(t=>t.teamDivisionId===id);
+  if(teams.length&&!fallback){alert(state.generated?'Its teams need a team division without a draw: add one, or move them first.':'Add another team division before removing one with teams.');return false}
   if(teams.length&&!confirm(`Remove ${d.name}? Its ${teams.length} ${teams.length===1?'team':'teams'} will move to ${fallback.name}.`))return false;
   state.teamDivisions=rows.filter(d=>d.id!==id);teams.forEach(t=>t.teamDivisionId=fallback.id);
   delete state.divisionCourts[id];ksmTeamDivisionChanged();return true;
 }
 function ksmAssignTeamDivision(team,id){
   const d=ksmTeamDivision(id);if(!d)return false;
-  if(state.generated){alert('Team assignments cannot change after generation.');return false}
+  const from=ksmTeamDivision(team.teamDivisionId);
+  if(team.teamDivisionId!==id&&(ksmTeamDivisionDrawn(team.teamDivisionId)||ksmTeamDivisionDrawn(id))){alert(`${ksmTeamDivisionDrawn(id)?d.name:from?.name||'Its division'} is drawn: teams cannot move into or out of it.`);ksmTeamDivisionChanged();return false}
   team.teamDivisionId=id;team.type=d.teamFormat;ksmTeamDivisionChanged();return true;
 }
 function ksmTeamDivisionChanged(){
@@ -78,12 +86,12 @@ function ksmTeamDivisionChanged(){
 function ksmRenderTeamDivisions(){
   const root=document.getElementById('teamDivisionSetup');if(!root)return;
   const rows=ksmTeamDivisions(),off=tournamentSettings().teamEnabled==='Disabled'||isReadOnlySession();
-  const add=document.querySelector('[data-testid="team-division-add"]');if(add)add.disabled=off||!!state.generated;
+  const add=document.querySelector('[data-testid="team-division-add"]');if(add)add.disabled=off;
   // Say why the team setup can't change (it looked editable while disabled): teams off, or fixed by the draw.
   const teamsOff=tournamentSettings().teamEnabled==='Disabled';
   if(teamsOff)root.dataset.teamsOff='1';else delete root.dataset.teamsOff;
   const text=isReadOnlySession()?'':teamsOff?'Teams are disabled. Set Teams enabled to Enabled to set up team divisions.'
-    :state.generated?'The tournament is generated: team divisions can no longer be added or removed, and match format and court are fixed. Names and awards can still change.':'';
+    :rows.some(d=>ksmTeamDivisionDrawn(d.id))?'Drawn team divisions are fixed: match format, court and their teams. Names, awards and order can still change. A new team division can be added and drawn with Regenerate Single Division.':'';
   let note=document.getElementById('teamDivisionNote');
   if(!text)note?.remove();
   else if(add){
@@ -100,11 +108,11 @@ function ksmRenderTeamDivisions(){
         const input=row.querySelector(`[data-testid="team-division-${field}"]`);
         if(document.activeElement!==input)input.value=d[field];
         if(field!=='name')input.setAttribute('aria-label',input.getAttribute('aria-label').split(' — ')[0]+' — '+d.name);
-        input.disabled=off||(!!state.generated&&!['name','awardMode'].includes(field));
+        input.disabled=off||(ksmTeamDivisionDrawn(d.id)&&!['name','awardMode'].includes(field));
       }
       row.querySelector('[data-testid="team-division-up"]').disabled=off||i===0;
       row.querySelector('[data-testid="team-division-down"]').disabled=off||i===rows.length-1;
-      row.querySelector('[data-testid="team-division-remove"]').disabled=off||!!state.generated;
+      row.querySelector('[data-testid="team-division-remove"]').disabled=off||ksmTeamDivisionDrawn(d.id);
     });return;
   }
   root.dataset.divisionIds=key;root.replaceChildren();root.className='setup-division-table-wrap';
@@ -116,7 +124,7 @@ function ksmRenderTeamDivisions(){
     const cell=document.createElement('td'),input=document.createElement('select');
     input.dataset.testid='team-division-'+key;input.setAttribute('aria-label',label+' — '+d.name);
     values.forEach(([value,name])=>input.add(new Option(name,value)));input.value=d[key];
-    input.disabled=off||(!!state.generated&&key!=='awardMode');
+    input.disabled=off||(ksmTeamDivisionDrawn(d.id)&&key!=='awardMode');
     input.onchange=()=>{const error=ksmUpdateTeamDivision(d.id,{[key]:input.value});if(error)alert(error)};
     cell.append(input);return cell;
   };
@@ -127,7 +135,7 @@ function ksmRenderTeamDivisions(){
     name.onchange=()=>{const error=ksmUpdateTeamDivision(d.id,{name:name.value});if(error){alert(error);name.value=ksmTeamDivision(d.id)?.name||''}};
     cell.append(name);row.append(cell,select(d,'teamFormat','Match format',['3-Person Team','5-Person Team','Kachinuki'].map(x=>[x,x])),select(d,'teamTournamentFormat','Tournament format',['Single Elimination','Round Robin'].map(x=>[x,x])),select(d,'court','Court',['A','B','Both'].map(x=>[x,x])),select(d,'awardMode','Awards',[['top1','Champion only'],['top2','Champion + Runner-up'],['dual3','Champion + Runner-up + 3rd place(s)']]));
     const actions=document.createElement('td'),buttons=document.createElement('span');buttons.className='setup-division-moves';actions.append(buttons);
-    [['up','Move up',i===0],['down','Move down',i===rows.length-1],['remove','Remove',!!state.generated]].forEach(([action,text,disabled])=>{
+    [['up','Move up',i===0],['down','Move down',i===rows.length-1],['remove','Remove',ksmTeamDivisionDrawn(d.id)]].forEach(([action,text,disabled])=>{
       const button=document.createElement('button');button.textContent=action==='up'?'↑':action==='down'?'↓':'×';button.className='setup-move-btn';button.title=text+' — '+d.name;button.setAttribute('aria-label',text+' — '+d.name);button.disabled=off||!!disabled;button.dataset.testid='team-division-'+action;
       button.onclick=()=>action==='remove'?ksmRemoveTeamDivision(d.id):ksmMoveTeamDivision(d.id,action);buttons.append(button);
     });row.append(actions);body.append(row);

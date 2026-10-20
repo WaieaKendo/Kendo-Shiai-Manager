@@ -41,7 +41,7 @@ export interface GrandChampionRowInput {
 }
 
 export interface GrandChampionSetupInput {
-  /** The tournament is generated: divisions, format and court are fixed. */
+  /** Some row is drawn (its divisions, format and court are fixed): the Setup note says so. */
   locked: boolean;
   readOnly: boolean;
   /** The enabled individual divisions, in running order: the possible sources. */
@@ -60,7 +60,7 @@ export const GC_TEXTS = {
   decide: 'Decide…',
   remove: '×',
   missing: '(not in use)',
-  locked: 'The tournament is generated: grand champion matches can no longer be added or removed, and their divisions, format and court are fixed. Names and awards can still change.',
+  locked: 'Drawn grand champion matches are fixed: their divisions, format and court. Names and awards can still change. A new grand champion match can be added; it fills in when its divisions finish.',
 } as const;
 export const GC_HEADINGS = ['Name', 'Divisions', 'Format', 'Court', 'Awards', 'Order'] as const;
 export const GC_FORMAT_OPTIONS = [['Single Elimination', 'Single elimination'], ['Round Robin', 'Pool of winners']] as const;
@@ -78,8 +78,9 @@ export interface GrandChampionControls {
 }
 
 /** Which controls of a row can be used (true: enabled). */
-export function grandChampionControls(input: Pick<GrandChampionSetupInput, 'locked' | 'readOnly'>, row: Pick<GrandChampionRowInput, 'sources'>): GrandChampionControls {
-  const edit = !input.readOnly, structure = edit && !input.locked;
+export function grandChampionControls(input: Pick<GrandChampionSetupInput, 'readOnly'>, row: Pick<GrandChampionRowInput, 'sources' | 'drawn'>): GrandChampionControls {
+  // A drawn row is fixed (its divisions, format and court); one not drawn yet stays editable after generation.
+  const edit = !input.readOnly, structure = edit && !row.drawn;
   return { name: edit, sources: structure, format: structure && row.sources.length > 2, court: structure, awards: edit, remove: structure };
 }
 

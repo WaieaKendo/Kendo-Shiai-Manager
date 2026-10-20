@@ -8,10 +8,12 @@ const row = (over = {}) => ({
   drawn: false, started: false, complete: false, champion: null, decide: false, canWithdraw: false, ...over,
 });
 
-test('controls: structure locks after generation, name and awards stay; read-only locks all; format from three sources', () => {
+test('controls: a drawn row locks its structure, name and awards stay; one not drawn yet stays editable; read-only locks all; format from three sources', () => {
   assert.deepEqual(grandChampionControls({ locked: false, readOnly: false }, row()), { name: true, sources: true, format: false, court: true, awards: true, remove: true });
   assert.equal(grandChampionControls({ locked: false, readOnly: false }, row({ sources: ['A', 'B', 'C'] })).format, true);
-  assert.deepEqual(grandChampionControls({ locked: true, readOnly: false }, row({ sources: ['A', 'B', 'C'] })), { name: true, sources: false, format: false, court: false, awards: true, remove: false });
+  assert.deepEqual(grandChampionControls({ locked: true, readOnly: false }, row({ sources: ['A', 'B', 'C'], drawn: true })), { name: true, sources: false, format: false, court: false, awards: true, remove: false });
+  // Another row is drawn (the note shows), this one is not: still editable.
+  assert.deepEqual(grandChampionControls({ locked: true, readOnly: false }, row({ sources: ['A', 'B', 'C'] })), { name: true, sources: true, format: true, court: true, awards: true, remove: true });
   assert.ok(Object.values(grandChampionControls({ locked: false, readOnly: true }, row())).every(v => v === false));
 });
 

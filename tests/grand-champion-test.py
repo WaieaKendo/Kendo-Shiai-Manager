@@ -76,9 +76,9 @@ def local_cases(browser):
     assert 'Waiting for Open, Women' in status(app)
     page.evaluate('KSMTest.app.generatePools({validated:true})')
     app.nav('setup')
-    assert page.locator(sel('grand-champion-court')).is_disabled() and not page.locator(sel('grand-champion-awardMode')).is_disabled(), 'not locked after generation'
-    assert page.locator(sel('grand-champion-add')).is_disabled()
-    assert 'can no longer be added or removed' in page.locator(sel('grand-champion-note')).inner_text()
+    # Not drawn yet (its divisions have not finished): still editable after generation, like a new team division.
+    assert not page.locator(sel('grand-champion-court')).is_disabled() and not page.locator(sel('grand-champion-add')).is_disabled(), 'locked before its draw'
+    assert not page.locator(sel('grand-champion-note')).count()
 
     # Fill-in: nothing until both sources are decided, then one Final on Court B (Encho).
     assert play_court(app, 'A', [['W', 'M']]) == 'Open'
@@ -91,6 +91,10 @@ def local_cases(browser):
     women_winner = page.evaluate("KSMTest.finalState().Women.placements[0].name")
     assert sorted([final[0]['white'], final[0]['red']]) == sorted([open_winner, women_winner]), final
     assert 'Ready on Court B' in status(app)
+    # Drawn: its divisions, format and court are fixed (name and awards stay), and the note says so.
+    assert page.locator(sel('grand-champion-court')).is_disabled() and not page.locator(sel('grand-champion-awardMode')).is_disabled(), 'not locked once drawn'
+    assert page.locator(sel('grand-champion-remove')).is_disabled() and not page.locator(sel('grand-champion-add')).is_disabled()
+    assert page.locator(sel('grand-champion-note')).inner_text().startswith('Drawn grand champion matches are fixed')
 
     # The court queue: Court B's division list has it, and Continue goes there.
     app.open_court('B')

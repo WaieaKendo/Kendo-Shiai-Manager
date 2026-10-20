@@ -123,7 +123,7 @@ export function ValidationDialog({ root }: { root: Element }) {
 
 function RegenerateBody({ content }: { content: RegenerateContent }) {
   if (content.view === 'confirm') {
-    return <div className="muted-card"><p>{REGENERATE_TEXTS.rebuild}</p><p><b>{REGENERATE_TEXTS.others}</b></p></div>;
+    return <div className="muted-card"><p>{content.isNew ? REGENERATE_TEXTS.drawNew : REGENERATE_TEXTS.rebuild}</p><p><b>{REGENERATE_TEXTS.others}</b></p></div>;
   }
   if (content.view === 'done') {
     return (
@@ -136,7 +136,7 @@ function RegenerateBody({ content }: { content: RegenerateContent }) {
       <div className="regenerate-list">
         {content.options.map((o, i) => (
           <label key={i} className={regenerateOptionClass(o.status)} data-testid="regenerate-option">
-            <input type="radio" name="regenDiv" data-testid="regenerate-option-radio" value={o.name} defaultChecked={o.checked} disabled={o.status !== 'ready'} />
+            <input type="radio" name="regenDiv" data-testid="regenerate-option-radio" value={o.name} defaultChecked={o.checked} disabled={o.status !== 'ready' && o.status !== 'new'} />
             <span><b data-testid="regenerate-option-name">{o.label || o.name}</b></span>
             <span className={`regenerate-status ${o.status}`} data-testid="regenerate-option-status">{regenerateStatusText(o.status)}</span>
           </label>
@@ -154,7 +154,7 @@ function RegenerateActions({ content }: { content: RegenerateContent }) {
     <>
       <button onClick={close}>{REGENERATE_TEXTS.cancel}</button>
       {content.view === 'confirm'
-        ? <button className="primary" onClick={() => { w.regenerateSingleDivision?.(content.division); }} data-testid="regenerate-confirm">{REGENERATE_TEXTS.regenerate}</button>
+        ? <button className="primary" onClick={() => { w.regenerateSingleDivision?.(content.division); }} data-testid="regenerate-confirm">{content.isNew ? REGENERATE_TEXTS.draw : REGENERATE_TEXTS.regenerate}</button>
         : <button className="primary" onClick={() => { w.continueRegenerateDivision?.(); }} data-testid="regenerate-continue">{REGENERATE_TEXTS.continue}</button>}
     </>
   );
