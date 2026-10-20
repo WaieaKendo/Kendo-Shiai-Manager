@@ -84,10 +84,12 @@ def local_worker(timeout=60, restartable=False):
                 if proc.poll() is not None or time.time() > deadline:
                     log.flush()
                     text = (Path(state_dir) / 'wrangler.log').read_text()
-                    taken = proc.poll() is not None and 'address already in use' in text.lower()
+                    # A port taken between choosing it and wrangler binding it; on CI workerd may only
+                    # say "The Workers runtime failed to start" (the detail goes to its own log file).
+                    taken = proc.poll() is not None and any(t in text.lower() for t in (
+                        'address already in use', 'workers runtime failed to start'))
                     if taken and attempt < attempts and not started:
-                        # Another process took a port between choosing it and wrangler binding it:
-                        # try again with fresh ports (only before the first successful start: a
+                        # Try again with fresh ports (only before the first successful start: a
                         # restart must keep its port).
                         proc = None
                         port = _free_port()
