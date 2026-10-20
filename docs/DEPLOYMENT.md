@@ -16,6 +16,20 @@ Both go through `.github/workflows/deploy.yml`: the full test suite (`test.yml`,
 
 Merging a pull request into `develop` (or pushing to it) starts **Deploy dev**. When it is green, the dev site runs exactly that commit. The first dev deploy creates the `kendoshiaimanager-dev` Worker and its empty Durable Object namespace (migration `v1` in `env.dev`). Use dev for trying a change on phones and TVs before it goes to production; its tournaments are throwaway.
 
+## Branches until 4.0.0 ships
+
+From 2026-10-20 until 4.0.0 is released, `develop` holds **only 4.0**: the dev site keeps showing the
+4.0 candidate, and the release path (#90) is unchanged.
+
+- **Fixes for 4.0:** PRs to `develop`, as before. After each one, `develop` is merged into `next/4.1`.
+- **New work (4.1):** PRs to **`next/4.1`** (pick it as the base). It is not deployed anywhere; CI still
+  tests every PR. A change that raises `KSM_CLIENT_SCHEMA` / `MIN_CLIENT_SCHEMA` belongs here, never in
+  `develop` before 4.0.0.
+- **Release:** `npm run release -- 4.0.0-rc.N` on `develop`, PR `develop` → `main` (deploys production),
+  then 4.0.0 the same way. No merges to `main` from about 11/7 until after 11/21 except emergency fixes.
+- **After 4.0.0:** merge `next/4.1` into `develop` (a merge commit) and delete `next/4.1`; work goes to
+  `develop` again.
+
 ## Paths the site answers
 
 Screens have path URLs (roadmap M.9): `/t/<id>`, `/t/<id>/live`, `/t/<id>/court/a|b`, `/t/<id>/tv/a|b` and the stream overlay `/t/<id>/overlay/a|b`. The static assets' single-page fallback (`not_found_handling: single-page-application`) answers every `/t/...` path with `index.html`; `run_worker_first` sends `/api/*` and `/t/*` to the Worker, which answers `/t/<id>/overlay/...` with `overlay.html` (also served at `/overlay`) and hands every other `/t/...` path back to the assets. Old query links (`/?tournament=<id>&court=A`, `&view=tv`, `/overlay?tournament=...`) are still served (`/` and `/overlay`) and the page replaces them by their path. A custom domain that passes every request through to the Worker (the pass-through of PR #20) needs nothing extra for the paths.
