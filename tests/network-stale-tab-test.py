@@ -47,7 +47,9 @@ def main():
         assert a.outbox()['role'] == 'staff'
         assert a.page.inner_text(sel('staff-auth')).strip() == 'Staff Login'
         assert a.diagnostics()['stage'] in ('Staff session expired', 'Cloud save failed')
-        assert a.page.inner_text(sel('save-status')).strip() == 'Not saved · Changes waiting'
+        # Now a spectator page: its queued staff work is sent after Staff Login (no Save now there).
+        assert a.page.inner_text(sel('save-status')).strip() == 'Unsent staff changes on this device · Staff Login to send'
+        assert not a.page.locator(sel('header-save-now')).count()
         assert 'Staff session expired' in a.toast()
         b.score_point('W', 'M'); b.save_now(); b.wait_idle()
         a.wait_revision(b.revision())
