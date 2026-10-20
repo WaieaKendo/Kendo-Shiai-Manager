@@ -21,7 +21,20 @@ async function ksmRenameTournamentSlug(slug){
     if(isReadOnlySession())return;
     if(!KSMEngine.isValidSlug(slug))throw new Error('Choose a valid, non-reserved tournament short name.');
     if(!cloudSession.tournamentId){
-      ksmPendingSlug=slug;sessionStorage.setItem('ksm.pending-slug',slug);await saveNow();return;
+      const previous=ksmPendingSlug;
+      ksmPendingSlug=slug;sessionStorage.setItem('ksm.pending-slug',slug);
+      const started=new Date().toISOString();
+      try{
+        const saved=await saveNow();
+        // Only this attempt's error: the diagnostics can still hold an older one.
+        const diag=readCloudDiagnosticsState();
+        if(!saved||!cloudSession.tournamentId||cloudSession.slug!==slug)throw new Error((String(diag.lastAttemptAt||'')>=started&&diag.errorMessage)||'Unable to save short name');
+      }catch(err){
+        ksmPendingSlug=previous;
+        if(previous)sessionStorage.setItem('ksm.pending-slug',previous);else sessionStorage.removeItem('ksm.pending-slug');
+        throw err;
+      }
+      return;
     }
     const response=await fetch(`/api/tournaments/${cloudSession.tournamentId}/slug`,{method:'POST',headers:cloudHeaders(),body:JSON.stringify({slug})});
     const info=await response.json();if(!response.ok)throw new Error(info.code==='slug-taken'?'That name is taken':info.error||'Unable to change short name');
@@ -37,7 +50,7 @@ async function ksmSaveShortUrl(input){
   if(isReadOnlySession()||ksmShortUrlSaving||input.value===(cloudSession.slug||ksmPendingSlug||''))return;
   ksmShortUrlSaving=true;input.disabled=true;
   const hint=document.getElementById('setupShortUrlStatus');
-  try{await ksmRenameTournamentSlug(input.value.trim());hint.textContent='Saved';input.value=cloudSession.slug||ksmPendingSlug||''}
+  try{await ksmRenameTournamentSlug(input.value.trim());hint.textContent='Saved';input.removeAttribute('aria-invalid');input.value=cloudSession.slug||ksmPendingSlug||''}
   catch(err){hint.textContent=err.message;input.setAttribute('aria-invalid','true')}
   finally{ksmShortUrlSaving=false;input.disabled=false}
 }

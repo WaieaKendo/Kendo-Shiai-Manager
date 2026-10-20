@@ -26,7 +26,9 @@ const RESET_KEY = 'test-reset-key';
 function createLiveApi() {
   return {
     call(method, path, { headers = {}, body } = {}) {
-      const init = { method, headers: { ...headers } };
+      // As the app: every request names the saved format it understands (src-worker.js MIN_CLIENT_SCHEMA);
+      // a header set to undefined is left out (an app from before the version gate).
+      const init = { method, headers: Object.fromEntries(Object.entries({ 'x-ksm-client-schema': '2', ...headers }).filter(([, v]) => v !== undefined)) };
       if (body !== undefined) { init.body = JSON.stringify(body); init.headers['content-type'] = 'application/json'; }
       return fetch(`${BASE}${path}`, init);
     },
@@ -102,6 +104,22 @@ let T; // main tournament id used by the following tests
 await test('create requires a staff password of at least 4 characters', async () => {
   assert.equal((await create({ staffPassword: undefined })).res.status, 400);
   assert.equal((await create({ staffPassword: 'abc' })).res.status, 400);
+});
+
+await test('saves from an app older than the saved format are refused with 426 (#95 version gate)', async () => {
+  const old = { 'x-ksm-client-schema': undefined };
+  const refused = await api.call('POST', '/api/tournaments', { headers: old, body: { staffPassword: PASSWORD, engineVersion: '3.12.9', payload: payload() } });
+  assert.equal(refused.status, 426);
+  assert.equal((await json(refused)).code, 'client-outdated');
+  const { res, body } = await create();
+  assert.equal(res.status, 200);
+  const id = body.tournamentId, token = res.headers.get('x-ksm-session-token') || PASSWORD;
+  for (const schema of [undefined, '1']) {
+    const save = await put(id, 1, payload({ name: 'Old tablet' }), { ...staffHeaders(token), 'x-ksm-client-schema': schema });
+    assert.equal(save.status, 426, `schema ${schema}`);
+  }
+  assert.equal((await json(await api.call('GET', `/api/tournaments/${id}`))).revision, 1, 'a refused save wrote nothing');
+  assert.equal((await put(id, 1, payload({ name: 'Current app' }), staffHeaders(token))).status, 200);
 });
 
 await test('create rejects structurally invalid tournament state (422)', async () => {

@@ -116,8 +116,9 @@ function TeamCard({ card, input }: { card: TeamCardInput; input: TeamsInput }) {
         </div>
         <button onClick={() => teamsWindow().ksmRemoveTeam?.(card.index)} data-testid="team-remove">{REMOVE_TEXT}</button>
       </div>
-      <div className="small">{teamFormatLine(input)}</div>
-      {input.slots.map((slot, i) => (
+      {input.divisions && <label>Team division<select data-testid="team-division-select" value={card.teamDivisionId || ''} onChange={e => teamsWindow().ksmSetTeamField?.(card, 'teamDivisionId', e.target.value)}>{input.divisions.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select></label>}
+      <div className="small">{teamFormatLine({format:card.format || input.format,tournamentFormat:card.tournamentFormat || input.tournamentFormat})}</div>
+      {(card.slots || input.slots).map((slot, i) => (
         <div className="slot" key={i}>
           <label>{slot}</label>
           <TeamField card={card} field={slot} value={card.members[i] ?? ''} testId={`team-member-${slot}`} />

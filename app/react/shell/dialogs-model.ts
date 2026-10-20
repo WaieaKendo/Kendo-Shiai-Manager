@@ -90,6 +90,7 @@ export const VALIDATION_TEXTS = {
 export type RegenerateStatus = 'ready' | 'started' | 'not-generated';
 
 export interface RegenerateOption {
+  label?: string;
   /** The division as the option shows it (also its radio's value). */
   name: string;
   status: RegenerateStatus;
@@ -100,7 +101,7 @@ export interface RegenerateOption {
 export type RegenerateContent =
   | { view: 'list'; options: RegenerateOption[] }
   | { view: 'confirm'; division: string }
-  | { view: 'done'; division: string };
+  | { view: 'done'; division: string; label?: string };
 
 export interface RegenerateInput {
   open: boolean;

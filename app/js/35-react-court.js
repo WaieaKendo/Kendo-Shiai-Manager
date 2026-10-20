@@ -46,7 +46,7 @@ function ksmScoreboardInput(m){
   if(m.type!=='teamPlayoff')return {match,score,representatives:null};
   // As repSelect(): the roster and permission come from the match at state.current.
   const current=state.matches[state.current],playoff=current&&current.type==='teamPlayoff';
-  const rep=(side,team,name)=>({team:team||'',current:name||'',roster:[...teamRoster(playoff?(side==='W'?current.teamWhite:current.teamRed):team)],editable:Boolean(canModifyRepresentative(current))});
+  const rep=(side,team,name)=>({team:team||'',current:name||'',roster:[...teamRoster(playoff?(side==='W'?current.teamWhite:current.teamRed):team,m.division)],editable:Boolean(canModifyRepresentative(current))});
   return {match,score,representatives:{W:rep('W',m.teamWhite,m.white),R:rep('R',m.teamRed,m.red)}};
 }
 // Owner decision 5 (#29): a match's hansoku per side, as the court screen shows them: the live
@@ -67,6 +67,8 @@ function ksmPublishCourtScoreboard(m){
 // (A function, not a const: app.js publishes before this file's top level has run.)
 function ksmStaticCourtHeader(){return {tournamentName:'Kendo Tournament',court:'A',divisions:[],currentDivision:'',divisionTitle:'—',matchLine:'No active match'}}
 function ksmPublishCourtHeader(fields){
+  if(fields.divisionTitle)fields.divisionTitle=ksmDivisionName(fields.divisionTitle);
+  if(fields.divisions)fields.divisionNames=Object.fromEntries(fields.divisions.map(id=>[id,ksmDivisionName(id)]));
   window.ksmCourtHeaderInput={...(window.ksmCourtHeaderInput||ksmStaticCourtHeader()),...fields,timerSound:ksmNormalizeTimerSettings(getSetupSnapshot())[normalizeCourt(state.currentCourt)==='B'?'court2TimerSound':'court1TimerSound'],timerEnabled:ksmNormalizeTimerSettings(getSetupSnapshot())[normalizeCourt(state.currentCourt)==='B'?'court2TimerEnabled':'court1TimerEnabled']!=='Off',tvRedLeft:document.getElementById(normalizeCourt(state.currentCourt)==='B'?'court2TvRedSide':'court1TvRedSide')?.value==='left'};
   window.dispatchEvent(new CustomEvent('ksm:court-header'));
 }
@@ -110,7 +112,9 @@ function ksmDivisionCompleteInput(div,complete){
 function ksmPublishCourtComplete(input){
   if(input&&input.complete){
     const court=state.currentCourt||'A',division=state.currentDivision||'';
-    input={...input,court:ksmText(court),division:ksmText(division),next:division?ksmNextCourtDivision(court,division):null};
+    const name=ksmDivisionName(division),next=division?ksmNextCourtDivision(court,division):null,nextName=next?ksmDivisionName(next):null;
+    input={...input,court:ksmText(court),division:ksmText(name),next,
+      ...(name!==division?{divisionId:division}:{}),...(next&&nextName!==next?{nextName}:{})};
   }
   window.ksmCourtCompleteInput=input;
   window.dispatchEvent(new CustomEvent('ksm:court-complete'));
@@ -119,8 +123,8 @@ function ksmPublishCourtComplete(input){
 // dropdown's options (renderDivisions(), 02-: state.divisions, then any other generated division
 // such as the team event; the divisions on this court, split ones and a team event on both).
 function ksmCourtDivisionList(court){
-  const all=[...new Set([...state.divisions,...Object.keys(state.allMatches||{})])].filter(Boolean);
-  return all.filter(d=>{const c=state.divisionCourts[d]||'A';return c===court||c==='split'||(d==='Team Tournament'&&(state.divisionCourts[d]||'Both')==='Both')});
+  const all=[...new Set([...state.divisions,...ksmTeamDivisions().filter(d=>state.allMatches?.[d.id]).map(d=>d.id),...Object.keys(state.allMatches||{})])].filter(Boolean);
+  return all.filter(d=>{const c=state.divisionCourts[d]||'A';return c===court||c==='split'||(isTeamDivision(d)&&(state.divisionCourts[d]||'Both')==='Both')});
 }
 // A division has a match ready to play on the court (as findNextForCourt() picks one): generated,
 // not finished, and not waiting for the other court.
@@ -352,7 +356,7 @@ function ksmFinalResults(div){
     if(!p)return {kind:'results',results:null};
     // External PR review (#35): a place with an award still level is never named alphabetically.
     const tied=new Set(p.undecided||[]),named=(place,name)=>ksmText(tied.has(place)?KSM_TEAM_PLACE_TIED:name);
-    const mode=state.teamAwardMode||'top2',lines=[{place:'🥇 1st',name:named(1,p.first)}];
+    const mode=ksmTeamSettings(div).teamAwardMode||'top2',lines=[{place:'🥇 1st',name:named(1,p.first)}];
     if(mode!=='top1'&&(p.second||tied.has(2)))lines.push({place:'🥈 2nd',name:named(2,p.second)});
     if(mode==='dual3')(tied.has(3)?[KSM_TEAM_PLACE_TIED]:(p.thirds||[])).forEach(t=>lines.push({place:'🥉 3rd',name:ksmText(t)}));
     return {kind:'results',results:{title:'Team Results',lines}};

@@ -44,7 +44,7 @@ def main():
             app = KsmApp.local(page, f'Director {mode}', problems=problems)
             app.answers['Create Staff password'] = ''  # offline harness: saves stay local
             app.nav('setup')
-            page.select_option(sel('team-award-mode'), label=label)
+            page.select_option(sel('team-division-awardMode'), label=label)
             app.configure([{'team': True, 'format': '3-Person Team', 'tournament': 'Round Robin', 'teams': 4, 'court': 'A'}])
             next_bout = play(app)
             standings = app.final_state()['Team Tournament']['standings']['team']

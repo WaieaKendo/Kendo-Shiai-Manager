@@ -271,8 +271,8 @@ def play_through(browser, errors, name, entries, draws=False, award_modes=False)
         open_modal(g, div, 'complete: ')
     if award_modes:
         for mode in ('top1', 'dual3', 'top2'):
-            # The Setup select (its change handler), then Results.
-            g.do(f'team award mode {mode}', lambda a, m=mode: a.page.evaluate(f"() => {{ teamAwardMode.value = '{m}'; teamAwardMode.dispatchEvent(new Event('change')); KSMTest.show('results'); }}"))
+            # The division awards operation used by Setup, then Results.
+            g.do(f'team award mode {mode}', lambda a, m=mode: a.page.evaluate("mode => { KSMTest.updateTeamDivision('Team Tournament',{awardMode:mode}); KSMTest.show('results'); }", m))
     phone_views(g, 'complete')
     g.do('spectator', lambda a: (a.page.evaluate(SPECTATOR_JS), a.page.evaluate(SHOW_RESULTS_JS)))
     g.finish()

@@ -66,3 +66,6 @@ export {
 export type { DivisionRename, RenameState, RefusedRename, RenameRebase } from './divisions.ts';
 
 export { isValidSlug, suggestSlug, RESERVED_SLUGS } from './routes.ts';
+
+export { migrateTeamDivisions, mergeTeamDivisionRecords, reconcileTeamAssignments, teamDivisionName, LEGACY_TEAM_DIVISION_ID } from './team-divisions.ts';
+export type { TeamDivision } from './team-divisions.ts';

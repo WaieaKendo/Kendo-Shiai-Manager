@@ -50,7 +50,7 @@ function ksmTvDisplayInput(court){
   document.body.classList.toggle('ksm-tv-red-left',document.getElementById(court==='B'?'court2TvRedSide':'court1TvRedSide')?.value==='left');
   const vm=buildTV3ViewModel(court);
   // D1: a team round robin's daihyosen bout is labelled as the header's match line.
-  const header={court:ksmText(vm.court),division:ksmText(vm.meta?.division||vm.division||'No active match'),meta:ksmIsRoundRobinDaihyosen(vm.match)?ksmDaihyosenLabel():ksmText(vm.meta?.line||'')};
+  const header={court:ksmText(vm.court),division:ksmText(ksmDivisionName(vm.meta?.division||vm.division||'No active match')),meta:ksmIsRoundRobinDaihyosen(vm.match)?ksmDaihyosenLabel():ksmText(vm.meta?.line||'')};
   if(vm.empty){
     // Owner decision 6: "Waiting for the next match" (with the reason when known) while the court's
     // division waits; "Up next on this court" (the next division's first matches) in Upcoming.

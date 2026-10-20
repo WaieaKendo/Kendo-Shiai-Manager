@@ -7,6 +7,15 @@ const APP_VERSION = packageJson.version;
 const JSON_HEADERS = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' };
 const VALID_ROLES = new Set(['spectator', 'staff']);
 
+// #95: tournament saves need a client that understands the saved format (team divisions). Every save
+// sends x-ksm-client-schema; an older app (no header, or a lower number) is refused with 426, so a tablet
+// left open on an old build cannot rewrite a newer tournament. Its unsaved work stays queued on the
+// device and is sent after the page is reloaded. Raise both numbers together when the format changes.
+const MIN_CLIENT_SCHEMA = 2;
+function outdatedClient(request) {
+  if (Number(request.headers.get('x-ksm-client-schema') || 0) >= MIN_CLIENT_SCHEMA) return null;
+  return json({ error: 'This device runs an older version of Kendo Shiai Manager. Reload the page to update it, then save again.', code: 'client-outdated' }, 426);
+}
 function json(body, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(body), { status, headers: { ...JSON_HEADERS, ...extraHeaders } });
 }
@@ -567,6 +576,8 @@ export default {
       return libraryStub().fetch('https://durable-object/library');
     }
     if (url.pathname === '/api/tournaments' && request.method === 'POST') {
+      const outdated = outdatedClient(request);
+      if (outdated) return outdated;
       const id = crypto.randomUUID();
       const stub = env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName(id));
       const body = await request.json();
@@ -588,6 +599,8 @@ export default {
       if (action === 'auth' && request.method === 'POST') return stub.fetch(new Request('https://durable-object/auth', { method: 'POST', headers: request.headers, body: request.body }));
       if (!action && request.method === 'GET') return withSlug(await stub.fetch('https://durable-object/snapshot'));
       if (!action && request.method === 'PUT') {
+        const outdated = outdatedClient(request);
+        if (outdated) return outdated;
         const body = await request.json();
         if (body.tournamentId && body.tournamentId !== id) return json({ error: 'Tournament ID mismatch' }, 409);
         const response = await stub.fetch(new Request('https://durable-object/snapshot', { method: 'PUT', headers: request.headers, body: JSON.stringify({ ...body, tournamentId: id }) }));

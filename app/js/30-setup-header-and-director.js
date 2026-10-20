@@ -29,8 +29,8 @@ function directorTeamFormat(div){
   const teamDivision=matches.some(isTeamMatch)||(state.teamBracketNodes?.[div]||[]).length>0||isTeamDivision(div);
   if(!teamDivision)return null;
   if(matches.some(m=>m.type==='kachinuki'))return 'Kachinuki';
-  const registered=(state.teams||[]).find(t=>t.division===div||div==='Team Tournament');
-  return registered?.type||window.teamFormat?.value||'5-Person Team';
+  const registered=(state.teams||[]).find(t=>/* ksm:post-split-begin team-divisions was:t.division===div||div==='Team Tournament' */t.teamDivisionId===div||(!t.teamDivisionId&&div==='Team Tournament')/* ksm:post-split-end */);
+  return /* ksm:post-split-begin team-divisions was:registered?.type||window.teamFormat?.value||'5-Person Team' */(registered?.teamDivisionId?ksmTeamSettings(div).teamFormat:registered?.type)||ksmTeamSettings(div).teamFormat||'5-Person Team'/* ksm:post-split-end */;
 }
 function directorTeamSize(div){
   return directorTeamFormat(div)==='3-Person Team'?3:5;

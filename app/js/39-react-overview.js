@@ -33,7 +33,7 @@ function ksmOverviewProgress(x){
 // One court card of renderDirector(): courtSummaryFor(court) as data.
 function ksmOverviewCourt(c){
   const x=courtSummaryFor(c);
-  return {court:c,division:ksmText(x.division||'No active division'),round:ksmText(x.round||''),...ksmOverviewProgress(x),
+  return {court:c,division:ksmText(ksmDivisionName(x.division||'No active division')),round:ksmText(x.round||''),...ksmOverviewProgress(x),
     current:ksmOverviewMatch(x.current),onDeck:ksmOverviewMatch(x.onDeck),following:ksmOverviewMatch(x.following)};
 }
 // renderDirector() as data: the overall numbers, the tournament name, then Court A and Court B.

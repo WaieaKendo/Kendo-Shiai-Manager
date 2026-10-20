@@ -127,7 +127,7 @@ function RegenerateBody({ content }: { content: RegenerateContent }) {
   }
   if (content.view === 'done') {
     return (
-      <div className="muted-card"><b>{`${content.division}${REGENERATE_TEXTS.done}`}</b><div className="small" ref={rawStyle('margin-top:6px')}>{REGENERATE_TEXTS.doneDetail}</div></div>
+      <div className="muted-card"><b>{`${content.label || content.division}${REGENERATE_TEXTS.done}`}</b><div className="small" ref={rawStyle('margin-top:6px')}>{REGENERATE_TEXTS.doneDetail}</div></div>
     );
   }
   return (
@@ -137,7 +137,7 @@ function RegenerateBody({ content }: { content: RegenerateContent }) {
         {content.options.map((o, i) => (
           <label key={i} className={regenerateOptionClass(o.status)} data-testid="regenerate-option">
             <input type="radio" name="regenDiv" data-testid="regenerate-option-radio" value={o.name} defaultChecked={o.checked} disabled={o.status !== 'ready'} />
-            <span><b data-testid="regenerate-option-name">{o.name}</b></span>
+            <span><b data-testid="regenerate-option-name">{o.label || o.name}</b></span>
             <span className={`regenerate-status ${o.status}`} data-testid="regenerate-option-status">{regenerateStatusText(o.status)}</span>
           </label>
         ))}

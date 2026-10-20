@@ -53,8 +53,12 @@ function applySetupSnapshot(data){
 /* ksm:post-split-end */
   Object.keys(data).forEach(id=>{const el=document.getElementById(id); if(el) el.value=data[id];});
   applyCourtSides();
-  if(data.teamCourt) state.divisionCourts['Team Tournament']=data.teamCourt;
+  /* ksm:post-split-begin team-divisions was:if(data.teamCourt) state.divisionCourts['Team Tournament']=data.teamCourt; */
+  if(!state.teamDivisions&&data.teamCourt)state.divisionCourts['Team Tournament']=data.teamCourt;
+  (state.teamDivisions||[]).forEach(d=>state.divisionCourts[d.id]=d.court);
+  /* ksm:post-split-end */
   if(data.teamAwardMode) state.teamAwardMode=data.teamAwardMode;
+  /* ksm:post-split-begin team-divisions */ksmSyncLegacyTeamDivision();/* ksm:post-split-end */
 }
 function tournamentPayload(){
   return {
@@ -111,6 +115,7 @@ async function saveNow(){/* ksm:post-split-begin library-setup was:markLocalSave
     return toggleStaffSession();
   }
   showKsmToast(saved?'✓ Tournament saved':'Not saved · Changes waiting',saved?2000:3500,!saved);
+  return !!saved;
 /* ksm:post-split-end */}
 function criticalAutoSave(reason){/* ksm:post-split-begin startup-recovery */if(ksmStartupLoadFailed&&!ksmStartupHasCache)return;/* ksm:post-split-end */noteLocalMutation();markLocalSave(reason);if(!isReadOnlySession())saveTournamentToCloudWithReason(reason,true)}
 

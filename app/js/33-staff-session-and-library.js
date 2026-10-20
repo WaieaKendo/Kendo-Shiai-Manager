@@ -52,7 +52,7 @@ function isReadOnlySession(){return ksmSessionRole!=='staff'}
 function isSpectatorSession(){return isReadOnlySession()}
 function canCloudWrite(){return ksmSessionRole==='staff'||!cloudSession.tournamentId}
 function sessionKey(){return v316StaffPassword()}
-function cloudHeaders(){return {'content-type':'application/json','x-ksm-role':ksmSessionRole==='staff'?'staff':'spectator','x-ksm-session-key':sessionKey(),'x-ksm-client-id':/* ksm:post-split-begin two-tabs was:cloudSession.clientId||'' */ksmWriterId()/* ksm:post-split-end */,'x-ksm-client-name':cloudSession.clientName||'KSM Device','x-ksm-court':cloudSession.court||''}}
+function cloudHeaders(){return {'content-type':'application/json','x-ksm-role':ksmSessionRole==='staff'?'staff':'spectator','x-ksm-session-key':sessionKey(),'x-ksm-client-id':/* ksm:post-split-begin two-tabs was:cloudSession.clientId||'' */ksmWriterId()/* ksm:post-split-end */,'x-ksm-client-name':cloudSession.clientName||'KSM Device','x-ksm-court':cloudSession.court||''/* ksm:post-split-begin client-schema */,'x-ksm-client-schema':String(KSM_CLIENT_SCHEMA)/* ksm:post-split-end */}}
 function cloudSocketUrl(id){const protocol=location.protocol==='https:'?'wss:':'ws:';const url=new URL(`${protocol}//${location.host}/api/tournaments/${encodeURIComponent(id)}/live`);url.searchParams.set('role',ksmSessionRole==='staff'?'staff':'spectator');if(sessionKey())url.searchParams.set('key',sessionKey());url.searchParams.set('clientId',cloudSession.clientId||'');url.searchParams.set('name',cloudSession.clientName||'KSM Device');if(cloudSession.court)url.searchParams.set('court',cloudSession.court);return url.toString()}
 function promptNewStaffPassword(){const a=prompt('Create Staff password');if(!a)return '';if(a.length<4){alert('Staff password must be at least 4 characters.');return ''}const b=prompt('Confirm Staff password');if(a!==b){alert('Passwords do not match.');return ''}return a}
 async function toggleStaffSession(){if(ksmSessionRole==='staff'){sessionStorage.removeItem(KSM_V316_STAFF_SESSION);setSessionRole('spectator');installRoleBanner('spectator');disconnectCloudSocket();connectCloudSocket();navigateTo('public');return}if(!cloudSession.tournamentId){alert('Create or load a tournament before Staff Login.');return}/* ksm:post-split-begin refresh-keeps-staff */const loginTournament=cloudSession.tournamentId,loginEpoch=ksmTournamentEpoch;/* ksm:post-split-end */const password=prompt('Enter Staff password');if(!password)return;try{const response=await fetch(`/api/tournaments/${encodeURIComponent(cloudSession.tournamentId)}/auth`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password})});/* ksm:post-split-begin delete-tournament */if(response.status===410){ksmAnnounceTournamentGone(cloudSession.tournamentId);return}/* ksm:post-split-end *//* ksm:post-split-begin staff-hardening was:if(!response.ok)throw new Error();sessionStorage.setItem(KSM_V316_STAFF_SESSION,password); */const info=await response.json().catch(()=>null);if(!response.ok){if(response.status===429&&info?.error){alert(info.error);return}throw new Error()}if(loginEpoch!==ksmTournamentEpoch||loginTournament!==cloudSession.tournamentId)return;ksmStoreStaffToken(info?.token||password,loginTournament);/* ksm:post-split-end */setSessionRole('staff');installRoleBanner('staff');/* ksm:post-split-begin outbox-flush-rebase */mergeQueuedStaffWork();/* ksm:post-split-end */disconnectCloudSocket();connectCloudSocket();showKsmToast('✓ Staff access enabled',1500)}catch(_){alert('Incorrect Staff password.')}}
@@ -125,6 +125,15 @@ async function performCloudSave(payload=tournamentPayload(),baseRevision=cloudSe
     writeCloudDiagnosticsState({attemptId,stage:'Tournament deleted',errorMessage:'Tournament deleted'});
     ksmAnnounceTournamentGone(existing);
     throw ksmGoneError();
+  }
+  /* ksm:post-split-end */
+  /* ksm:post-split-begin client-schema */
+  // #95: the server needs a newer app (this page was loaded before an update): reload, not retry.
+  if(response.status===426){
+    const message=(parsed&&parsed.error)||'Reload the page to update the app, then save again.';
+    writeCloudDiagnosticsState({attemptId,stage:'App update required',errorMessage:message});
+    showKsmToast(message,10000,true);
+    throw new Error(message);
   }
   /* ksm:post-split-end */
   if(response.status===403){

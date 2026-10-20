@@ -270,13 +270,13 @@ function mergeCourtHistoryStacks(rebasedState,localState,court,ownOnly=false){
 // conflicting court save no longer drops them. Structural edits (generate, regenerate, pool
 // edits) are replayed division by division instead (F10, replayStructuralEdit() below); the
 // registration half of such an edit merges only when its structure was replayed.
-const KSM_MERGED_STATE_KEYS=['divisions','divisionTypes','divisionCourts','competitors','teams','exhibitions','awards','teamAwardMode'];
-const KSM_MERGE_LABELS={tName:'Tournament name',tHost:'Host',tDate:'Date',tLocation:'Location',tCourts:'Courts',teamEnabled:'Team tournament',teamFormat:'Team format',teamTournamentFormat:'Team tournament format',teamCourt:'Team court',teamAwardMode:'Team awards',exhibitionEnabled:'Exhibition matches',court1Refs:'Court A referees',court2Refs:'Court B referees',court1RedSide:'Court A red side',court2RedSide:'Court B red side',court1TvRedSide:'Court A TV red side',court2TvRedSide:'Court B TV red side',timeRegular:'Regular match time',timeQuarterfinal:'Quarterfinal match time',timeSemifinal:'Semifinal match time',timeFinal:'Final match time',timeEncho:'Encho time',court1TimerSound:'Court A timer sound',court2TimerSound:'Court B timer sound',divisions:'Divisions',divisionTypes:'Division formats',divisionCourts:'Division courts',competitors:'Registration',teams:'Teams',exhibitions:'Exhibitions',awards:'Awards'};
+const KSM_MERGED_STATE_KEYS=['teamDivisions','divisions','divisionTypes','divisionCourts','competitors','teams','exhibitions','awards','teamAwardMode'];
+const KSM_MERGE_LABELS={teamDivisions:'Team divisions',teamDivisionId:'Team division assignment',teamDivisionRemoved:'Team division assignment (division removed)',tName:'Tournament name',tHost:'Host',tDate:'Date',tLocation:'Location',tCourts:'Courts',teamEnabled:'Team tournament',teamFormat:'Team format',teamTournamentFormat:'Team tournament format',teamCourt:'Team court',teamAwardMode:'Team awards',exhibitionEnabled:'Exhibition matches',court1Refs:'Court A referees',court2Refs:'Court B referees',court1RedSide:'Court A red side',court2RedSide:'Court B red side',court1TvRedSide:'Court A TV red side',court2TvRedSide:'Court B TV red side',timeRegular:'Regular match time',timeQuarterfinal:'Quarterfinal match time',timeSemifinal:'Semifinal match time',timeFinal:'Final match time',timeEncho:'Encho time',court1TimerSound:'Court A timer sound',court2TimerSound:'Court B timer sound',divisions:'Divisions',divisionTypes:'Division formats',divisionCourts:'Division courts',competitors:'Registration',teams:'Teams',exhibitions:'Exhibitions',awards:'Awards'};
 /** The cloud copy the local state was last reconciled with (merge base), by revision. */
 const KSM_CLOUD_BASE={revision:-1,payload:null};
 function cloudBaseSubset(payload){
   if(!payload)return null;
-  const st=payload.state||{};
+  const st=KSMEngine.migrateTeamDivisions(payload.state||{},payload.setup||{});
   // F10: also each division's structure (pools, matches, brackets), to tell which divisions a
   // structural edit changed and whether the server copy changed them too. Issue #25: and the
   // division renames, to tell which renames are new on either side.
@@ -313,8 +313,20 @@ function mergeLocalEditsThreeWay(rebased,localPayload,basePayload,structuralRepl
   // split it, so that half merges only when the structure was replayed (F10).
   if(structuralReplayed||(localState.managementRevision||0)===(baseState.managementRevision||0)){
     rebased.state=rebased.state||{};
-    KSM_MERGED_STATE_KEYS.forEach(k=>{const v=/* F32 */Array.isArray(structuralReplayed)&&registrationListSplits(rebased.state[k],localState[k],baseState[k],k,structuralReplayed)?mergeRegistrationListSplit(rebased.state[k],localState[k],baseState[k],structuralReplayed,KSM_MERGE_LABELS[k]||k,conflicts,k):mergeValueThreeWay(rebased.state[k],localState[k],baseState[k],KSM_MERGE_LABELS[k]||k,conflicts);if(v===undefined)delete rebased.state[k];else rebased.state[k]=v});
+    const serverTeams=cloneJson(rebased.state.teams||[]);
+    KSM_MERGED_STATE_KEYS.forEach(k=>{
+      const server=rebased.state[k],local=localState[k],base=baseState[k],label=KSM_MERGE_LABELS[k]||k;
+      const split=Array.isArray(structuralReplayed)&&registrationListSplits(server,local,base,k,structuralReplayed);
+      let value;
+      if((k==='teamDivisions'||(k==='teams'&&!split))&&[...(server||[]),...(local||[]),...(base||[])].every(row=>row.id)){
+        value=KSMEngine.mergeTeamDivisionRecords(server||[],local||[],base||[],label,conflicts);
+      }else value=split?mergeRegistrationListSplit(server,local,base,structuralReplayed,label,conflicts,k):mergeValueThreeWay(server,local,base,label,conflicts);
+      if(value===undefined)delete rebased.state[k];else rebased.state[k]=value;
+    });
+    ksmKeepDrawnTeamAssignments(rebased.state,serverTeams,Array.isArray(structuralReplayed)?structuralReplayed:[],conflicts);
   }
+  Object.assign(rebased.state,KSMEngine.reconcileTeamAssignments(rebased.state,conflicts));
+  (rebased.state.teamDivisions||[]).forEach(d=>{rebased.state.divisionCourts=rebased.state.divisionCourts||{};rebased.state.divisionCourts[d.id]=d.court});
   return conflicts;
 }
 // F32: a replayed division's registration entries (players, teams) belong to its structure: when
@@ -323,9 +335,9 @@ function mergeLocalEditsThreeWay(rebased,localPayload,basePayload,structuralRepl
 // conflict, with the notice); replayStructuralEdit() asks first when the other device changed a
 // replayed division's entries. Never a structure without the registration it was built from.
 const KSM_REGISTRATION_LIST_KEYS=['competitors','teams'];
-// Every team belongs to the team event, as the engine treats them (eligibleTeams(state.teams)): sample
-// and older teams have no division field, so a team's division is always 'Team Tournament'.
-function registrationEntryDivision(e,key){return key==='teams'?'Team Tournament':e?.division}
+// Persisted team division IDs partition structural registration ownership. Unmigrated legacy
+// rows retain the old event key until the common load boundary assigns their IDs.
+function registrationEntryDivision(e,key){return key==='teams'?(e?.teamDivisionId||'Team Tournament'):e?.division}
 function registrationEntriesIn(list,divisions,inside=true,key='competitors'){return (Array.isArray(list)?list:[]).filter(e=>divisions.includes(registrationEntryDivision(e,key))===inside)}
 /** True when list key `k` changed on both sides (a whole-list conflict) and divisions were replayed: it is merged split by division. */
 function registrationListSplits(server,local,base,k,divisions){
@@ -341,12 +353,37 @@ function registrationConflictDivisions(serverState,localState,baseState,division
   return [...out];
 }
 function mergeRegistrationListSplit(server,local,base,divisions,label,conflicts,key='competitors'){
-  const outside=mergeValueThreeWay(registrationEntriesIn(server,divisions,false,key),registrationEntriesIn(local,divisions,false,key),registrationEntriesIn(base,divisions,false,key),label,conflicts)||[];
-  const inside=cloneJson(registrationEntriesIn(local,divisions,true,key));
+  // #95: a team can move between team divisions, so split teams by id: a team that is in a replayed
+  // division in any copy (server, local, base) is this device's (its structure was built without the
+  // other device's move), never dropped by the outside merge nor kept twice.
+  const rows=list=>Array.isArray(list)?list:[];
+  const byId=key==='teams'&&[server,local,base].every(list=>rows(list).every(t=>t?.id));
+  const insideIds=byId?new Set([server,local,base].flatMap(list=>registrationEntriesIn(list,divisions,true,key)).map(t=>t.id)):null;
+  const isInside=e=>byId?insideIds.has(e.id):divisions.includes(registrationEntryDivision(e,key));
+  const lists=[server,local,base].map(list=>rows(list).filter(e=>!isInside(e)));
+  const outside=key==='teams'&&lists.flat().every(t=>t.id)?KSMEngine.mergeTeamDivisionRecords(lists[0],lists[1],lists[2],label,conflicts):mergeValueThreeWay(lists[0],lists[1],lists[2],label,conflicts)||[];
+  const inside=cloneJson(rows(local).filter(isInside));
   // In the server list's order: the replayed divisions' entries where its first one was (else at the end).
-  const at=(Array.isArray(server)?server:[]).findIndex(e=>divisions.includes(registrationEntryDivision(e,key)));
+  const at=rows(server).findIndex(isInside);
   const before=at<0?outside.length:Math.min(at,outside.length);
   return outside.slice(0,before).concat(inside,outside.slice(before));
+}
+/**
+ * #95: a team moved into or out of a team division the other device has already drawn would change that
+ * draw's team list under its matches (they refer to teams by position): the drawn division keeps the
+ * server's assignment, with the usual "their version was kept" notice. A division this device's own
+ * structural edit replays is not the server's draw (its teams come from this device, see above).
+ */
+function ksmKeepDrawnTeamAssignments(st,serverTeams,replayed,conflicts){
+  const drawn=div=>Boolean(div)&&!replayed.includes(div)&&((st.allMatches?.[div]||[]).length>0||Boolean(st.teamElimTeams?.[div]));
+  const onServer=new Map(serverTeams.filter(t=>t?.id).map(t=>[t.id,t]));
+  (st.teams||[]).forEach(t=>{
+    const s=t?.id&&onServer.get(t.id);
+    if(!s||t.teamDivisionId===s.teamDivisionId||!(drawn(s.teamDivisionId)||drawn(t.teamDivisionId)))return;
+    t.teamDivisionId=s.teamDivisionId;
+    const label='Team division assignment (division already drawn)';
+    if(!conflicts.includes(label))conflicts.push(label);
+  });
 }
 function noteMergeConflicts(conflicts){
   if(!conflicts.length)return;
@@ -479,6 +516,10 @@ function replayStructuralEdit(rebased,localPayload,basePayload,serverPayload){
 }
 /* ksm:post-split-end */
 function rebaseLocalPayloadOnRecord(localPayload,serverRecord,originalBaseRevision/* ksm:post-split-begin edit-merge */,basePayload=null/* ksm:post-split-end */){
+  /* ksm:post-split-begin team-divisions */
+  localPayload=ksmTeamDivisionPayload(localPayload);basePayload=ksmTeamDivisionPayload(basePayload);
+  serverRecord={...serverRecord,payload:ksmTeamDivisionPayload(serverRecord.payload)};
+  /* ksm:post-split-end */
   const rebased=cloneJson(serverRecord.payload),court=pinnedCourt()||normalizeCourt(cloudSession.court||state.currentCourt);
   rebased.state=rebased.state||{};
   const localState=localPayload?.state||{};

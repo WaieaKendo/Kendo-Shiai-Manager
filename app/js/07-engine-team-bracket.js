@@ -90,7 +90,7 @@ function teamWinner(div,pair){
  */
 function maybeAdvanceTeamBracket(m){
   if(!m || !(m.type==='teamPosition'||m.type==='teamPlayoff'||m.type==='kachinuki'))return;
-  let div=m.division, fmt=/* ksm:post-split-begin engine-settings was:teamTournamentFormat?.value */tournamentSettings().teamTournamentFormat/* ksm:post-split-end */||'Single Elimination';
+  let div=m.division, fmt=/* ksm:post-split-begin engine-settings was:teamTournamentFormat?.value */ksmTeamSettings(div).teamTournamentFormat/* ksm:post-split-end */||'Single Elimination';
   if(fmt!=='Single Elimination')return;
   syncTeamBracket(div,state.allMatches[div]||[],state.teamElimTeams?.[div]||eligibleTeams(div));
 }

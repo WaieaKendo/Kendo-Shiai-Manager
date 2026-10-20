@@ -95,7 +95,9 @@ export async function createInProcessApi({ resetKey = 'test-reset-key' } = {}) {
     KSM_RESET_KEY: resetKey,
   };
   const call = async (method, path, { headers = {}, body } = {}) => {
-    const init = { method, headers: { ...headers } };
+    // As the app: every request names the saved format it understands (src-worker.js MIN_CLIENT_SCHEMA);
+      // a header set to undefined is left out (an app from before the version gate).
+      const init = { method, headers: Object.fromEntries(Object.entries({ 'x-ksm-client-schema': '2', ...headers }).filter(([, v]) => v !== undefined)) };
     if (body !== undefined) { init.body = JSON.stringify(body); init.headers['content-type'] = 'application/json'; }
     return workerEntry.fetch(new Request(`http://ksm.test${path}`, init), env);
   };

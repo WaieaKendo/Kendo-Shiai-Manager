@@ -22,7 +22,7 @@ checks={
  'queue empty on complete':"if(divisionComplete(div))return {kind:'empty'};" in html,
  'court medalist panel':'setCourtCompletePresentation' in html,
  # F16: the placements are a court card's (kind 'complete') and fill the screen once neither court plays.
- 'live medalist panel':"kind:'complete',division:ksmText(div),complete:ksmDivisionCompleteInput(div,true)" in html and "ksmPublishLiveScores({kind:'complete',complete:finished.complete});" in html and "<div className=\"audience-hero\"><DivisionCompletePanel view={view.complete} /></div>" in live_react and "<div className=\"audience-hero\"><DivisionCompletePanel view={body.complete} /></div>" in live_react,
+ 'live medalist panel':"kind:'complete',division:ksmText(ksmDivisionName(div)),complete:ksmDivisionCompleteInput(div,true)" in html and "ksmPublishLiveScores({kind:'complete',complete:finished.complete});" in html and "<div className=\"audience-hero\"><DivisionCompletePanel view={view.complete} /></div>" in live_react and "<div className=\"audience-hero\"><DivisionCompletePanel view={body.complete} /></div>" in live_react,
 }
 failed=[k for k,v in checks.items() if not v]
 if failed:raise SystemExit('FAIL: '+', '.join(failed))

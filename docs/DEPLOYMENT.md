@@ -65,6 +65,11 @@ Two pushes in quick succession start two runs. Each deploy job has a concurrency
 4. Open a spectator link (`/t/<id>`) in a private window and check that it updates live.
 5. Open Court A and Court B scorekeeper links (`/t/<id>/court/a`, `/t/<id>/court/b`) on two devices, plus a TV link (`/t/<id>/tv/a`) and an overlay link (`/t/<id>/overlay/a`); check Cloud Diagnostics for connected devices and revisions.
 6. Staff Login on a second device works (one prompt), and an existing tournament from before 4.0.0 still accepts its staff password.
+7. **Reload every device that was already open** (court tablets, director laptops, TV screens, every tab), before anyone adds a second team division or keeps scoring. A page loaded before the update is an older app: the server refuses its saves (HTTP 426, "This device runs an older version of Kendo Shiai Manager. Reload the page…"), so it shows "Not saved" until it is reloaded. Its unsaved work stays queued on the device and is sent after the reload. Read-only screens (TV, spectators) keep updating but show old layouts until reloaded.
+
+### Version gate (saved format)
+
+Every save sends `x-ksm-client-schema` (`KSM_CLIENT_SCHEMA`, app/js/01-team-divisions.js), and the Worker refuses tournament creates and saves below `MIN_CLIENT_SCHEMA` (src-worker.js) with 426. Both are 2 since team divisions (#85): an older app does not understand several team divisions and could rewrite them (for example, its Regenerate rebuilds one "Team Tournament" bracket over the other team divisions' draws). When a change makes older apps unsafe again, raise both numbers in the same release. Reading, live updates, Staff Login and deleting are not gated.
 
 ### No approval pause, and the event freeze
 

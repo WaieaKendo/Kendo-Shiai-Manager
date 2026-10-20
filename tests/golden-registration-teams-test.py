@@ -113,7 +113,7 @@ FIELDS_JS = f"""() => {{
   return {{fields, focus: name(a), connected: a ? a.isConnected : null}};
 }}"""
 STATE_JS = """() => ({
-  teams: KSMTest.app.state.teams,
+  teams: KSMTest.app.state.teams.map(({id,...team})=>team),
   exhibitions: KSMTest.app.state.exhibitions,
   regMode: KSMTest.app.state.regMode ?? null,
   cards: ['indReg', 'teamReg', 'exhibitionReg', 'poolsReg'].filter(id => !document.getElementById(id).classList.contains('hidden')),
@@ -266,20 +266,20 @@ def teams_cards(browser, react_check):
         g.do(f'team {i + 1}: {n} typed, Tab', lambda a, i=i, n=n: (type_into(a.page, team_field('team-name', i), n), a.page.keyboard.press('Tab')))
     g.do('team 2: senpo typed, Tab', lambda a: (type_into(a.page, team_field('team-member-senpo', 1), 'Hana'), a.page.keyboard.press('Tab')))
     leave(page)
-    setup_select(g, 'team-format', '5-Person Team')
+    setup_select(g, 'team-division-teamFormat', '5-Person Team')
     open_registration(g)
     g.do('tab: team (5-Person)', lambda a: click(a.page, tid('reg-tab-team')))
     g.do('team 1: jiho and fukusho typed', lambda a: (
         type_into(a.page, team_field('team-member-jiho', 0), 'Ji ho'), a.page.keyboard.press('Tab'),
         type_into(a.page, team_field('team-member-fukusho', 0), 'Fuku'), a.page.keyboard.press('Tab')))
     leave(page)
-    setup_select(g, 'team-format', 'Kachinuki')
-    g.do('Setup: team tournament format Round Robin', lambda a: a.page.select_option(tid('team-tournament-format'), label='Round Robin'))
+    setup_select(g, 'team-division-teamFormat', 'Kachinuki')
+    g.do('Setup: team tournament format Round Robin', lambda a: a.page.select_option(tid('team-division-teamTournamentFormat'), label='Round Robin'))
     open_registration(g)
     g.do('tab: team (Kachinuki, Round Robin)', lambda a: click(a.page, tid('reg-tab-team')))
     g.do('Setup: team format 3-Person Team (Registration hidden)', lambda a: (
-        click(a.page, tid('nav-setup')), a.page.select_option(tid('team-format'), label='3-Person Team'),
-        a.page.select_option(tid('team-tournament-format'), label='Single Elimination')))
+        click(a.page, tid('nav-setup')), a.page.select_option(tid('team-division-teamFormat'), label='3-Person Team'),
+        a.page.select_option(tid('team-division-teamTournamentFormat'), label='Single Elimination')))
     open_registration(g)
     g.do('tab: team (3-Person, Single Elimination)', lambda a: click(a.page, tid('reg-tab-team')))
     for text in ['hilo', 'hana', '5-person', '3-person', 'zzz']:

@@ -25,6 +25,7 @@ export interface ResultPlacementInput {
 
 /** resultCardHtml(div) as data. */
 export interface ResultCardInput {
+  name?: string;
   division: string;
   /** A team round robin (View Standings, the pairing count while in progress). */
   roundRobin: boolean;
@@ -96,7 +97,7 @@ export interface PlacementRowView {
   name: string;
 }
 
-export type ResultCardView =
+export type ResultCardView = {name?: string} & (
   | {
     kind: 'progress';
     division: string;
@@ -104,7 +105,7 @@ export type ResultCardView =
     /** 'View Standings →' for a team round robin, else no button. */
     button: string | null;
   }
-  | { kind: 'award'; division: string; rows: PlacementRowView[]; button: string };
+  | { kind: 'award'; division: string; rows: PlacementRowView[]; button: string });
 
 export interface ResultsSectionView {
   heading: 'Completed' | 'In Progress';
@@ -121,6 +122,7 @@ export function resultCardView(card: ResultCardInput): ResultCardView {
     return {
       kind: 'progress',
       division: card.division,
+      ...(card.name ? {name:card.name} : {}),
       message: card.roundRobin ? `Round robin in progress • ${p?.complete}/${p?.total} pairings complete` : 'Tournament in progress',
       button: card.roundRobin ? 'View Standings →' : null,
     };
@@ -128,6 +130,7 @@ export function resultCardView(card: ResultCardInput): ResultCardView {
   return {
     kind: 'award',
     division: card.division,
+      ...(card.name ? {name:card.name} : {}),
     rows: card.placements.map((p, i) => ({
       className: `placement-row ${i === 0 ? 'champion' : ''}`,
       ribbonClass: `placement-ribbon ${p.tier}`,

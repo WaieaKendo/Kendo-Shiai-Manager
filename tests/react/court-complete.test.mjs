@@ -61,3 +61,12 @@ test('continueBoxView: the division-complete box on the court screen (owner deci
   assert.equal(continueBoxView({ complete: true, placements: [] }, false), null, 'Live Scores / TV: no court, no box');
   assert.equal(keptKey(base), 'A|Kids');
 });
+
+test('team division Continue labels and kept results use persisted identity separately from names', async()=>{
+  const {continueBoxView,keptKey}=await import('../../app/react/court/complete-model.ts');
+  const input={complete:true,placements:[],court:'A',division:'Kids',divisionId:'team-kids',next:'team-adults',nextName:'Adult Open'};
+  const box=continueBoxView(input,false);
+  assert.equal(box.continueLabel,'Continue to Adult Open →');
+  assert.equal(box.next,'team-adults');
+  assert.equal(keptKey(input),keptKey({...input,division:'Kids renamed'}));
+});

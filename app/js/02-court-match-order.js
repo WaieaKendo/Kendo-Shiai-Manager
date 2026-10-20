@@ -74,11 +74,12 @@ function initCourtStates(){
 }
 function renderDivisions(){
   state.divisions.forEach(d=>state.divisionCourts[d]=state.divisionCourts[d]||'A');
-  if(window.poolDiv){let all=[...new Set([...state.divisions,...Object.keys(state.allMatches||{})])];let selected=(poolDiv.value&&all.includes(poolDiv.value))?poolDiv.value:((state.poolViewDivision&&all.includes(state.poolViewDivision))?state.poolViewDivision:state.currentDivision);state.poolViewDivision=selected;poolDiv.innerHTML=all.map(d=>`<option ${d===selected?'selected':''}>${esc(d)}</option>`).join('');if(selected)poolDiv.value=selected;}
+/* ksm:post-split-begin team-divisions was:  if(window.poolDiv){let all=[...new Set([...state.divisions,...Object.keys(state.allMatches||{})])];let selected=(poolDiv.value&&all.includes(poolDiv.value))?poolDiv.value:((state.poolViewDivision&&all.includes(state.poolViewDivision))?state.poolViewDivision:state.currentDivision);state.poolViewDivision=selected;poolDiv.innerHTML=all.map(d=>`<option ${d===selected?'selected':''}>${esc(d)}</option>`).join('');if(selected)poolDiv.value=selected;}  */  if(window.poolDiv){let all=[...new Set([...state.divisions,...ksmTeamDivisions().filter(d=>state.allMatches?.[d.id]).map(d=>d.id),...Object.keys(state.allMatches||{})])];let selected=(poolDiv.value&&all.includes(poolDiv.value))?poolDiv.value:((state.poolViewDivision&&all.includes(state.poolViewDivision))?state.poolViewDivision:state.currentDivision);state.poolViewDivision=selected;poolDiv.innerHTML=all.map(d=>`<option ${d===selected?'selected':''}${ksmDivisionName(d)!==d?` value="${esc(d)}"`:''}>${esc(ksmDivisionName(d))}</option>`).join('');if(selected)poolDiv.value=selected;}
+/* ksm:post-split-end */
   if(window.scoreDiv){
     let court=state.currentCourt||'A';
     let all=[...new Set([...state.divisions,...Object.keys(state.allMatches||{})])];
-    let opts=all.filter(d=>{let c=state.divisionCourts[d]||'A';return c===court||c==='split'||(d==='Team Tournament'&&(state.divisionCourts[d]||'Both')==='Both')});
+    let opts=all.filter(d=>{let c=state.divisionCourts[d]||'A';return c===court||c==='split'||/* ksm:post-split-begin team-divisions was:(d==='Team Tournament'&&(state.divisionCourts[d]||'Both')==='Both') */(isTeamDivision(d)&&(state.divisionCourts[d]||'Both')==='Both')/* ksm:post-split-end */});
 /* ksm:post-split-begin react-court */
     // The React court header (35-react-court.js) draws the court title and the select.
     ksmPublishCourtHeader({court,divisions:opts,currentDivision:state.currentDivision||''});

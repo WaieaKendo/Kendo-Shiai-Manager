@@ -244,6 +244,7 @@ async function saveTournamentToCloudWithReason(reason='Autosave',force=false){
     return true;
   }catch(err){
     console.warn('Cloud save failed',err);
+    /* ksm:post-split-begin team-divisions */if(['slug-taken','invalid-slug'].includes(err?.code))writeCloudDiagnosticsState({errorMessage:String(err?.message||err)});/* ksm:post-split-end */
 /* ksm:post-split-begin tournament-switcher */if(err?.code==='transition-cancelled')return false;/* ksm:post-split-end *//* ksm:post-split-begin delete-tournament */if(err?.code==='tournament-deleted')return false;/* ksm:post-split-end */
     if(!String(err.message).includes('conflict'))writeOutbox(payload,reason);
     ksmSaveStatusMode=String(err.message).includes('conflict')?'error':'offline';
@@ -306,7 +307,7 @@ function scheduleQueuedSaveRetry(err){
   const outbox=readOutbox();
   if(ksmQueuedSaveRetryTimer||!outbox||isReadOnlySession()||(outbox.tournamentId&&outbox.tournamentId!==cloudSession.tournamentId))return;
   // A refused staff session needs Staff Login, not another try.
-  if(/authorization required|password required/i.test(String(err?.message||'')))return;
+  if(/authorization required|password required|reload the page/i.test(String(err?.message||'')))return;
   const delay=KSM_QUEUED_SAVE_RETRY_MS[Math.min(ksmQueuedSaveRetryAttempt++,KSM_QUEUED_SAVE_RETRY_MS.length-1)];
   ksmQueuedSaveRetryTimer=setTimeout(async()=>{
     ksmQueuedSaveRetryTimer=null;
@@ -635,12 +636,12 @@ function applyTournamentPayload(payload,saveAfter,options={}){
   if(!payload || !payload.state) throw new Error('Invalid KSM file');
   const localCourt=options.pinnedCourt||pinnedCourt()||cloudSession.court||state.currentCourt||null;
   const localPublicCourt=state.publicCourt||localCourt||'A';
-  const loaded=payload.state;
+  /* ksm:post-split-begin team-divisions was:const loaded=payload.state; */const loaded=KSMEngine.migrateTeamDivisions(JSON.parse(JSON.stringify(payload.state)),payload.setup||{});ksmNoteTeamsReassigned(payload.state,loaded,options.source);/* ksm:post-split-end */
   Object.keys(state).forEach(k=>delete state[k]);
   Object.assign(state, loaded);
   sanitizeLoadedTournamentState(state,options.source||'tournament load');
   normalizeAllIndividualPoolTiebreakOrder(state,options.source||'tournament load');
-  state.teamElimTeams=state.teamElimTeams||{};state.managementRevision=state.managementRevision||0;state.divisionCourts=state.divisionCourts||{};Object.keys(state.divisionCourts).forEach(d=>{if(state.divisionCourts[d]==='Both'&&d!=='Team Tournament')state.divisionCourts[d]='split'});
+  state.teamElimTeams=state.teamElimTeams||{};state.managementRevision=state.managementRevision||0;state.divisionCourts=state.divisionCourts||{};Object.keys(state.divisionCourts).forEach(d=>{if(state.divisionCourts[d]==='Both'&&/* ksm:post-split-begin team-divisions was:d!=='Team Tournament' */!isTeamDivision(d)/* ksm:post-split-end */)state.divisionCourts[d]='split'});
   if(localCourt){pinCourtLocally(localCourt);state.currentCourt=normalizeCourt(localCourt)}
   if(isTvSession())state.publicCourt=normalizeCourt(localCourt||localPublicCourt);else state.publicCourt=normalizeCourt(localPublicCourt);
   applySetupSnapshot(payload.setup);

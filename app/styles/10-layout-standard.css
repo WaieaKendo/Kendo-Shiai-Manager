@@ -203,3 +203,16 @@ main > .view > .grid{gap:var(--ksm-card-gap)}
     appearance:none;
   }
 }
+/* ksm:post-split-begin team-divisions */
+/* The shared division table becomes labelled cards on phones. Team rows have six columns. */
+@media(max-width:760px){
+  .setup-team-division-table td{grid-template-columns:110px minmax(0,1fr)}
+  .setup-team-division-table td:nth-child(1)::before{content:'Division'}
+  .setup-team-division-table td:nth-child(2)::before{content:'Match format'}
+  .setup-team-division-table td:nth-child(3)::before{content:'Tournament format'}
+  .setup-team-division-table td:nth-child(4)::before{content:'Court'}
+  .setup-team-division-table td:nth-child(5)::before{content:'Awards'}
+  .setup-team-division-table td:nth-child(6)::before{content:'Actions'}
+  .setup-team-division-table .setup-move-btn{min-height:44px;min-width:44px}
+}
+/* ksm:post-split-end */

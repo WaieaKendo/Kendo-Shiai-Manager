@@ -283,13 +283,13 @@ def setup_details(browser, react_check):
     g.do('team: Disabled', lambda a: a.page.select_option(tid('team-enabled'), label='Disabled'))
     g.do('team: Enabled', lambda a: a.page.select_option(tid('team-enabled'), label='Enabled'))
     for opt in ['5-Person Team', 'Kachinuki', '3-Person Team']:
-        g.do(f'team format: {opt}', lambda a, o=opt: a.page.select_option(tid('team-format'), label=o))
+        g.do(f'team format: {opt}', lambda a, o=opt: a.page.select_option(tid('team-division-teamFormat'), label=o))
     for opt in ['Round Robin', 'Single Elimination']:
-        g.do(f'team tournament format: {opt}', lambda a, o=opt: a.page.select_option(tid('team-tournament-format'), label=o))
+        g.do(f'team tournament format: {opt}', lambda a, o=opt: a.page.select_option(tid('team-division-teamTournamentFormat'), label=o))
     for opt in ['A', 'B', 'Both']:
-        g.do(f'team court: {opt}', lambda a, o=opt: a.page.select_option(tid('team-court'), label=o))
+        g.do(f'team court: {opt}', lambda a, o=opt: a.page.select_option(tid('team-division-court'), label=o))
     for opt in ['top1', 'dual3', 'top2']:
-        g.do(f'team awards: {opt}', lambda a, o=opt: a.page.select_option('#teamAwardMode', value=o))
+        g.do(f'team awards: {opt}', lambda a, o=opt: a.page.select_option('[data-testid=team-division-awardMode]', value=o))
     g.do('exhibitions: Enabled', lambda a: a.page.select_option(tid('exhibition-enabled'), label='Enabled'))
     g.do('exhibitions: Disabled', lambda a: a.page.select_option(tid('exhibition-enabled'), label='Disabled'))
     g.do('exhibitions: Enabled again', lambda a: a.page.select_option(tid('exhibition-enabled'), label='Enabled'))
@@ -396,7 +396,8 @@ def setup_divisions(browser, react_check):
 # A live update: the cloud copy with other setup values and divisions (built from this page's own
 # payload), as applyRemoteCloudRecord() receives it.
 REMOTE_JS = """() => {
-  const p = tournamentPayload();
+  const p = KSMTest.payload();
+  delete p.state.teamDivisions;
   p.setup = {...p.setup, tName: 'Remote <Cup> & Co', tHost: 'Remote Host', tLocation: 'Remote Hall', teamFormat: '5-Person Team',
              teamCourt: 'A', teamAwardMode: 'dual3', court2RedSide: 'left', exhibitionEnabled: 'Enabled', court1Refs: 'Remote Ref'};
   p.state.divisions = ['Women’s Open', 'Remote Kids'];
@@ -466,7 +467,7 @@ def setup_module_missing(browser):
     notice = page.locator('#setup [data-testid="setup-module-missing"]')
     assert notice.is_visible(), 'no "Divisions could not load" notice without the React module'
     assert 'Divisions could not load' in notice.inner_text(), notice.inner_text()
-    assert not page.locator('#setup .setup-division-table-wrap').is_visible(), 'the empty divisions table is shown without the React module'
+    assert not page.locator('#setup .setup-division-table-wrap:has(#divisionSetupRows)').is_visible(), 'the empty divisions table is shown without the React module'
     assert page.locator('#divisionSetupRows *').count() == 0, 'something drew the divisions table without the React module'
     assert page.locator('#setupTournamentName').text_content() == 'Kendo Tournament', 'the hero changed without the React module'
     assert page.evaluate('window.ksmSetupDivisionsInput.rows.length') == 7, 'renderDivisionSetup() did not publish without the island'

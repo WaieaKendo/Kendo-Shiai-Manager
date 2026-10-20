@@ -198,7 +198,8 @@ function namesWithStructure(st: RenameState): Set<string> {
  */
 export function orphanedDivisionStructure(st: RenameState, presets: readonly string[], except?: RenameState): string[] {
   const existing = except ? namesWithStructure(except) : new Set<string>();
-  return [...namesWithStructure(st)].filter(d => d !== TEAM_DIVISION && d !== EXHIBITION_DIVISION && !isDivision(st, presets, d) && !existing.has(d));
+  const teamIds = new Set(((st.teamDivisions || []) as {id:string}[]).map(d => d.id));
+  return [...namesWithStructure(st)].filter(d => !teamIds.has(d) && d !== TEAM_DIVISION && d !== EXHIBITION_DIVISION && !isDivision(st, presets, d) && !existing.has(d));
 }
 
 /** `st` without the structure (pools, matches, brackets) of `divisions` (assign over the state). */

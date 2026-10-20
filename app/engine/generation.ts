@@ -19,7 +19,7 @@ export const TEAM_DIVISION = 'Team Tournament';
 export const EXHIBITION_DIVISION = 'Exhibition Matches';
 
 export interface CompetitorRow extends PoolEntrant { division?: string | undefined; status?: string | undefined }
-export type TeamRow = TeamEntry & { status?: string | undefined };
+export type TeamRow = TeamEntry & { status?: string | undefined; teamDivisionId?: string | undefined };
 export interface ExhibitionRow { white?: string | undefined; red?: string | undefined; status?: string | undefined }
 
 /** Registered competitors of a division who are not no-shows (and have a name). */
@@ -34,6 +34,7 @@ export function eligibleTeams<T extends TeamRow>(teams: readonly T[]): T[] {
 
 export interface GenerationInput {
   division: string;
+  teamDivisionId?: string | undefined;
   competitors: readonly CompetitorRow[];
   teams: readonly TeamRow[];
   exhibitions?: readonly ExhibitionRow[] | null | undefined;
@@ -65,8 +66,8 @@ const defaultNodes = (n: number): TeamBracketNode<'A' | 'B'>[] => teamBracketNod
  */
 export function generateDivision(input: GenerationInput): DivisionPlan | null {
   const div = input.division, nodesFor = input.bracketNodesForCount || defaultNodes;
-  if (div === TEAM_DIVISION) {
-    const teams = eligibleTeams(input.teams); if (!teams.length) return null;
+  if (div === TEAM_DIVISION || input.teamDivisionId) {
+    const teams = eligibleTeams(input.teamDivisionId ? input.teams.filter(t => t.teamDivisionId === input.teamDivisionId) : input.teams); if (!teams.length) return null;
     const fmt = input.settings.teamTournamentFormat || 'Single Elimination';
     let pools: BuiltPool<PoolPlayer>[], teamPools: BuiltPool<PoolPlayer>[];
     if (fmt === 'Round Robin') { pools = [{ label: 'A', size: teams.length, players: teams.map(t => ({ name: t.team, dojo: '', team: true as const })) }]; teamPools = pools; }

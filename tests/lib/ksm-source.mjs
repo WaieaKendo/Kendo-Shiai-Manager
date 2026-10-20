@@ -69,9 +69,19 @@ function matchBrace(src, open) {
   throw new Error('Unbalanced braces');
 }
 
+let cachedComments=null;
 function definitionStarts(source, name) {
   const re = new RegExp(`(?:async\\s+)?function\\s+${name}\\s*\\(`, 'g');
-  return [...source.matchAll(re)].map(m => m.index);
+  if(cachedComments?.source!==source){
+    const spans=[];
+    for(let i=0;i<source.length;){
+      const end=skip(source,i);
+      if(source.startsWith('/*',i)||source.startsWith('//',i))spans.push([i,end]);
+      i=end;
+    }
+    cachedComments={source,spans};
+  }
+  return [...source.matchAll(re)].filter(m=>!cachedComments.spans.some(([a,b])=>m.index>=a&&m.index<b)).map(m=>m.index);
 }
 
 // Extracts a named function declaration's source. The app redefines many

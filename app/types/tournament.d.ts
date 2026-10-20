@@ -36,7 +36,10 @@ interface Competitor {
 }
 
 /** Registration row for a team; member names by position (3-person teams leave jiho/fukusho out). */
+type TeamDivision = import('../engine/team-divisions.ts').TeamDivision;
 interface Team extends Partial<Record<TeamPosition, string>> {
+  id?: string;
+  teamDivisionId?: string;
   team: string;
   type?: TeamFormat | string;
   status: EntryStatus;
@@ -222,6 +225,7 @@ interface Exhibition { white: string; red: string; division: string; status: Ent
 
 /** All tournament data plus some per-device view state (see KSM_LOCAL_VIEW_STATE_KEYS). */
 interface TournamentState {
+  teamDivisions?: TeamDivision[];
   divisions: string[];
   divisionTypes: ByDivision<DivisionFormat>;
   divisionCourts: ByDivision<CourtMode>;

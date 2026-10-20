@@ -28,7 +28,7 @@ function ksmLiveScoresCourt(court){
   const data=courtCurrentMatch(court);
   if(!data){
     const div=ksmLiveScoresFinishedDivision(court);
-    if(div)return {court:ksmText(court),kind:'complete',division:ksmText(div),complete:ksmDivisionCompleteInput(div,true)};
+    if(div)return {court:ksmText(court),kind:'complete',division:ksmText(ksmDivisionName(div)),complete:ksmDivisionCompleteInput(div,true)};
     // Quirk pass: "Waiting for the next match" (not "...division") while the court's division
     // still has an unplayed match on this court that is not ready yet.
     // Owner decision 6: with the reason when it is known, and the court's next division's first
@@ -40,7 +40,7 @@ function ksmLiveScoresCourt(court){
   }
   const m=data.match,next=data.next,meta=audienceMeta(m);
   // D1: a team round robin's daihyosen bout is labelled as its line.
-  const base={court:ksmText(court),meta:{division:ksmText(meta.division),line:ksmIsRoundRobinDaihyosen(m)?ksmDaihyosenLabel():ksmText(meta.line)}};
+  const base={court:ksmText(court),meta:{division:ksmText(ksmDivisionName(meta.division)),line:ksmIsRoundRobinDaihyosen(m)?ksmDaihyosenLabel():ksmText(meta.line)}};
   if(m.type==='teamPosition'||m.type==='teamPlayoff'||m.type==='kachinuki'){
     // Quirk pass: "Next" is the court's next pairing, as the TV's Upcoming shows it
     // (tvUpcomingMatches(), 25-), not the next bout of the pairing being fought.
@@ -89,7 +89,7 @@ function ksmUpNext(court,own){
     if(isTeamMatch(m)){const key=m.teamPair||m.teamNodeId||`${m.teamWhite}|${m.teamRed}`;if(seen.has(key))continue;seen.add(key);matches.push({white:ksmText(m.teamWhite||'TBD'),red:ksmText(m.teamRed||'TBD')})}
     else matches.push({white:ksmText(m.white||'TBD'),red:ksmText(m.red||'TBD')});
   }
-  return matches.length?{division:ksmText(next),matches}:null;
+  return matches.length?{division:ksmText(ksmDivisionName(next)),matches}:null;
 }
 function ksmBetweenMatches(court,own){
   return {reason:own?ksmWaitingReason(court,own):null,upNext:ksmUpNext(court,own)};
