@@ -60,9 +60,22 @@ export const GC_TEXTS = {
   decide: 'Decide…',
   remove: '×',
   missing: '(not in use)',
-  locked: 'Drawn grand champion matches are fixed: their divisions, format and court. Names and awards can still change. A new grand champion match can be added; it fills in when its divisions finish.',
+  locked: 'A drawn grand champion match is fixed: its divisions, format and court. Its name and awards can still change.',
+  enabledLabel: 'Grand champion',
+  enabled: 'Enabled',
+  disabled: 'Disabled',
+  enabledDrawnTip: 'The grand champion match is drawn: it can no longer be switched off.',
+  sourcesLabel: 'Divisions',
+  sourceAdd: '＋ Add division',
+  drawnTip: 'Fixed: this grand champion match is drawn (its divisions finished). Its name and awards can still change.',
+  formatTwoTip: 'Two divisions always play one match: the format matters from three.',
 } as const;
-export const GC_HEADINGS = ['Name', 'Divisions', 'Format', 'Court', 'Awards', 'Order'] as const;
+/**
+ * Several grand champion matches are supported (data, engine, merge); Setup offers one for now (owner
+ * decision): an Enabled/Disabled switch instead of the Add button, and no Order column. A tournament
+ * that already has several still shows them all. Set to true to offer several again.
+ */
+export const GC_MULTIPLE = false;
 export const GC_FORMAT_OPTIONS = [['Single Elimination', 'Single elimination'], ['Round Robin', 'Pool of winners']] as const;
 export const GC_COURT_OPTIONS = [['A', 'Court A'], ['B', 'Court B']] as const;
 export const GC_AWARD_OPTIONS = [['top1', 'Grand Champion only'], ['top2', 'Grand Champion + Runner-up']] as const;
@@ -113,3 +126,4 @@ export function grandChampionStatus(row: GrandChampionRowInput): { tone: 'info' 
 
 export const gcMoveLabel = (name: string, direction: 'up' | 'down') => `Move ${direction} — ${name}`;
 export const gcRemoveLabel = (name: string) => `Remove — ${name}`;
+export const gcSourceRemoveLabel = (division: string, name: string) => `Remove ${division} — ${name}`;

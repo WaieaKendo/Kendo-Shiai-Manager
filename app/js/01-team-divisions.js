@@ -83,6 +83,8 @@ function ksmAssignTeamDivision(team,id){
 function ksmTeamDivisionChanged(){
   ksmRenderTeamDivisions();renderDivisions();renderTeams();renderTournamentStatus();scheduleAutoSave('Team divisions');
 }
+// Why a team division's control is off (shown as its tooltip): drawn divisions keep format, court and teams.
+function ksmTeamDivisionLockTip(d){return ksmTeamDivisionDrawn(d.id)?`Fixed: ${d.name} is drawn, so its match format, court and teams can't change. Its name, awards and order can still change.`:''}
 function ksmRenderTeamDivisions(){
   const root=document.getElementById('teamDivisionSetup');if(!root)return;
   const rows=ksmTeamDivisions(),off=tournamentSettings().teamEnabled==='Disabled'||isReadOnlySession();
@@ -109,10 +111,12 @@ function ksmRenderTeamDivisions(){
         if(document.activeElement!==input)input.value=d[field];
         if(field!=='name')input.setAttribute('aria-label',input.getAttribute('aria-label').split(' — ')[0]+' — '+d.name);
         input.disabled=off||(ksmTeamDivisionDrawn(d.id)&&!['name','awardMode'].includes(field));
+        input.title=input.disabled&&!off?ksmTeamDivisionLockTip(d):'';
       }
       row.querySelector('[data-testid="team-division-up"]').disabled=off||i===0;
       row.querySelector('[data-testid="team-division-down"]').disabled=off||i===rows.length-1;
-      row.querySelector('[data-testid="team-division-remove"]').disabled=off||ksmTeamDivisionDrawn(d.id);
+      const remove=row.querySelector('[data-testid="team-division-remove"]');remove.disabled=off||ksmTeamDivisionDrawn(d.id);
+      remove.title=remove.disabled&&!off?ksmTeamDivisionLockTip(d):'Remove — '+d.name;
     });return;
   }
   root.dataset.divisionIds=key;root.replaceChildren();root.className='setup-division-table-wrap';
@@ -124,7 +128,7 @@ function ksmRenderTeamDivisions(){
     const cell=document.createElement('td'),input=document.createElement('select');
     input.dataset.testid='team-division-'+key;input.setAttribute('aria-label',label+' — '+d.name);
     values.forEach(([value,name])=>input.add(new Option(name,value)));input.value=d[key];
-    input.disabled=off||(ksmTeamDivisionDrawn(d.id)&&key!=='awardMode');
+    input.disabled=off||(ksmTeamDivisionDrawn(d.id)&&key!=='awardMode');if(input.disabled&&!off)input.title=ksmTeamDivisionLockTip(d);
     input.onchange=()=>{const error=ksmUpdateTeamDivision(d.id,{[key]:input.value});if(error)alert(error)};
     cell.append(input);return cell;
   };
@@ -136,7 +140,7 @@ function ksmRenderTeamDivisions(){
     cell.append(name);row.append(cell,select(d,'teamFormat','Match format',['3-Person Team','5-Person Team','Kachinuki'].map(x=>[x,x])),select(d,'teamTournamentFormat','Tournament format',['Single Elimination','Round Robin'].map(x=>[x,x])),select(d,'court','Court',['A','B','Both'].map(x=>[x,x])),select(d,'awardMode','Awards',[['top1','Champion only'],['top2','Champion + Runner-up'],['dual3','Champion + Runner-up + 3rd place(s)']]));
     const actions=document.createElement('td'),buttons=document.createElement('span');buttons.className='setup-division-moves';actions.append(buttons);
     [['up','Move up',i===0],['down','Move down',i===rows.length-1],['remove','Remove',ksmTeamDivisionDrawn(d.id)]].forEach(([action,text,disabled])=>{
-      const button=document.createElement('button');button.textContent=action==='up'?'↑':action==='down'?'↓':'×';button.className='setup-move-btn';button.title=text+' — '+d.name;button.setAttribute('aria-label',text+' — '+d.name);button.disabled=off||!!disabled;button.dataset.testid='team-division-'+action;
+      const button=document.createElement('button');button.textContent=action==='up'?'↑':action==='down'?'↓':'×';button.className='setup-move-btn';button.title=text+' — '+d.name;button.setAttribute('aria-label',text+' — '+d.name);button.disabled=off||!!disabled;button.dataset.testid='team-division-'+action;if(action==='remove'&&button.disabled&&!off)button.title=ksmTeamDivisionLockTip(d);
       button.onclick=()=>action==='remove'?ksmRemoveTeamDivision(d.id):ksmMoveTeamDivision(d.id,action);buttons.append(button);
     });row.append(actions);body.append(row);
   });

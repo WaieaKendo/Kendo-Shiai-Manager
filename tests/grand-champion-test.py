@@ -59,17 +59,26 @@ def local_cases(browser):
     # Setup: add the row with the island's controls (before the draw).
     page.evaluate('KSMTest.app.state.generated=false;KSMTest.app.renderAll()')
     app.nav('setup')
-    app.click('grand-champion-add')
+    # One grand champion for now: the Enabled switch adds it (no Add button, no Order).
+    assert not page.locator(sel('grand-champion-add')).count() and not page.locator(sel('grand-champion-up')).count()
+    page.select_option(sel('grand-champion-enabled'), 'Enabled')
     page.wait_for_selector(sel('grand-champion-row'))
     assert 'Choose at least two divisions' in status(app)
-    for div in ('Open', 'Women'):
-        page.click(f'{sel("grand-champion-source")}[data-division="{div}"]')
+    for div in ('Women', 'Open'):  # divisions as chips: picked from the list (kept in running order)
+        page.select_option(sel('grand-champion-source-add'), div)
+    page.wait_for_function("KSMTest.grandChampions()[0]?.sources.length===2")
+    assert page.locator(sel('grand-champion-chip')).all_inner_texts()[0].startswith('Open')
+    # A chip's × takes the division off again.
+    page.locator(f'{sel("grand-champion-chip")}[data-division="Women"] {sel("grand-champion-source-remove")}').click()
+    page.wait_for_function("KSMTest.grandChampions()[0]?.sources.length===1")
+    page.select_option(sel('grand-champion-source-add'), 'Women')
     page.select_option(sel('grand-champion-court'), 'B')
     page.select_option(sel('grand-champion-awardMode'), 'top2')
     name = page.locator(sel('grand-champion-name'))
     name.fill('Grand Champion 2026'); name.press('Enter')
     page.wait_for_function("KSMTest.grandChampions()[0]?.name==='Grand Champion 2026'")
     assert page.locator(sel('grand-champion-format')).is_disabled(), 'two sources always play one match'
+    assert 'from three' in page.locator(sel('grand-champion-format')).get_attribute('title')
     row = page.evaluate('KSMTest.grandChampions()[0]')
     gc = row['id']
     assert row['sources'] == ['Open', 'Women'] and row['court'] == 'B' and row['awardMode'] == 'top2', row
@@ -77,7 +86,7 @@ def local_cases(browser):
     page.evaluate('KSMTest.app.generatePools({validated:true})')
     app.nav('setup')
     # Not drawn yet (its divisions have not finished): still editable after generation, like a new team division.
-    assert not page.locator(sel('grand-champion-court')).is_disabled() and not page.locator(sel('grand-champion-add')).is_disabled(), 'locked before its draw'
+    assert not page.locator(sel('grand-champion-court')).is_disabled() and not page.locator(sel('grand-champion-enabled')).is_disabled(), 'locked before its draw'
     assert not page.locator(sel('grand-champion-note')).count()
 
     # Fill-in: nothing until both sources are decided, then one Final on Court B (Encho).
@@ -93,8 +102,9 @@ def local_cases(browser):
     assert 'Ready on Court B' in status(app)
     # Drawn: its divisions, format and court are fixed (name and awards stay), and the note says so.
     assert page.locator(sel('grand-champion-court')).is_disabled() and not page.locator(sel('grand-champion-awardMode')).is_disabled(), 'not locked once drawn'
-    assert page.locator(sel('grand-champion-remove')).is_disabled() and not page.locator(sel('grand-champion-add')).is_disabled()
-    assert page.locator(sel('grand-champion-note')).inner_text().startswith('Drawn grand champion matches are fixed')
+    assert page.locator(sel('grand-champion-enabled')).is_disabled(), 'a drawn grand champion can be switched off'
+    assert page.locator(sel('grand-champion-court')).get_attribute('title').startswith('Fixed: this grand champion match is drawn')
+    assert page.locator(sel('grand-champion-note')).inner_text().startswith('A drawn grand champion match is fixed')
 
     # The court queue: Court B's division list has it, and Continue goes there.
     app.open_court('B')
@@ -355,7 +365,7 @@ def merge_cases(browser, base):
     a.save_now(); a.wait_idle(); b.wait_revision(fetch_record(base, tid)['revision'])
     def withdraw(device, source):
         device.nav('setup')
-        device.page.click(f'[data-grand-champion-id="{both}"] + tr {sel("grand-champion-withdraw")}')
+        device.page.click(f'[data-grand-champion-id="{both}"] {sel("grand-champion-withdraw")}')
         choose(device, 'source:' + source); choose(device, 'runner-up')
     st = race(lambda: withdraw(b, 'Open'), lambda: withdraw(a, 'Women'))
     row = next(g for g in st['grandChampions'] if g['id'] == both)
