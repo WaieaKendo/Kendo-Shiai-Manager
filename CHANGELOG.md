@@ -1,3 +1,61 @@
+## Unreleased — 4.0.0
+
+The first 4.x release, built for the 11/21 tournament: a rebuilt app (same look, faster and better tested), new tournament structure, and much safer saving between devices. When this ships as 4.0.0-rc.1, rename this heading to `v4.0.0-rc.1 — …` and drop the raw commit list `npm run release` puts above it.
+
+### After the update: reload every device
+
+Reload every open tablet, laptop, TV and tab once after the update. The server now refuses saves from a page loaded before the update: it shows "Not saved" and a "reload the page" message until it is reloaded. Unsaved work on it is kept and sent after the reload. Existing tournaments open as before; their single team event becomes a team division of the same name, with its draw, results and awards unchanged.
+
+### Running a tournament
+
+- **Team divisions:** several team competitions in one tournament, each with its own match format (3-person, 5-person, kachinuki), tournament format, court and awards.
+- **Grand champion:** the winners of chosen divisions meet for a Grand Champion award. The match fills in by itself when those divisions finish and joins its court's queue. Withdrawals (runner-up or Fusen-sho) and corrections are handled.
+- **Divisions added after the draw** (individual or team) can be drawn on their own with Regenerate Single Division ("Not drawn yet → Draw"). The other divisions stay as they are.
+- **Division running order** in Setup decides the court order, with a "Continue to the next division" button when a division finishes.
+- **Rename a division** before its draw. **Delete a tournament** (typed confirmation; gone on every device).
+- **Setup** shows what can no longer change after the draw, and why (notes and tooltips). The Library replaces Save / Load: tournament files, backups and diagnostics are under Setup.
+- **Tournament switcher and short links:** move between tournaments from the header; each tournament has a short address (e.g. `/demo-cup-2026`).
+- **Printable scorekeeper guide** at `/print/scorekeeper-guide` (Setup → Sharing & access → Print), also as a two-page PDF.
+
+### Court screen
+
+- **Match timer:** start/stop, ±1/±10 seconds, a whistle at time up, and per-court on/off. A point or a hansoku stops the clock.
+- **Encho and Hikiwake** are clear: "Encho — winner needed" when a winner is required; "Next Match (Hikiwake)" when a tie can stand. Show an Encho/Hikiwake banner on the TV from the court.
+- **Fusen-sho** asks who won (with names), in the court's side order. **Configure court** sets the red side.
+- **Undo/Redo** survive another device saving at the same moment.
+
+### TV, Live Scores and spectators
+
+- The TV shows the red side as the audience sees it, the timer, and the Encho/Hikiwake banner.
+- Live Scores shows both courts and each division's placements.
+- Spectator pages never offer Save; staff changes left on a device point to Staff Login.
+- Cleaner link previews (page title and image) when a link is shared.
+
+### Saving and syncing
+
+- Two devices, or two tabs, saving at the same moment no longer lose or overwrite each other's points, edits or Undo. Queued work from a closed tab is sent by the next staff tab.
+- Saves retry by themselves when the connection drops or a save fails, and are never stuck "unsaved".
+- Refreshing keeps staff signed in. A failed load keeps the cached copy and offers Retry.
+- Loading a tournament file over the open tournament asks before replacing it, and asks again if another device saved during the replace ("Replace anyway" / "Cancel").
+- The server refuses saves from apps older than the tournament's saved format (see "After the update" above).
+
+### Security
+
+- Staff passwords: an attempt limit and stronger password storage (older passwords keep working and are upgraded). Staff sessions use a token that expires when unused.
+- A standalone privacy page.
+
+### Fixes
+
+- Pool order after a No Show shrinks a pool (4 → 3) follows the 3-player order.
+- 4-way ties are ordered correctly (medals). Team round-robin ties use team wins, then bout wins, then ippon, then a one-point daihyosen.
+- Over 30 smaller fixes from the quirks pass and the test audit (court screen, Registration, Setup, Results, offline start).
+
+### Behind the scenes
+
+- The app is rebuilt on a typed engine and React screens, with page addresses (`/t/<id>/court/a`, `/t/<id>/tv/b`, …).
+- About 200 automated test files, including network failure, two-device and two-tab cases. CI runs in about 6 minutes.
+- Deploys: every merge to `develop` updates the dev site; a release merged into `main` updates production.
+
 ## v3.17.20-test — Pool-Local Tiebreak Ordering
 
 - Fixed intermittent pool tiebreak placement where a tiebreak generated for an earlier pool (for example Pool A) could appear only after the final pool in the division.
