@@ -1,6 +1,6 @@
 {
   "name": "kendo-shiai-manager",
-  "version": "3.17.20-test",
+  "version": "4.0.0-rc.1",
   "private": true,
   "type": "module",
   "description": "Kendo Shiai Manager hosted mobile/PWA application",

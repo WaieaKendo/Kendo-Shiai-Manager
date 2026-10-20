@@ -1,6 +1,6 @@
-## Unreleased — 4.0.0
+## v4.0.0-rc.1 — Ready for the 11/21 tournament
 
-The first 4.x release, built for the 11/21 tournament: a rebuilt app (same look, faster and better tested), new tournament structure, and much safer saving between devices. When this ships as 4.0.0-rc.1, rename this heading to `v4.0.0-rc.1 — …` and drop the raw commit list `npm run release` puts above it.
+The first 4.x release, built for the 11/21 tournament: a rebuilt app (same look, faster and better tested), new tournament structure, and much safer saving between devices. This is the first release candidate: it goes to production for testing, and fixes follow as rc.2, rc.3 … until 4.0.0.
 
 ### After the update: reload every device
 

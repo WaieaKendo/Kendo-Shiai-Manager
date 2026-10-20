@@ -68,6 +68,8 @@ from golden_screen import ONLY, PANEL_FIBERS_JS, PANEL_JS, PLATFORM, UPDATE, Gol
 from ksm_app import KsmApp, sel
 from ksm_browser import DIST, launch_chromium, load_app
 
+APP_VERSION = json.loads((Path(__file__).resolve().parents[1] / 'package.json').read_text())['version']
+
 GOLDEN_DIR = Path(__file__).resolve().parent / 'golden' / 'library'
 ROOT = '#home'
 DESKTOP = {'width': 1280, 'height': 720}
@@ -198,7 +200,8 @@ def capture(app):
     shown = page.evaluate(VIEW_JS)
     entry = {
         'shown': shown,
-        'about': page.locator('[data-testid=library-about]').inner_text() if shown else None,
+        # The version changes with every release: recorded as <version> (header-redesign-test checks the number).
+        'about': page.locator('[data-testid=library-about]').inner_text().replace(APP_VERSION, '<version>') if shown else None,
         'session': page.evaluate(SESSION_JS),
         'requests': requests,
         'pending': len(app.api.held),
