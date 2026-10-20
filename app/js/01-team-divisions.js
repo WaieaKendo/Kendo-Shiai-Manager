@@ -79,6 +79,17 @@ function ksmRenderTeamDivisions(){
   const root=document.getElementById('teamDivisionSetup');if(!root)return;
   const rows=ksmTeamDivisions(),off=tournamentSettings().teamEnabled==='Disabled'||isReadOnlySession();
   const add=document.querySelector('[data-testid="team-division-add"]');if(add)add.disabled=off||!!state.generated;
+  // Say why the team setup can't change (it looked editable while disabled): teams off, or fixed by the draw.
+  const teamsOff=tournamentSettings().teamEnabled==='Disabled';
+  if(teamsOff)root.dataset.teamsOff='1';else delete root.dataset.teamsOff;
+  const text=isReadOnlySession()?'':teamsOff?'Teams are disabled. Set Teams enabled to Enabled to set up team divisions.'
+    :state.generated?'The tournament is generated: team divisions can no longer be added or removed, and match format and court are fixed. Names and awards can still change.':'';
+  let note=document.getElementById('teamDivisionNote');
+  if(!text)note?.remove();
+  else if(add){
+    if(!note){note=document.createElement('p');note.id='teamDivisionNote';note.className='small team-division-note';note.dataset.testid='team-division-note';note.setAttribute('role','status');add.after(note)}
+    note.textContent=text;
+  }
   const key=JSON.stringify(rows.map(d=>d.id));
   // Keep existing controls while typing. A sync redraw must not discard an uncommitted name
   // or remove the button receiving the click that commits it.

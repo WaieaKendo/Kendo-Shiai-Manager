@@ -19,7 +19,7 @@ from playwright.sync_api import sync_playwright
 from ksm_browser import launch_chromium
 from ksm_server import local_worker
 from ksm_network import two_courts, assert_points, converge
-from ksm_app import KsmApp, app_path, fetch_record
+from ksm_app import KsmApp, app_path, fetch_record, sel
 
 
 def second_tab(a, base, tid, court, name, problems, storage=None):
@@ -130,6 +130,34 @@ def closed_tab(browser, base, problems):
     for app in (c, observer): app.close()
 
 
+def closed_tab_does_not_block_switching(browser, base, problems):
+    """A closed staff tab left queued work for its tournament; a new tab (no Staff Login) on the Library
+    can still open another tournament: that work is not this tab's, and it stays in the browser."""
+    other = KsmApp.open_device(browser, base, 'Other', problems, tournament_name='Switch Target')
+    other.create_tournament(); other.wait_idle(); other.close()
+    a = KsmApp.open_device(browser, base, 'Staff', problems, tournament_name='Left Behind')
+    left = a.create_tournament(); a.wait_idle()
+    refuse_puts(a)
+    a.page.evaluate("KSMTest.app.state.awards=[{name:'Unsent'}];KSMTest.saveNow('edit')")
+    a.wait_for(a.outbox, message='tab A queue')
+    t = KsmApp(a.page.context.new_page(), 'New tab', problems)
+    t.page.on('dialog', t._on_dialog)
+    with a.page.expect_event('close'):
+        a.page.close(run_before_unload=True)
+    # Its spectator page says where that work is (no Save now: a spectator page saves nothing).
+    t.page.goto(base + app_path(left), wait_until='domcontentloaded')
+    t.page.wait_for_function('window.KSMTest && KSMTest.booted()')
+    t.wait_for(lambda: t.page.inner_text(sel('save-status')).startswith('Unsent staff changes on this device'), message='spectator status')
+    assert not t.page.locator(sel('header-save-now')).count(), 'Save now on a spectator page'
+    t.page.goto(base + '/', wait_until='domcontentloaded')
+    t.page.wait_for_function('window.KSMTest && KSMTest.booted()')
+    t.page.get_by_text('Switch Target', exact=True).first.click()
+    t.wait_for(lambda: t.page.evaluate("KSMTest.app.cloudSession.tournamentId") and 'home' not in t.visible_view(), message='Switch Target to open')
+    queued = t.page.evaluate("Object.keys(localStorage).filter(k => k.startsWith(KSMTest.app.KSM_CLOUD_OUTBOX_KEY))")
+    assert len(queued) == 1, f'the closed tab\'s work must stay in the browser: {queued}'
+    t.page.context.close()
+
+
 def writer_ids(browser, base, problems):
     tid, a, observer = two_courts(browser, base, problems, 'Writers')
     storage = a.page.evaluate('Object.fromEntries(Object.entries(sessionStorage))')
@@ -185,6 +213,7 @@ def main():
         n8_queued(browser, base, problems, a_saves_after_echo=True); print('PASS N8: A saves after B\'s update reached it, B\'s point survives')
         overwrite_idle(browser, base, problems); print('PASS F36: an idle tab applies the other tab\'s update; its next save keeps that point')
         closed_tab(browser, base, problems); print('PASS F36: a closed tab\'s queued work is sent by the next staff tab (other court)')
+        closed_tab_does_not_block_switching(browser, base, problems); print('PASS F36: a closed tab\'s queued work does not keep another tab from switching tournaments')
         writer_ids(browser, base, problems); print('PASS F36: own writer per tab, duplicate and reload; old clients and old entries')
         assert not problems, problems
         browser.close()

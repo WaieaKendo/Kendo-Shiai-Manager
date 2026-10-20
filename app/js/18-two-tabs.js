@@ -165,6 +165,10 @@ function ksmReleaseAdoptedOutbox(){
   localStorage.setItem(ksmOutboxKey('released-'+ksmNewId()),JSON.stringify(entry));
   localStorage.removeItem(ksmOutboxKey());
 }
+/** This tab's own queued work (its slot), without a gone tab's work it only shows. */
+function ksmOwnOutbox(){return ksmReadOutboxKey(ksmOutboxKey())}
+/** This tab's own unsaved work: unconfirmed edits, a save waiting or in flight, its own queue. */
+function ksmTabHasUnsavedWork(){return ksmLocalMutationVersion>ksmConfirmedMutationVersion||Boolean(ksmSaveTimer||ksmCloudTimer||ksmCloudSaveInFlight||ksmCloudSavePending||ksmOwnOutbox())}
 /** Tournament deleted: this tab's slot and every gone tab's slot for it. */
 function ksmDropOutboxesFor(id){
   if(!id)return;

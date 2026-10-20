@@ -419,8 +419,14 @@ class KsmApp:
         def hold(route):
             if route.request.method == 'PUT' and not self._held and not self._hold_done:
                 self._held.append(route)
-            else:
+                return
+            try:
                 route.continue_()
+            except Exception as err:
+                # The page may have ended the request meanwhile (a closed tab, an aborted fetch):
+                # nothing is left to pass on. Anything else is a real failure.
+                if 'already handled' not in str(err) and 'closed' not in str(err).lower():
+                    raise
         self._hold_handler = hold
         self.page.route(self._SAVE_URL, hold)
 

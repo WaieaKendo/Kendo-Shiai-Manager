@@ -72,14 +72,16 @@ function ksmPushTournamentAddress(id){
 async function ksmCanLeaveTournament(){
   // A boot-time draft is detached; New/Open preserve it rather than replacing it.
   if(document.body.classList.contains('ksm-home')&&!cloudSession.tournamentId&&!v316StaffPassword())return true;
-  const pending=ksmCloudSaveInFlight||ksmCloudSavePending||localChangesPending()||readOutbox();
+  // F36: only this tab's own work. A closed tab's queued work that this tab merely shows stays in the
+  // browser for the next staff tab of its tournament: it never keeps this tab from switching.
+  const pending=ksmTabHasUnsavedWork();
   // Pending drafts with creation credentials still get the normal save attempt.
   // A quiet imported draft or one without credentials has no server confirmation.
   if(window.ksmBootstrapReady&&!cloudSession.tournamentId&&localStorage.getItem(KSM_SAVE_KEY)&&(!pending||!v316StaffPassword())){
     alert('This tournament is only saved on this device. Save it to the cloud before switching. You can also download a Tournament File to keep a backup. Your draft is still here.');
     return false;
   }
-  if(isReadOnlySession()&&!readOutbox()&&!ksmCloudSaveInFlight)return true;
+  if(isReadOnlySession()&&!ksmOwnOutbox()&&!ksmCloudSaveInFlight)return true;
   if(pending){
     if(!isReadOnlySession()){
       // The immediate save includes the debounced edits; cancel only those existing timers.
@@ -87,7 +89,7 @@ async function ksmCanLeaveTournament(){
       clearTimeout(ksmSaveTimer);ksmSaveTimer=null;clearTimeout(ksmCloudTimer);ksmCloudTimer=null;
       await saveTournamentToCloudWithReason('Before switching tournament',true);
     }
-    if(ksmCloudSaveInFlight||ksmCloudSavePending||localChangesPending()||readOutbox()){
+    if(ksmTabHasUnsavedWork()){
       alert('This tournament has changes that could not be saved. Connect to the internet and use Save Now (or Staff Login), then switch again. Your work is still here.');
       return false;
     }

@@ -40,7 +40,11 @@ def main(status=500):
             }''')
             assert a.outbox()['role'] == 'staff', a.outbox()
             wording = a.page.inner_text(sel('save-status')).strip()
-            assert wording == 'Not saved · Changes waiting', (status, wording)
+            # After a 401 the page is a spectator page: its queued staff work is sent after Staff Login.
+            expected = 'Unsent staff changes on this device · Staff Login to send' if status == 401 else 'Not saved · Changes waiting'
+            assert wording == expected, (status, wording)
+            if status == 401:
+                assert not a.page.locator(sel('header-save-now')).count(), 'Save now on a spectator page'
             assert_points(a.payload(), 'A', shown, ['M'], [])
             assert_points(fetch_record(base, tid)['payload'], 'A', shown, [], [])
             if status == 409:

@@ -122,15 +122,22 @@ function ksmRenderConnectionStatus(text,mode='local'){
 function ksmPersistentSaveStatusText(){
   if(ksmSaveStatusMode==='saving')return 'Saving…';
   if(ksmSaveStatusMode==='syncing')return 'Synchronizing…';
+  // A spectator page saves nothing: staff work queued on this device (this tab's after its session
+  // expired, or a closed staff tab's) is sent after Staff Login, which the status says.
+  if(isReadOnlySession())return ksmSpectatorHoldsStaffWork()?KSM_UNSENT_STAFF_WORK:humanSaveAge();
   if(readOutbox())return 'Not saved · Changes waiting';
   if(ksmSaveStatusMode==='offline'||ksmSaveStatusMode==='error')return 'Save needs attention';
   return humanSaveAge();
 }
 // renderPersistentSaveStatus() and updateSaveStatus(text) (20): the save status (textContent).
+const KSM_UNSENT_STAFF_WORK='Unsent staff changes on this device · Staff Login to send';
+function ksmSpectatorHoldsStaffWork(){const q=readOutbox();return q?.role==='staff'&&(!q.tournamentId||q.tournamentId===cloudSession.tournamentId)}
 function ksmRenderSaveStatus(text){
-  const warning=!!readOutbox()||['offline','error'].includes(ksmSaveStatusMode);
+  const spectator=isReadOnlySession();
+  const warning=spectator?ksmSpectatorHoldsStaffWork():!!readOutbox()||['offline','error'].includes(ksmSaveStatusMode);
   const blocked=ksmStartupLoadFailed&&!ksmStartupHasCache;
-  const retry=warning&&!blocked&&(!isReadOnlySession()||ksmKeepStaffOutbox())&&!['saving','syncing'].includes(ksmSaveStatusMode);
+  // Save now is staff only: on a spectator page Staff Login is the action (the status says so).
+  const retry=warning&&!blocked&&!spectator&&!['saving','syncing'].includes(ksmSaveStatusMode);
   const message=text==null?'':String(text),persistent=ksmPersistentSaveStatusText();
   // A backup/load notice must not hide the warning that cloud work is still waiting.
   const save=warning&&message!==persistent?persistent+(message?' · '+message:''):message;
