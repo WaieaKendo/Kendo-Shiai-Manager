@@ -10,7 +10,7 @@ const checks = [
   ['manual force is retained', html.includes('ksmCloudSavePending.force=ksmCloudSavePending.force||Boolean(force)')],
   ['latest pending save is executed', html.includes('const saved=await saveTournamentToCloudWithReason(pending.reason,pending.force)')],
   ['queued callers receive actual result', html.includes('pending.resolvers.forEach(resolve=>resolve(saved))')],
-  ['in-flight saves join pending request', html.includes('if(ksmCloudSaveInFlight)return queuePendingCloudSave(reason,force);')],
+  ['in-flight saves join pending request', html.includes('if(ksmCloudSaveInFlight/* ksm:post-split-begin replace-conflict */||ksmFileReplace/* ksm:post-split-end */)return queuePendingCloudSave(reason,force);')],
   ['pending save runs before original settles', /finally\{\s*ksmCloudSaveInFlight=false;\s*await runPendingCloudSave\(\)/.test(html)],
   ['obsolete boolean queue removed', !html.includes('ksmCloudSaveQueued')]
 ];

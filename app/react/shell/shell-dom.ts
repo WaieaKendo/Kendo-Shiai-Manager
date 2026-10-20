@@ -38,6 +38,8 @@ export interface ShellWindow {
   retryQueuedCloudSave?: () => unknown;
   replaceTournamentFromFile?: () => unknown;
   loadTournamentFileAsNew?: () => unknown;
+  ksmReplaceAnyway?: () => unknown;
+  ksmCancelReplace?: () => unknown;
   /** Issue #26: Developer Tools' Delete tournament opens the confirmation; its Delete runs the request. */
   ksmOpenDeleteTournament?: () => unknown;
   ksmConfirmDeleteTournament?: () => unknown;

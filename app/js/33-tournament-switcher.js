@@ -101,6 +101,7 @@ function ksmResetTournament(){
   }
   ksmStartupLoadFailed=false;ksmStartupHasCache=false;document.getElementById('startupLoadFailure')?.remove();
   ksmTournamentEpoch++;
+  ksmFileReplace=null;  // F37: a Replace of the tournament being closed
   const id=cloudSession.tournamentId||'local';
   disconnectCloudSocket();ksmTvRefreshInFlight=null;ksmTvLastVerifiedAt=0;
   clearTimeout(ksmSaveTimer);ksmSaveTimer=null;clearTimeout(ksmCloudTimer);ksmCloudTimer=null;
