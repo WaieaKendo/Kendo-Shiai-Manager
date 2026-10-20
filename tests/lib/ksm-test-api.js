@@ -98,6 +98,8 @@ window.KSMTest = {
     try { applyTournamentPayload(payload, false, {source: 'live sync'}); } finally { ksmApplyingRemoteSnapshot = false; }
   },
   clientId() { return cloudSession.clientId; },
+  // F36: what this tab's saves record as updatedBy.clientId (the device's clientId/this tab's id).
+  writerId() { return ksmWriterId(); },
   // Count the save conflicts this device meets (HTTP 409 answers to its saves, each followed by
   // a rebase); conflicts() returns the total since watchConflicts().
   watchConflicts() {
@@ -328,6 +330,10 @@ window.KSMTest = {
     v316StaffPassword: (...a) => v316StaffPassword(...a),
     validateTournament: (...a) => validateTournament(...a),
     writeOutbox: (...a) => writeOutbox(...a),
+    // F36: this tab's writer id, its outbox slot, and the rebase (old-client compatibility checks)
+    get KSM_TAB_ID() { return KSM_TAB_ID; },
+    ksmOutboxKey: (...a) => ksmOutboxKey(...a),
+    rebaseLocalPayloadOnRecord: (...a) => rebaseLocalPayloadOnRecord(...a),
   },
 
   // --- Bulk setup without the Setup/Registration UI ------------------------------

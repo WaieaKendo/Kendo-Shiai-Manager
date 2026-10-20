@@ -177,6 +177,11 @@ const KNOWN_POST_SPLIT_EDITS = {
   // and a tournament link without &court= starts on the device's stored court (33:
   // initializeCloudRoleFromUrl()).
   'court-pin': 5,
+  // fix/f36-two-tabs (F36, #81): one writer per tab. app/js/18-two-tabs.js (tab id, heartbeat, an
+  // outbox slot per tab, a closed tab's slot taken over), the per-tab ownership of history entries and
+  // the other court's replay in the rebase (18), readOutbox()/writeOutbox()/clearOutbox() (20), the
+  // echo check, the flush and the unload merge (21), and the writer id sent as x-ksm-client-id (33).
+  'two-tabs': 16,
   // fix/pre-event (F4, from fix/setup-edit-conflict-merge): the 409 rebase merges non-court edits
   // three-way against the cloud copy they started from. 18: the merge helpers,
   // rebaseLocalPayloadOnRecord()'s basePayload parameter and merge call; 20: writeOutbox() keeps
