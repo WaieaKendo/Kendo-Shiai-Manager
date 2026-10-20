@@ -494,7 +494,7 @@ operations). New operations:
 - `localDraft()`, `seedDetachedDraft(payload)`, and `shortName()` exercise recovery and creation.
 
 `tests/team-divisions-test.py` loads a legacy draw, generates two separate competitions on two
-courts, scores them, checks independent results and stable assignments across rename/reorder,
+courts, scores them, checks independent results and different award modes and stable assignments across rename/reorder,
 plays Kachinuki in the second division, and uses held saves for rename/reorder, add/add, simultaneous assignments to different teams, and
 remove/assign races. `tests/team-division-preflight-test.py` covers rejected initial short-name
 creation and detached-draft guards for tournament, spectator, TV and overlay links. The local

@@ -78,7 +78,7 @@ def local_cases(browser):
     assert name.input_value()=='Pending Kids' and name.evaluate('el=>el===document.activeElement'), 'redraw dropped typed division name'
     name.press('Tab')
     assert page.evaluate('KSMTest.teamDivisions()[0].name')=='Pending Kids'
-    page.evaluate("([id])=>KSMTest.updateTeamDivision(id,{name:'Kids',court:'A'})",[first])
+    page.evaluate("([id])=>KSMTest.updateTeamDivision(id,{name:'Kids',court:'A',awardMode:'top1'})",[first])
     page.evaluate("""([id])=>{
       const st=KSMTest.app.state;
       st.teams.push(...['C','D'].map((n,i)=>({id:'new:'+n,team:'Team '+n,teamDivisionId:id,status:'Checked',senpo:n+'1',jiho:n+'2',chuken:n+'3',fukusho:n+'4',taisho:n+'5'})));
@@ -118,7 +118,8 @@ def local_cases(browser):
     app.nav('results')
     page.wait_for_function("document.querySelectorAll('[data-testid=result-card-title]').length===2")
     assert set(page.locator(sel('result-card-title')).all_text_contents())=={'Kids','Adults'}
-    assert len(page.locator(sel('placement-row')).all_text_contents())==4
+    assert len(page.locator(sel('placement-row')).all_text_contents())==3
+    assert len(final[first]['placements'])==1 and len(final[second]['placements'])==2, 'divisions shared an award mode'
     app.nav('setup');app.click('setup-export-results')
     assert 'Kids' in page.locator('#printBody').inner_text() and 'Adults' in page.locator('#printBody').inner_text()
     # Renaming and reordering after scoring keep every match, result and assignment by ID.
