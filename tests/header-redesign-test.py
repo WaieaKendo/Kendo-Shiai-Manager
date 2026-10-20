@@ -111,6 +111,11 @@ def main():
         version=json.loads((Path(__file__).resolve().parents[1]/'package.json').read_text())['version']
         assert page.locator(sel('library-about')).inner_text()=='About: Kendo Shiai Manager v'+version
         assert page.locator(sel('library-about')).is_visible()
+        # The footer is on every page (not only the Library), except the TV display.
+        footer = "getComputedStyle(document.querySelector('.privacy-footer')).display"
+        assert page.evaluate(f"document.body.classList.remove('ksm-home'), {footer}") == 'block', 'footer hidden outside the Library'
+        assert page.evaluate(f"document.body.classList.add('ksm-tv'), {footer}") == 'none', 'footer on the TV'
+        page.evaluate("document.body.classList.remove('ksm-tv'); document.body.classList.add('ksm-home')")
         browser.close()
     print('PASS tournament home link, role nav order, hamburger, selector logo and version')
 
