@@ -335,6 +335,7 @@ window.KSMTest = {
     // F36: this tab's writer id, its outbox slot, and the rebase (old-client compatibility checks)
     get KSM_TAB_ID() { return KSM_TAB_ID; },
     ksmOutboxKey: (...a) => ksmOutboxKey(...a),
+    ksmReleaseReplaceBackups: () => ksmReleaseReplaceBackups(),
     rebaseLocalPayloadOnRecord: (...a) => rebaseLocalPayloadOnRecord(...a),
   },
 

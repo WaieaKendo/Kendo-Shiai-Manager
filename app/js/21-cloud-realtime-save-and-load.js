@@ -455,7 +455,8 @@ function replaceTournamentFromFile(){
   if(!applyTournamentFilePayload(pending.payload,false))return;
   noteLocalMutation();markLocalSave('Tournament file replace');updateSaveStatus('Loaded '+pending.fileName);
   // The file as applied: what Replace sends, also after a save in flight has applied its own result meanwhile.
-  ksmSendFileReplace({fileName:pending.fileName,before,record:null,payload:tournamentPayload()});
+  // version: the local changes the file stands for (an edit made later, e.g. while asked, is saved after it).
+  ksmSendFileReplace({fileName:pending.fileName,before,record:null,payload:tournamentPayload(),version:ksmLocalMutationVersion});
 }
 // F37 (#88): the Replace in progress: {fileName, before: what to put back if it fails, record: the other
 // device's copy while the director is asked}. Ordinary saves wait meanwhile (they would merge the file away).
@@ -468,17 +469,21 @@ async function ksmSendFileReplace(replace,baseRevision=null){
   for(let i=0;ksmCloudSaveInFlight&&i<250;i++){waited=true;await new Promise(resolve=>setTimeout(resolve,100))}
   if(ksmFileReplace!==replace)return;  // the tournament was closed meanwhile
   // That save may have applied its (rebased) result over the file: show the file again.
-  if(waited){ksmApplyingRemoteSnapshot=true;try{applyTournamentPayload(replace.payload,false,{pinnedCourt:pinnedCourt(),preserveLocalDivision:true,source:'file replace'})}finally{ksmApplyingRemoteSnapshot=false}}
+  if(waited){ksmApplyingRemoteSnapshot=true;try{applyTournamentPayload(replace.payload,false,{pinnedCourt:pinnedCourt(),preserveLocalDivision:true,source:'file replace'})}finally{ksmApplyingRemoteSnapshot=false};ksmStoreAutosave(replace.payload)}
   if(baseRevision==null)baseRevision=Number(cloudSession.revision)||0;
-  const version=ksmLocalMutationVersion;
+  const version=replace.version;
   // The file replaces this device's queued work: dropped now, so the save's success cannot give a closed
   // tab's work it took over back as a new queue (it would replay over the file). Put back if it fails.
+  // A copy survives a crash meanwhile (no beforeunload): released as a closed tab's work (18-two-tabs.js).
+  if(replace.before.outbox)localStorage.setItem(KSM_REPLACE_BACKUP_PREFIX+KSM_TAB_ID,replace.before.outbox);
   localStorage.removeItem(ksmOutboxKey());
   ksmCloudSaveInFlight=true;ksmSaveStatusMode='saving';renderPersistentSaveStatus();
   try{
     await performCloudSave({...replace.payload,savedAt:new Date().toISOString()},baseRevision,0,baseRevision,null,{wholeReplace:true});
     ksmConfirmedMutationVersion=Math.max(ksmConfirmedMutationVersion,version);
-    ksmFileReplace=null;
+    ksmFileReplace=null;localStorage.removeItem(KSM_REPLACE_BACKUP_PREFIX+KSM_TAB_ID);
+    // Edits made while it was sent or asked are saved on top of it.
+    if(ksmLocalMutationVersion>version&&!ksmCloudSavePending)scheduleCloudSave('Changes during the replace');
     // The file is the tournament now, on every device: work queued here before it, and closed tabs' work
     // for it, is replaced too.
     ksmDropOutboxesFor(cloudSession.tournamentId);
@@ -495,7 +500,9 @@ async function ksmSendFileReplace(replace,baseRevision=null){
     // A request that failed or timed out may still have reached the server: it decides.
     if(!/authorization|conflict|invalid|rejected|\(4\d\d\)/i.test(message)&&await ksmFileReplaceLanded(baseRevision)){
       ksmFileReplace=null;ksmConfirmedMutationVersion=Math.max(ksmConfirmedMutationVersion,version);
+      localStorage.removeItem(KSM_REPLACE_BACKUP_PREFIX+KSM_TAB_ID);
       ksmDropOutboxesFor(cloudSession.tournamentId);
+      if(ksmLocalMutationVersion>version&&!ksmCloudSavePending)scheduleCloudSave('Changes during the replace');
       showKsmToast(`✓ Tournament replaced from ${replace.fileName}`,2600);
       return;
     }
@@ -533,6 +540,7 @@ function ksmUndoFileReplace(replace,record){
     if(record){cloudSession.revision=Number(record.revision)||0;cloudSession.updatedAt=record.updatedAt;persistCloudSession();rememberCloudBase(record)}
   }finally{ksmApplyingRemoteSnapshot=false}
   if(replace.before.outbox)localStorage.setItem(ksmOutboxKey(),replace.before.outbox);else localStorage.removeItem(ksmOutboxKey());
+  localStorage.removeItem(KSM_REPLACE_BACKUP_PREFIX+KSM_TAB_ID);
   if(!replace.before.pending||record)ksmConfirmedMutationVersion=ksmLocalMutationVersion;
   else scheduleCloudSave('Changes before the replace');
   renderPersistentSaveStatus();
@@ -554,6 +562,7 @@ async function ksmFileReplaceLanded(baseRevision){
 function ksmFileReplaceBeforeUnload(){
   const replace=ksmFileReplace;if(!replace)return false;
   if(replace.before.outbox)localStorage.setItem(ksmOutboxKey(),replace.before.outbox);else localStorage.removeItem(ksmOutboxKey());
+  localStorage.removeItem(KSM_REPLACE_BACKUP_PREFIX+KSM_TAB_ID);
   ksmStoreAutosave(replace.before.payload);
   return true;
 }

@@ -171,10 +171,24 @@ function ksmDropOutboxesFor(id){
   if(ksmReadOutboxKey(ksmOutboxKey())?.tournamentId===id)localStorage.removeItem(ksmOutboxKey());
   ksmOrphanOutboxes().filter(slot=>slot.meta.tournamentId===id).forEach(slot=>localStorage.removeItem(slot.key));
 }
+// F37: while a Replace from a file is unsettled, the tab keeps its queued work here instead of its slot.
+// If the tab died meanwhile (no beforeunload: a crash), the work is released as a closed tab's.
+const KSM_REPLACE_BACKUP_PREFIX='ksm.cloud.replace-backup.v1:';
+function ksmReleaseReplaceBackups(){
+  try{Object.keys(localStorage).forEach(key=>{
+    if(!key.startsWith(KSM_REPLACE_BACKUP_PREFIX))return;
+    const tabId=key.slice(KSM_REPLACE_BACKUP_PREFIX.length);
+    if(ksmTabAlive(tabId))return;
+    const raw=localStorage.getItem(key);
+    if(raw)localStorage.setItem(ksmOutboxKey('released-'+ksmNewId()),raw);
+    localStorage.removeItem(key);
+  })}catch(_){}
+}
+setTimeout(ksmReleaseReplaceBackups,0);
 window.addEventListener('ksm:outbox-adopted',()=>ksmSendAdoptedOutbox());
 ksmTabBeat();
 setInterval(()=>{
-  ksmTabBeat();
+  ksmTabBeat();ksmReleaseReplaceBackups();
   // Work left by a tab that closed while this one stays open and idle.
   if(ksmSessionRole==='staff'&&navigator.onLine&&!ksmCloudSaveInFlight&&cloudSession.tournamentId&&readOutbox()?.adoptedFrom!=null)ksmSendAdoptedOutbox();
 },KSM_TAB_BEAT_MS);

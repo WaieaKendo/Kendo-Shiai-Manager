@@ -17,7 +17,8 @@ scored, then loads it again with Replace (Setup -> Load Tournament File):
   3. The Replace reaches the server but its answer is lost: the director checks with the server and
      keeps the file (it does not put the old copy back over it).
   4. Replace while the director's own save is in flight and rebased: the file is sent, not that result.
-  5. A closed tab's queued work this tab took over is replaced by the file, not given back.
+  5. A closed tab's queued work this tab took over is replaced by the file, not given back; a crashed tab's
+     copy of its queued work (kept apart while asked; 2b: Cancel puts it back) is released, not lost.
   6. The director's tab closes while asked: the autosave keeps the copy from before, nothing is queued.
 """
 import time
@@ -81,9 +82,9 @@ def main():
             f'1: Court B\'s next point did not save on top of the replaced copy: {played(on_server(), "Open B")}'
 
         # 2. Replace held while Court A saves a point first (F37): the director is asked.
-        def raced(first_point):
+        def raced(first_point, start=None):
             seen = director.page.evaluate('KSMTest.toasts().length')
-            races.race(director, replace, a, lambda: a.score_point('W', first_point), settle_after=False)
+            races.race(director, start or replace, a, lambda: a.score_point('W', first_point), settle_after=False)
             director.page.wait_for_selector(sel('replace-conflict-anyway'))
             title = director.page.inner_text(sel('cloud-modal-title'))
             assert title == 'Another device changed the tournament during the replace.', title
@@ -92,9 +93,16 @@ def main():
 
         # 2a. Replace anyway: the file wins everywhere.
         seen = raced('K')
+        # An edit while asked (an award) is saved on top of the file once it is replaced.
+        # (an input event: the ordinary autosave, whose 2 s timer runs while the question is open)
+        director.page.evaluate("KSMTest.app.state.awards=[{name:'While asked'}];document.body.dispatchEvent(new Event('input',{bubbles:true}))")
+        director.wait_for(lambda: not director.page.evaluate('KSMTest.app.ksmSaveTimer'), message='2a: the autosave timer to run while asked')
         director.click('replace-conflict-anyway')
         races.settle()
         server_copy = on_server()
+        assert [x.get('name') for x in server_copy['state'].get('awards') or []] == ['While asked'], f'2a: the edit made while asked was not saved: {server_copy["state"].get("awards")}'
+        director.page.evaluate("KSMTest.app.state.awards=[];KSMTest.saveNow('Clear award')")
+        races.settle()
         assert played(server_copy, 'Open A') == [] and played(server_copy, 'Open B') == [], \
             f'2a: the file did not win: {played(server_copy, "Open A")} {played(server_copy, "Open B")}'
         for app in (director, a, b):
@@ -104,8 +112,21 @@ def main():
         assert toasts[-1].startswith('✓ Tournament replaced from '), f'2a: no toast: {toasts}'
 
         # 2b. Cancel: the other device's point stays; the director is told the file was not loaded.
-        seen = raced('D')
+        # The director has queued work of its own (here for another tournament, so it is never sent): while the
+        # question is open it is kept apart (a copy survives a crash), and Cancel puts it back.
+        QUEUED = '{"tournamentId":"another-tournament","role":"staff","payload":{"state":{}},"queuedAt":"2030-01-01T00:00:00.000Z"}'
+        def replace_with_queue():
+            director.page.evaluate('raw => localStorage.setItem(KSMTest.app.ksmOutboxKey(), raw)', QUEUED)
+            replace()
+        seen = raced('D', replace_with_queue)
+        kept = director.page.evaluate('''() => [localStorage.getItem(KSMTest.app.ksmOutboxKey()),
+          localStorage.getItem('ksm.cloud.replace-backup.v1:' + KSMTest.app.KSM_TAB_ID)]''')
+        assert kept == [None, QUEUED], f'2b: queued work while asked: {kept}'
         director.click('replace-conflict-cancel')
+        kept = director.page.evaluate('''() => [localStorage.getItem(KSMTest.app.ksmOutboxKey()),
+          localStorage.getItem('ksm.cloud.replace-backup.v1:' + KSMTest.app.KSM_TAB_ID)]''')
+        assert kept == [QUEUED, None], f'2b: Cancel did not put the queued work back: {kept}'
+        director.page.evaluate('localStorage.removeItem(KSMTest.app.ksmOutboxKey())')
         races.settle()
         server_copy = on_server()
         assert played(server_copy, 'Open A') == [('OA 1', 'OA 2', ['D'], [])], f'2b: Court A\'s point was lost: {played(server_copy, "Open A")}'
@@ -173,6 +194,16 @@ def main():
         assert not queues, f'5: replaced work is still queued: {queues}'
         races.settle()
         assert not on_server()['state'].get('awards'), '5: the closed tab\'s work came back over the file'
+
+        # 5b. A tab that crashed while asked (no beforeunload) leaves its queued work's copy: once that tab is gone,
+        #     it is released as a closed tab's work (taken over by the next staff tab of its tournament).
+        released = director.page.evaluate('''raw => { localStorage.setItem('ksm.cloud.replace-backup.v1:crashed-tab', raw);
+          KSMTest.app.ksmReleaseReplaceBackups();
+          const keys = Object.keys(localStorage);
+          return [keys.includes('ksm.cloud.replace-backup.v1:crashed-tab'),
+                  keys.filter(k => k.startsWith(KSMTest.app.KSM_CLOUD_OUTBOX_KEY + ':released-')).map(k => localStorage.getItem(k))]; }''', QUEUED)
+        assert released == [False, [QUEUED]], f'5b: a crashed tab\'s queued work was not released: {released}'
+        director.page.evaluate("Object.keys(localStorage).filter(k => k.startsWith(KSMTest.app.KSM_CLOUD_OUTBOX_KEY)).forEach(k => localStorage.removeItem(k))")
 
         # 6. The director's tab closes while asked: its startup cache (the autosave) keeps the copy from before,
         #    not the unconfirmed file; the server keeps Court A's point.
