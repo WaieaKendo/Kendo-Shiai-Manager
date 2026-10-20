@@ -37,7 +37,8 @@ const checks = [
   [builtJs.split(`appVersion:'${v}'`).length - 1 === 2, 'built app.js diagnostics downloads carry the version (2)'],
   [builtSw.includes(`const CACHE_NAME = 'ksm-shell-v${v}'`), 'built service worker cache name matches (forces PWA update on release)'],
   [health.version === v, `/api/health version matches (${health.version})`],
-  [readRepoFile('CHANGELOG.md').startsWith(`## v${v}`), 'CHANGELOG.md starts with this release'],
+  // An "## Unreleased — …" section on top (notes for the next release, written ahead) is allowed.
+  [readRepoFile('CHANGELOG.md').replace(/^## Unreleased[^\n]*\n[\s\S]*?(?=^## v)/m, '').startsWith(`## v${v}`), 'CHANGELOG.md starts with this release (after an Unreleased section)'],
   [html.includes("engineVersion:'3.12.9'"), 'frozen tournament engine version is unchanged (3.12.9)'],
 ];
 
