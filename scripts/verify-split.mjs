@@ -598,6 +598,8 @@ const MARKUP_EDITS = [
   ['<span>Fusen-gachi</span>', '<span>Fusen-sho</span>'],
   // feat/owner-decisions (decision 17): Paste from Excel explains the paste (ksmPasteHelp(), 43-).
   ['<button onclick="alert(\'Paste rows directly into the table from Excel.\')" data-testid="reg-paste-excel">', '<button onclick="ksmPasteHelp()" data-testid="reg-paste-excel">'],
+  // Import CSV: was a placeholder alert; reads a .csv with a header row (43-react-registration.js).
+  ['<button onclick="alert(\'CSV import will be added in the production build.\')" data-testid="reg-import-csv">', '<input id="ksmImportCsvFile" type="file" accept=".csv,text/csv" hidden onchange="ksmImportCSVFile(event)" data-testid="reg-import-file"><button onclick="ksmImportCSV()" data-testid="reg-import-csv">'],
   ['<h2 id="fusenTitle">Fusen-gachi</h2>', '<h2 id="fusenTitle">Fusen-sho</h2>'],
   ['</main>', '</main>\n<footer class="privacy-footer no-print"><a href="/privacy" data-testid="privacy-link">Privacy</a><span class="library-about" data-testid="library-about">About: Kendo Shiai Manager <span class="version-badge">v__KSM_VERSION__</span></span></footer>'],
   ['<button class="danger" onclick="state.teams=[];renderTeams()" data-testid="team-clear">', '<button class="danger" onclick="clearTeams()" data-testid="team-clear">'],

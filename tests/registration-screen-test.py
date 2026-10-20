@@ -81,7 +81,7 @@ def main():
         assert name == 'ksm-registration.csv' and lines == expected, f'{name}:\n' + '\n'.join(lines)
 
         # --- Placeholder buttons (meeting decision: implement or remove) ------------------------
-        placeholders = [('reg-import-csv', None, 'CSV import will be added in the production build.'),
+        placeholders = [# Import CSV is real now (tests/registration-import-csv-test.py).
                         # Owner decision 17 (#29): the button explains the paste (was "Paste rows directly into the table from Excel.").
                         ('reg-paste-excel', None, 'Paste from Excel: copy rows with the columns Name, Dojo, Division, Seed, Status (in that order; only Name is required) and paste them (Ctrl+V / Cmd+V) while Individual Players is shown. Division must be one offered in Setup (empty: the first division). Status: Registered, Checked In or No Show (empty: Registered). Rows with another division or status are not added; a notice lists them.')]
         for testid, menu, message in placeholders:
