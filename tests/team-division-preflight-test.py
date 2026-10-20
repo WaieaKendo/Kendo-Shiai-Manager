@@ -8,6 +8,7 @@ from ksm_server import local_worker
 
 
 def install_mutation(page):
+    page.add_init_script("sessionStorage.setItem('ksm.pending-slug','previous-short-name')")
     mutant=os.environ.get('KSM_TEST_MUTATION')
     if not mutant:
         return
@@ -38,6 +39,7 @@ def main():
         page.clock.pause_at(page.evaluate('Date.now()'))
         # Keep the local draft uncreated; creation is refused by the real request boundary.
         page.evaluate("""()=>{KSMTest.app.cloudSession.tournamentId='';KSMTest.app.cloudSession.slug=null;KSMTest.app.show('setup');KSMTest.seedDetachedDraft(KSMTest.payload());}""")
+        assert page.evaluate('KSMTest.shortName().pending')=='previous-short-name'
         assert page.evaluate('!!KSMTest.localDraft()')
         for path in ['/?tournament=other','/?spectator=other','/?view=tv','/?view=overlay','/?role=spectator','/other/tv/a','/other/overlay/a','/other/live']:
             page.evaluate('path=>history.replaceState(null,"",path)',path)
@@ -50,12 +52,12 @@ def main():
         page.evaluate("KSMTest.app.setSessionRole('staff');KSMTest.app.installRoleBanner('staff');KSMTest.app.renderAll()")
         result=page.evaluate("KSMTest.app.ksmRenameTournamentSlug('taken-name').then(()=>({ok:true}),e=>({error:e.message}))")
         assert result.get('error') and 'taken' in result['error'].lower(),result
-        assert page.evaluate('KSMTest.shortName()')=={'slug':'','pending':''}
+        assert page.evaluate('KSMTest.shortName()')=={'slug':'','pending':'previous-short-name'}
         page.locator(sel('setup-short-url')).fill('another-taken-name')
         page.locator(sel('setup-short-url')).press('Enter')
         page.wait_for_function("document.getElementById('setupShortUrlStatus').textContent.toLowerCase().includes('taken')")
         assert page.locator(sel('setup-short-url')).get_attribute('aria-invalid')=='true'
-        assert page.evaluate('KSMTest.shortName()')=={'slug':'','pending':''}
+        assert page.evaluate('KSMTest.shortName()')=={'slug':'','pending':'previous-short-name'}
         assert page.locator('#setupShortUrlStatus').inner_text()!='Saved'
         assert not problems,problems
         browser.close()
