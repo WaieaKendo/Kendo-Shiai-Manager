@@ -4,7 +4,9 @@ function ksmNormalizeTimerSettings(data){
   const out={};
   ['timeRegular','timeQuarterfinal','timeSemifinal','timeFinal','timeEncho'].forEach(id=>{
     const fallback=id==='timeRegular'||id==='timeEncho'?'3:00':'';
-    const value=typeof data[id]==='string'?data[id].trim():null;
+    let value=typeof data[id]==='string'?data[id].trim():null;
+    // Shorthand: "5" or "5:" is 5:00, "2:3" is 2:03 (it used to be cleared).
+    if(value!==null){const m=value.match(/^(\d{1,3})(?::(\d?))?$/);if(m)value=`${Number(m[1])}:${(m[2]||'0').padStart(2,'0')}`}
     const valid=value!==null&&/^\d{1,3}:[0-5]\d$/.test(value)&&value!=='0:00'&&Number(value.split(':')[0])*60+Number(value.split(':')[1])>0;
     out[id]=valid?value:(value===''&&id!=='timeRegular'?'':fallback);
   });
