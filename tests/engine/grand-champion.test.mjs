@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   grandChampionEntrants, grandChampionSignature, grandChampionPlan, grandChampionFusenBouts, grandChampionPlacements, grandChampionSetupError,
-  grandChampionFormat, grandChampionCompetitors, drawnEntrants, migrateGrandChampions, renameGrandChampionSources, newGrandChampion, isGrandChampionId,
+  grandChampionFormat, grandChampionCompetitors, drawnEntrants, migrateGrandChampions, renameGrandChampionSources, newGrandChampion, isGrandChampionId, grandChampionSubstitutions, mergeGrandChampionRecords,
 } from '../../app/engine/grand-champion.ts';
 import { generateDivision } from '../../app/engine/generation.ts';
 import { matchRequiresWinner } from '../../app/engine/standings.ts';
@@ -149,4 +149,37 @@ test('load boundary, renames and the record merge', () => {
   assert.deepEqual([merged[0].court, merged[0].awardMode, conflicts], ['B', 'top2', []]);
   assert.deepEqual(mergeTeamDivisionRecords([], [{ ...gc(), court: 'B' }], base, 'Grand champion', conflicts), []);
   assert.deepEqual(conflicts, ['Grand champion']);
+});
+
+test('PR review: a runner-up stand-in with no runner-up waits for the director, never the withdrawn winner', () => {
+  const now = grandChampionEntrants(gc({ standIns: { Open: { winner: 'Aki', kind: 'runner-up' } } }), { ...results, Open: done('Aki', null) });
+  assert.deepEqual(now.unavailable, ['Open']); assert.equal(now.ready, false); assert.equal(now.entrants[0], null);
+});
+
+test('PR review: a runner-up replaces a winner who has played nothing in a started draw (no question)', () => {
+  const row = gc({ sources: ['Open', 'Women', 'Masters'], format: 'Round Robin' });
+  const all = { ...results, Masters: done('Eli', 'Fay') };
+  const pool = draw(row, grandChampionEntrants(row, all).entrants);
+  const first = pool.matches.findIndex(m => m.white !== 'Eli' && m.red !== 'Eli');
+  pool.matches[first] = { ...pool.matches[first], done: true, wp: ['M'] };
+  const stood = grandChampionEntrants({ ...row, standIns: { Masters: { winner: 'Eli', kind: 'runner-up' } } }, all);
+  assert.deepEqual(grandChampionSubstitutions(stood, pool), [{ from: { name: 'Eli', dojo: 'Eli Dojo' }, to: { name: 'Fay', dojo: 'Fay Dojo' } }]);
+  // Not when the withdrawn winner has played.
+  const played = { ...pool, matches: pool.matches.map(m => (m.white === 'Eli' || m.red === 'Eli') && !m.done ? { ...m, wp: ['K'] } : m) };
+  assert.equal(grandChampionSubstitutions(stood, played), null);
+  // Not for a source correction (no stand-in).
+  assert.equal(grandChampionSubstitutions(grandChampionEntrants(row, { ...all, Masters: done('Fay', 'Eli') }), pool), null);
+});
+
+test('PR review: two devices withdrawing different winners keep both stand-ins', () => {
+  const base = [gc()], conflicts = [];
+  const mine = [{ ...gc(), standIns: { Open: { winner: 'Aki', kind: 'runner-up' } } }];
+  const theirs = [{ ...gc(), standIns: { Women: { winner: 'Cora', kind: 'fusen-sho' } }, keep: 'x' }];
+  const merged = mergeGrandChampionRecords(mergeTeamDivisionRecords, theirs, mine, base, 'Grand champion', conflicts);
+  assert.deepEqual(merged[0].standIns, { Women: { winner: 'Cora', kind: 'fusen-sho' }, Open: { winner: 'Aki', kind: 'runner-up' } });
+  assert.equal(merged[0].keep, 'x'); assert.deepEqual(conflicts, []);
+  // The same source on both: the server's, with the notice.
+  const clash = mergeGrandChampionRecords(mergeTeamDivisionRecords, [{ ...gc(), standIns: { Open: { winner: 'Aki', kind: 'fusen-sho' } } }], mine, base, 'Grand champion', conflicts);
+  assert.equal(clash[0].standIns.Open.kind, 'fusen-sho'); assert.deepEqual(conflicts, ['Grand champion']);
+  assert.deepEqual(mergeGrandChampionRecords(mergeTeamDivisionRecords, base, base, base, 'x', []), base, 'rows without stand-ins unchanged');
 });

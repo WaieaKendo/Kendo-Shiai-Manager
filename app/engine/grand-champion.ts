@@ -57,6 +57,8 @@ export interface SourceResult {
 export interface GrandChampionEntrant extends Entrant {
   source: string;
   via: 'winner' | 'runner-up' | 'fusen-sho';
+  /** A runner-up standing in: the winner they replace. */
+  replaces?: Entrant;
 }
 export interface GrandChampionEntrants {
   /** One per source, in source order; null while that source is not decided. */
@@ -65,7 +67,9 @@ export interface GrandChampionEntrants {
   waiting: string[];
   /** Sources whose entrant also comes from an earlier source (the same person won both): a stand-in is needed. */
   duplicates: string[];
-  /** Every source decided, no duplicates: the draw can be made. */
+  /** Sources whose runner-up was chosen to stand in but the division has none (choose again). */
+  unavailable: string[];
+  /** Every source decided, no duplicates, no unavailable stand-in: the draw can be made. */
   ready: boolean;
 }
 
@@ -74,20 +78,23 @@ const key = (e: Entrant) => `${e.name}\u0000${e.dojo || ''}`;
 
 /** Who plays for each source now: its winner, or the director's stand-in for that winner. */
 export function grandChampionEntrants(gc: Pick<GrandChampion, 'sources' | 'standIns'>, results: Readonly<Record<string, SourceResult | undefined>>): GrandChampionEntrants {
-  const waiting: string[] = [], duplicates: string[] = [], seen = new Set<string>();
+  const waiting: string[] = [], duplicates: string[] = [], unavailable: string[] = [], seen = new Set<string>();
   const entrants = gc.sources.map((source): GrandChampionEntrant | null => {
     const r = results[source];
     if (!r?.complete || !r.winner?.name) { waiting.push(source); return null; }
     const standIn = gc.standIns?.[source];
     let e: GrandChampionEntrant = { source, via: 'winner', name: r.winner.name, dojo: r.winner.dojo || '' };
     if (standIn && standIn.winner === r.winner.name) {
-      if (standIn.kind === 'runner-up' && r.runnerUp?.name) e = { source, via: 'runner-up', name: r.runnerUp.name, dojo: r.runnerUp.dojo || '' };
-      else if (standIn.kind === 'fusen-sho') e = { ...e, via: 'fusen-sho' };
+      if (standIn.kind === 'runner-up') {
+        // Never the withdrawn winner by default: without a runner-up the director chooses again.
+        if (!r.runnerUp?.name) { unavailable.push(source); return null; }
+        e = { source, via: 'runner-up', name: r.runnerUp.name, dojo: r.runnerUp.dojo || '', replaces: { name: e.name, dojo: e.dojo } };
+      } else if (standIn.kind === 'fusen-sho') e = { ...e, via: 'fusen-sho' };
     }
     if (seen.has(key(e))) duplicates.push(source); else seen.add(key(e));
     return e;
   });
-  return { entrants, waiting, duplicates, ready: !waiting.length && !duplicates.length };
+  return { entrants, waiting, duplicates, unavailable, ready: !waiting.length && !duplicates.length && !unavailable.length };
 }
 
 /** A stable text for the entrants (who, from which source, and how), for the director's decisions. */
@@ -126,6 +133,25 @@ export function grandChampionStarted(matches: GrandChampionStructure['matches'])
 }
 
 const sameEntrants = (a: readonly Entrant[], b: readonly Entrant[]) => a.length === b.length && [...a.map(key)].sort().join('\u0001') === [...b.map(key)].sort().join('\u0001');
+
+/**
+ * A runner-up standing in for a winner who has played nothing in a started draw: the only
+ * difference from the sources, so the draw takes the runner-up in their place (bracket slot or pool
+ * slot kept) instead of asking. Returns the swaps, or null when the difference is anything else.
+ */
+export function grandChampionSubstitutions(now: GrandChampionEntrants, structure: GrandChampionStructure): { from: Entrant; to: Entrant }[] | null {
+  const drawn = drawnEntrants(structure);
+  if (!drawn || !now.ready) return null;
+  const has = (list: readonly Entrant[], e: Entrant) => list.some(d => key(d) === key(e));
+  const wanted = now.entrants.filter((e): e is GrandChampionEntrant => !!e);
+  const swaps = wanted.filter(e => e.via === 'runner-up' && e.replaces && !has(drawn, e) && has(drawn, e.replaces))
+    .map(e => ({ from: e.replaces!, to: { name: e.name, dojo: e.dojo } }));
+  if (!swaps.length) return null;
+  const after = drawn.map(d => swaps.find(s => key(s.from) === key(d))?.to || d);
+  if (!sameEntrants(after, wanted)) return null;
+  const played = (structure.matches || []).some(m => m && grandChampionStarted([m]) && swaps.some(s => (m.white === s.from.name && (m.wdojo || '') === s.from.dojo) || (m.red === s.from.name && (m.rdojo || '') === s.from.dojo)));
+  return played ? null : swaps;
+}
 
 export type GrandChampionAction =
   | { kind: 'none' }
@@ -201,6 +227,26 @@ export function grandChampionSetupError(gc: Pick<GrandChampion, 'name' | 'source
   if (grandChampionFormat(gc as GrandChampion) === 'Round Robin' && (gc.sources.length < GRAND_CHAMPION_POOL_MIN || gc.sources.length > GRAND_CHAMPION_POOL_MAX))
     return `A pool of winners holds ${GRAND_CHAMPION_POOL_MIN}–${GRAND_CHAMPION_POOL_MAX} divisions; choose Single elimination for more.`;
   return null;
+}
+
+type RecordMerge = <T extends { id?: string }>(server: readonly T[], local: readonly T[], base: readonly T[], label: string, conflicts: string[]) => T[];
+const STAND_IN = 'standIn:';
+const flat = (rows: readonly GrandChampion[]) => rows.map(r => {
+  const { standIns, ...rest } = r;
+  return { ...rest, ...Object.fromEntries(Object.entries(standIns || {}).map(([s, v]) => [STAND_IN + s, v])) } as Record<string, unknown> & { id: string };
+});
+const unflat = (rows: readonly (Record<string, unknown> & { id: string })[]): GrandChampion[] => rows.map(r => {
+  const out: Record<string, unknown> = {}, standIns: Record<string, GrandChampionStandIn> = {};
+  Object.entries(r).forEach(([k, v]) => { if (k.startsWith(STAND_IN)) standIns[k.slice(STAND_IN.length)] = v as GrandChampionStandIn; else out[k] = v; });
+  if (Object.keys(standIns).length) out.standIns = standIns;
+  return out as unknown as GrandChampion;
+});
+/**
+ * Rows merge by id, field by field (`merge`: team-divisions.ts' record merge), with each source's
+ * stand-in as a field of its own: two devices withdrawing different winners keep both.
+ */
+export function mergeGrandChampionRecords(merge: RecordMerge, server: readonly GrandChampion[], local: readonly GrandChampion[], base: readonly GrandChampion[], label: string, conflicts: string[]): GrandChampion[] {
+  return unflat(merge(flat(server), flat(local), flat(base), label, conflicts));
 }
 
 /** A new row (the app gives the id). */

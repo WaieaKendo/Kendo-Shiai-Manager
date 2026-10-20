@@ -78,7 +78,11 @@ function ksmGrandChampionCompetitors(id){
   return KSMEngine.grandChampionCompetitors(id,ksmGrandChampionNow(gc).entrants.filter(Boolean));
 }
 function ksmGrandChampionStructure(id){
-  return {matches:state.allMatches?.[id],singleElimComps:state.singleElimComps?.[id],pools:state.pools?.[id]};
+  let matches=state.allMatches?.[id];
+  // Points on this court's screen for the grand champion count as started, also before they reach the match.
+  const live=state.currentDivision===id&&state.score&&((state.score.W||[]).length||(state.score.R||[]).length||state.score.WT||state.score.RT);
+  if(live&&Array.isArray(matches))matches=[...matches,{done:false,wp:state.score.W||[],rp:state.score.R||[],wt:state.score.WT,rt:state.score.RT}];
+  return {matches,singleElimComps:state.singleElimComps?.[id],pools:state.pools?.[id]};
 }
 // ---------------------------------------------------------- the draw
 const KSM_GC_STRUCTURE_KEYS=['pools','teamPools','allMatches','singleElimNodes','singleElimComps','teamBracketNodes','teamElimTeams','brackets','championshipNodes','byeWinners','currentByDivision'];
@@ -100,6 +104,7 @@ function ksmClearGrandChampionStructure(id,keepCourts=false){
     if(state.courtState?.[c]?.division!==id)return;
     state.courtState[c]=findNextForCourt(c,null,0);state.courtActiveDivision[c]=state.courtState[c].division;
   });
+  if(state.currentDivision===id&&had){state.score={W:[],R:[],WT:0,RT:0};state.history=[]}
   if(state.currentDivision===id&&!state.allMatches?.[id]){state.matches=[];state.current=0}
   return had;
 }
@@ -113,6 +118,17 @@ function ksmDrawGrandChampion(gc){
   courts.forEach(c=>{state.courtState[c]=findNextForCourt(c,drawn?gc.id:null,0);state.courtActiveDivision[c]=state.courtState[c].division});
   if(state.currentDivision===gc.id){state.matches=state.allMatches[gc.id]||[];state.current=0}
   return drawn;
+}
+// A runner-up standing in for a winner who has played nothing yet, in a draw already under way:
+// the runner-up takes the winner's place (slot, bouts) and nothing played is touched.
+function ksmSubstituteGrandChampion(gc,swaps){
+  const same=(name,dojo,e)=>name===e.name&&(dojo||'')===(e.dojo||'');
+  const swap=(o,nameKey,dojoKey)=>{const s=o&&swaps.find(x=>same(o[nameKey],o[dojoKey],x.from));if(s){o[nameKey]=s.to.name;o[dojoKey]=s.to.dojo}};
+  (state.allMatches?.[gc.id]||[]).forEach(m=>{if(m&&!KSMEngine.grandChampionStarted([m])){swap(m,'white','wdojo');swap(m,'red','rdojo')}});
+  (state.singleElimComps?.[gc.id]||[]).forEach(c=>swap(c,'name','dojo'));
+  (state.pools?.[gc.id]||[]).forEach(p=>(p.players||[]).forEach(x=>swap(x,'name','dojo')));
+  ksmForgetGrandChampionHistory(gc.id);
+  return true;
 }
 // A withdrawal by Fusen-sho: the entrant's unplayed bouts are recorded as the court's Fusen-sho
 // records them (the winner gets F F), then the bracket or pool moves on as after any result.
@@ -132,7 +148,7 @@ function ksmApplyGrandChampionWithdrawals(gc,now){
 }
 /** Decisions waiting for the director on this device (row id -> the plan's ask), for Setup. */
 const ksmGrandChampionAsks={};
-const ksmGrandChampionAsked=new Set();
+const ksmGrandChampionAsked=new Set(),ksmGrandChampionToldAt=new Set();
 let ksmGrandChampionSyncing=false;
 /**
  * Makes every grand champion's draw follow its sources (see the top of this file). Only on a
@@ -148,7 +164,9 @@ function ksmSyncGrandChampions(source='sync'){
       // A row that can no longer be drawn (a source switched off after generation) loses an unplayed
       // draw; a started one is kept as played (never deleted without the director).
       if(ksmGrandChampionError(gc)){if(!KSMEngine.grandChampionStarted(state.allMatches?.[gc.id])&&ksmClearGrandChampionStructure(gc.id))changed=true;continue}
-      const now=ksmGrandChampionNow(gc),plan=KSMEngine.grandChampionPlan(gc,now,ksmGrandChampionStructure(gc.id));
+      const now=ksmGrandChampionNow(gc),swaps=KSMEngine.grandChampionSubstitutions(now,ksmGrandChampionStructure(gc.id));
+      if(swaps&&ksmSubstituteGrandChampion(gc,swaps))changed=true;
+      const plan=KSMEngine.grandChampionPlan(gc,now,ksmGrandChampionStructure(gc.id));
       if(plan.kind==='draw'){if(ksmDrawGrandChampion(gc))changed=true}
       else if(plan.kind==='clear'){if(ksmClearGrandChampionStructure(gc.id))changed=true}
       else if(plan.kind==='ask'){ksmGrandChampionAsks[gc.id]=plan;ksmAskGrandChampion(gc,plan);continue}
@@ -182,6 +200,11 @@ function ksmCarryGrandChampionDraws(rebasedState,localState){
     KSM_GC_STRUCTURE_KEYS.forEach(k=>{const v=localState[k]?.[id];if(v===undefined)return;rebasedState[k]=rebasedState[k]||{};rebasedState[k][id]=JSON.parse(JSON.stringify(v))});
   });
 }
+// Both copies hold a draw of the same players (a bout or tiebreak added here then comes along).
+function ksmSameGrandChampionDraw(localState,rebasedState,id){
+  const players=st=>{const d=KSMEngine.drawnEntrants({matches:st?.allMatches?.[id],singleElimComps:st?.singleElimComps?.[id],pools:st?.pools?.[id]});return d?JSON.stringify(d.map(e=>e.name+'|'+e.dojo).sort()):null};
+  const mine=players(localState);return !!mine&&mine===players(rebasedState);
+}
 // ---------------------------------------------------------- the director's questions (in-page)
 // One question at a time, in the cloud modal (kind 'grand-champion', app/react/shell/Dialogs.tsx):
 // a message and choice buttons, each calling ksmGrandChampionChoose(choice). Closing it decides
@@ -198,10 +221,11 @@ function ksmEntrantsText(entrants){return entrants.filter(Boolean).map(e=>e.name
 function ksmAskGrandChampion(gc,plan,force=false){
   const key=gc.id+plan.signature;
   if(!force&&ksmGrandChampionAsked.has(key))return;
-  // A court device is not interrupted while scoring: it is told, the question waits in Setup.
-  if(!force&&document.getElementById('score')&&!document.getElementById('score').classList.contains('hidden')){
-    ksmGrandChampionAsked.add(key);
-    showKsmToast(`${gc.name}: a source division changed after it started. The director decides in Setup.`,6000,true);return;
+  // Asked only where the director decides (Setup on screen), so no two devices answer it; every
+  // other saving device (courts, Results, …) is told once and the question waits in Setup.
+  if(!force&&document.getElementById('setup')?.classList.contains('hidden')!==false){
+    if(!ksmGrandChampionToldAt.has(key)){ksmGrandChampionToldAt.add(key);showKsmToast(`${gc.name}: a source division changed after it started. The director decides in Setup.`,6000,true)}
+    return;
   }
   // Another question is open: this one is asked at the next change (Setup's Decide… meanwhile).
   if(!force&&ksmGrandChampionDialogOpen())return;
@@ -230,7 +254,7 @@ function ksmGrandChampionWithdrawChoices(gc){
 function ksmOpenGrandChampionWithdraw(id){
   const gc=ksmGrandChampion(id);if(!gc||isReadOnlySession())return;
   const now=ksmGrandChampionNow(gc);
-  const duplicate=now.duplicates[0];
+  const duplicate=now.unavailable[0]||now.duplicates[0];
   if(duplicate)return ksmOpenGrandChampionStandIn(id,duplicate);
   const choices=ksmGrandChampionWithdrawChoices(gc);
   if(!choices.length){showKsmToast('Nobody can withdraw now: every player\'s match has started or is not decided yet.',4000,true);return}
@@ -239,7 +263,9 @@ function ksmOpenGrandChampionWithdraw(id){
 }
 function ksmOpenGrandChampionStandIn(id,source){
   const gc=ksmGrandChampion(id);if(!gc)return;
-  const result=ksmGrandChampionSourceResult(source),now=ksmGrandChampionNow(gc),i=gc.sources.indexOf(source),entrant=now.entrants[i];
+  const result=ksmGrandChampionSourceResult(source),now=ksmGrandChampionNow(gc),i=gc.sources.indexOf(source);
+  // A stand-in whose runner-up is not there: the winner's place is chosen again (Fusen-sho).
+  const entrant=now.entrants[i]||(now.unavailable.includes(source)&&result.winner?{...result.winner,source,via:'winner'}:null);
   if(!result.complete||!entrant)return;
   const duplicate=now.duplicates.includes(source);
   const choices=[];
@@ -278,11 +304,12 @@ function ksmGrandChampionRowData(gc,i,rows){
     error,
     waiting:now.waiting.map(ksmSourceName),
     duplicates:now.duplicates.map(ksmSourceName),
+    unavailable:now.unavailable.map(ksmSourceName),
     entrants:now.entrants.map((e,j)=>e?{name:e.name,via:e.via,source:ksmSourceName(gc.sources[j])}:null),
     drawn,started:drawn&&KSMEngine.grandChampionStarted(arr),complete,
     champion:placements[0]?.name||null,
     decide:!!ksmGrandChampionAsks[gc.id],
-    canWithdraw:!!state.generated&&!complete&&(now.duplicates.length>0||ksmGrandChampionWithdrawChoices(gc).length>0),
+    canWithdraw:!!state.generated&&!complete&&(now.duplicates.length>0||now.unavailable.length>0||ksmGrandChampionWithdrawChoices(gc).length>0),
   };
 }
 function ksmGrandChampionSetupData(){

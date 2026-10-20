@@ -35,6 +35,15 @@ def status(app):
     return app.page.locator(sel('grand-champion-status')).first.inner_text()
 
 
+def open_decision(app):
+    """Setup: the director's question opens when Setup shows (else its row's Decide…)."""
+    app.nav('setup')
+    if not app.page.evaluate('KSMTest.grandChampionQuestion()'):
+        app.page.wait_for_selector(sel('grand-champion-decide'))
+        app.click('grand-champion-decide')
+    return app.page.evaluate('KSMTest.grandChampionQuestion()')
+
+
 def choose(app, choice):
     """Answer the open grand champion question by clicking its button."""
     app.page.wait_for_selector(f'{sel("grand-champion-choice")}[data-choice="{choice}"]')
@@ -69,6 +78,7 @@ def local_cases(browser):
     app.nav('setup')
     assert page.locator(sel('grand-champion-court')).is_disabled() and not page.locator(sel('grand-champion-awardMode')).is_disabled(), 'not locked after generation'
     assert page.locator(sel('grand-champion-add')).is_disabled()
+    assert 'can no longer be added or removed' in page.locator(sel('grand-champion-note')).inner_text()
 
     # Fill-in: nothing until both sources are decided, then one Final on Court B (Encho).
     assert play_court(app, 'A', [['W', 'M']]) == 'Open'
@@ -113,9 +123,8 @@ def local_cases(browser):
     app.undo()  # the Open final's Next Match
     app.wait_toast('Grand Champion 2026: a source division changed after it started. The director decides in Setup.')
     assert gc_matches(app, gc)[0]['wp'] == ['M'], 'a started grand champion changed without the director'
-    app.nav('setup')
-    app.click('grand-champion-decide')
-    q = page.evaluate('KSMTest.grandChampionQuestion()')
+    assert not page.evaluate('KSMTest.grandChampionQuestion()'), 'a court device was asked (only Setup asks)'
+    q = open_decision(app)
     assert q['choices'] == ['keep', 'rebuild'] and 'no longer decided' in q['message'], q
     choose(app, 'keep')
     assert gc_matches(app, gc)[0]['wp'] == ['M'] and page.evaluate('KSMTest.grandChampions()[0].keep'), 'keep did not keep the match'
@@ -125,10 +134,7 @@ def local_cases(browser):
     app.undo()  # the Open final's point
     page.evaluate("KSMTest.play([['W','M']])")  # Open decided the other way round
     assert page.evaluate("KSMTest.finalState().Open.placements[0].name") == open_winner
-    app.nav('setup')
-    page.wait_for_selector(sel('grand-champion-decide'))
-    app.click('grand-champion-decide')
-    assert open_winner in page.evaluate('KSMTest.grandChampionQuestion()')['message']
+    assert open_winner in open_decision(app)['message']
     choose(app, 'rebuild')
     final = gc_matches(app, gc)
     assert final[0]['wp'] == [] and not final[0]['done'], 'draw again kept the old score'
@@ -229,6 +235,31 @@ def pool_and_fusen_cases(browser):
     choose(app, 'runner-up')
     final = gc_matches(app, dup)
     assert sorted([final[0]['white'], final[0]['red']]) == ['Aki', 'Fay'], final
+
+    # PR review: a pool of winners under way; a winner who has not played yet withdraws, the runner-up
+    # takes their place (no question, nothing played touched).
+    page.evaluate("""()=>{const st=KSMTest.app.state;st.generated=false;
+      st.competitors=st.competitors.map(c=>c.division==='Masters'&&c.name==='Aki'?{...c,name:'Eli',dojo:'Eli Dojo'}:c);}""")
+    sub = page.evaluate("KSMTest.addGrandChampion(['Open','Women','Masters'],{format:'Round Robin',court:'B',name:'Sub Pool'})")
+    page.evaluate('KSMTest.app.generatePools({validated:true})')
+    for court in ('A', 'B', 'A'):
+        play_court(app, court, [['W', 'M']])
+    pool = gc_matches(app, sub)
+    page.evaluate("id=>{const m=KSMTest.prepareCourt('B');KSMTest.play([['W','M']]);}", sub)
+    pool = gc_matches(app, sub)
+    first = next(m for m in pool if m['done'])
+    winners = {d: page.evaluate(f"KSMTest.finalState()['{d}'].placements[0].name") for d in ('Open', 'Women', 'Masters')}
+    waiting_source, waiting_player = next((d, n) for d, n in winners.items() if n not in (first['white'], first['red']))
+    app.nav('setup')
+    page.locator(sel('grand-champion-withdraw')).last.click()
+    choose(app, 'source:' + waiting_source)
+    choose(app, 'runner-up')
+    assert not page.evaluate('KSMTest.grandChampionQuestion()'), 'asked although nothing of theirs was played'
+    after = gc_matches(app, sub)
+    runner_up = page.evaluate(f"KSMTest.finalState()['{waiting_source}'].placements[1].name")
+    assert next(m for m in after if m['done']) == first, 'a played bout changed'
+    names = {n for m in after for n in (m['white'], m['red'])}
+    assert runner_up in names and waiting_player not in names, after
     assert not problems, problems
     page.close()
 
@@ -308,6 +339,43 @@ def merge_cases(browser, base):
     assert len(got) == 1 and got[0]['rp'] == ['K'], f'B\'s grand champion score was lost in the rebase: {got}'
     assert next(g for g in st['grandChampions'] if g['id'] == late)['awardMode'] == 'top2'
     assert b.conflicts() >= 3, b.conflicts()
+
+    # PR review: two devices withdraw different winners at once: both stand-ins are kept.
+    a.page.evaluate('''entries=>{const st=KSMTest.app.state;st.generated=false;st.divisions.push('Masters');st.divisionTypes.Masters='Single Elimination';
+      st.divisionCourts.Masters='A';st.competitors.push(...entries.map(e=>({...e,division:'Masters'})));}''', DIVISIONS[2]['entrants'])
+    both = a.page.evaluate("KSMTest.addGrandChampion(['Open','Women'],{court:'B',name:'Both out'})")
+    tie = a.page.evaluate("KSMTest.addGrandChampion(['Open','Women','Masters'],{court:'B',name:'Tie Pool',format:'Round Robin'})")
+    a.page.evaluate('KSMTest.app.generatePools({validated:true})')
+    for court in ('A', 'B', 'A'):
+        play_court(a, court, [['W', 'M']])
+    a.save_now(); a.wait_idle(); b.wait_revision(fetch_record(base, tid)['revision'])
+    def withdraw(device, source):
+        device.nav('setup')
+        device.page.click(f'[data-grand-champion-id="{both}"] + tr {sel("grand-champion-withdraw")}')
+        choose(device, 'source:' + source); choose(device, 'runner-up')
+    st = race(lambda: withdraw(b, 'Open'), lambda: withdraw(a, 'Women'))
+    row = next(g for g in st['grandChampions'] if g['id'] == both)
+    assert set(row.get('standIns', {})) == {'Open', 'Women'}, f'a withdrawal was undone by the other device: {row}'
+    pair = st['allMatches'][both][0]
+    finals = {d: next(m for m in st['allMatches'][d] if m.get('position') == 'Final') for d in ('Open', 'Women')}
+    losers = {(f['red'] if f['wp'] else f['white']) for f in finals.values()}
+    assert {pair['white'], pair['red']} == losers, (pair, losers)
+
+    # PR review: a pool of winners' tiebreak made on Court B during a save conflict reaches the server.
+    play_pool = """id=>{KSMTest.prepareCourt('B');KSMTest.app.selectScorekeeperDivision(id);const st=KSMTest.app.state,m=st.matches[st.current];
+      const wins={};for(const x of st.allMatches[id])if(x.done){const w=x.wp.length>x.rp.length?x.white:x.red;wins[w]=(wins[w]||0)+1}
+      KSMTest.play([[(wins[m.white]||0)<(wins[m.red]||0)?'W':'R','M']]);}"""
+    for _ in range(2):
+        b.page.evaluate(play_pool, tie)
+    b.save_now(); b.wait_idle(); a.wait_revision(fetch_record(base, tid)['revision'])
+    def last_bout_on_b():
+        b.page.evaluate(play_pool, tie)
+        # Replayed by its index patches (as an entry without match ops is), the path the guard is on.
+        b.page.evaluate("()=>{const h=KSMTest.app.state.courtActionHistory.B;delete h[h.length-1].matchOps}")
+    st = race(last_bout_on_b, lambda: a.page.evaluate("id=>KSMTest.updateGrandChampion(id,{awardMode:'top2'})", tie))
+    bouts = st['allMatches'][tie]
+    assert sum(1 for m in bouts if m.get('tiebreak')) >= 1 and sum(1 for m in bouts if m['done'] and not m.get('tiebreak')) == 3, f'the tiebreak or the last bout was dropped: {bouts}'
+    assert next(g for g in st['grandChampions'] if g['id'] == tie)['awardMode'] == 'top2'
     assert not problems, problems
     a.close(); b.close()
 

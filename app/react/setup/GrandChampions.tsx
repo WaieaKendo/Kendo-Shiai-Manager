@@ -105,6 +105,7 @@ export function GrandChampionSetup() {
         </div>
       )}
       <button type="button" className="primary" disabled={input.readOnly || input.locked} onClick={() => gcWindow().ksmAddGrandChampion?.()} data-testid="grand-champion-add">{GC_TEXTS.add}</button>
+      {input.locked && <p className="small setup-gc-note" role="status" data-testid="grand-champion-note">{GC_TEXTS.locked}</p>}
     </>
   );
 }

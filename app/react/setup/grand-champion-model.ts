@@ -26,6 +26,8 @@ export interface GrandChampionRowInput {
   waiting: string[];
   /** Sources (display names) whose winner also won an earlier source. */
   duplicates: string[];
+  /** Sources (display names) whose chosen runner-up is not there: choose again. */
+  unavailable?: string[];
   /** Who plays for each source now (null: not decided). */
   entrants: (GrandChampionEntrantView | null)[];
   drawn: boolean;
@@ -58,6 +60,7 @@ export const GC_TEXTS = {
   decide: 'Decide…',
   remove: '×',
   missing: '(not in use)',
+  locked: 'The tournament is generated: grand champion matches can no longer be added or removed, and their divisions, format and court are fixed. Names and awards can still change.',
 } as const;
 export const GC_HEADINGS = ['Name', 'Divisions', 'Format', 'Court', 'Awards', 'Order'] as const;
 export const GC_FORMAT_OPTIONS = [['Single Elimination', 'Single elimination'], ['Round Robin', 'Pool of winners']] as const;
@@ -96,6 +99,7 @@ export function grandChampionStatus(row: GrandChampionRowInput): { tone: 'info' 
   if (row.error) return { tone: 'warn', text: row.error };
   if (row.decide) return { tone: 'warn', text: 'A source division changed after this match started: decide whether it stands.' };
   if (row.complete && row.champion) return { tone: 'done', text: `Grand Champion: ${row.champion}` };
+  if (row.unavailable?.length) return { tone: 'warn', text: `${row.unavailable.join(', ')}: the runner-up chosen to play is not there. Choose again (Withdraw a player…).` };
   if (row.duplicates.length) return { tone: 'warn', text: `The same person won ${row.duplicates.join(', ')} and an earlier division: choose who plays.` };
   const entrants = row.entrants.filter((e): e is GrandChampionEntrantView => !!e);
   if (row.drawn) return { tone: 'info', text: `${row.started ? 'Playing' : 'Ready'} on Court ${row.court}: ${entrants.map(plays).join(' vs ')}` };

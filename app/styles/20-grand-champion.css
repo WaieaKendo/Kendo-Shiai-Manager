@@ -1,5 +1,6 @@
 /* ksm:post-split-begin grand-champion-style */
 /* #86: Setup's grand champion rows (app/react/setup/GrandChampions.tsx). Theme tokens only. */
+.setup-gc-note{margin:0;color:var(--muted)}
 .setup-gc-sources{display:flex;flex-wrap:wrap;gap:6px 14px}
 .setup-gc-sources label{display:inline-flex;align-items:center;gap:6px;font-weight:600;white-space:nowrap}
 .setup-gc-sources input{width:auto;min-height:0}

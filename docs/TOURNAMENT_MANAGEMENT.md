@@ -259,17 +259,22 @@ divisions, format and court are fixed; the name and awards stay editable.
   divisions it is waiting for.
 - **Withdrawal.** **Withdraw a player…** on the row: the division's **runner-up** plays instead, or
   the winner loses by **Fusen-sho** (every unplayed bout of theirs, recorded as the court's Fusen-sho).
-  Offered until that player's match starts. If the same person won two chosen divisions, the row asks
-  who plays for the later one (the runner-up).
+  Offered until that player's match starts; in a bracket or pool already under way, a runner-up takes
+  the place of a winner who has played nothing yet (slot and bouts kept, no question). If the same
+  person won two chosen divisions, the row asks who plays for the later one (the runner-up); if a
+  chosen runner-up is not there, the row asks again. A runner-up who already stands in and cannot
+  play loses at the court (Fusen-sho).
 - **A division corrected before the match starts** (Undo on its court, a result corrected): the match
   follows, filled with the corrected winner, or emptied until the division is decided again.
 - **A division corrected after the match started**: nothing changes by itself. The director is asked
-  in the page (a court device only shows a notice; Setup's row has **Decide…**): **Keep the match as
+  in the page, only on a device showing Setup (every other device shows a notice; Setup's row has
+  **Decide…**): **Keep the match as
   played**, or **Draw again** with the corrected players (its results are deleted). The answer is
   saved with the row, so every device does the same; a later correction asks again.
 - **Results, TV, print.** The match's places are its awards: **Grand Champion** (and **Runner-up**).
 
-Sync: rows merge by id on a save conflict (a removed row wins, with the usual notice). The draw is
+Sync: rows merge by id on a save conflict, each source's withdrawal on its own (a removed row wins,
+with the usual notice). The draw is
 not merged: every device that saves recomputes it from the divisions after each change, load and
 rebase, so they all reach the same draw. A court's points for players that another device has since
 replaced (a correction before the start) are not saved onto the new players; the court is told.

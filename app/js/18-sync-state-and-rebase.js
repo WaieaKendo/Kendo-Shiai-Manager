@@ -129,7 +129,7 @@ function resolveRebasePatch(localState,rebasedState,patch){
   const localMatch=localArr.find(match=>matchHasSyncIdentity(match,identity))||localArr[path[2]];
   if(!isValidMatchObject(localMatch))return null;
   let remoteIndex=remoteArr.findIndex(match=>matchHasSyncIdentity(match,identity));
-  /* ksm:post-split-begin grand-champion */if(remoteIndex<0&&KSMEngine.isGrandChampionId(div)){ksmNoteGrandChampionPatchDropped(div);return null}/* ksm:post-split-end */
+  /* ksm:post-split-begin grand-champion */if(remoteIndex<0&&KSMEngine.isGrandChampionId(div)&&!ksmSameGrandChampionDraw(localState,rebasedState,div)){ksmNoteGrandChampionPatchDropped(div);return null}/* ksm:post-split-end */
   if(remoteIndex<0){
     // A local action may have created a new dynamic/tiebreak match after the remote
     // snapshot revision. Add the complete valid object without ever creating a sparse
@@ -329,7 +329,7 @@ function mergeLocalEditsThreeWay(rebased,localPayload,basePayload,structuralRepl
       const split=Array.isArray(structuralReplayed)&&registrationListSplits(server,local,base,k,structuralReplayed);
       let value;
       if((k==='teamDivisions'||k==='grandChampions'||(k==='teams'&&!split))&&[...(server||[]),...(local||[]),...(base||[])].every(row=>row.id)){
-        value=KSMEngine.mergeTeamDivisionRecords(server||[],local||[],base||[],label,conflicts);
+        value=k==='grandChampions'?KSMEngine.mergeGrandChampionRecords(KSMEngine.mergeTeamDivisionRecords,server||[],local||[],base||[],label,conflicts):KSMEngine.mergeTeamDivisionRecords(server||[],local||[],base||[],label,conflicts);
         if(k==='grandChampions'&&!value.length&&server===undefined)value=undefined;
       }else value=split?mergeRegistrationListSplit(server,local,base,structuralReplayed,label,conflicts,k):mergeValueThreeWay(server,local,base,label,conflicts);
       if(value===undefined)delete rebased.state[k];else rebased.state[k]=value;
