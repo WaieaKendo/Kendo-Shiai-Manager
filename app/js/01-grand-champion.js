@@ -22,8 +22,12 @@ function ksmGrandChampionChanged(reason='Grand champion'){
   renderDivisionSetup();renderDivisions();renderTournamentStatus();scheduleAutoSave(reason);
 }
 // ---------------------------------------------------------- Setup rows
+// Like team divisions: a grand champion match is fixed once it is drawn (divisions, format, court,
+// removal); one not drawn yet can be added, changed and removed after generation, and fills in when its
+// divisions finish.
+function ksmGrandChampionDrawn(id){return (state.allMatches?.[id]||[]).length>0}
 function ksmAddGrandChampion(){
-  if(state.generated||isReadOnlySession())return null;
+  if(isReadOnlySession())return null;
   const rows=ksmGrandChampions(),gc=KSMEngine.newGrandChampion(ksmNewGrandChampionId(),Math.max(-1,...rows.map(r=>r.order))+1);
   state.grandChampions=[...rows,gc];state.divisionCourts[gc.id]=gc.court;
   ksmGrandChampionChanged();return gc.id;
@@ -34,7 +38,7 @@ function ksmUpdateGrandChampion(id,patch){
   const gc=ksmGrandChampion(id);if(!gc)return 'This grand champion match no longer exists.';
   if(isReadOnlySession())return 'Read only';
   if(patch.name!==undefined&&!String(patch.name).trim())return 'Enter a name for the grand champion match.';
-  if(state.generated&&Object.keys(patch).some(k=>!KSM_GC_EDITABLE_AFTER_DRAW.includes(k)))return 'Divisions, format and court cannot change after generation.';
+  if(ksmGrandChampionDrawn(id)&&Object.keys(patch).some(k=>!KSM_GC_EDITABLE_AFTER_DRAW.includes(k)))return 'Divisions, format and court cannot change once this match is drawn.';
   Object.assign(gc,patch,{id:gc.id},patch.name!==undefined?{name:String(patch.name).trim()}:{});
   if(patch.court)state.divisionCourts[id]=gc.court;
   ksmGrandChampionChanged();return null;
@@ -51,7 +55,7 @@ function ksmMoveGrandChampion(id,direction){
   [rows[i],rows[j]]=[rows[j],rows[i]];rows.forEach((r,index)=>r.order=index);state.grandChampions=rows;ksmGrandChampionChanged();
 }
 function ksmRemoveGrandChampion(id){
-  if(state.generated||isReadOnlySession()||!ksmGrandChampion(id))return false;
+  if(ksmGrandChampionDrawn(id)||isReadOnlySession()||!ksmGrandChampion(id))return false;
   state.grandChampions=ksmGrandChampions().filter(r=>r.id!==id);delete state.divisionCourts[id];
   ksmClearGrandChampionStructure(id);ksmGrandChampionChanged();return true;
 }
@@ -315,7 +319,7 @@ function ksmGrandChampionRowData(gc,i,rows){
 function ksmGrandChampionSetupData(){
   const rows=ksmGrandChampions();
   return {
-    locked:!!state.generated,readOnly:isReadOnlySession(),
+    locked:rows.some(gc=>ksmGrandChampionDrawn(gc.id)),readOnly:isReadOnlySession(),
     divisions:(state.divisions||[]).map(d=>({key:String(d),name:String(d)})),
     rows:rows.map((gc,i)=>ksmGrandChampionRowData(gc,i,rows)),
   };
