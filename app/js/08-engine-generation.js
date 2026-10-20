@@ -1,6 +1,6 @@
 function generateDivisionState(div){
-  /* ksm:post-split-begin engine-bridge */const settings=tournamentSettings();
-  const plan=KSMEngine.generateDivision({division:div,competitors:state.competitors,teams:state.teams,exhibitions:state.exhibitions,divisionType:state.divisionTypes[div],courtMode:state.divisionCourts[div],settings,bracketNodesForCount:teamBracketNodesForCount});
+  /* ksm:post-split-begin engine-bridge */const settings=ksmTeamSettings(div);
+  const plan=KSMEngine.generateDivision({division:div,teamDivisionId:ksmTeamDivision(div)?.id,competitors:state.competitors,teams:state.teams,exhibitions:state.exhibitions,divisionType:state.divisionTypes[div],courtMode:state.divisionCourts[div],settings,bracketNodesForCount:teamBracketNodesForCount});
   if(!plan)return false;
   if(plan.kind==='team'){
     state.pools[div]=plan.pools;state.teamPools[div]=plan.teamPools;
@@ -28,7 +28,9 @@ function generatePools(options={}){
   if(!options.validated){requestTournamentGeneration();return}
   state.pools={};state.teamPools={};state.allMatches={};state.teamBracketNodes={};state.singleElimNodes={};state.singleElimComps={};state.teamElimTeams={};state.brackets={};state.championshipNodes={};state.byeWinners={};state.currentByDivision={};let generated=0;
   state.divisions.forEach(div=>{if(generateDivisionState(div))generated++});
-  if((/* ksm:post-split-begin engine-settings was:teamEnabled?.value */tournamentSettings().teamEnabled/* ksm:post-split-end */||'Enabled')==='Enabled'&&generateDivisionState('Team Tournament'))generated++;
+  /* ksm:post-split-begin team-divisions was:if((teamEnabled?.value||'Enabled')==='Enabled'&&generateDivisionState('Team Tournament'))generated++; */
+  if(tournamentSettings().teamEnabled!=='Disabled')ksmTeamDivisions().forEach(d=>{if(generateDivisionState(d.id))generated++});
+  /* ksm:post-split-end */
   if(generateDivisionState('Exhibition Matches'))generated++;
   if(!generated){alert('No registered or checked-in competitors, teams, or exhibitions found. No-show entries are excluded.');return}
   initCourtStates();let chosen=(poolDiv&&state.allMatches[poolDiv.value])?poolDiv.value:(state.courtState.A.division||Object.keys(state.allMatches)[0]);setActiveDivision(chosen,true);state.generated=true;state.managementRevision=(state.managementRevision||0)+1;if(window.generateBtn)generateBtn.textContent='Regenerate Tournament';renderAll();show('registration');regTab('pools');scheduleAutoSave();

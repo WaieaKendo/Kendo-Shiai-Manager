@@ -150,17 +150,19 @@ function ksmBlurRedrawn(island){
 // per team the filter lets through.
 function ksmTeamsData(){
   let f=(teamFilter?.value||'').toLowerCase();
-  let rows=state.teams.map((c,i)=>({...c,i})).filter(c=>!f||[c.team,c.type,c.senpo,c.jiho,c.chuken,c.fukusho,c.taisho].join(' ').toLowerCase().includes(f));
-  let fmt=teamFormat?.value||'5-Person Team';
+  let rows=state.teams.map((c,i)=>({...c,i})).filter(c=>(!window.teamDivisionFilter?.value||c.teamDivisionId===teamDivisionFilter.value)&&(!f||[c.team,ksmTeamSettings(c.teamDivisionId).teamFormat,c.senpo,c.jiho,c.chuken,c.fukusho,c.taisho].join(' ').toLowerCase().includes(f)));
+  let fmt=ksmTeamSettings().teamFormat||'5-Person Team';
   let slots=fmt==='3-Person Team'||fmt==='Kachinuki'?['senpo','chuken','taisho']:['senpo','jiho','chuken','fukusho','taisho'];
   return {
+    divisions:ksmTeamDivisions().map(d=>({id:d.id,name:d.name})),
     format:ksmHtmlText(fmt),tournamentFormat:ksmHtmlText(teamTournamentFormat?.value||'Single Elimination'),slots,
-    cards:rows.map(c=>ksmBindRegistrationEntry(state.teams[c.i],{index:c.i,team:ksmHtmlText(c.team),members:slots.map(k=>ksmHtmlText(c[k])),
+    cards:rows.map(c=>ksmBindRegistrationEntry(state.teams[c.i],{index:c.i,team:ksmHtmlText(c.team),teamDivisionId:c.teamDivisionId||ksmTeamDivisions()[0]?.id||'',slots:KSMEngine.teamSlots(ksmTeamSettings(c.teamDivisionId).teamFormat),format:ksmTeamSettings(c.teamDivisionId).teamFormat,tournamentFormat:ksmTeamSettings(c.teamDivisionId).teamTournamentFormat,members:KSMEngine.teamSlots(ksmTeamSettings(c.teamDivisionId).teamFormat).map(k=>ksmHtmlText(c[k])),
       // The class printed as `status ${esc(c.status)}` (F19) and the status as compared.
       status:ksmHtmlText(c.status),checked:c.status==='Checked',noShow:c.status==='NoShow'})),
   };
 }
 function ksmRenderTeams(){
+  const filter=document.getElementById('teamDivisionFilter');if(filter){const selected=filter.value;filter.replaceChildren(new Option('All team divisions',''),...ksmTeamDivisions().map(d=>new Option(d.name,d.id)));filter.value=selected}
   let input=ksmTeamsData();
   ksmTeamsStale=false;
   ksmBlurRedrawn(document.querySelector('#teamReg #teamTable'));
@@ -229,7 +231,7 @@ function ksmSyncExhibitionTab(){
 // notice. (var without a value, the map made on first use: renderTeams() runs at boot, before this part of
 // app.js, and a declaration with a value would drop that map when it runs.)
 var ksmRegistrationEntries,ksmTeamsStale,ksmExhibitionsStale;
-var KSM_TEAM_FIELDS=['team','division','type','senpo','jiho','chuken','fukusho','taisho','status'];
+var KSM_TEAM_FIELDS=['id','teamDivisionId','team','division','type','senpo','jiho','chuken','fukusho','taisho','status'];
 var KSM_EXHIBITION_FIELDS=['white','red','division','status'];
 function ksmBindRegistrationEntry(entry,row){
   if(!ksmRegistrationEntries)ksmRegistrationEntries=new WeakMap();
@@ -253,11 +255,12 @@ function ksmSetTeamField(card,key,value){
   const index=ksmRegistrationEntryIndex(state.teams,card,KSM_TEAM_FIELDS);
   if(index<0){ksmEditDropped(ksmRegistrationEntries.get(card).team||'a team','team list');return}
   if(state.teams[index]!==ksmRegistrationEntries?.get(card))ksmTeamsStale=true;
+  if(key==='teamDivisionId'){ksmAssignTeamDivision(state.teams[index],value);return}
   state.teams[index][key]=value;
 }
 function ksmRemoveTeam(i){
   // Owner decision 18 (#29): × on a team of the generated team division asks first.
-  const t=state.teams[i];if(t&&t.team&&ksmInGeneratedDivision(t.team,'Team Tournament',true)&&!ksmConfirmRemove(t.team,'Team Tournament'))return;
+  const t=state.teams[i];if(t&&t.team&&ksmInGeneratedDivision(t.team,t.teamDivisionId||'Team Tournament',true)&&!ksmConfirmRemove(t.team,t.teamDivisionId||'Team Tournament'))return;
   state.teams.splice(i,1);renderTeams();renderTournamentStatus();
 }
 function ksmSetExhibitionField(row,key,value){

@@ -479,3 +479,47 @@ one case for local revert verification.
 
 Run build-producing runners sequentially: concurrent run-all invocations share `dist/`.
 F36 remains an expected-failure pin in `network-two-tabs-test.py`, tracked separately in #81.
+
+### Team divisions (#85)
+
+Browser tests use `window.KSMTest` only (or the `KSMTest.app` gateway for existing engine
+operations). New operations:
+
+- `teamDivisions()` returns a copy of the divisions in running order.
+- `addTeamDivision(name)` returns its persisted ID.
+- `updateTeamDivision(id, patch)` returns an error or `null`; patch fields are `name`,
+  `teamFormat`, `teamTournamentFormat`, `court`, `awardMode`, and `order`.
+- `moveTeamDivision(id, 'up' | 'down')`, `removeTeamDivision(id)`, and
+  `assignTeamDivision(teamIndex, id)` use the production operations.
+- `localDraft()`, `seedDetachedDraft(payload)`, and `shortName()` exercise recovery and creation.
+
+`tests/team-divisions-test.py` loads a legacy draw, generates two separate competitions on two
+courts, scores them, checks independent results and stable assignments across rename/reorder,
+plays Kachinuki in the second division, and uses held saves for rename/reorder, add/add, simultaneous assignments to different teams, and
+remove/assign races. `tests/team-division-preflight-test.py` covers rejected initial short-name
+creation and detached-draft guards for tournament, spectator, TV and overlay links. The local
+scoring scenarios use Playwright's clock to keep autosave scheduling deterministic. Save races use
+`KsmApp.hold_next_save()` / `release_save()`, never an elapsed-time assumption.
+
+`tests/engine/team-divisions.test.mjs` checks migration's exact generated matches and bracket
+nodes for all three team match formats and both tournament formats, per-division generation,
+field merges by ID, concurrent additions, and labelled removed-division fallback. The existing
+engine and court goldens are kept as the compatibility oracle.
+
+Team-registration screen goldens omit the opaque registration `id` from row state; generated IDs
+are deliberately random. Assignment IDs and all visible fields remain in those snapshots. The
+team-division browser and pure tests assert persisted identity and merge behavior directly.
+
+To verify preflight assertions reject the original bugs, run that test with
+`KSM_TEST_MUTATION=slug-success` or `KSM_TEST_MUTATION=draft-before-guards`. Each serves one
+deliberately broken app response and must fail its corresponding assertion; no source file or
+stored tournament is modified. `KsmApp.local(..., query='?court=B')` can fix a local TV's assigned
+court before the script boots.
+
+The migration browser case also loads authoritative division records with stale legacy Setup
+values, then submits Setup. It must keep the division format and awards; the regression was
+confirmed to fail before the compatibility adapters were synchronized from the records.
+
+Recovery coverage rebases a legacy local snapshot and legacy merge base against a legacy server
+copy, with independent edits to different teams. All three pass through the same pure migration
+before merging; the test was confirmed to fail when only the server copy was migrated.

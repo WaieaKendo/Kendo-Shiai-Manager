@@ -10,7 +10,7 @@ function resultPlacements(div){
   if(isTeamDivision(div)){
     const p=teamFinalPlacements(div);
     if(!p)return [];
-    const mode=state.teamAwardMode||'top2';
+    const mode=ksmTeamSettings(div).teamAwardMode||'top2';
     // External PR review (#35): a place with an award still level is never named alphabetically.
     const tied=new Set(p.undecided||[]),named=(place,name)=>tied.has(place)?KSM_TEAM_PLACE_TIED:name;
     const rows=[{place:'1st',name:named(1,p.first),tier:'gold'}];

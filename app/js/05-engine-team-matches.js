@@ -3,8 +3,8 @@
  * Member positions of the team format in Setup, in bout order.
  * @returns {TeamPosition[]}
  */
-function teamSlots(){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamSlots(tournamentSettings().teamFormat);
+function teamSlots(/* ksm:post-split-begin team-divisions */div/* ksm:post-split-end */){
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamSlots(ksmTeamSettings(div).teamFormat);
   /* ksm:post-split-end */
 }
 /**
@@ -22,7 +22,7 @@ function slotLabel(k){
  * @returns {Match[]}
  */
 function buildTeamMatches(div,teams){
-  /* ksm:post-split-begin engine-bridge */const plan=KSMEngine.buildTeamMatches(div,teams,tournamentSettings());let m=/** @type {Match[]} */(plan.matches);
+  /* ksm:post-split-begin engine-bridge */const plan=KSMEngine.buildTeamMatches(div,teams,ksmTeamSettings(div));let m=/** @type {Match[]} */(plan.matches);
   state.teamElimTeams=state.teamElimTeams||{};state.teamElimTeams[div]=[...teams];
   if(plan.singleElim){
     state.teamBracketNodes=state.teamBracketNodes||{};
@@ -63,7 +63,7 @@ function nodePairId(node){
 function syncTeamBracket(div,arr,teams){
   /* ksm:post-split-begin engine-bridge */state.teamBracketNodes=state.teamBracketNodes||{};
   const nodes=state.teamBracketNodes[div]||[],current=state.allMatches[div];
-  const plan=KSMEngine.syncTeamBracket(div,nodes,arr,teams,tournamentSettings().teamFormat,current===arr?undefined:(current||[]));
+  const plan=KSMEngine.syncTeamBracket(div,nodes,arr,teams,ksmTeamSettings(div).teamFormat,current===arr?undefined:(current||[]));
   plan.winners.forEach(w=>{nodes[w.index].winner=w.winner;});
   arr.push(.../** @type {Match[]} */(plan.added));
   state.allMatches[div]=arr;sortTeamMatches(div);return state.allMatches[div];

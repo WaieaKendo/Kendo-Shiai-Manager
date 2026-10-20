@@ -157,7 +157,7 @@ class KsmApp:
 
     # ------------------------------------------------------------------ devices
     @classmethod
-    def local(cls, page, name='local', session='staff', problems=None):
+    def local(cls, page, name='local', session='staff', problems=None, query=''):
         """Offline app on the fake http://ksm.test origin (see ksm_browser.load_app).
 
         With a `problems` list, dialogs and page errors are handled as on open_device()
@@ -167,7 +167,7 @@ class KsmApp:
         if problems is not None:
             page.on('dialog', app._on_dialog)
             page.on('pageerror', lambda e: problems.append(f'{name}: page error: {e}'))
-        load_app(page, session=session)
+        load_app(page, session=session, query=query)
         return app
 
     @classmethod
@@ -724,9 +724,11 @@ class KsmApp:
         self.nav('setup')
         page.select_option(sel('team-enabled'), label='Enabled' if enabled else 'Disabled')
         if enabled:
-            page.select_option(sel('team-format'), label=fmt)
-            page.select_option(sel('team-tournament-format'), label=tournament)
-            page.select_option(sel('team-court'), label=court)
+            if not page.locator(sel('team-division-row')).count():
+                self.click('team-division-add')
+            page.select_option(sel('team-division-teamFormat'), label=fmt)
+            page.select_option(sel('team-division-teamTournamentFormat'), label=tournament)
+            page.select_option(sel('team-division-court'), label=court)
 
     # ------------------------------------------------------------- registration
     def register(self, name, dojo, division, seed='', status='Checked'):

@@ -183,3 +183,63 @@ A tournament can only be deleted by a staff device of that tournament (Staff Log
 4. Press **Delete tournament** (or Enter). The device shows the Tournament Library with "Tournament deleted".
 
 Other devices show "This tournament was deleted" and return to the Library; a device that was offline shows it when it reconnects, and anything it had not saved is discarded. The server keeps only a marker that the tournament was deleted, so no device can bring it back. Spectators are not offered the action.
+
+## Team divisions
+
+Setup → Team Competition supports several independent team divisions. Keep **Teams enabled** on
+for team competition. Use **Add team division**, enter a name, and choose the match format
+(3-Person Team, 5-Person Team, or Kachinuki), tournament format (Single Elimination or Round Robin),
+court, and awards for each division. Move up/down changes their running order. Names and order
+can change without changing any team's assignment. Format, court, removal and assignments are
+locked after generation; names, order and awards remain editable.
+
+Registration → Team Registration has a division select on each team and a division filter beside
+the name filter. New teams belong to the first division in running order. Removing a division with
+teams asks for confirmation and names the remaining division those teams will move to. Add another
+division first if the only division still contains teams.
+
+Generation builds each competition independently. Courts, Live Scores, TV, Results & Awards,
+Overview, and printable exports show its name. A 3-person bracket on Court A and a 5-person round
+robin on Court B can run in the same tournament. Kachinuki uses the same rules in every division:
+the opposing last player must lose before the pairing ends.
+
+Old files, cloud copies, autosaves and recovery files load through the same migration. An enabled
+old team event becomes one division named “Team Tournament”; the existing draw, scores, medals,
+format, court and award mode are preserved. Disabled old tournaments get no team division.
+
+Each division has a persisted ID independent of its name and position. Devices merge changes by
+ID and merge individual division fields independently. Concurrent additions both survive. Removing
+a division wins over concurrent edits to it. If another device assigns a team to that removed
+division, the team goes to the first remaining division in running order, and the conflict notice
+names the team division assignment. If no division remains, the assignment is empty until a
+new division is added and selected.
+
+### Compatibility reader audit
+
+These were all readers or declarations of the five old team settings before #85. The old Setup
+fields remain serialized for compatibility; division records now supply each competition's settings.
+
+| Reader | Current role |
+| --- | --- |
+| `app/index.html` | Global enable switch; legacy setting controls retained as compatibility adapters, with the division editor above them. |
+| `app/engine/settings.ts` | Pure defaults and legacy Setup reader, also used by migration. |
+| `app/engine/teams.ts` | Pure existing team engine; receives one division's format and tournament format. |
+| `app/engine/generation.ts` | Generates one competition from its stable division ID and filtered teams. |
+| `app/js/01-state-and-setup.js` | Legacy defaults and Setup compatibility fields; publishes the division editor. |
+| `app/js/03-registration-and-validation.js` | New teams default to the first division; counts and validates each team division independently. |
+| `app/js/05-engine-team-matches.js` | Supplies division-specific match format to slots, bracket creation and advancement. |
+| `app/js/07-engine-team-bracket.js` | Uses the scored match's division tournament format for winner requirements. |
+| `app/js/08-engine-generation.js` | Runs the pure engine once per enabled team division. |
+| `app/js/09-results-and-awards.js` | Builds representative rosters with the team's division format and division identity. |
+| `app/js/13-engine-standings-and-tiebreaks.js` | Division-specific standings, representative playoffs, round-robin daihyosen and award places. |
+| `app/js/17-print.js` | Snapshot-only migration and division settings for independent rosters, standings, brackets and awards. |
+| `app/js/18-sync-state-and-rebase.js` | Includes division records in the merge base, merges by ID, and labels assignment conflicts. |
+| `app/js/20-cloud-session-and-autosave.js` | Serializes legacy Setup fields; loads division courts from the migrated records; returns save success. |
+| `app/js/27-results-screen.js` | Uses each division's award mode. |
+| `app/js/30-setup-header-and-director.js` | Uses each division's team format in Overview progress estimates. |
+| `app/js/35-react-court.js` | Uses each division's award mode for completion panels and its scoped representative roster. |
+| `app/js/43-react-registration.js` | Publishes a division selector and per-team format/slots; preserves both filters. |
+| `app/react/registration/RegistrationTeams.tsx` | Draws the selector and each team's own roster slots. |
+| `app/react/registration/teams-model.ts` | Typed registration input with per-card division, slots and format. |
+| `app/types/globals.d.ts` | Legacy select declarations remain for compatibility controls. |
+| `app/types/tournament.d.ts` | Persisted division records and team assignment IDs, alongside old Setup fields. |

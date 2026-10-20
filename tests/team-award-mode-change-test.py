@@ -56,11 +56,11 @@ def offline_tied_check(browser, problems):
     app = KsmApp.local(page, 'Offline', problems=problems)
     app.answers['Create Staff password'] = ''  # offline harness: saves stay local
     app.nav('setup')
-    page.select_option(sel('team-award-mode'), label='Champion only')
+    page.select_option(sel('team-division-awardMode'), label='Champion only')
     app.configure([{'team': True, 'format': '3-Person Team', 'tournament': 'Round Robin', 'teams': 4, 'court': 'A'}])
     assert play_round_robin(app) is None, 'Champion only: a daihyosen for 2nd'
     # The mode names 2nd, but the state has no daihyosen for it (set without the Setup field).
-    shown = page.evaluate("() => { KSMTest.app.state.teamAwardMode = 'top2'; return KSMTest.app.resultPlacements('Team Tournament').map(r => [r.place, r.name]); }")
+    shown = page.evaluate("() => { KSMTest.app.state.teamDivisions.find(d=>d.id==='Team Tournament').awardMode = 'top2'; return KSMTest.app.resultPlacements('Team Tournament').map(r => [r.place, r.name]); }")
     assert shown == [['1st', 'Team A'], ['2nd', TIED]], f'an awarded place still level was named: {shown}'
     page.close()
 
@@ -75,7 +75,7 @@ def main():
         director = KsmApp.open_device(browser, base, 'Director', problems, tournament_name='Award Mode Cup')
         tid = director.create_tournament()
         director.nav('setup')
-        director.page.select_option(sel('team-award-mode'), label='Champion only')
+        director.page.select_option(sel('team-division-awardMode'), label='Champion only')
         director.configure([{'team': True, 'format': '3-Person Team', 'tournament': 'Round Robin', 'teams': 4, 'court': 'A'}])
         director.save_now()
         director.wait_idle()
@@ -94,7 +94,7 @@ def main():
 
         # Switched to "Champion + Runner-up": the daihyosen for 2nd, nobody runner-up yet.
         director.nav('setup')
-        director.page.select_option(sel('team-award-mode'), label='Champion + Runner-up')
+        director.page.select_option(sel('team-division-awardMode'), label='Champion + Runner-up')
         director.wait_for(lambda: daihyosen(director.all_matches()[TEAM]), message='the daihyosen for 2nd on the director')
         expected = [('Team B', 'Team C', False), ('Team D', 'Team C', False), ('Team D', 'Team B', False)]
         assert daihyosen(director.all_matches()[TEAM]) == expected, daihyosen(director.all_matches()[TEAM])

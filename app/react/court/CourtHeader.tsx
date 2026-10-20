@@ -129,7 +129,7 @@ export function CourtHeader({ logoSrc = DEFAULT_COURT_LOGO_SRC }: { logoSrc?: st
         <div className="sk-division-row">
           <select id="scoreDiv" className="division-select" ref={select}
             onChange={e => courtWindow().selectScorekeeperDivision?.(e.target.value)} data-testid="court-division-select">
-            {view.divisions.map(d => <option key={d}>{d}</option>)}
+            {view.divisions.map(d => <option key={d} value={d}>{view.divisionNames?.[d] || d}</option>)}
           </select>
         </div>
         <div className="sk-division-title" id="scoreDivisionTitle" data-testid="court-division-title">{view.divisionTitle}</div>

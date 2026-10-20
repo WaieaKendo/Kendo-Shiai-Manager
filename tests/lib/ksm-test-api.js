@@ -188,7 +188,14 @@ window.KSMTest = {
   // variables are accessors; the few functions a test replaces (stubs) have setters. Assigning to a name
   // without a setter throws (see the Proxy below), so a stub can never silently miss the app.
   // tests/test-api-boundary-test.py fails if a test script reaches an internal any other way.
+  localDraft() { return ksmReadLocalDraft(); },
+  seedDetachedDraft(payload) { localStorage.setItem(KSM_DETACHED_DRAFT_KEY,JSON.stringify(payload)); },
+  shortName() { return {slug:cloudSession.slug||'',pending:ksmPendingSlug}; },
   app: {
+    ksmRenameTournamentSlug: (...a) => ksmRenameTournamentSlug(...a),
+    mergeLocalEditsThreeWay: (...a) => mergeLocalEditsThreeWay(...a),
+    rebaseLocalPayloadOnRecord: (...a) => rebaseLocalPayloadOnRecord(...a),
+
     // Tournament data and settings (objects: read, and change their fields)
     get state() { return state; },
     get cloudSession() { return cloudSession; },
@@ -342,6 +349,12 @@ window.KSMTest = {
   // --- Bulk setup without the Setup/Registration UI ------------------------------
   // entries: [{name, format, court, entrants:[{name,dojo,seed,status}]}, {team:true, format, tournament, teams, court}]
   // Mirrors what Setup + Registration + Generate do; used by the golden engine test.
+  teamDivisions() { return JSON.parse(JSON.stringify(ksmTeamDivisions())); },
+  addTeamDivision(name) { return ksmAddTeamDivision(name); },
+  updateTeamDivision(id, patch) { return ksmUpdateTeamDivision(id, patch); },
+  moveTeamDivision(id, direction) { return ksmMoveTeamDivision(id, direction); },
+  removeTeamDivision(id) { return ksmRemoveTeamDivision(id); },
+  assignTeamDivision(index, id) { return ksmAssignTeamDivision(state.teams[index], id); },
   configure(entries) {
     const divs = entries.filter(d => !d.team), team = entries.find(d => d.team);
     state.divisions = divs.map(d => d.name);
@@ -360,6 +373,7 @@ window.KSMTest = {
         return {team: `Team ${code}`, type: team.format, status: 'Checked', ...Object.fromEntries(slots.map((s, j) => [s, `T${code}${j + 1}`]))};
       });
     }
+    delete state.teamDivisions;Object.assign(state,KSMEngine.migrateTeamDivisions(state,getSetupSnapshot()));
     generatePools({validated: true});
   },
 

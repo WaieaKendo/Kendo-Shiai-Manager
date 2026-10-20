@@ -21,7 +21,7 @@ function shuffleDeterministic(arr){
  * @param {string} div
  * @returns {boolean}
  */
-function isTeamDivision(div){return div==='Team Tournament'||/team|kachinuki/i.test(state.divisionTypes[div]||'')}
+function isTeamDivision(div){/* ksm:post-split-begin team-divisions was:return div==='Team Tournament'||/team|kachinuki/i.test(state.divisionTypes[div]||'') */return !!ksmTeamDivision(div)||div==='Team Tournament'||/team|kachinuki/i.test(state.divisionTypes[div]||'')/* ksm:post-split-end */}
 /**
  * Registered competitors of a division who are not no-shows.
  * @param {string} div
@@ -36,7 +36,7 @@ function eligibleIndividuals(div){
  * @returns {Team[]}
  */
 function eligibleTeams(div){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.eligibleTeams(state.teams);
+  /* ksm:post-split-begin engine-bridge */return KSMEngine.eligibleTeams(state.teams.filter(t=>!state.teamDivisions||(t.teamDivisionId||'Team Tournament')===div));
   /* ksm:post-split-end */
 }
 /**

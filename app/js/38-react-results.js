@@ -33,10 +33,10 @@ function ksmResultCard(div){
   const placements=resultPlacements(div),roundRobin=isTeamRoundRobinDivision(div);
   if(!placements.length){
     const progress=roundRobin?teamRoundRobinProgress(div):null;
-    return {division:ksmText(div),roundRobin:!!roundRobin,placements:null,progress:progress?{complete:progress.complete,total:progress.total}:null};
+    return {division:ksmText(div),name:ksmDivisionName(div),roundRobin:!!roundRobin,placements:null,progress:progress?{complete:progress.complete,total:progress.total}:null};
   }
   // The tier is printed into the class as it is (no esc()).
-  return {division:ksmText(div),roundRobin:!!roundRobin,progress:null,
+  return {division:ksmText(div),name:ksmDivisionName(div),roundRobin:!!roundRobin,progress:null,
     placements:placements.map(p=>({place:ksmText(p.place),name:ksmText(p.name),tier:String(p.tier)}))};
 }
 // renderResultsDashboard() (27-) as data: the tournament name, the Completed and In Progress
@@ -45,6 +45,7 @@ function ksmResultsDashboardInput(){
   const divisions=[
     ...new Set([
       ...(state.divisions||[]),
+      ...ksmTeamDivisions().filter(d=>state.allMatches?.[d.id]).map(d=>d.id),
       ...Object.keys(state.allMatches||{})
     ])
   ].filter(div=>(state.allMatches?.[div]||[]).length);
@@ -77,7 +78,7 @@ function ksmResultDetail(div){
 }
 // openResultsBracket(div) (27-): the title is the division as textContent showed it.
 function ksmRenderResultsBracket(div){
-  ksmPublishResultsBracket({kind:'bracket',title:div==null?'':String(div),detail:ksmResultDetail(div)});
+  ksmPublishResultsBracket({kind:'bracket',title:div==null?'':ksmDivisionName(String(div)),detail:ksmResultDetail(div)});
 }
 // An award input's change (awardsEditorHtml()'s inline handler: state.awards[i].<field>=this.value;saveAuto();
 // saveAuto() is the scheduled autosave defined for F11 in 20-cloud-session-and-autosave.js).

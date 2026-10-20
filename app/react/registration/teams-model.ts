@@ -21,6 +21,10 @@
 
 /** One team card (one team). Texts are as the legacy markup showed them. */
 export interface TeamCardInput {
+  teamDivisionId?: string;
+  slots?: string[];
+  format?: string;
+  tournamentFormat?: string;
   /** The team's index in state.teams (what the inline handlers passed). */
   index: number;
   team: string;
@@ -34,6 +38,7 @@ export interface TeamCardInput {
 }
 
 export interface TeamsInput {
+  divisions?: {id:string;name:string}[];
   /** The Setup team format as the card's format line shows it ('5-Person Team' when empty). */
   format: string;
   /** The Setup team tournament format ('Single Elimination' when empty). */

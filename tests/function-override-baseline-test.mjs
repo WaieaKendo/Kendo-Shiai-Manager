@@ -38,6 +38,8 @@ const BASELINE = {
   setSessionRole: 2, spectatorLink: 2, syncIndividualSingleElim: 2,
 };
 
+if(countDefinitions('/* function fake() {} */ function fake() {}','fake')!==1||countDefinitions('function fake() {} function fake() {}','fake')!==2)throw new Error('Declaration counting must ignore comments and detect executable overrides');
+
 const names = [...new Set([...html.matchAll(/function\s+([A-Za-z_$][\w$]*)\s*\(/g)].map(m => m[1]))];
 let failed = 0;
 for (const name of names) {

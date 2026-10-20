@@ -221,6 +221,7 @@ test('award mode: top1 / top2 / dual3 rows from the team placements', () => {
   const placements = { first: 'A', second: 'B', thirds: ['C', 'D'], roundRobin: false };
   const ctx = vm.createContext({ state: {}, KSMEngine: {}, teamFinalPlacements: () => placements,
     divisionComplete: () => true, isTeamDivision: () => true });
+  ctx.ksmTeamSettings=()=>({teamAwardMode:ctx.state.teamAwardMode});
   vm.runInContext(['resultPlacements', 'ksmFinalResults', 'ksmText'].map(n => extractFunction(html, n)).join('\n'), ctx);
   const plain = v => JSON.parse(JSON.stringify(v));  // out of the vm realm, for deepEqual
   const rows = mode => { ctx.state.teamAwardMode = mode; return plain(ctx.resultPlacements('D').map(r => r.name)); };
@@ -340,7 +341,7 @@ test('team engine equals the pre-move legacy code over the golden team scenarios
     'teamPairMatches', 'teamPositionMatches', 'teamPairSummary', 'teamPairIds', 'teamRoundRobinPairResolved', 'teamStandings',
     'teamRoundRobinProgress', 'teamRoundRobinPlacements', 'maybeCreateTeamTiebreak', 'teamNodeSideName', 'teamFinalPlacements', 'maybeCreateKachinukiNext'];
   const SHARED = ['winnerOf', 'isTeamMatch', 'teamNodeOrderMap', 'teamPairOrderMap', 'teamPositionOrder', 'teamMatchSortKey', 'sortTeamMatches', 'isTeamRoundRobinDivision'];
-  const stubs = `alert=()=>{};isTeamDivision=()=>true;eligibleTeams=()=>teamsList;tournamentSettings=()=>settings;
+  const stubs = `alert=()=>{};isTeamDivision=()=>true;eligibleTeams=()=>teamsList;tournamentSettings=()=>settings;ksmTeamSettings=()=>({...settings,teamAwardMode:state.teamAwardMode||settings.teamAwardMode});
     divisionComplete=div=>{const ms=state.allMatches[div]||[];return ms.length&&ms.every(m=>m.done)};
     appendApprovedDynamicMatches=(div,after,match,type)=>{const arr=state.allMatches[div]||[];const list=Array.isArray(match)?match:[match];list.forEach(x=>{x.origin='TIEBREAK';x.dynamicType=type});arr.splice(arr.indexOf(after)+1,0,...list);state.allMatches[div]=arr;sortTeamMatches(div);return list;};`;
   const load = src => {

@@ -16,6 +16,7 @@ export interface CourtHeaderInput {
   court: string;
   /** The division select's options, in order (renderDivisions()). */
   divisions: string[];
+  divisionNames?: Record<string,string>;
   /** state.currentDivision when renderDivisions() last ran ('' when none). */
   currentDivision: string;
   divisionTitle: string;
@@ -51,6 +52,7 @@ export interface CourtHeaderView {
   tournamentName: string;
   title: string;
   divisions: string[];
+  divisionNames?: Record<string,string>;
   /**
    * What the select shows, as the legacy renderDivisions() left it: the current division
    * (assigned to select.value, so a division that is not an option selects nothing), or,
@@ -73,6 +75,7 @@ export function courtHeaderView(input: CourtHeaderInput): CourtHeaderView {
     tournamentName: input.tournamentName,
     title: `Court ${input.court}`,
     divisions: [...input.divisions],
+    ...(input.divisionNames ? {divisionNames:input.divisionNames} : {}),
     selectValue: input.currentDivision ? input.currentDivision : null,
     divisionTitle: input.divisionTitle,
     matchLine: input.matchLine,

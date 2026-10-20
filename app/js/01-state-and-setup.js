@@ -9,6 +9,9 @@ const KSM_EMPTY_STATE=JSON.stringify(state);
 
 function show(id){document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');renderAll();if(id==='print')previewAllDivisionSheets();/* ksm:post-split-begin path-urls */ksmRecordScreenPath(id);/* ksm:post-split-end */}
 function saveSetup(){
+  /* ksm:post-split-begin team-divisions */
+  ksmSyncLegacyTeamDivision();
+  /* ksm:post-split-end */
   if(window.teamCourt)state.divisionCourts['Team Tournament']=teamCourt.value;
   if(window.teamAwardMode)state.teamAwardMode=teamAwardMode.value||'top2';
   renderDivisionSetup();renderDivisions();renderReg();renderTournamentStatus();
@@ -22,7 +25,7 @@ function setDivisionCourt(d,v){state.divisionCourts[d]=v;renderDivisions();rende
 function renderDivisionSetup(){/* ksm:post-split-begin react-setup */
   // The divisions table's rows are React (app/react/setup/, 42-react-setup.js): they are published
   // to it instead of written (M.13). The team court and awards fields stay legacy markup.
-  if(!window.divisionSetupRows)return;ksmRenderSetupDivisions();if(window.teamCourt)teamCourt.value=state.divisionCourts['Team Tournament']||'Both';if(window.teamAwardMode)teamAwardMode.value=state.teamAwardMode||'top2'/* ksm:post-split-end */}
+  if(!window.divisionSetupRows)return;ksmRenderSetupDivisions();ksmRenderTeamDivisions();if(window.teamCourt)teamCourt.value=state.divisionCourts['Team Tournament']||'Both';if(window.teamAwardMode)teamAwardMode.value=state.teamAwardMode||'top2'/* ksm:post-split-end */}
 function courtEligibleDivisions(court){
   let all=[...new Set([...Object.keys(state.allMatches||{}),...state.divisions])];
   return all.filter(d=>{

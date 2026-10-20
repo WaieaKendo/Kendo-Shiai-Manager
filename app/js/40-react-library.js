@@ -18,14 +18,14 @@
 // paintHomeTournamentLibrary(), libraryCardMarkup()) was removed in M.13.
 // Draft recovery is explicit and never runs while following a tournament or display link.
 function ksmReadLocalDraft(){
+  const params=ksmLinkParams();
+  if(params.get('tournament')||params.get('spectator')||['tv','overlay'].includes(params.get('view'))||ksmExplicitSpectatorUrl||params.get('role')==='spectator')return null;
   try{
     const detached=JSON.parse(localStorage.getItem(KSM_DETACHED_DRAFT_KEY)||'null');
     if(detached?.state)return detached;
   }catch(_){}
   // An active local tournament keeps its safety copy; only detached drafts can be discarded.
   if(v316StaffPassword())return null;
-  const params=ksmLinkParams();
-  if(params.get('tournament')||params.get('spectator')||params.get('view')==='tv'||ksmExplicitSpectatorUrl)return null;
   try{
     const payload=JSON.parse(localStorage.getItem(KSM_SAVE_KEY)||'null');
     if(!payload?.state||localStorage.getItem(KSM_AUTOSAVE_CLOUD_ID)||cloudSession.tournamentId)return null;

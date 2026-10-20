@@ -79,7 +79,7 @@ def main():
         court.open_court('B')
         court.wait_for(lambda: (lambda x: x[1] < x[0])(court.page.evaluate(NAME_X_JS)), message='Court B to mirror (Red on the left)')
 
-        director.page.select_option(sel('team-award-mode'), value='dual3')
+        director.page.select_option(sel('team-division-awardMode'), value='dual3')
         saved(lambda pl: st(pl).get('teamAwardMode') == 'dual3', 'team awards')
 
         director.page.fill(sel('custom-division-name'), LATE)
