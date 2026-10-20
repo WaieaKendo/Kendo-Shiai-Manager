@@ -45,9 +45,14 @@ def main():
 
         # Even a direct address change cannot send A's token to B.
         a.goto(app_path(aid)); a.staff_login()
+        # A's own live connection (A's key) is reported a moment after Staff Login; let A settle so only
+        # what happens after the address change is checked.
+        a.page.wait_for_function("KSMTest.pendingReason().socket === 'open'"); a.wait_idle()
         sent.clear()
         a.goto(app_path(bid))
-        assert not [url for url, key in sent if key], 'foreign token leaked on direct navigation'
+        a.wait_for(lambda: a.tournament_id() == bid, message='B opened by address')
+        leaked = [url for url, key in sent if key and (bid in url or key == token)]
+        assert not leaked, f'foreign token leaked on direct navigation: {leaked}'
         assert a.page.evaluate('KSMTest.role()') == 'spectator'
 
         a.goto(app_path(aid)); a.staff_login(); a.staff_logout(); a.reload()
