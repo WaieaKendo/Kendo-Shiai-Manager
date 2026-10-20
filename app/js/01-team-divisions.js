@@ -2,6 +2,15 @@
 function ksmNewTeamRows(rows){const division=ksmTeamDivisions()[0];return rows.map(t=>({...t,id:ksmNewTeamIdentity(),teamDivisionId:division?.id||''}))}
 function ksmNewTeamIdentity(){return 'team:'+Array.from(crypto.getRandomValues(new Uint8Array(16)),n=>n.toString(16).padStart(2,'0')).join('')}
 function ksmTeamDivisionPayload(payload){return payload?.state?{...payload,state:KSMEngine.migrateTeamDivisions(payload.state,payload.setup||{})}:payload}
+// #95 review: a loaded copy whose teams name a team division it does not have (an older client, a
+// removed division) has them moved to the first division; say so in the diagnostics, not silently.
+function ksmNoteTeamsReassigned(before,after,source){
+  const known=new Set((after.teamDivisions||[]).map(d=>d.id));
+  const moved=(before?.teams||[]).filter(t=>t?.teamDivisionId&&!known.has(t.teamDivisionId)).map(t=>t.team||t.id);
+  if(!moved.length)return;
+  console.warn('[KSM Team divisions] Teams of an unknown team division moved to the first one',source||'load',moved);
+  writeCloudDiagnosticsState({stage:'Team division assignment repaired on load',teamsReassigned:moved});
+}
 function ksmTeamDivisions(){
   if(!state.teamDivisions)Object.assign(state,KSMEngine.migrateTeamDivisions(state,getSetupSnapshot()));
   return [...state.teamDivisions].sort((a,b)=>a.order-b.order||a.id.localeCompare(b.id));

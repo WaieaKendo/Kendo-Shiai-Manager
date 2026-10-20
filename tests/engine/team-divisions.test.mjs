@@ -72,3 +72,16 @@ test('migration follows the legacy load precedence and running-order fallback',(
   const ordered=migrateTeamDivisions({teamDivisions:[division('later',1),division('first',0)],teams:[{id:'t',teamDivisionId:'removed'}]});
   assert.equal(ordered.teams[0].teamDivisionId,'first');
 });
+
+test('legacy IDs stay unique when an older client inserts a same-name row before a migrated one (#95 review)',()=>{
+  const setup={teamEnabled:'Enabled'};
+  const migrated=migrateTeamDivisions({teams:[{team:'X'},{team:'X'}]},setup).teams.map(t=>t.id);
+  assert.deepEqual(migrated,['legacy-team:X:0','legacy-team:X:1']);
+  // An older client adds an id-less "X" in front of the migrated rows: it must not take legacy-team:X:0 again.
+  const mixed=migrateTeamDivisions({teams:[{team:'X'},{team:'X',id:'legacy-team:X:0'},{team:'X',id:'legacy-team:X:1'}]},setup).teams.map(t=>t.id);
+  assert.equal(new Set(mixed).size,3,`duplicate IDs: ${mixed}`);
+  assert.deepEqual(mixed.slice(1),['legacy-team:X:0','legacy-team:X:1'],'existing IDs are kept');
+  // Two devices migrating the same record get the same IDs.
+  const record={teams:[{team:'X'},{team:'X',id:'legacy-team:X:0'},{team:'Y'}]};
+  assert.deepEqual(migrateTeamDivisions(record,setup).teams,migrateTeamDivisions(structuredClone(record),setup).teams);
+});

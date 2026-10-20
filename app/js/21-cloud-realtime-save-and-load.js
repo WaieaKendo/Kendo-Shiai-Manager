@@ -636,7 +636,7 @@ function applyTournamentPayload(payload,saveAfter,options={}){
   if(!payload || !payload.state) throw new Error('Invalid KSM file');
   const localCourt=options.pinnedCourt||pinnedCourt()||cloudSession.court||state.currentCourt||null;
   const localPublicCourt=state.publicCourt||localCourt||'A';
-  /* ksm:post-split-begin team-divisions was:const loaded=payload.state; */const loaded=KSMEngine.migrateTeamDivisions(JSON.parse(JSON.stringify(payload.state)),payload.setup||{});/* ksm:post-split-end */
+  /* ksm:post-split-begin team-divisions was:const loaded=payload.state; */const loaded=KSMEngine.migrateTeamDivisions(JSON.parse(JSON.stringify(payload.state)),payload.setup||{});ksmNoteTeamsReassigned(payload.state,loaded,options.source);/* ksm:post-split-end */
   Object.keys(state).forEach(k=>delete state[k]);
   Object.assign(state, loaded);
   sanitizeLoadedTournamentState(state,options.source||'tournament load');

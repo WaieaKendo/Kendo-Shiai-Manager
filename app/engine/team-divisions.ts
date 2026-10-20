@@ -32,11 +32,20 @@ export function migrateTeamDivisions<S extends TeamDivisionState>(state: S, setu
   }]);
   const divisions = [...supplied].sort((a,b) => a.order-b.order || a.id.localeCompare(b.id));
   const ids = new Set(divisions.map(d => d.id));
+  // Legacy IDs count only rows without one (an older client can insert one before a migrated row of the
+  // same name) and never reuse an ID already taken, so every team keeps its own ID.
+  const taken = new Set((state.teams || []).map(t => t.id).filter((id): id is string => Boolean(id)));
   const occurrences = new Map<string, number>();
   const teams = (state.teams || []).map(t => {
-    const name = String(t.team || ''), occurrence = occurrences.get(name) || 0;
-    occurrences.set(name, occurrence + 1);
-    return { ...t, id: t.id || `legacy-team:${encodeURIComponent(name)}:${occurrence}`,
+    let id = t.id;
+    if (!id) {
+      const name = String(t.team || '');
+      let occurrence = occurrences.get(name) || 0;
+      do { id = `legacy-team:${encodeURIComponent(name)}:${occurrence++}`; } while (taken.has(id));
+      occurrences.set(name, occurrence);
+      taken.add(id);
+    }
+    return { ...t, id,
       teamDivisionId: t.teamDivisionId && ids.has(t.teamDivisionId) ? t.teamDivisionId : divisions[0]?.id || '' };
   });
   return { ...state, teamDivisions: divisions, teams };

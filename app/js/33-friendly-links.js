@@ -23,9 +23,12 @@ async function ksmRenameTournamentSlug(slug){
     if(!cloudSession.tournamentId){
       const previous=ksmPendingSlug;
       ksmPendingSlug=slug;sessionStorage.setItem('ksm.pending-slug',slug);
+      const started=new Date().toISOString();
       try{
         const saved=await saveNow();
-        if(!saved||!cloudSession.tournamentId||cloudSession.slug!==slug)throw new Error(readCloudDiagnosticsState().errorMessage||'Unable to save short name');
+        // Only this attempt's error: the diagnostics can still hold an older one.
+        const diag=readCloudDiagnosticsState();
+        if(!saved||!cloudSession.tournamentId||cloudSession.slug!==slug)throw new Error((String(diag.lastAttemptAt||'')>=started&&diag.errorMessage)||'Unable to save short name');
       }catch(err){
         ksmPendingSlug=previous;
         if(previous)sessionStorage.setItem('ksm.pending-slug',previous);else sessionStorage.removeItem('ksm.pending-slug');

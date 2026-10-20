@@ -313,6 +313,7 @@ function mergeLocalEditsThreeWay(rebased,localPayload,basePayload,structuralRepl
   // split it, so that half merges only when the structure was replayed (F10).
   if(structuralReplayed||(localState.managementRevision||0)===(baseState.managementRevision||0)){
     rebased.state=rebased.state||{};
+    const serverTeams=cloneJson(rebased.state.teams||[]);
     KSM_MERGED_STATE_KEYS.forEach(k=>{
       const server=rebased.state[k],local=localState[k],base=baseState[k],label=KSM_MERGE_LABELS[k]||k;
       const split=Array.isArray(structuralReplayed)&&registrationListSplits(server,local,base,k,structuralReplayed);
@@ -322,6 +323,7 @@ function mergeLocalEditsThreeWay(rebased,localPayload,basePayload,structuralRepl
       }else value=split?mergeRegistrationListSplit(server,local,base,structuralReplayed,label,conflicts,k):mergeValueThreeWay(server,local,base,label,conflicts);
       if(value===undefined)delete rebased.state[k];else rebased.state[k]=value;
     });
+    ksmKeepDrawnTeamAssignments(rebased.state,serverTeams,Array.isArray(structuralReplayed)?structuralReplayed:[],conflicts);
   }
   Object.assign(rebased.state,KSMEngine.reconcileTeamAssignments(rebased.state,conflicts));
   (rebased.state.teamDivisions||[]).forEach(d=>{rebased.state.divisionCourts=rebased.state.divisionCourts||{};rebased.state.divisionCourts[d.id]=d.court});
@@ -351,13 +353,37 @@ function registrationConflictDivisions(serverState,localState,baseState,division
   return [...out];
 }
 function mergeRegistrationListSplit(server,local,base,divisions,label,conflicts,key='competitors'){
-  const lists=[server,local,base].map(list=>registrationEntriesIn(list,divisions,false,key));
+  // #95: a team can move between team divisions, so split teams by id: a team that is in a replayed
+  // division in any copy (server, local, base) is this device's (its structure was built without the
+  // other device's move), never dropped by the outside merge nor kept twice.
+  const rows=list=>Array.isArray(list)?list:[];
+  const byId=key==='teams'&&[server,local,base].every(list=>rows(list).every(t=>t?.id));
+  const insideIds=byId?new Set([server,local,base].flatMap(list=>registrationEntriesIn(list,divisions,true,key)).map(t=>t.id)):null;
+  const isInside=e=>byId?insideIds.has(e.id):divisions.includes(registrationEntryDivision(e,key));
+  const lists=[server,local,base].map(list=>rows(list).filter(e=>!isInside(e)));
   const outside=key==='teams'&&lists.flat().every(t=>t.id)?KSMEngine.mergeTeamDivisionRecords(lists[0],lists[1],lists[2],label,conflicts):mergeValueThreeWay(lists[0],lists[1],lists[2],label,conflicts)||[];
-  const inside=cloneJson(registrationEntriesIn(local,divisions,true,key));
+  const inside=cloneJson(rows(local).filter(isInside));
   // In the server list's order: the replayed divisions' entries where its first one was (else at the end).
-  const at=(Array.isArray(server)?server:[]).findIndex(e=>divisions.includes(registrationEntryDivision(e,key)));
+  const at=rows(server).findIndex(isInside);
   const before=at<0?outside.length:Math.min(at,outside.length);
   return outside.slice(0,before).concat(inside,outside.slice(before));
+}
+/**
+ * #95: a team moved into or out of a team division the other device has already drawn would change that
+ * draw's team list under its matches (they refer to teams by position): the drawn division keeps the
+ * server's assignment, with the usual "their version was kept" notice. A division this device's own
+ * structural edit replays is not the server's draw (its teams come from this device, see above).
+ */
+function ksmKeepDrawnTeamAssignments(st,serverTeams,replayed,conflicts){
+  const drawn=div=>Boolean(div)&&!replayed.includes(div)&&((st.allMatches?.[div]||[]).length>0||Boolean(st.teamElimTeams?.[div]));
+  const onServer=new Map(serverTeams.filter(t=>t?.id).map(t=>[t.id,t]));
+  (st.teams||[]).forEach(t=>{
+    const s=t?.id&&onServer.get(t.id);
+    if(!s||t.teamDivisionId===s.teamDivisionId||!(drawn(s.teamDivisionId)||drawn(t.teamDivisionId)))return;
+    t.teamDivisionId=s.teamDivisionId;
+    const label='Team division assignment (division already drawn)';
+    if(!conflicts.includes(label))conflicts.push(label);
+  });
 }
 function noteMergeConflicts(conflicts){
   if(!conflicts.length)return;
