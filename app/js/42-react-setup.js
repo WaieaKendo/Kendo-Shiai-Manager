@@ -38,10 +38,14 @@ function ksmPublishSetup(event,key,input){
 function ksmSetupDivisionsData(){
   const presets=ksmDivisionPresetNames(),preset=d=>presets.includes(d),on=state.divisions;
   const row=(d,enabled,custom,move)=>({division:String(d??''),name:ksmText(d),enabled:!!enabled,custom:!!custom,
-    format:state.divisionTypes[d]??null,court:state.divisionCourts[d]||'A',move});
-  const off=presets.filter(d=>!on.includes(d));
+    format:state.divisionTypes[d]??null,court:state.divisionCourts[d]||'A',move,removable:true,removeBlocked:ksmDivisionRemoveBlocked(d)});
+  // Owner request: any division can be removed before its draw; a removed preset is hidden for this
+  // tournament (state.hiddenPresets) until "Restore standard divisions".
+  const hidden=state.hiddenPresets||[];
+  const off=presets.filter(d=>!on.includes(d)&&!hidden.includes(d));
   const customOff=Object.keys(state.divisionTypes||{}).filter(d=>d&&!preset(d)&&!on.includes(d)&&d!=='Team Tournament'&&d!=='Exhibition Matches');
-  return {rows:[...on.map((d,i)=>row(d,true,!preset(d),{up:i>0,down:i<on.length-1})),...off.map(d=>row(d,false,false,null)),...customOff.map(d=>row(d,false,true,null))]};
+  return {rows:[...on.map((d,i)=>row(d,true,!preset(d),{up:i>0,down:i<on.length-1})),...off.map(d=>row(d,false,false,null)),...customOff.map(d=>row(d,false,true,null))],
+    hiddenPresets:presets.filter(d=>hidden.includes(d)&&!on.includes(d)).length};
 }
 // Issue #31: a row's move up / down button. Swaps the division with its neighbour in the running
 // order (state.divisions), saved and synced like every Setup edit (the button's click asks for the
@@ -89,10 +93,23 @@ function ksmRenderSetupHeader(){
 // × of a custom division row: what its inline handler ran. A switched-off custom division (owner
 // decision 12) is not in state.divisions (removeDivision(-1) would remove the last division):
 // its format and court are forgotten, as removeDivision() does.
+// Owner request (4.0): every row has × before its draw, presets too. A removed preset is hidden for
+// this tournament (state.hiddenPresets, merged like the other Setup lists on a save conflict); its
+// registered players stay in Registration without a division, after a question.
+function ksmDivisionRemoveBlocked(d){return (state.allMatches?.[d]||[]).length?`${d} is drawn: it can no longer be removed.`:null}
 function ksmRemoveSetupDivision(d){
+  if(isReadOnlySession())return;
+  const blocked=ksmDivisionRemoveBlocked(d);if(blocked){alert(blocked);return}
+  const players=(state.competitors||[]).filter(c=>c.division===d&&c.name).length;
+  if(players&&!confirm(`Remove ${d}? Its ${players} registered ${players===1?'player stays':'players stay'} in Registration without a division.`))return;
+  if(ksmDivisionPresetNames().includes(d)&&!(state.hiddenPresets||[]).includes(d))state.hiddenPresets=[...(state.hiddenPresets||[]),d];
   const i=state.divisions.indexOf(d);
-  if(i>=0){removeDivision(i);return}
-  delete state.divisionTypes[d];delete state.divisionCourts[d];renderDivisionSetup();renderDivisions();renderReg();
+  if(i>=0){removeDivision(i);scheduleAutoSave('Division removed');return}
+  delete state.divisionTypes[d];delete state.divisionCourts[d];renderDivisionSetup();renderDivisions();renderReg();scheduleAutoSave('Division removed');
+}
+function ksmRestoreStandardDivisions(){
+  if(isReadOnlySession())return;
+  state.hiddenPresets=[];renderDivisionSetup();scheduleAutoSave('Standard divisions restored');
 }
 
 // If the React module (app/react/main.tsx, a module script after app.js) did not run, say so in
