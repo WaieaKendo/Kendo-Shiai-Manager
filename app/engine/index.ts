@@ -69,3 +69,13 @@ export { isValidSlug, suggestSlug, RESERVED_SLUGS } from './routes.ts';
 
 export { migrateTeamDivisions, mergeTeamDivisionRecords, reconcileTeamAssignments, teamDivisionName, LEGACY_TEAM_DIVISION_ID } from './team-divisions.ts';
 export type { TeamDivision } from './team-divisions.ts';
+export {
+  GRAND_CHAMPION_PREFIX, GRAND_CHAMPION_FORMATS, GRAND_CHAMPION_POOL_MIN, GRAND_CHAMPION_POOL_MAX, isGrandChampionId, grandChampionEntrants,
+  grandChampionSignature, grandChampionFormat, grandChampionCompetitors, drawnEntrants, grandChampionStarted, grandChampionPlan,
+  grandChampionFusenBouts, grandChampionPlacements, grandChampionSetupError, newGrandChampion, migrateGrandChampions, sortGrandChampions,
+  renameGrandChampionSources, grandChampionName, grandChampionWithdrawn, grandChampionSubstitutions, mergeGrandChampionRecords,
+} from './grand-champion.ts';
+export type {
+  GrandChampion, GrandChampionStandIn, GrandChampionFormat, GrandChampionAwardMode, SourceResult, GrandChampionEntrant,
+  GrandChampionEntrants, GrandChampionStructure, GrandChampionAction,
+} from './grand-champion.ts';

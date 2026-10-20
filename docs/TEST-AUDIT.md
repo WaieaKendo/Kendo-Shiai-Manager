@@ -39,6 +39,7 @@ Test names drop `-test.py`/`-test.mjs`; `vm` tests run extracted app code in Nod
 | S6 | Team awards | `#teamAwardMode` → `state.teamAwardMode` | ✅ golden-setup, golden-results | ✅ edit-sync | ✅ edit-sync | ✅ edit-sync | ◐ vm |
 | S7 | Exhibitions on/off | `#exhibitionEnabled` | ✅ registration-screen | ✅ edit-sync | ✅ edit-sync | ✅ edit-sync | ◐ vm |
 | S8 | Referees and red side per court | `#court1RedSide` … → `saveSetup()`, `18:applyCourtSides()` | ✅ court-side-setting | ✅ edit-sync | ✅ edit-sync (Court B mirrors) | ✅ edit-sync | ◐ vm |
+| S9 | Grand champion rows (#86): add, sources, format, court, award, name, order, × | React Setup → `01-grand-champion.js: ksmAddGrandChampion()/ksmUpdateGrandChampion()/…` | ✅ grand-champion, react/grand-champion-setup | ✅ grand-champion (merge) | ✅ grand-champion (merge) | ◐ grand-champion (merge: devices follow the server copy) | ✅ grand-champion merge (court vs name/award kept; × wins with the notice) |
 
 ### Registration
 
@@ -63,6 +64,7 @@ Test names drop `-test.py`/`-test.mjs`; `vm` tests run extracted app code in Nod
 | G2 | Regenerate Single Division | `03:continueRegenerateDivision()` → `08:regenerateSingleDivision()` | ✅ registration-screen | ✅ edit-conflicts | ✅ edit-conflicts | ✅ edit-conflicts | ✅ edit-conflicts 6, 7; conflict-merge |
 | G3 | Edit Pool → Save Pool Changes | `41:ksmPoolEditToSave()` → `16:saveEditedPools()` | ✅ pool-edit-safety, golden-pools | ✅ structural-edit-conflict | ✅ structural-edit-conflict | ✅ structural-edit-conflict (director, court and a fresh device reloaded) | ✅ structural-edit-conflict (F10) |
 | G4 | No Show after generation (player: pool rebuilt in the standard order for its new size, #24; team: pairings removed) | `08:applyIndividualNoShow()/applyWholeTeamNoShow()` | ✅ tournament-management-engine, edit-sync, engine/pools, no-show-pool-order | ✅ edit-sync | ✅ edit-sync | ✅ edit-sync | ✅ structural-race 1–3 (replayed silently beside another division's point; asked beside its own: Cancel and OK) |
+| G5 | Grand champion draw (#86): fill-in, refill/clear before the start, keep / draw again after it, runner-up or Fusen-sho withdrawal | `01-grand-champion.js: ksmSyncGrandChampions()` (after edits, court actions, loads, live updates, rebases) | ✅ grand-champion, engine/grand-champion | ✅ grand-champion (merge) | ✅ grand-champion (merge: both devices end with one draw) | ◐ derived on load (`applyTournamentPayload()` runs the sync) | ✅ grand-champion merge (both sources finish at once; a court's point for players drawn again elsewhere is not moved onto the new pairing) |
 
 ### Awards, files, library
 

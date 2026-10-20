@@ -1,6 +1,6 @@
 function generateDivisionState(div){
   /* ksm:post-split-begin engine-bridge */const settings=ksmTeamSettings(div);
-  const plan=KSMEngine.generateDivision({division:div,teamDivisionId:ksmTeamDivision(div)?.id,competitors:state.competitors,teams:state.teams,exhibitions:state.exhibitions,divisionType:state.divisionTypes[div],courtMode:state.divisionCourts[div],settings,bracketNodesForCount:teamBracketNodesForCount});
+  const plan=KSMEngine.generateDivision({division:div,teamDivisionId:ksmTeamDivision(div)?.id,competitors:ksmGrandChampion(div)?ksmGrandChampionCompetitors(div):state.competitors,teams:state.teams,exhibitions:state.exhibitions,divisionType:ksmGrandChampion(div)?KSMEngine.grandChampionFormat(ksmGrandChampion(div)):state.divisionTypes[div],courtMode:state.divisionCourts[div],settings,bracketNodesForCount:teamBracketNodesForCount});
   if(!plan)return false;
   if(plan.kind==='team'){
     state.pools[div]=plan.pools;state.teamPools[div]=plan.teamPools;

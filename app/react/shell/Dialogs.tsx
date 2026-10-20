@@ -291,6 +291,19 @@ function CloudModalBody({ body }: { body: CloudBody }) {
       </>
     );
   }
+  if (body.kind === 'grand-champion') {
+    return (
+      <>
+        <p data-testid="grand-champion-question">{body.message}</p>
+        <div className="row" ref={rawStyle(ACTIONS_STYLE)}>
+          {body.choices.map(c => (
+            <button key={c.id} className={c.primary ? 'primary' : 'secondary'} autoFocus={!!c.primary}
+              onClick={() => { w.ksmGrandChampionChoose?.(c.id); }} data-testid="grand-champion-choice" data-choice={c.id}>{c.label}</button>
+          ))}
+        </div>
+      </>
+    );
+  }
   if (body.kind === 'access') {
     return (
       <>

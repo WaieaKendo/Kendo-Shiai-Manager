@@ -244,3 +244,38 @@ fields remain serialized for compatibility; division records now supply each com
 | `app/react/registration/teams-model.ts` | Typed registration input with per-card division, slots and format. |
 | `app/types/globals.d.ts` | Legacy select declarations remain for compatibility controls. |
 | `app/types/tournament.d.ts` | Persisted division records and team assignment IDs, alongside old Setup fields. |
+
+## Grand champion (#86)
+
+Setup → **Grand Champion** → **Add grand champion match**: tick the individual divisions whose
+winners meet, then choose the court and the awards (**Grand Champion only**, or **Grand Champion +
+Runner-up**). Two divisions always play one match (a Final: a tie cannot end it, Encho decides).
+With three or more, choose **Single elimination** (a bracket of the winners) or **Pool of winners**
+(3–5 divisions, one round robin decided by the standings and their tiebreaks). After generation the
+divisions, format and court are fixed; the name and awards stay editable.
+
+- **Fill-in.** When every chosen division is complete, its winners are drawn into the match on its
+  court: the court's division list has it and **Continue** goes there. Until then the row says which
+  divisions it is waiting for.
+- **Withdrawal.** **Withdraw a player…** on the row: the division's **runner-up** plays instead, or
+  the winner loses by **Fusen-sho** (every unplayed bout of theirs, recorded as the court's Fusen-sho).
+  Offered until that player's match starts; in a bracket or pool already under way, a runner-up takes
+  the place of a winner who has played nothing yet (slot and bouts kept, no question). If the same
+  person won two chosen divisions, the row asks who plays for the later one (the runner-up); if a
+  chosen runner-up is not there, the row asks again. A runner-up who already stands in and cannot
+  play loses at the court (Fusen-sho).
+- **A division corrected before the match starts** (Undo on its court, a result corrected): the match
+  follows, filled with the corrected winner, or emptied until the division is decided again.
+- **A division corrected after the match started**: nothing changes by itself. The director is asked
+  in the page, only on a device showing Setup (every other device shows a notice; Setup's row has
+  **Decide…**): **Keep the match as
+  played**, or **Draw again** with the corrected players (its results are deleted). The answer is
+  saved with the row, so every device does the same; a later correction asks again.
+- **Results, TV, print.** The match's places are its awards: **Grand Champion** (and **Runner-up**).
+
+Sync: rows merge by id on a save conflict, each source's withdrawal on its own (a removed row wins,
+with the usual notice). The draw is
+not merged: every device that saves recomputes it from the divisions after each change, load and
+rebase, so they all reach the same draw. A court's points for players that another device has since
+replaced (a correction before the start) are not saved onto the new players; the court is told.
+Saved format 3 (`KSM_CLIENT_SCHEMA`): the server refuses saves from apps older than this.

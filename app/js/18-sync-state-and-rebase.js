@@ -129,6 +129,7 @@ function resolveRebasePatch(localState,rebasedState,patch){
   const localMatch=localArr.find(match=>matchHasSyncIdentity(match,identity))||localArr[path[2]];
   if(!isValidMatchObject(localMatch))return null;
   let remoteIndex=remoteArr.findIndex(match=>matchHasSyncIdentity(match,identity));
+  /* ksm:post-split-begin grand-champion */if(remoteIndex<0&&KSMEngine.isGrandChampionId(div)&&!ksmSameGrandChampionDraw(localState,rebasedState,div)){ksmNoteGrandChampionPatchDropped(div);return null}/* ksm:post-split-end */
   if(remoteIndex<0){
     // A local action may have created a new dynamic/tiebreak match after the remote
     // snapshot revision. Add the complete valid object without ever creating a sparse
@@ -142,6 +143,15 @@ function resolveRebasePatch(localState,rebasedState,patch){
     remoteIndex=remoteArr.findIndex(match=>matchHasSyncIdentity(match,identity));
     if(remoteIndex<0)return null;
   }
+  /* ksm:post-split-begin grand-champion */
+  // #86: a grand champion's bracket match keeps its identity when another device draws it again with
+  // other players (a source corrected before the start): a score recorded here for the old players is
+  // not moved onto the new ones.
+  if(KSMEngine.isGrandChampionId(div)){
+    const other=remoteArr[remoteIndex],clash=(a,b)=>!!a&&!!b&&a!==b;
+    if(clash(localMatch.white,other?.white)||clash(localMatch.red,other?.red)){ksmNoteGrandChampionPatchDropped(div);return null}
+  }
+  /* ksm:post-split-end */
   return {...patch,path:[path[0],div,remoteIndex,...path.slice(3)]};
 }
 function sanitizeLoadedTournamentState(targetState,source='load'){
@@ -270,8 +280,8 @@ function mergeCourtHistoryStacks(rebasedState,localState,court,ownOnly=false){
 // conflicting court save no longer drops them. Structural edits (generate, regenerate, pool
 // edits) are replayed division by division instead (F10, replayStructuralEdit() below); the
 // registration half of such an edit merges only when its structure was replayed.
-const KSM_MERGED_STATE_KEYS=['teamDivisions','divisions','divisionTypes','divisionCourts','competitors','teams','exhibitions','awards','teamAwardMode'];
-const KSM_MERGE_LABELS={teamDivisions:'Team divisions',teamDivisionId:'Team division assignment',teamDivisionRemoved:'Team division assignment (division removed)',tName:'Tournament name',tHost:'Host',tDate:'Date',tLocation:'Location',tCourts:'Courts',teamEnabled:'Team tournament',teamFormat:'Team format',teamTournamentFormat:'Team tournament format',teamCourt:'Team court',teamAwardMode:'Team awards',exhibitionEnabled:'Exhibition matches',court1Refs:'Court A referees',court2Refs:'Court B referees',court1RedSide:'Court A red side',court2RedSide:'Court B red side',court1TvRedSide:'Court A TV red side',court2TvRedSide:'Court B TV red side',timeRegular:'Regular match time',timeQuarterfinal:'Quarterfinal match time',timeSemifinal:'Semifinal match time',timeFinal:'Final match time',timeEncho:'Encho time',court1TimerSound:'Court A timer sound',court2TimerSound:'Court B timer sound',divisions:'Divisions',divisionTypes:'Division formats',divisionCourts:'Division courts',competitors:'Registration',teams:'Teams',exhibitions:'Exhibitions',awards:'Awards'};
+const KSM_MERGED_STATE_KEYS=['teamDivisions','grandChampions','divisions','divisionTypes','divisionCourts','competitors','teams','exhibitions','awards','teamAwardMode'];
+const KSM_MERGE_LABELS={teamDivisions:'Team divisions',grandChampions:'Grand champion',teamDivisionId:'Team division assignment',teamDivisionRemoved:'Team division assignment (division removed)',tName:'Tournament name',tHost:'Host',tDate:'Date',tLocation:'Location',tCourts:'Courts',teamEnabled:'Team tournament',teamFormat:'Team format',teamTournamentFormat:'Team tournament format',teamCourt:'Team court',teamAwardMode:'Team awards',exhibitionEnabled:'Exhibition matches',court1Refs:'Court A referees',court2Refs:'Court B referees',court1RedSide:'Court A red side',court2RedSide:'Court B red side',court1TvRedSide:'Court A TV red side',court2TvRedSide:'Court B TV red side',timeRegular:'Regular match time',timeQuarterfinal:'Quarterfinal match time',timeSemifinal:'Semifinal match time',timeFinal:'Final match time',timeEncho:'Encho time',court1TimerSound:'Court A timer sound',court2TimerSound:'Court B timer sound',divisions:'Divisions',divisionTypes:'Division formats',divisionCourts:'Division courts',competitors:'Registration',teams:'Teams',exhibitions:'Exhibitions',awards:'Awards'};
 /** The cloud copy the local state was last reconciled with (merge base), by revision. */
 const KSM_CLOUD_BASE={revision:-1,payload:null};
 function cloudBaseSubset(payload){
@@ -318,8 +328,9 @@ function mergeLocalEditsThreeWay(rebased,localPayload,basePayload,structuralRepl
       const server=rebased.state[k],local=localState[k],base=baseState[k],label=KSM_MERGE_LABELS[k]||k;
       const split=Array.isArray(structuralReplayed)&&registrationListSplits(server,local,base,k,structuralReplayed);
       let value;
-      if((k==='teamDivisions'||(k==='teams'&&!split))&&[...(server||[]),...(local||[]),...(base||[])].every(row=>row.id)){
-        value=KSMEngine.mergeTeamDivisionRecords(server||[],local||[],base||[],label,conflicts);
+      if((k==='teamDivisions'||k==='grandChampions'||(k==='teams'&&!split))&&[...(server||[]),...(local||[]),...(base||[])].every(row=>row.id)){
+        value=k==='grandChampions'?KSMEngine.mergeGrandChampionRecords(KSMEngine.mergeTeamDivisionRecords,server||[],local||[],base||[],label,conflicts):KSMEngine.mergeTeamDivisionRecords(server||[],local||[],base||[],label,conflicts);
+        if(k==='grandChampions'&&!value.length&&server===undefined)value=undefined;
       }else value=split?mergeRegistrationListSplit(server,local,base,structuralReplayed,label,conflicts,k):mergeValueThreeWay(server,local,base,label,conflicts);
       if(value===undefined)delete rebased.state[k];else rebased.state[k]=value;
     });
@@ -327,6 +338,7 @@ function mergeLocalEditsThreeWay(rebased,localPayload,basePayload,structuralRepl
   }
   Object.assign(rebased.state,KSMEngine.reconcileTeamAssignments(rebased.state,conflicts));
   (rebased.state.teamDivisions||[]).forEach(d=>{rebased.state.divisionCourts=rebased.state.divisionCourts||{};rebased.state.divisionCourts[d.id]=d.court});
+  (rebased.state.grandChampions||[]).forEach(g=>{rebased.state.divisionCourts=rebased.state.divisionCourts||{};rebased.state.divisionCourts[g.id]=g.court});
   return conflicts;
 }
 // F32: a replayed division's registration entries (players, teams) belong to its structure: when
@@ -485,7 +497,9 @@ function replayStructuralEdit(rebased,localPayload,basePayload,serverPayload){
   const localRev=Number(localState.managementRevision||0),baseRev=Number(baseState.managementRevision||0);
   if(localRev===baseRev)return false;
   if(baseState.allMatches===undefined){noteStructuralEditDropped([]);return false}
-  const changed=structuralDivisionNames(localState,baseState).filter(d=>!sameJsonValue(structuralDivisionSnapshot(localState,d),structuralDivisionSnapshot(baseState,d)));
+  // #86: a grand champion's draw is derived from its sources: the server's is kept and the app redraws
+  // it after the rebase if the replayed sources call for it (01-grand-champion.js).
+  const changed=structuralDivisionNames(localState,baseState).filter(d=>!KSMEngine.isGrandChampionId(d)&&!sameJsonValue(structuralDivisionSnapshot(localState,d),structuralDivisionSnapshot(baseState,d)));
   const structuralConflicts=changed.filter(d=>!sameJsonValue(structuralDivisionSnapshot(serverState,d),structuralDivisionSnapshot(baseState,d)));
   // F32: the other device also changed the registration entries of a division this edit rebuilt.
   const conflicting=structuralConflicts.concat(registrationConflictDivisions(serverState,localState,baseState,changed).filter(d=>!structuralConflicts.includes(d)));
@@ -523,6 +537,7 @@ function rebaseLocalPayloadOnRecord(localPayload,serverRecord,originalBaseRevisi
   const rebased=cloneJson(serverRecord.payload),court=pinnedCourt()||normalizeCourt(cloudSession.court||state.currentCourt);
   rebased.state=rebased.state||{};
   const localState=localPayload?.state||{};
+  /* ksm:post-split-begin grand-champion */ksmCarryGrandChampionDraws(rebased.state,localState);/* ksm:post-split-end */
   const actions=pendingLocalCourtActionsForRebase(localPayload,serverRecord,originalBaseRevision);
   /* ksm:post-split-begin history-replay was:actions.forEach(action=>(action.patches||[]).forEach(patch=>{const resolved=resolveRebasePatch(localState,rebased.state,patch);if(resolved)applyPatchToStateObject(rebased.state,resolved)})); */replayPendingCourtHistory(actions,pendingLocalUndoLogForRebase(localPayload,serverRecord,originalBaseRevision,court),localState,rebased.state,serverRecord.payload?.state,court);/* ksm:post-split-end */
   /* ksm:post-split-begin two-tabs */// F36: this tab's actions on the other court too (a closed tab's work it took over, or a director scoring both courts).

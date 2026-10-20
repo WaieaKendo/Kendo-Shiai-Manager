@@ -1,10 +1,11 @@
 /* ksm:post-split-begin team-divisions */
 function ksmNewTeamRows(rows){const division=ksmTeamDivisions()[0];return rows.map(t=>({...t,id:ksmNewTeamIdentity(),teamDivisionId:division?.id||''}))}
-// The saved format this app understands (team divisions = 2), sent with every save (cloudHeaders(), 33).
-// The server refuses saves from apps below its MIN_CLIENT_SCHEMA (src-worker.js): raise both together.
-const KSM_CLIENT_SCHEMA=2;
+// The saved format this app understands (team divisions = 2, grand champion #86 = 3), sent with every
+// save (cloudHeaders(), 33). The server refuses saves from apps below its MIN_CLIENT_SCHEMA
+// (src-worker.js): raise both together.
+const KSM_CLIENT_SCHEMA=3;
 function ksmNewTeamIdentity(){return 'team:'+Array.from(crypto.getRandomValues(new Uint8Array(16)),n=>n.toString(16).padStart(2,'0')).join('')}
-function ksmTeamDivisionPayload(payload){return payload?.state?{...payload,state:KSMEngine.migrateTeamDivisions(payload.state,payload.setup||{})}:payload}
+function ksmTeamDivisionPayload(payload){return payload?.state?{...payload,state:KSMEngine.migrateGrandChampions(KSMEngine.migrateTeamDivisions(payload.state,payload.setup||{}))}:payload}
 // #95 review: a loaded copy whose teams name a team division it does not have (an older client, a
 // removed division) has them moved to the first division; say so in the diagnostics, not silently.
 function ksmNoteTeamsReassigned(before,after,source){
@@ -19,7 +20,8 @@ function ksmTeamDivisions(){
   return [...state.teamDivisions].sort((a,b)=>a.order-b.order||a.id.localeCompare(b.id));
 }
 function ksmTeamDivision(id){return (state.teamDivisions||[]).find(d=>d.id===id)}
-function ksmDivisionName(id){return KSMEngine.teamDivisionName(state.teamDivisions,id)}
+// #86: a grand champion's division shows its row's name.
+function ksmDivisionName(id){return KSMEngine.grandChampionName(state.grandChampions,id)??KSMEngine.teamDivisionName(state.teamDivisions,id)}
 // Legacy controls serialize old files, but cannot override authoritative division records.
 function ksmSyncLegacyTeamDivision(){
   const d=ksmTeamDivision('Team Tournament');if(!d)return;

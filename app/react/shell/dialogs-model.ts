@@ -192,7 +192,19 @@ export type CloudBody =
   | { kind: 'file'; same: boolean; details: CloudDetail[]; message: string }
   /** F37 (#88): a Replace from a tournament file met another device's save. */
   | { kind: 'replace-conflict'; fileName: string }
+  | GrandChampionQuestionBody
   | DeleteBody;
+
+/**
+ * #86: a question about a grand champion (who withdraws and how; a source division corrected after
+ * it started), worked out by app/js/01-grand-champion.js: a message and its choices, the first
+ * primary one focused. Closing the dialog decides nothing.
+ */
+export interface GrandChampionQuestionBody {
+  kind: 'grand-champion';
+  message: string;
+  choices: { id: string; label: string; primary?: boolean }[];
+}
 
 /** Issue #26: Delete tournament (staff only), asked in a dialog of its own. */
 export interface DeleteBody {
