@@ -19,7 +19,7 @@ from playwright.sync_api import sync_playwright
 from ksm_browser import launch_chromium
 from ksm_server import local_worker
 from ksm_network import two_courts, assert_points, converge
-from ksm_app import KsmApp, app_path, fetch_record
+from ksm_app import KsmApp, app_path, fetch_record, sel
 
 
 def second_tab(a, base, tid, court, name, problems, storage=None):
@@ -136,7 +136,7 @@ def closed_tab_does_not_block_switching(browser, base, problems):
     other = KsmApp.open_device(browser, base, 'Other', problems, tournament_name='Switch Target')
     other.create_tournament(); other.wait_idle(); other.close()
     a = KsmApp.open_device(browser, base, 'Staff', problems, tournament_name='Left Behind')
-    a.create_tournament(); a.wait_idle()
+    left = a.create_tournament(); a.wait_idle()
     refuse_puts(a)
     a.page.evaluate("KSMTest.app.state.awards=[{name:'Unsent'}];KSMTest.saveNow('edit')")
     a.wait_for(a.outbox, message='tab A queue')
@@ -144,6 +144,11 @@ def closed_tab_does_not_block_switching(browser, base, problems):
     t.page.on('dialog', t._on_dialog)
     with a.page.expect_event('close'):
         a.page.close(run_before_unload=True)
+    # Its spectator page says where that work is (no Save now: a spectator page saves nothing).
+    t.page.goto(base + app_path(left), wait_until='domcontentloaded')
+    t.page.wait_for_function('window.KSMTest && KSMTest.booted()')
+    t.wait_for(lambda: t.page.inner_text(sel('save-status')).startswith('Unsent staff changes on this device'), message='spectator status')
+    assert not t.page.locator(sel('header-save-now')).count(), 'Save now on a spectator page'
     t.page.goto(base + '/', wait_until='domcontentloaded')
     t.page.wait_for_function('window.KSMTest && KSMTest.booted()')
     t.page.get_by_text('Switch Target', exact=True).first.click()
