@@ -208,7 +208,7 @@ function ksmShowRegenerate(title,content){
 // the Pools select's division chosen when it is ready (none chosen when it is not).
 function ksmOpenRegenerateDialog(preferred){
   // A division added after generation ('new', not drawn yet) is drawn here too, team divisions included.
-  const teamIds=tournamentSettings().teamEnabled!=='Disabled'?ksmTeamDivisions().map(d=>d.id):[];
+  const teamIds=state.generated&&tournamentSettings().teamEnabled!=='Disabled'?ksmTeamDivisions().map(d=>d.id):[];
   let all=[...new Set([...state.divisions,...teamIds,...Object.keys(state.allMatches||{})])].filter(Boolean);let selected='';
   const choosable=d=>['ready','new'].includes(divisionRegenerationStatus(d));
   if(preferred!==undefined)selected=choosable(preferred)?preferred:null;
