@@ -34,16 +34,19 @@ def main():
         a.page.select_option(sel('team-enabled'), 'Enabled')
         s = a.page.evaluate(STATE)
         assert not s['add'] and not s['note'] and not s['faded'], s
-        # Generated: the draw fixes the team divisions; names and awards stay editable.
-        a.page.evaluate("KSMTest.app.state.generated = true; KSMTest.app.ksmRenderTeamDivisions()")
+        # Generated, the first team division drawn: it is fixed (names, awards and order stay editable); the
+        # Add button stays on (a new team division can be added and drawn on its own).
+        a.page.evaluate('''() => { const app = KSMTest.app, id = KSMTest.teamDivisions()[0].id;
+          app.state.generated = true; app.state.allMatches = {...app.state.allMatches, [id]: [{type: 'teamPlayoff'}]}; app.ksmRenderTeamDivisions(); }''')
         s = a.page.evaluate(STATE)
-        assert s['add'] and s['note'].startswith('The tournament is generated'), s
+        assert not s['add'] and s['note'].startswith('Drawn team divisions are fixed'), s
+        s['disabled'] = s['disabled'][:len(s['disabled']) // 2]  # the drawn (first) row
         fields = [x for x in s['disabled'] if not x.startswith(('team-division-up', 'team-division-down'))]
         editable = {x.split('=')[0] for x in fields if x.endswith('=false')}
         assert editable == {'team-division-name', 'team-division-awardMode'}, s  # order (up/down) also stays editable
         assert not problems, problems
         browser.close()
-    print('PASS team setup: Add works before generation; disabled teams and a generated draw are shown and explained')
+    print('PASS team setup: Add works before generation; disabled teams and a drawn team division are shown and explained')
 
 
 if __name__ == '__main__':

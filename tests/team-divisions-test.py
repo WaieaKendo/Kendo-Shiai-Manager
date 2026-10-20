@@ -129,7 +129,8 @@ def local_cases(browser):
     assert [t['teamDivisionId'] for t in app.payload()['state']['teams']]==assignments
     assert app.final_state()==final
     # A second-division kachinuki reaches the last opposing player and only then ends.
-    page.evaluate("""id=>{KSMTest.app.state.generated=false;KSMTest.updateTeamDivision(id,{teamFormat:'Kachinuki'});KSMTest.app.generatePools({validated:true});}""",second)
+    # (a drawn team division is fixed: its draw is discarded first, as a regenerate would)
+    page.evaluate("""id=>{KSMTest.app.state.generated=false;delete KSMTest.app.state.allMatches[id];KSMTest.updateTeamDivision(id,{teamFormat:'Kachinuki'});KSMTest.app.generatePools({validated:true});}""",second)
     for _ in range(20):
         progressed=page.evaluate("""()=>{const m=KSMTest.prepareCourt('B');if(!m)return false;KSMTest.play([['W','M']]);return true;}""")
         if not progressed:
@@ -138,7 +139,7 @@ def local_cases(browser):
     assert len(bouts)==3 and all(m['done'] for m in bouts), bouts
     assert any(m.get('rIndex')==2 for m in bouts), 'last player never lost'
     # Continue and Up next display names while their actions keep persisted IDs.
-    page.evaluate("""id=>{KSMTest.app.state.generated=false;KSMTest.updateTeamDivision(id,{court:'A'});KSMTest.moveTeamDivision(id,'down');KSMTest.app.generatePools({validated:true});}""",second)
+    page.evaluate("""id=>{KSMTest.app.state.generated=false;delete KSMTest.app.state.allMatches[id];KSMTest.updateTeamDivision(id,{court:'A'});KSMTest.moveTeamDivision(id,'down');KSMTest.app.generatePools({validated:true});}""",second)
     app.open_court('A')
     assert page.evaluate('id=>KSMTest.app.ksmUpNext("A",id).division',first)=='Adult Open'
     for _ in range(3):

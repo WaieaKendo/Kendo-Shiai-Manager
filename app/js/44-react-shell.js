@@ -207,9 +207,12 @@ function ksmShowRegenerate(title,content){
 // Owner decision 3 (#29): the Pools tab's Regenerate (ksmRegeneratePoolDivision()) opens it with
 // the Pools select's division chosen when it is ready (none chosen when it is not).
 function ksmOpenRegenerateDialog(preferred){
-  let all=[...new Set([...state.divisions,...Object.keys(state.allMatches||{})])].filter(Boolean);let selected='';
-  if(preferred!==undefined)selected=divisionRegenerationStatus(preferred)==='ready'?preferred:null;
-  const options=all.map(d=>{let st=divisionRegenerationStatus(d),ready=st==='ready';if(ready&&!selected&&selected!==null)selected=d;return {name:ksmHtmlText(d),label:ksmHtmlText(ksmDivisionName(d)),status:st,checked:ready&&d===selected}});
+  // A division added after generation ('new', not drawn yet) is drawn here too, team divisions included.
+  const teamIds=tournamentSettings().teamEnabled!=='Disabled'?ksmTeamDivisions().map(d=>d.id):[];
+  let all=[...new Set([...state.divisions,...teamIds,...Object.keys(state.allMatches||{})])].filter(Boolean);let selected='';
+  const choosable=d=>['ready','new'].includes(divisionRegenerationStatus(d));
+  if(preferred!==undefined)selected=choosable(preferred)?preferred:null;
+  const options=all.map(d=>{let st=divisionRegenerationStatus(d),ready=choosable(d);if(ready&&!selected&&selected!==null)selected=d;return {name:ksmHtmlText(d),label:ksmHtmlText(ksmDivisionName(d)),status:st,checked:ready&&d===selected}});
   ksmShowRegenerate('Regenerate Division',{view:'list',options});
 }
 // The Pools tab's Regenerate button (app/index.html): Regenerate Single Division for the division
@@ -222,8 +225,8 @@ function ksmRegeneratePoolDivision(){
 // continueRegenerateDivision() (03): the division chosen in the list (read from the page) to
 // confirm.
 function ksmContinueRegenerateDivision(){
-  let selected=document.querySelector('input[name="regenDiv"]:checked')?.value;if(!selected){alert('No division is ready to regenerate.');return}if(divisionRegenerationStatus(selected)!=='ready'){alert('This division cannot be regenerated.');return}
-  ksmShowRegenerate(`Regenerate ${ksmDivisionName(selected)}?`,{view:'confirm',division:selected});
+  let selected=document.querySelector('input[name="regenDiv"]:checked')?.value;if(!selected){alert('No division is ready to regenerate.');return}const status=divisionRegenerationStatus(selected);if(!['ready','new'].includes(status)){alert('This division cannot be regenerated.');return}
+  ksmShowRegenerate(`${status==='new'?'Draw':'Regenerate'} ${ksmDivisionName(selected)}?`,{view:'confirm',division:selected,isNew:status==='new'});
 }
 // regenerateSingleDivision(div) (08): done.
 function ksmRegenerateDone(div){

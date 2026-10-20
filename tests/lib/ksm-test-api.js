@@ -357,6 +357,13 @@ window.KSMTest = {
   moveTeamDivision(id, direction) { return ksmMoveTeamDivision(id, direction); },
   removeTeamDivision(id) { return ksmRemoveTeamDivision(id); },
   assignTeamDivision(index, id) { return ksmAssignTeamDivision(state.teams[index], id); },
+  // New registrations (after generation they go to a team division without a draw) and the Regenerate dialog.
+  addTeams(rows) { state.teams.push(...ksmNewTeamRows(rows)); renderTeams(); return state.teams.slice(-rows.length).map(t => t.teamDivisionId); },
+  addIndividualDivision(name, format, court, entrants) {
+    state.divisions.push(name); state.divisionTypes[name] = format; state.divisionCourts[name] = court;
+    state.competitors.push(...entrants.map(e => ({...e, division: name}))); renderDivisionSetup(); renderDivisions();
+  },
+  openRegenerate() { openRegenerateDivisionDialog(); },
   configure(entries) {
     const divs = entries.filter(d => !d.team), team = entries.find(d => d.team);
     state.divisions = divs.map(d => d.name);

@@ -36,7 +36,7 @@ function generatePools(options={}){
   initCourtStates();let chosen=(poolDiv&&state.allMatches[poolDiv.value])?poolDiv.value:(state.courtState.A.division||Object.keys(state.allMatches)[0]);setActiveDivision(chosen,true);state.generated=true;state.managementRevision=(state.managementRevision||0)+1;if(window.generateBtn)generateBtn.textContent='Regenerate Tournament';renderAll();show('registration');regTab('pools');scheduleAutoSave();
 }
 function regenerateSingleDivision(div){
-  if(divisionRegenerationStatus(div)!=='ready'){alert('This division cannot be regenerated after matches have started.');return}
+  if(/* ksm:post-split-begin draw-new-division was:divisionRegenerationStatus(div)!=='ready' */!['ready','new'].includes(divisionRegenerationStatus(div))/* ksm:post-split-end */){alert('This division cannot be regenerated after matches have started.');return}
   let validation=validateTournament({division:div});if(!validation.valid){closeManagementModal('regenerateModal');showValidationDialog(validation,()=>{});return}
   let snapshot=JSON.parse(JSON.stringify({pools:state.pools[div],teamPools:state.teamPools[div],allMatches:state.allMatches[div],teamBracketNodes:state.teamBracketNodes[div],singleElimNodes:state.singleElimNodes[div],singleElimComps:state.singleElimComps?.[div],teamElimTeams:state.teamElimTeams?.[div],brackets:state.brackets[div],championshipNodes:state.championshipNodes?.[div],byeWinners:state.byeWinners?.[div],currentByDivision:state.currentByDivision[div]}));
   try{
