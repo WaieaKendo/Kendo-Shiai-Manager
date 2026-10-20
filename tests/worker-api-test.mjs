@@ -28,7 +28,7 @@ function createLiveApi() {
     call(method, path, { headers = {}, body } = {}) {
       // As the app: every request names the saved format it understands (src-worker.js MIN_CLIENT_SCHEMA);
       // a header set to undefined is left out (an app from before the version gate).
-      const init = { method, headers: Object.fromEntries(Object.entries({ 'x-ksm-client-schema': '2', ...headers }).filter(([, v]) => v !== undefined)) };
+      const init = { method, headers: Object.fromEntries(Object.entries({ 'x-ksm-client-schema': '3', ...headers }).filter(([, v]) => v !== undefined)) };
       if (body !== undefined) { init.body = JSON.stringify(body); init.headers['content-type'] = 'application/json'; }
       return fetch(`${BASE}${path}`, init);
     },
@@ -106,7 +106,7 @@ await test('create requires a staff password of at least 4 characters', async ()
   assert.equal((await create({ staffPassword: 'abc' })).res.status, 400);
 });
 
-await test('saves from an app older than the saved format are refused with 426 (#95 version gate)', async () => {
+await test('saves from an app older than the saved format are refused with 426 (#95 version gate, #86 schema 3)', async () => {
   const old = { 'x-ksm-client-schema': undefined };
   const refused = await api.call('POST', '/api/tournaments', { headers: old, body: { staffPassword: PASSWORD, engineVersion: '3.12.9', payload: payload() } });
   assert.equal(refused.status, 426);
@@ -114,7 +114,7 @@ await test('saves from an app older than the saved format are refused with 426 (
   const { res, body } = await create();
   assert.equal(res.status, 200);
   const id = body.tournamentId, token = res.headers.get('x-ksm-session-token') || PASSWORD;
-  for (const schema of [undefined, '1']) {
+  for (const schema of [undefined, '1', '2']) {
     const save = await put(id, 1, payload({ name: 'Old tablet' }), { ...staffHeaders(token), 'x-ksm-client-schema': schema });
     assert.equal(save.status, 426, `schema ${schema}`);
   }

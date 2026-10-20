@@ -45,6 +45,13 @@ const KNOWN_POST_SPLIT_EDITS = {
   // feat/react-setup: app/js/00-react-bridge.js + the ksm:state-changed dispatch in
   // performCourtAction() and renderAll(), so React islands re-render with `state`.
   'react-bridge': 3,
+  // feat/grand-champion (#86): app/js/01-grand-champion.js (the rows, the derived draw, the director's
+  // questions, Setup's island data); the draw follows the sources after every edit and court action
+  // (scheduleAutoSave(), criticalAutoSave(), 20) and every load (applyTournamentPayload(), 21); a row
+  // that cannot be drawn is a generation error (03); a printed sheet shows the row's name and format (17);
+  // a save conflict does not move a court's points onto a grand champion drawn again with other players (18).
+  // Listed here because 01-grand-champion.js is its first region: names in order of first appearance.
+  'grand-champion': 7,
   'tournament-switcher': 23,
   'team-divisions': 32,
   // fix/react-batch-1 (F13): addDivision() (01) reads the old #newDiv / #newDivType fallbacks as
@@ -312,6 +319,8 @@ const KNOWN_POST_SPLIT_CSS_EDITS = {
   'division-rename': 1,
   'match-timer': 1,
   'tournament-switcher': 1,
+  // feat/grand-champion (#86): app/styles/20-grand-champion.css, Setup's grand champion rows (theme tokens only).
+  'grand-champion-style': 1,
 };
 // Old functions whose body now lives in app/engine/*.ts (parameter lists without braces).
 const MOVED_TO_ENGINE = [
@@ -543,6 +552,8 @@ const REMOVED_SHELL_RENDERER = [
 // 'now' must appear exactly once; the check puts 'before' back (before the test-ID step) and then
 // compares byte for byte, so any other markup change still fails.
 const MARKUP_EDITS = [
+  // feat/grand-champion (#86): Setup's Grand Champion section, before Exhibition Matches (React draws its contents).
+  ["", "      <section class=\"setup-panel setup-panel-wide\" data-testid=\"setup-grand-champion\">\n        <div class=\"setup-panel-head\">\n          <div>\n            <div class=\"setup-panel-eyebrow\">Competition Structure</div>\n            <h2>Grand Champion</h2>\n          </div>\n        </div>\n        <div id=\"grandChampionSetup\" class=\"setup-stack\"></div>\n      </section>\n\n"],
   // Team division editor and registration filter, with unique surrounding markup.
   ["      </section>\n\n      <section class=\"setup-panel\">\n        <div class=\"setup-panel-head\">\n          <div>\n            <div class=\"setup-panel-eyebrow\">Team Competition</div>\n            <h2>Team Tournament</h2>\n          </div>\n        </div>\n        <div class=\"setup-stack\">\n          <div class=\"field\">\n            <label>Enable Team Tournament</label>\n            <select id=\"teamEnabled\" onchange=\"saveSetup()\" data-testid=\"team-enabled\">\n              <option>Enabled</option>\n", "      </section>\n\n      <section class=\"setup-panel setup-panel-wide\">\n        <div class=\"setup-panel-head\">\n          <div>\n            <div class=\"setup-panel-eyebrow\">Team Competition</div>\n            <h2>Team divisions</h2>\n          </div>\n        </div>\n        <div class=\"setup-stack\">\n          <div class=\"field\">\n            <label>Teams enabled</label>\n            <select id=\"teamEnabled\" onchange=\"saveSetup()\" data-testid=\"team-enabled\">\n              <option>Enabled</option>\n"],
   ["            </select>\n          </div>\n          <div class=\"field\">\n            <label>Team Match Format</label>\n", "            </select>\n          </div>\n          <div id=\"teamDivisionSetup\" class=\"setup-stack\"></div>\n          <button class=\"primary\" onclick=\"ksmAddTeamDivision()\" data-testid=\"team-division-add\">＋ Add team division</button>\n          <div hidden>\n          <div class=\"field\">\n            <label>Team Match Format</label>\n"],

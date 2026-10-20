@@ -1,0 +1,24 @@
+/* ksm:post-split-begin grand-champion-style */
+/* #86: Setup's grand champion rows (app/react/setup/GrandChampions.tsx). Theme tokens only. */
+.setup-gc-sources{display:flex;flex-wrap:wrap;gap:6px 14px}
+.setup-gc-sources label{display:inline-flex;align-items:center;gap:6px;font-weight:600;white-space:nowrap}
+.setup-gc-sources input{width:auto;min-height:0}
+.setup-gc-sources .setup-gc-missing{color:var(--red)}
+.setup-gc-status td{color:var(--muted);font-size:14px;border-top:0}
+.setup-gc-status .setup-gc-status-text{margin-right:10px}
+.setup-gc-status .setup-gc-warn{color:var(--red);font-weight:700}
+.setup-gc-status .setup-gc-done{color:var(--ink);font-weight:700}
+.setup-gc-status button{min-height:32px;padding:2px 10px;margin:2px 6px 2px 0;font-size:13px}
+@media(max-width:760px){
+  .setup-grand-champion-table td{grid-template-columns:110px minmax(0,1fr)}
+  .setup-grand-champion-table td:nth-child(1)::before{content:'Name'}
+  .setup-grand-champion-table td:nth-child(2)::before{content:'Divisions'}
+  .setup-grand-champion-table td:nth-child(3)::before{content:'Format'}
+  .setup-grand-champion-table td:nth-child(4)::before{content:'Court'}
+  .setup-grand-champion-table td:nth-child(5)::before{content:'Awards'}
+  .setup-grand-champion-table td:nth-child(6)::before{content:'Order'}
+  .setup-grand-champion-table tr.setup-gc-status td{display:block}
+  .setup-grand-champion-table tr.setup-gc-status td::before{content:none}
+  .setup-grand-champion-table .setup-move-btn{min-height:44px;min-width:44px}
+}
+/* ksm:post-split-end */

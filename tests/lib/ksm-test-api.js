@@ -356,6 +356,12 @@ window.KSMTest = {
   moveTeamDivision(id, direction) { return ksmMoveTeamDivision(id, direction); },
   removeTeamDivision(id) { return ksmRemoveTeamDivision(id); },
   assignTeamDivision(index, id) { return ksmAssignTeamDivision(state.teams[index], id); },
+  // #86: grand champion rows (Setup's island calls the same actions).
+  grandChampions() { return JSON.parse(JSON.stringify(ksmGrandChampions())); },
+  addGrandChampion(sources, patch = {}) { const id = ksmAddGrandChampion(); if (id) ksmUpdateGrandChampion(id, {sources, ...patch}); return id; },
+  updateGrandChampion(id, patch) { return ksmUpdateGrandChampion(id, patch); },
+  removeGrandChampion(id) { return ksmRemoveGrandChampion(id); },
+  grandChampionQuestion() { const c = ksmShellDialogs?.cloud; return c?.body?.kind === 'grand-champion' ? {title: c.title, message: c.body.message, choices: c.body.choices.map(x => x.id)} : null; },
   configure(entries) {
     const divs = entries.filter(d => !d.team), team = entries.find(d => d.team);
     state.divisions = divs.map(d => d.name);

@@ -9,6 +9,7 @@
 // DOMContentLoaded).
 import { mountIsland } from '../island.tsx';
 import { SetupDivisionRows, SetupHeader } from './Setup.tsx';
+import { GrandChampionSetup } from './GrandChampions.tsx';
 
 interface LegacyWindow {
   /** Set here once the islands are mounted; the legacy code checks it. */
@@ -24,4 +25,8 @@ if (!header) throw new Error('KSM Setup: #setup #setupTournamentName is missing'
 // islands start from the last publish.
 mountIsland(rows, <SetupDivisionRows />);
 mountIsland(header, <SetupHeader />);
+// #86: the Grand Champion section (ksmRenderGrandChampionSetup(), app/js/01-grand-champion.js).
+const grandChampions = document.querySelector('#setup #grandChampionSetup');
+if (!grandChampions) throw new Error('KSM Setup: #setup #grandChampionSetup is missing');
+mountIsland(grandChampions, <GrandChampionSetup />);
 (window as unknown as LegacyWindow).ksmSetupMounted = true;

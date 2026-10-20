@@ -16,6 +16,7 @@
 // keys the engine and the screens look up by name, and they are not rows of the divisions table.
 // Pure: every function returns new values and never changes its inputs.
 import { TEAM_DIVISION, EXHIBITION_DIVISION } from './generation.ts';
+import { renameGrandChampionSources, type GrandChampion } from './grand-champion.ts';
 
 export const RENAME_AFTER_DRAW_MESSAGE = "Divisions can't be renamed after the draw; rename-anytime comes with stable IDs.";
 export const RENAME_EMPTY_MESSAGE = "A division name can't be empty.";
@@ -30,6 +31,8 @@ export interface RenameState {
   divisionCourts?: Record<string, string> | undefined;
   competitors?: { division?: string | undefined }[] | undefined;
   divisionRenames?: DivisionRename[] | undefined;
+  /** #86: grand champion rows name their source divisions. */
+  grandChampions?: GrandChampion[] | undefined;
   generated?: boolean | undefined;
   currentDivision?: string | null | undefined;
   poolViewDivision?: string | null | undefined;
@@ -133,6 +136,7 @@ export function renamedDivisionState(st: RenameState, from: string, to: string, 
   if (st.divisionTypes) out.divisionTypes = renameKey(st.divisionTypes, from, to);
   if (st.divisionCourts) out.divisionCourts = renameKey(st.divisionCourts, from, to);
   if (st.competitors) out.competitors = st.competitors.map(c => (c && c.division === from ? { ...c, division: to } : c));
+  if (st.grandChampions) out.grandChampions = renameGrandChampionSources(st.grandChampions, from, to);
   if (st.currentDivision === from) out.currentDivision = to;
   if (st.poolViewDivision === from) out.poolViewDivision = to;
   if (st.courtState) {
@@ -199,6 +203,8 @@ function namesWithStructure(st: RenameState): Set<string> {
 export function orphanedDivisionStructure(st: RenameState, presets: readonly string[], except?: RenameState): string[] {
   const existing = except ? namesWithStructure(except) : new Set<string>();
   const teamIds = new Set(((st.teamDivisions || []) as {id:string}[]).map(d => d.id));
+  // #86: a grand champion row's draw is its division (a removed row's draw is orphaned).
+  (st.grandChampions || []).forEach(g => teamIds.add(g.id));
   return [...namesWithStructure(st)].filter(d => !teamIds.has(d) && d !== TEAM_DIVISION && d !== EXHIBITION_DIVISION && !isDivision(st, presets, d) && !existing.has(d));
 }
 

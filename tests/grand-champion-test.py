@@ -1,0 +1,302 @@
+"""#86: grand champion — Setup, fill-in, the court queue, awards (Results, TV, print), a withdrawal,
+a source corrected before and after the start, a pool of winners, and two devices racing.
+
+Every app operation goes through KsmApp / KSMTest and the Setup island's controls. Held requests
+order the cloud saves; no sleeps.
+"""
+from playwright.sync_api import sync_playwright
+from ksm_app import KsmApp, sel, fetch_record
+from ksm_browser import launch_chromium
+from ksm_server import local_worker
+
+def entrants(*names):
+    return [{'name': n, 'dojo': n + ' Dojo', 'seed': '', 'status': 'Checked'} for n in names]
+
+DIVISIONS = [
+    {'name': 'Open', 'format': 'Single Elimination', 'court': 'A', 'entrants': entrants('Aki', 'Ben')},
+    {'name': 'Women', 'format': 'Single Elimination', 'court': 'B', 'entrants': entrants('Cora', 'Dee')},
+    {'name': 'Masters', 'format': 'Single Elimination', 'court': 'A', 'entrants': entrants('Eli', 'Fay')},
+]
+
+
+def gc_matches(app, gc):
+    return [m for m in app.page.evaluate('id=>KSMTest.structure()[id]?.matches||[]', gc)]
+
+
+def play_court(app, court, points):
+    """Play the court's next ready match with `points` (engine-level, as the court buttons do)."""
+    m = app.page.evaluate("([court,points])=>{const m=KSMTest.prepareCourt(court);if(!m)return null;const d=m.division;KSMTest.play(points);return d;}", [court, points])
+    assert m, f'nothing to play on Court {court}'
+    return m
+
+
+def status(app):
+    app.nav('setup')
+    return app.page.locator(sel('grand-champion-status')).first.inner_text()
+
+
+def choose(app, choice):
+    """Answer the open grand champion question by clicking its button."""
+    app.page.wait_for_selector(f'{sel("grand-champion-choice")}[data-choice="{choice}"]')
+    app.page.click(f'{sel("grand-champion-choice")}[data-choice="{choice}"]')
+
+
+def local_cases(browser):
+    problems = []
+    page = browser.new_page(viewport={'width': 1280, 'height': 900})
+    app = KsmApp.local(page, problems=problems, query='?court=B')  # its TV shows Court B
+    app.expect_dialog('Create Staff password')  # an offline page's autosave offers the cloud
+    app.configure(DIVISIONS[:2])
+    # Setup: add the row with the island's controls (before the draw).
+    page.evaluate('KSMTest.app.state.generated=false;KSMTest.app.renderAll()')
+    app.nav('setup')
+    app.click('grand-champion-add')
+    page.wait_for_selector(sel('grand-champion-row'))
+    assert 'Choose at least two divisions' in status(app)
+    for div in ('Open', 'Women'):
+        page.click(f'{sel("grand-champion-source")}[data-division="{div}"]')
+    page.select_option(sel('grand-champion-court'), 'B')
+    page.select_option(sel('grand-champion-awardMode'), 'top2')
+    name = page.locator(sel('grand-champion-name'))
+    name.fill('Grand Champion 2026'); name.press('Enter')
+    page.wait_for_function("KSMTest.grandChampions()[0]?.name==='Grand Champion 2026'")
+    assert page.locator(sel('grand-champion-format')).is_disabled(), 'two sources always play one match'
+    row = page.evaluate('KSMTest.grandChampions()[0]')
+    gc = row['id']
+    assert row['sources'] == ['Open', 'Women'] and row['court'] == 'B' and row['awardMode'] == 'top2', row
+    assert 'Waiting for Open, Women' in status(app)
+    page.evaluate('KSMTest.app.generatePools({validated:true})')
+    app.nav('setup')
+    assert page.locator(sel('grand-champion-court')).is_disabled() and not page.locator(sel('grand-champion-awardMode')).is_disabled(), 'not locked after generation'
+    assert page.locator(sel('grand-champion-add')).is_disabled()
+
+    # Fill-in: nothing until both sources are decided, then one Final on Court B (Encho).
+    assert play_court(app, 'A', [['W', 'M']]) == 'Open'
+    assert not gc_matches(app, gc), 'drawn before every source finished'
+    assert 'Waiting for Women' in status(app)
+    assert play_court(app, 'B', [['W', 'M']]) == 'Women'
+    final = gc_matches(app, gc)
+    assert len(final) == 1 and final[0]['position'] == 'Final' and final[0]['court'] == 'B', final
+    open_winner = page.evaluate("KSMTest.finalState().Open.placements[0].name")
+    women_winner = page.evaluate("KSMTest.finalState().Women.placements[0].name")
+    assert sorted([final[0]['white'], final[0]['red']]) == sorted([open_winner, women_winner]), final
+    assert 'Ready on Court B' in status(app)
+
+    # The court queue: Court B's division list has it, and Continue goes there.
+    app.open_court('B')
+    assert 'Grand Champion 2026' in app.division_options()
+    page.wait_for_selector(sel('court-continue'))
+    assert page.locator(sel('court-continue')).inner_text() == 'Continue to Grand Champion 2026 →'
+    app.click('court-continue')
+    assert page.evaluate("KSMTest.app.state.courtState.B.division") == gc
+
+    # Corrected before the start (Undo of the Open final on Court A): cleared, then refilled.
+    app.open_court('A')
+    app.undo()  # Next Match: the Open final is open again
+    page.wait_for_function('id=>!(KSMTest.app.state.allMatches[id]||[]).length', arg=gc)
+    app.undo()  # and its point
+    assert 'Waiting for Open' in status(app)
+    open_runner_up = 'Ben' if open_winner == 'Aki' else 'Aki'
+    app.open_court('A')
+    page.evaluate("KSMTest.play([['R','M']])")  # the other side wins this time
+    corrected = page.evaluate("KSMTest.finalState().Open.placements[0].name")
+    assert corrected == open_runner_up, corrected
+    final = gc_matches(app, gc)
+    assert corrected in (final[0]['white'], final[0]['red']), 'not refilled with the corrected winner'
+
+    # Corrected after the start: the court is told, the director decides in Setup (keep).
+    app.open_court('B')
+    app.switch_division('Grand Champion 2026')
+    app.score_point('W', 'M')
+    page.wait_for_function('id=>KSMTest.app.state.allMatches[id][0].wp.length===1', arg=gc)
+    app.open_court('A')
+    app.undo()  # the Open final's Next Match
+    app.wait_toast('Grand Champion 2026: a source division changed after it started. The director decides in Setup.')
+    assert gc_matches(app, gc)[0]['wp'] == ['M'], 'a started grand champion changed without the director'
+    app.nav('setup')
+    app.click('grand-champion-decide')
+    q = page.evaluate('KSMTest.grandChampionQuestion()')
+    assert q['choices'] == ['keep', 'rebuild'] and 'no longer decided' in q['message'], q
+    choose(app, 'keep')
+    assert gc_matches(app, gc)[0]['wp'] == ['M'] and page.evaluate('KSMTest.grandChampions()[0].keep'), 'keep did not keep the match'
+    assert not page.locator(sel('grand-champion-decide')).count()
+    # Asked again for the next change; "draw again" with the corrected players deletes its results.
+    app.open_court('A')
+    app.undo()  # the Open final's point
+    page.evaluate("KSMTest.play([['W','M']])")  # Open decided the other way round
+    assert page.evaluate("KSMTest.finalState().Open.placements[0].name") == open_winner
+    app.nav('setup')
+    page.wait_for_selector(sel('grand-champion-decide'))
+    app.click('grand-champion-decide')
+    assert open_winner in page.evaluate('KSMTest.grandChampionQuestion()')['message']
+    choose(app, 'rebuild')
+    final = gc_matches(app, gc)
+    assert final[0]['wp'] == [] and not final[0]['done'], 'draw again kept the old score'
+    assert open_winner in (final[0]['white'], final[0]['red']), final
+
+    # A winner withdraws: the director chooses the runner-up.
+    app.nav('setup')
+    app.click('grand-champion-withdraw')
+    choose(app, 'source:Open')
+    q = page.evaluate('KSMTest.grandChampionQuestion()')
+    assert q['choices'] == ['runner-up', 'fusen-sho', 'cancel'], q
+    choose(app, 'runner-up')
+    final = gc_matches(app, gc)
+    assert open_runner_up in (final[0]['white'], final[0]['red']), 'the runner-up did not step in'
+    assert f'{open_runner_up} (for Open, runner-up)' in status(app)
+
+    # Encho: a tie is refused; then a winner gives the Grand Champion award everywhere.
+    app.open_court('B')
+    app.switch_division('Grand Champion 2026')
+    app.score_point('W', 'M'); app.score_point('R', 'K')
+    page.wait_for_function('id=>KSMTest.app.state.allMatches[id][0].rp.length===1', arg=gc)
+    assert page.locator(sel('next-match')).is_disabled(), 'a tie could end the grand champion (Encho)'
+    app.score_point('R', 'M')
+    app.next_match(settle=True)
+    placements = page.evaluate('id=>KSMTest.finalState()[id].placements', gc)
+    champion = final[0]['red']
+    runner_up = final[0]['white']
+    assert placements == [{'place': 'Grand Champion', 'name': champion}, {'place': 'Runner-up', 'name': runner_up}], placements
+    assert app.placements()['Grand Champion 2026'] == [('Grand Champion', champion), ('Runner-up', runner_up)]
+    assert 'Grand Champion: ' + champion in status(app)
+    page.evaluate("()=>{KSMTest.app.state.publicCourt='B';KSMTest.renderTv();}")
+    page.wait_for_function("document.querySelector('[data-testid=tv-division]')?.textContent==='Grand Champion 2026'")
+    tv = app.tv_screen()
+    assert tv['complete'] and tv['division'] == 'Grand Champion 2026', tv
+    shown = page.locator(f'{sel("tv-display")} {sel("division-complete")}').inner_text()
+    assert 'Grand Champion' in shown and champion in shown and 'Runner-up' in shown, shown
+    page.evaluate("id=>KSMTest.updateGrandChampion(id,{awardMode:'top1'})", gc)
+    app.nav('setup'); app.click('setup-export-results')
+    printed = page.locator('#printBody').inner_text()
+    assert 'Grand Champion 2026' in printed and champion in printed and gc not in printed, printed
+    assert 'Runner-up' not in printed, 'award mode change did not reach print'
+    assert not problems, problems
+    page.close()
+
+
+def pool_and_fusen_cases(browser):
+    """Three sources as a pool of winners; a winner withdraws by Fusen-sho; a duplicate winner."""
+    problems = []
+    page = browser.new_page(viewport={'width': 1280, 'height': 900})
+    app = KsmApp.local(page, problems=problems)
+    app.expect_dialog('Create Staff password')
+    app.configure(DIVISIONS)
+    page.evaluate('KSMTest.app.state.generated=false')
+    gc = page.evaluate("KSMTest.addGrandChampion(['Open','Women','Masters'],{format:'Round Robin',court:'A',name:'Champions Pool'})")
+    assert page.evaluate("id=>KSMTest.updateGrandChampion(id,{format:'Round Robin'})", gc) is None
+    page.evaluate('KSMTest.app.generatePools({validated:true})')
+    for court in ('A', 'B', 'A'):
+        play_court(app, court, [['W', 'M']])
+    pool = gc_matches(app, gc)
+    assert len(pool) == 3 and all(m['court'] == 'A' and not m['championship'] for m in pool), pool
+    women = page.evaluate("KSMTest.finalState().Women.placements[0].name")
+    app.nav('setup')
+    app.click('grand-champion-withdraw')
+    choose(app, 'source:Women')
+    choose(app, 'fusen-sho')
+    pool = gc_matches(app, gc)
+    lost = [m for m in pool if women in (m['white'], m['red'])]
+    assert len(lost) == 2 and all(m['done'] and m['winner'] != women and ['F', 'F'] in (m['wp'], m['rp']) for m in lost), lost
+    assert not [m for m in pool if women not in (m['white'], m['red'])][0]['done']
+    assert f'{women} (withdrew: Fusen-sho)' in status(app)
+    play_court(app, 'A', [['W', 'M']])
+    placements = page.evaluate('id=>KSMTest.finalState()[id].placements', gc)
+    assert [p['place'] for p in placements] == ['Grand Champion'] and placements[0]['name'] != women, placements
+
+    # The same person won two sources: no draw until the director picks the runner-up for one.
+    page.evaluate("""()=>{const st=KSMTest.app.state;st.generated=false;
+      st.competitors=st.competitors.map(c=>c.division==='Masters'&&c.name==='Eli'?{...c,name:'Aki',dojo:'Aki Dojo'}:c);}""")
+    dup = page.evaluate("KSMTest.addGrandChampion(['Open','Masters'],{name:'Twice'})")
+    page.evaluate('KSMTest.app.generatePools({validated:true})')
+    page.evaluate("""()=>{for(let i=0;i<4;i++){const m=KSMTest.prepareCourt('A');if(!m)break;KSMTest.play([[m.white==='Aki'?'W':'R','M']]);}}""")
+    assert not gc_matches(app, dup), 'drew the same person twice'
+    app.nav('setup')
+    rows = page.locator(sel('grand-champion-status')).all_text_contents()
+    assert any('The same person won Masters' in t for t in rows), rows
+    page.locator(sel('grand-champion-withdraw')).last.click()
+    q = page.evaluate('KSMTest.grandChampionQuestion()')
+    assert q['choices'] == ['runner-up', 'cancel'], q
+    choose(app, 'runner-up')
+    final = gc_matches(app, dup)
+    assert sorted([final[0]['white'], final[0]['red']]) == ['Aki', 'Fay'], final
+    assert not problems, problems
+    page.close()
+
+
+def merge_cases(browser, base):
+    """Two devices: Setup edits of the same row race (409), and both finish a source at once."""
+    problems = []
+    a = KsmApp.open_device(browser, base, 'A', problems, tournament_name='Grand champion sync')
+    tid = a.create_tournament(); a.wait_idle()
+    a.page.evaluate('entries=>KSMTest.configure(entries)', DIVISIONS[:2])
+    a.page.evaluate('KSMTest.app.state.generated=false')
+    gc = a.page.evaluate("KSMTest.addGrandChampion(['Open','Women'],{court:'A'})")
+    a.save_now(); a.wait_idle()
+    b = KsmApp.open_device(browser, base, 'B', problems, f'?tournament={tid}')
+    b.staff_login(); b.wait_idle(); b.watch_conflicts()
+
+    def race(mine, theirs):
+        a.wait_idle(); b.wait_idle()
+        b.hold_next_save(); mine()
+        b.page.evaluate("KSMTest.saveNow('Grand champion race')")
+        b.wait_held_save()
+        theirs(); a.save_now(); a.wait_idle()
+        b.release_save(); b.wait_idle()
+        rev = fetch_record(base, tid)['revision']; a.wait_revision(rev); b.wait_revision(rev)
+        return fetch_record(base, tid)['payload']['state']
+
+    st = race(lambda: b.page.evaluate("id=>KSMTest.updateGrandChampion(id,{court:'B'})", gc),
+              lambda: a.page.evaluate("id=>KSMTest.updateGrandChampion(id,{name:'Kings and Queens',awardMode:'top2'})", gc))
+    row = st['grandChampions'][0]
+    assert (row['court'], row['name'], row['awardMode']) == ('B', 'Kings and Queens', 'top2'), row
+    assert st['divisionCourts'][gc] == 'B'
+    st = race(lambda: b.page.evaluate("id=>KSMTest.updateGrandChampion(id,{court:'A'})", gc),
+              lambda: a.page.evaluate("id=>KSMTest.removeGrandChampion(id)", gc))
+    assert st.get('grandChampions') == [], 'a removed row came back'
+    assert 'Grand champion' in b.page.evaluate('KSMTest.diagnostics().mergeConflicts'), b.page.evaluate('KSMTest.diagnostics()')
+
+    # Both sources finish at once on two devices (B's save meets A's): one draw, both winners.
+    a.page.evaluate('KSMTest.app.state.generated=false')
+    gc = a.page.evaluate("KSMTest.addGrandChampion(['Open','Women'],{court:'B',name:'Grand Champion'})")
+    a.page.evaluate('KSMTest.app.generatePools({validated:true})')
+    a.save_now(); a.wait_idle(); b.wait_revision(fetch_record(base, tid)['revision'])
+    st = race(lambda: play_court(b, 'B', [['W', 'M']]), lambda: play_court(a, 'A', [['W', 'M']]))
+    rev = fetch_record(base, tid)['revision']
+    final = st['allMatches'].get(gc) or []
+    winners = {st_div: next(m for m in st['allMatches'][st_div] if m.get('position') == 'Final') for st_div in ('Open', 'Women')}
+    assert all(m['done'] for m in winners.values()), 'a source result was lost in the race'
+    assert len(final) == 1 and final[0]['white'] and final[0]['red'], final
+    for device in (a, b):
+        device.wait_revision(rev)
+        assert device.payload()['state']['allMatches'][gc] == final, f'{device.name} has another draw'
+
+    # Court B scores the grand champion while A corrects Open (not started on A: drawn again). B's
+    # point was for the old players: it is not moved onto the new pairing, and B is told.
+    old_pair = {final[0]['white'], final[0]['red']}
+    def score_on_b():
+        b.page.evaluate("KSMTest.prepareCourt('B')"); b.open_court('B'); b.score_point('W', 'M')
+    def correct_on_a():
+        a.open_court('A'); a.undo(); a.undo(); a.page.evaluate("KSMTest.play([['R','M']])")
+    st = race(score_on_b, correct_on_a)
+    redrawn = st['allMatches'][gc][0]
+    assert {redrawn['white'], redrawn['red']} != old_pair, redrawn
+    assert redrawn['wp'] == [] and redrawn['rp'] == [] and not redrawn['done'], f'a point for the old players landed on the new pairing: {redrawn}'
+    b.wait_toast('Grand Champion: the players changed on another device, so this court\'s score for the old players was not saved.')
+    assert b.conflicts() >= 3, b.conflicts()
+    assert not problems, problems
+    a.close(); b.close()
+
+
+def main():
+    with sync_playwright() as p:
+        browser = launch_chromium(p)
+        local_cases(browser)
+        pool_and_fusen_cases(browser)
+        with local_worker() as base:
+            merge_cases(browser, base)
+        browser.close()
+    print('PASS grand champion: setup, fill-in, court queue, awards on Results/TV/print, withdrawals, corrections before/after start, pool, two-device race')
+
+
+if __name__ == '__main__':
+    main()

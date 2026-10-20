@@ -29,7 +29,7 @@ DEFAULT_PASSWORD = 'e2e-staff-pass'
 
 # The saved format the app understands (KSM_CLIENT_SCHEMA, app/js/01-team-divisions.js): the server refuses
 # saves without it (src-worker.js MIN_CLIENT_SCHEMA), as from an app loaded before an update.
-CLIENT_SCHEMA = {'x-ksm-client-schema': '2'}
+CLIENT_SCHEMA = {'x-ksm-client-schema': '3'}
 
 
 def app_path(tid, screen=None, court=None):

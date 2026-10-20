@@ -11,7 +11,9 @@ const VALID_ROLES = new Set(['spectator', 'staff']);
 // sends x-ksm-client-schema; an older app (no header, or a lower number) is refused with 426, so a tablet
 // left open on an old build cannot rewrite a newer tournament. Its unsaved work stays queued on the
 // device and is sent after the page is reloaded. Raise both numbers together when the format changes.
-const MIN_CLIENT_SCHEMA = 2;
+// #86: 3 = grand champion rows and their derived draws (an app of #95's era would show a draw as
+// "gc:…", offer to regenerate it and never refill it).
+const MIN_CLIENT_SCHEMA = 3;
 function outdatedClient(request) {
   if (Number(request.headers.get('x-ksm-client-schema') || 0) >= MIN_CLIENT_SCHEMA) return null;
   return json({ error: 'This device runs an older version of Kendo Shiai Manager. Reload the page to update it, then save again.', code: 'client-outdated' }, 426);

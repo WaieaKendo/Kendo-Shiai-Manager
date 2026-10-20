@@ -3,9 +3,11 @@
 // Shadow only the read dependencies of the original print operations; no payload application,
 // session, storage, navigation or socket operations occur in this renderer.
 function ksmPrintRenderer(payload){
-  const setup=payload.setup||{},state=KSMEngine.migrateTeamDivisions(payload.state,setup);
+  const setup=payload.setup||{},state=KSMEngine.migrateGrandChampions(KSMEngine.migrateTeamDivisions(payload.state,setup));
   const ksmTeamDivision=id=>state.teamDivisions?.find(d=>d.id===id);
-  const ksmDivisionName=id=>ksmTeamDivision(id)?.name||id;
+  // #86: a grand champion's division is printed under its row's name, its places as its awards.
+  const ksmGrandChampion=id=>KSMEngine.isGrandChampionId(id)?(state.grandChampions||[]).find(g=>g.id===id)||null:null;
+  const ksmDivisionName=id=>ksmGrandChampion(id)?.name??(ksmTeamDivision(id)?.name||id);
   const ksmTeamSettings=id=>{const d=ksmTeamDivision(id);return d?{teamFormat:d.teamFormat,teamAwardMode:d.awardMode}:KSMEngine.readSettings(setup)};
   const tName={value:setup.tName},tDate={value:setup.tDate},tLocation={value:setup.tLocation},teamFormat={value:setup.teamFormat};
   const matches=div=>state.allMatches?.[div]||[];
@@ -27,7 +29,10 @@ function ksmPrintRenderer(payload){
   const teamSideLabel=(side,div)=>{if(!side)return 'TBD';if(side.team)return eligibleTeams(div)[side.team-1]?.team||'Team '+side.team;if(side.ref)return (state.teamBracketNodes?.[div]||[]).find(n=>n.id===side.ref)?.winner||'Winner '+side.ref;return 'TBD'};
   const resultPlacements=div=>{
     if(!divisionComplete(div))return [];
-    if(!isTeamDivision(div))return KSMEngine.individualPlacements(matches(div),isPoolOnlyDivision(div)?()=>KSMEngine.poolStandings(state.pools[div][0],matches(div),requiredSeedPlaces(div)[state.pools[div][0].label]||2):null);
+    if(!isTeamDivision(div)){
+      const placements=KSMEngine.individualPlacements(matches(div),isPoolOnlyDivision(div)?()=>KSMEngine.poolStandings(state.pools[div][0],matches(div),requiredSeedPlaces(div)[state.pools[div][0].label]||2):null);
+      return ksmGrandChampion(div)?KSMEngine.grandChampionPlacements(placements,ksmGrandChampion(div).awardMode):placements;
+    }
     const p=isTeamRoundRobinDivision(div)?KSMEngine.teamRoundRobinPlacements(true,matches(div),eligibleTeams(div),KSMEngine.teamRoundRobinCountedPlaces(ksmTeamSettings(div).teamAwardMode)):KSMEngine.teamFinalPlacements(state.teamBracketNodes?.[div]||[],eligibleTeams(div));
     if(!p)return [];
     const tied=new Set(p.undecided||[]),named=(place,name)=>tied.has(place)?KSM_TEAM_PLACE_TIED:name,mode=ksmTeamSettings(div).teamAwardMode||'top2';
@@ -54,7 +59,7 @@ function printIndividualDivisionSheet(div){let pools=state.pools[div]||[],court=
     body+=`<div class="print-section-title">Pool Match Order</div><div class="print-match-grid">`+pools.map(p=>{let ms=(state.allMatches[div]||[]).filter(m=>m.pool===p.label&&!m.championship&&!m.tiebreak);return `<div class="print-card soft"><div class="print-round">Pool ${esc(p.label)}</div>${ms.map((m,i)=>printMatchLine(m.white,m.red,m.wdojo,m.rdojo,'Match '+(i+1),m.court)).join('')||'<div class="print-dojo">No pool matches.</div>'}</div>`}).join('')+`</div>`;
   }else{body+=`<div class="print-section-title">Bracket</div>`;}
   body+=`<div class="print-section-title">Championship Bracket</div>${printBracketCards(div)}`;
-  return printSheet(tName?.value||'Kendo Tournament',`${div} • ${format} • Court ${court}${printMetaLine()?' • '+printMetaLine():''}`,body,'Division Sheet')}
+  return printSheet(tName?.value||'Kendo Tournament',/* ksm:post-split-begin grand-champion was:`${div} • ${format} • Court ${court}${printMetaLine()?' • '+printMetaLine():''}` */`${ksmDivisionName(div)} • ${ksmGrandChampion(div)?KSMEngine.grandChampionFormat(ksmGrandChampion(div)):format} • Court ${court}${printMetaLine()?' • '+printMetaLine():''}`/* ksm:post-split-end */,body,'Division Sheet')}
 function printMatchLine(white,red,wdojo,rdojo,label,court){return `<div class="print-match${court&&redOnLeftForCourt(court)?' red-left':''}"><div class="print-white">${printNameBlock(white,wdojo)}</div><div class="print-vs">${esc(label||'vs')}</div><div class="print-red">${printNameBlock(red,rdojo)}</div></div>`}
 function printBracketCards(div){if(state.singleElimNodes&&state.singleElimNodes[div])return printSingleElimBracketCards(div);let labels=championshipLabels(div);if(!labels.length)return '<div class="print-card soft"><div class="print-dojo">Championship bracket placeholders will appear after generation.</div></div>';let first=firstRoundName(labels.length),html=`<div class="print-card"><div class="print-round">${esc(first)}</div>`;labels.forEach(([r,w],i)=>{let rn=seedNameForLabel(div,r,true),wn=seedNameForLabel(div,w,true);let red=rn?rn.name:r,white=wn?wn.name:w;let rdojo=rn?rn.dojo:'',wdojo=wn?wn.dojo:'';let status=(String(w).toUpperCase()==='BYE'||!w)?'BYE':'Match '+(i+1);html+=printMatchLine(white,red,wdojo,rdojo,status,(state.championshipNodes?.[div]||[])[i]?.court||state.divisionCourts?.[div])});html+='</div>';let round=nextRoundFromName(first),count=labels.length;while(round){let next=Math.ceil(count/2);html+=`<div class="print-card"><div class="print-round">${esc(round)}</div>`;for(let i=1;i<=next;i++){html+=printMatchLine((2*i<=count)?`Winner of ${first} Match ${2*i}`:'Bye',`Winner of ${first} Match ${2*i-1}`,'','',round==='Final'?'Final':'Match '+i,state.divisionCourts?.[div])}html+='</div>';if(round==='Final')break;first=round;round=nextRoundFromName(round);count=next;}return `<div class="print-bracket-grid">${html}</div>`}
 function printSingleElimBracketCards(div){let nodes=state.singleElimNodes?.[div]||[];if(!nodes.length)return '<div class="print-card soft"><div class="print-dojo">Bracket will appear after generation.</div></div>';let rounds=[...new Set(nodes.map(n=>n.round))];return `<div class="print-bracket-grid print-single-elim-grid">`+rounds.map(round=>`<div class="print-card"><div class="print-round">${esc(round)}</div>`+nodes.filter(n=>n.round===round).map((node,i)=>{let m=(state.allMatches[div]||[]).find(x=>x.singleElim&&x.elimNodeId===node.id);if(m)return printMatchLine(m.white,m.red,m.wdojo,m.rdojo,'Match '+(i+1),m.court);return printMatchLine(sideLabelGeneric(node.right,div),sideLabelGeneric(node.left,div),'','',(!node.left||!node.right)?'BYE':'Match '+(i+1),node.court);}).join('')+`</div>`).join('')+`</div>`}
