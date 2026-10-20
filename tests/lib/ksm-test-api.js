@@ -100,6 +100,8 @@ window.KSMTest = {
   clientId() { return cloudSession.clientId; },
   // F36: what this tab's saves record as updatedBy.clientId (the device's clientId/this tab's id).
   writerId() { return ksmWriterId(); },
+  // F37: a Replace from a tournament file is still unsettled (sending, or the director is being asked).
+  replacing() { return Boolean(ksmFileReplace); },
   // Count the save conflicts this device meets (HTTP 409 answers to its saves, each followed by
   // a rebase); conflicts() returns the total since watchConflicts().
   watchConflicts() {

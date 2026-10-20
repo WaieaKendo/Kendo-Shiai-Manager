@@ -202,6 +202,11 @@ const KNOWN_POST_SPLIT_EDITS = {
   'tv-red-side': 2,
   // fix/pre-event (F11): saveAuto(), called by the awards editor but never defined (app/js/20).
   'autosave-origin': 8,
+  // fix/f37-replace-conflict (F37, #88): Load Tournament File → Replace is saved on its own and never
+  // rebased; on a 409 the director is asked (Replace anyway / Cancel). performCloudSave()'s options and
+  // its 409 hand-off (33), ordinary saves and the outbox flush wait while the question is open, and
+  // closing the question is Cancel (21); no autosave while it is unsettled (20). The Replace itself is in the load-file-guard region.
+  'replace-conflict': 7,
   'startup-recovery': 5,
   'award-save': 1,
   // feat/delete-tournament (issue #26, the app side): a tournament deleted on the server (410
@@ -220,11 +225,6 @@ const KNOWN_POST_SPLIT_EDITS = {
   // flushCloudOutbox()), the local changes a queued snapshot carries are confirmed when it is sent
   // (noteQueuedMutation()/confirmQueuedMutation()), and performCloudSave() gives up on a save to an
   // existing tournament after KSM_CLOUD_SAVE_TIMEOUT_MS (cloudSaveTimeoutSignal()).
-  // fix/f37-replace-conflict (F37, #88): Load Tournament File → Replace is saved on its own and never
-  // rebased; on a 409 the director is asked (Replace anyway / Cancel). performCloudSave()'s options and
-  // its 409 hand-off (33), ordinary saves and the outbox flush wait while the question is open, and
-  // closing the question is Cancel (21). The Replace itself is in the load-file-guard region.
-  'replace-conflict': 6,
   'save-retry': 6,
   // fix/outbox-flush-local-changes (F6): mergeQueuedStaffWork() and its call at staff login;
   // the outbox flush also replays court actions taken before it started (comment + condition).

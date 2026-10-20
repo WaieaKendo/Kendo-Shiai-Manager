@@ -454,7 +454,8 @@ function replaceTournamentFromFile(){
   const before={payload:tournamentPayload(),outbox:localStorage.getItem(ksmOutboxKey()),pending:localChangesPending()};
   if(!applyTournamentFilePayload(pending.payload,false))return;
   noteLocalMutation();markLocalSave('Tournament file replace');updateSaveStatus('Loaded '+pending.fileName);
-  ksmSendFileReplace({fileName:pending.fileName,before,record:null});
+  // The file as applied: what Replace sends, also after a save in flight has applied its own result meanwhile.
+  ksmSendFileReplace({fileName:pending.fileName,before,record:null,payload:tournamentPayload()});
 }
 // F37 (#88): the Replace in progress: {fileName, before: what to put back if it fails, record: the other
 // device's copy while the director is asked}. Ordinary saves wait meanwhile (they would merge the file away).
@@ -463,18 +464,24 @@ let ksmFileReplace=null;
 async function ksmSendFileReplace(replace,baseRevision=null){
   ksmFileReplace=replace;
   clearTimeout(ksmSaveTimer);ksmSaveTimer=null;clearTimeout(ksmCloudTimer);ksmCloudTimer=null;
-  for(let i=0;ksmCloudSaveInFlight&&i<250;i++)await new Promise(resolve=>setTimeout(resolve,100));
+  let waited=false;
+  for(let i=0;ksmCloudSaveInFlight&&i<250;i++){waited=true;await new Promise(resolve=>setTimeout(resolve,100))}
   if(ksmFileReplace!==replace)return;  // the tournament was closed meanwhile
+  // That save may have applied its (rebased) result over the file: show the file again.
+  if(waited){ksmApplyingRemoteSnapshot=true;try{applyTournamentPayload(replace.payload,false,{pinnedCourt:pinnedCourt(),preserveLocalDivision:true,source:'file replace'})}finally{ksmApplyingRemoteSnapshot=false}}
   if(baseRevision==null)baseRevision=Number(cloudSession.revision)||0;
   const version=ksmLocalMutationVersion;
+  // The file replaces this device's queued work: dropped now, so the save's success cannot give a closed
+  // tab's work it took over back as a new queue (it would replay over the file). Put back if it fails.
+  localStorage.removeItem(ksmOutboxKey());
   ksmCloudSaveInFlight=true;ksmSaveStatusMode='saving';renderPersistentSaveStatus();
   try{
-    await performCloudSave(tournamentPayload(),baseRevision,0,baseRevision,null,{wholeReplace:true});
+    await performCloudSave({...replace.payload,savedAt:new Date().toISOString()},baseRevision,0,baseRevision,null,{wholeReplace:true});
     ksmConfirmedMutationVersion=Math.max(ksmConfirmedMutationVersion,version);
     ksmFileReplace=null;
-    // The file is the tournament now, on every device: work queued here before it (also a closed tab's
-    // work this tab took over) is replaced too, not given back.
-    localStorage.removeItem(ksmOutboxKey());
+    // The file is the tournament now, on every device: work queued here before it, and closed tabs' work
+    // for it, is replaced too.
+    ksmDropOutboxesFor(cloudSession.tournamentId);
     showKsmToast(`✓ Tournament replaced from ${replace.fileName}`,2600);
   }catch(err){
     console.warn('Replace from file failed',err);
@@ -488,7 +495,7 @@ async function ksmSendFileReplace(replace,baseRevision=null){
     // A request that failed or timed out may still have reached the server: it decides.
     if(!/authorization|conflict|invalid|rejected|\(4\d\d\)/i.test(message)&&await ksmFileReplaceLanded(baseRevision)){
       ksmFileReplace=null;ksmConfirmedMutationVersion=Math.max(ksmConfirmedMutationVersion,version);
-      localStorage.removeItem(ksmOutboxKey());
+      ksmDropOutboxesFor(cloudSession.tournamentId);
       showKsmToast(`✓ Tournament replaced from ${replace.fileName}`,2600);
       return;
     }

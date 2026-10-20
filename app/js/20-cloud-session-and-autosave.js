@@ -80,7 +80,7 @@ function ksmStoreAutosave(payload,id=cloudSession.tournamentId){
 }
 /* ksm:post-split-end */
 function markLocalSave(reason='Local autosave'){try{/* ksm:post-split-begin autosave-origin was:localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(tournamentPayload())) */ksmStoreAutosave(tournamentPayload())/* ksm:post-split-end */;return true}catch(err){console.warn('Local save failed',err);ksmSaveStatusMode='error';renderPersistentSaveStatus();return false}}
-function autoSaveTournament(reason='Autosave'){/* ksm:post-split-begin tournament-switcher */if((document.body.classList.contains('ksm-home')&&!cloudSession.tournamentId&&!v316StaffPassword())||(ksmStartupLoadFailed&&!ksmStartupHasCache))return;/* ksm:post-split-end */if(!markLocalSave(reason))return;if(!ksmApplyingRemoteSnapshot&&!isReadOnlySession())scheduleCloudSave(reason)}
+function autoSaveTournament(reason='Autosave'){/* ksm:post-split-begin replace-conflict */if(ksmFileReplace)return;/* ksm:post-split-end *//* ksm:post-split-begin tournament-switcher */if((document.body.classList.contains('ksm-home')&&!cloudSession.tournamentId&&!v316StaffPassword())||(ksmStartupLoadFailed&&!ksmStartupHasCache))return;/* ksm:post-split-end */if(!markLocalSave(reason))return;if(!ksmApplyingRemoteSnapshot&&!isReadOnlySession())scheduleCloudSave(reason)}
 // Remote snapshots never echo into cloud: if(!ksmApplyingRemoteSnapshot)scheduleCloudSave()
 function scheduleAutoSave(reason='Edit'){/* ksm:post-split-begin library-setup */
   // Read-only controls must not create mutations or rewrite the autosave/outbox.

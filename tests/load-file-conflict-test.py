@@ -16,6 +16,9 @@ scored, then loads it again with Replace (Setup -> Load Tournament File):
         file was not loaded.
   3. The Replace reaches the server but its answer is lost: the director checks with the server and
      keeps the file (it does not put the old copy back over it).
+  4. Replace while the director's own save is in flight and rebased: the file is sent, not that result.
+  5. A closed tab's queued work this tab took over is replaced by the file, not given back.
+  6. The director's tab closes while asked: the autosave keeps the copy from before, nothing is queued.
 """
 import time
 import urllib.request
@@ -132,7 +135,61 @@ def main():
         for app in (director, a, b):
             assert played(app.payload(), 'Open A') == [] and played(app.payload(), 'Open B') == [], f'3: {app.name} differs from the file'
 
+        def replaced(label):
+            # (the toast history skips a repeat of the same text, so wait for the Replace itself)
+            return lambda: director.wait_for(lambda: not director.page.evaluate('KSMTest.replacing()'), timeout=30, message=f'{label}: the Replace to settle')
+
+        # 4. Replace while the director's own save is in flight and is rebased (Court A saved first): the file
+        #    is sent, not the merged result that save applies meanwhile.
+        settled = replaced('4')
+        director.hold_next_save()
+        director.page.evaluate("KSMTest.app.state.awards=[{name:'In flight'}];KSMTest.saveNow('Director edit')")
+        director.wait_held_save()
+        a.score_point('W', 'M')
+        a.blur(); races.flush_edit(a); a.wait_idle()
+        director.load_tournament_file(path)
+        director.page.wait_for_selector(sel('file-load-replace'))
+        director.click('file-load-replace')
+        director.release_save()
+        settled()
+        assert director.page.evaluate('KSMTest.toasts()')[-1].startswith('✓ Tournament replaced'), director.page.evaluate('KSMTest.toasts()')
+        races.settle()
+        server_copy = on_server()
+        assert played(server_copy, 'Open A') == [] and not server_copy['state'].get('awards'), \
+            f'4: the save in flight\'s result was sent instead of the file: {played(server_copy, "Open A")} {server_copy["state"].get("awards")}'
+        for app in (director, a, b):
+            assert played(app.payload(), 'Open A') == [], f'4: {app.name} differs from the file'
+
+        # 5. A closed tab's queued work this tab took over (not merged yet) is replaced by the file, not given
+        #    back as a new queue that would replay over it.
+        director.page.evaluate('''() => { const app = KSMTest.app, p = app.tournamentPayload(); p.state.awards = [{name: 'Closed tab award'}];
+          localStorage.setItem(app.ksmOutboxKey(), JSON.stringify({schemaVersion: '1.0', tournamentId: app.cloudSession.tournamentId, role: 'staff',
+            baseRevision: app.cloudSession.revision, payload: p, actions: [], queuedAt: new Date().toISOString(), writer: app.KSM_TAB_ID, adoptedFrom: 'gone-tab'})); }''')
+        settled = replaced('5')
+        replace()
+        settled()
+        assert director.page.evaluate('KSMTest.toasts()')[-1].startswith('✓ Tournament replaced'), director.page.evaluate('KSMTest.toasts()')
+        queues = director.page.evaluate("Object.keys(localStorage).filter(k => k.startsWith(KSMTest.app.KSM_CLOUD_OUTBOX_KEY))")
+        assert not queues, f'5: replaced work is still queued: {queues}'
+        races.settle()
+        assert not on_server()['state'].get('awards'), '5: the closed tab\'s work came back over the file'
+
+        # 6. The director's tab closes while asked: its startup cache (the autosave) keeps the copy from before,
+        #    not the unconfirmed file; the server keeps Court A's point.
+        b.score_point('R', 'K')
+        races.settle()
+        raced('M')
+        keep = director.page.context.new_page()
+        keep.goto(base + '/privacy.html', wait_until='domcontentloaded')
+        with director.page.expect_event('close'):
+            director.page.close(run_before_unload=True)
+        autosave = keep.evaluate("JSON.parse(localStorage.getItem('ksm.local.autosave.v3_1') || 'null')")
+        assert played(autosave, 'Open B') == [('OB 1', 'OB 2', [], ['K'])], f'6: the autosave holds the unconfirmed file: {played(autosave, "Open B")}'
+        assert not keep.evaluate("Object.keys(localStorage).filter(k => k.startsWith('ksm.cloud.outbox.v3_15'))"), '6: the file was queued'
+        assert played(on_server(), 'Open A') == [('OA 1', 'OA 2', ['M'], [])], '6: Court A\'s point was lost'
+
         # Survives a reload: a reloaded court and a fresh device show the server's copy.
+        server_copy = on_server()
         fresh = KsmApp.open_device(browser, base, 'Fresh', problems, app_path(tid))
         a.reload()
         for app in (fresh, a):

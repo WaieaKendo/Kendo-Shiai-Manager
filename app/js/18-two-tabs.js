@@ -72,7 +72,8 @@ const KSM_OUTBOX_CLAIM_KEY='ksm.cloud.outbox.claim.v1',KSM_OUTBOX_CLAIM_MS=250;
 let ksmOutboxClaimTimer=null;
 function ksmNewId(){try{return crypto.randomUUID()}catch(_){return Math.random().toString(36).slice(2)+Date.now().toString(36)}}
 function ksmAdoptOrphanOutbox(){
-  if(ksmSessionRole!=='staff'||ksmTabClosing||ksmOutboxClaimTimer||localStorage.getItem(ksmOutboxKey()))return;
+  // Not during a Replace from a file (F37): it replaces that work.
+  if(ksmSessionRole!=='staff'||ksmTabClosing||ksmOutboxClaimTimer||ksmFileReplace||localStorage.getItem(ksmOutboxKey()))return;
   const slot=ksmOrphanOutboxes().find(ksmOrphanForThisTab);
   if(!slot)return;
   const held=ksmReadOutboxKey(KSM_OUTBOX_CLAIM_KEY);
@@ -89,7 +90,7 @@ function ksmAdoptOrphanOutbox(){
 }
 function ksmTakeOrphan(slot){
   const entry=ksmReadOutboxKey(slot.key);
-  if(!entry||ksmSessionRole!=='staff'||localStorage.getItem(ksmOutboxKey())||(entry.tournamentId||'')!==(cloudSession.tournamentId||''))return null;
+  if(!entry||ksmSessionRole!=='staff'||ksmFileReplace||localStorage.getItem(ksmOutboxKey())||(entry.tournamentId||'')!==(cloudSession.tournamentId||''))return null;
   ksmRetagHistory(entry,KSM_TAB_ID);
   const adopted={...entry,writer:KSM_TAB_ID,adoptedFrom:slot.tabId};
   localStorage.setItem(ksmOutboxKey(),JSON.stringify(adopted));
@@ -101,7 +102,7 @@ function ksmTakeOrphan(slot){
  * tab's work without waiting for a claim, unless another live tab has just claimed it.
  */
 function ksmTakeOrphanNow(){
-  if(ksmSessionRole!=='staff'||localStorage.getItem(ksmOutboxKey()))return null;
+  if(ksmSessionRole!=='staff'||ksmFileReplace||localStorage.getItem(ksmOutboxKey()))return null;
   const slot=ksmOrphanOutboxes().find(ksmOrphanForThisTab);
   if(!slot)return null;
   const held=ksmReadOutboxKey(KSM_OUTBOX_CLAIM_KEY);
