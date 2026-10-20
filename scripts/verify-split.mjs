@@ -293,10 +293,11 @@ const KNOWN_POST_SPLIT_CSS_EDITS = {
   'tie-flash': 2,
   'library-setup': 2,
   'print-guide': 1,
+  // #85 team divisions: the Teams-off note and the disabled team setup (07-setup.css), and 08.
+  'team-divisions': 2,
   // fix/pre-event (F2): Undo/Redo stay on the division-complete court screen (08); only
   // Fusen-gachi and Next Match are hidden there.
   'undo-after-complete': 1,
-  'team-divisions': 1,
   // fix/react-batch-1 (F14): the TV canvas scales to fit the window, centred (end of 13-tv.css;
   // the factor --ksm-tv-fit comes from ksmFitTv() in app/js/37-react-tv.js, react-tv region).
   'tv-fit': 1,

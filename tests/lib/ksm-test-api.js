@@ -340,6 +340,7 @@ window.KSMTest = {
     v316StaffPassword: (...a) => v316StaffPassword(...a),
     validateTournament: (...a) => validateTournament(...a),
     writeOutbox: (...a) => writeOutbox(...a),
+    ksmRenderTeamDivisions: () => ksmRenderTeamDivisions(),
     // F36: this tab's writer id, its outbox slot, and the rebase (old-client compatibility checks)
     get KSM_TAB_ID() { return KSM_TAB_ID; },
     ksmOutboxKey: (...a) => ksmOutboxKey(...a),
