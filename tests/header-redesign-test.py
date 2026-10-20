@@ -114,6 +114,9 @@ def main():
         # The footer is on every page (not only the Library), except the TV display.
         footer = "getComputedStyle(document.querySelector('.privacy-footer')).display"
         assert page.evaluate(f"document.body.classList.remove('ksm-home'), {footer}") == 'block', 'footer hidden outside the Library'
+        assert page.locator(sel('library-about')).is_visible(), 'the version is hidden outside the Library'
+        # The footer is last on the page: after main, at the bottom of the window when the page is shorter.
+        assert page.evaluate("(() => { const f = document.querySelector('.privacy-footer'); return f.previousElementSibling.tagName === 'MAIN' && f.getBoundingClientRect().bottom >= Math.min(innerHeight, document.documentElement.scrollHeight) - 1 })()"), 'footer not at the bottom'
         assert page.evaluate(f"document.body.classList.add('ksm-tv'), {footer}") == 'none', 'footer on the TV'
         page.evaluate("document.body.classList.remove('ksm-tv'); document.body.classList.add('ksm-home')")
         browser.close()

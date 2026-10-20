@@ -1,8 +1,13 @@
 /* ksm:post-split-begin privacy-footer */
-/* The footer (Privacy, About and the version) shows on every page except the TV display (the audience
-   screen) and print. */
-.privacy-footer { display: block; padding: 1rem; text-align: center; }
+/* The footer (Privacy, About and the version) is on every page except the TV display (the audience
+   screen) and print. It follows the page's content and sits at the bottom of the window when the
+   content is shorter: the page is a column at least the window's height, main takes the rest. */
+body { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
+body > main { flex: 1 0 auto; width: 100%; }
+body.ksm-home > main { min-height: 0; }
+.privacy-footer { display: block; flex: none; padding: 1rem; text-align: center; }
+.privacy-footer .library-about { display: inline; }
 body.ksm-tv .privacy-footer { display: none; }
 .privacy-footer a { color: var(--ink); }
-@media print { .privacy-footer { display: none; } }
+@media print { .privacy-footer { display: none; } body { display: block; } }
 /* ksm:post-split-end */
