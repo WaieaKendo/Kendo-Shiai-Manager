@@ -44,6 +44,9 @@ def main():
         fields = [x for x in s['disabled'] if not x.startswith(('team-division-up', 'team-division-down'))]
         editable = {x.split('=')[0] for x in fields if x.endswith('=false')}
         assert editable == {'team-division-name', 'team-division-awardMode'}, s  # order (up/down) also stays editable
+        # A locked control says why (tooltip).
+        tip = a.page.locator(sel('team-division-teamFormat')).first.get_attribute('title')
+        assert tip.startswith('Fixed:') and 'is drawn' in tip, tip
         assert not problems, problems
         browser.close()
     print('PASS team setup: Add works before generation; disabled teams and a drawn team division are shown and explained')
