@@ -554,6 +554,8 @@ const REMOVED_SHELL_RENDERER = [
 // 'now' must appear exactly once; the check puts 'before' back (before the test-ID step) and then
 // compares byte for byte, so any other markup change still fails.
 const MARKUP_EDITS = [
+  // Owner request: the Exhibition Matches card spans the width like the other Setup cards.
+  ["      <section class=\"setup-panel\">\n        <div class=\"setup-panel-head\">\n          <div>\n            <div class=\"setup-panel-eyebrow\">Additional Matches</div>", "      <section class=\"setup-panel setup-panel-wide\">\n        <div class=\"setup-panel-head\">\n          <div>\n            <div class=\"setup-panel-eyebrow\">Additional Matches</div>"],
   // feat/grand-champion (#86): Setup's Grand Champion section, before Exhibition Matches (React draws its contents).
   ["", "      <section class=\"setup-panel setup-panel-wide\" data-testid=\"setup-grand-champion\">\n        <div class=\"setup-panel-head\">\n          <div>\n            <div class=\"setup-panel-eyebrow\">Competition Structure</div>\n            <h2>Grand Champion</h2>\n          </div>\n        </div>\n        <div id=\"grandChampionSetup\" class=\"setup-stack\"></div>\n      </section>\n\n"],
   // Team division editor and registration filter, with unique surrounding markup.
