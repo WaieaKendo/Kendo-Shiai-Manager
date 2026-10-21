@@ -70,8 +70,9 @@ function ksmResultDetail(div){
   const pools=state.pools?.[div]||[];
   if(pools.length){
     // Standings printed as they are (no esc()) apart from names and dojos.
-    const poolData=pools.map(pool=>({label:ksmText(pool.label),standings:poolStandings(pool.label,div).map(row=>({
-      name:ksmText(row.name),dojo:ksmText(row.dojo||''),wins:String(row.wins),pts:String(row.pts)}))}));
+    const poolData=pools.map(pool=>{const rows=poolStandings(pool.label,div),marks=ksmTiebreakMarks(div,pool.label,rows);
+      return {label:ksmText(pool.label),tiebreakNote:marks.note,standings:rows.map(row=>({
+      name:ksmText(row.name),dojo:ksmText(row.dojo||''),wins:String(row.wins),pts:String(row.pts),tiebreak:marks.names.has(row.name)}))}});
     return {kind:'pools',pools:poolData,bracket:ksmBracket(div)};
   }
   return {kind:'bracket',bracket:ksmBracket(div)};

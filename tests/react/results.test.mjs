@@ -79,9 +79,18 @@ test('resultDetailView: pools with ranks and "Pool X" titles next to the bracket
     pools: [{ title: 'Pool A', standings: [
       { rank: '1', name: 'P 1', dojo: 'D', wins: '2', pts: '4' },
       { rank: '2', name: 'P 2', dojo: '', wins: '0', pts: '0' },
-    ] }],
+    ], tiebreakNote: '' }],
     bracket: { kind: 'message', text: 'Championship bracket will appear after pools are generated.' },
   });
+  // Players placed by a tiebreak keep their pool record; the mark and the note come as published.
+  const note = '* Tied on wins and points; placed by tiebreak: P 2 1 win (1 pt), P 3 0 wins (0 pts).';
+  const tied = resultDetailView({
+    kind: 'pools',
+    pools: [{ label: 'A', tiebreakNote: note, standings: [{ name: 'P 2', dojo: '', wins: '1', pts: '1', tiebreak: true }] }],
+    bracket: { kind: 'message', text: '' },
+  });
+  assert.equal(tied.kind === 'pools' && tied.pools[0].tiebreakNote, note);
+  assert.deepEqual(tied.kind === 'pools' && tied.pools[0].standings[0], { rank: '1', name: 'P 2', dojo: '', wins: '1', pts: '1', tiebreak: true });
 });
 
 test('resultsBracketView: the title and the court screen\'s bracket view', () => {

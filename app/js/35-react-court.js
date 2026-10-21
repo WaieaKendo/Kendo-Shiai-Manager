@@ -270,13 +270,27 @@ function ksmTeamResults(div){
     return ksmPlaceholderRow(white,red,node.winner?'DONE':'awaiting',true);
   })}))};
 }
+// Players tied on wins and points and placed by a played tiebreak: their names, and the note under
+// the pool table ("* Tied on wins and points; placed by tiebreak: …" with each one's tiebreak wins
+// and points). Wins and Pts stay the pool record; only the order comes from the tiebreak.
+function ksmTiebreakMarks(div,poolLabel,standings){
+  const tiebreaks=(state.allMatches?.[div]||[]).filter(m=>m&&m.pool===poolLabel&&m.tiebreak);
+  // Individual pools only (a team pool's tiebreak is not counted in these stats), once every
+  // tiebreak bout of the pool is done.
+  const played=tiebreaks.length>0&&tiebreaks.every(m=>m.done&&!isTeamMatch(m));
+  const tied=played?standings.filter(r=>typeof r.tbWins==='number'):[];
+  const count=(n,word)=>`${n} ${word}${n===1?'':'s'}`;
+  return {names:new Set(tied.map(r=>r.name)),
+    note:tied.length?`* Tied on wins and points; placed by tiebreak: ${tied.map(r=>`${ksmText(r.name)} ${count(r.tbWins||0,'win')} (${count(r.tbPts||0,'pt')})`).join(', ')}.`:''};
+}
 // poolResultCardHtml() (29-/31-, removed).
 function ksmPoolCard(div,pool,options={}){
-  const standings=poolStandings(pool.label,div);
+  const standings=poolStandings(pool.label,div),marks=ksmTiebreakMarks(div,pool.label,standings);
   const matches=(state.allMatches?.[div]||[]).filter(match=>match.pool===pool.label&&!match.championship);
   const complete=options.completed??poolDisplayComplete(div,pool.label);
   return {label:ksmText(pool.label),active:!!options.active,complete:!!complete,
-    standings:standings.map(row=>({name:ksmText(row.name),dojo:ksmText(row.dojo),wins:String(row.wins),pts:String(row.pts)})),
+    standings:standings.map(row=>({name:ksmText(row.name),dojo:ksmText(row.dojo),wins:String(row.wins),pts:String(row.pts),tiebreak:marks.names.has(row.name)})),
+    tiebreakNote:marks.note,
     matches:matches.map(match=>ksmAlignedRow(match,{status:match.done?'DONE':(match.tiebreak?'TIEBREAK':'vs'),compact:true,current:!!options.currentMatch&&match===options.currentMatch}))};
 }
 // orderedPoolContextHtml() (31-, removed).

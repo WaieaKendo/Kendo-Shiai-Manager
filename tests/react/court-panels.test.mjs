@@ -87,6 +87,11 @@ test('poolCardView: classes, title, ranks', () => {
   assert.equal(card.matches[0].status, 'TIEBREAK');
   assert.equal(poolCardView({ label: 'A', active: false, complete: true, standings: [], matches: [] }).className, 'pool-result-card  completed-pool-card');
   assert.equal(poolCardView({ label: 'A', active: false, complete: false, standings: [], matches: [] }).className, 'pool-result-card  ');
+  assert.equal(card.tiebreakNote, '', 'no tiebreak: no note');
+  const tied = poolCardView({ label: 'A', active: false, complete: true, tiebreakNote: '* Tied on wins and points; placed by tiebreak: Baba 1 win (1 pt).',
+    standings: [{ ...standing('Baba', '1', '1'), tiebreak: true }], matches: [] });
+  assert.equal(tied.tiebreakNote, '* Tied on wins and points; placed by tiebreak: Baba 1 win (1 pt).');
+  assert.equal(tied.standings[0].tiebreak, true);
 });
 
 test('teamStandingsView: status line, table class, name-fallback note, pairs', () => {

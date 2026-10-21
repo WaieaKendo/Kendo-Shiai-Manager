@@ -193,9 +193,10 @@ function ResultDetail({ detail }: { detail: ResultDetailView }) {
               <div key={j} className="stand-row">
                 <span>{row.rank}</span>
                 <div><b>{row.name}</b><div className="small">{row.dojo}</div></div>
-                <b>{row.wins}</b><b>{row.pts}</b>
+                <b>{row.wins}</b><b>{row.pts}{row.tiebreak ? '*' : ''}</b>
               </div>
             ))}
+            {pool.tiebreakNote && <div className="small pool-tiebreak-note" data-testid="results-pool-tiebreak-note">{pool.tiebreakNote}</div>}
           </div>
         ))}
       </div>
