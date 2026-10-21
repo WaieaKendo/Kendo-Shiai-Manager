@@ -1,7 +1,7 @@
 """Device-local match timing; deterministic epoch clock, real settings sync and TV flashes."""
 from datetime import datetime, timedelta
 from playwright.sync_api import sync_playwright
-from ksm_app import KsmApp, app_path
+from ksm_app import sel, KsmApp, app_path
 from ksm_browser import launch_chromium
 from ksm_server import local_worker
 
@@ -55,6 +55,10 @@ def main():
         ])
         defaults = {'timeRegular': '3:00', 'timeQuarterfinal': '', 'timeSemifinal': '', 'timeFinal': '', 'timeEncho': '3:00', 'court1TimerSound': 'whistle01', 'court2TimerSound': 'whistle02', 'court1TimerEnabled': 'On', 'court2TimerEnabled': 'On'}
         assert all(director.payload()['setup'][k] == v for k, v in defaults.items())
+        # Shorthand is accepted (it used to be cleared): "5" is 5:00, "2:3" is 2:03, "4:" is 4:00.
+        director.set_timer_lengths(timeQuarterfinal='5', timeSemifinal='2:3', timeFinal='4:')
+        shorthand = {k: director.page.input_value(sel(f'setup-{k}')) for k in ('timeQuarterfinal', 'timeSemifinal', 'timeFinal')}
+        assert shorthand == {'timeQuarterfinal': '5:00', 'timeSemifinal': '2:03', 'timeFinal': '4:00'}, shorthand
         lengths = dict(timeRegular='0:30', timeQuarterfinal='0:40', timeSemifinal='0:50', timeFinal='1:00', timeEncho='')
         director.set_timer_lengths(**lengths)
         director.configure_timer_sound('A', 'whistle02')

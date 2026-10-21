@@ -557,6 +557,10 @@ const REMOVED_SHELL_RENDERER = [
 // 'now' must appear exactly once; the check puts 'before' back (before the test-ID step) and then
 // compares byte for byte, so any other markup change still fails.
 const MARKUP_EDITS = [
+  // A new tournament starts with an empty Host and Location (examples as placeholders), not the original club's.
+  ['<input id="tHost" value="Aiea Taiheiji Kendo Club" data-testid="setup-host">', '<input id="tHost" value="" placeholder="e.g. Aiea Taiheiji Kendo Club" data-testid="setup-host">'],
+  ['<input id="tLocation" value="Halawa District Park" data-testid="setup-location">', '<input id="tLocation" value="" placeholder="e.g. Halawa District Park" data-testid="setup-location">'],
+
   // Owner request: the Exhibition Matches card spans the width like the other Setup cards.
   ["      <section class=\"setup-panel\">\n        <div class=\"setup-panel-head\">\n          <div>\n            <div class=\"setup-panel-eyebrow\">Additional Matches</div>", "      <section class=\"setup-panel setup-panel-wide\">\n        <div class=\"setup-panel-head\">\n          <div>\n            <div class=\"setup-panel-eyebrow\">Additional Matches</div>"],
   // feat/grand-champion (#86): Setup's Grand Champion section, before Exhibition Matches (React draws its contents).
