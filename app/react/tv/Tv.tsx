@@ -12,7 +12,7 @@ import { TieFlashBanner, useCourtClockStopped } from '../tie-flash/TieFlash.tsx'
 import { useEffect, useSyncExternalStore } from 'react';
 import { DivisionCompletePanel } from '../court/CourtComplete.tsx';
 import {
-  DIVISION_COMPLETE_TEXT, EMPTY_TV, NEXT_DIVISION_LABEL, NO_UPCOMING_TEXT, UPCOMING_TITLE, tvView,
+  EMPTY_TV, NEXT_DIVISION_LABEL, NO_UPCOMING_TEXT, UPCOMING_TITLE, tvView,
   type TvBodyView, type TvFooterView, type TvInput, type TvKachinukiRowView, type TvPlayerView,
 } from './tv-model.ts';
 import type { HansokuView } from '../live-scores/live-scores-model.ts';
@@ -173,7 +173,6 @@ function Body({ body }: { body: TvBodyView }) {
 function Footer({ footer }: { footer: TvFooterView }) {
   if (footer.kind === 'results') return (
     <div className={footer.next ? 'tv3-results-footer tv3-results-has-next' : 'tv3-results-footer'}>
-      <div>{DIVISION_COMPLETE_TEXT}</div>
       {footer.next && <div className="tv3-results-next" data-testid="tv-next-division">{`${NEXT_DIVISION_LABEL}: ${footer.next}`}</div>}
     </div>
   );
@@ -194,7 +193,12 @@ function Footer({ footer }: { footer: TvFooterView }) {
             </div>
           </div>
         )
-        : <div key={i} className="tv3-up-card empty" data-testid="tv-upcoming-card"><div className="tv3-up-name">{NO_UPCOMING_TEXT}</div></div>)}
+        // With a next division, the first empty card names it and the others are left out.
+        : footer.next
+          ? (footer.cards.indexOf(null) === i
+            ? <div key={i} className="tv3-up-card empty tv3-up-next" data-testid="tv-upcoming-next"><div className="tv3-up-name">{`${NEXT_DIVISION_LABEL}: ${footer.next}`}</div></div>
+            : null)
+          : <div key={i} className="tv3-up-card empty" data-testid="tv-upcoming-card"><div className="tv3-up-name">{NO_UPCOMING_TEXT}</div></div>)}
     </div>
   );
 }
