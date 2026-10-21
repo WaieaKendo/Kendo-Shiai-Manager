@@ -58,7 +58,7 @@ function ResultCard({ card }: { card: ResultCardView }) {
   const title = <h2 className="result-card-title" data-testid="result-card-title">{card.name || card.division}</h2>;
   if (card.kind === 'progress') {
     return (
-      <article className="result-progress-card" data-testid="result-card">
+      <article className={card.placeholder ? 'result-progress-card result-placeholder-card' : 'result-progress-card'} data-testid="result-card">
         {title}
         <div className="result-progress-message">{card.message}</div>
         {card.button !== null && <div className="result-card-footer"><button className="view-bracket-link" onClick={open}>{card.button}</button></div>}

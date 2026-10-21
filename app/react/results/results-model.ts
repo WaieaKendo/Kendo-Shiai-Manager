@@ -33,6 +33,10 @@ export interface ResultCardInput {
   placements: ResultPlacementInput[] | null;
   /** teamRoundRobinProgress() of an in-progress team round robin, else null. */
   progress: { complete: number; total: number } | null;
+  /** Placeholder cards (owner request): a division not drawn yet, or a grand champion whose source
+   * divisions are still running (their names). */
+  notDrawn?: boolean;
+  waitingFor?: string[];
 }
 
 /** One award of state.awards (text as esc() showed it). */
@@ -104,6 +108,8 @@ export type ResultCardView = {name?: string} & (
     kind: 'progress';
     division: string;
     message: string;
+    /** A placeholder (not drawn yet / waiting for sources): quieter, no bracket to open. */
+    placeholder?: true;
     /** 'View Standings →' for a team round robin, else no button. */
     button: string | null;
   }
@@ -118,7 +124,16 @@ export type ResultsView =
   | { kind: 'empty' }
   | { kind: 'results'; tournamentName: string; sections: ResultsSectionView[]; noDivisions: boolean; awards: AwardInput[]; readOnly?: true };
 
+export const NOT_DRAWN_TEXT = 'Not drawn yet';
+export const WAITING_FOR_LABEL = 'Waiting for';
+
 export function resultCardView(card: ResultCardInput): ResultCardView {
+  if (card.notDrawn || card.waitingFor?.length) {
+    return {
+      kind: 'progress', division: card.division, ...(card.name ? { name: card.name } : {}), placeholder: true, button: null,
+      message: card.waitingFor?.length ? `${WAITING_FOR_LABEL}: ${card.waitingFor.join(', ')}` : NOT_DRAWN_TEXT,
+    };
+  }
   if (!card.placements || !card.placements.length) {
     const p = card.progress;
     return {
