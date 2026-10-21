@@ -44,7 +44,8 @@ def check_tv_layout(tv, label, name_px=60):
     assert all(inside(z[k]) for k in ('header', 'match', 'upcoming')), f'{label}: a zone leaves the canvas: {z}'
     assert z['header']['y'] + z['header']['h'] <= z['match']['y'] and z['match']['y'] + z['match']['h'] <= z['upcoming']['y'], \
         f'{label}: zones overlap: {z}'
-    assert z['name'] >= name_px and z['chrome'] == 1 and z['scroll'] == [1920, 1080], f'{label}: {z}'
+    # No page header, nav or banner on the TV (owner, #123; the header redesign had kept a small one).
+    assert z['name'] >= name_px and z['chrome'] == 0 and z['scroll'] == [1920, 1080], f'{label}: {z}'
 
 
 def tv_text(tv):

@@ -50,7 +50,19 @@ function ksmShellBlurIn(el){
 // this part of app.js, and a value here would undo what it set.
 var ksmNavOpenMenu,ksmNavMenuStyle,ksmNavActive;
 function ksmPublishNav(){
-  ksmPublishShell('ksm:shell-nav','ksmShellNavInput',{open:ksmNavOpenMenu||null,style:ksmNavMenuStyle||null,active:ksmNavActive||null});
+  ksmPublishShell('ksm:shell-nav','ksmShellNavInput',{open:ksmNavOpenMenu||null,style:ksmNavMenuStyle||null,active:ksmNavActive||null,links:ksmNavLinks()});
+}
+// The Courts and TV menus' items as links (their addresses, worked out as a menu opens): a plain
+// click still runs chooseCourt() / launchTvDisplay(); a new-tab click opens the address. None
+// before the tournament has a cloud ID (launchTvDisplay() saves it first).
+function ksmNavLinks(){
+  const id=cloudSession?.tournamentId;if(!id)return {};
+  const links={};
+  ['A','B'].forEach(c=>{
+    links[`nav-court-${c.toLowerCase()}`]=ksmLinkUrl({screen:'court',id,court:c});
+    const tv=tvLink(c);if(tv)links[`nav-tv-${c.toLowerCase()}`]=tv;
+  });
+  return links;
 }
 // setNavMenuState(menu,open): a menu shown or hidden; hiding it drops its placement.
 function ksmSetNavMenuState(menu,open){

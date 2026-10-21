@@ -61,15 +61,25 @@ function Tile({ tile, active }: { tile: NavTile; active: boolean }) {
   );
 }
 
-/** A menu item (or heading, divider). */
-function MenuItem({ entry }: { entry: NavMenuEntry }) {
-  const ref = useNativeClick<HTMLButtonElement>(() => { if (entry.kind === 'item') run(entry.action); });
+/** A menu item (or heading, divider). An item with an address is a link: a plain click runs its
+ * action in this tab as before; Cmd/Ctrl/Shift-click, the middle button and the context menu's
+ * "Open Link in New Tab" open the address. */
+function MenuItem({ entry, href }: { entry: NavMenuEntry; href?: string | undefined }) {
+  const ref = useNativeClick<HTMLElement>(event => {
+    if (entry.kind !== 'item') return;
+    if (href) {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      event.preventDefault();
+    }
+    run(entry.action);
+  });
   if (entry.kind === 'heading') return <div className="menu-heading">{entry.label}</div>;
   if (entry.kind === 'divider') return <div className="menu-divider"></div>;
-  return <button ref={ref} data-testid={entry.testId} title={entry.title}>{entry.label}</button>;
+  if (href) return <a ref={ref as React.RefObject<HTMLAnchorElement>} className="nav-menu-link" href={href} data-testid={entry.testId} title={entry.title}>{entry.label}</a>;
+  return <button ref={ref as React.RefObject<HTMLButtonElement>} data-testid={entry.testId} title={entry.title}>{entry.label}</button>;
 }
 
-function Menu({ menu, open, style, active }: { menu: NavMenu; open: boolean; style: NavInput['style']; active: boolean }) {
+function Menu({ menu, open, style, active, links }: { menu: NavMenu; open: boolean; style: NavInput['style']; active: boolean; links: NavInput['links'] }) {
   const ref = useNativeClick<HTMLButtonElement>(event => { shellWindow().toggleNavMenu?.(menu.menuId, event); });
   return (
     <div className={menu.wrapClassName}>
@@ -81,7 +91,7 @@ function Menu({ menu, open, style, active }: { menu: NavMenu; open: boolean; sty
       </button>
       <div id={menu.menuId} role="menu" className={menuClass(menu.menuClassName, open)}
         style={open && style ? { top: style.top, left: style.left, right: style.right, maxHeight: style.maxHeight } : undefined}>
-        {menu.entries.map((entry, i) => <MenuItem key={i} entry={entry} />)}
+        {menu.entries.map((entry, i) => <MenuItem key={i} entry={entry} href={entry.kind === 'item' && entry.testId ? links?.[entry.testId] : undefined} />)}
       </div>
     </div>
   );
@@ -111,7 +121,7 @@ export function Nav() {
     <>
       {NAV_ENTRIES.map((entry, i) => entry.kind === 'tile'
         ? <Tile key={entry.testId} tile={entry} active={i === active} />
-        : <Menu key={entry.menuId} menu={entry} open={input.open === entry.menuId} style={input.style} active={i === active} />)}
+        : <Menu key={entry.menuId} menu={entry} open={input.open === entry.menuId} style={input.style} active={i === active} links={input.links} />)}
       {NAV_FILE_INPUTS.map(f => <FileInput key={f.id} input={f} />)}
     </>
   );
@@ -158,7 +168,7 @@ export function TournamentChip() {
     };
     const click = (event: MouseEvent) => {
       const el = event.target as Element;
-      if (el.closest('.nav-dropdown button') || el.closest('.nav-tile:not([aria-haspopup])')) close();
+      if (el.closest('.nav-dropdown button') || el.closest('.nav-dropdown a.nav-menu-link') || el.closest('.nav-tile:not([aria-haspopup])')) close();
     };
     const resize = () => { if (innerWidth > 900) close(); };
     document.addEventListener('keydown', keyboard); drawer.addEventListener('click', click); window.addEventListener('resize', resize);

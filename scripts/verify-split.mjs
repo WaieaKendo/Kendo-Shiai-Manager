@@ -332,6 +332,8 @@ const KNOWN_POST_SPLIT_CSS_EDITS = {
   'grand-champion-style': 1,
   // fix/tiebreak-mark: app/styles/21-pool-tiebreak.css, a pool card's Tiebreak section and note (theme tokens only).
   'pool-tiebreak': 1,
+  // fix/nav-links: app/styles/22-nav-links.css, the Courts and TV menu items as links styled like the buttons.
+  'nav-links': 1,
   // fix/tv-next-division: app/styles/23-tv-next-division.css, the TV's next division under Division Complete.
   'tv-next-division': 1,
 };
