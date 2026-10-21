@@ -192,10 +192,11 @@ function ksmRenderExhibitions(){
 // division was created, an unknown status kept as typed) and ksmPasteNotice() names them.
 var ksmPasteRefused=[];
 var KSM_PASTE_STATUSES={'':'Registered','registered':'Registered','checked in':'Checked','checked':'Checked','no show':'NoShow','noshow':'NoShow'};
-// A typed division matches an offered one ignoring case, extra spaces and the dash kind ("1-3" for
-// Setup's "1–3"); the offered spelling is kept. '' when none matches.
+// A typed division matches an offered one ignoring case, extra spaces, the dash kind ("1-3" for
+// Setup's "1–3") and the apostrophe kind ("Women's" for "Women’s"); the offered spelling is kept.
+// '' when none matches.
 function ksmOfferedDivision(division){
-  const key=d=>String(d).toLowerCase().replace(/[‐-―−]/g,'-').replace(/\s+/g,' ').trim();
+  const key=d=>String(d).toLowerCase().replace(/[‐-―−]/g,'-').replace(/[‘’ʼ′]/g,"'").replace(/\s+/g,' ').trim();
   return state.divisions.find(d=>key(d)===key(division))||'';
 }
 function ksmPasteRow(name,dojo,division,seed,status){
