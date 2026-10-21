@@ -61,7 +61,7 @@ export type ResultsInput =
 /** One pool of the modal's "Pool Results" (poolStandings(), in order). */
 export interface ResultPoolInput {
   label: string;
-  /** Placed by a played tiebreak: Pts gets a "*" (ksmTiebreakMarks(), app/js/35-react-court.js). */
+  /** Tied after the pool and placed by a played tiebreak: wins and pts include it, with a "*" (ksmPoolStandingRows(), app/js/35-react-court.js). */
   standings: Array<{ name: string; dojo: string; wins: string; pts: string; tiebreak?: boolean }>;
   tiebreakNote?: string;
 }

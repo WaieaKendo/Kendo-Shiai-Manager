@@ -270,28 +270,36 @@ function ksmTeamResults(div){
     return ksmPlaceholderRow(white,red,node.winner?'DONE':'awaiting',true);
   })}))};
 }
-// Players tied on wins and points and placed by a played tiebreak: their names, and the note under
-// the pool table ("* Tied on wins and points; placed by tiebreak: …" with each one's tiebreak wins
-// and points). Wins and Pts stay the pool record; only the order comes from the tiebreak.
-function ksmTiebreakMarks(div,poolLabel,standings){
+// A pool's standings as the tables show them. Players tied on wins and points after the pool and
+// placed by a played tiebreak show their totals with the tiebreak added and a "*"; the order stays
+// the decided one, so a tiebreak total can be higher than the place above it, which the note under
+// the table explains ("* Wins and points include the tiebreak. A, B and C were tied after the pool
+// at 1 win, 1 pt; the tiebreak only decides their order."). Individual pools only (a team pool's
+// tiebreak is not counted in these stats), once every tiebreak bout of the pool is done.
+function ksmPoolStandingRows(div,poolLabel){
+  const standings=poolStandings(poolLabel,div);
   const tiebreaks=(state.allMatches?.[div]||[]).filter(m=>m&&m.pool===poolLabel&&m.tiebreak);
-  // Individual pools only (a team pool's tiebreak is not counted in these stats), once every
-  // tiebreak bout of the pool is done.
   const played=tiebreaks.length>0&&tiebreaks.every(m=>m.done&&!isTeamMatch(m));
-  const tied=played?standings.filter(r=>typeof r.tbWins==='number'):[];
+  const tied=row=>played&&typeof row.tbWins==='number';
   const count=(n,word)=>`${n} ${word}${n===1?'':'s'}`;
-  return {names:new Set(tied.map(r=>r.name)),
-    note:tied.length?`* Tied on wins and points; placed by tiebreak: ${tied.map(r=>`${ksmText(r.name)} ${count(r.tbWins||0,'win')} (${count(r.tbPts||0,'pt')})`).join(', ')}.`:''};
+  const groups=new Map();
+  standings.filter(tied).forEach(r=>{const key=`${r.wins}/${r.pts}`;groups.set(key,[...(groups.get(key)||[]),r])});
+  const list=names=>names.length<3?names.join(' and '):`${names.slice(0,-1).join(', ')} and ${names[names.length-1]}`;
+  const note=groups.size?`* Wins and points include the tiebreak. ${[...groups.values()].map(g=>`${list(g.map(r=>ksmText(r.name)))} were tied after the pool at ${count(g[0].wins,'win')}, ${count(g[0].pts,'pt')}`).join('; ')}; the tiebreak only decides their order.`:'';
+  return {note,rows:standings.map(row=>tied(row)
+    ?{name:ksmText(row.name),dojo:ksmText(row.dojo||''),wins:String(row.wins+(row.tbWins||0)),pts:String(row.pts+(row.tbPts||0)),tiebreak:true}
+    :{name:ksmText(row.name),dojo:ksmText(row.dojo||''),wins:String(row.wins),pts:String(row.pts),tiebreak:false})};
 }
-// poolResultCardHtml() (29-/31-, removed).
+// poolResultCardHtml() (29-/31-, removed). The pool's bouts, then its tiebreak bouts in their own section.
 function ksmPoolCard(div,pool,options={}){
-  const standings=poolStandings(pool.label,div),marks=ksmTiebreakMarks(div,pool.label,standings);
+  const {rows,note}=ksmPoolStandingRows(div,pool.label);
   const matches=(state.allMatches?.[div]||[]).filter(match=>match.pool===pool.label&&!match.championship);
   const complete=options.completed??poolDisplayComplete(div,pool.label);
+  const row=match=>ksmAlignedRow(match,{status:match.done?'DONE':(match.tiebreak?'TIEBREAK':'vs'),compact:true,current:!!options.currentMatch&&match===options.currentMatch});
   return {label:ksmText(pool.label),active:!!options.active,complete:!!complete,
-    standings:standings.map(row=>({name:ksmText(row.name),dojo:ksmText(row.dojo),wins:String(row.wins),pts:String(row.pts),tiebreak:marks.names.has(row.name)})),
-    tiebreakNote:marks.note,
-    matches:matches.map(match=>ksmAlignedRow(match,{status:match.done?'DONE':(match.tiebreak?'TIEBREAK':'vs'),compact:true,current:!!options.currentMatch&&match===options.currentMatch}))};
+    standings:rows,tiebreakNote:note,
+    matches:matches.filter(m=>!m.tiebreak).map(row),
+    tiebreakMatches:matches.filter(m=>m.tiebreak).map(row)};
 }
 // orderedPoolContextHtml() (31-, removed).
 function ksmPoolContext(div,currentMatch){

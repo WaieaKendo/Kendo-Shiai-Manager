@@ -90,11 +90,15 @@ function PoolCard({ card, icons }: { card: PoolCardView; icons: CourtPanelIcons 
       <div className="pool-result-standings">
         <div className="stand-row small"><b>#</b><b>Name</b><b>Wins</b><b>Pts</b></div>
         {card.standings.map((s, i) => (
-          <div key={i} className="stand-row"><span>{s.rank}</span><div><b>{s.name}</b><div className="small">{s.dojo}</div></div><b>{s.wins}</b><b>{s.pts}{s.tiebreak ? '*' : ''}</b></div>
+          <div key={i} className="stand-row"><span>{s.rank}</span><div><b>{s.name}</b><div className="small">{s.dojo}</div></div><b>{s.wins}{s.tiebreak ? '*' : ''}</b><b>{s.pts}{s.tiebreak ? '*' : ''}</b></div>
         ))}
       </div>
       {card.tiebreakNote && <div className="small pool-tiebreak-note" data-testid="context-pool-tiebreak-note">{card.tiebreakNote}</div>}
       <div>{card.matches.length ? card.matches.map((m, i) => <AlignedRow key={i} row={m} />) : <div className="small">No pool matches available.</div>}</div>
+      {card.tiebreakMatches.length > 0 && <div className="pool-tiebreak-section" data-testid="context-pool-tiebreak">
+        <div className="pool-tiebreak-title">Tiebreak</div>
+        {card.tiebreakMatches.map((m, i) => <AlignedRow key={i} row={m} />)}
+      </div>}
     </section>
   );
 }

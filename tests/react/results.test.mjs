@@ -83,7 +83,7 @@ test('resultDetailView: pools with ranks and "Pool X" titles next to the bracket
     bracket: { kind: 'message', text: 'Championship bracket will appear after pools are generated.' },
   });
   // Players placed by a tiebreak keep their pool record; the mark and the note come as published.
-  const note = '* Tied on wins and points; placed by tiebreak: P 2 1 win (1 pt), P 3 0 wins (0 pts).';
+  const note = '* Wins and points include the tiebreak. P 2 and P 3 were tied after the pool at 0 wins, 0 pts; the tiebreak only decides their order.';
   const tied = resultDetailView({
     kind: 'pools',
     pools: [{ label: 'A', tiebreakNote: note, standings: [{ name: 'P 2', dojo: '', wins: '1', pts: '1', tiebreak: true }] }],

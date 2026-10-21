@@ -88,9 +88,12 @@ test('poolCardView: classes, title, ranks', () => {
   assert.equal(poolCardView({ label: 'A', active: false, complete: true, standings: [], matches: [] }).className, 'pool-result-card  completed-pool-card');
   assert.equal(poolCardView({ label: 'A', active: false, complete: false, standings: [], matches: [] }).className, 'pool-result-card  ');
   assert.equal(card.tiebreakNote, '', 'no tiebreak: no note');
-  const tied = poolCardView({ label: 'A', active: false, complete: true, tiebreakNote: '* Tied on wins and points; placed by tiebreak: Baba 1 win (1 pt).',
-    standings: [{ ...standing('Baba', '1', '1'), tiebreak: true }], matches: [] });
-  assert.equal(tied.tiebreakNote, '* Tied on wins and points; placed by tiebreak: Baba 1 win (1 pt).');
+  assert.deepEqual(card.tiebreakMatches, [], 'no tiebreak bouts: no Tiebreak section');
+  const tied = poolCardView({ label: 'A', active: false, complete: true, tiebreakNote: '* Wins and points include the tiebreak. Baba and Cho were tied after the pool at 0 wins, 0 pts; the tiebreak only decides their order.',
+    standings: [{ ...standing('Baba', '1', '1'), tiebreak: true }], matches: [], tiebreakMatches: [alignedRow({ status: 'DONE', compact: true })] });
+  assert.equal(tied.tiebreakMatches.length, 1);
+  assert.equal(tied.tiebreakMatches[0].status, 'DONE');
+  assert.equal(tied.tiebreakNote, '* Wins and points include the tiebreak. Baba and Cho were tied after the pool at 0 wins, 0 pts; the tiebreak only decides their order.');
   assert.equal(tied.standings[0].tiebreak, true);
 });
 
