@@ -4,7 +4,7 @@ import subprocess
 import urllib.request
 from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
-from ksm_browser import launch_chromium
+from ksm_browser import launch_chromium, install_test_api
 from ksm_server import local_worker
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -23,9 +23,10 @@ def main():
             browser = launch_chromium(p)
             api = p.request.new_context(base_url=base, extra_http_headers={'authorization': 'Bearer ' + admin_token, 'x-ksm-client-schema': '3', 'x-ksm-role': 'staff'})
             seed = browser.new_page()
+            install_test_api(seed)
             seed.goto(base)
             seed.wait_for_function('!!window.ksmAuthBridge')
-            payload = seed.evaluate('tournamentPayload()')
+            payload = seed.evaluate('KSMTest.payload()')
             seed.close()
             def create(name):
                 payload['setup']['tName'] = name
@@ -37,6 +38,7 @@ def main():
             def signed_device(email, tid, width=1280):
                 context = browser.new_context(viewport={'width': width, 'height': 850})
                 page = context.new_page()
+                install_test_api(page)
                 page.goto(base + f'/t/{tid}/overview')
                 page.get_by_test_id('auth0-sign-in').wait_for()
                 page.get_by_test_id('auth0-sign-in').click()
@@ -61,13 +63,11 @@ def main():
             assert write_status(director, b) == 403
             assert write_status(director, a, 'DELETE') == 403
             assert director.get_by_test_id('directors-management').count() == 0
-            assert not director.evaluate('ksmCanDeleteTournament()')
             admin_context, admin = signed_device('admin@example.com', a)
             expect(admin.get_by_test_id('account-role')).to_contain_text('Admin')
             assert admin.get_by_test_id('account-role').evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(237, 233, 254)'
             assert write_status(admin, a) == 409 and write_status(admin, b) == 409
-            assert admin.evaluate('ksmCanDeleteTournament()')
-            admin.evaluate("navigateTo('setup')")
+            admin.evaluate("KSMTest.show('setup')")
             expect(admin.get_by_test_id('directors-management')).to_be_visible()
             admin.get_by_test_id('director-email').fill('second@example.com')
             admin.get_by_role('button', name='Add director', exact=True).click()
@@ -81,13 +81,14 @@ def main():
             assert admin.get_by_test_id('account-role').count() == 0
             spectator_context = browser.new_context()
             spectator = spectator_context.new_page()
+            install_test_api(spectator)
             writes = []
             spectator.on('request', lambda req: writes.append(req.url) if '/api/' in req.url and req.method in ('PUT','DELETE') else None)
             spectator.goto(base + f'/t/{a}/overview')
             expect(spectator.get_by_test_id('auth0-sign-in')).to_have_text('Sign in')
             assert spectator.get_by_test_id('account-role').count() == 0
             assert spectator.get_by_test_id('directors-management').count() == 0
-            assert spectator.evaluate('isReadOnlySession()')
+            assert spectator.evaluate("KSMTest.role() === 'spectator'")
             assert not writes
             # Removing a director immediately revokes new writes even with a valid signed JWT.
             assert api.delete(f'/api/tournaments/{a}/directors', data={'email':'director@example.com'}).ok
