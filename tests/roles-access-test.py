@@ -100,7 +100,8 @@ def main():
         for testid in STAFF_ONLY + EVERYONE:
             assert not visible(tv, testid), f'TV shows {testid}'
 
-        assert visible(tv, 'staff-auth'), 'TV header must retain Staff Login'
+        # Owner (#123): the TV display has no header, so no Staff Login either; staff open TV links from a staff device.
+        assert not visible(tv, 'staff-auth'), 'the TV shows no header (Staff Login)'
 
         # --- Team representative: staff choose, spectators read -----------------------------
         director.open_court('A')

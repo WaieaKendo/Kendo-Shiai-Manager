@@ -24,9 +24,6 @@ body.ksm-home .library-about { display:inline; }
 @media (min-width:1440px) {
   body:not(.ksm-home) header.ksm-topbar { grid-template-columns:54px minmax(120px,260px) minmax(0,1fr) max-content !important; grid-template-areas:"logo tournament nav staff"; }
 }
-body.ksm-tv > header.ksm-topbar { position:fixed; top:8px; right:8px; z-index:120; width:min(520px,calc(100vw - 16px)); padding:0 8px !important; background:var(--ksm-navy); border:0; }
-body.ksm-tv > header.ksm-topbar .minimal-nav { display:none !important; }
-body.ksm-tv > header.ksm-topbar { grid-template-areas:"logo tournament staff" !important; grid-template-columns:54px minmax(0,1fr) max-content !important; }
 @media (orientation:landscape) and (max-height:560px) and (max-width:980px) {
   body:not(.ksm-home) .cloud-status-wrap { flex-direction:row; gap:4px; }
 }
@@ -70,4 +67,6 @@ body.ksm-nav-expanded { overflow:hidden !important; }
 .setup-short-url-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 .setup-short-url output { color:var(--ksm-slate); overflow-wrap:anywhere; }
 .setup-short-url .small { margin:4px 0 0; }
+/* The TV display has no header: 12- and 13- hide it, but the grid rule above outranked them. */
+body.ksm-tv:not(.ksm-home) header.ksm-topbar { display:none !important; }
 /* ksm:post-split-end */
