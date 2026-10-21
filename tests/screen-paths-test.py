@@ -35,7 +35,8 @@ def main():
                 assert app.page.evaluate('history.length')==length,screen
                 app.blur();app.wait_idle()
                 app.reload()
-                expected_view='public' if screen.startswith('court/') else view
+                # A staff reload keeps every screen, a court's too (#121; before: court addresses reloaded to Live Scores).
+                expected_view=view
                 expected_address=prefix+'/'+screen
                 assert app.visible_view()==[expected_view],(screen,app.visible_view())
                 assert app.address()==expected_address,(screen,app.address())

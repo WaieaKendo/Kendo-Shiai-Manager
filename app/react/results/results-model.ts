@@ -61,7 +61,9 @@ export type ResultsInput =
 /** One pool of the modal's "Pool Results" (poolStandings(), in order). */
 export interface ResultPoolInput {
   label: string;
-  standings: Array<{ name: string; dojo: string; wins: string; pts: string }>;
+  /** Tied after the pool and placed by a played tiebreak: wins and pts include it, with a "*" (ksmPoolStandingRows(), app/js/35-react-court.js). */
+  standings: Array<{ name: string; dojo: string; wins: string; pts: string; tiebreak?: boolean }>;
+  tiebreakNote?: string;
 }
 
 /** completedResultDetailHtml(div) as data. */
@@ -158,7 +160,8 @@ export function tournamentNameText(input: ResultsInput): string {
 
 export interface ResultPoolView {
   title: string;
-  standings: Array<{ rank: string; name: string; dojo: string; wins: string; pts: string }>;
+  standings: Array<{ rank: string; name: string; dojo: string; wins: string; pts: string; tiebreak?: boolean }>;
+  tiebreakNote: string;
 }
 
 export type ResultDetailView =
@@ -173,6 +176,7 @@ export function resultDetailView(detail: ResultDetailInput): ResultDetailView {
     kind: 'pools',
     pools: detail.pools.map(pool => ({
       title: `Pool ${pool.label}`,
+      tiebreakNote: pool.tiebreakNote || '',
       standings: pool.standings.map((row, i) => ({ rank: String(i + 1), ...row })),
     })),
     bracket: bracketView(detail.bracket),

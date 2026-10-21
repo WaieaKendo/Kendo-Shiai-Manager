@@ -23,6 +23,8 @@ export interface PoolStandingInput {
   dojo: string;
   wins: string;
   pts: string;
+  /** Tied after the pool and placed by a played tiebreak: wins and pts include the tiebreak, with a "*". */
+  tiebreak?: boolean;
 }
 
 export interface PoolCardInput {
@@ -32,7 +34,11 @@ export interface PoolCardInput {
   /** Every pool match done (the completed section passes it as such). */
   complete: boolean;
   standings: PoolStandingInput[];
+  /** The "* Wins and points include the tiebreak. …" line under the table ('' when none). */
+  tiebreakNote?: string;
+  /** The pool's bouts without its tiebreak bouts, which come in tiebreakMatches. */
   matches: AlignedRowInput[];
+  tiebreakMatches?: AlignedRowInput[];
 }
 
 export interface TeamStandingInput {
@@ -108,7 +114,9 @@ export interface PoolCardView {
   title: string;
   complete: boolean;
   standings: Array<PoolStandingInput & { rank: string }>;
+  tiebreakNote: string;
   matches: AlignedRowView[];
+  tiebreakMatches: AlignedRowView[];
 }
 
 export interface TeamStandingsView {
@@ -164,7 +172,9 @@ export function poolCardView(card: PoolCardInput): PoolCardView {
     title: `Pool ${card.label}`,
     complete: card.complete,
     standings: card.standings.map((s, i) => ({ ...s, rank: String(i + 1) })),
+    tiebreakNote: card.tiebreakNote || '',
     matches: card.matches.map(alignedRowView),
+    tiebreakMatches: (card.tiebreakMatches || []).map(alignedRowView),
   };
 }
 
