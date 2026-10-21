@@ -245,10 +245,10 @@ and list/add/remove director emails under **Setup → Sharing & access**. Direct
 appointing directors require an admin. Colours are reserved role tokens, accompanied by text and
 an icon, and compact on phones. TV has no header/strip. Explicit spectator links remain read-only.
 
-Until a tournament has directors, its existing password and staff sessions still authorize edits
+For public tournaments without directors, the existing password and staff sessions still authorize edits
 and live scoring. Once a director is appointed, that tournament requires an authorized account;
 existing password sessions cannot bypass it. Removing the last director restores the password
-path. With Auth0 enabled, creation/deletion require an admin even for a tournament with no directors.
+path only while the tournament is public. Private tournaments always require an authorized account. With Auth0 enabled, creation/deletion require an admin even for a tournament with no directors.
 Roles are checked on every write and staff live handshake; live scoring messages recheck director
 membership and token expiry. Changing directors closes existing staff live connections. JWTs are
 kept only in SDK memory, renewed by the SDK; after reload it tries the Auth0 session silently.
@@ -269,3 +269,25 @@ activity and own recovery/billing alerts? Confirm the chosen connection, MFA/2FA
 features on Free (not every MFA option is included) and the allowance for separate dev/production
 tenants. No signup or paid-plan selection is part of this phase. See
 [tenant inactivity policy](https://support.auth0.com/center/s/article/tenant-unban-request).
+
+### Public and private tournaments
+
+With Auth0 enabled, new tournaments start **Private**. Existing tournaments without a visibility
+setting remain **Public**. Admins and assigned directors can change **Public listing → Show this
+tournament publicly** under Setup → Sharing & access. This setting is stored separately from the
+snapshot, so an old file or concurrent save cannot publish a private tournament accidentally.
+
+The signed-out Library lists public tournaments and offers Sign in beside the branding; New and
+Load Tournament File appear for admins. Signed-in users see tournaments they manage first,
+including their private tournaments. Private tournaments require an admin or assigned director
+account for snapshots, status, discovery and live connections. A shared password cannot open a
+private tournament. A valid private link shows **Tournament not viewable** with sign-in / switch
+account and Library actions; an unknown tournament still returns not found. Sign-in returns to the
+original link. Making an event private closes existing viewers' live connections, and private
+broadcasts recheck membership and token expiry. Publishing makes spectator and TV links available
+without login. Public/private is separate from whether matches have started.
+
+Configured clients load tournament data from the authorized API rather than restoring cached
+snapshots or Library lists. This does not erase staff recovery/outbox files already on a device;
+privacy controls server access, not copies someone previously downloaded. With Auth0 unconfigured,
+visibility settings are ignored and 4.0 behavior remains unchanged.

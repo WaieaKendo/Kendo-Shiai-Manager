@@ -45,7 +45,7 @@ async function refreshTvFromCloud(reason='TV full refresh',forceApply=true){
   /* ksm:post-split-begin tournament-switcher */const refreshEpoch=ksmTournamentEpoch;/* ksm:post-split-end */
   ksmTvRefreshInFlight=(async()=>{
     try{
-      const response=await fetch(`/api/tournaments/${encodeURIComponent(cloudSession.tournamentId)}?tvRefresh=${Date.now()}`,{cache:'no-store',headers:{'cache-control':'no-cache'}});
+      const response=await fetch(`/api/tournaments/${encodeURIComponent(cloudSession.tournamentId)}?tvRefresh=${Date.now()}`,{cache:'no-store',headers:{'cache-control':'no-cache'/* ksm:post-split-begin private-reads */, ...ksmReadHeaders()/* ksm:post-split-end */}});
       /* ksm:post-split-begin tournament-switcher */if(refreshEpoch!==ksmTournamentEpoch)return false;/* ksm:post-split-end */
       /* ksm:post-split-begin delete-tournament */if(response.status===410){ksmAnnounceTournamentGone(cloudSession.tournamentId);throw ksmGoneError()}/* ksm:post-split-end */
       if(!response.ok)throw new Error(`Refresh failed (${response.status})`);
@@ -550,7 +550,7 @@ function ksmUndoFileReplace(replace,record){
 // tab's save (F36: updatedBy.clientId is this tab's writer id).
 async function ksmFileReplaceLanded(baseRevision){
   try{
-    const response=await fetch(`/api/tournaments/${encodeURIComponent(cloudSession.tournamentId)}`,{cache:'no-store'});
+    const response=await fetch(`/api/tournaments/${encodeURIComponent(cloudSession.tournamentId)}`,{cache:'no-store',headers:ksmReadHeaders()});
     if(!response.ok)return false;
     const record=await response.json();
     if(Number(record.revision)!==Number(baseRevision)+1||record.updatedBy?.clientId!==ksmWriterId())return false;

@@ -25,6 +25,9 @@ export type LibraryInput =
   | { kind: 'empty' }
   | {
     kind: 'library';
+    authEnabled?: boolean;
+    accountEmail?: string;
+    canCreate?: boolean;
     canManage?: boolean;
     canDelete?: boolean;
     authorizedIds?: string[];

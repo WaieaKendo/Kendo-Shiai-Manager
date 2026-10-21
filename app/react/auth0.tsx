@@ -3,7 +3,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import { mountIsland } from './island.tsx';
 
 type Account = { enabled: boolean; token: string; role: string; globalRole: string; tournamentId: string; email: string; passwordFallback: boolean };
-type Bridge = { state(): Account; tournament(): string; name(): string; update(patch: Partial<Account>): void; reconnect(): void; refreshUi(): void; headers(): Record<string,string>; clearStaff(): void; restore(): Promise<unknown> };
+type Bridge = { state(): Account; tournament(): string; name(): string; update(patch: Partial<Account>): void; reconnect(): void; refreshUi(): void; headers(): Record<string,string>; clearStaff(): void; restore(): Promise<unknown>; library(): Promise<unknown> };
 const w = window as unknown as { ksmAuthBridge: Bridge; ksmResolveAuthReady(): void; ksmRefreshAccount?: (id?: string) => Promise<void> };
 const bridge = w.ksmAuthBridge;
 let sdk: Auth0Client | undefined;
@@ -36,7 +36,7 @@ w.ksmRefreshAccount = async id => {
 };
 async function login() {
   try {
-    await sdk?.loginWithRedirect({ appState: { returnTo: location.pathname + location.search }, authorizationParams: { redirect_uri: `${location.origin}/` } });
+    await sdk?.loginWithRedirect({ appState: { returnTo: location.pathname + location.search }, authorizationParams: { redirect_uri: `${location.origin}/`, prompt: 'select_account' } });
   } catch (error) { message = (error as Error).message; publish(); }
 }
 async function logout() {
@@ -90,6 +90,38 @@ function Directors() {
     {error && <p role="alert">{error}</p>}
   </section>;
 }
+function Visibility() {
+  const account = useSyncExternalStore(subscribe, () => snapshot);
+  const id = bridge.tournament();
+  const manage = account.globalRole === 'admin' || account.role === 'director' && account.tournamentId === id;
+  const [isPublic, setPublic] = useState<boolean | null>(null), [error, setError] = useState(''), [busy, setBusy] = useState(false);
+  useEffect(() => {
+    let active = true; setPublic(null);
+    if (manage && id && account.token) void fetch(`/api/tournaments/${id}/visibility`, { headers: { authorization: `Bearer ${account.token}` } }).then(async response => {
+      if (!response.ok) throw new Error('Unable to read visibility');
+      const body = await response.json() as { isPublic: boolean }; if (active) setPublic(body.isPublic);
+    }).catch(e => { if (active) setError((e as Error).message); });
+    return () => { active = false; };
+  }, [manage, id, account.token]);
+  if (!manage || !id || !account.token) return null;
+  async function change(value: boolean) {
+    const previous = isPublic;
+    setPublic(value); setBusy(true); setError('');
+    try {
+      const response = await fetch(`/api/tournaments/${id}/visibility`, { method: 'PUT', headers: { 'content-type':'application/json', authorization: `Bearer ${account.token}` }, body: JSON.stringify({ isPublic:value }) });
+      if (!response.ok) throw new Error('Unable to update visibility');
+      if (id === bridge.tournament()) setPublic(value);
+      await bridge.library(); bridge.reconnect();
+    } catch (e) { setPublic(previous); setError((e as Error).message); } finally { setBusy(false); }
+  }
+  return <section className="ksm-visibility" data-testid="tournament-visibility"><h4>Public listing</h4>
+    <label><input type="checkbox" checked={isPublic === true} disabled={isPublic === null || busy} onChange={e => { void change(e.target.checked); }} /> Show this tournament publicly</label>
+    <p>{isPublic ? 'Anyone can find this tournament and watch without signing in.' : 'Private: only admins and assigned directors can view or manage this tournament.'}</p>
+    {error && <p role="alert">{error}</p>}
+  </section>;
+}
+window.addEventListener('ksm:sign-in', () => { void login(); });
+window.addEventListener('ksm:sign-out', () => { void logout(); });
 function mountAccountUi() {
 // Separate islands leave the existing status and Setup markup intact when disabled.
 const controls = document.createElement('span'); controls.className = 'ksm-auth-controls';
@@ -100,7 +132,7 @@ document.querySelector('header.ksm-topbar')?.before(strip);
 mountIsland(strip, <RoleStrip />);
 const management = document.createElement('div');
 document.querySelector('#setup-tournament-actions .setup-tournament-actions > div')?.append(management);
-mountIsland(management, <Directors />);
+mountIsland(management, <><Visibility /><Directors /></>);
 // Explicit TV/spectator navigation and tournament renames must repaint the strip as well.
 new MutationObserver(publish).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 document.getElementById('tName')?.addEventListener('input', publish);
@@ -113,6 +145,7 @@ async function initialize() {
     if (!config.enabled) return;
     mountAccountUi();
     bridge.update({ enabled: true });
+    void bridge.library();
     sdk = new Auth0Client({ domain: config.domain, clientId: config.clientId, cacheLocation: 'memory', authorizationParams: { audience: config.audience, scope: 'openid profile email', redirect_uri: `${location.origin}/` } });
     const params = new URLSearchParams(location.search);
     if (params.has('state') && (params.has('code') || params.has('error'))) {

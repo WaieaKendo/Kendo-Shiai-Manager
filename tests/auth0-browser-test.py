@@ -35,6 +35,18 @@ def main():
                 return response.json()['tournamentId']
             a, b = create('Auth A'), create('Auth B')
             assert api.post(f'/api/tournaments/{a}/directors', data={'email': 'director@example.com'}).ok
+            guest = browser.new_context()
+            landing = guest.new_page()
+            landing.goto(base)
+            expect(landing.get_by_test_id('library-sign-in')).to_be_visible()
+            expect(landing.get_by_test_id('home-new-tournament')).to_have_count(0)
+            expect(landing.get_by_test_id('library-load-file')).to_have_count(0)
+            expect(landing.get_by_test_id('home-tournament')).to_have_count(0)
+            landing.goto(base + f'/t/{a}/overview')
+            expect(landing.get_by_test_id('tournament-not-viewable')).to_contain_text('Tournament not viewable')
+            expect(landing.get_by_test_id('tournament-not-viewable')).to_contain_text('Sign in')
+            assert guest.request.get(base + f'/api/tournaments/{a}').status == 403
+            guest.close()
             def signed_device(email, tid, width=1280):
                 context = browser.new_context(viewport={'width': width, 'height': 850})
                 page = context.new_page()
@@ -69,6 +81,12 @@ def main():
             assert write_status(admin, a) == 409 and write_status(admin, b) == 409
             admin.evaluate("KSMTest.show('setup')")
             expect(admin.get_by_test_id('directors-management')).to_be_visible()
+            toggle = admin.get_by_test_id('tournament-visibility').get_by_role('checkbox')
+            expect(toggle).not_to_be_checked()
+            toggle.check()
+            expect(toggle).to_be_checked()
+            expect(admin.get_by_test_id('library-manage')).to_have_count(2)
+            expect(admin.get_by_test_id('tournament-visibility')).to_contain_text('Anyone can find')
             admin.get_by_test_id('director-email').fill('second@example.com')
             admin.get_by_role('button', name='Add director', exact=True).click()
             expect(admin.get_by_role('button', name='Remove second@example.com')).to_be_visible()
@@ -90,6 +108,11 @@ def main():
             assert spectator.get_by_test_id('directors-management').count() == 0
             assert spectator.evaluate("KSMTest.role() === 'spectator'")
             assert not writes
+            # A live public spectator is removed when the tournament becomes private.
+            spectator.wait_for_function("KSMTest.pendingReason().socket === 'open'")
+            assert api.put(f'/api/tournaments/{a}/visibility', data={'isPublic':False}).ok
+            expect(spectator.get_by_test_id('tournament-not-viewable')).to_be_visible(timeout=15000)
+            assert spectator_context.request.get(base + f'/api/tournaments/{a}').status == 403
             # Removing a director immediately revokes new writes even with a valid signed JWT.
             assert api.delete(f'/api/tournaments/{a}/directors', data={'email':'director@example.com'}).ok
             assert write_status(director, a) == 403

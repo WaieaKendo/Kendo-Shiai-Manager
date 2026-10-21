@@ -234,6 +234,7 @@ const KNOWN_POST_SPLIT_EDITS = {
   // dialog and the forgetting itself are in 44 (post-split throughout). Listed here because
   // refreshTvFromCloud() (21) is its first region.
   'delete-tournament': 9,
+  'private-reads': 1,
   'tie-flash': 5,
   'friendly-links': 10,
   // fix/stuck-pending (F35, test audit N1), 21 and 33: a failed save queued in the outbox is retried

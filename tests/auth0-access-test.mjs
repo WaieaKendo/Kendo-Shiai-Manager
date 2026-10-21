@@ -15,6 +15,7 @@ const body = {staffPassword:'fallback-pass',payload:{setup:{tName:'Auth Cup'},st
 async function create() { const response=await api.call('POST','/api/tournaments',{headers:headers(jwt.admin),body});assert.equal(response.status,200);return {id:(await response.json()).tournamentId,session:response.headers.get('x-ksm-session-token')}; }
 try {
   const a = await create(), b = await create();
+  for(const item of [a,b])assert.equal((await api.call('PUT',`/api/tournaments/${item.id}/visibility`,{headers:headers(jwt.admin),body:{isPublic:true}})).status,200);
   await test('create/delete are admin-only when Auth0 is configured', async () => {
     for (const token of ['',jwt.director,jwt.outsider]) {
       assert.equal((await api.call('POST','/api/tournaments',{headers:token?headers(token):{},body})).status,403);

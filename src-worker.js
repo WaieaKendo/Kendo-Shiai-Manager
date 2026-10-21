@@ -255,8 +255,14 @@ export class TournamentState {
       return { ok: adminOnly ? role === 'admin' : role !== 'spectator', status: 403,
         body: { error: adminOnly ? 'Admin authorization required' : 'Tournament access required' }, role, identity };
     }
-    if (adminOnly || (await this.directors()).length) return { ok: false, status: 403, body: { error: 'Sign-in required' } };
+    if (adminOnly || !(await this.isPublic()) || (await this.directors()).length) return { ok: false, status: 403, body: { error: 'Sign-in required' } };
     return null; // Existing shared password/session path, only until directors are appointed.
+  }
+  async isPublic() { return !auth0Enabled(this.env) || (await this.state.storage.get('isPublic')) !== false; }
+  async readAccess(request, token = '') {
+    if (await this.isPublic()) return null;
+    const access = await this.accountAccess(request, { token });
+    return access?.ok ? null : json({ error: 'Tournament not viewable', code: 'tournament-private', message: 'This tournament is private. Sign in with an account that can manage it.' }, 403);
   }
   async directors() { return (await this.state.storage.get('directors')) || []; }
   async writeAccess(request, options = {}) {
@@ -278,13 +284,17 @@ export class TournamentState {
     }
     return rows;
   }
-  broadcast(message) {
+  async broadcast(message) {
+    const privateTournament = auth0Enabled(this.env) && !(await this.isPublic());
+    const directors = privateTournament ? await this.directors() : [];
     const serialized = JSON.stringify(message);
     for (const socket of this.state.getWebSockets()) {
+      const identity = socket.deserializeAttachment()?.identity;
+      if (privateTournament && (!identity || identity.expiresAt <= Date.now() || !(isAdmin(this.env, identity.email) || directors.includes(identity.email)))) { try { socket.close(1000, 'Access changed'); } catch (_) {} continue; }
       try { socket.send(serialized); } catch (_) { try { socket.close(1011, 'Broadcast failed'); } catch (_) {} }
     }
   }
-  broadcastPresence() { this.broadcast({ type: 'presence', clients: this.presence() }); }
+  async broadcastPresence() { await this.broadcast({ type: 'presence', clients: this.presence() }); }
 
   async fetch(request) {
     const url = new URL(request.url);
@@ -300,7 +310,9 @@ export class TournamentState {
     if (request.method === 'GET' && url.pathname === '/live') {
       if ((request.headers.get('Upgrade') || '').toLowerCase() !== 'websocket') return json({ error: 'WebSocket upgrade required' }, 426);
       const role = safeRole(url.searchParams.get('role') || 'spectator');
-      let access;
+      const privateDenied = await this.readAccess(request, url.searchParams.get('access_token') || '');
+      if (privateDenied) return privateDenied;
+      let access = auth0Enabled(this.env) && url.searchParams.get('access_token') ? await this.accountAccess(request, { token: url.searchParams.get('access_token') }) : null;
       if (role === 'staff') {
         access = await this.writeAccess(request, { key: url.searchParams.get('key') || '', token: url.searchParams.get('access_token') || '' });
         if (!access.ok) return denied(access);
@@ -319,16 +331,20 @@ export class TournamentState {
       this.state.acceptWebSocket(server);
       const record = publicRecord(await this.state.storage.get('record'));
       server.send(JSON.stringify({ type: 'connected', record, presence: this.presence() }));
-      this.broadcastPresence();
+      await this.broadcastPresence();
       return new Response(null, { status: 101, webSocket: client });
     }
 
     if (request.method === 'GET' && url.pathname === '/snapshot') {
+      const privateDenied = await this.readAccess(request);
+      if (privateDenied) return privateDenied;
       const record = publicRecord(await this.state.storage.get('record'));
-      return record ? json(record) : json({ error: 'Tournament not found' }, 404);
+      return record ? json({ ...record, ...(auth0Enabled(this.env) ? { isPublic: await this.isPublic() } : {}) }) : json({ error: 'Tournament not found' }, 404);
     }
 
     if (request.method === 'GET' && url.pathname === '/status') {
+      const privateDenied = await this.readAccess(request);
+      if (privateDenied) return privateDenied;
       const record = publicRecord(await this.state.storage.get('record'));
       return json({ exists: Boolean(record), revision: record?.revision || 0, updatedAt: record?.updatedAt || null, connections: this.presence() });
     }
@@ -358,7 +374,7 @@ export class TournamentState {
       };
       await this.state.storage.put('record', record);
       const safe = publicRecord(record);
-      this.broadcast({ type: 'snapshot', record: safe });
+      await this.broadcast({ type: 'snapshot', record: safe });
       return json(safe);
     }
 
@@ -391,6 +407,7 @@ export class TournamentState {
         session = await this.state.storage.transaction(async tx => {
           await this.setStaffPassword(incoming.staffPassword, tx);
           await tx.put('record', record);
+          if (auth0Enabled(this.env)) await tx.put('isPublic', false);
           return this.issueStaffSession(tx);
         });
       } catch (error) {
@@ -403,11 +420,30 @@ export class TournamentState {
       return json(publicRecord(record), 200, { 'x-ksm-session-token': session.token, 'x-ksm-session-expires': session.expiresAt });
     }
 
+    if (url.pathname === '/listing' && request.method === 'GET') {
+      const privateDenied = await this.readAccess(request);
+      if (privateDenied) return privateDenied;
+      const access = await this.accountAccess(request);
+      return json({ isPublic: await this.isPublic(), canManage: !!access?.ok });
+    }
+    if (url.pathname === '/visibility' && ['GET', 'PUT'].includes(request.method)) {
+      if (!auth0Enabled(this.env)) return json({ error: 'Auth0 disabled' }, 404);
+      const access = await this.accountAccess(request);
+      if (!access?.ok) return access ? denied(access) : json({ error: 'Sign-in required' }, 403);
+      if (!(await this.state.storage.get('record'))) return json({ error: 'Tournament not found' }, 404);
+      if (request.method === 'PUT') {
+        const body = await request.json().catch(() => ({}));
+        if (typeof body.isPublic !== 'boolean') return json({ error: 'Public listing must be true or false' }, 400);
+        await this.state.storage.put('isPublic', body.isPublic);
+        for (const socket of this.state.getWebSockets()) try { socket.close(1000, 'Visibility changed'); } catch (_) {}
+      }
+      return json({ isPublic: await this.isPublic() });
+    }
     if (url.pathname === '/access' && request.method === 'GET') {
       if (!auth0Enabled(this.env)) return json({ enabled: false });
       const access = await this.accountAccess(request);
       if (access?.status === 401) return denied(access);
-      return json({ enabled: true, role: access?.role || 'spectator', passwordFallback: !(await this.directors()).length });
+      return json({ enabled: true, role: access?.role || 'spectator', passwordFallback: (await this.isPublic()) && !(await this.directors()).length });
     }
     if (url.pathname === '/directors' && ['GET', 'POST', 'DELETE'].includes(request.method)) {
       if (!auth0Enabled(this.env)) return json({ error: 'Auth0 disabled' }, 404);
@@ -424,12 +460,12 @@ export class TournamentState {
           await tx.put('directors', next);
         });
         // Reconnects recheck permissions; existing sockets also check each scoring message.
-        for (const socket of this.state.getWebSockets()) if (socket.deserializeAttachment()?.role === 'staff') try { socket.close(1000, 'Access changed'); } catch (_) {}
+        for (const socket of this.state.getWebSockets()) if (!(await this.isPublic()) || socket.deserializeAttachment()?.role === 'staff') try { socket.close(1000, 'Access changed'); } catch (_) {}
       }
       return json({ directors: await this.directors() });
     }
     if (request.method === 'POST' && url.pathname === '/auth') {
-      if (auth0Enabled(this.env) && (await this.directors()).length) return json({ error: 'Use Auth0 sign-in for this tournament' }, 403);
+      if (auth0Enabled(this.env) && (!(await this.isPublic()) || (await this.directors()).length)) return json({ error: 'Use Auth0 sign-in for this tournament' }, 403);
       const body = await request.json().catch(() => ({}));
       const password = typeof body?.password === 'string' ? body.password : '';
       if (!password) return json({ error: 'Incorrect password' }, 403);
@@ -446,7 +482,7 @@ export class TournamentState {
       await this.state.storage.deleteAll();
       this.verifiedPassword = null;
       await this.state.storage.put('deletedAt', new Date().toISOString());
-      this.broadcast({ type: 'deleted' });
+      await this.broadcast({ type: 'deleted' });
       for (const socket of this.state.getWebSockets()) try { socket.close(1000, 'Tournament deleted'); } catch (_) {}
       return json({ ok: true });
     }
@@ -554,17 +590,17 @@ export class TournamentState {
       if (flash.type !== 'clock' || !['A', 'B'].includes(flash.court) || !['running', 'stopped', 'off'].includes(flash.state)) return;
       if (typeof flash.source !== 'string' || !flash.source.length || flash.source.length > 40) return;
       if (!(await this.socketMayWrite(socket))) return;
-      this.broadcast({ type: 'clock', court: flash.court, source: flash.source, state: flash.state, at: new Date().toISOString() });
+      await this.broadcast({ type: 'clock', court: flash.court, source: flash.source, state: flash.state, at: new Date().toISOString() });
       return;
     }
     if (keys.length !== 4 || keys.join(',') !== 'court,id,kind,type') return;
     if (flash.type !== 'flash' || !['A', 'B'].includes(flash.court) || !['encho', 'hikiwake'].includes(flash.kind)) return;
     if (typeof flash.id !== 'string' || !flash.id.length || flash.id.length > 40) return;
     if (!(await this.socketMayWrite(socket))) return;
-    this.broadcast({ type: 'flash', court: flash.court, kind: flash.kind, id: flash.id, at: new Date().toISOString() });
+    await this.broadcast({ type: 'flash', court: flash.court, kind: flash.kind, id: flash.id, at: new Date().toISOString() });
   }
-  webSocketClose(socket, code, reason) { try { socket.close(code, reason); } catch (_) {} this.broadcastPresence(); }
-  webSocketError(socket) { try { socket.close(1011, 'WebSocket error'); } catch (_) {} this.broadcastPresence(); }
+  async webSocketClose(socket, code, reason) { try { socket.close(code, reason); } catch (_) {} await this.broadcastPresence(); }
+  async webSocketError(socket) { try { socket.close(1011, 'WebSocket error'); } catch (_) {} await this.broadcastPresence(); }
 }
 
 export default {
@@ -596,6 +632,18 @@ export default {
         headers.delete('content-encoding');
         return json({...record,slug},response.status,Object.fromEntries(headers));
       } catch (_) { return response; }
+    };
+    const visibleLibrary = async () => {
+      const response = await libraryStub().fetch('https://durable-object/library');
+      if (!auth0Enabled(env) || !response.ok) return response;
+      const rows = await response.json();
+      const visible = [];
+      for (const row of rows) {
+        const result = await env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName(row.id)).fetch(new Request('https://durable-object/listing', { headers: request.headers }));
+        if (result.ok) visible.push({ ...row, ...await result.json() });
+      }
+      visible.sort((a,b) => Number(b.canManage)-Number(a.canManage));
+      return json(visible);
     };
     const updateLibrary = async (record) => {
       if (!record?.tournamentId) return;
@@ -631,17 +679,17 @@ export default {
     const slugLookup = url.pathname.match(/^\/api\/slugs\/([a-z0-9-]+)$/);
     if (slugLookup && request.method === 'GET') return libraryStub().fetch(`https://durable-object/library/resolve/${slugLookup[1]}`);
     if (url.pathname === '/api/tournaments' && request.method === 'GET') {
-      return libraryStub().fetch('https://durable-object/library');
+      return visibleLibrary();
     }
     if (url.pathname === '/api/tournaments/discover' && request.method === 'POST') {
       const body = await request.json().catch(() => ({}));
       const ids = Array.isArray(body.ids) ? body.ids.filter(id => /^[0-9a-f-]+$/i.test(id)).slice(0,100) : [];
       for (const id of ids) {
         const stub = env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName(id));
-        const response = await stub.fetch('https://durable-object/snapshot');
+        const response = await stub.fetch(new Request('https://durable-object/snapshot', { headers: request.headers }));
         if (response.ok) await updateLibrary(await response.json());
       }
-      return libraryStub().fetch('https://durable-object/library');
+      return visibleLibrary();
     }
     if (url.pathname === '/api/tournaments' && request.method === 'POST') {
       const outdated = outdatedClient(request);
@@ -654,19 +702,19 @@ export default {
       return withSlug(response);
     }
 
-    const route = url.pathname.match(/^\/api\/tournaments\/([0-9a-f-]+)(?:\/(live|status|auth|slug|access|directors))?$/i);
+    const route = url.pathname.match(/^\/api\/tournaments\/([0-9a-f-]+)(?:\/(live|status|auth|slug|access|directors|visibility))?$/i);
     if (route) {
       const [, id, action] = route;
       const stub = env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName(id));
-      if (action === 'access' || action === 'directors') return stub.fetch(new Request(`https://durable-object/${action}`, { method: request.method, headers: request.headers, ...(request.body ? { body: request.body } : {}) }));
+      if (action === 'access' || action === 'directors' || action === 'visibility') return stub.fetch(new Request(`https://durable-object/${action}`, { method: request.method, headers: request.headers, ...(request.body ? { body: request.body } : {}) }));
       if (action === 'live') {
         const target = new URL('https://durable-object/live'); target.search = url.search;
         return stub.fetch(new Request(target, { method: 'GET', headers: request.headers }));
       }
-      if (action === 'status' && request.method === 'GET') return stub.fetch('https://durable-object/status');
+      if (action === 'status' && request.method === 'GET') return stub.fetch(new Request('https://durable-object/status', { headers: request.headers }));
       if (action === 'slug' && request.method === 'POST') return stub.fetch(new Request('https://durable-object/slug', {method:'POST',headers:request.headers,body:request.body}));
       if (action === 'auth' && request.method === 'POST') return stub.fetch(new Request('https://durable-object/auth', { method: 'POST', headers: request.headers, body: request.body }));
-      if (!action && request.method === 'GET') return withSlug(await stub.fetch('https://durable-object/snapshot'));
+      if (!action && request.method === 'GET') return withSlug(await stub.fetch(new Request('https://durable-object/snapshot', { headers: request.headers })));
       if (!action && request.method === 'PUT') {
         const outdated = outdatedClient(request);
         if (outdated) return outdated;
@@ -699,12 +747,19 @@ export default {
       // Also check the tournament tombstone: a delete interrupted before the library update
       // must never serve a stale alias as if it were still an active tournament.
       const status = await env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName(info.id)).fetch('https://durable-object/status');
-      if (!status.ok) return status;
+      if (!status.ok && status.status !== 403) return status;
       if (pageRoute.slug !== info.slug) return new Response(null,{status:308,headers:{location:`/${info.slug}${friendly[2]||''}`+url.search,'cache-control':'no-store'}});
-      return env.ASSETS.fetch(new Request(new URL(pageRoute.screen === 'overlay'?'/overlay':'/',url),request));
+      return env.ASSETS.fetch(new Request(new URL(pageRoute.screen === 'overlay' && status.status !== 403?'/overlay':'/',url),request));
     }
     if (/^\/t\/[^/]+\/(?:overview|results|setup|registration|pools)\/?$/i.test(url.pathname)) return env.ASSETS.fetch(new Request(new URL('/',url),request));
-    if (isOverlayPath(url.pathname)) return env.ASSETS.fetch(new Request(new URL('/overlay', url), request));
+    if (isOverlayPath(url.pathname)) {
+      if (auth0Enabled(env)) {
+        const id = decodeURIComponent(OVERLAY_PATH.exec(url.pathname)[1]);
+        const status = await env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName(id)).fetch(new Request('https://durable-object/status', { headers:request.headers }));
+        if (status.status === 403) return env.ASSETS.fetch(new Request(new URL('/', url), request));
+      }
+      return env.ASSETS.fetch(new Request(new URL('/overlay', url), request));
+    }
     return env.ASSETS.fetch(request);
     } catch (error) {
       console.error('KSM Worker request failed', { path:url.pathname, method:request.method, error });
