@@ -168,7 +168,7 @@ export function TournamentChip() {
     };
     const click = (event: MouseEvent) => {
       const el = event.target as Element;
-      if (el.closest('.nav-dropdown button') || el.closest('.nav-tile:not([aria-haspopup])')) close();
+      if (el.closest('.nav-dropdown button') || el.closest('.nav-dropdown a.nav-menu-link') || el.closest('.nav-tile:not([aria-haspopup])')) close();
     };
     const resize = () => { if (innerWidth > 900) close(); };
     document.addEventListener('keydown', keyboard); drawer.addEventListener('click', click); window.addEventListener('resize', resize);
