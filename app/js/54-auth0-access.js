@@ -10,6 +10,7 @@ function ksmAccountCanEdit(){
   return !!ksmAccount.token&&(ksmAccount.globalRole==='admin'||(ksmAccount.role==='director'&&ksmAccount.tournamentId===cloudSession.tournamentId));
 }
 function ksmAccountChanged(){
+  document.body.classList.toggle('ksm-account-signed-in',!!ksmAccount.email);
   setSessionRole(v316StaffPassword()?'staff':'spectator');
   window.dispatchEvent(new CustomEvent('ksm:account'));
 }

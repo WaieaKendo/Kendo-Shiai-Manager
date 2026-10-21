@@ -49,7 +49,7 @@ const subscribeAuthMessage = (listener: () => void) => {
 function LibraryCard({ card, canManage, canDelete = true, accounts = false }: { card: LibraryCardView; canManage: boolean; canDelete?: boolean; accounts?: boolean }) {
   const open = () => { libraryWindow().openTournamentFromHome?.(card.id); };
   return (
-    <div className="home-tournament-item" data-testid="home-tournament">
+    <div className={accounts ? "home-tournament-item account-tournament-card" : "home-tournament-item"} data-testid="home-tournament">
       <button className="home-tournament-card" type="button" onClick={open} aria-label={card.label}>
         <span className="home-card-placeholder" aria-hidden="true">{DEFAULT_LIBRARY_CARD_MARK}</span>
       </button>

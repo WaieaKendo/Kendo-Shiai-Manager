@@ -100,6 +100,11 @@ def main():
             assert admin.get_by_test_id('account-role').evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(237, 233, 254)'
             assert write_status(admin, a) == 409 and write_status(admin, b) == 409
             admin.evaluate("KSMTest.show('setup')")
+            expect(admin.get_by_test_id('staff-auth')).not_to_be_visible()
+            admin.locator('.ksm-account-menu > summary').click()
+            expect(admin.get_by_test_id('auth0-sign-in')).to_have_text('Sign out')
+            expect(admin.get_by_role('link', name='Tournament Library', exact=True)).to_be_visible()
+            admin.locator('.ksm-account-menu > summary').click()
             expect(admin.get_by_test_id('directors-management')).to_be_visible()
             toggle = admin.get_by_test_id('tournament-visibility').get_by_role('checkbox')
             expect(toggle).not_to_be_checked()

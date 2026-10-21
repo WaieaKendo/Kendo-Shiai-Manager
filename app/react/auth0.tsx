@@ -54,7 +54,7 @@ async function logout() {
 function AuthControls() {
   const account = useSyncExternalStore(subscribe, () => snapshot);
   if (!account.enabled) return null;
-  return <><button type="button" className="secondary" data-testid="auth0-sign-in" onClick={() => { void (account.email ? logout() : login()); }}>{account.email ? 'Sign out' : 'Sign in'}</button>{message && <span role="status">{message}</span>}</>;
+  return <>{account.email ? <details className="ksm-account-menu"><summary>Account</summary><div className="ksm-account-panel"><strong>{account.email}</strong><span>{account.globalRole === 'admin' ? 'Admin' : account.role === 'director' ? 'Director' : 'Spectator'}</span><a href="/">Tournament Library</a><button type="button" className="secondary" data-testid="auth0-sign-in" onClick={() => { void logout(); }}>Sign out</button></div></details> : <button type="button" className="secondary" data-testid="auth0-sign-in" onClick={() => { void login(); }}>Sign in</button>}{message && <span role="status">{message}</span>}</>;
 }
 function RoleStrip() {
   const account = useSyncExternalStore(subscribe, () => snapshot);
@@ -131,7 +131,8 @@ window.addEventListener('ksm:sign-out', () => { void logout(); });
 function mountAccountUi() {
 // Separate islands leave the existing status and Setup markup intact when disabled.
 const controls = document.createElement('span'); controls.className = 'ksm-auth-controls';
-document.querySelector('.cloud-status-wrap')?.after(controls);
+const status = document.querySelector('.cloud-status-wrap');
+if (status) { const group = document.createElement('div'); group.className = 'ksm-account-status'; status.before(group); group.append(controls, status); }
 mountIsland(controls, <AuthControls />);
 const strip = document.createElement('div'); strip.className = 'ksm-role-host';
 document.querySelector('header.ksm-topbar')?.before(strip);
