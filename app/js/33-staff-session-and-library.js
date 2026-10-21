@@ -74,9 +74,9 @@ async function performCloudSave(payload=tournamentPayload(),baseRevision=cloudSe
   const attemptId=++ksmCloudAttemptCounter;
   let envelope={...cloudEnvelope(payload),revision:baseRevision};
   if(!existing){
-    const password=/* ksm:post-split-begin staff-hardening was:v316StaffPassword() */(ksmStaffToken(v316StaffPassword())?'':v316StaffPassword())/* ksm:post-split-end */||promptNewStaffPassword();
-    if(!password)throw new Error('Staff password required');
-    sessionStorage.setItem(KSM_V316_STAFF_SESSION,password);
+    const password=/* ksm:post-split-begin auth0-access */ksmUsesAccountAuth()?'':/* ksm:post-split-end *//* ksm:post-split-begin staff-hardening was:v316StaffPassword() */(ksmStaffToken(v316StaffPassword())?'':v316StaffPassword())/* ksm:post-split-end */||promptNewStaffPassword();
+    if(/* ksm:post-split-begin auth0-access */!ksmUsesAccountAuth()&&/* ksm:post-split-end */!password)throw new Error('Staff password required');
+    /* ksm:post-split-begin auth0-access */if(password)/* ksm:post-split-end */sessionStorage.setItem(KSM_V316_STAFF_SESSION,password);
     setSessionRole('staff');
     envelope={...envelope,staffPassword:password/* ksm:post-split-begin friendly-links */, ...(ksmPendingSlug?{slug:ksmPendingSlug}:{})/* ksm:post-split-end */};
   }

@@ -256,6 +256,7 @@ const KNOWN_POST_SPLIT_EDITS = {
   // loads a file of another tournament as a new one (loadTournamentFromFile(): two inline
   // replacements; the helpers after it); Download Tournament File writes the tournament ID and
   // revision into the file (manualSaveTournament(), inline).
+  'auth0-access': 6,
   'load-file-guard': 4,
   // feat/court-clarity (issue #38): confirmFusen() (22) takes the winning side now.
   'court-clarity': 1,
@@ -303,7 +304,6 @@ const KNOWN_POST_SPLIT_EDITS = {
   'react-library': 2,
   // feat/react-overlay: app/js/33-stream-overlay-links.js (TV menu "copy overlay link").
   'stream-overlay': 1,
-  'auth0-access': 1,
 };
 // The same markers in app/styles/*.css (count per name, in order of first appearance).
 const KNOWN_POST_SPLIT_CSS_EDITS = {

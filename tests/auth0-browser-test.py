@@ -149,6 +149,19 @@ def main():
             assert account_box['x'] > admin.viewport_size['width'] / 2
             assert abs(account_box['y'] + account_box['height'] / 2 - signout_box['y'] - signout_box['height'] / 2) < 3
             expect(admin.get_by_role('heading', name='Tournaments', exact=True)).to_be_visible()
+            creation_prompts = []
+            def create_prompt(dialog):
+                creation_prompts.append(dialog.message)
+                assert 'password' not in dialog.message.lower(), dialog.message
+                dialog.accept('Account Creation Cup' if dialog.message == 'Tournament Name' else 'account-creation-cup')
+            admin.on('dialog', create_prompt)
+            with admin.expect_response(lambda response: response.request.method == 'POST' and response.url == base + '/api/tournaments') as creation:
+                admin.get_by_test_id('home-new-tournament').click()
+            assert creation.value.ok, creation.value.text()
+            expect(admin.get_by_test_id('setup-tournament-name')).to_have_value('Account Creation Cup')
+            assert len(creation_prompts) == 2, creation_prompts
+            admin.remove_listener('dialog', create_prompt)
+            admin.goto(base)
             admin.get_by_test_id('library-sign-in').click()
             expect(admin.get_by_test_id('library-sign-in')).to_have_text('Sign in')
             assert admin.evaluate("Object.keys(sessionStorage).filter(k => k.startsWith('ksm.auth0.')).length") == 0

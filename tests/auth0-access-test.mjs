@@ -11,8 +11,8 @@ for (const email of ['admin@example.com','director@example.com','outsider@exampl
 const headers = token => ({authorization:`Bearer ${token}`,'x-ksm-role':'staff'});
 let passed = 0;
 async function test(name, fn) { await fn(); passed++; console.log(`PASS ${name}`); }
-const body = {staffPassword:'fallback-pass',payload:{setup:{tName:'Auth Cup'},state:{}},revision:0};
-async function create() { const response=await api.call('POST','/api/tournaments',{headers:headers(jwt.admin),body});assert.equal(response.status,200);return {id:(await response.json()).tournamentId,session:response.headers.get('x-ksm-session-token')}; }
+const body = {payload:{setup:{tName:'Auth Cup'},state:{}},revision:0};
+async function create() { const response=await api.call('POST','/api/tournaments',{headers:headers(jwt.admin),body});assert.equal(response.status,200);assert.equal(response.headers.get('x-ksm-session-token'),null);return {id:(await response.json()).tournamentId,session:''}; }
 try {
   const a = await create(), b = await create();
   for(const item of [a,b])assert.equal((await api.call('PUT',`/api/tournaments/${item.id}/visibility`,{headers:headers(jwt.admin),body:{isPublic:true}})).status,200);
@@ -41,9 +41,9 @@ try {
     assert.equal((await api.call('PUT',`/api/tournaments/${a.id}`,{headers:{'x-ksm-role':'admin'},body})).status,403);
     assert.equal((await api.call('PUT',`/api/tournaments/${b.id}`,{headers:headers(jwt.admin),body:{revision:1,payload:body.payload}})).status,200);
   });
-  await test('password and session fallback only while no directors are appointed',async()=>{
-    assert.equal((await api.call('POST',`/api/tournaments/${b.id}/auth`,{body:{password:'fallback-pass'}})).status,200);
-    assert.equal((await api.call('PUT',`/api/tournaments/${b.id}`,{headers:{'x-ksm-role':'staff','x-ksm-session-key':b.session},body:{revision:-1}})).status,409);
+  await test('Auth0 disables password and session fallback even without directors',async()=>{
+    assert.equal((await api.call('POST',`/api/tournaments/${b.id}/auth`,{body:{password:'fallback-pass'}})).status,403);
+    assert.equal((await api.call('PUT',`/api/tournaments/${b.id}`,{headers:{'x-ksm-role':'staff','x-ksm-session-key':b.session},body:{revision:-1}})).status,403);
     assert.equal((await api.call('POST',`/api/tournaments/${a.id}/auth`,{body:{password:'fallback-pass'}})).status,403);
     assert.equal((await api.call('PUT',`/api/tournaments/${a.id}`,{headers:{'x-ksm-role':'staff','x-ksm-session-key':a.session},body:{revision:-1}})).status,403);
   });
@@ -74,15 +74,15 @@ try {
     assert.equal((await api.call('GET',`/api/tournaments/${a.id}/status`)).status,200);
     assert.equal((await api.openSocket(a.id,{role:'spectator'})).status,101);
   });
-  await test('admin deletes; removing the last director restores password sessions; partial config fails closed',async()=>{
+  await test('admin deletes; password sessions stay disabled; partial config fails closed',async()=>{
     assert.equal((await api.call('DELETE',`/api/tournaments/${b.id}`,{headers:headers(jwt.admin)})).status,200);
-    assert.equal((await api.call('PUT',`/api/tournaments/${a.id}`,{headers:{'x-ksm-role':'staff','x-ksm-session-key':a.session},body:{revision:-1}})).status,409);
+    assert.equal((await api.call('PUT',`/api/tournaments/${a.id}`,{headers:{'x-ksm-role':'staff','x-ksm-session-key':a.session},body:{revision:-1}})).status,403);
     const partial=await createInProcessApi({auth0:{AUTH0_DOMAIN:mock.issuer}});
     assert.equal((await partial.call('GET','/api/auth/config')).status,503);
     assert.equal((await partial.call('POST','/api/tournaments',{body})).status,403);
   });
   await test('unconfigured keeps existing create/password/session/delete behavior',async()=>{
-    const legacy=await createInProcessApi();const response=await legacy.call('POST','/api/tournaments',{body});assert.equal(response.status,200);const id=(await response.json()).tournamentId;
+    const legacy=await createInProcessApi();const response=await legacy.call('POST','/api/tournaments',{body:{...body,staffPassword:'fallback-pass'}});assert.equal(response.status,200);const id=(await response.json()).tournamentId;
     const session=response.headers.get('x-ksm-session-token');
     assert.equal((await legacy.call('PUT',`/api/tournaments/${id}`,{headers:{authorization:'Bearer ignored','x-ksm-role':'spectator','x-ksm-session-key':session},body:{revision:-1}})).status,403);
     assert.equal((await legacy.call('POST',`/api/tournaments/${id}/auth`,{body:{password:'fallback-pass'}})).status,200);

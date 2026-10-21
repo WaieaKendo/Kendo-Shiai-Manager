@@ -3,6 +3,7 @@
 // spectator model; the server alone decides whether an account has tournament access.
 var ksmAccount={enabled:false,token:'',role:'spectator',globalRole:'spectator',tournamentId:'',email:'',passwordFallback:true};
 var ksmAuthReady=new Promise(resolve=>{window.ksmResolveAuthReady=resolve});
+function ksmUsesAccountAuth(){return ksmAccount.enabled}
 function ksmReadHeaders(){return typeof ksmAccount!=='undefined'&&ksmAccount.enabled&&ksmAccount.token?{authorization:`Bearer ${ksmAccount.token}`}:{}}
 function ksmAccountCanEdit(){
   const params=ksmLinkParams();

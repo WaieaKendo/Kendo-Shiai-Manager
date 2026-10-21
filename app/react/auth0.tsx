@@ -89,9 +89,9 @@ function Directors() {
     finally { setBusy(false); }
   }
   return <section className="ksm-directors" data-testid="directors-management"><h4>Tournament directors</h4>
-    <p>Directors can manage this tournament. Appointing a director turns off its shared-password access.</p>
+    <p>Directors can manage this tournament. Access requires an individual account.</p>
     <ul>{emails.map(value => <li key={value}>{value} <button type="button" disabled={busy} onClick={() => { void change('DELETE', value); }} aria-label={`Remove ${value}`}>Remove</button></li>)}</ul>
-    {!emails.length && <p>No directors appointed. Staff password access is available.</p>}
+    {!emails.length && <p>No directors appointed. Only admins can manage this tournament.</p>}
     <form onSubmit={event => { event.preventDefault(); void change('POST', email); }}><label>Director email <input type="email" required value={email} onChange={event => setEmail(event.target.value)} data-testid="director-email" /></label><button type="submit" disabled={busy}>Add director</button></form>
     {error && <p role="alert">{error}</p>}
   </section>;

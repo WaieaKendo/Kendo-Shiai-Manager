@@ -255,8 +255,7 @@ export class TournamentState {
       return { ok: adminOnly ? role === 'admin' : role !== 'spectator', status: 403,
         body: { error: adminOnly ? 'Admin authorization required' : 'Tournament access required' }, role, identity };
     }
-    if (adminOnly || !(await this.isPublic()) || (await this.directors()).length) return { ok: false, status: 403, body: { error: 'Sign-in required' } };
-    return null; // Existing shared password/session path, only until directors are appointed.
+    return { ok: false, status: 403, body: { error: 'Sign-in required' } };
   }
   async isPublic() { return !auth0Enabled(this.env) || (await this.state.storage.get('isPublic')) !== false; }
   async readAccess(request, token = '') {
@@ -274,7 +273,7 @@ export class TournamentState {
     if (info.role !== 'staff') return false;
     if (!auth0Enabled(this.env)) return true;
     if (info.identity) return info.identity.expiresAt > Date.now() && (isAdmin(this.env, info.identity.email) || (await this.directors()).includes(info.identity.email));
-    return !(await this.directors()).length;
+    return false;
   }
   presence() {
     const rows = [];
@@ -392,7 +391,7 @@ export class TournamentState {
       const access = await this.accountAccess(request, { adminOnly: true });
       if (access && !access.ok) return denied(access);
       const incoming = await request.json();
-      if (!incoming.staffPassword || String(incoming.staffPassword).length < 4) return json({ error: 'Staff password required' }, 400);
+      if (!auth0Enabled(this.env) && (!incoming.staffPassword || String(incoming.staffPassword).length < 4)) return json({ error: 'Staff password required' }, 400);
       const integrityError = validateTournamentPayload(incoming.payload);
       if (integrityError) return json({ error: 'Invalid tournament state', integrityError }, 422);
       const suggested = suggestSlug(String(incoming.payload?.setup?.tName || 'Tournament'), String(incoming.payload?.setup?.tDate || new Date().getFullYear()).slice(0,4));
@@ -405,10 +404,10 @@ export class TournamentState {
       try {
         // Record and credentials either commit together or leave no partial tournament.
         session = await this.state.storage.transaction(async tx => {
-          await this.setStaffPassword(incoming.staffPassword, tx);
+          if (!auth0Enabled(this.env)) await this.setStaffPassword(incoming.staffPassword, tx);
           await tx.put('record', record);
           if (auth0Enabled(this.env)) await tx.put('isPublic', false);
-          return this.issueStaffSession(tx);
+          return auth0Enabled(this.env) ? null : this.issueStaffSession(tx);
         });
       } catch (error) {
         await this.library().fetch(new Request('https://durable-object/library/slug', {
@@ -417,7 +416,7 @@ export class TournamentState {
         throw error;
       }
       // The creator token is sent only in a header, never in the record.
-      return json(publicRecord(record), 200, { 'x-ksm-session-token': session.token, 'x-ksm-session-expires': session.expiresAt });
+      return json(publicRecord(record), 200, session ? { 'x-ksm-session-token': session.token, 'x-ksm-session-expires': session.expiresAt } : {});
     }
 
     if (url.pathname === '/listing' && request.method === 'GET') {
@@ -443,7 +442,7 @@ export class TournamentState {
       if (!auth0Enabled(this.env)) return json({ enabled: false });
       const access = await this.accountAccess(request);
       if (access?.status === 401) return denied(access);
-      return json({ enabled: true, role: access?.role || 'spectator', passwordFallback: (await this.isPublic()) && !(await this.directors()).length });
+      return json({ enabled: true, role: access?.role || 'spectator', passwordFallback: false });
     }
     if (url.pathname === '/directors' && ['GET', 'POST', 'DELETE'].includes(request.method)) {
       if (!auth0Enabled(this.env)) return json({ error: 'Auth0 disabled' }, 404);
@@ -465,7 +464,7 @@ export class TournamentState {
       return json({ directors: await this.directors() });
     }
     if (request.method === 'POST' && url.pathname === '/auth') {
-      if (auth0Enabled(this.env) && (!(await this.isPublic()) || (await this.directors()).length)) return json({ error: 'Use Auth0 sign-in for this tournament' }, 403);
+      if (auth0Enabled(this.env)) return json({ error: 'Use Auth0 sign-in for this tournament' }, 403);
       const body = await request.json().catch(() => ({}));
       const password = typeof body?.password === 'string' ? body.password : '';
       if (!password) return json({ error: 'Incorrect password' }, 403);

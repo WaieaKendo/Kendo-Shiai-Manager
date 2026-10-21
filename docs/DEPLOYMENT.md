@@ -245,10 +245,11 @@ and list/add/remove director emails under **Setup → Sharing & access**. Direct
 appointing directors require an admin. Colours are reserved role tokens, accompanied by text and
 an icon, and compact on phones. TV has no header/strip. Explicit spectator links remain read-only.
 
-For public tournaments without directors, the existing password and staff sessions still authorize edits
-and live scoring. Once a director is appointed, that tournament requires an authorized account;
-existing password sessions cannot bypass it. Removing the last director restores the password
-path only while the tournament is public. Private tournaments always require an authorized account. With Auth0 enabled, creation/deletion require an admin even for a tournament with no directors.
+With Auth0 enabled, creating or importing tournaments does not require a staff password and does
+not issue a shared staff session. Only admins and assigned directors can manage tournaments;
+passwords and old staff sessions are rejected even when no directors are assigned. Removing the
+last director leaves admin-only management. There is no automatic password fallback offline.
+Installations without Auth0 retain the existing staff-password and staff-session behavior.
 Roles are checked on every write and staff live handshake; live scoring messages recheck director
 membership and token expiry. Changing directors closes existing staff live connections. JWTs are
 kept in a tab-scoped SDK sessionStorage cache, renewed by the SDK; reload retains unexpired tokens.
