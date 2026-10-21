@@ -61,6 +61,9 @@ function ksmShowRequestedScreen(){
   const screen=ksmResolvedUrl().route.screen;
   if(screen==='overview'){navigateTo('director');return}
   if(screen==='results'){navigateTo('results');return}
+  // A court address (/court/a, /court/b) reopens that court's scorekeeper screen after a refresh
+  // (before: it fell through to Live Scores). Spectators, who have no court screen, still get Live Scores.
+  if(screen==='court'&&!isSpectatorSession()){openCourt(ksmResolvedUrl().route.court);return}
   if(['setup','registration','pools'].includes(screen)){
     if(!isReadOnlySession()){
       if(screen==='setup')navigateTo('setup');else openRegistrationTab(screen==='pools'?'pools':'individual');

@@ -18,13 +18,17 @@ def main():
         a.wait_idle()
         token = a.staff_session()
         revision = fetch_record(base, aid)['revision']
-        for path, view in [(app_path(aid), 'director'), (app_path(aid, 'court', 'A'), 'public'),
+        # A staff court address reopens that court's screen (before: Live Scores, so a scorekeeper
+        # tablet refreshed mid-match lost its court); a spectator's still opens Live Scores (path-urls-test).
+        for path, view in [(app_path(aid), 'director'), (app_path(aid, 'court', 'A'), 'score'), (app_path(aid, 'court', 'B'), 'score'),
                            (app_path(aid, 'setup'), 'setup'), ('/', 'home')]:
             a.goto(path)
             a.reload()
             assert a.page.evaluate('KSMTest.role()') == 'staff', path
             assert a.staff_session() == token, path
             assert a.visible_view() == [view], (path, a.visible_view())
+            if view == 'score':
+                assert a.court_screen()['court'] == path[-1].upper() and a.address() == path, (path, a.court_screen(), a.address())
             if path == '/':
                 assert a.page.evaluate('KSMTest.app.ksmCloudSocket === null'), 'Library boot kept a live staff socket'
         assert fetch_record(base, aid)['revision'] == revision, 'session checks wrote a snapshot'
