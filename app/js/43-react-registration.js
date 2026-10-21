@@ -208,6 +208,61 @@ function ksmPasteNotice(){
 function ksmPasteHelp(){
   alert('Paste from Excel: copy rows with the columns Name, Dojo, Division, Seed, Status (in that order; only Name is required) and paste them (Ctrl+V / Cmd+V) while Individual Players is shown. Division must be one offered in Setup (empty: the first division). Status: Registered, Checked In or No Show (empty: Registered). Rows with another division or status are not added; a notice lists them.');
 }
+// Import CSV (the Registration button, was a placeholder alert): a .csv file whose first row names
+// the columns, in any order and any case: Name (or First Name + Last Name), Dojo (or Club,
+// Academy), Division, Seed, Status. Other columns are ignored. Each row is added like a pasted row
+// (ksmPasteRow(): an unknown division or status is not added and is listed); a player already
+// registered in that division is skipped, so Export CSV's own file can be imported again.
+var KSM_IMPORT_COLUMNS={name:'name',player:'name',firstname:'first',lastname:'last',dojo:'dojo',club:'dojo',academy:'dojo',division:'division',seed:'seed',status:'status'};
+function ksmParseCsv(text){
+  const rows=[];let row=[],cell='',quoted=false;
+  text=String(text||'').replace(/^﻿/,'');
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(quoted){if(ch==='"'){if(text[i+1]==='"'){cell+='"';i++}else quoted=false}else cell+=ch;continue}
+    if(ch==='"')quoted=true;
+    else if(ch===','){row.push(cell);cell=''}
+    else if(ch==='\n'||ch==='\r'){if(ch==='\r'&&text[i+1]==='\n')i++;row.push(cell);rows.push(row);row=[];cell=''}
+    else cell+=ch;
+  }
+  if(cell!==''||row.length){row.push(cell);rows.push(row)}
+  return rows.filter(r=>r.some(c=>c.trim()!==''));
+}
+function ksmImportCSV(){
+  if(typeof isReadOnlySession==='function'&&isReadOnlySession())return;
+  const input=document.getElementById('ksmImportCsvFile');
+  input.value='';input.click();
+}
+function ksmImportCSVFile(event){
+  const file=event.target.files&&event.target.files[0];
+  if(file)file.text().then(text=>ksmImportCSVText(text,file.name));
+}
+function ksmImportCSVText(text,fileName){
+  const rows=ksmParseCsv(text),cols={};
+  (rows[0]||[]).forEach((h,i)=>{const key=KSM_IMPORT_COLUMNS[h.toLowerCase().replace(/[^a-z]/g,'')];if(key&&!(key in cols))cols[key]=i});
+  if(!('name' in cols)&&!('first' in cols||'last' in cols)){
+    alert(`${fileName||'This file'} has no Name column. The first row must name the columns: Name (or First Name and Last Name), Dojo, Division, Seed, Status. Only Name is required; Export CSV writes this layout.`);
+    return;
+  }
+  const get=(r,key)=>key in cols?String(r[cols[key]]??'').trim():'';
+  const known=new Set(state.competitors.map(c=>`${String(c.name).trim().toLowerCase()}\n${c.division}`));
+  let added=0,skipped=0;ksmPasteRefused=[];
+  rows.slice(1).forEach(r=>{
+    const name=get(r,'name')||[get(r,'first'),get(r,'last')].filter(Boolean).join(' ');
+    if(!name)return;
+    const division=get(r,'division'),key=`${name.toLowerCase()}\n${division||state.divisions[0]}`;
+    if(known.has(key)){skipped++;return}
+    const before=state.competitors.length;
+    ksmPasteRow(name,get(r,'dojo'),division,get(r,'seed'),get(r,'status'));
+    if(state.competitors.length>before){added++;known.add(key)}
+  });
+  const refused=ksmPasteRefused;ksmPasteRefused=[];
+  let message=`Imported ${added} ${added===1?'player':'players'}${fileName?` from ${fileName}`:''}.`;
+  if(skipped)message+=`\nAlready registered, skipped: ${skipped}.`;
+  if(refused.length)message+=`\n\nNot added (${refused.length} ${refused.length===1?'row':'rows'}):\n${refused.join('\n')}\n\nUse a division offered in Setup and the status Registered, Checked In or No Show, then import those rows again.`;
+  if(added){renderDivisions();renderReg();scheduleAutoSave('Import CSV')}
+  alert(message);
+}
 // regTab() (23): the tab marked active. Owner decision 19 (#29): and whether the Exhibition tab
 // shows (only while Setup's Exhibition Matches is Enabled).
 function ksmExhibitionsEnabled(){return window.exhibitionEnabled?exhibitionEnabled.value==='Enabled':false}
