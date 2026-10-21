@@ -214,12 +214,12 @@ function DivisionRow({ row }: { row: SetupDivisionRowView }) {
           {FORMAT_OPTIONS.map(f => <option key={f}>{f}</option>)}
         </select>
       </td>
-      <td>
+      <td><div className="setup-court-cell">
         <select ref={court} disabled={!row.enabled} defaultValue={row.courtSelected ?? undefined} data-testid="setup-division-court">
           {COURT_OPTIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
         </select>
-        {(row.custom || row.removable) && <>{' '}<button onClick={() => setupWindow().ksmRemoveSetupDivision?.(row.division)} disabled={!!row.removeBlocked} title={row.removeBlocked || `Remove ${row.name}`} aria-label={`Remove ${row.name}`} data-testid="setup-division-remove">{REMOVE_TEXT}</button></>}
-      </td>
+        {(row.custom || row.removable) && <><button className="setup-division-remove" onClick={() => setupWindow().ksmRemoveSetupDivision?.(row.division)} disabled={!!row.removeBlocked} title={row.removeBlocked || `Remove ${row.name}`} aria-label={`Remove ${row.name}`} data-testid="setup-division-remove">{REMOVE_TEXT}</button></>}
+      </div></td>
     </tr>
   );
 }

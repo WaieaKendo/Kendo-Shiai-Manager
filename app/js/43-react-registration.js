@@ -192,8 +192,15 @@ function ksmRenderExhibitions(){
 // division was created, an unknown status kept as typed) and ksmPasteNotice() names them.
 var ksmPasteRefused=[];
 var KSM_PASTE_STATUSES={'':'Registered','registered':'Registered','checked in':'Checked','checked':'Checked','no show':'NoShow','noshow':'NoShow'};
+// A typed division matches an offered one ignoring case, extra spaces and the dash kind ("1-3" for
+// Setup's "1–3"); the offered spelling is kept. '' when none matches.
+function ksmOfferedDivision(division){
+  const key=d=>String(d).toLowerCase().replace(/[‐-―−]/g,'-').replace(/\s+/g,' ').trim();
+  return state.divisions.find(d=>key(d)===key(division))||'';
+}
 function ksmPasteRow(name,dojo,division,seed,status){
   const st=KSM_PASTE_STATUSES[String(status||'').trim().toLowerCase()],why=[];
+  if(division)division=ksmOfferedDivision(division)||division;
   if(division&&!state.divisions.includes(division))why.push(`division "${division}" is not offered`);
   if(st===undefined)why.push(`status "${status}" is not Registered, Checked In or No Show`);
   if(why.length){ksmPasteRefused.push(`${name}: ${why.join('; ')}`);return}
@@ -247,10 +254,13 @@ function ksmImportCSVText(text,fileName){
   const get=(r,key)=>key in cols?String(r[cols[key]]??'').trim():'';
   const known=new Set(state.competitors.map(c=>`${String(c.name).trim().toLowerCase()}\n${c.division}`));
   let added=0,skipped=0;ksmPasteRefused=[];
+  const missing=new Map();// a division not in Setup: its rows' names, listed once per division
   rows.slice(1).forEach(r=>{
     const name=get(r,'name')||[get(r,'first'),get(r,'last')].filter(Boolean).join(' ');
     if(!name)return;
-    const division=get(r,'division'),key=`${name.toLowerCase()}\n${division||state.divisions[0]}`;
+    const typed=get(r,'division'),division=typed&&ksmOfferedDivision(typed);
+    if(typed&&!division){missing.set(typed,[...(missing.get(typed)||[]),name]);return}
+    const key=`${name.toLowerCase()}\n${division||state.divisions[0]}`;
     if(known.has(key)){skipped++;return}
     const before=state.competitors.length;
     ksmPasteRow(name,get(r,'dojo'),division,get(r,'seed'),get(r,'status'));
@@ -259,6 +269,12 @@ function ksmImportCSVText(text,fileName){
   const refused=ksmPasteRefused;ksmPasteRefused=[];
   let message=`Imported ${added} ${added===1?'player':'players'}${fileName?` from ${fileName}`:''}.`;
   if(skipped)message+=`\nAlready registered, skipped: ${skipped}.`;
+  if(missing.size){
+    const count=[...missing.values()].reduce((n,names)=>n+names.length,0);
+    message+=`\n\nNot added (${count} ${count===1?'row':'rows'}): ${missing.size===1?'this division is':'these divisions are'} not in Setup.\n`
+      +[...missing].map(([d,names])=>`"${d}": ${names.length} ${names.length===1?'player':'players'} (${names.slice(0,3).join(', ')}${names.length>3?`, +${names.length-3} more`:''})`).join('\n')
+      +`\n\nSetup offers: ${state.divisions.join(', ')}.\nAdd ${missing.size===1?'it':'them'} in Setup (Add custom division, same name) or change the Division column, then import the file again.`;
+  }
   if(refused.length)message+=`\n\nNot added (${refused.length} ${refused.length===1?'row':'rows'}):\n${refused.join('\n')}\n\nUse a division offered in Setup and the status Registered, Checked In or No Show, then import those rows again.`;
   if(added){renderDivisions();renderReg();scheduleAutoSave('Import CSV')}
   alert(message);
