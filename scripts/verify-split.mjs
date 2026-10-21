@@ -298,6 +298,10 @@ const KNOWN_POST_SPLIT_EDITS = {
   'react-library': 2,
   // feat/react-overlay: app/js/33-stream-overlay-links.js (TV menu "copy overlay link").
   'stream-overlay': 1,
+  // fix/court-assignment: a court change after the draw moves the division's unplayed matches
+  // (setDivisionCourt(), ksmReassignDivisionCourt() in 01); Generate starts each court on its own
+  // first division instead of the Generated Pools dropdown's (08).
+  'court-reassign': 3,
 };
 // The same markers in app/styles/*.css (count per name, in order of first appearance).
 const KNOWN_POST_SPLIT_CSS_EDITS = {
