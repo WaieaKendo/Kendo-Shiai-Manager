@@ -33,7 +33,7 @@ function generatePools(options={}){
   /* ksm:post-split-end */
   if(generateDivisionState('Exhibition Matches'))generated++;
   if(!generated){alert('No registered or checked-in competitors, teams, or exhibitions found. No-show entries are excluded.');return}
-  initCourtStates();let chosen=(poolDiv&&state.allMatches[poolDiv.value])?poolDiv.value:(state.courtState.A.division||Object.keys(state.allMatches)[0]);setActiveDivision(chosen,true);state.generated=true;state.managementRevision=(state.managementRevision||0)+1;if(window.generateBtn)generateBtn.textContent='Regenerate Tournament';renderAll();show('registration');regTab('pools');scheduleAutoSave();
+  initCourtStates();let chosen=/* ksm:post-split-begin court-reassign was:(poolDiv&&state.allMatches[poolDiv.value])?poolDiv.value:(state.courtState.A.division||Object.keys(state.allMatches)[0]) */state.courtState[state.currentCourt||'A']?.division||Object.keys(state.allMatches)[0]/* ksm:post-split-end */;setActiveDivision(chosen,true);state.generated=true;state.managementRevision=(state.managementRevision||0)+1;if(window.generateBtn)generateBtn.textContent='Regenerate Tournament';renderAll();show('registration');regTab('pools');scheduleAutoSave();
 }
 function regenerateSingleDivision(div){
   if(/* ksm:post-split-begin draw-new-division was:divisionRegenerationStatus(div)!=='ready' */!['ready','new'].includes(divisionRegenerationStatus(div))/* ksm:post-split-end */){alert('This division cannot be regenerated after matches have started.');return}

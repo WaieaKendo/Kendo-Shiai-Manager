@@ -20,8 +20,32 @@ function addDivision(v){v=v||customDivName?.value?.trim()||/* ksm:post-split-beg
 function addCustomDivision(){/* ksm:post-split-begin library-setup */const name=customDivName.value.trim();const added=name&&!state.divisions.includes(name);/* ksm:post-split-end */addDivision()/* ksm:post-split-begin library-setup */;document.querySelector('[data-testid="custom-division-add"]').disabled=true;if(added)ksmAnnounceAddedDivision(name);/* ksm:post-split-end */}
 function removeDivision(i){let d=state.divisions[i];state.divisions.splice(i,1);delete state.divisionTypes[d];delete state.divisionCourts[d];renderDivisionSetup();renderDivisions();renderReg()}
 function toggleDivision(d,on){if(on&&!state.divisions.includes(d)){state.divisions.push(d);let p=DIVISION_PRESETS.find(x=>x[0]===d);/* ksm:post-split-begin quirks-setup was:state.divisionTypes[d]=p?p[1]:'Round Robin';state.divisionCourts[d]=p?p[2]:'A' */state.divisionTypes[d]=state.divisionTypes[d]||(p?p[1]:'Round Robin');state.divisionCourts[d]=state.divisionCourts[d]||(p?p[2]:'A')/* ksm:post-split-end */}if(!on&&state.divisions.includes(d)){state.divisions=state.divisions.filter(x=>x!==d)}renderDivisionSetup();renderDivisions();renderReg()}
+/* ksm:post-split-begin court-reassign */
+// A division's court changed after the draw: its unplayed matches move with it (before, every
+// match kept the court it was drawn with, so the court screens and Overview still showed the old
+// court). Pools, pool championships and single elimination get the court the draw would have given
+// them (split: the same A/B rule); played matches stay where they were. A court left showing this
+// division, or one now holding the division's next match while idle, picks its next match again.
+function ksmReassignDivisionCourt(d){
+  const all=state.allMatches?.[d];if(!all)return;
+  const mode=divisionCourtMode(d);
+  if(mode!=='split')(state.pools[d]||[]).forEach(p=>{delete p.court});
+  const roundSize={};all.forEach(m=>{if(m&&m.championship&&!m.singleElim)roundSize[m.position]=(roundSize[m.position]||0)+1});
+  const elimNodes=state.singleElimNodes?.[d]||[];
+  all.forEach(m=>{
+    if(!m||m.done||isTeamMatch(m))return;
+    if(m.singleElim){const node=elimNodes.find(n=>n.id===m.elimNodeId);m.court=mode==='split'?(m.position==='Final'?'A':(node?.court||'A')):mode}
+    else if(m.championship)m.court=championshipCourtFor(d,m.position,m.bracketSlot,roundSize[m.position]||1);
+    else m.court=poolCourtFor(d,m.pool);
+  });
+  ['A','B'].forEach(c=>{
+    const cs=state.courtState?.[c];
+    if(cs&&cs.division===d){state.courtState[c]=findNextForCourt(c,null,0);state.courtActiveDivision[c]=state.courtState[c].division}
+  });
+}
+/* ksm:post-split-end */
 function setDivisionFormat(d,v){state.divisionTypes[d]=v;renderReg()}
-function setDivisionCourt(d,v){state.divisionCourts[d]=v;renderDivisions();renderTournamentStatus()}
+function setDivisionCourt(d,v){state.divisionCourts[d]=v;/* ksm:post-split-begin court-reassign */ksmReassignDivisionCourt(d);/* ksm:post-split-end */renderDivisions();renderTournamentStatus()}
 function renderDivisionSetup(){/* ksm:post-split-begin react-setup */
   // The divisions table's rows are React (app/react/setup/, 42-react-setup.js): they are published
   // to it instead of written (M.13). The team court and awards fields stay legacy markup.
