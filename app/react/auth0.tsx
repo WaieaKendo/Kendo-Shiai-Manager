@@ -90,6 +90,7 @@ function Directors() {
     {error && <p role="alert">{error}</p>}
   </section>;
 }
+function mountAccountUi() {
 // Separate islands leave the existing status and Setup markup intact when disabled.
 const controls = document.createElement('span'); controls.className = 'ksm-auth-controls';
 document.querySelector('.cloud-status-wrap')?.after(controls);
@@ -103,12 +104,14 @@ mountIsland(management, <Directors />);
 // Explicit TV/spectator navigation and tournament renames must repaint the strip as well.
 new MutationObserver(publish).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 document.getElementById('tName')?.addEventListener('input', publish);
+}
 async function initialize() {
   try {
     const response = await fetch('/api/auth/config', { cache: 'no-store' });
     if (!response.ok) throw new Error('Sign-in configuration unavailable');
     const config = await response.json() as { enabled: boolean; domain: string; audience: string; clientId: string };
     if (!config.enabled) return;
+    mountAccountUi();
     bridge.update({ enabled: true });
     sdk = new Auth0Client({ domain: config.domain, clientId: config.clientId, cacheLocation: 'memory', authorizationParams: { audience: config.audience, scope: 'openid profile email', redirect_uri: `${location.origin}/` } });
     const params = new URLSearchParams(location.search);
