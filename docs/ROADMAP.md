@@ -398,7 +398,7 @@ Today every screen is one page driven by query parameters (`/?tournament=<id>&co
 | `/t/<id>/live` | Live Scores | — |
 | `/t/<id>/overview`, `/results` | Overview or Results, including spectator reloads/bookmarks | — |
 | `/t/<id>/setup`, `/registration`, `/pools` | staff screens; spectator/reload falls back to the configured home (Overview) | — |
-| `/t/<id>/court/a`, `/court/b` | a court device: Live Scores, assigned Court A/B (the court screen opens on it) | `/?tournament=<id>&court=A` |
+| `/t/<id>/court/a`, `/court/b` | a court device: assigned Court A/B; staff get that court's screen (also after a refresh), spectators Live Scores (the court screen opens on it) | `/?tournament=<id>&court=A` |
 | `/t/<id>/tv/a`, `/tv/b` | TV display for Court A/B | `/?role=spectator&tournament=<id>&court=A&view=tv` (also without `role`, and `&view=tv` without a court = Court A) |
 | `/t/<id>/overlay/a`, `/overlay/b` | stream overlay page (`overlay.html`); options `red`, `pos`, `y`, `band`, `debug` stay query parameters | `/overlay?tournament=<id>&court=A&…` |
 
