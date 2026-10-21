@@ -1,4 +1,5 @@
 import { Auth0Client } from '@auth0/auth0-spa-js';
+import { tabSessionCache } from './auth-session-cache.ts';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { mountIsland } from './island.tsx';
 
@@ -151,7 +152,7 @@ async function initialize() {
     mountAccountUi();
     bridge.update({ enabled: true });
     void bridge.library();
-    sdk = new Auth0Client({ domain: config.domain, clientId: config.clientId, cacheLocation: 'memory', authorizationParams: { audience: config.audience, scope: 'openid profile email', redirect_uri: `${location.origin}/` } });
+    sdk = new Auth0Client({ domain: config.domain, clientId: config.clientId, cache: tabSessionCache(`${config.domain}|${config.clientId}|${config.audience}`), authorizationParams: { audience: config.audience, scope: 'openid profile email', redirect_uri: `${location.origin}/` } });
     const params = new URLSearchParams(location.search);
     if (params.has('state') && (params.has('code') || params.has('error'))) {
       const result = await sdk.handleRedirectCallback<{ returnTo?: string }>();

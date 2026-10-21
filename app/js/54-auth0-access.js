@@ -74,7 +74,7 @@ var ksmAccountPublishLibrary=ksmPublishLibrary;
 ksmPublishLibrary=function(input){
   if(ksmAccount.enabled&&input?.kind==='library'){
     const admin=ksmAccount.globalRole==='admin'&&!!ksmAccount.token;
-    input={...input,authEnabled:true,accountEmail:ksmAccount.email,canCreate:admin,canDelete:admin,authorizedIds:ksmVisibleLibrary.filter(row=>admin||row.canManage).map(row=>row.id)};
+    input={...input,authEnabled:true,accountEmail:ksmAccount.email,accountRole:ksmAccount.globalRole,canCreate:admin,canDelete:admin,authorizedIds:ksmVisibleLibrary.filter(row=>admin||row.canManage).map(row=>row.id)};
   }
   return ksmAccountPublishLibrary(input);
 };
@@ -131,4 +131,8 @@ ksmExpireStaffSession=function(payload){
   }
   return ksmAccountExpire(payload);
 };
+function ksmRevealReadyUi(){document.documentElement.classList.add('ksm-ui-ready')}
+Promise.all([ksmBootstrapInitialization,ksmAuthReady]).then(ksmRevealReadyUi,ksmRevealReadyUi);
+// Preserve the existing module-load failure notices when the account module cannot run.
+document.addEventListener('DOMContentLoaded',()=>{if(!window.ksmShellMounted)ksmRevealReadyUi()});
 /* ksm:post-split-end */

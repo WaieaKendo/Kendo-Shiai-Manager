@@ -37,7 +37,15 @@ def main():
             assert api.post(f'/api/tournaments/{a}/directors', data={'email': 'director@example.com'}).ok
             guest = browser.new_context()
             landing = guest.new_page()
-            landing.goto(base)
+            held = []
+            landing.route('**/api/auth/config', lambda route: held.append(route))
+            landing.goto(base, wait_until='domcontentloaded')
+            landing.wait_for_timeout(100)
+            assert held, 'configuration request was not held'
+            assert not landing.get_by_test_id('home-new-tournament').is_visible(), 'startup leaked management controls'
+            assert not landing.locator('header.ksm-topbar').is_visible(), 'startup flashed the tournament header'
+            held[0].fulfill(response=guest.request.get(base + '/api/auth/config'))
+            landing.unroute('**/api/auth/config')
             expect(landing.get_by_test_id('library-sign-in')).to_be_visible()
             button_box = landing.get_by_test_id('library-sign-in').bounding_box()
             brand_box = landing.locator('#home .home-brand').bounding_box()
@@ -68,6 +76,7 @@ def main():
                 expect(page.get_by_test_id('account-role')).to_be_visible(timeout=15000)
                 return context, page
             director_context, director = signed_device('director@example.com', a, 390)
+            director.reload()
             expect(director.get_by_test_id('account-role')).to_contain_text('Director · Auth A')
             assert director.get_by_test_id('account-role').evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(254, 243, 199)'
             assert director.get_by_test_id('account-role').evaluate('(el) => parseFloat(getComputedStyle(el).fontSize)') <= 12
@@ -84,7 +93,9 @@ def main():
             assert write_status(director, a, 'DELETE') == 403
             assert director.get_by_test_id('directors-management').count() == 0
             admin_context, admin = signed_device('admin@example.com', a)
+            admin.reload()
             expect(admin.get_by_test_id('account-role')).to_contain_text('Admin')
+            expect(admin.get_by_test_id('library-account')).to_contain_text('admin@example.com')
             assert admin.get_by_test_id('account-role').evaluate('(el) => getComputedStyle(el).backgroundColor') == 'rgb(237, 233, 254)'
             assert write_status(admin, a) == 409 and write_status(admin, b) == 409
             admin.evaluate("KSMTest.show('setup')")
@@ -124,6 +135,20 @@ def main():
             # Removing a director immediately revokes new writes even with a valid signed JWT.
             assert api.delete(f'/api/tournaments/{a}/directors', data={'email':'director@example.com'}).ok
             assert write_status(director, a) == 403
+            # The tab cache survives reload but explicit sign-out clears it.
+            admin.goto(base)
+            expect(admin.get_by_test_id('library-account')).to_contain_text('Admin')
+            admin.get_by_test_id('library-sign-in').click()
+            expect(admin.get_by_test_id('library-sign-in')).to_have_text('Sign in')
+            assert admin.evaluate("Object.keys(sessionStorage).filter(k => k.startsWith('ksm.auth0.')).length") == 0
+            admin.reload()
+            expect(admin.get_by_test_id('library-sign-in')).to_have_text('Sign in')
+            admin.get_by_test_id('library-sign-in').click()
+            admin.get_by_label('Email').fill('outsider@example.com')
+            admin.get_by_role('button', name='Continue', exact=True).click()
+            expect(admin.get_by_test_id('library-account')).to_contain_text('outsider@example.com')
+            expect(admin.get_by_test_id('library-account')).to_contain_text('No management access')
+            expect(admin.get_by_test_id('home-new-tournament')).to_have_count(0)
             for context in [director_context, admin_context, spectator_context]:
                 context.close()
             api.dispose()

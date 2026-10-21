@@ -251,7 +251,9 @@ existing password sessions cannot bypass it. Removing the last director restores
 path only while the tournament is public. Private tournaments always require an authorized account. With Auth0 enabled, creation/deletion require an admin even for a tournament with no directors.
 Roles are checked on every write and staff live handshake; live scoring messages recheck director
 membership and token expiry. Changing directors closes existing staff live connections. JWTs are
-kept only in SDK memory, renewed by the SDK; after reload it tries the Auth0 session silently.
+kept in a tab-scoped SDK sessionStorage cache, renewed by the SDK; reload retains unexpired tokens.
+The Worker revalidates identity and roles on reload; SDK logout clears its cache. New tabs or an
+expired token may need the Auth0 session to restore sign-in silently.
 If browser cookie restrictions prevent that, sign in again. Unsaved staff work stays in the existing
 outbox after authentication expires. Staff live handshakes carry the access token in the WebSocket
 query (browsers cannot add an Authorization header); do not log query strings at the proxy/edge.

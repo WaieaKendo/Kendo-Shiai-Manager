@@ -27,6 +27,7 @@ export type LibraryInput =
     kind: 'library';
     authEnabled?: boolean;
     accountEmail?: string;
+    accountRole?: string;
     canCreate?: boolean;
     canManage?: boolean;
     canDelete?: boolean;
