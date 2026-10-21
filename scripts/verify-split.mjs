@@ -330,10 +330,10 @@ const KNOWN_POST_SPLIT_CSS_EDITS = {
   'tournament-switcher': 1,
   // feat/grand-champion (#86): app/styles/20-grand-champion.css, Setup's grand champion rows (theme tokens only).
   'grand-champion-style': 1,
-  // fix/nav-links: app/styles/22-nav-links.css, the Courts and TV menu items as links styled like the buttons.
-  'nav-links': 1,
   // fix/tiebreak-mark: app/styles/21-pool-tiebreak.css, a pool card's Tiebreak section and note (theme tokens only).
   'pool-tiebreak': 1,
+  // fix/nav-links: app/styles/22-nav-links.css, the Courts and TV menu items as links styled like the buttons.
+  'nav-links': 1,
 };
 // Old functions whose body now lives in app/engine/*.ts (parameter lists without braces).
 const MOVED_TO_ENGINE = [
