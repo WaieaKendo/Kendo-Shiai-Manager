@@ -76,7 +76,7 @@ def main():
         row = director.setup_division_row('Under 12')
         assert row.locator(sel('setup-division-format')).input_value() == fmt and row.locator(sel('setup-division-court')).input_value() == court, \
             'the renamed preset keeps its format and court'
-        assert row.locator(sel('setup-division-remove')).count() == 0, 'a renamed preset is still a preset (no ×)'
+        assert row.locator(sel('setup-division-remove')).count() == 1, 'a renamed preset can still be removed before its draw (×, #112)'
         assert YONENBU not in director.setup_division_names(), 'the old preset name is not listed again'
         assert director.registration_division('K 1') [0] == 'Under 12', 'Registration shows the new name for the competitor'
         options = director.registration_division('K 2')[1]

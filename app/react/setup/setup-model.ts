@@ -25,8 +25,12 @@ export interface SetupDivisionRowInput {
   name: string;
   /** In state.divisions (Use checked; the selects enabled). */
   enabled: boolean;
-  /** Not a preset: marked "custom", with ×. */
+  /** Not a preset: marked "custom". */
   custom: boolean;
+  /** Every division has × (presets too; owner request): removing a preset hides it for this tournament. */
+  removable?: boolean;
+  /** Why × is off (the division is drawn), shown as its tooltip; null when it can be removed. */
+  removeBlocked?: string | null;
   /** state.divisionTypes[d] (null when unset). */
   format: string | null;
   /** state.divisionCourts[d] || 'A'. */
@@ -41,6 +45,8 @@ export interface SetupDivisionRowInput {
 export interface SetupDivisionsInput {
   /** The enabled divisions in their running order (#31), then the switched-off ones. */
   rows: SetupDivisionRowInput[];
+  /** How many standard (preset) divisions were removed: "Restore standard divisions" brings them back. */
+  hiddenPresets?: number;
 }
 
 export interface SetupHeaderInput {

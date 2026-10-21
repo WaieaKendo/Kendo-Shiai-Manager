@@ -37,6 +37,7 @@ interface SetupWindow {
   setDivisionFormat?: (division: string, value: string) => unknown;
   setDivisionCourt?: (division: string, value: string) => unknown;
   ksmRemoveSetupDivision?: (division: string) => unknown;
+  ksmRestoreStandardDivisions?: () => unknown;
   ksmMoveSetupDivision?: (division: string, direction: 'up' | 'down') => unknown;
   /** Issue #25: renames the division; why not (nothing changed), or null. */
   ksmRenameSetupDivision?: (division: string, name: string) => string | null;
@@ -217,7 +218,7 @@ function DivisionRow({ row }: { row: SetupDivisionRowView }) {
         <select ref={court} disabled={!row.enabled} defaultValue={row.courtSelected ?? undefined} data-testid="setup-division-court">
           {COURT_OPTIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
         </select>
-        {row.custom && <>{' '}<button onClick={() => setupWindow().ksmRemoveSetupDivision?.(row.division)} data-testid="setup-division-remove">{REMOVE_TEXT}</button></>}
+        {(row.custom || row.removable) && <>{' '}<button onClick={() => setupWindow().ksmRemoveSetupDivision?.(row.division)} disabled={!!row.removeBlocked} title={row.removeBlocked || `Remove ${row.name}`} aria-label={`Remove ${row.name}`} data-testid="setup-division-remove">{REMOVE_TEXT}</button></>}
       </td>
     </tr>
   );
@@ -227,7 +228,20 @@ function DivisionRow({ row }: { row: SetupDivisionRowView }) {
 export function SetupDivisionRows() {
   const input = useSyncExternalStore(subscribeDivisions, divisionsSnapshot, () => EMPTY_SETUP_DIVISIONS);
   const key = keyOf(input);
-  return <>{input.rows.map((row, i) => <DivisionRow key={`${key}:${i}`} row={setupDivisionRowView(row)} />)}</>;
+  return (
+    <>
+      {input.rows.map((row, i) => <DivisionRow key={`${key}:${i}`} row={setupDivisionRowView(row)} />)}
+      {(input.hiddenPresets ?? 0) > 0 && (
+        <tr data-testid="setup-division-restore-row">
+          <td colSpan={4}>
+            <button type="button" className="secondary" onClick={() => setupWindow().ksmRestoreStandardDivisions?.()} data-testid="setup-division-restore">
+              {`Restore standard divisions (${input.hiddenPresets})`}
+            </button>
+          </td>
+        </tr>
+      )}
+    </>
+  );
 }
 
 /** The contents of #setupTournamentName (syncSetupHeader()). */
