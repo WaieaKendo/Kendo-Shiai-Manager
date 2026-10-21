@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  DIVISION_COMPLETE_TEXT, EMPTY_TV, NO_UPCOMING_TEXT, UPCOMING_TITLE, kachinukiState, nameParts, tvBodyView, tvView,
+  EMPTY_TV, NEXT_DIVISION_LABEL, NO_UPCOMING_TEXT, UPCOMING_TITLE, kachinukiState, nameParts, tvBodyView, tvView,
 } from '../../app/react/tv/tv-model.ts';
 
 const header = { court: 'A', division: 'Open', meta: 'Pool A' };
@@ -13,7 +13,7 @@ test('tvView: nothing published yet is the empty static markup', () => {
 test('legacy texts: Upcoming Matches, an empty card, the Final Results footer', () => {
   assert.equal(UPCOMING_TITLE, 'Upcoming Matches');
   assert.equal(NO_UPCOMING_TEXT, 'No additional match scheduled');
-  assert.equal(DIVISION_COMPLETE_TEXT, 'Division Complete');
+  assert.equal(NEXT_DIVISION_LABEL, 'Next');
 });
 
 test('nameParts: the first name and the rest, a dash for an empty name (tv3Name())', () => {
@@ -79,7 +79,7 @@ test('tvBodyView: kachinuki (current fighters without dojos, lineup states)', ()
   assert.deepEqual(view.rowsR, [{ name: 'TB1', state: 'active' }, { name: '—', state: 'waiting' }, { name: '—', state: 'waiting' }]);
 });
 
-test('tvView: Final Results use the division-complete panel and the "Division Complete" footer', () => {
+test('tvView: Final Results use the division-complete panel; the footer has only the next division', () => {
   const view = tvView({
     kind: 'tv', court: 'A', division: 'Open', meta: 'Final Results', upcoming: [],
     body: { kind: 'results', complete: { complete: true, placements: [{ place: '1st', name: 'P 2', tier: 'gold' }, { place: '3rd', name: 'P 1', tier: '' }] } },
@@ -89,6 +89,17 @@ test('tvView: Final Results use the division-complete panel and the "Division Co
     kind: 'results', complete: { complete: true, rows: [{ place: '1st', name: 'P 2', placeClass: 'gold' }, { place: '3rd', name: 'P 1', placeClass: '' }] },
   });
   assert.deepEqual(view.footer, { kind: 'results' });
+  const next = tvView({
+    kind: 'tv', court: 'B', division: 'Open', meta: 'Final Results', upcoming: [], nextDivision: 'Kids',
+    body: { kind: 'results', complete: { complete: true, placements: [] } },
+  });
+  assert.deepEqual(next.kind === 'tv' && next.footer, { kind: 'results', next: 'Kids' });
+  // A division with no more matches to queue: the empty Upcoming cards give way to its court's next division.
+  const last = tvView({
+    kind: 'tv', court: 'B', division: 'Open', meta: 'Final', upcoming: [null, null], nextDivision: 'Kids',
+    body: { kind: 'idle' },
+  });
+  assert.deepEqual(last.kind === 'tv' && last.footer, { kind: 'upcoming', cards: [null, null], next: 'Kids' });
 });
 
 test('tvView: hansoku on an individual match and a team row (owner decision 5)', () => {
