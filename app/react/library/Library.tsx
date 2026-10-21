@@ -19,6 +19,7 @@ export const LIBRARY_EVENT = 'ksm:library';
 interface LibraryWindow {
   /** The library as paintHomeTournamentLibrary() last published it. */
   ksmLibraryInput?: LibraryInput;
+  ksmAuthMessage?: string;
   ksmAuthorizeLibraryTournament?: (id: string) => unknown;
   triggerLoadTournament?: () => void;
   ksmReturnFromLibrary?: () => void;
@@ -37,6 +38,12 @@ function subscribe(onChange: () => void): () => void {
   return () => window.removeEventListener(LIBRARY_EVENT, onChange);
 }
 const snapshot = (): LibraryInput => libraryWindow().ksmLibraryInput ?? EMPTY_LIBRARY;
+
+const authMessage = () => libraryWindow().ksmAuthMessage || '';
+const subscribeAuthMessage = (listener: () => void) => {
+  window.addEventListener('ksm:auth-message', listener);
+  return () => window.removeEventListener('ksm:auth-message', listener);
+};
 
 /** libraryCardMarkup(x): the card and the name below it, both opening the tournament. */
 function LibraryCard({ card, canManage, canDelete = true, accounts = false }: { card: LibraryCardView; canManage: boolean; canDelete?: boolean; accounts?: boolean }) {
@@ -65,6 +72,7 @@ function LibraryCard({ card, canManage, canDelete = true, accounts = false }: { 
 export function Library() {
   const input = useSyncExternalStore(subscribe, snapshot, () => EMPTY_LIBRARY);
   const view = libraryView(input);
+  const signInError = useSyncExternalStore(subscribeAuthMessage, authMessage, () => '');
   const canManage = input.kind === 'library' && !!input.canManage;
   const activeId = input.kind === 'library' ? input.activeId ?? '' : '';
   const accounts = input.kind === 'library' && input.authEnabled;
@@ -78,6 +86,7 @@ export function Library() {
         <div><h1 id="homeTitle">{HOME_TITLE}</h1><p>{HOME_SUBTITLE}</p></div>
         {accounts && <button type="button" data-testid="library-sign-in" onClick={() => window.dispatchEvent(new CustomEvent(input.accountEmail ? 'ksm:sign-out' : 'ksm:sign-in'))}>{input.accountEmail ? 'Sign out' : 'Sign in'}</button>}
       </div>
+      {accounts && signInError && <p className="sub" role="alert" data-testid="auth0-error">Sign-in failed: {signInError}</p>}
       <div className="home-head">
         <div><h2>{accounts ? (input.kind === 'library' && input.accountEmail ? 'My tournaments & public tournaments' : 'Tournaments') : LIBRARY_HEADING}</h2><p>{accounts ? 'Open a public tournament to watch, or sign in to manage your tournaments.' : LIBRARY_INTRO}</p></div>
         <div className="actions">

@@ -10,7 +10,12 @@ let sdk: Auth0Client | undefined;
 let snapshot = { ...bridge.state() };
 let message = '';
 const listeners = new Set<() => void>();
-function publish() { snapshot = { ...bridge.state() }; listeners.forEach(fn => fn()); }
+function publish() {
+  snapshot = { ...bridge.state() };
+  (window as unknown as { ksmAuthMessage: string }).ksmAuthMessage = message;
+  window.dispatchEvent(new CustomEvent('ksm:auth-message'));
+  listeners.forEach(fn => fn());
+}
 window.addEventListener('ksm:account', publish);
 const subscribe = (fn: () => void) => { listeners.add(fn); return () => { listeners.delete(fn); }; };
 async function refresh(id = bridge.tournament()) {
@@ -162,7 +167,15 @@ async function initialize() {
     bridge.refreshUi(); bridge.reconnect();
     setInterval(() => { if (bridge.state().email) void w.ksmRefreshAccount?.().then(() => bridge.refreshUi()); }, 30000);
     window.addEventListener('online', () => { void w.ksmRefreshAccount?.().then(() => bridge.reconnect()); });
-  } catch (error) { message = (error as Error).message; publish(); }
+  } catch (error) {
+    message = (error as Error).message;
+    const url = new URL(location.href);
+    if (url.searchParams.has('state') && (url.searchParams.has('code') || url.searchParams.has('error'))) {
+      for (const key of ['state', 'code', 'error', 'error_description', 'iss']) url.searchParams.delete(key);
+      history.replaceState(null, '', url.pathname + url.search + url.hash);
+    }
+    publish();
+  }
   finally { w.ksmResolveAuthReady(); }
 }
 void initialize();

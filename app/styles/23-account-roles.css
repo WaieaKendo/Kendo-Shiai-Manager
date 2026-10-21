@@ -17,4 +17,5 @@ body.ksm-tv .ksm-role-host, body.ksm-tv .ksm-auth-controls { display: none !impo
 .ksm-directors form, .ksm-directors li { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
 .ksm-directors input { max-width: 100%; }
 @media (max-width: 600px) { .ksm-role-strip { padding: .25rem .75rem; font-size: .75rem; } }
+[data-testid="library-sign-in"] { margin-inline-start: auto; flex-shrink: 0; }
 /* ksm:post-split-end */

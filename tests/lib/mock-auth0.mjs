@@ -35,6 +35,13 @@ export async function mockAuth0() {
         res.setHeader('content-type', 'text/html');
         res.end(`<form method="get"><label>Email <input name="email" type="email" required></label>${[...url.searchParams].map(([key,value]) => `<input type="hidden" name="${key}" value="${value.replaceAll('&','&amp;').replaceAll('"','&quot;')}">`).join('')}<button>Continue</button></form>`); return;
       }
+      if (url.searchParams.get('email') === 'denied@example.com') {
+        const target = new URL(url.searchParams.get('redirect_uri'));
+        target.searchParams.set('error', 'access_denied');
+        target.searchParams.set('error_description', 'Service not found: https://ksm.test/api');
+        target.searchParams.set('state', url.searchParams.get('state'));
+        res.writeHead(302, { location: target.href }).end(); return;
+      }
       const code = randomUUID(); codes.set(code, Object.fromEntries(url.searchParams));
       const target = new URL(url.searchParams.get('redirect_uri')); target.searchParams.set('code', code); target.searchParams.set('state', url.searchParams.get('state'));
       res.writeHead(302, { location: target.href }).end(); return;
