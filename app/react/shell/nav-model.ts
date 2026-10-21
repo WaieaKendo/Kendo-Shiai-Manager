@@ -26,6 +26,9 @@ export interface NavInput {
   /** The label of the screen shown (setActiveNavForView()'s mapping: "Setup", "Courts",
    * "TV Display", ...), or null for a screen without one. */
   active: string | null;
+  /** Addresses of menu items that are pages (by test ID: nav-court-a, nav-tv-b, ...), so they are
+   * links that open in a new tab; a plain click still runs the item's action. Absent: buttons. */
+  links?: Readonly<Record<string, string>>;
 }
 
 /** Nothing published yet: the static markup (every menu closed, no tile marked). */
