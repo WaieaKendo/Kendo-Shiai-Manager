@@ -35,7 +35,7 @@ html:not(.ksm-ui-ready) body::before {
   color: var(--muted);
 }
 /* Account actions share the header status area with connection status. */
-body.ksm-account-signed-in #staffAuthButton { display: none !important; }
+body.ksm-account-enabled #staffAuthButton { display: none !important; }
 .ksm-account-status { grid-area: staff; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; margin-left: auto; }
 .ksm-auth-controls { align-self: flex-end; }
 .ksm-account-menu { position: relative; color: var(--ink); text-align: left; }

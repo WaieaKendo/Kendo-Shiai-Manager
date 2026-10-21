@@ -12,6 +12,7 @@ function ksmAccountCanEdit(){
 }
 function ksmAccountChanged(){
   document.body.classList.toggle('ksm-account-signed-in',!!ksmAccount.email);
+  document.body.classList.toggle('ksm-account-enabled',ksmAccount.enabled);
   setSessionRole(v316StaffPassword()?'staff':'spectator');
   window.dispatchEvent(new CustomEvent('ksm:account'));
 }

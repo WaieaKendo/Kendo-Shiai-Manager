@@ -157,6 +157,7 @@ def main():
             spectator.on('request', lambda req: writes.append(req.url) if '/api/' in req.url and req.method in ('PUT','DELETE') else None)
             spectator.goto(base + f'/t/{a}/overview')
             expect(spectator.get_by_test_id('auth0-sign-in')).to_have_text('Sign in')
+            expect(spectator.get_by_test_id('staff-auth')).not_to_be_visible()
             assert spectator.get_by_test_id('account-role').count() == 0
             assert spectator.get_by_test_id('directors-management').count() == 0
             assert spectator.evaluate("KSMTest.role() === 'spectator'")
