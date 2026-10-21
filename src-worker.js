@@ -311,7 +311,7 @@ export class TournamentState {
       const role = safeRole(url.searchParams.get('role') || 'spectator');
       const token = url.searchParams.get('access_token') || '';
       let access = await this.accountAccess(request, { token });
-      if (!(await this.isPublic()) && !access?.ok) return json({ error: 'Tournament not viewable', code: 'tournament-private' }, 403);
+      if (!(await this.isPublic()) && !access?.ok) return json({ error: 'Tournament not viewable', code: 'tournament-private', message: 'This tournament is private. Sign in with an account that can manage it.' }, 403);
       if (role === 'staff') {
         access = access || await this.staffAccess(url.searchParams.get('key') || '');
         if (!access.ok) return denied(access);
@@ -460,7 +460,7 @@ export class TournamentState {
           await tx.put('directors', next);
         });
         // Reconnects recheck permissions; existing sockets also check each scoring message.
-        if (request.method === 'DELETE' && !isAdmin(this.env, email)) for (const socket of this.state.getWebSockets()) if (socket.deserializeAttachment()?.identity?.email === email) try { socket.close(1000, 'Access changed'); } catch (_) {}
+        if (request.method === 'DELETE') for (const socket of this.state.getWebSockets()) if (socket.deserializeAttachment()?.identity?.email === email) try { socket.close(1000, 'Access changed'); } catch (_) {}
       }
       return json({ directors: await this.directors() });
     }

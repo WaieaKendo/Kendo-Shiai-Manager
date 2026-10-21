@@ -66,10 +66,13 @@ try {
     object.verifyIdentity=async token=>{verifications++;return verify(token)};
     const adminSocket=await api.openSocket(a.id,{role:'staff',access_token:jwt.admin});
     assert.equal(verifications,1);object.verifyIdentity=verify;
+    const closed=[];for(const ws of object.state.getWebSockets()){const close=ws.close.bind(ws);ws.close=(...args)=>{closed.push(ws.deserializeAttachment().identity?.email);return close(...args)}}
     await api.call('POST',`/api/tournaments/${a.id}/directors`,{headers:headers(jwt.admin),body:{email:'other@example.com'}});
+    assert.deepEqual(closed,[]);
     const flash=JSON.stringify({type:'flash',court:'A',kind:'encho',id:'one'});
     await socket.send(flash);assert(socket.messages.some(m=>m.id==='one'));
     await api.call('DELETE',`/api/tournaments/${a.id}/directors`,{headers:headers(jwt.admin),body:{email:'director@example.com'}});
+    assert.deepEqual(closed,['director@example.com']);
     await adminSocket.send(JSON.stringify({type:'flash',court:'A',kind:'encho',id:'admin-still-connected'}));
     assert(adminSocket.messages.some(m=>m.id==='admin-still-connected'));
     const before=socket.messages.length;await socket.send(JSON.stringify({type:'flash',court:'A',kind:'encho',id:'two'}));assert.equal(socket.messages.length,before);

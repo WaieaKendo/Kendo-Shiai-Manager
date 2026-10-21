@@ -37,10 +37,12 @@ def main():
             assert api.post(f'/api/tournaments/{a}/directors', data={'email': 'director@example.com'}).ok
             stalled_context = browser.new_context()
             stalled = stalled_context.new_page()
-            stalled.route('**/api/auth/config', lambda route: None)
+            stalled_pending = []
+            stalled.route('**/api/auth/config', lambda route: stalled_pending.append(route))
             stalled.goto(base, wait_until='domcontentloaded')
-            expect(stalled.get_by_test_id('auth0-error')).to_be_visible(timeout=12000)
+            expect(stalled.get_by_test_id('auth0-error')).to_be_visible(timeout=4200)
             assert not stalled.get_by_test_id('home-new-tournament').is_visible()
+            stalled_pending[0].abort()
             stalled_context.close()
             guest = browser.new_context()
             landing = guest.new_page()
@@ -75,6 +77,7 @@ def main():
                 context = browser.new_context(viewport={'width': width, 'height': 850})
                 page = context.new_page()
                 install_test_api(page)
+                page.add_init_script("const originalInterval=window.setInterval;window.authIntervals=[];window.setInterval=(fn,ms,...args)=>{if(ms===30000)window.authIntervals.push(fn);return originalInterval(fn,ms,...args)};")
                 page.goto(base + f'/t/{tid}/overview')
                 page.get_by_test_id('auth0-sign-in').wait_for()
                 page.get_by_test_id('auth0-sign-in').click()
@@ -99,8 +102,11 @@ def main():
             director.unroute('**/authorize?**')
             # Transient outages preserve already authorized editing; explicit denial revokes it.
             director.route('**/api/auth/me', lambda route: route.abort())
-            director.evaluate('window.ksmRefreshAccount()')
+            director.evaluate('''() => {const bridge=window.ksmAuthBridge;const reconnect=bridge.reconnect;window.authReconnects=0;bridge.reconnect=()=>{window.authReconnects++;reconnect()};const refresh=window.ksmRefreshAccount;window.intervalRefreshDone=false;window.ksmRefreshAccount=async(...args)=>{try{return await refresh(...args)}finally{window.intervalRefreshDone=true}};window.authIntervals.forEach(fn=>fn());}''')
+            director.wait_for_function('window.intervalRefreshDone')
             assert director.evaluate('window.ksmAuthBridge.state().role') == 'director'
+            assert director.evaluate('window.authReconnects') == 0
+            assert director.evaluate('window.ksmAuthMessage') == ''
             director.unroute('**/api/auth/me')
             director.route('**/api/auth/me', lambda route: route.fulfill(status=503, body='Unavailable'))
             director.evaluate('window.ksmRefreshAccount()')
@@ -134,6 +140,12 @@ def main():
             expect(admin.get_by_role('link', name='Tournament Library', exact=True)).to_be_visible()
             admin.locator('.ksm-account-menu > summary').click()
             expect(admin.get_by_test_id('directors-management')).to_be_visible()
+            # A missing-record rejection must leave queued work intact with a clear diagnostic.
+            admin.route('**/api/tournaments/' + a, lambda route: route.fulfill(status=404, content_type='application/json', body='{"error":"Tournament not found"}') if route.request.method == 'PUT' else route.continue_())
+            retained = admin.evaluate('''async () => {KSMTest.app.writeOutbox(KSMTest.app.tournamentPayload(),'Missing record regression');const before=JSON.stringify(KSMTest.app.readOutbox());const sent=await KSMTest.app.flushCloudOutbox();clearTimeout(ksmQueuedSaveRetryTimer);return {sent,kept:JSON.stringify(KSMTest.app.readOutbox())===before,message:KSMTest.diagnostics().errorMessage};}''')
+            assert retained == {'sent': False, 'kept': True, 'message': 'Tournament not found'}, retained
+            admin.unroute('**/api/tournaments/' + a)
+            assert admin.evaluate('KSMTest.app.flushCloudOutbox()') is True
             toggle = admin.get_by_test_id('tournament-visibility').get_by_role('checkbox')
             expect(toggle).not_to_be_checked()
             toggle.check()
@@ -164,7 +176,7 @@ def main():
             assert not writes
             assert spectator.evaluate("JSON.parse(localStorage.getItem('ksm.tournament.record:'+window.ksmAuthBridge.tournament())).isPublic") is True
             spectator_context.set_offline(True)
-            assert spectator.evaluate("async () => (await (await ksmFetchTournament(window.ksmAuthBridge.tournament())).json()).payload.setup.tName") == 'Auth A'
+            assert spectator.evaluate("async () => (await (await KSMTest.app.ksmFetchTournament(window.ksmAuthBridge.tournament())).json()).payload.setup.tName") == 'Auth A'
             spectator_context.set_offline(False)
             # A live public spectator is removed when the tournament becomes private.
             spectator.wait_for_function("KSMTest.pendingReason().socket === 'open'")

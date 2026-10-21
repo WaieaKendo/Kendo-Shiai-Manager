@@ -297,7 +297,7 @@ visibility settings are ignored and 4.0 behavior remains unchanged.
 
 ### Auth0 renewal, offline viewing, and stream overlays
 
-Enable **Allow Offline Access** for the Auth0 API and **Refresh Token Rotation** for the SPA.
+Owner decision for rollout: enable **Allow Offline Access** for the Auth0 API and **Refresh Token Rotation** for the SPA, and choose refresh-token absolute and inactivity expiry periods suited to tournament-day sessions.
 KSM requests `offline_access` and uses refresh tokens, with the SDK iframe fallback when a refresh
 token is unavailable. The tab-scoped session cache stores refresh tokens alongside access tokens;
 sign-out clears it. A new tab may still require sign-in.
@@ -305,7 +305,7 @@ sign-out clears it. A new tab may still require sign-in.
 Transient network/server errors during permission refresh retain the last authorized editing
 session so work can queue locally. Explicit denial or an SDK login-required response removes
 editing access. The server rechecks authorization before accepting queued changes. Startup
-requests and SDK authorization have eight-second timeouts; slow startup reveals a safe restricted
+requests and SDK authorization have bounded timeouts (five seconds for config and ten for silent token renewal); after three seconds startup reveals a safe restricted
 UI with a connection message while restoration finishes.
 
 Only explicitly public snapshots are cached for offline viewing in Auth0 mode. These are last-known
@@ -313,5 +313,5 @@ public copies: an offline device cannot learn that a tournament was subsequently
 Private snapshots are not cached, and an online private-access denial removes the cached copy.
 The service worker continues to bypass API caches.
 
-OBS browser-source overlays require **Public listing**. Private overlays deliberately have no
+The OBS overlay and TV links only work while the tournament is public. Private overlays deliberately have no
 shared-token bypass in this phase; Setup explains that limitation.

@@ -20,10 +20,15 @@ function publish() {
 window.addEventListener('ksm:account', publish);
 const subscribe = (fn: () => void) => { listeners.add(fn); return () => { listeners.delete(fn); }; };
 class AccessDenied extends Error {}
-const authFetch = (url: string, init: RequestInit = {}) => fetch(url, { ...init, signal: AbortSignal.timeout(8000) });
+async function authFetch(url: string, init: RequestInit = {}, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try { return await fetch(url, { ...init, signal: controller.signal }); }
+  finally { clearTimeout(timeout); }
+}
 async function refresh(id = bridge.tournament()) {
   if (!sdk || (!bridge.state().email && !(await sdk.isAuthenticated()))) return;
-  const token = await sdk.getTokenSilently();
+  const token = await sdk.getTokenSilently({ timeoutInSeconds: 10 });
   const headers = { authorization: `Bearer ${token}` };
   const me = await authFetch('/api/auth/me', { headers, cache: 'no-store' });
   if (!me.ok) throw new (me.status === 401 || me.status === 403 ? AccessDenied : Error)('Sign-in could not be verified.');
@@ -39,8 +44,9 @@ w.ksmRefreshAccount = async id => {
   try { await refresh(id); message = ''; }
   catch (error) {
     const code = (error as { error?: string }).error;
-    if (error instanceof AccessDenied || ['login_required', 'invalid_grant', 'missing_refresh_token'].includes(code || '')) bridge.update({ token: '', role: 'spectator', globalRole: 'spectator' });
-    message = (error as Error).message;
+    const denied = error instanceof AccessDenied || ['login_required', 'consent_required'].includes(code || '');
+    if (denied) bridge.update({ token: '', role: 'spectator', globalRole: 'spectator' });
+    message = denied ? (error as Error).message : '';
   }
   const after = bridge.state();
   if (before.token !== after.token || before.role !== after.role || before.globalRole !== after.globalRole) bridge.reconnect();
@@ -110,7 +116,7 @@ function Visibility() {
   const [isPublic, setPublic] = useState<boolean | null>(null), [error, setError] = useState(''), [busy, setBusy] = useState(false);
   useEffect(() => {
     let active = true; setPublic(null);
-    if (manage && id && account.token) void fetch(`/api/tournaments/${id}/visibility`, { headers: { authorization: `Bearer ${account.token}` } }).then(async response => {
+    if (manage && id && account.token) void fetch(`/api/tournaments/${encodeURIComponent(id)}/visibility`, { headers: { authorization: `Bearer ${account.token}` } }).then(async response => {
       if (!response.ok) throw new Error('Unable to read visibility');
       const body = await response.json() as { isPublic: boolean }; if (active) setPublic(body.isPublic);
     }).catch(e => { if (active) setError((e as Error).message); });
@@ -121,7 +127,7 @@ function Visibility() {
     const previous = isPublic;
     setPublic(value); setBusy(true); setError('');
     try {
-      const response = await fetch(`/api/tournaments/${id}/visibility`, { method: 'PUT', headers: { 'content-type':'application/json', authorization: `Bearer ${account.token}` }, body: JSON.stringify({ isPublic:value }) });
+      const response = await fetch(`/api/tournaments/${encodeURIComponent(id)}/visibility`, { method: 'PUT', headers: { 'content-type':'application/json', authorization: `Bearer ${account.token}` }, body: JSON.stringify({ isPublic:value }) });
       if (!response.ok) throw new Error('Unable to update visibility');
       if (id === bridge.tournament()) setPublic(value);
       await bridge.library(); bridge.reconnect();
@@ -130,7 +136,7 @@ function Visibility() {
   return <section className="ksm-visibility" data-testid="tournament-visibility"><h4>Public listing</h4>
     <label><input type="checkbox" checked={isPublic === true} disabled={isPublic === null || busy} onChange={e => { void change(e.target.checked); }} /> Show this tournament publicly</label>
     <p>{isPublic ? 'Anyone can find this tournament and watch without signing in.' : 'Private: only admins and assigned directors can view or manage this tournament.'}</p>
-    <p>OBS stream overlays require Public listing. Private tournaments cannot be displayed in an OBS browser source.</p>
+    <p>The OBS overlay and TV links only work while the tournament is public.</p>
     {error && <p role="alert">{error}</p>}
   </section>;
 }
@@ -156,13 +162,16 @@ async function initialize() {
   const startupTimer = window.setTimeout(() => {
     bridge.update({ enabled: true, passwordFallback: false });
     message = 'Sign-in is taking longer than expected. Check your connection or retry sign-in.';
-    publish(); bridge.refreshUi(); w.ksmResolveAuthReady();
+    publish(); bridge.refreshUi();
     document.documentElement.classList.add('ksm-ui-ready');
-  }, 8000);
+  }, 3000);
   try {
-    const response = await authFetch('/api/auth/config', { cache: 'no-store' });
+    // A known standalone tab can reopen its public snapshots without a config round-trip.
+    if (!navigator.onLine && sessionStorage.getItem('ksm.auth.configured') === 'false') return;
+    const response = await authFetch('/api/auth/config', { cache: 'no-store' }, 5000);
     if (!response.ok) throw new Error('Sign-in configuration unavailable');
     const config = await response.json() as { enabled: boolean; domain: string; audience: string; clientId: string };
+    try { sessionStorage.setItem('ksm.auth.configured', String(config.enabled)); } catch (_) { /* Optional offline hint. */ }
     if (!config.enabled) { if (bridge.state().enabled) bridge.update({ enabled: false }); return; }
     mountAccountUi();
     bridge.update({ enabled: true });
@@ -178,7 +187,7 @@ async function initialize() {
       await w.ksmRefreshAccount?.();
       await bridge.restore();
     }
-    if (!(await sdk.isAuthenticated())) { try { await sdk.getTokenSilently(); } catch (_) { /* No Auth0 session yet. */ } }
+    if (!(await sdk.isAuthenticated())) { try { await sdk.getTokenSilently({ timeoutInSeconds: 10 }); } catch (_) { /* No Auth0 session yet. */ } }
     if (await sdk.isAuthenticated()) await w.ksmRefreshAccount?.();
     bridge.refreshUi(); bridge.reconnect();
     setInterval(() => { if (bridge.state().email) void w.ksmRefreshAccount?.().then(() => bridge.refreshUi()); }, 30000);

@@ -75,7 +75,7 @@ def local_worker(timeout=60, restartable=False, variables=None):
                 # Same port and persisted storage on restart; separate inspector port per worker.
                 [str(wrangler), 'dev', '--ip', '127.0.0.1', '--port', str(port), '--inspector-port', str(inspector),
                  '--persist-to', state_dir, '--log-level', 'warn',
-                 *[arg for key, value in (variables or {}).items() for arg in ('--var', f'{key}:{value}')]],
+                 *[arg for key, value in {'AUTH0_DOMAIN':'','AUTH0_AUDIENCE':'','AUTH0_CLIENT_ID':'','ADMIN_EMAILS':'', **(variables or {})}.items() for arg in ('--var', f'{key}:{value}')]],
                 cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
                 env={**os.environ, 'WRANGLER_SEND_METRICS': 'false', 'CI': '1'},
                 start_new_session=True,
