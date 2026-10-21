@@ -1,0 +1,20 @@
+/* ksm:post-split-begin auth0-roles */
+/* Reserved role palette. The tournament theme only controls its existing allowlisted tokens. */
+.ksm-role-strip {
+  --ksm-role-director-bg: #fef3c7;
+  --ksm-role-director-ink: #78350f;
+  --ksm-role-admin-bg: #ede9fe;
+  --ksm-role-admin-ink: #4c1d95;
+  padding: .4rem 1rem;
+  font-weight: 700;
+  font-size: .875rem;
+  overflow-wrap: anywhere;
+}
+.ksm-role-director { background: var(--ksm-role-director-bg); color: var(--ksm-role-director-ink); }
+.ksm-role-admin { background: var(--ksm-role-admin-bg); color: var(--ksm-role-admin-ink); }
+body.ksm-tv .ksm-role-host, body.ksm-tv .ksm-auth-controls { display: none !important; }
+.ksm-auth-controls:empty { display: none; }
+.ksm-directors form, .ksm-directors li { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.ksm-directors input { max-width: 100%; }
+@media (max-width: 600px) { .ksm-role-strip { padding: .25rem .75rem; font-size: .75rem; } }
+/* ksm:post-split-end */

@@ -39,7 +39,7 @@ function subscribe(onChange: () => void): () => void {
 const snapshot = (): LibraryInput => libraryWindow().ksmLibraryInput ?? EMPTY_LIBRARY;
 
 /** libraryCardMarkup(x): the card and the name below it, both opening the tournament. */
-function LibraryCard({ card, canManage }: { card: LibraryCardView; canManage: boolean }) {
+function LibraryCard({ card, canManage, canDelete = true }: { card: LibraryCardView; canManage: boolean; canDelete?: boolean }) {
   const open = () => { libraryWindow().openTournamentFromHome?.(card.id); };
   return (
     <div className="home-tournament-item" data-testid="home-tournament">
@@ -54,7 +54,7 @@ function LibraryCard({ card, canManage }: { card: LibraryCardView; canManage: bo
           <button type="button" data-testid="library-export-results" onClick={() => libraryWindow().ksmExportLibraryTournament?.(card.id, 'results')}>Results &amp; Awards</button>
           <button type="button" data-testid="library-export-file" onClick={() => libraryWindow().ksmExportLibraryTournament?.(card.id, 'file')}>Tournament File / Archive (server copy)</button>
         </div></details>
-        <button type="button" data-testid="library-delete" onClick={() => libraryWindow().ksmDeleteLibraryTournament?.(card.id)}>Delete</button>
+        {canDelete && <button type="button" data-testid="library-delete" onClick={() => libraryWindow().ksmDeleteLibraryTournament?.(card.id)}>Delete</button>}
       </div>}
     </div>
   );
@@ -97,7 +97,7 @@ export function Library() {
         {view.message !== null
           ? <div className="home-empty"><b>{view.message}</b></div>
           // The rows' order is the key: IDs may repeat (the cache and the cloud are not checked).
-          : view.cards.map((card, i) => <LibraryCard key={i} card={card} canManage={(canManage && activeId === card.id) || (input.kind === 'library' && !!input.authorizedIds?.includes(card.id))} />)}
+          : view.cards.map((card, i) => <LibraryCard key={i} card={card} canDelete={input.kind !== 'library' || input.canDelete !== false} canManage={(canManage && activeId === card.id) || (input.kind === 'library' && !!input.authorizedIds?.includes(card.id))} />)}
       </div>
     </>
   );

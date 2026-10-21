@@ -57,7 +57,7 @@ export class MemoryStorage {
 }
 
 
-export async function createInProcessApi({ resetKey = 'test-reset-key' } = {}) {
+export async function createInProcessApi({ resetKey = 'test-reset-key', auth0 = {} } = {}) {
   installCloudflareShims();
   const { default: workerEntry, TournamentState } = await import('../../src-worker.js');
   const objects = new Map();
@@ -93,6 +93,7 @@ export async function createInProcessApi({ resetKey = 'test-reset-key' } = {}) {
     TOURNAMENTS: namespace,
     ASSETS: { fetch: async () => new Response('static asset', { status: 200 }) },
     KSM_RESET_KEY: resetKey,
+    ...auth0,
   };
   const call = async (method, path, { headers = {}, body } = {}) => {
     // As the app: every request names the saved format it understands (src-worker.js MIN_CLIENT_SCHEMA);

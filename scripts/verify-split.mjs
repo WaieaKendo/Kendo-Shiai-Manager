@@ -302,6 +302,7 @@ const KNOWN_POST_SPLIT_EDITS = {
   'react-library': 2,
   // feat/react-overlay: app/js/33-stream-overlay-links.js (TV menu "copy overlay link").
   'stream-overlay': 1,
+  'auth0-access': 1,
 };
 // The same markers in app/styles/*.css (count per name, in order of first appearance).
 const KNOWN_POST_SPLIT_CSS_EDITS = {
@@ -334,6 +335,7 @@ const KNOWN_POST_SPLIT_CSS_EDITS = {
   'pool-tiebreak': 1,
   // fix/nav-links: app/styles/22-nav-links.css, the Courts and TV menu items as links styled like the buttons.
   'nav-links': 1,
+  'auth0-roles': 1,
 };
 // Old functions whose body now lives in app/engine/*.ts (parameter lists without braces).
 const MOVED_TO_ENGINE = [

@@ -53,7 +53,7 @@ Each tournament has one shared staff password (issue #9 hardened it for 4.0.0; s
 
 Devices still running the previous app (an open tab, or the service worker's cached copy until it updates) send the password itself as their key. **For one release the Worker still accepts the password there** (`staffAccess()` in `src-worker.js`: a key that is not a session token is checked as a password, counted by the attempt limit). So deploying 4.0.0 during or right before an event does not log anyone out, and old devices also upgrade their tournament's hash.
 
-**Remove the fallback in the release after 4.0.0** (4.0.1, together with Auth0), once every event device has reloaded the new app (any reload after the 4.0.0 deploy is enough; a device that logs in and gets a token is on the new app): in `staffAccess()` return 401 for any key that is not a session token, drop the in-memory `verifiedPassword`, and change `KsmApp.put_record(legacy_password=True)` and the compatibility checks in `staff-auth-hardening-test.mjs` / `staff-login-hardening-test.py` to expect 401. Keep the SHA-256 → PBKDF2 upgrade in Staff Login: it is what moves old tournaments over.
+**Remove the fallback in a later rollout, after Auth0 adoption** (not phase 1 of #67), once every event device has reloaded the new app (any reload after the 4.0.0 deploy is enough; a device that logs in and gets a token is on the new app): in `staffAccess()` return 401 for any key that is not a session token, drop the in-memory `verifiedPassword`, and change `KsmApp.put_record(legacy_password=True)` and the compatibility checks in `staff-auth-hardening-test.mjs` / `staff-login-hardening-test.py` to expect 401. Keep the SHA-256 → PBKDF2 upgrade in Staff Login: it is what moves old tournaments over.
 
 ## Production: a release merged into `main`
 
@@ -184,3 +184,88 @@ The sites are meant to live at **tournament.hawaiikendofederation.org** (product
 - Worker secrets (e.g. `KSM_RESET_KEY`, which enables the destructive `/api/admin/reset`, see RESET-CLOUD-DATA.md) belong to one Worker and are not in `wrangler.jsonc`; deploys keep them. Dev has none unless someone sets them with `npx wrangler secret put <NAME> --env dev`. Check that production does not hold a reset key it no longer needs: `npx wrangler secret list --env=""`.
 - Dry runs (no upload, no login needed): `npm run deploy:production -- --dry-run`, `npm run deploy:dev -- --dry-run`.
 - `tests/deploy-config-test.mjs` guards the rules above (separate dev Worker and binding, production unchanged, no deploy from pull requests, production only from `main`, a deploy only of the branch's current head, no running deploy cancelled, each pass-through bound to its own site's Worker).
+
+## Auth0 sign-in (not enabled in production)
+
+Phase 1 is opt-in. No Auth0 tenant has been created and no production settings are added by this
+change. With **no `AUTH0_*` settings**, the shared staff password, session tokens, public spectators
+and TV work as in 4.0. Keep the password fallback described above; removing it is a later release.
+A partial Auth0 configuration fails sign-in configuration checks; configure all three values together.
+
+For a future dev rollout, create an Auth0 tenant, a **Single Page Application**, and a custom API
+with an audience such as `https://ksm.example/api` and **RS256** signing. Enable Universal Login and
+the desired connections. Use Authorization Code with PKCE; the SPA has no client secret. Add:
+
+| Auth0 setting | Dev Pages site | Local Worker |
+| --- | --- | --- |
+| Allowed Callback URLs | `https://ksm-tournament-dev.pages.dev/` | `http://localhost:8787/` |
+| Allowed Logout URLs | `https://ksm-tournament-dev.pages.dev/` | `http://localhost:8787/` |
+| Allowed Web Origins | `https://ksm-tournament-dev.pages.dev` | `http://localhost:8787` |
+
+Also register the actual `DEV_URL` Worker's origin (callback/logout with `/`), or the dev custom
+hostname when it is adopted. Register each origin explicitly; no wildcards. If testing at
+`http://127.0.0.1:8787`, register that origin separately. Public spectator and TV links need no account.
+
+Set these **only in the intended dev environment**, using Wrangler vars or secrets (a local
+`.dev.vars` file is ignored by Git):
+
+```dotenv
+AUTH0_DOMAIN=your-tenant.us.auth0.com
+AUTH0_AUDIENCE=https://ksm.example/api
+AUTH0_CLIENT_ID=your-spa-client-id
+ADMIN_EMAILS=kenton@example.com,braxton@example.com
+```
+
+Replace the example admin addresses with the owners' verified email addresses. `AUTH0_CLIENT_ID`,
+domain and audience are public SPA configuration, served at `/api/auth/config`; `ADMIN_EMAILS` is
+server-only. Wrangler environments do not inherit vars: configure dev independently. No Auth0
+secrets or real credentials belong in the repository.
+
+Auth0's standard custom-API access token does not automatically include email. Add and deploy a
+**Login / Post Login Action** and attach it to the login flow:
+
+```js
+exports.onExecutePostLogin = async (event, api) => {
+  if (event.user.email && event.user.email_verified === true) {
+    api.accessToken.setCustomClaim('https://ksm.app/email', event.user.email);
+    api.accessToken.setCustomClaim('https://ksm.app/email_verified', true);
+  }
+};
+```
+
+KSM requires both signed claims, plus a subject, expiry, the configured issuer/audience and an
+RS256 signature from that issuer's cached JWKS. An ID token or unverified email cannot authorize
+writes. Auth0 authenticates identities; its roles/metadata and all client role labels are ignored.
+Admins come from `ADMIN_EMAILS`; directors come from this tournament's Durable Object, next to the
+password hash and staff sessions. Director lists are never part of public snapshots or backups.
+
+Choose **Sign in** in the header. Admins see a purple `Admin` strip and can create/delete tournaments
+and list/add/remove director emails under **Setup → Sharing & access**. Directors see an amber
+`Director · <tournament>` strip and may edit/rename only their assigned tournament; deleting and
+appointing directors require an admin. Colours are reserved role tokens, accompanied by text and
+an icon, and compact on phones. TV has no header/strip. Explicit spectator links remain read-only.
+
+Until a tournament has directors, its existing password and staff sessions still authorize edits
+and live scoring. Once a director is appointed, that tournament requires an authorized account;
+existing password sessions cannot bypass it. Removing the last director restores the password
+path. With Auth0 enabled, creation/deletion require an admin even for a tournament with no directors.
+Roles are checked on every write and staff live handshake; live scoring messages recheck director
+membership and token expiry. Changing directors closes existing staff live connections. JWTs are
+kept only in SDK memory, renewed by the SDK; after reload it tries the Auth0 session silently.
+If browser cookie restrictions prevent that, sign in again. Unsaved staff work stays in the existing
+outbox after authentication expires. Staff live handshakes carry the access token in the WebSocket
+query (browsers cannot add an Authorization header); do not log query strings at the proxy/edge.
+Snapshots and ordinary API writes use a Bearer header. No service account or Management API token
+is needed. The local test issuer accepts HTTP only on loopback; real issuers require HTTPS.
+
+References: [SPA SDK / PKCE](https://auth0.com/docs/libraries/auth0-single-page-app-sdk),
+[namespaced claims](https://auth0.com/docs/secure/tokens/json-web-tokens/create-custom-claims).
+
+**Owner questions before enabling:** Auth0 currently advertises **25,000 monthly active users** on
+[Free](https://auth0.com/pricing). Its support policy says inactive free tenants are permanently
+deleted after **150 days**; the same article also mentions three months, so confirm the warning and
+activity rules in the chosen tenant before relying on seasonal use. Who will maintain tenant
+activity and own recovery/billing alerts? Confirm the chosen connection, MFA/2FA and recovery
+features on Free (not every MFA option is included) and the allowance for separate dev/production
+tenants. No signup or paid-plan selection is part of this phase. See
+[tenant inactivity policy](https://support.auth0.com/center/s/article/tenant-unban-request).

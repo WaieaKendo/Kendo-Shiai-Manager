@@ -26,6 +26,7 @@ export type LibraryInput =
   | {
     kind: 'library';
     canManage?: boolean;
+    canDelete?: boolean;
     authorizedIds?: string[];
     activeId?: string;
     hasActive?: boolean;
