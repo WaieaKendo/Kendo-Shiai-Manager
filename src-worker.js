@@ -309,11 +309,11 @@ export class TournamentState {
     if (request.method === 'GET' && url.pathname === '/live') {
       if ((request.headers.get('Upgrade') || '').toLowerCase() !== 'websocket') return json({ error: 'WebSocket upgrade required' }, 426);
       const role = safeRole(url.searchParams.get('role') || 'spectator');
-      const privateDenied = await this.readAccess(request, url.searchParams.get('access_token') || '');
-      if (privateDenied) return privateDenied;
-      let access = auth0Enabled(this.env) && url.searchParams.get('access_token') ? await this.accountAccess(request, { token: url.searchParams.get('access_token') }) : null;
+      const token = url.searchParams.get('access_token') || '';
+      let access = await this.accountAccess(request, { token });
+      if (!(await this.isPublic()) && !access?.ok) return json({ error: 'Tournament not viewable', code: 'tournament-private' }, 403);
       if (role === 'staff') {
-        access = await this.writeAccess(request, { key: url.searchParams.get('key') || '', token: url.searchParams.get('access_token') || '' });
+        access = access || await this.staffAccess(url.searchParams.get('key') || '');
         if (!access.ok) return denied(access);
       }
       const pair = new WebSocketPair();
@@ -356,6 +356,7 @@ export class TournamentState {
       if (role !== 'staff' && !(auth0Enabled(this.env) && bearerToken(request))) return json({ error: 'Write authorization required' }, 403);
       const access = await this.writeAccess(request, { key: suppliedKey });
       if (!access.ok) return denied(access);
+      if (auth0Enabled(this.env) && !existing) return json({ error: 'Tournament not found' }, 404);
       const expectedRevision = Number(incoming.revision || 0);
       const currentRevision = Number(existing?.revision || 0);
       if (existing && expectedRevision !== currentRevision) return json({ error: 'Revision conflict', record: publicRecord(existing) }, 409);
@@ -459,7 +460,7 @@ export class TournamentState {
           await tx.put('directors', next);
         });
         // Reconnects recheck permissions; existing sockets also check each scoring message.
-        for (const socket of this.state.getWebSockets()) if (!(await this.isPublic()) || socket.deserializeAttachment()?.role === 'staff') try { socket.close(1000, 'Access changed'); } catch (_) {}
+        if (request.method === 'DELETE' && !isAdmin(this.env, email)) for (const socket of this.state.getWebSockets()) if (socket.deserializeAttachment()?.identity?.email === email) try { socket.close(1000, 'Access changed'); } catch (_) {}
       }
       return json({ directors: await this.directors() });
     }
@@ -636,13 +637,13 @@ export default {
       const response = await libraryStub().fetch('https://durable-object/library');
       if (!auth0Enabled(env) || !response.ok) return response;
       const rows = await response.json();
-      const visible = [];
-      for (const row of rows) {
+      const visible = await Promise.all(rows.map(async row => {
         const result = await env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName(row.id)).fetch(new Request('https://durable-object/listing', { headers: request.headers }));
-        if (result.ok) visible.push({ ...row, ...await result.json() });
-      }
-      visible.sort((a,b) => Number(b.canManage)-Number(a.canManage));
-      return json(visible);
+        return result.ok ? { ...row, ...await result.json() } : null;
+      }));
+      const listed = visible.filter(Boolean);
+      listed.sort((a,b) => Number(b.canManage)-Number(a.canManage));
+      return json(listed);
     };
     const updateLibrary = async (record) => {
       if (!record?.tournamentId) return;
@@ -683,11 +684,11 @@ export default {
     if (url.pathname === '/api/tournaments/discover' && request.method === 'POST') {
       const body = await request.json().catch(() => ({}));
       const ids = Array.isArray(body.ids) ? body.ids.filter(id => /^[0-9a-f-]+$/i.test(id)).slice(0,100) : [];
-      for (const id of ids) {
+      await Promise.all(ids.map(async id => {
         const stub = env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName(id));
         const response = await stub.fetch(new Request('https://durable-object/snapshot', { headers: request.headers }));
         if (response.ok) await updateLibrary(await response.json());
-      }
+      }));
       return visibleLibrary();
     }
     if (url.pathname === '/api/tournaments' && request.method === 'POST') {

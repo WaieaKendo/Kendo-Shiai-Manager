@@ -35,6 +35,13 @@ def main():
                 return response.json()['tournamentId']
             a, b = create('Auth A'), create('Auth B')
             assert api.post(f'/api/tournaments/{a}/directors', data={'email': 'director@example.com'}).ok
+            stalled_context = browser.new_context()
+            stalled = stalled_context.new_page()
+            stalled.route('**/api/auth/config', lambda route: None)
+            stalled.goto(base, wait_until='domcontentloaded')
+            expect(stalled.get_by_test_id('auth0-error')).to_be_visible(timeout=12000)
+            assert not stalled.get_by_test_id('home-new-tournament').is_visible()
+            stalled_context.close()
             guest = browser.new_context()
             landing = guest.new_page()
             held = []
@@ -83,6 +90,27 @@ def main():
             assert director.get_by_test_id('account-role').evaluate('(el) => parseFloat(getComputedStyle(el).fontSize)') <= 12
             assert director.evaluate('document.documentElement.scrollWidth <= innerWidth'), 'phone overflows'
             assert director.evaluate("sessionStorage.getItem('ksm.staff.session.v3_16')") is None
+            # Expired access tokens renew through a rotating refresh token without an iframe.
+            director.evaluate('''() => { for(const key of Object.keys(sessionStorage)) if(key.startsWith('ksm.auth0.')) {const entry=JSON.parse(sessionStorage[key]);if(entry.body?.access_token){entry.expiresAt=0;sessionStorage[key]=JSON.stringify(entry);}} }''')
+            director.route('**/authorize?**', lambda route: route.abort())
+            with director.expect_request(lambda req: '/oauth/token' in req.url and 'refresh_token' in (req.post_data or '')):
+                director.reload()
+            expect(director.get_by_test_id('account-role')).to_contain_text('Director')
+            director.unroute('**/authorize?**')
+            # Transient outages preserve already authorized editing; explicit denial revokes it.
+            director.route('**/api/auth/me', lambda route: route.abort())
+            director.evaluate('window.ksmRefreshAccount()')
+            assert director.evaluate('window.ksmAuthBridge.state().role') == 'director'
+            director.unroute('**/api/auth/me')
+            director.route('**/api/auth/me', lambda route: route.fulfill(status=503, body='Unavailable'))
+            director.evaluate('window.ksmRefreshAccount()')
+            assert director.evaluate('window.ksmAuthBridge.state().role') == 'director'
+            director.unroute('**/api/auth/me')
+            director.route('**/api/auth/me', lambda route: route.fulfill(status=403, body='Denied'))
+            director.evaluate('window.ksmRefreshAccount()')
+            assert director.evaluate('window.ksmAuthBridge.state().role') == 'spectator'
+            director.unroute('**/api/auth/me')
+            director.evaluate('window.ksmRefreshAccount()')
             # Calls use the same real access token the SDK obtained, not client-supplied roles.
             def write_status(page, tid, method='PUT'):
                 return page.evaluate('''async ({id,method}) => {
@@ -133,6 +161,10 @@ def main():
             assert spectator.get_by_test_id('directors-management').count() == 0
             assert spectator.evaluate("KSMTest.role() === 'spectator'")
             assert not writes
+            assert spectator.evaluate("JSON.parse(localStorage.getItem('ksm.tournament.record:'+window.ksmAuthBridge.tournament())).isPublic") is True
+            spectator_context.set_offline(True)
+            assert spectator.evaluate("async () => (await (await ksmFetchTournament(window.ksmAuthBridge.tournament())).json()).payload.setup.tName") == 'Auth A'
+            spectator_context.set_offline(False)
             # A live public spectator is removed when the tournament becomes private.
             spectator.wait_for_function("KSMTest.pendingReason().socket === 'open'")
             assert api.put(f'/api/tournaments/{a}/visibility', data={'isPublic':False}).ok

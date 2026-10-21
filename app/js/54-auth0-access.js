@@ -19,7 +19,7 @@ window.ksmAuthBridge={
   state:()=>ksmAccount,
   tournament:()=>cloudSession.tournamentId||'',
   name:()=>document.getElementById('tName')?.value||'Tournament',
-  update:patch=>{const previous=ksmAccount.token;Object.assign(ksmAccount,patch);ksmAccountChanged();if(previous!==ksmAccount.token){ksmVisibleLibrary=[];if(document.body.classList.contains('ksm-home'))renderHomeTournamentLibrary()}},
+  update:patch=>{const previous=ksmAccount.token,wasEnabled=ksmAccount.enabled;Object.assign(ksmAccount,patch);ksmAccountChanged();if(previous!==ksmAccount.token||wasEnabled!==ksmAccount.enabled){ksmVisibleLibrary=[];if(document.body.classList.contains('ksm-home'))renderHomeTournamentLibrary()}},
   library:()=>renderHomeTournamentLibrary(),
   restore:()=>initializeCloudRoleFromUrl(),
   reconnect:()=>{disconnectCloudSocket();connectCloudSocket()},
@@ -100,15 +100,16 @@ renderHomeTournamentLibrary=async function(){
   }catch(_){paintHomeTournamentLibrary([],'Unable to load tournaments. Check your connection.');}
 };
 var ksmAccountFetchTournament=ksmFetchTournament;
-ksmFetchTournament=async function(id){if(!ksmAccount.enabled)return ksmAccountFetchTournament(id);return ksmPrivateFetch(id)};
+ksmFetchTournament=async function(id){await ksmAuthReady;if(!ksmAccount.enabled)return ksmAccountFetchTournament(id);return ksmPrivateFetch(id)};
 async function ksmPrivateFetch(id){
+  if(!navigator.onLine){const cached=JSON.parse(localStorage.getItem('ksm.tournament.record:'+id)||'null');if(cached?.isPublic===true)return new Response(JSON.stringify(cached),{headers:{'content-type':'application/json'}});throw new Error('No public offline copy of this tournament is available');}
   const headers=ksmAccount.token?{authorization:`Bearer ${ksmAccount.token}`}:{...cloudHeaders()};
   const response=await fetch(`/api/tournaments/${encodeURIComponent(id)}`,{headers,cache:'no-store'});
   if(response.status===403){localStorage.removeItem('ksm.tournament.record:'+id);throw Object.assign(new Error('Tournament not viewable (403)'),{code:'tournament-private'});}
   return response;
 }
 var ksmAccountCacheTournament=ksmCacheTournament;
-ksmCacheTournament=function(record){if(ksmAccount.enabled||record.isPublic===false){localStorage.removeItem('ksm.tournament.record:'+record.tournamentId);return}return ksmAccountCacheTournament(record)};
+ksmCacheTournament=function(record){if(record.isPublic===false){localStorage.removeItem('ksm.tournament.record:'+record.tournamentId);return}if(ksmAccount.enabled&&record.isPublic!==true)return;return ksmAccountCacheTournament(record)};
 var ksmAccountFailedStartup=ksmKeepFailedStartup;
 ksmKeepFailedStartup=function(error){
   if(error?.code!=='tournament-private')return ksmAccountFailedStartup(error);

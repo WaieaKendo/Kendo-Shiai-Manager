@@ -62,9 +62,16 @@ try {
   await test('staff live sockets verify identity; revoke directors on subsequent messages and reconnect',async()=>{
     const socket=await api.openSocket(a.id,{role:'staff',access_token:jwt.director});assert.equal(socket.status,101);
     assert.equal((await api.openSocket(b.id,{role:'staff',access_token:jwt.director})).status,403);
+    const object=api.durableObject(a.id), verify=object.verifyIdentity;let verifications=0;
+    object.verifyIdentity=async token=>{verifications++;return verify(token)};
+    const adminSocket=await api.openSocket(a.id,{role:'staff',access_token:jwt.admin});
+    assert.equal(verifications,1);object.verifyIdentity=verify;
+    await api.call('POST',`/api/tournaments/${a.id}/directors`,{headers:headers(jwt.admin),body:{email:'other@example.com'}});
     const flash=JSON.stringify({type:'flash',court:'A',kind:'encho',id:'one'});
     await socket.send(flash);assert(socket.messages.some(m=>m.id==='one'));
     await api.call('DELETE',`/api/tournaments/${a.id}/directors`,{headers:headers(jwt.admin),body:{email:'director@example.com'}});
+    await adminSocket.send(JSON.stringify({type:'flash',court:'A',kind:'encho',id:'admin-still-connected'}));
+    assert(adminSocket.messages.some(m=>m.id==='admin-still-connected'));
     const before=socket.messages.length;await socket.send(JSON.stringify({type:'flash',court:'A',kind:'encho',id:'two'}));assert.equal(socket.messages.length,before);
     assert.equal((await api.openSocket(a.id,{role:'staff',access_token:jwt.director})).status,403);
     assert.equal((await api.call('PUT',`/api/tournaments/${a.id}`,{headers:headers(jwt.director),body})).status,403);
@@ -80,6 +87,11 @@ try {
     const partial=await createInProcessApi({auth0:{AUTH0_DOMAIN:mock.issuer}});
     assert.equal((await partial.call('GET','/api/auth/config')).status,503);
     assert.equal((await partial.call('POST','/api/tournaments',{body})).status,403);
+  });
+  await test('Auth0 PUT cannot recreate a missing private record',async()=>{
+    const missing=await create();await api.storage(missing.id).delete('record');await api.storage(missing.id).delete('isPublic');
+    assert.equal((await api.call('PUT',`/api/tournaments/${missing.id}`,{headers:headers(jwt.admin),body:{revision:0,payload:body.payload}})).status,404);
+    assert.equal(await api.storage(missing.id).get('record'),undefined);
   });
   await test('unconfigured keeps existing create/password/session/delete behavior',async()=>{
     const legacy=await createInProcessApi();const response=await legacy.call('POST','/api/tournaments',{body:{...body,staffPassword:'fallback-pass'}});assert.equal(response.status,200);const id=(await response.json()).tournamentId;

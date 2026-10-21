@@ -19,15 +19,17 @@ function publish() {
 }
 window.addEventListener('ksm:account', publish);
 const subscribe = (fn: () => void) => { listeners.add(fn); return () => { listeners.delete(fn); }; };
+class AccessDenied extends Error {}
+const authFetch = (url: string, init: RequestInit = {}) => fetch(url, { ...init, signal: AbortSignal.timeout(8000) });
 async function refresh(id = bridge.tournament()) {
   if (!sdk || (!bridge.state().email && !(await sdk.isAuthenticated()))) return;
   const token = await sdk.getTokenSilently();
   const headers = { authorization: `Bearer ${token}` };
-  const me = await fetch('/api/auth/me', { headers, cache: 'no-store' });
-  if (!me.ok) throw new Error('Sign-in could not be verified.');
+  const me = await authFetch('/api/auth/me', { headers, cache: 'no-store' });
+  if (!me.ok) throw new (me.status === 401 || me.status === 403 ? AccessDenied : Error)('Sign-in could not be verified.');
   const account = await me.json() as { email: string; role: string };
-  const access = id ? await fetch(`/api/tournaments/${encodeURIComponent(id)}/access`, { headers, cache: 'no-store' }) : null;
-  if (access && !access.ok) throw new Error('Tournament access could not be verified.');
+  const access = id ? await authFetch(`/api/tournaments/${encodeURIComponent(id)}/access`, { headers, cache: 'no-store' }) : null;
+  if (access && !access.ok) throw new (access.status === 401 || access.status === 403 ? AccessDenied : Error)('Tournament access could not be verified.');
   const permission = access ? await access.json() as { role: string; passwordFallback: boolean } : { role: account.role, passwordFallback: true };
   // A request begun for A must never grant access while B is displayed.
   bridge.update({ token, globalRole: account.role, email: account.email, role: permission.role, tournamentId: id, passwordFallback: permission.passwordFallback });
@@ -35,12 +37,17 @@ async function refresh(id = bridge.tournament()) {
 w.ksmRefreshAccount = async id => {
   const before = { ...bridge.state() };
   try { await refresh(id); message = ''; }
-  catch (error) { bridge.update({ token: '', role: 'spectator', globalRole: 'spectator' }); message = (error as Error).message; }
+  catch (error) {
+    const code = (error as { error?: string }).error;
+    if (error instanceof AccessDenied || ['login_required', 'invalid_grant', 'missing_refresh_token'].includes(code || '')) bridge.update({ token: '', role: 'spectator', globalRole: 'spectator' });
+    message = (error as Error).message;
+  }
   const after = bridge.state();
   if (before.token !== after.token || before.role !== after.role || before.globalRole !== after.globalRole) bridge.reconnect();
   publish();
 };
 async function login() {
+  if (!sdk) { location.reload(); return; }
   try {
     await sdk?.loginWithRedirect({ appState: { returnTo: location.pathname + location.search }, authorizationParams: { redirect_uri: `${location.origin}/`, prompt: 'select_account' } });
   } catch (error) { message = (error as Error).message; publish(); }
@@ -123,6 +130,7 @@ function Visibility() {
   return <section className="ksm-visibility" data-testid="tournament-visibility"><h4>Public listing</h4>
     <label><input type="checkbox" checked={isPublic === true} disabled={isPublic === null || busy} onChange={e => { void change(e.target.checked); }} /> Show this tournament publicly</label>
     <p>{isPublic ? 'Anyone can find this tournament and watch without signing in.' : 'Private: only admins and assigned directors can view or manage this tournament.'}</p>
+    <p>OBS stream overlays require Public listing. Private tournaments cannot be displayed in an OBS browser source.</p>
     {error && <p role="alert">{error}</p>}
   </section>;
 }
@@ -145,15 +153,21 @@ new MutationObserver(publish).observe(document.body, { attributes: true, attribu
 document.getElementById('tName')?.addEventListener('input', publish);
 }
 async function initialize() {
+  const startupTimer = window.setTimeout(() => {
+    bridge.update({ enabled: true, passwordFallback: false });
+    message = 'Sign-in is taking longer than expected. Check your connection or retry sign-in.';
+    publish(); bridge.refreshUi(); w.ksmResolveAuthReady();
+    document.documentElement.classList.add('ksm-ui-ready');
+  }, 8000);
   try {
-    const response = await fetch('/api/auth/config', { cache: 'no-store' });
+    const response = await authFetch('/api/auth/config', { cache: 'no-store' });
     if (!response.ok) throw new Error('Sign-in configuration unavailable');
     const config = await response.json() as { enabled: boolean; domain: string; audience: string; clientId: string };
-    if (!config.enabled) return;
+    if (!config.enabled) { if (bridge.state().enabled) bridge.update({ enabled: false }); return; }
     mountAccountUi();
     bridge.update({ enabled: true });
     void bridge.library();
-    sdk = new Auth0Client({ domain: config.domain, clientId: config.clientId, cache: tabSessionCache(`${config.domain}|${config.clientId}|${config.audience}`), authorizationParams: { audience: config.audience, scope: 'openid profile email', redirect_uri: `${location.origin}/` } });
+    sdk = new Auth0Client({ domain: config.domain, clientId: config.clientId, cache: tabSessionCache(`${config.domain}|${config.clientId}|${config.audience}`), useRefreshTokens: true, useRefreshTokensFallback: true, authorizeTimeoutInSeconds: 8, httpTimeoutInSeconds: 8, authorizationParams: { audience: config.audience, scope: 'openid profile email offline_access', redirect_uri: `${location.origin}/` } });
     const params = new URLSearchParams(location.search);
     if (params.has('state') && (params.has('code') || params.has('error'))) {
       const result = await sdk.handleRedirectCallback<{ returnTo?: string }>();
@@ -170,6 +184,7 @@ async function initialize() {
     setInterval(() => { if (bridge.state().email) void w.ksmRefreshAccount?.().then(() => bridge.refreshUi()); }, 30000);
     window.addEventListener('online', () => { void w.ksmRefreshAccount?.().then(() => bridge.reconnect()); });
   } catch (error) {
+    if (!sdk) { bridge.update({ enabled: true, passwordFallback: false }); bridge.refreshUi(); }
     message = (error as Error).message;
     const url = new URL(location.href);
     if (url.searchParams.has('state') && (url.searchParams.has('code') || url.searchParams.has('error'))) {
@@ -178,6 +193,6 @@ async function initialize() {
     }
     publish();
   }
-  finally { w.ksmResolveAuthReady(); }
+  finally { clearTimeout(startupTimer); w.ksmResolveAuthReady(); }
 }
 void initialize();

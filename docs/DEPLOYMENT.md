@@ -251,7 +251,7 @@ passwords and old staff sessions are rejected even when no directors are assigne
 last director leaves admin-only management. There is no automatic password fallback offline.
 Installations without Auth0 retain the existing staff-password and staff-session behavior.
 Roles are checked on every write and staff live handshake; live scoring messages recheck director
-membership and token expiry. Changing directors closes existing staff live connections. JWTs are
+membership and token expiry. Removing a director closes only that account’s live connections; additions leave existing connections open. JWTs are
 kept in a tab-scoped SDK sessionStorage cache, renewed by the SDK; reload retains unexpired tokens.
 The Worker revalidates identity and roles on reload; SDK logout clears its cache. New tabs or an
 expired token may need the Auth0 session to restore sign-in silently.
@@ -290,7 +290,28 @@ original link. Making an event private closes existing viewers' live connections
 broadcasts recheck membership and token expiry. Publishing makes spectator and TV links available
 without login. Public/private is separate from whether matches have started.
 
-Configured clients load tournament data from the authorized API rather than restoring cached
-snapshots or Library lists. This does not erase staff recovery/outbox files already on a device;
+Configured clients load current tournament data from the authorized API. Explicitly public
+snapshots support offline viewing; private snapshots and Library lists are not restored from cache. This does not erase staff recovery/outbox files already on a device;
 privacy controls server access, not copies someone previously downloaded. With Auth0 unconfigured,
 visibility settings are ignored and 4.0 behavior remains unchanged.
+
+### Auth0 renewal, offline viewing, and stream overlays
+
+Enable **Allow Offline Access** for the Auth0 API and **Refresh Token Rotation** for the SPA.
+KSM requests `offline_access` and uses refresh tokens, with the SDK iframe fallback when a refresh
+token is unavailable. The tab-scoped session cache stores refresh tokens alongside access tokens;
+sign-out clears it. A new tab may still require sign-in.
+
+Transient network/server errors during permission refresh retain the last authorized editing
+session so work can queue locally. Explicit denial or an SDK login-required response removes
+editing access. The server rechecks authorization before accepting queued changes. Startup
+requests and SDK authorization have eight-second timeouts; slow startup reveals a safe restricted
+UI with a connection message while restoration finishes.
+
+Only explicitly public snapshots are cached for offline viewing in Auth0 mode. These are last-known
+public copies: an offline device cannot learn that a tournament was subsequently made private.
+Private snapshots are not cached, and an online private-access denial removes the cached copy.
+The service worker continues to bypass API caches.
+
+OBS browser-source overlays require **Public listing**. Private overlays deliberately have no
+shared-token bypass in this phase; Setup explains that limitation.

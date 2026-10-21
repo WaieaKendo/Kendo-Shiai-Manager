@@ -7,7 +7,7 @@ export async function mockAuth0() {
   const { privateKey, publicKey } = await generateKeyPair('RS256');
   const jwk = { ...await exportJWK(publicKey), kid: 'local-key', alg: 'RS256', use: 'sig' };
   let issuer, jwksRequests = 0;
-  const codes = new Map();
+  const codes = new Map(), refreshTokens = new Map();
   const audience = 'https://ksm.test/api', clientId = 'mock-spa';
   async function token(email = 'admin@example.com', claims = {}, key = privateKey) {
     return new SignJWT({ iss: issuer, aud: audience, sub: `mock|${email}`, iat: Math.floor(Date.now()/1000), exp: Math.floor(Date.now()/1000)+3600, [EMAIL_CLAIM]: email, [VERIFIED_CLAIM]: true, ...claims }).setProtectedHeader({ alg: 'RS256', kid: jwk.kid }).sign(key);
@@ -49,10 +49,19 @@ export async function mockAuth0() {
     if (url.pathname === '/oauth/token') {
       let text = ''; for await (const chunk of req) text += chunk;
       let body; try { body = JSON.parse(text); } catch (_) { body = Object.fromEntries(new URLSearchParams(text)); }
+      if (body.grant_type === 'refresh_token') {
+        const email = refreshTokens.get(body.refresh_token);
+        if (!email || body.client_id !== clientId) { res.writeHead(400); send({error:'invalid_grant'}); return; }
+        refreshTokens.delete(body.refresh_token);
+        const refresh_token = randomUUID(); refreshTokens.set(refresh_token, email);
+        const id_token = await new SignJWT({email,email_verified:true}).setProtectedHeader({alg:'RS256',kid:jwk.kid}).setIssuer(issuer).setAudience(clientId).setSubject(`mock|${email}`).setIssuedAt().setExpirationTime('1h').sign(privateKey);
+        send({access_token:await token(email),refresh_token,id_token,token_type:'Bearer',expires_in:3600,scope:'openid profile email offline_access'}); return;
+      }
       const authorization = codes.get(body.code); codes.delete(body.code);
       if (!authorization || createHash('sha256').update(body.code_verifier || '').digest('base64url') !== authorization.code_challenge || body.redirect_uri !== authorization.redirect_uri || body.client_id !== clientId) { res.writeHead(400); send({ error: 'invalid_grant' }); return; }
       const id_token = await new SignJWT({ email: authorization.email, email_verified: true, nonce: authorization.nonce }).setProtectedHeader({ alg:'RS256',kid:jwk.kid }).setIssuer(issuer).setAudience(clientId).setSubject(`mock|${authorization.email}`).setIssuedAt().setExpirationTime('1h').sign(privateKey);
-      send({ access_token: await token(authorization.email), id_token, token_type:'Bearer', expires_in:3600, scope:'openid profile email' }); return;
+      const refresh_token = randomUUID(); refreshTokens.set(refresh_token, authorization.email);
+      send({ refresh_token, access_token: await token(authorization.email), id_token, token_type:'Bearer', expires_in:3600, scope:'openid profile email offline_access' }); return;
     }
     if (url.pathname === '/v2/logout') { res.writeHead(302, {location:url.searchParams.get('returnTo')}).end(); return; }
     res.writeHead(404).end();

@@ -6,9 +6,6 @@ function ksmCacheTournament(record){
   if(slug)localStorage.setItem('ksm.slug:'+slug,JSON.stringify({id:record.tournamentId,slug}));
 }
 async function ksmFetchTournament(id){
-  await Promise.resolve();
-  if(typeof ksmAuthReady!=='undefined')await ksmAuthReady;
-  if(typeof ksmAccount!=='undefined'&&ksmAccount.enabled)return ksmPrivateFetch(id);
   if(navigator.onLine)return fetch(`/api/tournaments/${encodeURIComponent(id)}`);
   const record=localStorage.getItem('ksm.tournament.record:'+id);
   if(!record)throw new Error('No offline copy of this tournament is available');
