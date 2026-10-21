@@ -63,9 +63,13 @@ def main():
             row_of(app, name).locator(sel('reg-remove')).click()
             app.wait_for_dialogs(1)
 
+        # Every row's Name and Dojo read in one go: the table is redrawn while a rebase or a held update
+        # lands, and reading row by row (count, then each row) could meet a row that was just replaced
+        # and wait 30 s for it (the flaky failure in CI).
         def field_values(app):
-            return {row.locator(sel('reg-name')).input_value(): row.locator(sel('reg-dojo')).input_value()
-                    for row in (app.page.locator(sel('reg-row')).nth(i) for i in range(app.page.locator(sel('reg-row')).count()))}
+            return app.page.evaluate("""([row, name, dojo]) => Object.fromEntries([...document.querySelectorAll(row)]
+              .map(r => [r.querySelector(name)?.value ?? '', r.querySelector(dojo)?.value ?? '']))""",
+              [sel('reg-row'), sel('reg-name'), sel('reg-dojo')])
 
         # 1. The desk's own held save conflicts while it types into a Dojo field.
         def rename_on_desk():
