@@ -6,6 +6,12 @@
 td input.setup-rename-input{width:auto;min-width:12em;max-width:100%;border:1px solid var(--line);background:var(--card);padding:6px 8px}
 td input.setup-rename-input[aria-invalid="true"]{border-color:var(--red)}
 .setup-rename-error{margin-top:6px;color:var(--red);font-size:13px;font-weight:700}
+/* The court select with the division's remove (×) button on one line, the × in the theme's red. */
+.setup-court-cell{display:flex;gap:8px;align-items:center}
+.setup-court-cell select{flex:1;min-width:0}
+.setup-court-cell .setup-division-remove{flex:none;width:auto;min-height:32px;padding:2px 10px;border-radius:8px;color:var(--red);border-color:var(--red);font-weight:800;line-height:1}
+.setup-court-cell .setup-division-remove:hover:not(:disabled){background:var(--redbg)}
+.setup-court-cell .setup-division-remove:disabled{color:var(--muted);border-color:var(--line)}
 /* Phones (the table as cards, 10-layout-standard.css): the name with Rename, the rename field and the
    message each take the cell's whole width, below the label and the move buttons. */
 @media(max-width:760px){

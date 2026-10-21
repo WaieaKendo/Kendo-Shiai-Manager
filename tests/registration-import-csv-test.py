@@ -36,6 +36,7 @@ def main():
 
         app.expect_dialog('Imported', accept=True)
         app.expect_dialog('bad.csv', accept=True)
+        app.expect_dialog('typed.csv', accept=True)
         # Our own layout: columns out of order, extra columns ignored, a BOM, quotes and CRLF.
         notice = load('players.csv', '﻿Status,Last Name,First Name,Academy,Division,Rank,Seed\r\n'
                                      f'Checked In,Aoki,Ann,Aiea,"{WOMEN}",2 Dan,1\r\n'
@@ -57,9 +58,22 @@ def main():
         assert notice.startswith('Imported 0 players') and 'Already registered, skipped: 2.' in notice, notice
         assert len(app.payload()['state']['competitors']) == 2
 
+        # A division typed with another case and a plain hyphen matches Setup's "1–3" and a straight apostrophe "Women’s"; divisions not
+        # in Setup are listed once each, with what Setup offers.
+        dashed = next(d for d in divisions if '–' in d)
+        notice = load('typed.csv', 'Name,Division\n'
+                                   f'Eli Endo,"{dashed.replace("–", "-").upper()}"\n'
+                                   f'Ivy Ito,"{WOMEN.replace("’", "'").lower()}"\n'
+                                   'Fay Fong,Nowhere\nGus Goto,Nowhere\nHal Hara,Elsewhere\n')
+        assert notice.startswith('Imported 2 players from typed.csv.'), notice
+        assert 'Not added (3 rows): these divisions are not in Setup.' in notice, notice
+        assert '"Nowhere": 2 players (Fay Fong, Gus Goto)' in notice and '"Elsewhere": 1 player (Hal Hara)' in notice, notice
+        assert 'Setup offers: ' + ', '.join(divisions) in notice, notice
+        assert [c['division'] for c in app.payload()['state']['competitors'][-2:]] == [dashed, WOMEN]
+
         notice = load('bad.csv', 'Dojo,Division\nAiea,Open\n')
         assert 'no Name column' in notice, notice
-        assert len(app.payload()['state']['competitors']) == 2
+        assert len(app.payload()['state']['competitors']) == 4
         assert not problems, problems
         browser.close()
     print('PASS Import CSV reads named columns in any order, refuses unknown divisions and statuses, skips players already registered')
