@@ -1,0 +1,7 @@
+/* ksm:post-split-begin pool-tiebreak */
+/* A pool card's tiebreak (app/react/court/CourtContext.tsx, Results' Pool Results): the Tiebreak
+   section under the pool's bouts and the "* Wins and points include the tiebreak" note. Theme tokens only. */
+.pool-tiebreak-note{margin:8px 0 4px;line-height:1.4}
+.pool-tiebreak-section{margin-top:10px;padding-top:8px;border-top:1px dashed var(--line)}
+.pool-tiebreak-title{font-size:11px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+/* ksm:post-split-end */
