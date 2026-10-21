@@ -76,6 +76,8 @@ export type TvInput =
     upcoming: (TvUpcomingInput | null)[];
     /** Owner decision 6: the cards are this division's first matches ("Up next on this court"). */
     upNext?: string;
+    /** Final Results: the court's next division, shown small under "Division Complete". */
+    nextDivision?: string;
   };
 
 // ------------------------------------------------------------------------------- view
@@ -120,8 +122,8 @@ export type TvBodyView =
 
 export type TvFooterView =
   | { kind: 'upcoming'; cards: (TvUpcomingInput | null)[]; title?: string }
-  /** Final Results: "Division Complete" instead of Upcoming Matches. */
-  | { kind: 'results' };
+  /** Final Results: "Division Complete" instead of Upcoming Matches, and the court's next division. */
+  | { kind: 'results'; next?: string };
 
 export type TvView =
   | { kind: 'empty' }
@@ -132,6 +134,7 @@ export const EMPTY_TV: TvInput = { kind: 'empty' };
 export const UPCOMING_TITLE = 'Upcoming Matches';
 export const NO_UPCOMING_TEXT = 'No additional match scheduled';
 export const DIVISION_COMPLETE_TEXT = 'Division Complete';
+export const NEXT_DIVISION_LABEL = 'Next on this court';
 /** Owner decision 6: the idle current-match zone. */
 export const TV_WAITING_TEXTS = { match: 'Waiting for the next match', division: 'Waiting for the next division' } as const;
 
@@ -189,7 +192,7 @@ export function tvView(input: TvInput): TvView {
     kind: 'tv',
     header: { court: `Court ${input.court}`, division: input.division, meta: input.meta },
     body: tvBodyView(input.body),
-    footer: input.body.kind === 'results' ? { kind: 'results' }
+    footer: input.body.kind === 'results' ? (input.nextDivision ? { kind: 'results', next: input.nextDivision } : { kind: 'results' })
       : input.upNext ? { kind: 'upcoming', cards: input.upcoming, title: upNextTitle(input.upNext) } : { kind: 'upcoming', cards: input.upcoming },
   };
 }

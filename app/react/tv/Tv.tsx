@@ -12,7 +12,7 @@ import { TieFlashBanner, useCourtClockStopped } from '../tie-flash/TieFlash.tsx'
 import { useEffect, useSyncExternalStore } from 'react';
 import { DivisionCompletePanel } from '../court/CourtComplete.tsx';
 import {
-  DIVISION_COMPLETE_TEXT, EMPTY_TV, NO_UPCOMING_TEXT, UPCOMING_TITLE, tvView,
+  DIVISION_COMPLETE_TEXT, EMPTY_TV, NEXT_DIVISION_LABEL, NO_UPCOMING_TEXT, UPCOMING_TITLE, tvView,
   type TvBodyView, type TvFooterView, type TvInput, type TvKachinukiRowView, type TvPlayerView,
 } from './tv-model.ts';
 import type { HansokuView } from '../live-scores/live-scores-model.ts';
@@ -171,7 +171,12 @@ function Body({ body }: { body: TvBodyView }) {
 }
 
 function Footer({ footer }: { footer: TvFooterView }) {
-  if (footer.kind === 'results') return <div className="tv3-results-footer"><div>{DIVISION_COMPLETE_TEXT}</div></div>;
+  if (footer.kind === 'results') return (
+    <div className={footer.next ? 'tv3-results-footer tv3-results-has-next' : 'tv3-results-footer'}>
+      <div>{DIVISION_COMPLETE_TEXT}</div>
+      {footer.next && <div className="tv3-results-next" data-testid="tv-next-division">{`${NEXT_DIVISION_LABEL}: ${footer.next}`}</div>}
+    </div>
+  );
   return (
     <div className="tv3-upcoming" data-testid="tv-upcoming">
       <div className="tv3-upcoming-title">{footer.title ?? UPCOMING_TITLE}</div>

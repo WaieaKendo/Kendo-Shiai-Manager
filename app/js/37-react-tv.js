@@ -64,7 +64,10 @@ function ksmTvDisplayInput(court){
     while(cards.length<2)cards.push(null);
     return {kind:'tv',...header,body,upcoming:cards,upNext:between.upNext.division};
   }
-  if(vm.format==='results')return {kind:'tv',...header,body:{kind:'results',complete:ksmDivisionCompleteInput(vm.division,true)},upcoming:[]};
+  // Owner request: under "Division Complete", the court's next division (the court screen's
+  // Continue to <next>, ksmNextCourtDivision()), information only.
+  if(vm.format==='results'){const next=vm.division?ksmNextCourtDivision(court,vm.division):null;
+    return {kind:'tv',...header,body:{kind:'results',complete:ksmDivisionCompleteInput(vm.division,true)},upcoming:[],...(next?{nextDivision:ksmText(ksmDivisionName(next))}:{})}}
   const upcoming=ksmTvUpcoming(vm);
   if(vm.format==='individual'){
     const m=vm.match,p=activeScoreArrays(m);
