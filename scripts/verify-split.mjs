@@ -336,6 +336,8 @@ const KNOWN_POST_SPLIT_CSS_EDITS = {
   'nav-links': 1,
   // fix/tv-next-division: app/styles/23-tv-next-division.css, the TV's next division under Division Complete.
   'tv-next-division': 1,
+  // feat/results-placeholders: app/styles/24-results-placeholders.css, Results' placeholder cards (theme tokens).
+  'results-placeholders': 1,
 };
 // Old functions whose body now lives in app/engine/*.ts (parameter lists without braces).
 const MOVED_TO_ENGINE = [
