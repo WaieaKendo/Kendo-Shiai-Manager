@@ -12,9 +12,12 @@ Reload every open tablet, laptop, TV and tab once after the update. The server n
 - **Grand champion:** the winners of chosen divisions meet for a Grand Champion award. The match fills in by itself when those divisions finish and joins its court's queue. Withdrawals (runner-up or Fusen-sho) and corrections are handled.
 - **Divisions added after the draw** (individual or team) can be drawn on their own with Regenerate Single Division ("Not drawn yet → Draw"). The other divisions stay as they are.
 - **Division running order** in Setup decides the court order, with a "Continue to the next division" button when a division finishes.
-- **Rename a division** before its draw. **Delete a tournament** (typed confirmation; gone on every device).
+- **Remove any division** before its draw, presets included (players in it are kept). **Rename a division** before its draw. **Delete a tournament** (typed confirmation; gone on every device).
 - **Setup** shows what can no longer change after the draw, and why (notes and tooltips). The Library replaces Save / Load: tournament files, backups and diagnostics are under Setup.
 - **Tournament switcher and short links:** move between tournaments from the header; each tournament has a short address (e.g. `/demo-cup-2026`).
+- **Import CSV** on Registration reads a players file (Name or First/Last Name, Dojo, Division, Seed, Status; any column order). Unknown divisions are listed, not added; importing the same file twice adds no one twice. Export CSV's file is the template.
+- **New tournaments** start with an empty Host and Location. **Match time** fields accept shorthand: `5` → 5:00, `2:3` → 2:03.
+- **Footer** on every page except the TV: Privacy, About and the app version.
 - **Printable scorekeeper guide** at `/print/scorekeeper-guide` (Setup → Sharing & access → Print), also as a two-page PDF.
 
 ### Court screen
