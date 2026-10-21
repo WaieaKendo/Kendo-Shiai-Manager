@@ -33,6 +33,7 @@ export type LibraryInput =
     canDelete?: boolean;
     authorizedIds?: string[];
     activeId?: string;
+    activeName?: string;
     hasActive?: boolean;
     draft?: { name: string; saved: string } | null;
     /** The rows, in the order given; with none the message is shown instead. */

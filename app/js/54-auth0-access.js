@@ -74,7 +74,8 @@ var ksmAccountPublishLibrary=ksmPublishLibrary;
 ksmPublishLibrary=function(input){
   if(ksmAccount.enabled&&input?.kind==='library'){
     const admin=ksmAccount.globalRole==='admin'&&!!ksmAccount.token;
-    input={...input,authEnabled:true,accountEmail:ksmAccount.email,accountRole:ksmAccount.globalRole,canCreate:admin,canDelete:admin,authorizedIds:ksmVisibleLibrary.filter(row=>admin||row.canManage).map(row=>row.id)};
+    const active=ksmVisibleLibrary.find(row=>row.id===input.activeId);
+    input={...input,hasActive:!!input.hasActive&&!!active&&!!cloudBaseFor(cloudSession.revision),activeName:active?.name||'',authEnabled:true,accountEmail:ksmAccount.email,accountRole:ksmAccount.globalRole,canCreate:admin,canDelete:admin,authorizedIds:ksmVisibleLibrary.filter(row=>admin||row.canManage).map(row=>row.id)};
   }
   return ksmAccountPublishLibrary(input);
 };

@@ -17,7 +17,14 @@ body.ksm-tv .ksm-role-host, body.ksm-tv .ksm-auth-controls { display: none !impo
 .ksm-directors form, .ksm-directors li { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
 .ksm-directors input { max-width: 100%; }
 @media (max-width: 600px) { .ksm-role-strip { padding: .25rem .75rem; font-size: .75rem; } }
-[data-testid="library-sign-in"] { margin-inline-start: auto; flex-shrink: 0; }
+.library-account-tools { margin-inline-start: auto; display: flex; align-items: center; gap: 16px; min-width: 0; }
+.library-account { display: flex; flex-direction: column; gap: 4px; text-align: end; min-width: 0; }
+.library-account-email { overflow-wrap: anywhere; font-size: .875rem; }
+[data-testid="library-sign-in"] { flex-shrink: 0; }
+@media (max-width: 800px) {
+  .home-brand:has(.library-account-tools) { flex-wrap: wrap; }
+  .library-account-tools { width: 100%; justify-content: flex-end; }
+}
 /* Hide the initial static controls until routing and account restoration finish. */
 html:not(.ksm-ui-ready) body > :not(script) { visibility: hidden !important; }
 html:not(.ksm-ui-ready) body::before {

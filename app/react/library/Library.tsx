@@ -84,17 +84,19 @@ export function Library() {
       <div className="home-brand">
         <img src={DEFAULT_HOME_LOGO_SRC} alt="" />
         <div><h1 id="homeTitle">{HOME_TITLE}</h1><p>{HOME_SUBTITLE}</p></div>
-        {accounts && <button type="button" data-testid="library-sign-in" onClick={() => window.dispatchEvent(new CustomEvent(input.accountEmail ? 'ksm:sign-out' : 'ksm:sign-in'))}>{input.accountEmail ? 'Sign out' : 'Sign in'}</button>}
+        {accounts && <div className="library-account-tools">
+          {input.accountEmail && <div className="library-account" data-testid="library-account" role="status">
+            <span className="library-account-email">{input.accountEmail}</span>
+            <span className="small sub">{input.accountRole === 'admin' ? 'Admin' : input.authorizedIds?.length ? 'Director' : 'No management access'}</span>
+          </div>}
+          <button type="button" data-testid="library-sign-in" onClick={() => window.dispatchEvent(new CustomEvent(input.accountEmail ? 'ksm:sign-out' : 'ksm:sign-in'))}>{input.accountEmail ? 'Sign out' : 'Sign in'}</button>
+        </div>}
       </div>
-      {accounts && input.accountEmail && <div className="library-account" data-testid="library-account" role="status">
-        Signed in as <strong>{input.accountEmail}</strong> · {input.accountRole === 'admin' ? 'Admin' : input.authorizedIds?.length ? 'Director' : 'No management access'}
-        {input.accountRole !== 'admin' && <p>Admins can create tournaments. Ask an admin to assign you as a director to manage an existing tournament.</p>}
-      </div>}
       {accounts && signInError && <p className="sub" role="alert" data-testid="auth0-error">Sign-in failed: {signInError}</p>}
       <div className="home-head">
-        <div><h2>{accounts ? (input.kind === 'library' && input.accountEmail ? 'My tournaments & public tournaments' : 'Tournaments') : LIBRARY_HEADING}</h2><p>{accounts ? (input.accountEmail ? 'Manage your assigned tournaments or open a public tournament to watch.' : 'Open a public tournament to watch, or sign in to manage your tournaments.') : LIBRARY_INTRO}</p></div>
+        <div><h2>{accounts ? 'Tournaments' : LIBRARY_HEADING}</h2><p>{accounts ? (input.accountEmail ? 'Manage your assigned tournaments or open a public tournament to watch.' : 'Open a public tournament to watch, or sign in to manage your tournaments.') : LIBRARY_INTRO}</p></div>
         <div className="actions">
-        {input.kind === 'library' && input.hasActive && <button type="button" data-testid="library-return" onClick={() => libraryWindow().ksmReturnFromLibrary?.()}>Back to tournament</button>}
+        {input.kind === 'library' && input.hasActive && <button type="button" data-testid="library-return" onClick={() => libraryWindow().ksmReturnFromLibrary?.()}>{accounts ? `Continue · ${input.activeName || 'tournament'}` : 'Back to tournament'}</button>}
         {admin && <button type="button" data-testid="library-load-file" onClick={() => libraryWindow().triggerLoadTournament?.()}>Load Tournament File</button>}
         {admin && <button className="home-new-button" type="button" data-testid="home-new-tournament" onClick={() => { libraryWindow().createNewTournament?.(); }}>{NEW_TOURNAMENT_TEXT}</button>}
         </div>

@@ -56,6 +56,7 @@ def main():
             expect(landing.get_by_test_id('auth0-error')).to_contain_text('Service not found')
             landing.wait_for_url(base + '/')
             expect(landing.get_by_test_id('home-new-tournament')).to_have_count(0)
+            expect(landing.get_by_test_id('library-return')).to_have_count(0)
             expect(landing.get_by_test_id('library-load-file')).to_have_count(0)
             expect(landing.get_by_test_id('home-tournament')).to_have_count(0)
             landing.goto(base + f'/t/{a}/overview')
@@ -138,6 +139,11 @@ def main():
             # The tab cache survives reload but explicit sign-out clears it.
             admin.goto(base)
             expect(admin.get_by_test_id('library-account')).to_contain_text('Admin')
+            account_box = admin.get_by_test_id('library-account').bounding_box()
+            signout_box = admin.get_by_test_id('library-sign-in').bounding_box()
+            assert account_box['x'] > admin.viewport_size['width'] / 2
+            assert abs(account_box['y'] + account_box['height'] / 2 - signout_box['y'] - signout_box['height'] / 2) < 3
+            expect(admin.get_by_role('heading', name='Tournaments', exact=True)).to_be_visible()
             admin.get_by_test_id('library-sign-in').click()
             expect(admin.get_by_test_id('library-sign-in')).to_have_text('Sign in')
             assert admin.evaluate("Object.keys(sessionStorage).filter(k => k.startsWith('ksm.auth0.')).length") == 0
