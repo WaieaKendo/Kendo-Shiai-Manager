@@ -1,6 +1,7 @@
 """Admin invitation, creator/owner creation, director editing and mobile access UI."""
 import json
 import subprocess
+import tempfile
 from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
 from ksm_browser import launch_chromium, install_test_api
@@ -41,7 +42,7 @@ def main():
             assert admin.evaluate('navigator.clipboard.readText()') == f"You've been given access to KSM. Sign in at {base}/ with creator@example.com."
             assert admin.evaluate('document.documentElement.scrollWidth <= innerWidth')
             assert dialog.evaluate('(el)=>el.scrollWidth <= el.clientWidth + 1')
-            admin.screenshot(path='/private/tmp/ksm-131-people-mobile.png', full_page=True)
+            admin.screenshot(path=str(Path(tempfile.gettempdir()) / 'ksm-131-people-mobile.png'), full_page=True)
             dialog.get_by_role('button', name='Close People & access').click()
             creator_context, creator = device('creator@example.com')
             expect(creator.get_by_test_id('library-account')).to_contain_text('Creator')
@@ -101,7 +102,7 @@ def main():
             admin.once('dialog', lambda d: d.accept())
             director_person.get_by_role('button', name='Remove director@example.com from everything').click()
             expect(director_person).not_to_contain_text('Directed Cup')
-            admin.screenshot(path='/private/tmp/ksm-131-people-mobile-after.png', full_page=True)
+            admin.screenshot(path=str(Path(tempfile.gettempdir()) / 'ksm-131-people-mobile-after.png'), full_page=True)
             dialog.get_by_role('button', name='Close People & access').click()
             admin.goto(base + f'/t/{tid}/setup')
             expect(admin.get_by_test_id('account-role')).to_contain_text('Admin')
