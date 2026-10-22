@@ -342,6 +342,8 @@ const KNOWN_POST_SPLIT_CSS_EDITS = {
   'results-placeholders': 1,
   // feat/auth0: app/styles/25-account-roles.css, the Account menu's role strip.
   'auth0-roles': 1,
+  // #131: app/styles/26-people-access.css (theme tokens only).
+  'people-access': 1,
 };
 // Old functions whose body now lives in app/engine/*.ts (parameter lists without braces).
 const MOVED_TO_ENGINE = [

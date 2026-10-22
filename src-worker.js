@@ -350,13 +350,18 @@ export class TournamentState {
       try { socket.send(serialized); } catch (_) { try { socket.close(1011, 'Broadcast failed'); } catch (_) {} }
     }
   }
+  async closeUserSockets(userId) {
+    const sockets = this.state.getWebSockets();
+    const users = await accessCall(this.env,'lookupMany',{subs:sockets.map(socket=>socket.deserializeAttachment()?.identity?.sub).filter(Boolean)});
+    for (const socket of sockets) if (users[socket.deserializeAttachment()?.identity?.sub]?.userId === userId) try {socket.close(1000,'Access changed')} catch (_) {}
+  }
   async broadcastPresence() { await this.broadcast({ type: 'presence', clients: this.presence() }); }
 
   async fetch(request) {
     const url = new URL(request.url);
     if (url.pathname.startsWith('/internal/access/')) {
       const operation = url.pathname.slice('/internal/access/'.length);
-      if (request.method !== 'POST' || !['resolve','grant','revoke','listPeople','listTournament','removeTournament','lookup','lookupMany','migrateTournament','changeTournament'].includes(operation)) return json({error:'Not found'},404);
+      if (request.method !== 'POST' || !['resolve','grant','revoke','listPeople','listTournament','removeTournament','lookup','lookupMany','peopleView','adminChange','migrateTournament','changeTournament'].includes(operation)) return json({error:'Not found'},404);
       this.accessStore ||= new AccessStore(this.state.storage, this.env);
       return json(this.accessStore[operation](await request.json()));
     }
@@ -497,6 +502,10 @@ export class TournamentState {
       return json(publicRecord(record), 200, session ? { 'x-ksm-session-token': session.token, 'x-ksm-session-expires': session.expiresAt } : {});
     }
 
+    if (url.pathname === '/internal/close-user' && request.method === 'POST') {
+      await this.closeUserSockets((await request.json()).userId);
+      return json({ok:true});
+    }
     if (url.pathname === '/internal/access-index' && request.method === 'POST') {
       await this.ensureAccessMigrated();
       const record = await this.state.storage.get('record');
@@ -528,16 +537,18 @@ export class TournamentState {
       const manager = ['admin','owner'].includes(access?.role);
       // Keep refresh's existing self-role contract. Only managers receive the
       // account list; the alias retains its older manager-only GET contract.
-      if (request.method === 'GET' && !alias && !manager) return json({enabled:true,role:access?.role || 'spectator',passwordFallback:false});
-      if (!manager) return json({error:'Owner or admin authorization required'},403);
+      if (request.method === 'GET' && !alias && !access?.ok) return json({enabled:true,role:access?.role || 'spectator',passwordFallback:false});
+      if (!manager && (alias || request.method !== 'GET')) return json({error:'Owner or admin authorization required'},403);
       const record = await this.state.storage.get('record');
       if (!record) return json({error:'Tournament not found'},404);
+      let changeResult;
       if (request.method !== 'GET') {
         const body = await request.json().catch(() => ({}));
         const role = alias ? 'director' : body.role;
         if (!['owner','director'].includes(role)) return json({error:'Owner or director role required'},400);
         const result = await accessCall(this.env, 'changeTournament', {actor:access.identity, id:record.tournamentId, action:request.method === 'POST' ? 'grant' : 'revoke', email:body.email, userId:body.userId, role});
         if (!result.ok) return json({error:result.error},result.status);
+        changeResult = result;
         if (request.method === 'DELETE' && result.removed && result.userId) {
           for (const socket of this.state.getWebSockets()) {
             const identity = socket.deserializeAttachment()?.identity;
@@ -549,7 +560,7 @@ export class TournamentState {
       }
       const list = await accessCall(this.env, 'listTournament', {id:record.tournamentId});
       if (alias) return json({directors:[...new Set([...list.grants,...list.invites].filter(item=>item.role === 'director').map(item=>item.email))].sort()});
-      return json({enabled:true,role:access.role,passwordFallback:false,...list});
+      return json({enabled:true,role:access.role,passwordFallback:false,...list,...(request.method==='DELETE'?{removed:changeResult?.removed}: {})});
     }
     if (request.method === 'POST' && url.pathname === '/auth') {
       if (auth0Enabled(this.env)) return json({ error: 'Use Auth0 sign-in for this tournament' }, 403);
@@ -710,6 +721,39 @@ export default {
     if (url.pathname === '/api/health') return json({ ok: true, service: 'ksm-cloud', version: APP_VERSION, realtime: true, roles: ['spectator', 'staff'], offlineOutbox: true });
 
     const libraryStub = () => env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName('__ksm_library__'));
+    if (url.pathname === '/api/people' || url.pathname.startsWith('/api/people/')) {
+      if (!auth0Enabled(env)) return json({error:'Auth0 disabled'},404);
+      let identity;
+      try {identity = await identityVerifier(env)(bearerToken(request));} catch (_) {return json({error:'Admin authorization required'},403)}
+      const account = await resolveAccess(env,identity);
+      if (account.role !== 'admin') return json({error:'Admin authorization required'},403);
+      const libraryResponse = await libraryStub().fetch('https://durable-object/library');
+      if (!libraryResponse.ok) throw new Error('Library unavailable');
+      let tournaments = await libraryResponse.json();
+      const pending = tournaments.filter(row=>!row.accessIndexed);
+      for (const row of pending) {
+        const result = await env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName(row.id)).fetch(new Request('https://durable-object/internal/access-index',{method:'POST'}));
+        if (!result.ok && ![404,410].includes(result.status)) throw new Error('Access migration unavailable');
+      }
+      if (pending.length) tournaments = await (await libraryStub().fetch('https://durable-object/library')).json();
+      if (url.pathname === '/api/people' && request.method === 'GET') return json(await accessCall(env,'peopleView',{tournaments}));
+      let result;
+      if (url.pathname === '/api/people/roles' && ['POST','DELETE'].includes(request.method)) {
+        const body = await request.json().catch(()=>({}));
+        result = await accessCall(env,'adminChange',{actor:identity,action:request.method==='POST'?'grant':'revoke',email:body.email,userId:body.userId,role:body.role});
+      } else if (/^\/api\/people\/[^/]+$/.test(url.pathname) && request.method === 'DELETE') {
+        result = await accessCall(env,'adminChange',{actor:identity,action:'remove',userId:decodeURIComponent(url.pathname.split('/').pop())});
+      } else return json({error:'Not found'},404);
+      if (!result.ok) return json({error:result.error},result.status);
+      if (result.userId) {
+        const ids = result.wasAdmin ? tournaments.map(row=>row.id) : result.tournaments || [];
+        for (const id of new Set(ids)) {
+          const response = await env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName(id)).fetch(new Request('https://durable-object/internal/close-user',{method:'POST',body:JSON.stringify({userId:result.userId})}));
+          if (!response.ok && response.status !== 410) throw new Error('Socket revocation failed');
+        }
+      }
+      return json({ok:true,...(result.removed !== undefined ? {removed:result.removed}: {})});
+    }
     const withSlug = async response => {
       if (!response.ok) return response;
       const record = await response.clone().json();
@@ -746,7 +790,7 @@ export default {
       }
       const listed = rows.flatMap(row => {
         const canManage = resolved.role === 'admin' || ['owner','director'].includes(resolved.tournamentRoles[row.id]);
-        return canManage || row.isPublic === true ? [{...row,isPublic:row.isPublic === true,canManage}] : [];
+        return canManage || row.isPublic === true ? [{...row,isPublic:row.isPublic === true,canManage,role:resolved.role==='admin'?'admin':resolved.tournamentRoles[row.id]||'spectator'}] : [];
       });
       listed.sort((a,b) => Number(b.canManage)-Number(a.canManage));
       return json(listed,200,invalid ? {'x-ksm-auth':'invalid'} : {});

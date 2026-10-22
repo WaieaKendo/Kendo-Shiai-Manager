@@ -8,7 +8,7 @@ function ksmReadHeaders(){return typeof ksmAccount!=='undefined'&&ksmAccount.ena
 function ksmAccountCanEdit(){
   const params=ksmLinkParams();
   if(params.get('view')==='tv'||params.get('role')==='spectator'||params.has('spectator')||ksmExplicitSpectatorUrl)return false;
-  return !!ksmAccount.token&&(ksmAccount.globalRole==='admin'||(ksmAccount.role==='director'&&ksmAccount.tournamentId===cloudSession.tournamentId));
+  return !ksmLibraryAuthInvalid&&!!ksmAccount.token&&(ksmAccount.globalRole==='admin'||(['owner','director'].includes(ksmAccount.role)&&ksmAccount.tournamentId===cloudSession.tournamentId));
 }
 function ksmAccountChanged(){
   document.body.classList.toggle('ksm-account-signed-in',!!ksmAccount.email);
@@ -40,7 +40,7 @@ toggleStaffSession=function(){
   return ksmAccountToggleStaff();
 };
 var ksmAccountHeaders=cloudHeaders;
-cloudHeaders=function(){const headers=ksmAccountHeaders();if(ksmAccountCanEdit())headers.authorization=`Bearer ${ksmAccount.token}`;return headers};
+cloudHeaders=function(){const headers=ksmAccountHeaders();if(ksmAccount.enabled&&ksmAccount.token)headers.authorization=`Bearer ${ksmAccount.token}`;return headers};
 var ksmAccountSocketUrl=cloudSocketUrl;
 cloudSocketUrl=function(id){const url=new URL(ksmAccountSocketUrl(id));if(ksmAccount.enabled&&ksmAccount.token){url.searchParams.delete('key');url.searchParams.set('access_token',ksmAccount.token)}return url.toString()};
 var ksmAccountLoad=loadTournamentFromCloud;
@@ -66,23 +66,33 @@ connectCloudSocket=function(){
 var ksmAccountCreate=ksmCreateTournament;
 ksmCreateTournament=async function(){
   await ksmAuthReady;
-  if(ksmAccount.enabled&&ksmAccount.globalRole!=='admin'){alert('Sign in as an Admin to create a tournament.');return}
-  return ksmAccountCreate();
+  if(ksmAccount.enabled&&(!['admin','creator'].includes(ksmAccount.globalRole)||ksmLibraryAuthInvalid)){alert('Sign in as an Admin or Creator to create a tournament.');return}
+  const result=await ksmAccountCreate();
+  if(ksmAccount.enabled&&cloudSession.tournamentId){await window.ksmRefreshAccount?.(cloudSession.tournamentId);window.ksmAuthBridge.refreshUi()}
+  return result;
+};
+var ksmAccountFileAsNew=loadTournamentFileAsNew;
+loadTournamentFileAsNew=async function(){
+  if(ksmAccount.enabled&&(!['admin','creator'].includes(ksmAccount.globalRole)||ksmLibraryAuthInvalid)){alert('Sign in as an Admin or Creator to load a new tournament.');return}
+  const result=await ksmAccountFileAsNew();
+  if(ksmAccount.enabled&&cloudSession.tournamentId){await window.ksmRefreshAccount?.(cloudSession.tournamentId);window.ksmAuthBridge.refreshUi()}
+  return result;
 };
 var ksmAccountCanDelete=ksmCanDeleteTournament;
 ksmCanDeleteTournament=function(){return ksmAccount.enabled?ksmAccount.globalRole==='admin'&&!!ksmAccount.token&&!!cloudSession.tournamentId:ksmAccountCanDelete()};
 var ksmAccountManageLibrary=ksmCanManageLibraryTournament;
-ksmCanManageLibraryTournament=function(id){return ksmAccount.enabled&&ksmAccount.globalRole==='admin'&&!!ksmAccount.token||ksmAccountManageLibrary(id)};
+ksmCanManageLibraryTournament=function(id){return ksmAccount.enabled?!ksmLibraryAuthInvalid&&!!ksmAccount.token&&!!ksmVisibleLibrary.find(row=>row.id===id)?.canManage:ksmAccountManageLibrary(id)};
 var ksmAccountPublishLibrary=ksmPublishLibrary;
 ksmPublishLibrary=function(input){
   if(ksmAccount.enabled&&input?.kind==='library'){
-    const admin=ksmAccount.globalRole==='admin'&&!!ksmAccount.token;
+    const admin=!ksmLibraryAuthInvalid&&ksmAccount.globalRole==='admin'&&!!ksmAccount.token;
+    const creator=!ksmLibraryAuthInvalid&&['admin','creator'].includes(ksmAccount.globalRole)&&!!ksmAccount.token;
     const active=ksmVisibleLibrary.find(row=>row.id===input.activeId);
-    input={...input,hasActive:!!input.hasActive&&!!active&&!!cloudBaseFor(cloudSession.revision),activeName:active?.name||'',authEnabled:true,accountEmail:ksmAccount.email,accountRole:ksmAccount.globalRole,canCreate:admin,canDelete:admin,authorizedIds:ksmVisibleLibrary.filter(row=>admin||row.canManage).map(row=>row.id)};
+    input={...input,hasActive:!!input.hasActive&&!!active&&!!cloudBaseFor(cloudSession.revision),activeName:active?.name||'',authEnabled:true,accountEmail:ksmAccount.email,accountRole:ksmAccount.globalRole,authInvalid:ksmLibraryAuthInvalid,canCreate:creator,canDelete:admin,accessLabels:Object.fromEntries(ksmVisibleLibrary.map(row=>[row.id,row.role])),authorizedIds:ksmLibraryAuthInvalid?[]:ksmVisibleLibrary.filter(row=>admin||row.canManage).map(row=>row.id)};
   }
   return ksmAccountPublishLibrary(input);
 };
-var ksmVisibleLibrary=[];
+var ksmVisibleLibrary=[],ksmLibraryAuthInvalid=false;
 var ksmAccountReadLibrary=readTournamentLibrary;
 readTournamentLibrary=function(){return ksmAccount.enabled?ksmVisibleLibrary:ksmAccountReadLibrary()};
 var ksmAccountWriteLibrary=writeTournamentLibrary;
@@ -97,6 +107,10 @@ renderHomeTournamentLibrary=async function(){
     if(!response.ok)throw new Error('Unable to load tournaments.');
     const list=await response.json();
     if(token!==ksmAccount.token)return;
+    const wasInvalid=ksmLibraryAuthInvalid;
+    ksmLibraryAuthInvalid=response.headers.get('x-ksm-auth')==='invalid';
+    if(ksmLibraryAuthInvalid)window.dispatchEvent(new CustomEvent('ksm:library-auth-invalid'));
+    if(wasInvalid!==ksmLibraryAuthInvalid)ksmAccountChanged();
     ksmVisibleLibrary=list;paintHomeTournamentLibrary(list,'No tournaments available.');
   }catch(_){paintHomeTournamentLibrary([],'Unable to load tournaments. Check your connection.');}
 };

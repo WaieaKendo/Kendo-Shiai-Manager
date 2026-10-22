@@ -29,6 +29,8 @@ export type LibraryInput =
     accountEmail?: string;
     accountRole?: string;
     canCreate?: boolean;
+    authInvalid?: boolean;
+    accessLabels?: Record<string,string>;
     canManage?: boolean;
     canDelete?: boolean;
     authorizedIds?: string[];

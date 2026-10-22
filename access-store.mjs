@@ -171,6 +171,55 @@ export class AccessStore {
       return {ok:true,userId:target?.id || null,removed};
     });
   }
+  peopleView({tournaments = []}) {
+    const data = this.listPeople();
+    const names = new Map(tournaments.map(item=>[item.id,item.name]));
+    const users = data.users.map(user => ({userId:user.id,email:user.email,displayName:user.display_name,lastSignInAt:user.last_sign_in_at,
+      providers:[...new Set(data.identities.filter(identity=>identity.user_id === user.id).map(identity=>identity.provider))],
+      roles:[...new Set([...data.globalRoles.filter(row=>row.user_id===user.id).map(row=>row.role),...(isAdmin(this.env,user.email)?['admin']:[])])],
+      tournamentAccess:data.tournamentAccess.filter(row=>row.user_id===user.id).map(row=>({tournamentId:row.tournament_id,name:names.get(row.tournament_id)||'Tournament',role:row.role})),
+      fromServer:isAdmin(this.env,user.email)}));
+    for (const email of String(this.env.ADMIN_EMAILS || '').split(',').map(normalizeEmail).filter(Boolean)) {
+      if (!users.some(user=>user.email === email)) users.push({userId:null,email,providers:[],roles:['admin'],tournamentAccess:[],fromServer:true});
+    }
+    return {users,invites:data.invites.map(invite=>({email:invite.email,scope:invite.scope,role:invite.role,name:invite.scope==='global'?'Global':names.get(invite.scope)||'Tournament',fromServer:isAdmin(this.env,invite.email)}))};
+  }
+  adminChange({actor,action,email,userId,role}) {
+    return this.storage.transactionSync(() => {
+      const current = this.lookup(actor);
+      if (!isAdmin(this.env,actor.email) && !current.roles.includes('admin')) return {ok:false,status:403,error:'Admin authorization required'};
+      if (!['grant','revoke','remove'].includes(action) || (action !== 'remove' && !['admin','creator'].includes(role))) return {ok:false,status:400,error:'Admin or creator role required'};
+      email = normalizeEmail(email);
+      const target = userId ? this.rows('SELECT * FROM users WHERE id=?',userId)[0] : this.rows('SELECT * FROM users WHERE lower(email)=?',email)[0];
+      if (userId && !target) return {ok:false,status:404,error:'User not found'};
+      email = target?.email || email;
+      if (!email) return {ok:false,status:400,error:'Valid email or user ID required'};
+      if (action !== 'grant' && isAdmin(this.env,email)) return {ok:false,status:409,error:'Access comes from server settings'};
+      if (action !== 'grant' && (action === 'remove' || role === 'admin') && target?.id === current.userId && !isAdmin(this.env,actor.email)) {
+        const count = this.rows("SELECT count(*) AS n FROM global_roles WHERE role='admin'")[0].n;
+        if (count <= 1) return {ok:false,status:409,error:'You cannot remove the last stored admin'};
+      }
+      const at = new Date().toISOString();
+      if (action === 'grant') {
+        if (target) this.putGrant(target.id,'global',role,current.userId,at);
+        else this.sql.exec('INSERT OR IGNORE INTO invites VALUES(?,?,?,?,?)',email,'global',role,current.userId,at);
+        return {ok:true};
+      }
+      if (action === 'revoke') {
+        const removed = (target && this.rows('SELECT 1 FROM global_roles WHERE user_id=? AND role=?',target.id,role).length > 0) || this.rows("SELECT 1 FROM invites WHERE email=? AND scope='global' AND role=?",email,role).length > 0;
+        if (target) this.sql.exec('DELETE FROM global_roles WHERE user_id=? AND role=?',target.id,role);
+        this.sql.exec("DELETE FROM invites WHERE email=? AND scope='global' AND role=?",email,role);
+        return {ok:true,removed:!!removed};
+      }
+      if (!target) return {ok:false,status:404,error:'User not found'};
+      const tournaments = this.rows('SELECT tournament_id FROM tournament_access WHERE user_id=?',target.id).map(row=>row.tournament_id);
+      const wasAdmin = this.rows("SELECT 1 FROM global_roles WHERE user_id=? AND role='admin'",target.id).length > 0;
+      this.sql.exec('DELETE FROM global_roles WHERE user_id=?',target.id);
+      this.sql.exec('DELETE FROM tournament_access WHERE user_id=?',target.id);
+      this.sql.exec('DELETE FROM invites WHERE email=?',email);
+      return {ok:true,userId:target.id,tournaments,wasAdmin};
+    });
+  }
   removeTournament({id}) {
     return this.storage.transactionSync(() => {
       this.sql.exec('INSERT OR IGNORE INTO meta VALUES(?,?)', `deleted:${id}`, new Date().toISOString());

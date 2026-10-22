@@ -126,7 +126,9 @@ def main():
             assert write_status(director, a) == 409
             assert write_status(director, b) == 403
             assert write_status(director, a, 'DELETE') == 403
-            assert director.get_by_test_id('directors-management').count() == 0
+            director.evaluate("KSMTest.show('setup')")
+            expect(director.get_by_test_id('access-read-only')).to_be_visible()
+            expect(director.get_by_test_id('tournament-access').get_by_role('button', name='Add access')).to_have_count(0)
             admin_context, admin = signed_device('admin@example.com', a)
             admin.reload()
             expect(admin.get_by_test_id('account-role')).to_contain_text('Admin')
@@ -139,7 +141,7 @@ def main():
             expect(admin.get_by_test_id('auth0-sign-in')).to_have_text('Sign out')
             expect(admin.get_by_role('link', name='Tournament Library', exact=True)).to_be_visible()
             admin.locator('.ksm-account-menu > summary').click()
-            expect(admin.get_by_test_id('directors-management')).to_be_visible()
+            expect(admin.get_by_test_id('tournament-access')).to_be_visible()
             # A missing-record rejection must leave queued work intact with a clear diagnostic.
             admin.route('**/api/tournaments/' + a, lambda route: route.fulfill(status=404, content_type='application/json', body='{"error":"Tournament not found"}') if route.request.method == 'PUT' else route.continue_())
             retained = admin.evaluate('''async () => {KSMTest.app.writeOutbox(KSMTest.app.tournamentPayload(),'Missing record regression');const before=JSON.stringify(KSMTest.app.readOutbox());const sent=await KSMTest.app.flushCloudOutbox();clearTimeout(ksmQueuedSaveRetryTimer);return {sent,kept:JSON.stringify(KSMTest.app.readOutbox())===before,message:KSMTest.diagnostics().errorMessage};}''')
@@ -152,11 +154,11 @@ def main():
             expect(toggle).to_be_checked()
             expect(admin.get_by_test_id('library-manage')).to_have_count(2)
             expect(admin.get_by_test_id('tournament-visibility')).to_contain_text('Anyone can find')
-            admin.get_by_test_id('director-email').fill('second@example.com')
-            admin.get_by_role('button', name='Add director', exact=True).click()
-            expect(admin.get_by_role('button', name='Remove second@example.com')).to_be_visible()
-            admin.get_by_role('button', name='Remove second@example.com').click()
-            expect(admin.get_by_role('button', name='Remove second@example.com')).to_have_count(0)
+            admin.get_by_test_id('access-email').fill('second@example.com')
+            admin.get_by_role('button', name='Add access', exact=True).click()
+            expect(admin.get_by_role('button', name='Remove director second@example.com')).to_be_visible()
+            admin.get_by_role('button', name='Remove director second@example.com').click()
+            expect(admin.get_by_role('button', name='Remove director second@example.com')).to_have_count(0)
             # On an authenticated browser a TV link is still read-only and shows no header/strip.
             admin.goto(base + f'/t/{a}/tv/a')
             expect(admin.locator('body')).to_have_class(__import__('re').compile('ksm-tv'))
@@ -171,7 +173,7 @@ def main():
             expect(spectator.get_by_test_id('auth0-sign-in')).to_have_text('Sign in')
             expect(spectator.get_by_test_id('staff-auth')).not_to_be_visible()
             assert spectator.get_by_test_id('account-role').count() == 0
-            assert spectator.get_by_test_id('directors-management').count() == 0
+            assert spectator.get_by_test_id('tournament-access').count() == 0
             assert spectator.evaluate("KSMTest.role() === 'spectator'")
             assert not writes
             assert spectator.evaluate("JSON.parse(localStorage.getItem('ksm.tournament.record:'+window.ksmAuthBridge.tournament())).isPublic") is True
