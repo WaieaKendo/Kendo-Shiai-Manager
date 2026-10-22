@@ -724,7 +724,7 @@ export default {
     if (url.pathname === '/api/people' || url.pathname.startsWith('/api/people/')) {
       if (!auth0Enabled(env)) return json({error:'Auth0 disabled'},404);
       let identity;
-      try {identity = await identityVerifier(env)(bearerToken(request));} catch (_) {return json({error:'Admin authorization required'},403)}
+      try {identity = await identityVerifier(env)(bearerToken(request));} catch (_) {return json({error:'Sign in again.'},401)}
       const account = await resolveAccess(env,identity);
       if (account.role !== 'admin') return json({error:'Admin authorization required'},403);
       const libraryResponse = await libraryStub().fetch('https://durable-object/library');
@@ -752,7 +752,7 @@ export default {
           if (!response.ok && response.status !== 410) throw new Error('Socket revocation failed');
         }
       }
-      return json({ok:true,...(result.removed !== undefined ? {removed:result.removed}: {})});
+      return json({ok:true,...(result.removed !== undefined ? {removed:result.removed}: {}),...(result.soleOwnerTournaments ? {soleOwnerTournaments:result.soleOwnerTournaments.map(id=>({id,name:tournaments.find(row=>row.id===id)?.name || 'Tournament'}))} : {})});
     }
     const withSlug = async response => {
       if (!response.ok) return response;

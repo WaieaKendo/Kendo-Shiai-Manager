@@ -177,10 +177,11 @@ export class AccessStore {
     const users = data.users.map(user => ({userId:user.id,email:user.email,displayName:user.display_name,lastSignInAt:user.last_sign_in_at,
       providers:[...new Set(data.identities.filter(identity=>identity.user_id === user.id).map(identity=>identity.provider))],
       roles:[...new Set([...data.globalRoles.filter(row=>row.user_id===user.id).map(row=>row.role),...(isAdmin(this.env,user.email)?['admin']:[])])],
+      soleOwnerTournaments:data.tournamentAccess.filter(row=>row.user_id===user.id && row.role==='owner' && data.tournamentAccess.filter(other=>other.tournament_id===row.tournament_id && other.role==='owner').length===1).map(row=>({id:row.tournament_id,name:names.get(row.tournament_id)||'Tournament'})),
       tournamentAccess:data.tournamentAccess.filter(row=>row.user_id===user.id).map(row=>({tournamentId:row.tournament_id,name:names.get(row.tournament_id)||'Tournament',role:row.role})),
       fromServer:isAdmin(this.env,user.email)}));
     for (const email of String(this.env.ADMIN_EMAILS || '').split(',').map(normalizeEmail).filter(Boolean)) {
-      if (!users.some(user=>user.email === email)) users.push({userId:null,email,providers:[],roles:['admin'],tournamentAccess:[],fromServer:true});
+      if (!users.some(user=>user.email === email)) users.push({userId:null,email,providers:[],roles:['admin'],tournamentAccess:[],soleOwnerTournaments:[],fromServer:true});
     }
     return {users,invites:data.invites.map(invite=>({email:invite.email,scope:invite.scope,role:invite.role,name:invite.scope==='global'?'Global':names.get(invite.scope)||'Tournament',fromServer:isAdmin(this.env,invite.email)}))};
   }
@@ -207,17 +208,19 @@ export class AccessStore {
       }
       if (action === 'revoke') {
         const removed = (target && this.rows('SELECT 1 FROM global_roles WHERE user_id=? AND role=?',target.id,role).length > 0) || this.rows("SELECT 1 FROM invites WHERE email=? AND scope='global' AND role=?",email,role).length > 0;
+        const wasAdmin = role === 'admin' && !!target && this.rows("SELECT 1 FROM global_roles WHERE user_id=? AND role='admin'",target.id).length > 0;
         if (target) this.sql.exec('DELETE FROM global_roles WHERE user_id=? AND role=?',target.id,role);
         this.sql.exec("DELETE FROM invites WHERE email=? AND scope='global' AND role=?",email,role);
-        return {ok:true,removed:!!removed};
+        return {ok:true,removed:!!removed,...(wasAdmin ? {userId:target.id,wasAdmin:true} : {})};
       }
       if (!target) return {ok:false,status:404,error:'User not found'};
       const tournaments = this.rows('SELECT tournament_id FROM tournament_access WHERE user_id=?',target.id).map(row=>row.tournament_id);
+      const soleOwnerTournaments = this.rows("SELECT a.tournament_id FROM tournament_access a WHERE a.user_id=? AND a.role='owner' AND (SELECT count(*) FROM tournament_access b WHERE b.tournament_id=a.tournament_id AND b.role='owner')=1",target.id).map(row=>row.tournament_id);
       const wasAdmin = this.rows("SELECT 1 FROM global_roles WHERE user_id=? AND role='admin'",target.id).length > 0;
       this.sql.exec('DELETE FROM global_roles WHERE user_id=?',target.id);
       this.sql.exec('DELETE FROM tournament_access WHERE user_id=?',target.id);
       this.sql.exec('DELETE FROM invites WHERE email=?',email);
-      return {ok:true,userId:target.id,tournaments,wasAdmin};
+      return {ok:true,userId:target.id,tournaments,wasAdmin,soleOwnerTournaments};
     });
   }
   removeTournament({id}) {

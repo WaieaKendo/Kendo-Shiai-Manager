@@ -102,6 +102,14 @@ def main():
             admin.once('dialog', lambda d: d.accept())
             director_person.get_by_role('button', name='Remove director@example.com from everything').click()
             expect(director_person).not_to_contain_text('Directed Cup')
+            def remove_owner_prompt(prompt):
+                assert 'creator@example.com is the only owner of: Directed Cup.' in prompt.message
+                assert 'Admins will still manage them.' in prompt.message
+                prompt.accept()
+            admin.once('dialog', remove_owner_prompt)
+            person.get_by_role('button', name='Remove creator@example.com from everything').click()
+            expect(person).not_to_contain_text('Directed Cup')
+            expect(dialog.get_by_role('status')).to_contain_text('Admins will still manage: Directed Cup')
             admin.screenshot(path=str(Path(tempfile.gettempdir()) / 'ksm-131-people-mobile-after.png'), full_page=True)
             dialog.get_by_role('button', name='Close People & access').click()
             admin.goto(base + f'/t/{tid}/setup')

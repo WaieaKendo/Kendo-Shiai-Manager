@@ -45,7 +45,8 @@ export function TournamentAccess({id,token,role,refresh}:{id:string;token:string
   </section>;
 }
 
-type Person = { userId:string|null; email:string; displayName?:string; providers:string[]; roles:string[]; fromServer:boolean; tournamentAccess:{tournamentId:string;name:string;role:string}[] };
+type OwnedTournament = {id:string;name:string};
+type Person = { soleOwnerTournaments:OwnedTournament[]; userId:string|null; email:string; displayName?:string; providers:string[]; roles:string[]; fromServer:boolean; tournamentAccess:{tournamentId:string;name:string;role:string}[] };
 type Invite = {email:string;scope:string;role:string;name:string;fromServer:boolean};
 type People = {users:Person[];invites:Invite[]};
 const label = (role:string)=>role.charAt(0).toUpperCase()+role.slice(1);
@@ -59,10 +60,15 @@ export function PeopleAccess({token,onClose,onChange}:{token:string;onClose:()=>
   async function change(method:string,url:string,body?:unknown) {
     setBusy(true);setError('');setNotice('');
     try {
-      const result=await accessRequest<{removed?:boolean}>(url,token,method,body);
+      const result=await accessRequest<{removed?:boolean;soleOwnerTournaments?:OwnedTournament[]}>(url,token,method,body);
       await onChange();
-      setData(await accessRequest<People>('/api/people',token));setEmail('');setNotice(result.removed===false?'Not changed':'Access updated');
+      setData(await accessRequest<People>('/api/people',token));setEmail('');setNotice(result.removed===false?'Not changed':result.soleOwnerTournaments?.length ? `Access removed. Admins will still manage: ${result.soleOwnerTournaments.map(item=>item.name).join(', ')}.` : 'Access updated');
     }catch(e){setError((e as Error).message)}finally{setBusy(false)}
+  }
+  function removePerson(person:Person) {
+    const names=person.soleOwnerTournaments.map(item=>item.name).join(', ');
+    const ownership=names ? `${person.email} is the only owner of: ${names}. Admins will still manage them.\n\n` : '';
+    if(window.confirm(`${ownership}Remove ${person.email} from all roles and tournaments? Sign-in history will be kept.`))void change('DELETE',`/api/people/${encodeURIComponent(person.userId!)}`);
   }
   async function copy(email:string) {
     const value=`You've been given access to KSM. Sign in at ${location.origin}/ with ${email}.`;
@@ -85,7 +91,7 @@ export function PeopleAccess({token,onClose,onChange}:{token:string;onClose:()=>
       {!!person.providers.length && <span className="sub">Sign-in: {person.providers.map(provider=>provider==='auth0'?'Email':provider==='google-oauth2'?'Google':provider).join(', ')}</span>}
       <div className="ksm-person-roles">{person.roles.map(value=><span key={value}>{label(value)} {!person.fromServer && <button type="button" disabled={busy} aria-label={`Remove ${label(value)} from ${person.email}`} onClick={()=>{void change('DELETE','/api/people/roles',{userId:person.userId,role:value})}}>Remove</button>}</span>)}{!person.roles.length && <span>No global roles</span>}</div>
       {!!person.tournamentAccess.length && <ul>{person.tournamentAccess.map(item=><li key={item.tournamentId}>{label(item.role)} · <a href={`/t/${encodeURIComponent(item.tournamentId)}/setup`}>{item.name}</a></li>)}</ul>}
-      {!person.fromServer && person.userId && <button type="button" className="secondary" disabled={busy} aria-label={`Remove ${person.email} from everything`} onClick={()=>{if(window.confirm(`Remove ${person.email} from all roles and tournaments? Sign-in history will be kept.`))void change('DELETE',`/api/people/${encodeURIComponent(person.userId!)}`)}}>Remove from everything</button>}
+      {!person.fromServer && person.userId && <button type="button" className="secondary" disabled={busy} aria-label={`Remove ${person.email} from everything`} onClick={()=>removePerson(person)}>Remove from everything</button>}
     </article>)}</div>
     <h3>Pending invites</h3><div className="ksm-people-list">{data.invites.map(invite=><article className="ksm-person" key={`${invite.email}-${invite.scope}-${invite.role}`} data-testid="pending-invite">
       <strong>{invite.email}</strong><span>{label(invite.role)} · {invite.name}</span>{invite.fromServer && <span>from server settings</span>}

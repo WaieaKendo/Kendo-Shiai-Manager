@@ -15,6 +15,14 @@ try{
       assert.equal((await legacy.call(method,path)).status,404);assert.equal((await call(method,path,'creator')).status,403);
     }
   });
+  await test('invalid or expired People tokens return 401; signed-in nonadmins return 403',async()=>{
+    for(const token of ['bad',await mock.token('admin@example.com',{exp:Math.floor(Date.now()/1000)-1})]){
+      const response=await api.call('GET','/api/people',{headers:{authorization:`Bearer ${token}`}});
+      assert.equal(response.status,401);assert.deepEqual(await response.json(),{error:'Sign in again.'});
+    }
+    assert.equal((await api.call('GET','/api/people')).status,401);
+    assert.equal((await call('GET','/api/people','creator')).status,403);
+  });
   await test('admin invites global roles and lists server admins without creating their accounts',async()=>{
     assert.equal((await call('POST','/api/people/roles','admin',{email:'stored@example.com',role:'admin'})).status,200);
     assert.equal((await call('POST','/api/people/roles','admin',{email:'creator@example.com',role:'creator'})).status,200);
@@ -55,6 +63,30 @@ try{
     await call('POST','/api/people/roles','admin',{email:'pending@example.com',role:'creator'});
     assert.equal((await (await call('DELETE','/api/people/roles','admin',{email:'pending@example.com',role:'creator'})).json()).removed,true);
     assert.equal((await (await call('DELETE','/api/people/roles','admin',{email:'pending@example.com',role:'creator'})).json()).removed,false);
+  });
+  await test('sole-owner removal returns only affected sole-owned tournaments and leaves admins in control',async()=>{
+    const ids=[];
+    for(const name of ['Only Owner Cup','Shared Owner Cup']){
+      const response=await call('POST','/api/tournaments','creator',{payload:{setup:{tName:name},state:{}}});assert.equal(response.status,200);ids.push((await response.json()).tournamentId);
+    }
+    await call('POST',`/api/tournaments/${ids[1]}/access`,'creator',{email:'director@example.com',role:'owner'});
+    const creator=(await people()).users.find(u=>u.email==='creator@example.com');
+    assert(creator.soleOwnerTournaments.some(item=>item.id===ids[0]&&item.name==='Only Owner Cup'));
+    assert(!creator.soleOwnerTournaments.some(item=>item.id===ids[1]));
+    const response=await call('DELETE',`/api/people/${creator.userId}`,'admin');assert.equal(response.status,200);
+    const removed=await response.json();assert(removed.soleOwnerTournaments.some(item=>item.id===ids[0]&&item.name==='Only Owner Cup'));assert(!removed.soleOwnerTournaments.some(item=>item.id===ids[1]));
+    assert.equal((await call('GET',`/api/tournaments/${ids[0]}`,'admin')).status,200);
+    assert.equal((await call('GET',`/api/tournaments/${ids[0]}`,'creator')).status,403);
+  });
+  await test('revoking a global admin closes only that account sockets even without a tournament grant',async()=>{
+    const response=await call('POST','/api/tournaments','admin',{payload:{setup:{tName:'Admin Revocation Cup'},state:{}}});const id=(await response.json()).tournamentId;
+    const target=await api.openSocket(id,{role:'staff',access_token:tokens.other});assert.equal(target.status,101);
+    const keeper=await api.openSocket(id,{role:'staff',access_token:tokens.admin});assert.equal(keeper.status,101);
+    const closed=[];for(const ws of api.durableObject(id).state.getWebSockets()){const close=ws.close.bind(ws);ws.close=(...args)=>{closed.push(ws.deserializeAttachment().identity.sub);return close(...args)}}
+    const other=(await people()).users.find(u=>u.email==='other@example.com');assert(!other.tournamentAccess.some(item=>item.tournamentId===id));
+    const revoked=await call('DELETE','/api/people/roles','admin',{userId:other.userId,role:'admin'});assert.equal(revoked.status,200);assert.deepEqual(closed,['mock|other@example.com']);
+    assert.equal((await api.openSocket(id,{role:'staff',access_token:tokens.other})).status,403);
+    await keeper.send(JSON.stringify({type:'flash',court:'A',kind:'encho',id:'server-admin-kept'}));assert(keeper.messages.some(item=>item.id==='server-admin-kept'));
   });
   console.log(`${passed} people API checks passed`);
 }finally{await mock.close()}
