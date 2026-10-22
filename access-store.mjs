@@ -56,23 +56,39 @@ export class AccessStore {
     const user = this.rows('SELECT u.* FROM user_identities i JOIN users u ON u.id=i.user_id WHERE i.sub=?', sub)[0];
     return user ? {...this.accessFor(user.id), email:user.email} : {userId:null,roles:[],tournamentRoles:{}};
   }
+  lookupMany({subs}) {
+    const result = {};
+    for (const row of this.rows(`SELECT i.sub,u.id AS user_id,u.email,g.role AS global_role,t.tournament_id,t.role AS tournament_role
+      FROM user_identities i JOIN users u ON u.id=i.user_id
+      LEFT JOIN global_roles g ON g.user_id=u.id
+      LEFT JOIN tournament_access t ON t.user_id=u.id
+      WHERE i.sub IN (SELECT value FROM json_each(?))`, JSON.stringify([...new Set(subs)]))) {
+      const user = result[row.sub] ||= {userId:row.user_id,email:row.email,roles:[],tournamentRoles:{}};
+      if (row.global_role && !user.roles.includes(row.global_role)) user.roles.push(row.global_role);
+      if (row.tournament_id) user.tournamentRoles[row.tournament_id] = row.tournament_role;
+    }
+    return result;
+  }
   resolve(identity) {
     const email = normalizeEmail(identity?.email);
     if (!email || typeof identity?.sub !== 'string' || !identity.sub || identity.emailVerified !== true) return {userId:null, roles:[], tournamentRoles:{}};
     return this.storage.transactionSync(() => {
       const now = new Date().toISOString();
-      const known = this.rows('SELECT user_id FROM user_identities WHERE sub=?', identity.sub)[0];
+      const known = this.rows('SELECT i.user_id,u.* FROM user_identities i JOIN users u ON u.id=i.user_id WHERE sub=?', identity.sub)[0];
       const emailUser = this.rows('SELECT id FROM users WHERE lower(email)=?', email)[0];
       const userId = known?.user_id || emailUser?.id || crypto.randomUUID();
       if (!known) this.sql.exec('INSERT INTO user_identities VALUES(?,?,?,?)', identity.sub, userId, identity.sub.split('|')[0], now);
       // Never merge two established KSM users on an email change. The identity
       // retains its grants; an occupied canonical email stays with its user.
       const emailAvailable = !emailUser || emailUser.id === userId;
+      const user = known || (emailUser && this.rows('SELECT * FROM users WHERE id=?', emailUser.id)[0]);
+      const invites = emailAvailable ? this.rows('SELECT * FROM invites WHERE email=?', email) : [];
+      const stale = !user?.last_sign_in_at || Date.now() - Date.parse(user.last_sign_in_at) >= 3600000;
       if (emailAvailable) {
-        this.sql.exec(`INSERT INTO users VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET email=excluded.email, display_name=COALESCE(excluded.display_name,users.display_name), last_sign_in_at=excluded.last_sign_in_at`, userId, email, identity.displayName || null, now, now);
-        for (const invite of this.rows('SELECT * FROM invites WHERE email=?', email)) this.putGrant(userId, invite.scope, invite.role, invite.invited_by, invite.created_at);
-        this.sql.exec('DELETE FROM invites WHERE email=?', email);
-      } else this.sql.exec('UPDATE users SET last_sign_in_at=? WHERE id=?', now, userId);
+        if (!user || user.email !== email || (identity.displayName && identity.displayName !== user.display_name) || invites.length || stale) this.sql.exec(`INSERT INTO users VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET email=excluded.email, display_name=COALESCE(excluded.display_name,users.display_name), last_sign_in_at=excluded.last_sign_in_at`, userId, email, identity.displayName || null, now, now);
+        for (const invite of invites) this.putGrant(userId, invite.scope, invite.role, invite.invited_by, invite.created_at);
+        if (invites.length) this.sql.exec('DELETE FROM invites WHERE email=?', email);
+      } else if (stale) this.sql.exec('UPDATE users SET last_sign_in_at=? WHERE id=?', now, userId);
       return this.accessFor(userId);
     });
   }
@@ -132,6 +148,10 @@ export class AccessStore {
       if (!admin && current.tournamentRoles[id] !== 'owner') return {ok:false,status:403,error:'Owner or admin authorization required'};
       const target = userId ? this.rows('SELECT * FROM users WHERE id=?', userId)[0] : this.rows('SELECT * FROM users WHERE lower(email)=?', email)[0];
       if (userId && !target) return {ok:false,status:400,error:'Unknown user'};
+      if (action === 'grant' && role === 'director') {
+        const owner = target ? this.rows("SELECT 1 FROM tournament_access WHERE user_id=? AND tournament_id=? AND role='owner'",target.id,id).length : this.rows("SELECT 1 FROM invites WHERE email=? AND scope=? AND role='owner'",email,id).length;
+        if (owner) return {ok:false,status:409,error:'Already an owner'};
+      }
       if (action === 'revoke' && role === 'owner' && !admin && target) {
         const owner = this.rows("SELECT 1 FROM tournament_access WHERE user_id=? AND tournament_id=? AND role='owner'", target.id, id).length;
         const owners = this.rows("SELECT count(*) AS n FROM tournament_access WHERE tournament_id=? AND role='owner'", id)[0].n;
@@ -140,7 +160,7 @@ export class AccessStore {
       // Mutate inline so authorization, the last-owner check and the write share
       // one transaction, including concurrent requests from different devices.
       const at = new Date().toISOString();
-      const removed = action === 'revoke' && !!target && this.rows('SELECT 1 FROM tournament_access WHERE user_id=? AND tournament_id=? AND role=?', target.id, id, role).length > 0;
+      const removed = action === 'revoke' && ((!!target && this.rows('SELECT 1 FROM tournament_access WHERE user_id=? AND tournament_id=? AND role=?', target.id, id, role).length > 0) || this.rows('SELECT 1 FROM invites WHERE email=? AND scope=? AND role=?', target?.email || email,id,role).length > 0);
       if (action === 'grant') {
         if (target) this.putGrant(target.id, id, role, current.userId, at);
         else this.sql.exec('INSERT OR IGNORE INTO invites VALUES(?,?,?,?,?)', email, id, role, current.userId, at);

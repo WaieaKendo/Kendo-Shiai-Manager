@@ -334,10 +334,19 @@ export class TournamentState {
   }
   async broadcast(message) {
     const privateTournament = auth0Enabled(this.env) && !(await this.isPublic());
+    const sockets = this.state.getWebSockets();
+    let users = {}, id;
+    if (privateTournament) {
+      await this.ensureAccessMigrated();
+      id = (await this.state.storage.get('record'))?.tournamentId;
+      users = await accessCall(this.env, 'lookupMany', {subs:sockets.map(socket=>socket.deserializeAttachment()?.identity?.sub).filter(Boolean)});
+    }
     const serialized = JSON.stringify(message);
-    for (const socket of this.state.getWebSockets()) {
+    for (const socket of sockets) {
       const identity = socket.deserializeAttachment()?.identity;
-      if (privateTournament && !(await this.socketAccess(identity))) { try { socket.close(1000, 'Access changed'); } catch (_) {} continue; }
+      const user = users[identity?.sub];
+      const allowed = identity && identity.expiresAt > Date.now() && user && (isAdmin(this.env,user.email) || user.roles.includes('admin') || ['owner','director'].includes(user.tournamentRoles[id]));
+      if (privateTournament && !allowed) { try { socket.close(1000, 'Access changed'); } catch (_) {} continue; }
       try { socket.send(serialized); } catch (_) { try { socket.close(1011, 'Broadcast failed'); } catch (_) {} }
     }
   }
@@ -347,7 +356,7 @@ export class TournamentState {
     const url = new URL(request.url);
     if (url.pathname.startsWith('/internal/access/')) {
       const operation = url.pathname.slice('/internal/access/'.length);
-      if (request.method !== 'POST' || !['resolve','grant','revoke','listPeople','listTournament','removeTournament','lookup','migrateTournament','changeTournament'].includes(operation)) return json({error:'Not found'},404);
+      if (request.method !== 'POST' || !['resolve','grant','revoke','listPeople','listTournament','removeTournament','lookup','lookupMany','migrateTournament','changeTournament'].includes(operation)) return json({error:'Not found'},404);
       this.accessStore ||= new AccessStore(this.state.storage, this.env);
       return json(this.accessStore[operation](await request.json()));
     }
@@ -466,15 +475,19 @@ export class TournamentState {
           return auth0Enabled(this.env) ? null : this.issueStaffSession(tx);
         });
       } catch (error) {
+        const cleanup = async (stage, action) => {
+          try { const result = await action(); if (result instanceof Response && !result.ok) throw new Error(`Cleanup rejected: ${result.status}`); }
+          catch (cleanupError) { console.error('Bootstrap cleanup failed', {stage,error:cleanupError}); }
+        };
         if (auth0Enabled(this.env)) {
-          await this.state.storage.deleteAll();
-          await this.state.storage.put('deletedAt', new Date().toISOString());
-          await accessCall(this.env, 'removeTournament', {id:incoming.tournamentId});
+          await cleanup('record', () => this.state.storage.deleteAll());
+          await cleanup('tombstone', () => this.state.storage.put('deletedAt', new Date().toISOString()));
+          await cleanup('access', () => accessCall(this.env, 'removeTournament', {id:incoming.tournamentId}));
         }
-        await this.library().fetch(new Request('https://durable-object/library/slug', {
+        await cleanup('slug', () => this.library().fetch(new Request('https://durable-object/library/slug', {
           method:'DELETE', headers:{'content-type':'application/json'}, body:JSON.stringify({id:incoming.tournamentId,slug})
-        }));
-        if (auth0Enabled(this.env)) await this.library().fetch(new Request(`https://durable-object/library/${encodeURIComponent(incoming.tournamentId)}`, {method:'DELETE'}));
+        })));
+        if (auth0Enabled(this.env)) await cleanup('library', () => this.library().fetch(new Request(`https://durable-object/library/${encodeURIComponent(incoming.tournamentId)}`, {method:'DELETE'})));
         throw error;
       }
       if (auth0Enabled(this.env)) {
@@ -723,20 +736,20 @@ export default {
         if (!result.ok && result.status !== 404 && result.status !== 410) throw new Error('Access migration unavailable');
       }
       if (pending.length) rows = await (await libraryStub().fetch('https://durable-object/library')).json();
-      let resolved = {role:'spectator',tournamentRoles:{}};
+      let resolved = {role:'spectator',tournamentRoles:{}}, invalid = false;
       if (bearerToken(request)) {
         let identity;
         try { identity = await identityVerifier(env)(bearerToken(request)); }
-        catch (_) { return json({error:'Sign in again.'},401); }
+        catch (_) { invalid = true; }
         // One central access lookup for the whole library, irrespective of size.
-        resolved = await resolveAccess(env, identity);
+        if (identity) resolved = await resolveAccess(env, identity);
       }
       const listed = rows.flatMap(row => {
         const canManage = resolved.role === 'admin' || ['owner','director'].includes(resolved.tournamentRoles[row.id]);
         return canManage || row.isPublic === true ? [{...row,isPublic:row.isPublic === true,canManage}] : [];
       });
       listed.sort((a,b) => Number(b.canManage)-Number(a.canManage));
-      return json(listed);
+      return json(listed,200,invalid ? {'x-ksm-auth':'invalid'} : {});
     };
     const updateLibrary = async (record) => {
       if (!record?.tournamentId) return;
