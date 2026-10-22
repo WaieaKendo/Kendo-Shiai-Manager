@@ -234,6 +234,7 @@ const KNOWN_POST_SPLIT_EDITS = {
   // dialog and the forgetting itself are in 44 (post-split throughout). Listed here because
   // refreshTvFromCloud() (21) is its first region.
   'delete-tournament': 9,
+  'private-reads': 1,
   'tie-flash': 5,
   'friendly-links': 10,
   // fix/stuck-pending (F35, test audit N1), 21 and 33: a failed save queued in the outbox is retried
@@ -255,6 +256,7 @@ const KNOWN_POST_SPLIT_EDITS = {
   // loads a file of another tournament as a new one (loadTournamentFromFile(): two inline
   // replacements; the helpers after it); Download Tournament File writes the tournament ID and
   // revision into the file (manualSaveTournament(), inline).
+  'auth0-access': 6,
   'load-file-guard': 4,
   // feat/court-clarity (issue #38): confirmFusen() (22) takes the winning side now.
   'court-clarity': 1,
@@ -338,6 +340,8 @@ const KNOWN_POST_SPLIT_CSS_EDITS = {
   'tv-next-division': 1,
   // feat/results-placeholders: app/styles/24-results-placeholders.css, Results' placeholder cards (theme tokens).
   'results-placeholders': 1,
+  // feat/auth0: app/styles/25-account-roles.css, the Account menu's role strip.
+  'auth0-roles': 1,
 };
 // Old functions whose body now lives in app/engine/*.ts (parameter lists without braces).
 const MOVED_TO_ENGINE = [

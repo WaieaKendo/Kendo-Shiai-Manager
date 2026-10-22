@@ -1,3 +1,4 @@
+import { auth0Enabled, auth0Config, identityVerifier, bearerToken, isAdmin, normalizeEmail } from './auth0-worker.mjs';
 import { printDocumentPage } from './app/print-documents.mjs';
 // The release version is written only in package.json; wrangler (esbuild) bundles it in at deploy
 // time, Node reads it directly in the tests. Only .version is used (/api/health).
@@ -148,7 +149,7 @@ function publicRecord(record) {
 }
 
 export class TournamentState {
-  constructor(state, env) { this.state = state; this.env = env; }
+  constructor(state, env) { this.state = state; this.env = env; this.verifyIdentity = identityVerifier(env); }
 
   library() { return this.env.TOURNAMENTS.get(this.env.TOURNAMENTS.idFromName('__ksm_library__')); }
   async claimSlug(id, slug, automatic = false) {
@@ -243,6 +244,37 @@ export class TournamentState {
     const result = await this.checkStaffPassword(suppliedKey);
     return result.ok || result.status === 429 ? result : { ok: false, status: 403, body: { error } };
   }
+  async accountAccess(request, { adminOnly = false, token = '' } = {}) {
+    if (!auth0Enabled(this.env)) return null;
+    const supplied = token || bearerToken(request);
+    if (supplied || request.headers.has('authorization')) {
+      let identity;
+      try { identity = await this.verifyIdentity(supplied); }
+      catch (_) { return { ok: false, status: 401, body: { error: 'Sign in again.', code: 'auth0-invalid' } }; }
+      const role = isAdmin(this.env, identity.email) ? 'admin' : (await this.directors()).includes(identity.email) ? 'director' : 'spectator';
+      return { ok: adminOnly ? role === 'admin' : role !== 'spectator', status: 403,
+        body: { error: adminOnly ? 'Admin authorization required' : 'Tournament access required' }, role, identity };
+    }
+    return { ok: false, status: 403, body: { error: 'Sign-in required' } };
+  }
+  async isPublic() { return !auth0Enabled(this.env) || (await this.state.storage.get('isPublic')) !== false; }
+  async readAccess(request, token = '') {
+    if (await this.isPublic()) return null;
+    const access = await this.accountAccess(request, { token });
+    return access?.ok ? null : json({ error: 'Tournament not viewable', code: 'tournament-private', message: 'This tournament is private. Sign in with an account that can manage it.' }, 403);
+  }
+  async directors() { return (await this.state.storage.get('directors')) || []; }
+  async writeAccess(request, options = {}) {
+    const account = await this.accountAccess(request, options);
+    return account || this.staffAccess(options.key ?? request.headers.get('x-ksm-session-key') ?? '', 'Staff authorization required');
+  }
+  async socketMayWrite(socket) {
+    const info = socket.deserializeAttachment() || {};
+    if (info.role !== 'staff') return false;
+    if (!auth0Enabled(this.env)) return true;
+    if (info.identity) return info.identity.expiresAt > Date.now() && (isAdmin(this.env, info.identity.email) || (await this.directors()).includes(info.identity.email));
+    return false;
+  }
   presence() {
     const rows = [];
     for (const socket of this.state.getWebSockets()) {
@@ -251,13 +283,17 @@ export class TournamentState {
     }
     return rows;
   }
-  broadcast(message) {
+  async broadcast(message) {
+    const privateTournament = auth0Enabled(this.env) && !(await this.isPublic());
+    const directors = privateTournament ? await this.directors() : [];
     const serialized = JSON.stringify(message);
     for (const socket of this.state.getWebSockets()) {
+      const identity = socket.deserializeAttachment()?.identity;
+      if (privateTournament && (!identity || identity.expiresAt <= Date.now() || !(isAdmin(this.env, identity.email) || directors.includes(identity.email)))) { try { socket.close(1000, 'Access changed'); } catch (_) {} continue; }
       try { socket.send(serialized); } catch (_) { try { socket.close(1011, 'Broadcast failed'); } catch (_) {} }
     }
   }
-  broadcastPresence() { this.broadcast({ type: 'presence', clients: this.presence() }); }
+  async broadcastPresence() { await this.broadcast({ type: 'presence', clients: this.presence() }); }
 
   async fetch(request) {
     const url = new URL(request.url);
@@ -273,8 +309,11 @@ export class TournamentState {
     if (request.method === 'GET' && url.pathname === '/live') {
       if ((request.headers.get('Upgrade') || '').toLowerCase() !== 'websocket') return json({ error: 'WebSocket upgrade required' }, 426);
       const role = safeRole(url.searchParams.get('role') || 'spectator');
+      const token = url.searchParams.get('access_token') || '';
+      let access = await this.accountAccess(request, { token });
+      if (!(await this.isPublic()) && !access?.ok) return json({ error: 'Tournament not viewable', code: 'tournament-private', message: 'This tournament is private. Sign in with an account that can manage it.' }, 403);
       if (role === 'staff') {
-        const access = await this.staffAccess(url.searchParams.get('key') || '');
+        access = access || await this.staffAccess(url.searchParams.get('key') || '');
         if (!access.ok) return denied(access);
       }
       const pair = new WebSocketPair();
@@ -282,6 +321,7 @@ export class TournamentState {
       const attachment = {
         clientId: url.searchParams.get('clientId') || crypto.randomUUID(),
         role,
+        ...(access?.identity ? { identity: access.identity } : {}),
         name: (url.searchParams.get('name') || '').slice(0, 80),
         court: (url.searchParams.get('court') || '').slice(0, 8),
         connectedAt: new Date().toISOString()
@@ -290,16 +330,20 @@ export class TournamentState {
       this.state.acceptWebSocket(server);
       const record = publicRecord(await this.state.storage.get('record'));
       server.send(JSON.stringify({ type: 'connected', record, presence: this.presence() }));
-      this.broadcastPresence();
+      await this.broadcastPresence();
       return new Response(null, { status: 101, webSocket: client });
     }
 
     if (request.method === 'GET' && url.pathname === '/snapshot') {
+      const privateDenied = await this.readAccess(request);
+      if (privateDenied) return privateDenied;
       const record = publicRecord(await this.state.storage.get('record'));
-      return record ? json(record) : json({ error: 'Tournament not found' }, 404);
+      return record ? json({ ...record, ...(auth0Enabled(this.env) ? { isPublic: await this.isPublic() } : {}) }) : json({ error: 'Tournament not found' }, 404);
     }
 
     if (request.method === 'GET' && url.pathname === '/status') {
+      const privateDenied = await this.readAccess(request);
+      if (privateDenied) return privateDenied;
       const record = publicRecord(await this.state.storage.get('record'));
       return json({ exists: Boolean(record), revision: record?.revision || 0, updatedAt: record?.updatedAt || null, connections: this.presence() });
     }
@@ -309,9 +353,10 @@ export class TournamentState {
       const existing = await this.state.storage.get('record');
       const role = safeRole(request.headers.get('x-ksm-role') || 'director');
       const suppliedKey = request.headers.get('x-ksm-session-key') || request.headers.get('x-ksm-director-key') || '';
-      if (role !== 'staff') return json({ error: 'Write authorization required' }, 403);
-      const access = await this.staffAccess(suppliedKey, 'Write authorization required');
+      if (role !== 'staff' && !(auth0Enabled(this.env) && bearerToken(request))) return json({ error: 'Write authorization required' }, 403);
+      const access = await this.writeAccess(request, { key: suppliedKey });
       if (!access.ok) return denied(access);
+      if (auth0Enabled(this.env) && !existing) return json({ error: 'Tournament not found' }, 404);
       const expectedRevision = Number(incoming.revision || 0);
       const currentRevision = Number(existing?.revision || 0);
       if (existing && expectedRevision !== currentRevision) return json({ error: 'Revision conflict', record: publicRecord(existing) }, 409);
@@ -324,17 +369,17 @@ export class TournamentState {
         schemaVersion: '1.2', tournamentId: incoming.tournamentId,
         engineVersion: incoming.engineVersion || incoming.payload?.engineVersion || 'unknown',
         revision: currentRevision + 1, createdAt: existing?.createdAt || now, updatedAt: now,
-        updatedBy: { role, clientId: request.headers.get('x-ksm-client-id') || '', name: (request.headers.get('x-ksm-client-name') || '').slice(0, 80), court: (request.headers.get('x-ksm-court') || '').slice(0, 8) },
+        updatedBy: { role: access.role || role, clientId: request.headers.get('x-ksm-client-id') || '', name: (request.headers.get('x-ksm-client-name') || '').slice(0, 80), court: (request.headers.get('x-ksm-court') || '').slice(0, 8) },
         payload: sanitizePayload(incoming.payload)
       };
       await this.state.storage.put('record', record);
       const safe = publicRecord(record);
-      this.broadcast({ type: 'snapshot', record: safe });
+      await this.broadcast({ type: 'snapshot', record: safe });
       return json(safe);
     }
 
     if (request.method === 'POST' && url.pathname === '/slug') {
-      const access = await this.staffAccess(request.headers.get('x-ksm-session-key') || '', 'Staff authorization required');
+      const access = await this.writeAccess(request);
       if (!access.ok) return denied(access);
       const record = await this.state.storage.get('record');
       if (!record) return json({error:'Tournament not found'},404);
@@ -344,8 +389,10 @@ export class TournamentState {
 
     if (request.method === 'POST' && url.pathname === '/bootstrap') {
       if (await this.state.storage.get('record')) return json({ error: 'Tournament already exists' }, 409);
+      const access = await this.accountAccess(request, { adminOnly: true });
+      if (access && !access.ok) return denied(access);
       const incoming = await request.json();
-      if (!incoming.staffPassword || String(incoming.staffPassword).length < 4) return json({ error: 'Staff password required' }, 400);
+      if (!auth0Enabled(this.env) && (!incoming.staffPassword || String(incoming.staffPassword).length < 4)) return json({ error: 'Staff password required' }, 400);
       const integrityError = validateTournamentPayload(incoming.payload);
       if (integrityError) return json({ error: 'Invalid tournament state', integrityError }, 422);
       const suggested = suggestSlug(String(incoming.payload?.setup?.tName || 'Tournament'), String(incoming.payload?.setup?.tDate || new Date().getFullYear()).slice(0,4));
@@ -358,9 +405,10 @@ export class TournamentState {
       try {
         // Record and credentials either commit together or leave no partial tournament.
         session = await this.state.storage.transaction(async tx => {
-          await this.setStaffPassword(incoming.staffPassword, tx);
+          if (!auth0Enabled(this.env)) await this.setStaffPassword(incoming.staffPassword, tx);
           await tx.put('record', record);
-          return this.issueStaffSession(tx);
+          if (auth0Enabled(this.env)) await tx.put('isPublic', false);
+          return auth0Enabled(this.env) ? null : this.issueStaffSession(tx);
         });
       } catch (error) {
         await this.library().fetch(new Request('https://durable-object/library/slug', {
@@ -369,10 +417,55 @@ export class TournamentState {
         throw error;
       }
       // The creator token is sent only in a header, never in the record.
-      return json(publicRecord(record), 200, { 'x-ksm-session-token': session.token, 'x-ksm-session-expires': session.expiresAt });
+      return json(publicRecord(record), 200, session ? { 'x-ksm-session-token': session.token, 'x-ksm-session-expires': session.expiresAt } : {});
     }
 
+    if (url.pathname === '/listing' && request.method === 'GET') {
+      const privateDenied = await this.readAccess(request);
+      if (privateDenied) return privateDenied;
+      const access = await this.accountAccess(request);
+      return json({ isPublic: await this.isPublic(), canManage: !!access?.ok });
+    }
+    if (url.pathname === '/visibility' && ['GET', 'PUT'].includes(request.method)) {
+      if (!auth0Enabled(this.env)) return json({ error: 'Auth0 disabled' }, 404);
+      const access = await this.accountAccess(request);
+      if (!access?.ok) return access ? denied(access) : json({ error: 'Sign-in required' }, 403);
+      if (!(await this.state.storage.get('record'))) return json({ error: 'Tournament not found' }, 404);
+      if (request.method === 'PUT') {
+        const body = await request.json().catch(() => ({}));
+        if (typeof body.isPublic !== 'boolean') return json({ error: 'Public listing must be true or false' }, 400);
+        await this.state.storage.put('isPublic', body.isPublic);
+        for (const socket of this.state.getWebSockets()) try { socket.close(1000, 'Visibility changed'); } catch (_) {}
+      }
+      return json({ isPublic: await this.isPublic() });
+    }
+    if (url.pathname === '/access' && request.method === 'GET') {
+      if (!auth0Enabled(this.env)) return json({ enabled: false });
+      const access = await this.accountAccess(request);
+      if (access?.status === 401) return denied(access);
+      return json({ enabled: true, role: access?.role || 'spectator', passwordFallback: false });
+    }
+    if (url.pathname === '/directors' && ['GET', 'POST', 'DELETE'].includes(request.method)) {
+      if (!auth0Enabled(this.env)) return json({ error: 'Auth0 disabled' }, 404);
+      const access = await this.accountAccess(request, { adminOnly: true });
+      if (!access?.ok) return denied(access);
+      if (!(await this.state.storage.get('record'))) return json({ error: 'Tournament not found' }, 404);
+      if (request.method !== 'GET') {
+        const email = normalizeEmail((await request.json().catch(() => ({}))).email);
+        if (!email) return json({ error: 'Valid email required' }, 400);
+        await this.state.storage.transaction(async tx => {
+          const current = (await tx.get('directors')) || [];
+          const next = request.method === 'POST' ? [...new Set([...current, email])] : current.filter(item => item !== email);
+          if (next.length > 100) throw new Error('Too many directors');
+          await tx.put('directors', next);
+        });
+        // Reconnects recheck permissions; existing sockets also check each scoring message.
+        if (request.method === 'DELETE') for (const socket of this.state.getWebSockets()) if (socket.deserializeAttachment()?.identity?.email === email) try { socket.close(1000, 'Access changed'); } catch (_) {}
+      }
+      return json({ directors: await this.directors() });
+    }
     if (request.method === 'POST' && url.pathname === '/auth') {
+      if (auth0Enabled(this.env)) return json({ error: 'Use Auth0 sign-in for this tournament' }, 403);
       const body = await request.json().catch(() => ({}));
       const password = typeof body?.password === 'string' ? body.password : '';
       if (!password) return json({ error: 'Incorrect password' }, 403);
@@ -382,14 +475,14 @@ export class TournamentState {
     }
 
     if (request.method === 'DELETE' && url.pathname === '/snapshot') {
-      const access = await this.staffAccess(request.headers.get('x-ksm-session-key') || '', 'Staff authorization required');
+      const access = await this.writeAccess(request, { adminOnly: true });
       if (!access.ok) return denied(access);
       // deleteAll clears the staff password hash and sessions with the record; the tombstone is
       // written after it, so it is the only thing left in storage.
       await this.state.storage.deleteAll();
       this.verifiedPassword = null;
       await this.state.storage.put('deletedAt', new Date().toISOString());
-      this.broadcast({ type: 'deleted' });
+      await this.broadcast({ type: 'deleted' });
       for (const socket of this.state.getWebSockets()) try { socket.close(1000, 'Tournament deleted'); } catch (_) {}
       return json({ ok: true });
     }
@@ -481,7 +574,7 @@ export class TournamentState {
     return json({ error: 'Not found' }, 404);
   }
 
-  webSocketMessage(socket, message) {
+  async webSocketMessage(socket, message) {
     if (message === 'ping') {
       socket.send(JSON.stringify({ type: 'pong', at: new Date().toISOString() }));
       return;
@@ -496,24 +589,33 @@ export class TournamentState {
       // (`source`); the TV combines the sources, so a second device can never overwrite the scorer's clock.
       if (flash.type !== 'clock' || !['A', 'B'].includes(flash.court) || !['running', 'stopped', 'off'].includes(flash.state)) return;
       if (typeof flash.source !== 'string' || !flash.source.length || flash.source.length > 40) return;
-      if (socket.deserializeAttachment()?.role !== 'staff') return;
-      this.broadcast({ type: 'clock', court: flash.court, source: flash.source, state: flash.state, at: new Date().toISOString() });
+      if (!(await this.socketMayWrite(socket))) return;
+      await this.broadcast({ type: 'clock', court: flash.court, source: flash.source, state: flash.state, at: new Date().toISOString() });
       return;
     }
     if (keys.length !== 4 || keys.join(',') !== 'court,id,kind,type') return;
     if (flash.type !== 'flash' || !['A', 'B'].includes(flash.court) || !['encho', 'hikiwake'].includes(flash.kind)) return;
     if (typeof flash.id !== 'string' || !flash.id.length || flash.id.length > 40) return;
-    if (socket.deserializeAttachment()?.role !== 'staff') return;
-    this.broadcast({ type: 'flash', court: flash.court, kind: flash.kind, id: flash.id, at: new Date().toISOString() });
+    if (!(await this.socketMayWrite(socket))) return;
+    await this.broadcast({ type: 'flash', court: flash.court, kind: flash.kind, id: flash.id, at: new Date().toISOString() });
   }
-  webSocketClose(socket, code, reason) { try { socket.close(code, reason); } catch (_) {} this.broadcastPresence(); }
-  webSocketError(socket) { try { socket.close(1011, 'WebSocket error'); } catch (_) {} this.broadcastPresence(); }
+  async webSocketClose(socket, code, reason) { try { socket.close(code, reason); } catch (_) {} await this.broadcastPresence(); }
+  async webSocketError(socket) { try { socket.close(1011, 'WebSocket error'); } catch (_) {} await this.broadcastPresence(); }
 }
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     try {
+    if (url.pathname === '/api/auth/config') {
+      try { const config = auth0Config(env); return json(config ? { enabled: true, domain: config.domain, audience: config.audience, clientId: config.clientId } : { enabled: false }); }
+      catch (_) { return json({ error: 'Incomplete Auth0 configuration' }, 503); }
+    }
+    if (url.pathname === '/api/auth/me') {
+      if (!auth0Enabled(env)) return json({ enabled: false });
+      try { const identity = await identityVerifier(env)(bearerToken(request)); return json({ email: identity.email, role: isAdmin(env, identity.email) ? 'admin' : 'spectator' }); }
+      catch (_) { return json({ error: 'Sign-in required' }, 401); }
+    }
     if (url.pathname === '/api/health') return json({ ok: true, service: 'ksm-cloud', version: APP_VERSION, realtime: true, roles: ['spectator', 'staff'], offlineOutbox: true });
 
     const libraryStub = () => env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName('__ksm_library__'));
@@ -530,6 +632,18 @@ export default {
         headers.delete('content-encoding');
         return json({...record,slug},response.status,Object.fromEntries(headers));
       } catch (_) { return response; }
+    };
+    const visibleLibrary = async () => {
+      const response = await libraryStub().fetch('https://durable-object/library');
+      if (!auth0Enabled(env) || !response.ok) return response;
+      const rows = await response.json();
+      const visible = await Promise.all(rows.map(async row => {
+        const result = await env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName(row.id)).fetch(new Request('https://durable-object/listing', { headers: request.headers }));
+        return result.ok ? { ...row, ...await result.json() } : null;
+      }));
+      const listed = visible.filter(Boolean);
+      listed.sort((a,b) => Number(b.canManage)-Number(a.canManage));
+      return json(listed);
     };
     const updateLibrary = async (record) => {
       if (!record?.tournamentId) return;
@@ -565,17 +679,17 @@ export default {
     const slugLookup = url.pathname.match(/^\/api\/slugs\/([a-z0-9-]+)$/);
     if (slugLookup && request.method === 'GET') return libraryStub().fetch(`https://durable-object/library/resolve/${slugLookup[1]}`);
     if (url.pathname === '/api/tournaments' && request.method === 'GET') {
-      return libraryStub().fetch('https://durable-object/library');
+      return visibleLibrary();
     }
     if (url.pathname === '/api/tournaments/discover' && request.method === 'POST') {
       const body = await request.json().catch(() => ({}));
       const ids = Array.isArray(body.ids) ? body.ids.filter(id => /^[0-9a-f-]+$/i.test(id)).slice(0,100) : [];
-      for (const id of ids) {
+      await Promise.all(ids.map(async id => {
         const stub = env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName(id));
-        const response = await stub.fetch('https://durable-object/snapshot');
+        const response = await stub.fetch(new Request('https://durable-object/snapshot', { headers: request.headers }));
         if (response.ok) await updateLibrary(await response.json());
-      }
-      return libraryStub().fetch('https://durable-object/library');
+      }));
+      return visibleLibrary();
     }
     if (url.pathname === '/api/tournaments' && request.method === 'POST') {
       const outdated = outdatedClient(request);
@@ -583,23 +697,24 @@ export default {
       const id = crypto.randomUUID();
       const stub = env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName(id));
       const body = await request.json();
-      const response = await stub.fetch(new Request('https://durable-object/bootstrap', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...body, tournamentId: id, revision: 0 }) }));
+      const response = await stub.fetch(new Request('https://durable-object/bootstrap', { method: 'POST', headers: request.headers, body: JSON.stringify({ ...body, tournamentId: id, revision: 0 }) }));
       if (response.ok) await updateLibrary(await response.clone().json());
       return withSlug(response);
     }
 
-    const route = url.pathname.match(/^\/api\/tournaments\/([0-9a-f-]+)(?:\/(live|status|auth|slug))?$/i);
+    const route = url.pathname.match(/^\/api\/tournaments\/([0-9a-f-]+)(?:\/(live|status|auth|slug|access|directors|visibility))?$/i);
     if (route) {
       const [, id, action] = route;
       const stub = env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName(id));
+      if (action === 'access' || action === 'directors' || action === 'visibility') return stub.fetch(new Request(`https://durable-object/${action}`, { method: request.method, headers: request.headers, ...(request.body ? { body: request.body } : {}) }));
       if (action === 'live') {
         const target = new URL('https://durable-object/live'); target.search = url.search;
         return stub.fetch(new Request(target, { method: 'GET', headers: request.headers }));
       }
-      if (action === 'status' && request.method === 'GET') return stub.fetch('https://durable-object/status');
+      if (action === 'status' && request.method === 'GET') return stub.fetch(new Request('https://durable-object/status', { headers: request.headers }));
       if (action === 'slug' && request.method === 'POST') return stub.fetch(new Request('https://durable-object/slug', {method:'POST',headers:request.headers,body:request.body}));
       if (action === 'auth' && request.method === 'POST') return stub.fetch(new Request('https://durable-object/auth', { method: 'POST', headers: request.headers, body: request.body }));
-      if (!action && request.method === 'GET') return withSlug(await stub.fetch('https://durable-object/snapshot'));
+      if (!action && request.method === 'GET') return withSlug(await stub.fetch(new Request('https://durable-object/snapshot', { headers: request.headers })));
       if (!action && request.method === 'PUT') {
         const outdated = outdatedClient(request);
         if (outdated) return outdated;
@@ -632,12 +747,19 @@ export default {
       // Also check the tournament tombstone: a delete interrupted before the library update
       // must never serve a stale alias as if it were still an active tournament.
       const status = await env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName(info.id)).fetch('https://durable-object/status');
-      if (!status.ok) return status;
+      if (!status.ok && status.status !== 403) return status;
       if (pageRoute.slug !== info.slug) return new Response(null,{status:308,headers:{location:`/${info.slug}${friendly[2]||''}`+url.search,'cache-control':'no-store'}});
-      return env.ASSETS.fetch(new Request(new URL(pageRoute.screen === 'overlay'?'/overlay':'/',url),request));
+      return env.ASSETS.fetch(new Request(new URL(pageRoute.screen === 'overlay' && status.status !== 403?'/overlay':'/',url),request));
     }
     if (/^\/t\/[^/]+\/(?:overview|results|setup|registration|pools)\/?$/i.test(url.pathname)) return env.ASSETS.fetch(new Request(new URL('/',url),request));
-    if (isOverlayPath(url.pathname)) return env.ASSETS.fetch(new Request(new URL('/overlay', url), request));
+    if (isOverlayPath(url.pathname)) {
+      if (auth0Enabled(env)) {
+        const id = decodeURIComponent(OVERLAY_PATH.exec(url.pathname)[1]);
+        const status = await env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName(id)).fetch(new Request('https://durable-object/status', { headers:request.headers }));
+        if (status.status === 403) return env.ASSETS.fetch(new Request(new URL('/', url), request));
+      }
+      return env.ASSETS.fetch(new Request(new URL('/overlay', url), request));
+    }
     return env.ASSETS.fetch(request);
     } catch (error) {
       console.error('KSM Worker request failed', { path:url.pathname, method:request.method, error });

@@ -166,7 +166,7 @@ async function ksmCreateTournament(){
   try{
     if(!(await ksmCanLeaveTournament()))return;
     const name=prompt('Tournament Name','Kendo Tournament');if(!name)return;
-    const password=promptNewStaffPassword();if(!password)return;
+    const password=ksmUsesAccountAuth()?'':promptNewStaffPassword();if(!ksmUsesAccountAuth()&&!password)return;
     const suggested=KSMEngine.suggestSlug(name,String(new Date().getFullYear()));
     const slug=prompt('Tournament short name (lowercase letters, digits and dashes)',suggested);if(slug===null)return;
     if(!KSMEngine.isValidSlug(slug)){alert('Choose a valid, non-reserved tournament short name.');return}
@@ -174,7 +174,7 @@ async function ksmCreateTournament(){
     if(location.pathname!=='/')history.pushState(null,'','/');
     ksmTournamentAddress=location.pathname+location.search+location.hash;
     document.body.classList.remove('ksm-home');
-    sessionStorage.setItem(KSM_V316_STAFF_SESSION,password);tName.value=name;
+    if(password)sessionStorage.setItem(KSM_V316_STAFF_SESSION,password);tName.value=name;
     setSessionRole('staff');installRoleBanner('staff');navigateTo('setup');
     markLocalSave('New tournament');showKsmToast('Creating tournament in cloud…',0);
     try{await performCloudSave(tournamentPayload(),0);ksmRecordScreenPath('setup');showKsmToast('✓ Tournament created',2200)}

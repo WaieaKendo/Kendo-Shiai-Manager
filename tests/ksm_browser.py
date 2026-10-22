@@ -80,6 +80,8 @@ def load_app(page, html=None, wait_until='domcontentloaded', session='staff', qu
 
     def handle(route):
         path = route.request.url[len(APP_ORIGIN):].split('?', 1)[0].split('#', 1)[0]
+        if path == '/api/auth/config':
+            return route.fulfill(status=200, content_type='application/json', body='{"enabled":false}')
         if path.startswith('/api/'):
             if api is not None:
                 return api(route, path)

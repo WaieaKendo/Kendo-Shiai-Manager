@@ -12,3 +12,5 @@ import './pools/main.tsx';
 import './setup/main.tsx';
 import './registration/main.tsx';
 import './shell/main.tsx';
+
+import "./auth0.tsx";

@@ -19,6 +19,7 @@ export const LIBRARY_EVENT = 'ksm:library';
 interface LibraryWindow {
   /** The library as paintHomeTournamentLibrary() last published it. */
   ksmLibraryInput?: LibraryInput;
+  ksmAuthMessage?: string;
   ksmAuthorizeLibraryTournament?: (id: string) => unknown;
   triggerLoadTournament?: () => void;
   ksmReturnFromLibrary?: () => void;
@@ -38,23 +39,30 @@ function subscribe(onChange: () => void): () => void {
 }
 const snapshot = (): LibraryInput => libraryWindow().ksmLibraryInput ?? EMPTY_LIBRARY;
 
+const authMessage = () => libraryWindow().ksmAuthMessage || '';
+const subscribeAuthMessage = (listener: () => void) => {
+  window.addEventListener('ksm:auth-message', listener);
+  return () => window.removeEventListener('ksm:auth-message', listener);
+};
+
 /** libraryCardMarkup(x): the card and the name below it, both opening the tournament. */
-function LibraryCard({ card, canManage }: { card: LibraryCardView; canManage: boolean }) {
+function LibraryCard({ card, canManage, canDelete = true, accounts = false }: { card: LibraryCardView; canManage: boolean; canDelete?: boolean; accounts?: boolean }) {
   const open = () => { libraryWindow().openTournamentFromHome?.(card.id); };
   return (
-    <div className="home-tournament-item" data-testid="home-tournament">
+    <div className={accounts ? "home-tournament-item account-tournament-card" : "home-tournament-item"} data-testid="home-tournament">
       <button className="home-tournament-card" type="button" onClick={open} aria-label={card.label}>
         <span className="home-card-placeholder" aria-hidden="true">{DEFAULT_LIBRARY_CARD_MARK}</span>
       </button>
       <button className="home-card-name-below" type="button" onClick={open} data-testid="home-tournament-name">{card.name}</button>
-      {!canManage && <button type="button" data-testid="library-staff-actions" onClick={() => libraryWindow().ksmAuthorizeLibraryTournament?.(card.id)}>Staff actions</button>}
+      {!canManage && !accounts && <button type="button" data-testid="library-staff-actions" onClick={() => libraryWindow().ksmAuthorizeLibraryTournament?.(card.id)}>Staff actions</button>}
       {canManage && <div className="home-card-actions">
+        {accounts && <button type="button" data-testid="library-manage" onClick={open}>Manage</button>}
         <details data-testid="library-export"><summary>Export</summary><div className="actions">
           <button type="button" data-testid="library-export-brackets" onClick={() => libraryWindow().ksmExportLibraryTournament?.(card.id, 'brackets')}>Tournament Brackets</button>
           <button type="button" data-testid="library-export-results" onClick={() => libraryWindow().ksmExportLibraryTournament?.(card.id, 'results')}>Results &amp; Awards</button>
           <button type="button" data-testid="library-export-file" onClick={() => libraryWindow().ksmExportLibraryTournament?.(card.id, 'file')}>Tournament File / Archive (server copy)</button>
         </div></details>
-        <button type="button" data-testid="library-delete" onClick={() => libraryWindow().ksmDeleteLibraryTournament?.(card.id)}>Delete</button>
+        {canDelete && <button type="button" data-testid="library-delete" onClick={() => libraryWindow().ksmDeleteLibraryTournament?.(card.id)}>Delete</button>}
       </div>}
     </div>
   );
@@ -64,8 +72,11 @@ function LibraryCard({ card, canManage }: { card: LibraryCardView; canManage: bo
 export function Library() {
   const input = useSyncExternalStore(subscribe, snapshot, () => EMPTY_LIBRARY);
   const view = libraryView(input);
+  const signInError = useSyncExternalStore(subscribeAuthMessage, authMessage, () => '');
   const canManage = input.kind === 'library' && !!input.canManage;
   const activeId = input.kind === 'library' ? input.activeId ?? '' : '';
+  const accounts = input.kind === 'library' && input.authEnabled;
+  const admin = input.kind !== 'library' || input.canCreate !== false;
   const draft = input.kind === 'library' ? input.draft : null;
   const [discarding, setDiscarding] = useState(false);
   return (
@@ -73,13 +84,21 @@ export function Library() {
       <div className="home-brand">
         <img src={DEFAULT_HOME_LOGO_SRC} alt="" />
         <div><h1 id="homeTitle">{HOME_TITLE}</h1><p>{HOME_SUBTITLE}</p></div>
+        {accounts && <div className="library-account-tools">
+          {input.accountEmail && <div className="library-account" data-testid="library-account" role="status">
+            <span className="library-account-email">{input.accountEmail}</span>
+            <span className="small sub">{input.accountRole === 'admin' ? 'Admin' : input.authorizedIds?.length ? 'Director' : 'No management access'}</span>
+          </div>}
+          <button type="button" data-testid="library-sign-in" onClick={() => window.dispatchEvent(new CustomEvent(input.accountEmail ? 'ksm:sign-out' : 'ksm:sign-in'))}>{input.accountEmail ? 'Sign out' : 'Sign in'}</button>
+        </div>}
       </div>
+      {accounts && signInError && <p className="sub" role="alert" data-testid="auth0-error">Sign-in failed: {signInError}</p>}
       <div className="home-head">
-        <div><h2>{LIBRARY_HEADING}</h2><p>{LIBRARY_INTRO}</p></div>
+        <div><h2>{accounts ? 'Tournaments' : LIBRARY_HEADING}</h2><p>{accounts ? (input.accountEmail ? 'Manage your assigned tournaments or open a public tournament to watch.' : 'Open a public tournament to watch, or sign in to manage your tournaments.') : LIBRARY_INTRO}</p></div>
         <div className="actions">
-        {input.kind === 'library' && input.hasActive && <button type="button" data-testid="library-return" onClick={() => libraryWindow().ksmReturnFromLibrary?.()}>Back to tournament</button>}
-        <button type="button" data-testid="library-load-file" onClick={() => libraryWindow().triggerLoadTournament?.()}>Load Tournament File</button>
-        <button className="home-new-button" type="button" data-testid="home-new-tournament" onClick={() => { libraryWindow().createNewTournament?.(); }}>{NEW_TOURNAMENT_TEXT}</button>
+        {input.kind === 'library' && input.hasActive && <button type="button" data-testid="library-return" onClick={() => libraryWindow().ksmReturnFromLibrary?.()}>{accounts ? `Continue · ${input.activeName || 'tournament'}` : 'Back to tournament'}</button>}
+        {admin && <button type="button" data-testid="library-load-file" onClick={() => libraryWindow().triggerLoadTournament?.()}>Load Tournament File</button>}
+        {admin && <button className="home-new-button" type="button" data-testid="home-new-tournament" onClick={() => { libraryWindow().createNewTournament?.(); }}>{NEW_TOURNAMENT_TEXT}</button>}
         </div>
       </div>
       {draft && <div className="home-empty" data-testid="local-draft">
@@ -97,7 +116,7 @@ export function Library() {
         {view.message !== null
           ? <div className="home-empty"><b>{view.message}</b></div>
           // The rows' order is the key: IDs may repeat (the cache and the cloud are not checked).
-          : view.cards.map((card, i) => <LibraryCard key={i} card={card} canManage={(canManage && activeId === card.id) || (input.kind === 'library' && !!input.authorizedIds?.includes(card.id))} />)}
+          : view.cards.map((card, i) => <LibraryCard key={i} card={card} accounts={!!accounts} canDelete={input.kind !== 'library' || input.canDelete !== false} canManage={(canManage && activeId === card.id) || (input.kind === 'library' && !!input.authorizedIds?.includes(card.id))} />)}
       </div>
     </>
   );

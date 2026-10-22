@@ -106,7 +106,7 @@ function ksmReturnFromLibrary(){
 async function ksmExportLibraryTournament(id,kind){
   if(!ksmCanManageLibraryTournament(id))return;
   try{
-    const response=await fetch(`/api/tournaments/${encodeURIComponent(id)}`,{cache:'no-store'});
+    const response=await fetch(`/api/tournaments/${encodeURIComponent(id)}`,{cache:'no-store',headers:ksmReadHeaders()});
     if(!response.ok)throw new Error(`Export failed (${response.status})`);
     const record=await response.json(),payload=record.payload;
     if(!ksmCanManageLibraryTournament(id))return;
@@ -130,7 +130,7 @@ async function ksmDeleteLibraryTournament(id){
   if(!ksmCanManageLibraryTournament(id))return;
   if(id===cloudSession.tournamentId&&!isReadOnlySession()){ksmOpenDeleteTournament();return}
   try{
-    const response=await fetch(`/api/tournaments/${encodeURIComponent(id)}`,{cache:'no-store'});
+    const response=await fetch(`/api/tournaments/${encodeURIComponent(id)}`,{cache:'no-store',headers:ksmReadHeaders()});
     if(!response.ok)throw new Error('Unable to read tournament for deletion');
     const record=await response.json();if(!ksmCanManageLibraryTournament(id))return;
     ksmOpenCloudModal('Delete Tournament',{kind:'delete',libraryId:id,name:record.payload?.setup?.tName||'',devices:null,busy:false,error:''});
