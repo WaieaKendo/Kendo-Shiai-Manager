@@ -10,8 +10,8 @@ react=court_react_source()
 # sheet, ContextPanel) and the TV. "mobile split names" is gone: only the never-called
 # audienceNameHtml() split names for phones; Live Scores shows a name on one line (pinned by
 # tests/golden/live-scores, phone portrait and landscape).
-live=(APP/'react'/'live-scores'/'LiveScores.tsx').read_text(encoding='utf-8')
-tv=(APP/'react'/'tv'/'Tv.tsx').read_text(encoding='utf-8')
+live=(APP/'react'/'features'/'live-scores'/'LiveScores.tsx').read_text(encoding='utf-8')
+tv=(APP/'react'/'features'/'tv'/'Tv.tsx').read_text(encoding='utf-8')
 # M.8 step 5: the legacy court renderer is gone. The court screen is React: app/js/35-react-court.js
 # makes the decisions and publishes them, app/react/features/court/ renders them (court_react_source());
 # tests/golden/court/*.json pin the result. The court checks below point at that code.

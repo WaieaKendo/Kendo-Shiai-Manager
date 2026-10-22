@@ -5,8 +5,8 @@ import process from 'node:process';
 const html=appSource;
 // M.8 step 5: the legacy court renderer is gone; the React court context panel draws the pools
 // (app/react/shared/ui/CourtContext.tsx; tests/golden/court/*.json pin the result).
-const courtDir=new URL('../app/react/features/court/',import.meta.url);
-const react=fs.readdirSync(courtDir).filter(f=>/\.tsx?$/.test(f)).sort().map(f=>fs.readFileSync(new URL(f,courtDir),'utf8')).join('');
+const courtDirs=[new URL('../app/react/features/court/',import.meta.url),new URL('../app/react/shared/ui/',import.meta.url)];
+const react=courtDirs.flatMap(dir=>fs.readdirSync(dir).filter(f=>/\.tsx?$/.test(f)).sort().map(f=>fs.readFileSync(new URL(f,dir),'utf8'))).join('');
 const sw=appServiceWorker;
 const worker=fs.readFileSync(new URL('../src-worker.js',import.meta.url),'utf8');
 const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));

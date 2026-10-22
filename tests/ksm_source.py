@@ -31,7 +31,8 @@ def app_source():
 
 
 def court_react_source():
-    return ''.join(f.read_text(encoding='utf-8') for f in sorted((APP / 'react' / 'court').glob('*.ts*')))
+    dirs = [APP / 'react' / 'features' / 'court', APP / 'react' / 'shared' / 'ui']  # shared/ui held court/'s pieces before the split
+    return ''.join(f.read_text(encoding='utf-8') for d in dirs for f in sorted(d.glob('*.ts*')))
 
 
 def ensure_built():
