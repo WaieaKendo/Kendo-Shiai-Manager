@@ -10,7 +10,7 @@
 // (resultCardHtml(), awardsEditorHtml(), completedResultDetailHtml()) is mirrored here: its
 // texts, classes and test IDs (result-card, result-card-title, placement-row, placement-place,
 // placement-name), which tests/golden/results (recorded from it) pin.
-import { bracketView, type BracketInput, type BracketView } from '../court/context-model.ts';
+import { bracketView, type BracketInput, type BracketView } from '../../shared/ui/context-model.ts';
 
 // ------------------------------------------------------------------------------ input
 

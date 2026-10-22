@@ -5,12 +5,12 @@
 // global as the legacy inline handler; the legacy updateUndoButton() publishes Undo/Redo.
 import { MatchTimer } from './MatchTimer.tsx';
 import { useSyncExternalStore } from 'react';
-import { DEFAULT_COURT_ACTION_ICONS, type CourtActionIcons } from './branding.ts';
+import { DEFAULT_COURT_ACTION_ICONS, type CourtActionIcons } from '../../shared/ui/branding.ts';
 import {
   STATIC_ACTIONS, courtActionsView, fusenButtonView, scoreButtons,
   type CourtActionsInput, type ScoreButton, type Side,
 } from './actions-model.ts';
-import { EMPTY_SCOREBOARD, HIKIWAKE_NEXT_LABEL, nextMatchView, type ScoreboardInput } from './scoreboard-model.ts';
+import { EMPTY_SCOREBOARD, HIKIWAKE_NEXT_LABEL, nextMatchView, type ScoreboardInput } from '../../shared/ui/scoreboard-model.ts';
 
 export const ACTIONS_EVENT = 'ksm:court-actions';
 

@@ -14,7 +14,7 @@
 // pool-edit-pool, pool-edit-player, pool-edit-drop), which tests/golden/pools (recorded from
 // it) pin. Drag and drop and the buttons call the legacy functions (dragPoolPlayer(),
 // dropPoolPlayer(), insertPoolPlayer(), toggleEditPools(), saveEditedPools(), renderPools()).
-import { bracketView, type BracketInput, type BracketView } from '../court/context-model.ts';
+import { bracketView, type BracketInput, type BracketView } from '../../shared/ui/context-model.ts';
 
 // ------------------------------------------------------------------------------ input
 

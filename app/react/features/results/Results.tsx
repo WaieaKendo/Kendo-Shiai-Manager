@@ -15,7 +15,7 @@
 // No colors or images of its own: the Results CSS and theme tokens; the brackets are the court
 // screen's components.
 import { useEffect, useLayoutEffect, useRef, useSyncExternalStore } from 'react';
-import { Bracket } from '../court/CourtContext.tsx';
+import { Bracket } from '../../shared/ui/CourtContext.tsx';
 import {
   EMPTY_RESULTS, EMPTY_RESULTS_BRACKET, NO_AWARDS_TEXT, NO_DIVISIONS_TEXT,
   resultsBracketView, resultsView, tournamentNameText,

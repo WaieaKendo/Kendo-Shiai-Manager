@@ -7,7 +7,7 @@
 // openResultsBracket() publish it (app/js/38-react-results.js) and never write these elements
 // (M.13). If this module does not load, the legacy code shows a "Results could not load" notice
 // instead (38-react-results.js, on DOMContentLoaded).
-import { mountIsland } from '../island.tsx';
+import { mountIsland } from '../../shared/lib/island.tsx';
 import { ResultsBody, ResultsBracketBody, ResultsBracketTitle, ResultsTournamentName } from './Results.tsx';
 
 interface LegacyWindow {

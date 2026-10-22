@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { isTied, type ScoreboardInput } from '../court/scoreboard-model.ts';
+import { isTied, type ScoreboardInput } from '../../shared/ui/scoreboard-model.ts';
 
 type Kind = 'encho' | 'hikiwake';
 interface Flash { court: string; kind: Kind; id: string; at: string }

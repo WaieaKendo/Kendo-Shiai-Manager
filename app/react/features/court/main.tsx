@@ -5,10 +5,10 @@
 // never writes the court screen itself (M.8). The static court markup in index.html only holds
 // the mount points until this module runs. If this module does not load, the legacy code shows
 // a "court screen not loaded" notice instead (35-react-court.js, on DOMContentLoaded).
-import { mountIsland } from '../island.tsx';
+import { mountIsland } from '../../shared/lib/island.tsx';
 import { CourtActions, CourtScoreButtons } from './CourtActions.tsx';
-import { CourtComplete } from './CourtComplete.tsx';
-import { CourtContext } from './CourtContext.tsx';
+import { CourtComplete } from '../../shared/ui/CourtComplete.tsx';
+import { CourtContext } from '../../shared/ui/CourtContext.tsx';
 import { CourtHeader } from './CourtHeader.tsx';
 import { CourtQueue } from './CourtQueue.tsx';
 import { CourtScoreboard } from './CourtScoreboard.tsx';

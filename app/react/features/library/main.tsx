@@ -6,7 +6,7 @@
 // (app/js/40-react-library.js) and never writes these elements (M.13). If this module does not
 // load, the legacy code shows a "Tournament Library could not load" notice instead
 // (40-react-library.js, on DOMContentLoaded).
-import { mountIsland } from '../island.tsx';
+import { mountIsland } from '../../shared/lib/island.tsx';
 import { Library } from './Library.tsx';
 
 interface LegacyWindow {

@@ -4,7 +4,7 @@
 // computes what is shown; renderPublic() publishes it (app/js/36-react-live-scores.js) and
 // never writes #publicLive itself (M.13). If this module does not load, the legacy code shows a
 // "Live Scores could not load" notice instead (36-react-live-scores.js, on DOMContentLoaded).
-import { mountIsland } from '../island.tsx';
+import { mountIsland } from '../../shared/lib/island.tsx';
 import { LiveScores } from './LiveScores.tsx';
 
 interface LegacyWindow {

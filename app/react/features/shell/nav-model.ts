@@ -5,7 +5,7 @@
 // classes, ids, titles and test IDs; tests/golden/shell pins them.
 //
 // A tile or item is one object: a new tile is one more entry here.
-import type { NavIcons } from '../court/branding.ts';
+import type { NavIcons } from '../../shared/ui/branding.ts';
 
 // ------------------------------------------------------------------------------ input
 

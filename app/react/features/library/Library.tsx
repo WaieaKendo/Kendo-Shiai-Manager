@@ -8,7 +8,7 @@
 // openTournamentFromHome(id). No colors of its own (the library CSS and theme tokens); the logo
 // and the card mark come from the branding module.
 import { useState, useSyncExternalStore } from 'react';
-import { DEFAULT_HOME_LOGO_SRC, DEFAULT_LIBRARY_CARD_MARK } from '../court/branding.ts';
+import { DEFAULT_HOME_LOGO_SRC, DEFAULT_LIBRARY_CARD_MARK } from '../../shared/ui/branding.ts';
 import {
   EMPTY_LIBRARY, HOME_SUBTITLE, HOME_TITLE, LIBRARY_HEADING, LIBRARY_INTRO, NEW_TOURNAMENT_TEXT,
   libraryView, type LibraryCardView, type LibraryInput,

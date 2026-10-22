@@ -7,7 +7,7 @@
 // publishes a CourtQueueInput (ksm:court-queue). courtQueueView() adds what the legacy HTML
 // helpers derived: row classes, group titles (normalizeQueueGroupLabel()) and empty groups left
 // out (as groupedQueueSection() did).
-import { alignedRowView, type AlignedRowInput, type AlignedRowView } from './rows-model.ts';
+import { alignedRowView, type AlignedRowInput, type AlignedRowView } from '../../shared/ui/rows-model.ts';
 
 export interface QueueSideInput {
   name: string;

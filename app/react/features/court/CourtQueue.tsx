@@ -4,7 +4,7 @@
 // .aligned-match-row) and the tests apply unchanged. renderQueue() (app/js/32-) publishes what
 // to show (ksm:court-queue).
 import { useSyncExternalStore } from 'react';
-import { AlignedRow } from './MatchRows.tsx';
+import { AlignedRow } from '../../shared/ui/MatchRows.tsx';
 import {
   EMPTY_QUEUE, courtQueueView,
   type CourtQueueInput, type FinalResultsInput, type QueueRowItemView, type QueueSideInput,

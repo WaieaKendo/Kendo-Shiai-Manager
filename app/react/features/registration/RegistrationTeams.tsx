@@ -25,7 +25,7 @@
 // No colors or images of its own: the Registration CSS and theme tokens.
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { statusClass, statusText, REMOVE_TEXT } from './registration-model.ts';
-import { pressOnKey } from '../keyboard.ts';
+import { pressOnKey } from '../../shared/lib/keyboard.ts';
 import {
   EMPTY_EXHIBITIONS, EMPTY_TABS, EMPTY_TEAMS, EXHIBITION_HEADERS, TAB_BUTTONS, TEAM_NAME_LABEL,
   tabButtonClass, teamFormatLine, visibleTabButtons,

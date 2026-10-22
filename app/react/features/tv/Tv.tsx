@@ -10,7 +10,7 @@
 // division-complete panel.
 import { TieFlashBanner, useCourtClockStopped } from '../tie-flash/TieFlash.tsx';
 import { useEffect, useSyncExternalStore } from 'react';
-import { DivisionCompletePanel } from '../court/CourtComplete.tsx';
+import { DivisionCompletePanel } from '../../shared/ui/CourtComplete.tsx';
 import {
   EMPTY_TV, NEXT_DIVISION_LABEL, NO_UPCOMING_TEXT, UPCOMING_TITLE, tvView,
   type TvBodyView, type TvFooterView, type TvInput, type TvKachinukiRowView, type TvPlayerView,

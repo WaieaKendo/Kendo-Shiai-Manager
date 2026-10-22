@@ -18,10 +18,10 @@
 // event (they read event.target.files and clear its value).
 // No colors of their own (the header CSS and theme tokens); the tile icons come from the branding
 // module.
-import { pressOnKey } from '../keyboard.ts';
-import { TOURNAMENT_HOME } from '../../engine/routes.ts';
+import { pressOnKey } from '../../shared/lib/keyboard.ts';
+import { TOURNAMENT_HOME } from '../../../engine/routes.ts';
 import { useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { DEFAULT_NAV_ICONS } from '../court/branding.ts';
+import { DEFAULT_NAV_ICONS } from '../../shared/ui/branding.ts';
 import { EMPTY_HEADER, type HeaderInput } from './header-model.ts';
 import {
   EMPTY_NAV, NAV_ENTRIES, NAV_FILE_ACCEPT, NAV_FILE_INPUTS, NAV_FILE_STYLE, NAV_MENU_ARROW,

@@ -26,7 +26,7 @@ import {
   notOfferedLabel,
   type PlayerRowInput, type PlayersInput, type StatusInput,
 } from './registration-model.ts';
-import { pressOnKey } from '../keyboard.ts';
+import { pressOnKey } from '../../shared/lib/keyboard.ts';
 
 export const PLAYERS_EVENT = 'ksm:registration-players';
 export const STATUS_EVENT = 'ksm:registration-status';

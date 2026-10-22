@@ -5,7 +5,7 @@ import { useSyncExternalStore } from 'react';
 import {
   EMPTY_SCOREBOARD, scoreboardView,
   type ScoreboardInput, type Side, type SideView,
-} from './scoreboard-model.ts';
+} from '../../shared/ui/scoreboard-model.ts';
 
 export const SCOREBOARD_EVENT = 'ksm:court-scoreboard';
 

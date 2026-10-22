@@ -14,7 +14,7 @@
 // publish), as the legacy innerHTML did, so no drop-target class set during a drag outlives it.
 // No colors of its own (the pool CSS and theme tokens).
 import { Fragment, useSyncExternalStore, type DragEvent } from 'react';
-import { Bracket } from '../court/CourtContext.tsx';
+import { Bracket } from '../../shared/ui/CourtContext.tsx';
 import {
   CANCEL_TEXT, EDITOR_HELP, EDIT_POOL_TEXT, EMPTY_POOLS, POOLS_HEADING, SAVE_POOLS_TEXT,
   poolsView, type EditorRow, type PoolInput, type PoolPlayerInput, type PoolsInput,

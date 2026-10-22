@@ -1,8 +1,8 @@
 // Entry of the stream overlay page (app/overlay.html): /t/<id>/overlay/a|b, or the old
 // /overlay?tournament=<id>&court=A|B, which becomes that path first (M.9, app/engine/routes.ts).
 // The options (red, pos, y, band, debug) stay query parameters.
-import { mountIsland } from '../island.tsx';
-import { legacyQuery, resolveUrl } from '../../engine/routes.ts';
+import { mountIsland } from '../../shared/lib/island.tsx';
+import { legacyQuery, resolveUrl } from '../../../engine/routes.ts';
 import { Overlay } from './Overlay.tsx';
 import { parseOverlayParams } from './overlay-model.ts';
 import './overlay.css';

@@ -7,7 +7,7 @@
 // markup (read and written by id). If this module does not load, the legacy code shows a
 // "Divisions could not load" notice in place of the divisions table (42-react-setup.js, on
 // DOMContentLoaded).
-import { mountIsland } from '../island.tsx';
+import { mountIsland } from '../../shared/lib/island.tsx';
 import { SetupDivisionRows, SetupHeader } from './Setup.tsx';
 import { GrandChampionSetup } from './GrandChampions.tsx';
 

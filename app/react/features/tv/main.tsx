@@ -5,7 +5,7 @@
 // (app/js/37-react-tv.js) and never writes #tvLive itself (M.13). If this module does not load,
 // the legacy code shows a "TV display could not load" notice instead (37-react-tv.js, on
 // DOMContentLoaded).
-import { mountIsland } from '../island.tsx';
+import { mountIsland } from '../../shared/lib/island.tsx';
 import { Tv } from './Tv.tsx';
 
 interface LegacyWindow {

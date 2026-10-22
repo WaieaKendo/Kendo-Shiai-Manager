@@ -5,7 +5,7 @@
 // never write these elements (M.13). The division select, Regenerate and #poolOutput's class stay
 // legacy. If this module does not load, the legacy code shows a "Pools could not load" notice
 // instead (41-react-pools.js, on DOMContentLoaded).
-import { mountIsland } from '../island.tsx';
+import { mountIsland } from '../../shared/lib/island.tsx';
 import { PoolOutput } from './Pools.tsx';
 
 interface LegacyWindow {

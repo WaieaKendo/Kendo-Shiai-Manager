@@ -5,7 +5,7 @@
 // is shown; renderDirector() publishes it (app/js/39-react-overview.js) and never writes these
 // elements (M.13). If this module does not load, the legacy code shows an "Overview could not
 // load" notice instead (39-react-overview.js, on DOMContentLoaded).
-import { mountIsland } from '../island.tsx';
+import { mountIsland } from '../../shared/lib/island.tsx';
 import { Overview } from './Overview.tsx';
 
 interface LegacyWindow {

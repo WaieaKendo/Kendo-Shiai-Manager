@@ -10,8 +10,8 @@
 // are the court screen's components.
 import { TieFlashBanner } from '../tie-flash/TieFlash.tsx';
 import { useSyncExternalStore } from 'react';
-import { DivisionCompletePanel } from '../court/CourtComplete.tsx';
-import { ContextPanel } from '../court/CourtContext.tsx';
+import { DivisionCompletePanel } from '../../shared/ui/CourtComplete.tsx';
+import { ContextPanel } from '../../shared/ui/CourtContext.tsx';
 import {
   EMPTY_LIVE_SCORES, IDLE_TEXT, WAITING_TEXT, LIVE_SCORES_HEADING, NO_NEXT_TEXT, liveScoresView,
   type HansokuView, type LiveCourtBodyView, type LiveCourtView, type LivePlayerInput, type LiveScoresInput,

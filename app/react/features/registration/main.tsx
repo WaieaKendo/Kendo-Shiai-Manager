@@ -8,7 +8,7 @@
 // renderTeams(), renderExhibitions() and regTab() publish it (app/js/43-react-registration.js).
 // The toolbars and their buttons, the filter fields, the cards themselves (which regTab() shows
 // and hides) and Pools' select stay legacy markup.
-import { mountIsland } from '../island.tsx';
+import { mountIsland } from '../../shared/lib/island.tsx';
 import { PlayersTable, TournamentStatus } from './Registration.tsx';
 import { ExhibitionTable, RegistrationTabs, TeamCards } from './RegistrationTeams.tsx';
 

@@ -9,7 +9,7 @@
 // Results show; ksmTvDisplayInput() (37-react-tv.js) publishes a TvInput (ksm:tv) instead of writing
 // #tvLive. tvView() adds what the legacy tv3 renderer derived: "Court X", the name split into
 // first name and the rest, the point strings, classes, the kachinuki fighters' states.
-import { courtCompleteView, type CourtCompleteInput, type CourtCompleteView } from '../court/complete-model.ts';
+import { courtCompleteView, type CourtCompleteInput, type CourtCompleteView } from '../../shared/ui/complete-model.ts';
 import { hansokuView, pointText, upNextTitle, type HansokuCounts, type HansokuView } from '../live-scores/live-scores-model.ts';
 
 // ------------------------------------------------------------------------------ input

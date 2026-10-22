@@ -11,11 +11,11 @@
 // LiveScoresInput (ksm:live-scores) instead of writing #publicLive. liveScoresView() adds what the
 // legacy liveScoresCourtCard() derived: test IDs, classes, the "Court X" title, the meta line and
 // the point strings.
-import { courtCompleteView, type CourtCompleteInput, type CourtCompleteView } from '../court/complete-model.ts';
+import { courtCompleteView, type CourtCompleteInput, type CourtCompleteView } from '../../shared/ui/complete-model.ts';
 import {
   kachinukiSheetView, teamSheetView,
   type KachinukiSheetInput, type KachinukiSheetView, type TeamSheetInput, type TeamSheetView,
-} from '../court/context-model.ts';
+} from '../../shared/ui/context-model.ts';
 
 // ------------------------------------------------------------------------------ input
 
