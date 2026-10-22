@@ -2,10 +2,10 @@ import { html as appSource, readRepoFile } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
 const html=appSource;
 const worker=fs.readFileSync('src-worker.js','utf8');
-// Since M.13 the library's markup is drawn by React (app/react/library/: Library.tsx,
+// Since M.13 the library's markup is drawn by React (app/react/features/library/: Library.tsx,
 // library-model.ts; tests/golden/library pins it), so checks of the cards and buttons read that code
 // as well as the static markup of app/index.html.
-const libraryReact = readRepoFile('app/react/library/Library.tsx') + readRepoFile('app/react/library/library-model.ts');
+const libraryReact = readRepoFile('app/react/features/library/Library.tsx') + readRepoFile('app/react/features/library/library-model.ts');
 const checks=[
  ['cloud library list endpoint', worker.includes("url.pathname === '/api/tournaments'") && worker.includes("url.pathname === '/library'")],
  ['cloud metadata updated after saves', worker.includes('await updateLibrary(await response.clone().json())')],

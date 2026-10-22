@@ -1,6 +1,6 @@
 """Golden (snapshot) test of the TV display (/t/<id>/tv/a|b, before M.9 ?view=tv; body.ksm-tv; roadmap M.13).
 
-Since M.13 the TV is drawn only by React (the Tv island, app/react/tv/; app/js/37-react-tv.js
+Since M.13 the TV is drawn only by React (the Tv island, app/react/features/tv/; app/js/37-react-tv.js
 publishes its data). A TV device shows one court (the link's &court=, KSM_TV_ASSIGNED_COURT) on a fixed 1920x1080
 canvas (#tvLive: tv-canvas with the header, current match and Upcoming Matches zones), follows
 the division its court is on and shows a completed division's final results. The approved
@@ -21,7 +21,7 @@ After every step the whole #tv view is serialized (golden_screen.PANEL_JS: eleme
 text, visibility, innerText, each element's page box per platform) and compared with the
 approved snapshot, together with the TV read-outs (KsmApp.tv_screen(), tv_upcoming()), the
 page's scroll size and the dialogs shown. React must render every element in #tvLive (the Tv
-island, app/react/tv/; app/js/37-react-tv.js publishes its data), and every kind of TV content
+island, app/react/features/tv/; app/js/37-react-tv.js publishes its data), and every kind of TV content
 must be covered. Last, a TV without the React module script must show the "TV display could not
 load" notice instead of an empty screen (and a working TV never shows it).
 

@@ -1,5 +1,5 @@
 """Golden (snapshot) test of the court (scorekeeper) screen, drawn by the React islands
-(app/react/court/, roadmap M.8).
+(app/react/features/court/, roadmap M.8).
 
 It replaces court-scoreboard-parity-test.py, which compared the React islands with the legacy
 court renderer side by side until that renderer was removed (M.8 step 5). The approved

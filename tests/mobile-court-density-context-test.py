@@ -6,7 +6,7 @@ root=Path(__file__).resolve().parents[1]
 html=app_source()
 react=court_react_source()
 # M.8 step 5: the legacy court renderer is gone. The court screen is React: app/js/35-react-court.js
-# makes the decisions and publishes them, app/react/court/ renders them (court_react_source());
+# makes the decisions and publishes them, app/react/features/court/ renders them (court_react_source());
 # tests/golden/court/*.json pin the result. The court checks below point at that code.
 checks={
  'landscape heading absolute center': '#score .scoreboard-heading-center{' in html and 'left:50% !important' in html and 'transform:translateX(-50%) !important' in html,

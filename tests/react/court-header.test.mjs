@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { EMPTY_HEADER, courtHeaderView } from '../../app/react/court/header-model.ts';
+import { EMPTY_HEADER, courtHeaderView } from '../../app/react/features/court/header-model.ts';
 
 const input = (extra = {}) => ({
   tournamentName: 'Aloha Taikai', court: 'B', divisions: ['Open', 'Women'], currentDivision: 'Women',
@@ -32,7 +32,7 @@ test('courtHeaderView: does not share the published option list', () => {
 });
 
 test('#38: the rule tag next to the bout line: winner required, hikiwake allowed, none without a match', async () => {
-  const { courtHeaderView: view } = await import('../../app/react/court/header-model.ts');
+  const { courtHeaderView: view } = await import('../../app/react/features/court/header-model.ts');
   assert.equal(view(input({ requiresWinner: true })).ruleTag, 'Winner required');
   assert.equal(view(input({ requiresWinner: false })).ruleTag, 'Hikiwake allowed');
   assert.equal('ruleTag' in view(input({ requiresWinner: null })), false);
@@ -40,7 +40,7 @@ test('#38: the rule tag next to the bout line: winner required, hikiwake allowed
 });
 
 test('#38: Configure court shows the court\'s current Red side', async () => {
-  const { courtConfigView, RED_SIDE_OPTIONS, CONFIGURE_TEXTS } = await import('../../app/react/court/header-model.ts');
+  const { courtConfigView, RED_SIDE_OPTIONS, CONFIGURE_TEXTS } = await import('../../app/react/features/court/header-model.ts');
   assert.deepEqual(courtConfigView(input()), { redSide: 'right' }, 'default: Red on the right');
   assert.deepEqual(courtConfigView(input({ redLeft: true })), { redSide: 'left' });
   assert.deepEqual(RED_SIDE_OPTIONS.map(o => [o.value, o.label]), [['left', 'Left'], ['right', 'Right']]);

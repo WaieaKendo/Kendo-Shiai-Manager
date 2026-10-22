@@ -51,8 +51,8 @@ function TeamStandings({ s }: { s: TeamStandingsView }) {
 }
 
 /** bracketHtml() / teamResultsBracketHtml() (28-aligned-results-and-brackets.js, removed in
- * M.13); also the Results screen's bracket modal (app/react/results/) and the Pools view's
- * preview (app/react/pools/). */
+ * M.13); also the Results screen's bracket modal (app/react/features/results/) and the Pools view's
+ * preview (app/react/features/pools/). */
 export function Bracket({ bracket }: { bracket: BracketView }) {
   switch (bracket.kind) {
     case 'cards': return <Cards cards={bracket.cards} />;
@@ -115,7 +115,7 @@ export function CourtContext({ icons = DEFAULT_COURT_PANEL_ICONS }: { icons?: Co
 }
 
 /** What the context panel draws for a view. Live Scores draws a team match's bout sheet and a
- * kachinuki sheet with it (app/react/live-scores/), as the legacy screens shared
+ * kachinuki sheet with it (app/react/features/live-scores/), as the legacy screens shared
  * teamSheetHtml() / kachinukiSheetHtml(). */
 export function ContextPanel({ view, icons = DEFAULT_COURT_PANEL_ICONS }: { view: CourtContextView; icons?: CourtPanelIcons }) {
   switch (view.kind) {

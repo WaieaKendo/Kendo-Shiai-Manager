@@ -8,10 +8,10 @@ const sw=appServiceWorker;
 const worker=fs.readFileSync(new URL('../src-worker.js',import.meta.url),'utf8');
 // Pool building/slots/match generation moved to app/engine/pools.ts (roadmap 2.2).
 const enginePools=fs.readFileSync(new URL('../app/engine/pools.ts',import.meta.url),'utf8');
-// Since M.13 the Pools view and the Edit Pool editor are drawn by React (app/react/pools/); the
+// Since M.13 the Pools view and the Edit Pool editor are drawn by React (app/react/features/pools/); the
 // legacy renderer (renderPools(), toggleEditPools() in app/js) only publishes their data.
-const poolsReact=fs.readFileSync(new URL('../app/react/pools/Pools.tsx',import.meta.url),'utf8');
-const poolsModel=fs.readFileSync(new URL('../app/react/pools/pools-model.ts',import.meta.url),'utf8');
+const poolsReact=fs.readFileSync(new URL('../app/react/features/pools/Pools.tsx',import.meta.url),'utf8');
+const poolsModel=fs.readFileSync(new URL('../app/react/features/pools/pools-model.ts',import.meta.url),'utf8');
 const poolsPublisher=fs.readFileSync(new URL('../app/js/41-react-pools.js',import.meta.url),'utf8');
 
 function extractConstStatement(source,name){

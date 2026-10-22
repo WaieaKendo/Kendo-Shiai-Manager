@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   DIVISION_COMPLETE_CLASS, NOT_COMPLETE, NO_PLACEMENTS_TEXT, courtCompleteView,
-} from '../../app/react/court/complete-model.ts';
+} from '../../app/react/shared/ui/complete-model.ts';
 
 test('courtCompleteView: the static markup before anything was published (no panel)', () => {
   assert.deepEqual(courtCompleteView(NOT_COMPLETE), { complete: false, rows: null });
@@ -48,7 +48,7 @@ test('DIVISION_COMPLETE_CLASS: the class the court CSS keys on', () => {
 });
 
 test('continueBoxView: the division-complete box on the court screen (owner decision 7, #31)', async () => {
-  const { continueBoxView, continueLabel, keptKey, CONTINUE_TEXTS } = await import('../../app/react/court/complete-model.ts');
+  const { continueBoxView, continueLabel, keptKey, CONTINUE_TEXTS } = await import('../../app/react/shared/ui/complete-model.ts');
   const base = { complete: true, placements: [], court: 'A', division: 'Kids' };
   const message = 'Kids is complete. Final results are showing on the Court A TV.';
   assert.equal(continueLabel('Masters'), 'Continue to Masters →');
@@ -63,7 +63,7 @@ test('continueBoxView: the division-complete box on the court screen (owner deci
 });
 
 test('team division Continue labels and kept results use persisted identity separately from names', async()=>{
-  const {continueBoxView,keptKey}=await import('../../app/react/court/complete-model.ts');
+  const {continueBoxView,keptKey}=await import('../../app/react/shared/ui/complete-model.ts');
   const input={complete:true,placements:[],court:'A',division:'Kids',divisionId:'team-kids',next:'team-adults',nextName:'Adult Open'};
   const box=continueBoxView(input,false);
   assert.equal(box.continueLabel,'Continue to Adult Open →');

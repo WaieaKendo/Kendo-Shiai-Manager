@@ -4,7 +4,7 @@ Exhibition (exhibition rows).
 The legacy team cards and exhibition rows printed the status into their class attribute unescaped
 (`class="status ${c.status}"`), so a status with markup broke out of the attribute and ran code
 on every staff device that opened the tab (statuses arrive from other devices, a file, a paste);
-F19 escaped it. Since M.13 Registration part 2 React draws both (app/react/registration/
+F19 escaped it. Since M.13 Registration part 2 React draws both (app/react/features/registration/
 RegistrationTeams.tsx), which escapes every text and attribute; this test pins it. The players
 table is drawn by React since M.13 part 1 (golden-registration-test.py, reg-status-markup).
 

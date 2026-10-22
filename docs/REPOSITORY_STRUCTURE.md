@@ -14,8 +14,14 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         privacy.html = /privacy, static privacy notice (no JavaScript)
                         overlay.html = /t/<id>/overlay/a|b (and /overlay), the stream overlay
   react/              React + strict TypeScript ES modules (own tsconfig.json):
-                        island.tsx (mountIsland), legacy-bridge.ts (useLegacyState),
                         main.tsx (index.html's one module script: mounts the screens below),
+                        shared/lib/ (island.tsx = mountIsland, legacy-bridge.ts =
+                        useLegacyState, keyboard.ts),
+                        shared/ui/ (pieces used by several screens: branding.ts, the
+                        court context/match rows (CourtContext.tsx, context-model.ts,
+                        MatchRows.tsx, rows-model.ts), CourtComplete.tsx (the
+                        division-complete panel + complete-model.ts), scoreboard-model.ts),
+                        features/<screen>/ (one folder per screen, each with its own main.tsx):
                         live/ (useTournamentRecord: GET + spectator WebSocket),
                         overlay/ (stream overlay; court-match.ts = the TV's match selection),
                         court/ (the court screen: React islands inside index.html that draw
@@ -24,18 +30,18 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         app/js/36-react-live-scores.js publishes its data),
                         tv/ (the TV display #tvLive, ?view=tv, M.13;
                         app/js/37-react-tv.js publishes its data; the Final Results
-                        reuse court/'s DivisionCompletePanel),
+                        reuse shared/ui/'s DivisionCompletePanel),
                         results/ (the Results screen #results: cards, awards editor,
                         bracket modal, M.13; app/js/38-react-results.js publishes its
-                        data; the modal reuses court/'s Bracket),
+                        data; the modal reuses shared/ui/'s Bracket),
                         overview/ (the Overview screen #director, M.13;
                         app/js/39-react-overview.js publishes its data),
                         library/ (the Tournament Library, the home page #home, M.13;
                         app/js/40-react-library.js publishes its data; logo and card
-                        mark from court/branding.ts),
+                        mark from shared/ui/branding.ts),
                         pools/ (the Pools view's #poolOutput, Registration -> Pools, and
                         the Edit Pool editor, M.13; app/js/41-react-pools.js publishes
-                        its data; the preview reuses court/'s Bracket),
+                        its data; the preview reuses shared/ui/'s Bracket),
                         setup/ (the Setup screen's divisions table rows #divisionSetupRows
                         and hero name #setupTournamentName, M.13; app/js/42-react-setup.js
                         publishes their data; the Setup fields stay legacy markup),

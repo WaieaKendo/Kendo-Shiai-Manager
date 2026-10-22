@@ -41,7 +41,7 @@ off in the test page.
                       variable overall total); phone portrait and landscape at the end; a
                       spectator's view.
 
-Since M.13 the Overview is drawn only by React (app/react/overview/: one island, the contents
+Since M.13 the Overview is drawn only by React (app/react/features/overview/: one island, the contents
 of #director .director-dashboard; app/js/39-react-overview.js publishes its data); the legacy
 renderer is removed, so this test pins the React-only screen. React must render every element
 of the island (and .director-dashboard must be its root), every kind of Overview content must
@@ -94,7 +94,7 @@ TICK_JS = '() => window.__ksmOverviewTick()'
 SUMMARY_JS = '() => KSMTest.app.tournamentSummary()'
 SCROLL_JS = '() => [document.documentElement.scrollWidth, innerWidth]'
 
-# The Overview island (app/react/overview/main.tsx): React renders every element of the
+# The Overview island (app/react/features/overview/main.tsx): React renders every element of the
 # dashboard, which is the island's root.
 ISLAND = '#director .director-dashboard'
 ROOT_JS = f"() => Object.keys(document.querySelector('{ISLAND}')).some(k => k.startsWith('__reactContainer'))"

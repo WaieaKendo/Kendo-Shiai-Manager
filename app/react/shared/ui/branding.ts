@@ -1,5 +1,5 @@
-// Default branding assets the court islands, the Tournament Library (app/react/library/) and the
-// navigation bar (app/react/shell/) render.
+// Default branding assets the court islands, the Tournament Library (app/react/features/library/) and the
+// navigation bar (app/react/features/shell/) render.
 // One place, so a per-tournament logo can replace them later (passed in as props); the values match
 // the legacy markup (app/index.html) and templates.
 // Colors come from the CSS custom properties in app/styles/02-branding.css, never from here.

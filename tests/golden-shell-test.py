@@ -66,10 +66,10 @@ pressed with the keyboard; transitions are off.
 
 The steps where a dialog is drawn afresh while one of its buttons has the focus (the generation
 check, Regenerate's Continue by keyboard, Developer Tools opened again) were added with step B and
-recorded from the legacy shell too (the build without app/react/shell/, whose legacy code still
+recorded from the legacy shell too (the build without app/react/features/shell/, whose legacy code still
 drew then; the other steps' snapshots came out unchanged).
 
-Since M.13 React draws the shell (app/react/shell/: the navigation bar, the status row, the three
+Since M.13 React draws the shell (app/react/features/shell/: the navigation bar, the status row, the three
 dialogs as islands with their roots, the cloud modal as a portal into <body>;
 app/js/44-react-shell.js publishes their data). React must render every element of the islands
 (and they must be the islands' roots) and of the cloud modal, and every kind of content must be
@@ -562,7 +562,7 @@ def cloud_modals(browser, react_check):
     g.finish()
 
 
-# The shell islands (app/react/shell/main.tsx): React renders every element of the navigation
+# The shell islands (app/react/features/shell/main.tsx): React renders every element of the navigation
 # (nav.minimal-nav, the island's root), the status row (.cloud-status-wrap) and the dialogs' cards.
 ISLANDS = ['#tournamentNavigation', 'header.ksm-topbar .cloud-status-wrap', '#fusenDialog', '#validationModal', '#regenerateModal']
 ROOT_JS = "s => Object.keys(document.querySelector(s)).some(k => k.startsWith('__reactContainer'))"

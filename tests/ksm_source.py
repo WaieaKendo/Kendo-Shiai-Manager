@@ -6,7 +6,7 @@ The app is written in app/ and built by Vite into dist/ (see scripts/app-sources
                   with app/styles/*.css and app/js/*.js (each in file-name order) inlined.
                   For checks that read the code. Same as tests/lib/ksm-source.mjs `html`.
     app_html()    the built dist/index.html, for load_app(page, html).
-    court_react_source() the React court screen (app/react/court/*.ts, *.tsx) as one text, for
+    court_react_source() the React court screen (app/react/features/court/*.ts, *.tsx) as one text, for
                   checks of court markup that React renders (roadmap M.8).
     ensure_built() rebuilds dist/ when it is missing or older than app/ (run-all builds first).
 """

@@ -1,7 +1,7 @@
 """Golden (snapshot) test of the Live Scores screen (#public, nav "Live Scores"; roadmap M.13).
 
 Spectators land on Live Scores. Since M.13 the screen is drawn only by React (the LiveScores
-island, app/react/live-scores/; app/js/36-react-live-scores.js publishes its data). The approved
+island, app/react/features/live-scores/; app/js/36-react-live-scores.js publishes its data). The approved
 snapshots in tests/golden/live-scores/*.json were recorded from the LEGACY renderer
 (renderPublic() and liveScoresCourtCard() in app/js/25-live-scores.js, the division-complete
 wrapper in 32-split-court-templates.js) before it was removed, so they pin exactly what the
@@ -15,7 +15,7 @@ the whole #public view is serialized (golden_screen.PANEL_JS: elements, ids, cla
 every attribute, text, visibility, innerText, and each element's page box per platform) and
 compared with the approved snapshot, together with the Live Scores read-out of both courts
 (KsmApp.live_court()) and the dialogs shown. React must render every element in #publicLive
-(the LiveScores island, app/react/live-scores/), and every kind of Live Scores content must be
+(the LiveScores island, app/react/features/live-scores/), and every kind of Live Scores content must be
 covered. Last, the app without the React module script must show the "Live Scores could not
 load" notice instead of an empty screen (and a working page never shows it).
 

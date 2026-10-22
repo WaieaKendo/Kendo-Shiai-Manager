@@ -55,7 +55,7 @@ transitions are off.
                    division has started).
 
 Since M.13 React draws the players table and the status card's contents
-(app/react/registration/: two islands, #regTable and #tournamentStatusCard; the card's class
+(app/react/features/registration/: two islands, #regTable and #tournamentStatusCard; the card's class
 stays legacy; app/js/43-react-registration.js publishes their data). React must render every
 element of both islands (and both elements must be the islands' roots), and every kind of
 content must be covered. The tab bar, the toolbars and the filter stay legacy markup.
@@ -135,7 +135,7 @@ STATE_JS = """() => {
 }"""
 
 
-# The Registration islands (app/react/registration/main.tsx): React renders every element of the
+# The Registration islands (app/react/features/registration/main.tsx): React renders every element of the
 # players table (#regTable, the island's root) and of the status card (#tournamentStatusCard).
 ISLANDS = ['#indReg #regTable', '#registration #tournamentStatusCard']
 ROOT_JS = "s => Object.keys(document.querySelector(s)).some(k => k.startsWith('__reactContainer'))"

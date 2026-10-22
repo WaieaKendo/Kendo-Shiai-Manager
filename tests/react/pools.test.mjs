@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   CANCEL_TEXT, EDITOR_HELP, EDITOR_RIGHT_TITLE, EDIT_POOL_TEXT, EMPTY_POOLS, POOLS_HEADING, SAVE_POOLS_TEXT,
   editorRows, poolsView,
-} from '../../app/react/pools/pools-model.ts';
+} from '../../app/react/features/pools/pools-model.ts';
 
 const MESSAGE = { kind: 'message', text: 'Championship bracket will appear after pools are generated.' };
 const pool = (label, names) => ({ label, title: `Pool ${label}`, players: names.map((name, i) => ({ slot: 'ABCD'[i] ?? 'E', name, dojo: `${name} Dojo` })) });

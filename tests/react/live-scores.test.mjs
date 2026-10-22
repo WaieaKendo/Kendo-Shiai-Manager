@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { alignedRow } from '../../app/react/court/rows-model.ts';
+import { alignedRow } from '../../app/react/shared/ui/rows-model.ts';
 import {
   COMPLETE_LINE, EMPTY_LIVE_SCORES, IDLE_META, IDLE_TEXT, LIVE_SCORES_HEADING, NO_NEXT_TEXT, WAITING_TEXT, liveCourtView, liveScoresView, pointText,
-} from '../../app/react/live-scores/live-scores-model.ts';
+} from '../../app/react/features/live-scores/live-scores-model.ts';
 
 const meta = { division: 'Open', line: 'Pool A' };
 
@@ -98,7 +98,7 @@ test('liveCourtView: an idle court still waiting for a match of its division say
 });
 
 test('hansoku (owner decision 5): one triangle each, shown only when a side has one', async () => {
-  const { hansokuMarks, hansokuView } = await import('../../app/react/live-scores/live-scores-model.ts');
+  const { hansokuMarks, hansokuView } = await import('../../app/react/features/live-scores/live-scores-model.ts');
   assert.equal(hansokuMarks(0), '');
   assert.equal(hansokuMarks(3), '△ △ △');
   assert.equal(hansokuMarks(undefined), '');
@@ -115,7 +115,7 @@ test('hansoku (owner decision 5): one triangle each, shown only when a side has 
 });
 
 test('between matches (owner decision 6): the reason and "Up next on this court" on an idle card', async () => {
-  const { upNextTitle } = await import('../../app/react/live-scores/live-scores-model.ts');
+  const { upNextTitle } = await import('../../app/react/features/live-scores/live-scores-model.ts');
   assert.equal(upNextTitle('Masters'), 'Up next on this court: Masters');
   const upNext = { division: 'Masters', matches: [{ white: 'M 1', red: 'M 2' }] };
   const waiting = liveCourtView({ court: 'A', kind: 'idle', waiting: true, reason: 'Final waits for the semifinal on Court B', upNext });

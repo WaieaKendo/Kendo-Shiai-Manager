@@ -50,7 +50,7 @@ chosen with select_option(); transitions are off.
                       applied live update (applyTournamentPayload()) with other setup values
                       and divisions; the test API's configure() (divisions, team settings).
 
-Since M.13 React draws the divisions table's rows and the hero's name (app/react/setup/: two
+Since M.13 React draws the divisions table's rows and the hero's name (app/react/features/setup/: two
 islands, #divisionSetupRows and #setupTournamentName; app/js/42-react-setup.js publishes their
 data). React must render every element of the rows (and both elements must be the islands'
 roots), and every kind of row and name must be covered. The Setup fields stay legacy markup.
@@ -123,7 +123,7 @@ STATE_JS = """() => ({
 })"""
 
 
-# The Setup islands (app/react/setup/main.tsx): React renders every element of the divisions
+# The Setup islands (app/react/features/setup/main.tsx): React renders every element of the divisions
 # table's rows (#divisionSetupRows, the island's root) and the hero's name (#setupTournamentName,
 # a root with text only).
 ISLANDS = ['#setup #divisionSetupRows', '#setup #setupTournamentName']
