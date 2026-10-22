@@ -36,6 +36,15 @@
     // TournamentState class; wrangler provisions a separate namespace per Worker.
     "dev": {
       "name": "kendoshiaimanager-dev",
+      // Auth0 sign-in for dev only (docs/DEPLOYMENT.md, "Auth0 sign-in"). These are public SPA
+      // settings, served at /api/auth/config. ADMIN_EMAILS is a Wrangler secret, not set here.
+      // Vars are not inherited: production (the top level) stays without Auth0 until its own
+      // values are added in a separate, deliberate change.
+      "vars": {
+        "AUTH0_DOMAIN": "ksm-hkf.us.auth0.com",
+        "AUTH0_AUDIENCE": "https://dev.tournament.hawaiikendofederation.org/api",
+        "AUTH0_CLIENT_ID": "dKtA09oEMLP8TAIPJMOiuuJdoaKpirRz"
+      },
       "durable_objects": {
         "bindings": [
           { "name": "TOURNAMENTS", "class_name": "TournamentState" }
