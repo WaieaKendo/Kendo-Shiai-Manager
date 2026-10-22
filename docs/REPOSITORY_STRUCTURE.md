@@ -51,6 +51,7 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         #teamTable, the exhibition table #exhibitionTable and the tab
                         bar; app/js/43-react-registration.js publishes their data; the
                         toolbars, filters and the cards' visibility stay legacy),
+                        account/ (Auth0 sign-in and the session cache: auth0.tsx, auth-session-cache.ts),
                         shell/ (the shell, M.13's last step: the navigation bar
                         nav.minimal-nav and the header's status row .cloud-status-wrap,
                         the Fusen-gachi, generation check and Regenerate Single Division

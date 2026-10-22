@@ -283,7 +283,7 @@ def without_screens_module():
 
 # The Overview shown without drawing it (no renderDirector()): what the page has before the
 # first publish.
-UNDRAWN_JS = "() => { document.querySelectorAll('.view').forEach(v => v.classList.add('hidden')); document.getElementById('director').classList.remove('hidden'); }"
+UNDRAWN_JS = "() => { document.documentElement.classList.add('ksm-ui-ready'); document.querySelectorAll('.view').forEach(v => v.classList.add('hidden')); document.getElementById('director').classList.remove('hidden'); }"
 
 
 def overview_static_markup(browser, errors):

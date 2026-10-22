@@ -25,9 +25,15 @@ export type LibraryInput =
   | { kind: 'empty' }
   | {
     kind: 'library';
+    authEnabled?: boolean;
+    accountEmail?: string;
+    accountRole?: string;
+    canCreate?: boolean;
     canManage?: boolean;
+    canDelete?: boolean;
     authorizedIds?: string[];
     activeId?: string;
+    activeName?: string;
     hasActive?: boolean;
     draft?: { name: string; saved: string } | null;
     /** The rows, in the order given; with none the message is shown instead. */

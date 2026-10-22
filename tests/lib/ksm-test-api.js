@@ -192,6 +192,8 @@ window.KSMTest = {
   seedDetachedDraft(payload) { localStorage.setItem(KSM_DETACHED_DRAFT_KEY,JSON.stringify(payload)); },
   shortName() { return {slug:cloudSession.slug||'',pending:ksmPendingSlug}; },
   app: {
+    flushCloudOutbox: (...a) => flushCloudOutbox(...a),
+    ksmFetchTournament: (...a) => ksmFetchTournament(...a),
     ksmRenameTournamentSlug: (...a) => ksmRenameTournamentSlug(...a),
     mergeLocalEditsThreeWay: (...a) => mergeLocalEditsThreeWay(...a),
     rebaseLocalPayloadOnRecord: (...a) => rebaseLocalPayloadOnRecord(...a),

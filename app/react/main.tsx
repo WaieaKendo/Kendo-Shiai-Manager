@@ -12,3 +12,5 @@ import './features/pools/main.tsx';
 import './features/setup/main.tsx';
 import './features/registration/main.tsx';
 import './features/shell/main.tsx';
+
+import './features/account/auth0.tsx';

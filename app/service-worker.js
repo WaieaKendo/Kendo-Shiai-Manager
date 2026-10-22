@@ -47,6 +47,9 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
+  // Identity, visibility and snapshots must always reach the server, even after sign-out.
+  // Explicit Cache API writes ignore HTTP no-store; never cache or restore API responses.
+  if (url.pathname.startsWith('/api/')) return;
   // Only the app itself is the offline shell (servesAppShell(): /, /index.html, /t/...). Other
   // pages (the overlay: /overlay, /t/<id>/overlay/a) are live-only: the network answers them, so
   // they are never cached as /index.html.
