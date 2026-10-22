@@ -3,13 +3,13 @@ from ksm_source import app_source, court_react_source
 html=app_source()
 react=court_react_source()
 # M.8 step 5: the legacy court renderer is gone. The court screen is React: app/js/35-react-court.js
-# makes the decisions and publishes them, app/react/court/ renders them (court_react_source());
+# makes the decisions and publishes them, app/react/features/court/ renders them (court_react_source());
 # tests/golden/court/*.json pin the result. The court checks below point at that code.
 # Node/Match Object construction lives in app/engine/single-elim.ts since roadmap 2.5.
 engine=(Path(__file__).resolve().parent.parent/'app/engine/single-elim.ts').read_text()
 # M.13: Live Scores is React. app/js/36-react-live-scores.js publishes the complete division's
-# placements, app/react/live-scores/LiveScores.tsx draws them with the court's panel.
-live_react=(Path(__file__).resolve().parent.parent/'app/react/live-scores/LiveScores.tsx').read_text()
+# placements, app/react/features/live-scores/LiveScores.tsx draws them with the court's panel.
+live_react=(Path(__file__).resolve().parent.parent/'app/react/features/live-scores/LiveScores.tsx').read_text()
 checks={
  'single column split context':'split-template-context' in html and "return {kind:'split-single-elim',cards:" in html and 'single-elim-context-grid split-template-context' in react,
  'template node queue':"const nodes=state.singleElimNodes?.[div]||[],arr=enforceUniqueIndividualMatches(div),out=ksmQueueGroups();" in html,

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   COURT_OPTIONS, CUSTOM_TEXT, EMPTY_SETUP_DIVISIONS, EMPTY_SETUP_HEADER, FORMAT_OPTIONS, REMOVE_TEXT, SETUP_HEADER_FALLBACK,
   setupDivisionRowView, setupHeaderText,
-} from '../../app/react/setup/setup-model.ts';
+} from '../../app/react/features/setup/setup-model.ts';
 
 const row = (over = {}) => ({ division: 'Open', name: 'Open', enabled: true, custom: false, format: 'Round Robin', court: 'A', ...over });
 
@@ -44,7 +44,7 @@ test('a row keeps its input (division, name, enabled, custom)', () => {
 });
 
 test('#31: the move buttons (symbols, accessible names) and a row keeps its move flags', async () => {
-  const { MOVE_TEXTS, moveLabel } = await import('../../app/react/setup/setup-model.ts');
+  const { MOVE_TEXTS, moveLabel } = await import('../../app/react/features/setup/setup-model.ts');
   assert.deepEqual(MOVE_TEXTS, { up: '↑', down: '↓' });
   assert.equal(moveLabel('Kids', 'up'), 'Move Kids up');
   assert.equal(moveLabel('Kids', 'down'), 'Move Kids down');
@@ -53,7 +53,7 @@ test('#31: the move buttons (symbols, accessible names) and a row keeps its move
 });
 
 test('#25: Rename texts and accessible names; the rename edit (open, type, refused, saved, cancelled, blocked)', async () => {
-  const { RENAME_TEXTS, renameLabel, renameFieldLabel, renameEditReducer } = await import('../../app/react/setup/setup-model.ts');
+  const { RENAME_TEXTS, renameLabel, renameFieldLabel, renameEditReducer } = await import('../../app/react/features/setup/setup-model.ts');
   assert.deepEqual(RENAME_TEXTS, { rename: 'Rename', save: 'Save', cancel: 'Cancel' });
   assert.equal(renameLabel('Kids'), 'Rename Kids');
   assert.equal(renameFieldLabel('Kids'), 'New name for Kids');

@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DEFAULT_COURT_PANEL_ICONS } from '../../app/react/court/branding.ts';
-import { alignedRow, alignedRowView, pointSlots } from '../../app/react/court/rows-model.ts';
-import { EMPTY_QUEUE, courtQueueView, normalizeQueueGroupLabel, queueRowClass } from '../../app/react/court/queue-model.ts';
+import { DEFAULT_COURT_PANEL_ICONS } from '../../app/react/shared/ui/branding.ts';
+import { alignedRow, alignedRowView, pointSlots } from '../../app/react/shared/ui/rows-model.ts';
+import { EMPTY_QUEUE, courtQueueView, normalizeQueueGroupLabel, queueRowClass } from '../../app/react/features/court/queue-model.ts';
 import {
   EMPTY_CONTEXT, bracketView, courtContextView, kachinukiLines, poolCardView, teamStandingsView,
-} from '../../app/react/court/context-model.ts';
+} from '../../app/react/shared/ui/context-model.ts';
 
 test('default panel icons: the legacy pool-complete mark', () => {
   assert.deepEqual(DEFAULT_COURT_PANEL_ICONS, { poolComplete: '✓' });

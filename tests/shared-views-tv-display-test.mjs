@@ -2,11 +2,11 @@ import { html as appSource, readRepoFile } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
 const html = appSource;
 // M.13: Live Scores is React. app/js/36-react-live-scores.js decides and publishes both courts,
-// app/react/live-scores/LiveScores.tsx draws them (tests/golden/live-scores pins the result).
-const liveReact = readRepoFile('app/react/live-scores/LiveScores.tsx');
-// M.13: the shell (navigation, header, dialogs) is React: app/react/shell/ draws it, app/js/44-react-shell.js
+// app/react/features/live-scores/LiveScores.tsx draws them (tests/golden/live-scores pins the result).
+const liveReact = readRepoFile('app/react/features/live-scores/LiveScores.tsx');
+// M.13: the shell (navigation, header, dialogs) is React: app/react/features/shell/ draws it, app/js/44-react-shell.js
 // publishes what the legacy code decided (tests/golden/shell pins the result).
-const shellReact = ['nav-model.ts', 'dialogs-model.ts', 'Dialogs.tsx', 'Shell.tsx'].map(f => readRepoFile(`app/react/shell/${f}`)).join('\n');
+const shellReact = ['nav-model.ts', 'dialogs-model.ts', 'Dialogs.tsx', 'Shell.tsx'].map(f => readRepoFile(`app/react/features/shell/${f}`)).join('\n');
 // M.13: the TV display is React too: renderTvDisplay() publishes the assigned court's view
 // (app/js/37-react-tv.js), chosen by buildTV3ViewModel() (26-) with courtCurrentMatch(court).
 const checks = [

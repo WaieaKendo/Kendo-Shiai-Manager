@@ -62,7 +62,7 @@ with Playwright's real mouse drag (locator.drag_to) in Chromium.
                       Pools view opened after every match: RR 14 (pools + quarterfinals), SE 6
                       split, team RR 3, kachinuki RR 3.
 
-Since M.13 #poolOutput is drawn only by React (app/react/pools/: one island, the contents of
+Since M.13 #poolOutput is drawn only by React (app/react/features/pools/: one island, the contents of
 #poolOutput; app/js/41-react-pools.js publishes its data); the legacy renderer is removed, so
 this test pins the React-only view. The division select, Regenerate and #poolOutput's class stay
 legacy. React must render every element of the island (and #poolOutput must be its root) and
@@ -158,7 +158,7 @@ DRAG_END_JS = """() => {
   window.__ksmDrag = null;
 }"""
 
-# The Pools island (app/react/pools/main.tsx): React renders every element of #poolOutput, which
+# The Pools island (app/react/features/pools/main.tsx): React renders every element of #poolOutput, which
 # is the island's root.
 ISLAND = '#poolsReg #poolOutput'
 ROOT_JS = f"() => Object.keys(document.querySelector('{ISLAND}')).some(k => k.startsWith('__reactContainer'))"

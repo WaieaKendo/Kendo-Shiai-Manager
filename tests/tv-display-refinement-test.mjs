@@ -2,9 +2,9 @@ import { html as appSource, readRepoFile } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
 const html=appSource;
 // M.13: the TV display is React. app/js/37-react-tv.js publishes what buildTV3ViewModel() (26-)
-// chose, app/react/tv/ draws it (tests/golden/tv pins the result, recorded from the removed tv3
+// chose, app/react/features/tv/ draws it (tests/golden/tv pins the result, recorded from the removed tv3
 // renderer). Checks of TV markup point at that code.
-const tvReact=readRepoFile('app/react/tv/Tv.tsx'),tvModel=readRepoFile('app/react/tv/tv-model.ts');
+const tvReact=readRepoFile('app/react/features/tv/Tv.tsx'),tvModel=readRepoFile('app/react/features/tv/tv-model.ts');
 // "names auto fit" (fitTvText(), data-tv-fit) is gone: it pinned the first TV renderer, which never ran
 // (the tv3 renderer that replaced it in v3.15.13 never fitted names; it was removed with that dead
 // code in M.13). Large TV names are checked by tv-display-test.py (name font size).

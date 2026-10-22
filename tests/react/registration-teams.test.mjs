@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   EMPTY_EXHIBITIONS, EMPTY_TABS, EMPTY_TEAMS, EXHIBITION_HEADERS, TAB_BUTTONS, TEAM_NAME_LABEL,
   tabButtonClass, teamFormatLine,
-} from '../../app/react/registration/teams-model.ts';
+} from '../../app/react/features/registration/teams-model.ts';
 
 test('legacy texts of renderTeams() and renderExhibitions()', () => {
   assert.equal(TEAM_NAME_LABEL, 'Team Name');
@@ -44,7 +44,7 @@ test('the tab classes as regTab() toggled them; the action buttons keep theirs',
 });
 
 test('owner decision 19: the Exhibition tab only while exhibitions are enabled', async () => {
-  const { visibleTabButtons, TAB_BUTTONS } = await import('../../app/react/registration/teams-model.ts');
+  const { visibleTabButtons, TAB_BUTTONS } = await import('../../app/react/features/registration/teams-model.ts');
   assert.deepEqual(visibleTabButtons({ mode: 'individual', exhibitions: true }), TAB_BUTTONS);
   assert.deepEqual(visibleTabButtons({ mode: 'individual' }), TAB_BUTTONS, 'nothing published about it: as before');
   assert.deepEqual(visibleTabButtons({ mode: 'individual', exhibitions: false }).map(b => b.testId),

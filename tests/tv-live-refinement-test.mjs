@@ -2,13 +2,13 @@ import { html as appSource, readRepoFile } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
 const html=appSource;
 // M.13: Live Scores is React. app/js/36-react-live-scores.js publishes a team match's sheet as the
-// court screen's sheet data, app/react/live-scores/LiveScores.tsx draws it with the court
+// court screen's sheet data, app/react/features/live-scores/LiveScores.tsx draws it with the court
 // screen's context panel (tests/golden/live-scores pins the result).
-const liveReact=readRepoFile('app/react/live-scores/LiveScores.tsx');
+const liveReact=readRepoFile('app/react/features/live-scores/LiveScores.tsx');
 // M.13: the TV display is React. app/js/37-react-tv.js publishes what buildTV3ViewModel() (26-)
-// chose, app/react/tv/ draws it (tests/golden/tv pins the result, recorded from the removed tv3
+// chose, app/react/features/tv/ draws it (tests/golden/tv pins the result, recorded from the removed tv3
 // renderer). Checks of TV markup point at that code.
-const tvReact=readRepoFile('app/react/tv/Tv.tsx'),tvModel=readRepoFile('app/react/tv/tv-model.ts');
+const tvReact=readRepoFile('app/react/features/tv/Tv.tsx'),tvModel=readRepoFile('app/react/features/tv/tv-model.ts');
 // "team names auto fit" (data-tv-fit on .tv-team-name) is gone: it pinned the first TV renderer,
 // which never ran (the tv3 renderer never fitted names); removed with that dead code in M.13.
 const checks=[

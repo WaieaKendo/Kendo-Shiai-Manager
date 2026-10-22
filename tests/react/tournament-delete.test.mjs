@@ -1,9 +1,9 @@
-// Delete tournament (issue #26): the confirmation dialog's rules (app/react/shell/dialogs-model.ts).
+// Delete tournament (issue #26): the confirmation dialog's rules (app/react/features/shell/dialogs-model.ts).
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   DELETE_TEXTS, deleteDevicesText, deleteEnabled, deleteNameMatches, deleteRequiredName,
-} from '../../app/react/shell/dialogs-model.ts';
+} from '../../app/react/features/shell/dialogs-model.ts';
 
 test('the name to type is the tournament name without spaces around it', () => {
   assert.equal(deleteRequiredName('  Summer Cup '), 'Summer Cup');

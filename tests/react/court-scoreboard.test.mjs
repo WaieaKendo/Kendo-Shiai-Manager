@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { EMPTY_SCOREBOARD, representativeView, scoreboardView } from '../../app/react/court/scoreboard-model.ts';
+import { EMPTY_SCOREBOARD, representativeView, scoreboardView } from '../../app/react/shared/ui/scoreboard-model.ts';
 
 const score = (W = [], R = [], WT = 0, RT = 0) => ({ W, R, WT, RT });
 const ind = (extra = {}) => ({ white: 'Aoki', red: 'Baba', wdojo: 'Aiea', rdojo: 'Waipahu', type: 'individual', ...extra });
@@ -46,7 +46,7 @@ test('representativeView: as the legacy repSelect()', () => {
 });
 
 test('D1: a daihyosen bout carries its rule label; other bouts none', async () => {
-  const { scoreboardView } = await import('../../app/react/court/scoreboard-model.ts');
+  const { scoreboardView } = await import('../../app/react/shared/ui/scoreboard-model.ts');
   const score = { W: [], R: [], WT: 0, RT: 0 };
   const m = { white: 'A Rep', red: 'B Rep', teamWhite: 'Team A', teamRed: 'Team B', type: 'teamPlayoff' };
   assert.equal(scoreboardView({ match: { ...m, rule: 'Daihyosen — first point wins' }, score, representatives: null }).rule, 'Daihyosen — first point wins');
@@ -54,7 +54,7 @@ test('D1: a daihyosen bout carries its rule label; other bouts none', async () =
 });
 
 test('#38: a tied bout that needs a winner shows the encho label and disables Next Match; a point clears both', async () => {
-  const { nextMatchView, scoreboardView, ENCHO_LABEL } = await import('../../app/react/court/scoreboard-model.ts');
+  const { nextMatchView, scoreboardView, ENCHO_LABEL } = await import('../../app/react/shared/ui/scoreboard-model.ts');
   const m = { white: 'Aoki', red: 'Baba', type: 'individual', requiresWinner: true };
   const tied = { match: m, score: score(['M'], ['K']), representatives: null };
   assert.equal(scoreboardView(tied).encho, ENCHO_LABEL);
@@ -67,7 +67,7 @@ test('#38: a tied bout that needs a winner shows the encho label and disables Ne
 });
 
 test('#38: a tied bout that may be a draw keeps Next Match enabled, reading "(Hikiwake)"', async () => {
-  const { nextMatchView, scoreboardView } = await import('../../app/react/court/scoreboard-model.ts');
+  const { nextMatchView, scoreboardView } = await import('../../app/react/shared/ui/scoreboard-model.ts');
   const m = { white: 'Aoki', red: 'Baba', type: 'individual', requiresWinner: false };
   const tied = { match: m, score: score(['M'], ['K']), representatives: null };
   assert.deepEqual(nextMatchView(tied), { disabled: false, label: 'Next Match (Hikiwake)' });
@@ -77,7 +77,7 @@ test('#38: a tied bout that may be a draw keeps Next Match enabled, reading "(Hi
 });
 
 test('#38: a daihyosen bout (team playoff) is winner-required, and keeps its rule label', async () => {
-  const { nextMatchView, scoreboardView } = await import('../../app/react/court/scoreboard-model.ts');
+  const { nextMatchView, scoreboardView } = await import('../../app/react/shared/ui/scoreboard-model.ts');
   const m = { white: 'A Rep', red: 'B Rep', type: 'teamPlayoff', requiresWinner: true, rule: 'Daihyosen — first point wins' };
   const input = { match: m, score: score(), representatives: null };
   assert.equal(nextMatchView(input).disabled, true);

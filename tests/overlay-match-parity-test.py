@@ -1,6 +1,6 @@
 """The stream overlay picks the same current and next match as the TV display.
 
-The overlay (app/react/overlay/court-match.ts) ports the TV's match selection
+The overlay (app/react/features/overlay/court-match.ts) ports the TV's match selection
 (courtCurrentMatch / findNextForCourt / tvUpcomingMatches) to a pure function. This
 test plays a set of the golden-engine tournaments to the end in the real app
 (offline), and before every step records, for Court A and Court B, the tournament

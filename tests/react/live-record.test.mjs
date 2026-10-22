@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { INITIAL_LIVE_STATE, isNewerRecord, liveUrls, parseLiveMessage, reconnectDelay, reduceLive } from '../../app/react/live/live-record.ts';
+import { INITIAL_LIVE_STATE, isNewerRecord, liveUrls, parseLiveMessage, reconnectDelay, reduceLive } from '../../app/react/features/live/live-record.ts';
 
 const rec = (revision, tournamentId = 't1') => ({ tournamentId, revision, payload: { state: {} } });
 
