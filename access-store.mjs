@@ -3,7 +3,8 @@ import { normalizeEmail, isAdmin } from './auth0-worker.mjs';
 // Central access persistence. follows (#44) and participant_links (#132) will be
 // added here later. Keep SQL and identity linking here so storage can move to D1.
 export class AccessStore {
-  constructor(storage) {
+  constructor(storage, env = {}) {
+    this.env = env;
     this.storage = storage;
     this.sql = storage.sql;
     this.sql.exec(`
@@ -14,36 +15,73 @@ export class AccessStore {
       CREATE TABLE IF NOT EXISTS tournament_access(user_id TEXT, tournament_id TEXT, role TEXT, granted_by TEXT, granted_at TEXT, PRIMARY KEY(user_id, tournament_id));
       CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY, value TEXT);
       INSERT OR IGNORE INTO meta VALUES('schema_version', '1');
+      CREATE TABLE IF NOT EXISTS user_identities(sub TEXT PRIMARY KEY, user_id TEXT NOT NULL, provider TEXT, linked_at TEXT);
+      CREATE INDEX IF NOT EXISTS identities_user ON user_identities(user_id);
     `);
+    this.storage.transactionSync(() => {
+      if (this.rows("SELECT value FROM meta WHERE key='schema_version'")[0]?.value === '2') return;
+      const users = this.rows('SELECT id FROM users');
+      const ids = new Map(users.map(user => [user.id, crypto.randomUUID()]));
+      for (const [sub, id] of ids) {
+        this.sql.exec('UPDATE users SET id=? WHERE id=?', id, sub);
+        this.sql.exec('UPDATE global_roles SET user_id=? WHERE user_id=?', id, sub);
+        this.sql.exec('UPDATE tournament_access SET user_id=? WHERE user_id=?', id, sub);
+        this.sql.exec('INSERT INTO user_identities VALUES(?,?,?,?)', sub, id, sub.split('|')[0], new Date().toISOString());
+      }
+      for (const [sub, id] of ids) {
+        this.sql.exec('UPDATE global_roles SET granted_by=? WHERE granted_by=?', id, sub);
+        this.sql.exec('UPDATE tournament_access SET granted_by=? WHERE granted_by=?', id, sub);
+        this.sql.exec('UPDATE invites SET invited_by=? WHERE invited_by=?', id, sub);
+      }
+      this.sql.exec("UPDATE meta SET value='2' WHERE key='schema_version'");
+    });
   }
   rows(query, ...args) { return this.sql.exec(query, ...args).toArray(); }
   validate(scope, role) {
     if (typeof scope !== 'string' || !scope || scope.startsWith('__ksm_') || !(scope === 'global' ? ['admin','creator'] : ['owner','director']).includes(role)) throw new Error('Invalid access grant');
   }
   putGrant(userId, scope, role, by, at) {
+    if (scope !== 'global' && this.rows('SELECT 1 FROM meta WHERE key=?', `deleted:${scope}`).length) throw new Error('Tournament deleted');
     if (scope === 'global') this.sql.exec('INSERT OR IGNORE INTO global_roles VALUES(?,?,?,?)', userId, role, by, at);
     else this.sql.exec(`INSERT INTO tournament_access VALUES(?,?,?,?,?) ON CONFLICT(user_id,tournament_id) DO UPDATE SET role=excluded.role, granted_by=excluded.granted_by, granted_at=excluded.granted_at WHERE tournament_access.role != 'owner'`, userId, scope, role, by, at);
   }
+  accessFor(userId) {
+    return {
+      userId,
+      roles: this.rows('SELECT role FROM global_roles WHERE user_id=? ORDER BY role', userId).map(row => row.role),
+      tournamentRoles: Object.fromEntries(this.rows('SELECT tournament_id,role FROM tournament_access WHERE user_id=?', userId).map(row => [row.tournament_id, row.role]))
+    };
+  }
+  lookup({sub}) {
+    const user = this.rows('SELECT u.* FROM user_identities i JOIN users u ON u.id=i.user_id WHERE i.sub=?', sub)[0];
+    return user ? {...this.accessFor(user.id), email:user.email} : {userId:null,roles:[],tournamentRoles:{}};
+  }
   resolve(identity) {
     const email = normalizeEmail(identity?.email);
-    if (!email || !identity?.sub || identity.emailVerified !== true) return { roles: [], tournamentRoles: {} };
+    if (!email || typeof identity?.sub !== 'string' || !identity.sub || identity.emailVerified !== true) return {userId:null, roles:[], tournamentRoles:{}};
     return this.storage.transactionSync(() => {
       const now = new Date().toISOString();
-      // A different sub claiming an already-linked email must never inherit its grants.
-      // The unique email constraint rejects the collision and rolls back invite linking.
-      this.sql.exec(`INSERT INTO users VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET email=excluded.email, display_name=excluded.display_name, last_sign_in_at=excluded.last_sign_in_at`, identity.sub, email, identity.displayName || null, now, now);
-      for (const invite of this.rows('SELECT * FROM invites WHERE email=?', email)) this.putGrant(identity.sub, invite.scope, invite.role, invite.invited_by, invite.created_at);
-      this.sql.exec('DELETE FROM invites WHERE email=?', email);
-      return {
-        roles: this.rows('SELECT role FROM global_roles WHERE user_id=? ORDER BY role', identity.sub).map(row => row.role),
-        tournamentRoles: Object.fromEntries(this.rows('SELECT tournament_id,role FROM tournament_access WHERE user_id=?', identity.sub).map(row => [row.tournament_id, row.role]))
-      };
+      const known = this.rows('SELECT user_id FROM user_identities WHERE sub=?', identity.sub)[0];
+      const emailUser = this.rows('SELECT id FROM users WHERE lower(email)=?', email)[0];
+      const userId = known?.user_id || emailUser?.id || crypto.randomUUID();
+      if (!known) this.sql.exec('INSERT INTO user_identities VALUES(?,?,?,?)', identity.sub, userId, identity.sub.split('|')[0], now);
+      // Never merge two established KSM users on an email change. The identity
+      // retains its grants; an occupied canonical email stays with its user.
+      const emailAvailable = !emailUser || emailUser.id === userId;
+      if (emailAvailable) {
+        this.sql.exec(`INSERT INTO users VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET email=excluded.email, display_name=COALESCE(excluded.display_name,users.display_name), last_sign_in_at=excluded.last_sign_in_at`, userId, email, identity.displayName || null, now, now);
+        for (const invite of this.rows('SELECT * FROM invites WHERE email=?', email)) this.putGrant(userId, invite.scope, invite.role, invite.invited_by, invite.created_at);
+        this.sql.exec('DELETE FROM invites WHERE email=?', email);
+      } else this.sql.exec('UPDATE users SET last_sign_in_at=? WHERE id=?', now, userId);
+      return this.accessFor(userId);
     });
   }
-  grant({email, scope, role, grantedBy = ''}) {
-    email = normalizeEmail(email); if (!email) throw new Error('Valid email required'); this.validate(scope, role);
+  grant({email, userId, scope, role, grantedBy = ''}) {
+    email = normalizeEmail(email); if (!email && !userId) throw new Error('Valid email required'); this.validate(scope, role);
     return this.storage.transactionSync(() => {
-      const user = this.rows('SELECT id FROM users WHERE lower(email)=?', email)[0];
+      if (scope !== 'global' && this.rows('SELECT 1 FROM meta WHERE key=?', `deleted:${scope}`).length) throw new Error('Tournament deleted');
+      const user = userId ? this.rows('SELECT id FROM users WHERE id=?', userId)[0] : this.rows('SELECT id FROM users WHERE lower(email)=?', email)[0];
+      if (userId && !user) throw new Error('Unknown user');
       const now = new Date().toISOString();
       if (user) this.putGrant(user.id, scope, role, grantedBy, now);
       else this.sql.exec('INSERT OR IGNORE INTO invites VALUES(?,?,?,?,?)', email, scope, role, grantedBy, now);
@@ -63,10 +101,59 @@ export class AccessStore {
       return {ok:true};
     });
   }
-  listPeople() { return {users:this.rows('SELECT * FROM users ORDER BY email'), invites:this.rows('SELECT * FROM invites ORDER BY email,scope,role'), globalRoles:this.rows('SELECT * FROM global_roles'), tournamentAccess:this.rows('SELECT * FROM tournament_access')}; }
+  listPeople() { return {identities:this.rows('SELECT * FROM user_identities'), users:this.rows('SELECT * FROM users ORDER BY email'), invites:this.rows('SELECT * FROM invites ORDER BY email,scope,role'), globalRoles:this.rows('SELECT * FROM global_roles'), tournamentAccess:this.rows('SELECT * FROM tournament_access')}; }
   listTournament({id}) { return {grants:this.rows('SELECT a.*,u.email,u.display_name FROM tournament_access a JOIN users u ON u.id=a.user_id WHERE tournament_id=?', id), invites:this.rows('SELECT * FROM invites WHERE scope=?', id)}; }
+  migrateTournament({id, directors = []}) {
+    this.validate(id, 'director');
+    return this.storage.transactionSync(() => {
+      const key = `directors:${id}`;
+      if (this.rows('SELECT 1 FROM meta WHERE key=?', `deleted:${id}`).length) return {ok:true};
+      if (this.rows('SELECT value FROM meta WHERE key=?', key).length) return {ok:true};
+      for (const value of directors) {
+        const email = normalizeEmail(value); if (!email) continue;
+        const user = this.rows('SELECT id FROM users WHERE lower(email)=?', email)[0];
+        const at = new Date().toISOString();
+        if (user) this.putGrant(user.id, id, 'director', 'legacy-migration', at);
+        else this.sql.exec('INSERT OR IGNORE INTO invites VALUES(?,?,?,?,?)', email, id, 'director', 'legacy-migration', at);
+      }
+      this.sql.exec('INSERT INTO meta VALUES(?,?)', key, 'done');
+      return {ok:true};
+    });
+  }
+  changeTournament({actor, id, action, email, userId, role}) {
+    this.validate(id, role);
+    if (!['grant','revoke'].includes(action)) throw new Error('Invalid access action');
+    email = normalizeEmail(email);
+    if (!email && !userId) return {ok:false,status:400,error:'Valid email or user ID required'};
+    return this.storage.transactionSync(() => {
+      if (this.rows('SELECT 1 FROM meta WHERE key=?', `deleted:${id}`).length) return {ok:false,status:410,error:'Tournament deleted'};
+      const current = this.lookup(actor);
+      const admin = isAdmin(this.env, actor.email) || current.roles.includes('admin');
+      if (!admin && current.tournamentRoles[id] !== 'owner') return {ok:false,status:403,error:'Owner or admin authorization required'};
+      const target = userId ? this.rows('SELECT * FROM users WHERE id=?', userId)[0] : this.rows('SELECT * FROM users WHERE lower(email)=?', email)[0];
+      if (userId && !target) return {ok:false,status:400,error:'Unknown user'};
+      if (action === 'revoke' && role === 'owner' && !admin && target) {
+        const owner = this.rows("SELECT 1 FROM tournament_access WHERE user_id=? AND tournament_id=? AND role='owner'", target.id, id).length;
+        const owners = this.rows("SELECT count(*) AS n FROM tournament_access WHERE tournament_id=? AND role='owner'", id)[0].n;
+        if (owner && owners <= 1) return {ok:false,status:409,error:'The last owner can only be removed by an admin'};
+      }
+      // Mutate inline so authorization, the last-owner check and the write share
+      // one transaction, including concurrent requests from different devices.
+      const at = new Date().toISOString();
+      const removed = action === 'revoke' && !!target && this.rows('SELECT 1 FROM tournament_access WHERE user_id=? AND tournament_id=? AND role=?', target.id, id, role).length > 0;
+      if (action === 'grant') {
+        if (target) this.putGrant(target.id, id, role, current.userId, at);
+        else this.sql.exec('INSERT OR IGNORE INTO invites VALUES(?,?,?,?,?)', email, id, role, current.userId, at);
+      } else {
+        if (target) this.sql.exec('DELETE FROM tournament_access WHERE user_id=? AND tournament_id=? AND role=?', target.id, id, role);
+        this.sql.exec('DELETE FROM invites WHERE email=? AND scope=? AND role=?', target?.email || email, id, role);
+      }
+      return {ok:true,userId:target?.id || null,removed};
+    });
+  }
   removeTournament({id}) {
     return this.storage.transactionSync(() => {
+      this.sql.exec('INSERT OR IGNORE INTO meta VALUES(?,?)', `deleted:${id}`, new Date().toISOString());
       this.sql.exec('DELETE FROM tournament_access WHERE tournament_id=?', id);
       this.sql.exec('DELETE FROM invites WHERE scope=?', id);
       return {ok:true};
