@@ -36,7 +36,7 @@ Screens have path URLs (roadmap M.9): `/t/<id>`, `/t/<id>/live`, `/t/<id>/court/
 
 ## Staff password and sessions (security notes)
 
-Each tournament has one shared staff password (issue #9 hardened it for 4.0.0; sign-in with Auth0 and roles follow in 4.0.1, see docs/ROADMAP.md "Login and permissions: decided"). All of it lives in the tournament's Durable Object (`src-worker.js`, `TournamentState`):
+When Auth0 is unconfigured, each tournament has one shared staff password (issue #9 hardened it for 4.0.0). The opt-in account system is described under [Auth0 sign-in](#auth0-sign-in-not-enabled-in-production). Passwords and sessions live in the tournament's Durable Object (`src-worker.js`, `TournamentState`):
 
 - **Stored as PBKDF2-SHA256** (`staffPasswordHash`: `pbkdf2-sha256$<iterations>$<salt>$<hash>`), a random 16-byte salt per tournament, **20,000 iterations**. Measured locally (M1 Pro, `wrangler dev`/workerd): 100,000 iterations took about 9 ms per check, so 20,000 is about 2 ms, which keeps a login well inside the Workers Free plan's 10 ms CPU budget (Durable Objects on a paid plan allow 30 s). Only a password check pays it (Staff Login, tournament creation, and the rollout fallback below, where the last correct password is remembered in memory so repeated saves do not pay it again). Together with the attempt limit this is far stronger than the old unsalted SHA-256. The iteration count is stored with each hash (100,000 is the most WebCrypto accepts and is still read), and a hash with fewer than the current count is upgraded at the next correct password, so raising it later (e.g. on a paid plan) is safe; after deploying, check the dashboard for `exceededCpu` errors.
 - **Tournaments created before 4.0.0** keep their old unsalted SHA-256 hash until the next correct password (Staff Login, or a save from a device on the old app), which replaces it with the PBKDF2 hash of the same password, transparently. Nobody has to do anything; a tournament nobody logs into again keeps the old hash.
@@ -187,12 +187,11 @@ The sites are meant to live at **tournament.hawaiikendofederation.org** (product
 
 ## Auth0 sign-in (not enabled in production)
 
-Phase 1 is opt-in. No Auth0 tenant has been created and no production settings are added by this
-change. With **no `AUTH0_*` settings**, the shared staff password, session tokens, public spectators
+Account sign-in is opt-in. This change does not create or modify an Auth0 tenant or production settings. With **no `AUTH0_*` settings**, the shared staff password, session tokens, public spectators
 and TV work as in 4.0. Keep the password fallback described above; removing it is a later release.
 A partial Auth0 configuration fails sign-in configuration checks; configure all three values together.
 
-For a future dev rollout, create an Auth0 tenant, a **Single Page Application**, and a custom API
+For dev testing, use an approved dev Auth0 tenant with a **Single Page Application** and a custom API
 with an audience such as `https://ksm.example/api` and **RS256** signing. Enable Universal Login and
 the desired connections. Use Authorization Code with PKCE; the SPA has no client secret. Add:
 
@@ -236,30 +235,127 @@ exports.onExecutePostLogin = async (event, api) => {
 KSM requires both signed claims, plus a subject, expiry, the configured issuer/audience and an
 RS256 signature from that issuer's cached JWKS. An ID token or unverified email cannot authorize
 writes. Auth0 authenticates identities; its roles/metadata and all client role labels are ignored.
-Admins come from `ADMIN_EMAILS`; directors come from this tournament's Durable Object, next to the
-password hash and staff sessions. Director lists are never part of public snapshots or backups.
+KSM stores grants centrally; Auth0 is sign-in only. No Management API, machine-to-machine client
+secret, or email-sending service is used.
 
-Choose **Sign in** in the header. Admins see a purple `Admin` strip and can create/delete tournaments
-and list/add/remove director emails under **Setup → Sharing & access**. Directors see an amber
-`Director · <tournament>` strip and may edit/rename only their assigned tournament; deleting and
-appointing directors require an admin. Colours are reserved role tokens, accompanied by text and
-an icon, and compact on phones. TV has no header/strip. Explicit spectator links remain read-only.
+### Local review with dev Auth0
 
-With Auth0 enabled, creating or importing tournaments does not require a staff password and does
-not issue a shared staff session. Only admins and assigned directors can manage tournaments;
-passwords and old staff sessions are rejected even when no directors are assigned. Removing the
-last director leaves admin-only management. There is no automatic password fallback offline.
-Installations without Auth0 retain the existing staff-password and staff-session behavior.
-Roles are checked on every write and staff live handshake; live scoring messages recheck director
-membership and token expiry. Removing a director closes only that account’s live connections; additions leave existing connections open. JWTs are
-kept in a tab-scoped SDK sessionStorage cache, renewed by the SDK; reload retains unexpired tokens.
-The Worker revalidates identity and roles on reload; SDK logout clears its cache. New tabs or an
-expired token may need the Auth0 session to restore sign-in silently.
-If browser cookie restrictions prevent that, sign in again. Unsaved staff work stays in the existing
-outbox after authentication expires. Staff live handshakes carry the access token in the WebSocket
-query (browsers cannot add an Authorization header); do not log query strings at the proxy/edge.
-Snapshots and ordinary API writes use a Bearer header. No service account or Management API token
-is needed. The local test issuer accepts HTTP only on loopback; real issuers require HTTPS.
+Use the approved dev SPA/API, with `http://localhost:8787/` registered for callback/logout and
+`http://localhost:8787` for web origin. Keep any local overrides in the ignored `.dev.vars`,
+including `ADMIN_EMAILS` for a verified dev admin; ensure any `AUTH0_*` overrides refer to dev,
+not production. The `dev` environment has its own public SPA/API settings in `wrangler.jsonc`.
+Build with `npm run build`, then run `npx wrangler dev --env dev --port 8787`. This runs local
+Durable Object storage, not the deployed dev/production tournament store. Do not use `--remote`.
+
+At localhost, sign in as the dev admin, open People & access, invite a creator and copy the invite
+message. In a separate browser session sign in as that creator, create a tournament, confirm the
+Owner strip, add a director, and check that the director can edit while access is read-only. Check
+phone width, private/public visibility, sole-owner removal confirmation, and role revocation. The
+mock-issuer alternatives are `tests/auth0-browser-test.py` and `tests/user-access-browser-test.py`;
+they use temporary local storage and require no Auth0 tenant changes. Tenant/production changes
+and deployment are separate owner-approved work, not part of these checks.
+
+### Roles and People & access
+
+| Role | Scope | Access |
+| --- | --- | --- |
+| Admin | Global | Manage all tournaments, delete tournaments, and manage People & access. |
+| Creator | Global | Create tournaments or load files as new tournaments; become owner of each new tournament. No implicit access to other private tournaments. |
+| Owner | Per tournament | Read/edit the tournament, change visibility, and manage owners/directors. Cannot delete the tournament. |
+| Director | Per tournament | Read/edit the tournament and change visibility. See owners/directors read-only; cannot manage access or delete. |
+
+`ADMIN_EMAILS` remains the server-side **break-glass list**, combined with stored admin grants.
+A matching verified sign-in is always an admin. These entries appear as **from server settings**
+and are read-only in People & access; role removal and Remove from everything return 409.
+Keep a known working break-glass admin for recovery. A non-server admin cannot remove their own
+admin access when they are the last stored admin.
+
+Admins open **People & access** from the Account menu or Library. They can grant/remove global
+Admin or Creator roles, inspect providers and named tournament access, and use **Remove from
+everything**. That action removes grants and pending invites for the current email but retains the
+user and sign-in identities. If the person is the only owner of any tournament, the confirmation
+names those events and explains that admins can still manage them. Removal is permitted; an admin
+can assign a replacement owner afterwards. In tournament Sharing & access, an owner cannot remove
+the last signed-in owner, even with another owner invite pending; admins can override this rule.
+
+### Invites and identity linking
+
+Add the person's verified sign-in email and choose a role. If the user is not known yet, KSM stores
+a pending invite. **KSM sends no email.** Use **Copy invite message** and send it yourself:
+“You've been given access to KSM. Sign in at <origin>/ with <email>.” Existing users receive grants
+immediately. Pending invites become grants on a matching verified sign-in; unverified email never
+links or consumes invites. The Auth0 connection must allow the intended user to sign in/sign up.
+
+Users have stable KSM UUIDs; `user_identities` maps Auth0 subjects/providers to those users. A new
+provider subject with the same verified canonical email links to the existing KSM user, so password
+and Google sign-ins share access. A known subject retains access through email changes. If a known
+subject changes to another established user's email, the users are not merged: the subject retains
+its user, canonical email and grants, and cannot consume the other user's invites.
+
+### Storage, migration and rollback
+
+`access-store.mjs` owns the schema in the SQLite-backed `TournamentState` instance named
+`__ksm_access__`, alongside the existing `__ksm_library__` registry pattern. No new Durable Object
+class or Wrangler migration is needed. Access is separate from tournament snapshots/files.
+Schema version 2 atomically converts step 1's subject-keyed users to KSM UUIDs, maps identities and
+preserves grants and matching attribution. The central tables hold users, identities, global roles,
+tournament access, invites and migration/deletion markers. Profile writes are skipped unless the
+email/name changes, an invite exists, or last sign-in is at least an hour old.
+
+On the first tournament check, its old `directors` emails become director grants for known users
+or pending invites. A per-tournament `meta` marker makes this **one-time and idempotent**. The old
+`directors` key is kept unchanged for rollback; it is no longer authoritative and new access edits
+are not mirrored into it. Losing a local migration flag does not restore a revoked legacy grant.
+Older Library cards receive a one-time visibility/director backfill. Indexed listings use one
+central role lookup per request, without per-tournament calls. Visibility versions prevent an older
+backfill from restoring a newer private setting. Creation grants ownership before exposing a record;
+failed ownership grants compensate the record, access, Library entry and slug independently.
+Deletion clears access/invites and records a central marker to reject delayed grants.
+
+A Worker code rollback does **not** revert Durable Object data or this SQL schema; Cloudflare also
+warns that older code can be incompatible with changed data. See [Worker rollbacks](https://developers.cloudflare.com/workers/versions-and-deployments/rollbacks/)
+and the general [Rollback](#rollback) procedure. For an approved rollback of user management:
+
+1. Preserve the current access inventory (admin `GET /api/people` and tournament access lists) and
+   the access object's storage. Tournament file backups exclude access data. Keep a working
+   `ADMIN_EMAILS` sign-in; do not delete the access singleton, its schema, or migration markers.
+2. Prefer fixing forward. If returning to the Auth0-enabled #128 implementation is necessary, use
+   a controlled maintenance window and reconcile each legacy `directors` list to the approved current
+   owner/director emails **before reopening access**. Old keys can omit new owners/directors and
+   retain users revoked since migration. Stored global admins/creators are ignored by #128; only its
+   `ADMIN_EMAILS` admins manage global operations. Do not downgrade to step 1's subject-keyed store.
+3. Keep the Auth0 configuration and visibility data in place. Turning off Auth0 or reverting to a
+   pre-Auth0 Worker restores public/password behavior and is **not** a safe private-event rollback.
+   Schema version 2 data stays intact for a later corrected build; do not attempt an automatic SQL
+   downgrade or assume restoring code restores old access decisions.
+4. Before reopening, verify break-glass admin management, current director access, denial for
+   revoked users, private anonymous denial, and public spectator/TV viewing. Recheck owner/admin
+   assignments and pending invites when returning to the current implementation.
+
+### Sign-in and live permissions
+
+Choose **Sign in** in Account or Library. Role strips use the reserved palette plus text; TV has no
+header/strip and explicit spectator links stay read-only. Creators see New tournament and Load
+Tournament File; new creation/import uses the signed-in account and no shared staff password.
+With Auth0 enabled, passwords and old staff sessions cannot authorize access, even without grants.
+With Auth0 unconfigured, the existing password/session behavior remains unchanged.
+
+The server rechecks current access on every write, live handshake, live scoring message and private
+broadcast. Private broadcasts batch all socket identities into one access lookup. Tournament
+revocation and global admin revocation close only the affected user's live connections; other users
+stay connected. Additions leave existing connections open. Socket checks do not update profiles
+from an older token's email. Invalid People tokens return 401 (“Sign in again.”); verified non-admins
+get 403. An expired/invalid Library token still lists public tournaments with `x-ksm-auth: invalid`,
+so the UI can prompt **Sign in again** without hiding public events.
+
+JWTs are kept in a tab-scoped SDK sessionStorage cache and renewed by the SDK; reload retains
+unexpired tokens. The Worker revalidates identity and roles on reload; SDK logout clears its cache.
+New tabs or an expired token may need the Auth0 session to restore sign-in silently. If browser
+cookie restrictions prevent that, sign in again. Unsaved staff work stays in the outbox after
+expiration. Staff live handshakes carry the access token in the WebSocket query (browsers cannot
+add an Authorization header); do not log query strings at the proxy/edge. Snapshots and ordinary
+API writes use a Bearer header. The local test issuer accepts HTTP only on loopback; real issuers
+require HTTPS.
 
 References: [SPA SDK / PKCE](https://auth0.com/docs/libraries/auth0-single-page-app-sdk),
 [namespaced claims](https://auth0.com/docs/secure/tokens/json-web-tokens/create-custom-claims).
@@ -276,13 +372,13 @@ tenants. No signup or paid-plan selection is part of this phase. See
 ### Public and private tournaments
 
 With Auth0 enabled, new tournaments start **Private**. Existing tournaments without a visibility
-setting remain **Public**. Admins and assigned directors can change **Public listing → Show this
+setting remain **Public**. Admins, owners and directors can change **Public listing → Show this
 tournament publicly** under Setup → Sharing & access. This setting is stored separately from the
 snapshot, so an old file or concurrent save cannot publish a private tournament accidentally.
 
 The signed-out Library lists public tournaments and offers Sign in beside the branding; New and
-Load Tournament File appear for admins. Signed-in users see tournaments they manage first,
-including their private tournaments. Private tournaments require an admin or assigned director
+Load Tournament File appear for admins and creators. Signed-in users see tournaments they manage first,
+including their private tournaments. Private tournaments require an admin, owner or director
 account for snapshots, status, discovery and live connections. A shared password cannot open a
 private tournament. A valid private link shows **Tournament not viewable** with sign-in / switch
 account and Library actions; an unknown tournament still returns not found. Sign-in returns to the
@@ -315,3 +411,17 @@ The service worker continues to bypass API caches.
 
 The OBS overlay and TV links only work while the tournament is public. Private overlays deliberately have no
 shared-token bypass in this phase; Setup explains that limitation.
+
+### Owner decisions before the next rollout
+
+These defaults remain easy to revise after the owners' meeting:
+
+- How invitation emails should be sent in the future; today KSM only records invites and offers
+  Copy invite message for the admin to send manually.
+- Whether owners may delete tournaments; today only admins can delete.
+- Which user fields to retain (verified canonical email, display name, provider/identity linkage,
+  created time, and last sign-in), and the retention/removal policy. Remove from everything keeps
+  sign-in history; it is not account deletion.
+- What minors' data may be used for follows (#44) and participant links (#132), who can consent,
+  what users/guardians can see or change, and retention/unlinking rules. Those features and their
+  tables are not implemented here; settle these decisions before building them.
