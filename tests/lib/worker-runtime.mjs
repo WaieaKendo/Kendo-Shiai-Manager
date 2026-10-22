@@ -1,3 +1,4 @@
+import { DatabaseSync } from 'node:sqlite';
 // In-memory stand-in for the Cloudflare runtime (Durable Objects, storage, WebSocketPair,
 // static assets), so Node tests run the real src-worker.js in-process, with no network.
 // Used by worker-api-test.mjs (the API contract) and staff-auth-hardening-test.mjs.
@@ -45,6 +46,23 @@ export function installCloudflareShims() {
 
 export class MemoryStorage {
   constructor() { this.map = new Map(); }
+  get sql() {
+    this.database ||= new DatabaseSync(':memory:');
+    return {exec:(query, ...args) => {
+      if (!args.length) {
+        if (/^\s*SELECT/i.test(query)) return {toArray:() => this.database.prepare(query).all()};
+        this.database.exec(query); return {toArray:() => []};
+      }
+      const statement = this.database.prepare(query);
+      if (/^\s*SELECT/i.test(query)) return {toArray:() => statement.all(...args)};
+      statement.run(...args); return {toArray:() => []};
+    }};
+  }
+  transactionSync(fn) {
+    this.database.exec('BEGIN');
+    try { const result = fn(); this.database.exec('COMMIT'); return result; }
+    catch (error) { this.database.exec('ROLLBACK'); throw error; }
+  }
   async transaction(fn) {
     const before = structuredClone(this.map);
     try { return await fn(this); }

@@ -1,3 +1,4 @@
+import { AccessStore, accessCall, resolveAccess } from './access-store.mjs';
 import { auth0Enabled, auth0Config, identityVerifier, bearerToken, isAdmin, normalizeEmail } from './auth0-worker.mjs';
 import { printDocumentPage } from './app/print-documents.mjs';
 // The release version is written only in package.json; wrangler (esbuild) bundles it in at deploy
@@ -251,7 +252,9 @@ export class TournamentState {
       let identity;
       try { identity = await this.verifyIdentity(supplied); }
       catch (_) { return { ok: false, status: 401, body: { error: 'Sign in again.', code: 'auth0-invalid' } }; }
-      const role = isAdmin(this.env, identity.email) ? 'admin' : (await this.directors()).includes(identity.email) ? 'director' : 'spectator';
+      const resolved = await resolveAccess(this.env, identity);
+      const id = (await this.state.storage.get('record'))?.tournamentId;
+      const role = resolved.role === 'admin' ? 'admin' : resolved.tournamentRoles[id] || 'spectator';
       return { ok: adminOnly ? role === 'admin' : role !== 'spectator', status: 403,
         body: { error: adminOnly ? 'Admin authorization required' : 'Tournament access required' }, role, identity };
     }
@@ -297,6 +300,12 @@ export class TournamentState {
 
   async fetch(request) {
     const url = new URL(request.url);
+    if (url.pathname.startsWith('/internal/access/')) {
+      const operation = url.pathname.slice('/internal/access/'.length);
+      if (request.method !== 'POST' || !['resolve','grant','revoke','listPeople','listTournament','removeTournament'].includes(operation)) return json({error:'Not found'},404);
+      this.accessStore ||= new AccessStore(this.state.storage);
+      return json(this.accessStore[operation](await request.json()));
+    }
 
     // Delete is final: a deleted tournament leaves a tombstone (`deletedAt`) and every route of its
     // object answers 410, before any authorization, so a stale device cannot recreate or reopen it.
@@ -459,6 +468,7 @@ export class TournamentState {
           if (next.length > 100) throw new Error('Too many directors');
           await tx.put('directors', next);
         });
+        await accessCall(this.env, request.method === 'POST' ? 'grant' : 'revoke', {email, scope:(await this.state.storage.get('record')).tournamentId, role:'director', grantedBy:access.identity.sub});
         // Reconnects recheck permissions; existing sockets also check each scoring message.
         if (request.method === 'DELETE') for (const socket of this.state.getWebSockets()) if (socket.deserializeAttachment()?.identity?.email === email) try { socket.close(1000, 'Access changed'); } catch (_) {}
       }
@@ -613,7 +623,7 @@ export default {
     }
     if (url.pathname === '/api/auth/me') {
       if (!auth0Enabled(env)) return json({ enabled: false });
-      try { const identity = await identityVerifier(env)(bearerToken(request)); return json({ email: identity.email, role: isAdmin(env, identity.email) ? 'admin' : 'spectator' }); }
+      try { const identity = await identityVerifier(env)(bearerToken(request)); const {role, roles} = await resolveAccess(env, identity); return json({ email: identity.email, role, roles }); }
       catch (_) { return json({ error: 'Sign-in required' }, 401); }
     }
     if (url.pathname === '/api/health') return json({ ok: true, service: 'ksm-cloud', version: APP_VERSION, realtime: true, roles: ['spectator', 'staff'], offlineOutbox: true });
