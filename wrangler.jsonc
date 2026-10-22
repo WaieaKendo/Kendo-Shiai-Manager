@@ -27,6 +27,16 @@
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["TournamentState"] }
   ],
+  // Auth0 sign-in for PRODUCTION (docs/DEPLOYMENT.md, "Auth0 sign-in"; checklist issue #134).
+  // Public SPA settings, served at /api/auth/config. They take effect with the first release to
+  // `main` that contains the Auth0 code: that release switches production to account sign-in.
+  // ADMIN_EMAILS is a Wrangler secret on this Worker. To keep production on the staff password,
+  // remove this block before releasing. Not inherited by env.dev, which has its own values.
+  "vars": {
+    "AUTH0_DOMAIN": "ksm-hkf.us.auth0.com",
+    "AUTH0_AUDIENCE": "https://api.kendoshiaimanager",
+    "AUTH0_CLIENT_ID": "sTMmr5wsfajTBUVfapD5DjIs5SoM9z2G"
+  },
   "env": {
     // DEV: `wrangler deploy --env dev`, a separate Worker with its OWN Durable Objects (its own
     // tournaments, never production's). Deployed by the "Deploy dev" workflow on every push to
