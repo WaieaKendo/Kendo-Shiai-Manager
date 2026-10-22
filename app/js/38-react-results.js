@@ -41,21 +41,40 @@ function ksmResultCard(div){
 }
 // renderResultsDashboard() (27-) as data: the tournament name, the Completed and In Progress
 // cards, and awardsEditorHtml()'s awards.
+// Owner request: once the tournament is generated, every division of the event has a card, in
+// Setup's running order (divisions, team divisions, grand champions): one not drawn yet shows "Not
+// drawn yet", a grand champion whose source divisions are still running "Waiting for: <sources>".
+function ksmResultPlaceholder(div){
+  const gc=ksmGrandChampion(div);
+  const waiting=gc?(gc.sources||[]).filter(s=>!divisionComplete(s)).map(s=>ksmText(ksmDivisionName(s))):[];
+  return {division:ksmText(div),name:ksmDivisionName(div),roundRobin:false,placements:null,progress:null,
+    ...(waiting.length?{waitingFor:waiting}:{notDrawn:true})};
+}
 function ksmResultsDashboardInput(){
+  const drawn=div=>(state.allMatches?.[div]||[]).length>0;
+  // Only divisions with entrants: an enabled division nobody registered for (such as the default
+  // team division) gets no card.
+  const entered=div=>(ksmTeamDivisions().some(d=>d.id===div)?eligibleTeams(div):eligibleIndividuals(div)).length>0;
+  const event=state.generated?[
+    ...(state.divisions||[]).filter(entered),
+    ...(tournamentSettings().teamEnabled!=='Disabled'?ksmTeamDivisions().map(d=>d.id).filter(entered):[]),
+    ...ksmGrandChampions().map(g=>g.id)
+  ]:[];
   const divisions=[
     ...new Set([
+      ...event,
       ...(state.divisions||[]),
       ...ksmTeamDivisions().filter(d=>state.allMatches?.[d.id]).map(d=>d.id),
       ...Object.keys(state.allMatches||{})
     ])
-  ].filter(div=>(state.allMatches?.[div]||[]).length);
-  const completed=divisions.filter(divisionComplete);
-  const pending=divisions.filter(div=>!divisionComplete(div));
+  ].filter(div=>drawn(div)||event.includes(div));
+  const completed=divisions.filter(div=>drawn(div)&&divisionComplete(div));
+  const pending=divisions.filter(div=>!drawn(div)||!divisionComplete(div));
   return {kind:'results',
     tournamentName:(window.tName&&tName.value)?tName.value:'Kendo Tournament',
     completed:completed.map(ksmResultCard),
-    pending:pending.map(ksmResultCard),
-    noDivisions:!divisions.length,
+    pending:pending.map(div=>drawn(div)?ksmResultCard(div):ksmResultPlaceholder(div)),
+    noDivisions:!divisions.some(drawn),
     awards:(state.awards||[]).map(a=>({award:ksmText(a.award||''),name:ksmText(a.name||''),dojo:ksmText(a.dojo||'')})),
     // Owner decision 8 (#29): spectators see the awards read-only.
     readOnly:isReadOnlySession()};

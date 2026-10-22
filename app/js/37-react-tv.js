@@ -45,7 +45,7 @@ function ksmTvKachinuki(vm){
     lineupW:lineup(m.lineupW),lineupR:lineup(m.lineupR),wIndex:Number(m.wIndex||0),rIndex:Number(m.rIndex||0)};
 }
 // renderTvDisplay() as the tv3 renderer drew it: header, body by format, then Upcoming Matches
-// (or, for Final Results, the "Division Complete" footer).
+// (or, for Final Results, the court's next division).
 function ksmTvDisplayInput(court){
   document.body.classList.toggle('ksm-tv-red-left',document.getElementById(court==='B'?'court2TvRedSide':'court1TvRedSide')?.value==='left');
   const vm=buildTV3ViewModel(court);
@@ -64,8 +64,15 @@ function ksmTvDisplayInput(court){
     while(cards.length<2)cards.push(null);
     return {kind:'tv',...header,body,upcoming:cards,upNext:between.upNext.division};
   }
-  if(vm.format==='results')return {kind:'tv',...header,body:{kind:'results',complete:ksmDivisionCompleteInput(vm.division,true)},upcoming:[]};
+  // Owner request: the footer shows the court's next division (the court screen's Continue to
+  // <next>, ksmNextCourtDivision()), information only; no "Division Complete" (the header says Final Results).
+  if(vm.format==='results'){const next=vm.division?ksmNextCourtDivision(court,vm.division):null;
+    return {kind:'tv',...header,body:{kind:'results',complete:ksmDivisionCompleteInput(vm.division,true)},upcoming:[],...(next?{nextDivision:ksmText(ksmDivisionName(next))}:{})}}
   const upcoming=ksmTvUpcoming(vm);
+  // Owner request: once the division has no more matches to queue, the empty Upcoming cards give way
+  // to "Next: <the court's next division>".
+  const nextUp=upcoming.some(card=>!card)&&vm.division?ksmNextCourtDivision(court,vm.division):null;
+  if(nextUp)header.nextDivision=ksmText(ksmDivisionName(nextUp));
   if(vm.format==='individual'){
     const m=vm.match,p=activeScoreArrays(m);
     return {kind:'tv',...header,upcoming,body:{kind:'individual',
