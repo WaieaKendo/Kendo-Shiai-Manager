@@ -44,6 +44,13 @@ def open_decision(app):
     return app.page.evaluate('KSMTest.grandChampionQuestion()')
 
 
+def result_cards(app):
+    """Results page: {card title: its In Progress message} for the cards without placings."""
+    app.nav('results')
+    return app.page.evaluate("""() => Object.fromEntries([...document.querySelectorAll('#results .result-progress-card')]
+      .map(c => [c.querySelector('[data-testid="result-card-title"]').textContent.trim(), c.querySelector('.result-progress-message')?.textContent.trim()]))""")
+
+
 def choose(app, choice):
     """Answer the open grand champion question by clicking its button."""
     app.page.wait_for_selector(f'{sel("grand-champion-choice")}[data-choice="{choice}"]')
@@ -84,6 +91,8 @@ def local_cases(browser):
     assert row['sources'] == ['Open', 'Women'] and row['court'] == 'B' and row['awardMode'] == 'top2', row
     assert 'Waiting for Open, Women' in status(app)
     page.evaluate('KSMTest.app.generatePools({validated:true})')
+    # Results has a card for it before it is drawn (owner request): waiting for its source divisions.
+    assert result_cards(app).get('Grand Champion 2026') == 'Waiting for: Open, Women', result_cards(app)
     app.nav('setup')
     # Not drawn yet (its divisions have not finished): still editable after generation, like a new team division.
     assert not page.locator(sel('grand-champion-court')).is_disabled() and not page.locator(sel('grand-champion-enabled')).is_disabled(), 'locked before its draw'
@@ -93,6 +102,7 @@ def local_cases(browser):
     assert play_court(app, 'A', [['W', 'M']]) == 'Open'
     assert not gc_matches(app, gc), 'drawn before every source finished'
     assert 'Waiting for Women' in status(app)
+    assert result_cards(app).get('Grand Champion 2026') == 'Waiting for: Women', result_cards(app)
     assert play_court(app, 'B', [['W', 'M']]) == 'Women'
     final = gc_matches(app, gc)
     assert len(final) == 1 and final[0]['position'] == 'Final' and final[0]['court'] == 'B', final

@@ -1,7 +1,7 @@
 // The TV display (?view=tv, the contents of #tvLive): one court on a fixed 1920×1080 canvas
 // (.tv3-root, data-testid tv-canvas) with three zones: the header (court, division, match line),
 // the current match (individual, team bout sheet or kachinuki lineups; or a completed division's
-// Final Results) and Upcoming Matches (or the "Division Complete" footer).
+// Final Results) and Upcoming Matches (or, for Final Results, the court's next division).
 //
 // The legacy app still decides what is shown: buildTV3ViewModel() (app/js/26-tv-display.js)
 // chooses the TV court's match with courtCurrentMatch() (which also moves the court on, as
@@ -76,6 +76,9 @@ export type TvInput =
     upcoming: (TvUpcomingInput | null)[];
     /** Owner decision 6: the cards are this division's first matches ("Up next on this court"). */
     upNext?: string;
+    /** The court's next division: small in the Final Results footer, and in place of the empty
+     * Upcoming cards once the division has no more matches to queue ("Next: <division>"). */
+    nextDivision?: string;
   };
 
 // ------------------------------------------------------------------------------- view
@@ -119,9 +122,10 @@ export type TvBodyView =
   };
 
 export type TvFooterView =
-  | { kind: 'upcoming'; cards: (TvUpcomingInput | null)[]; title?: string }
-  /** Final Results: "Division Complete" instead of Upcoming Matches. */
-  | { kind: 'results' };
+  | { kind: 'upcoming'; cards: (TvUpcomingInput | null)[]; title?: string; next?: string }
+  /** Final Results: no Upcoming Matches; the court's next division when there is one (the header
+   * already says Final Results, so no "Division Complete" line, owner request). */
+  | { kind: 'results'; next?: string };
 
 export type TvView =
   | { kind: 'empty' }
@@ -131,7 +135,7 @@ export const EMPTY_TV: TvInput = { kind: 'empty' };
 
 export const UPCOMING_TITLE = 'Upcoming Matches';
 export const NO_UPCOMING_TEXT = 'No additional match scheduled';
-export const DIVISION_COMPLETE_TEXT = 'Division Complete';
+export const NEXT_DIVISION_LABEL = 'Next';
 /** Owner decision 6: the idle current-match zone. */
 export const TV_WAITING_TEXTS = { match: 'Waiting for the next match', division: 'Waiting for the next division' } as const;
 
@@ -189,7 +193,8 @@ export function tvView(input: TvInput): TvView {
     kind: 'tv',
     header: { court: `Court ${input.court}`, division: input.division, meta: input.meta },
     body: tvBodyView(input.body),
-    footer: input.body.kind === 'results' ? { kind: 'results' }
-      : input.upNext ? { kind: 'upcoming', cards: input.upcoming, title: upNextTitle(input.upNext) } : { kind: 'upcoming', cards: input.upcoming },
+    footer: input.body.kind === 'results' ? (input.nextDivision ? { kind: 'results', next: input.nextDivision } : { kind: 'results' })
+      : input.upNext ? { kind: 'upcoming', cards: input.upcoming, title: upNextTitle(input.upNext) }
+      : input.nextDivision ? { kind: 'upcoming', cards: input.upcoming, next: input.nextDivision } : { kind: 'upcoming', cards: input.upcoming },
   };
 }

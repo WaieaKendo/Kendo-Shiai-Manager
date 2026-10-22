@@ -1,0 +1,6 @@
+/* ksm:post-split-begin results-placeholders */
+/* Results: placeholder cards for a division not drawn yet or a grand champion waiting for its
+   source divisions (app/react/results/Results.tsx). Quieter than an in-progress card. Theme tokens. */
+.result-placeholder-card{border-style:dashed !important;box-shadow:none !important;opacity:.85}
+.result-placeholder-card .result-progress-message{color:var(--muted)}
+/* ksm:post-split-end */

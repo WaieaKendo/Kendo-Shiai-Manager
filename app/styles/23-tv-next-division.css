@@ -1,0 +1,6 @@
+/* ksm:post-split-begin tv-next-division */
+/* The TV's Final Results footer: only the court's next division, small and quiet (information
+   only; owner request, no "Division Complete"). Brand tokens; the footer's own rule is in 13-tv.css. */
+body.ksm-tv .tv3-results-footer.tv3-results-has-next{flex-direction:column!important;align-items:center!important;gap:14px!important}
+body.ksm-tv .tv3-results-next{font-size:26px!important;font-weight:800!important;letter-spacing:.02em!important;text-transform:none!important;color:var(--ksm-paper)!important;opacity:.75}
+/* ksm:post-split-end */
