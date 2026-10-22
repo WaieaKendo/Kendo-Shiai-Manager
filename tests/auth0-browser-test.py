@@ -176,7 +176,7 @@ def main():
             assert spectator.get_by_test_id('tournament-access').count() == 0
             assert spectator.evaluate("KSMTest.role() === 'spectator'")
             assert not writes
-            assert spectator.evaluate("JSON.parse(localStorage.getItem('ksm.tournament.record:'+window.ksmAuthBridge.tournament())).isPublic") is True
+            spectator.wait_for_function("JSON.parse(localStorage.getItem('ksm.tournament.record:'+window.ksmAuthBridge.tournament()))?.isPublic === true")
             spectator_context.set_offline(True)
             assert spectator.evaluate("async () => (await (await KSMTest.app.ksmFetchTournament(window.ksmAuthBridge.tournament())).json()).payload.setup.tName") == 'Auth A'
             spectator_context.set_offline(False)
