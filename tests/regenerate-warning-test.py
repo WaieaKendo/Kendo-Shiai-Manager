@@ -30,7 +30,7 @@ def main():
             request()
             warning = page.locator(sel('regenerate-warning'))
             warning.wait_for()
-            assert f'{count} finished matches' in warning.inner_text()
+            assert f"{count} finished {'match' if count == 1 else 'matches'}" in warning.inner_text()
             assert '1 division (Open)' in warning.inner_text()
             button = page.locator(sel('regenerate-warning-confirm'))
             field = page.locator(sel('regenerate-warning-input'))
