@@ -31,7 +31,7 @@ def main():
             warning = page.locator(sel('regenerate-warning'))
             warning.wait_for()
             assert f'{count} finished matches' in warning.inner_text()
-            assert '1 divisions (Open)' in warning.inner_text()
+            assert '1 division (Open)' in warning.inner_text()
             button = page.locator(sel('regenerate-warning-confirm'))
             field = page.locator(sel('regenerate-warning-input'))
             assert button.is_disabled()
