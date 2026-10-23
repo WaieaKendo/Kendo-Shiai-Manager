@@ -123,6 +123,7 @@ const KNOWN_POST_SPLIT_EDITS = {
   // Listed here because renderTournamentStatus() (03) is its
   // first region: the check compares names in order of first appearance.
   'react-registration': 6,
+  'regenerate-warning': 3,
   // feat/team-division-after-draw: a division added after generation ('new') is drawn on its own by
   // Regenerate Single Division: divisionRegenerationStatus() (03) and regenerateSingleDivision() (08).
   'draw-new-division': 2,
@@ -344,6 +345,7 @@ const KNOWN_POST_SPLIT_CSS_EDITS = {
   'auth0-roles': 1,
   // #131: app/styles/26-people-access.css (theme tokens only).
   'people-access': 1,
+  'regenerate-warning': 1,
 };
 // Old functions whose body now lives in app/engine/*.ts (parameter lists without braces).
 const MOVED_TO_ENGINE = [

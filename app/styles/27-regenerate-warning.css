@@ -1,0 +1,5 @@
+/* ksm:post-split-begin regenerate-warning */
+dialog.regenerate-warning{position:fixed;margin:auto;width:calc(100% - 32px);max-width:560px;max-height:calc(100dvh - 32px);box-sizing:border-box;overflow:auto;color:var(--ink);background:var(--ksm-paper);overflow-wrap:anywhere}
+.regenerate-warning input{display:block;width:100%;box-sizing:border-box;margin-top:8px}
+.regenerate-warning-actions{margin-top:16px;justify-content:flex-end;flex-wrap:wrap}
+/* ksm:post-split-end */

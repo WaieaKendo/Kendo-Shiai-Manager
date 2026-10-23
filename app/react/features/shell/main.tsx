@@ -1,3 +1,4 @@
+import { RegenerateWarning } from './RegenerateWarning.tsx';
 // The app shell (M.13's last step): React islands in the legacy page (index.html, loaded with the
 // other screens by app/react/main.tsx; the build lists its files in the service worker's
 // APP_SHELL, so an offline device has them). The navigation bar (the contents of
@@ -38,5 +39,5 @@ mountIsland(fusen, <FusenDialog root={fusen} />);
 mountIsland(validation, <ValidationDialog root={validation} />);
 mountIsland(regenerate, <RegenerateDialog root={regenerate} />);
 // The cloud modal is a portal into <body>; its root is an element outside the page.
-mountIsland(document.createElement('div'), <CloudModal />);
+mountIsland(document.createElement('div'), <><CloudModal /><RegenerateWarning /></>);
 shellWindow().ksmShellMounted = true;
