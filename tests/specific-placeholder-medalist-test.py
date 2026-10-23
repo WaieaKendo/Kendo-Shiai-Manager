@@ -2,7 +2,7 @@ from pathlib import Path
 from ksm_source import app_source
 s=app_source()
 # M.8 step 5: the legacy court renderer is gone. The court screen is React: app/js/35-react-court.js
-# makes the decisions and publishes them, app/react/court/ renders them (court_react_source());
+# makes the decisions and publishes them, app/react/features/court/ renders them (court_react_source());
 # tests/golden/court/*.json pin the result. The court checks below point at that code.
 checks={
  'specific label helper':'function specificMatchSideLabel(match,side)' in s,

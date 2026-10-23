@@ -1,9 +1,9 @@
 // Used by tests/overlay-match-parity-test.py (run with --experimental-strip-types):
 // reads samples [{court, state, tv}] from the JSON file argv[2], where `tv` is what the
 // legacy TV display showed for that state, and prints the samples where the overlay's
-// pure selection (app/react/overlay/overlay-model.ts) disagrees, as JSON.
+// pure selection (app/react/features/overlay/overlay-model.ts) disagrees, as JSON.
 import fs from 'node:fs';
-import { overlayView } from '../../app/react/overlay/overlay-model.ts';
+import { overlayView } from '../../app/react/features/overlay/overlay-model.ts';
 
 const samples = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
 const mismatches = [];

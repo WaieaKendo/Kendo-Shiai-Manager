@@ -240,8 +240,8 @@ fields remain serialized for compatibility; division records now supply each com
 | `app/js/30-setup-header-and-director.js` | Uses each division's team format in Overview progress estimates. |
 | `app/js/35-react-court.js` | Uses each division's award mode for completion panels and its scoped representative roster. |
 | `app/js/43-react-registration.js` | Publishes a division selector and per-team format/slots; preserves both filters. |
-| `app/react/registration/RegistrationTeams.tsx` | Draws the selector and each team's own roster slots. |
-| `app/react/registration/teams-model.ts` | Typed registration input with per-card division, slots and format. |
+| `app/react/features/registration/RegistrationTeams.tsx` | Draws the selector and each team's own roster slots. |
+| `app/react/features/registration/teams-model.ts` | Typed registration input with per-card division, slots and format. |
 | `app/types/globals.d.ts` | Legacy select declarations remain for compatibility controls. |
 | `app/types/tournament.d.ts` | Persisted division records and team assignment IDs, alongside old Setup fields. |
 

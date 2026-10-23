@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   DEFAULT_BRACKET_TITLE, DEFAULT_TOURNAMENT_NAME, EMPTY_RESULTS, EMPTY_RESULTS_BRACKET, NO_AWARDS_TEXT, NO_DIVISIONS_TEXT,
   resultCardView, resultDetailView, resultsBracketView, resultsView, tournamentNameText,
-} from '../../app/react/results/results-model.ts';
+} from '../../app/react/features/results/results-model.ts';
 
 const placements = [
   { place: '1st', name: 'P 2', tier: 'gold' },

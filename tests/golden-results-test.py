@@ -23,9 +23,9 @@ handlers used to call an undefined saveAuto(), fixed as F11 on fix/pre-event.) W
 Results is hidden its innerText is its textContent, i.e. the legacy templates' source
 formatting, so the text is compared only while Results is shown (the tree always).
 
-Since M.13 Results is drawn only by React (app/react/results/; app/js/38-react-results.js
+Since M.13 Results is drawn only by React (app/react/features/results/; app/js/38-react-results.js
 publishes its data); the legacy renderer is removed, so this test pins the React-only screen.
-React must render every element of the Results islands (app/react/results/: #resultsBody,
+React must render every element of the Results islands (app/react/features/results/: #resultsBody,
 #resultsBracketBody; #resultsTournamentName and #resultsBracketTitle are React roots), and every
 kind of Results content must be covered. awards-typing-stability (no snapshot) redraws Results
 while an award is being typed: the input keeps its focus and text, the others show state.awards.
@@ -99,7 +99,7 @@ NO_TRANSITIONS = '*, *::before, *::after { transition: none !important; animatio
 BUTTONS_JS = "() => [...document.querySelectorAll('#results [data-testid=\"result-card\"]')].filter(c => c.querySelector('.view-bracket-link')).map(c => c.querySelector('[data-testid=\"result-card-title\"]').textContent)"
 
 
-# The Results islands (app/react/results/main.tsx): React renders every element of the two
+# The Results islands (app/react/features/results/main.tsx): React renders every element of the two
 # bodies, and the two text-only islands are React roots.
 ISLANDS = ['#results #resultsBody', '#resultsBracketModal #resultsBracketBody']
 ROOTS_JS = """() => ['#resultsBody', '#resultsTournamentName', '#resultsBracketTitle', '#resultsBracketBody']

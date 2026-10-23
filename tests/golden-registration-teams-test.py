@@ -55,7 +55,7 @@ off.
                     Show taken out of the bracket; the alert once the division has started).
 
 Since M.13 React draws the team cards, the exhibition table and the tab bar
-(app/react/registration/RegistrationTeams.tsx: three islands, the wrapper of #teamTable,
+(app/react/features/registration/RegistrationTeams.tsx: three islands, the wrapper of #teamTable,
 #exhibitionTable and the toolbar card's first row; app/js/43-react-registration.js publishes their
 data). React must render every element of the three islands (and they must be the islands'
 roots), and every kind of content must be covered. The toolbars, the team filter and the cards'
@@ -432,7 +432,7 @@ def teams_live(browser, react_check):
     g.finish()
 
 
-# The Registration part 2 islands (app/react/registration/main.tsx): React renders every element of
+# The Registration part 2 islands (app/react/features/registration/main.tsx): React renders every element of
 # the team cards (the wrapper of #teamTable, the island's root), the exhibition table
 # (#exhibitionTable) and the tab bar (the toolbar card's first row).
 ISLANDS = ['#teamReg div:has(> #teamTable)', '#exhibitionReg #exhibitionTable', '#registration > .card:first-child > .toolbar > .row:first-child']

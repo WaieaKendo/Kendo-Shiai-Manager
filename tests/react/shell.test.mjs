@@ -2,12 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   EMPTY_NAV, NAV_ENTRIES, NAV_FILE_INPUTS, NAV_FILE_STYLE, activeEntryIndex, menuClass, tileClass, tileText,
-} from '../../app/react/shell/nav-model.ts';
-import { EMPTY_HEADER, STATUS_TITLE } from '../../app/react/shell/header-model.ts';
+} from '../../app/react/features/shell/nav-model.ts';
+import { EMPTY_HEADER, STATUS_TITLE } from '../../app/react/features/shell/header-model.ts';
 import {
   EMPTY_DIALOGS, REGENERATE_TEXTS, VALIDATION_TEXTS, regenerateOptionClass, regenerateStatusText,
-} from '../../app/react/shell/dialogs-model.ts';
-import { DEFAULT_NAV_ICONS } from '../../app/react/court/branding.ts';
+} from '../../app/react/features/shell/dialogs-model.ts';
+import { DEFAULT_NAV_ICONS } from '../../app/react/shared/ui/branding.ts';
 
 const testIds = entries => entries.flatMap(e => e.kind === 'tile' ? [e.testId]
   : [e.trigger.testId, ...e.entries.filter(x => x.kind === 'item').map(x => x.testId ?? `(${x.label})`)]);
@@ -91,7 +91,7 @@ test('dialog texts and the Regenerate options as the legacy templates printed th
 });
 
 test('Fusen-sho: the dialog title (owner decision 4; display only, stored labels keep Fusen-gachi)', async () => {
-  const { FUSEN_TEXTS, fusenSides } = await import('../../app/react/shell/dialogs-model.ts');
+  const { FUSEN_TEXTS, fusenSides } = await import('../../app/react/features/shell/dialogs-model.ts');
   // #38: the dialog asks who won ("Fusen-sho — who won?"); it was "Fusen-sho" / "Which side forfeited?".
   assert.equal(FUSEN_TEXTS.title, 'Fusen-sho — who won?');
   assert.ok(FUSEN_TEXTS.title.startsWith('Fusen-sho'));
@@ -104,7 +104,7 @@ test('Fusen-sho: the dialog title (owner decision 4; display only, stored labels
 });
 
 test('owner decision 20: the Developer Tools test tools switch', async () => {
-  const { testToolsLabel } = await import('../../app/react/shell/dialogs-model.ts');
+  const { testToolsLabel } = await import('../../app/react/features/shell/dialogs-model.ts');
   assert.equal(testToolsLabel(false), 'Show test tools');
   assert.equal(testToolsLabel(undefined), 'Show test tools');
   assert.equal(testToolsLabel(true), 'Hide test tools');

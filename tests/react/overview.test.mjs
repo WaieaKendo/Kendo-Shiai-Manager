@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   DEFAULT_TOURNAMENT_NAME, DIVISION_PROGRESS_LABEL, EMPTY_OVERVIEW, NO_MATCH_TEXT, OVERALL_PROGRESS_LABEL, OVERVIEW_KICKER,
   overviewCourtView, overviewView,
-} from '../../app/react/overview/overview-model.ts';
+} from '../../app/react/features/overview/overview-model.ts';
 
 const court = (over = {}) => ({
   court: 'A', division: 'Open', round: 'Pool A', completed: 1, total: 6, remaining: 5, variable: false,

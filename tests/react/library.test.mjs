@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   EMPTY_LIBRARY, HOME_SUBTITLE, HOME_TITLE, LIBRARY_HEADING, LIBRARY_INTRO, NEW_TOURNAMENT_TEXT, libraryView,
-} from '../../app/react/library/library-model.ts';
-import { DEFAULT_HOME_LOGO_SRC, DEFAULT_LIBRARY_CARD_MARK } from '../../app/react/court/branding.ts';
+} from '../../app/react/features/library/library-model.ts';
+import { DEFAULT_HOME_LOGO_SRC, DEFAULT_LIBRARY_CARD_MARK } from '../../app/react/shared/ui/branding.ts';
 
 test('legacy texts: the static markup of #home and the card mark', () => {
   assert.equal(HOME_TITLE, 'Kendo Shiai Manager');

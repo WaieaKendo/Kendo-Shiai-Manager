@@ -43,7 +43,7 @@ are clicked with a dispatched click (no mouse move, so no :hover lift); transiti
   library-cached-phone  boot on a phone with tournaments cached: the cards at once while
                      discover is pending, then the cloud's list; landscape.
 
-Since M.13 the library is drawn only by React (app/react/library/: one island, the contents of
+Since M.13 the library is drawn only by React (app/react/features/library/: one island, the contents of
 #home .home-shell; app/js/40-react-library.js publishes its data), and this test pins the island
 against the snapshots recorded from the legacy renderer. React must render every element of the
 island (and .home-shell must be its root), every kind of library content must be covered, and
@@ -122,7 +122,7 @@ def request_body(key, body):
                        'staffPassword': data.get('staffPassword')})
 
 
-# The library island (app/react/library/main.tsx): React renders every element of the home page's
+# The library island (app/react/features/library/main.tsx): React renders every element of the home page's
 # shell, which is the island's root.
 ISLAND = '#home .home-shell'
 ROOT_JS = f"() => Object.keys(document.querySelector('{ISLAND}')).some(k => k.startsWith('__reactContainer'))"

@@ -373,7 +373,7 @@ const MOVED_TO_ENGINE = [
   'enforceUniqueIndividualMatches', 'eligibleIndividuals', 'eligibleTeams', 'generateDivisionState',
 ];
 // feat/react-court-finish (M.8 step 5): the legacy court renderer, deleted. React draws the
-// court screen (app/react/court/); tests/golden/court/*.json pin what this code drew. Entries:
+// court screen (app/react/features/court/); tests/golden/court/*.json pin what this code drew. Entries:
 //   'name#n'       the n-th declaration (1-based) of function `name` in the old script, deleted
 //   'name#n:body'  its body only: the declaration stays in app/js and its new body is entirely
 //                  a marked react-court region (like MOVED_TO_ENGINE)
@@ -406,7 +406,7 @@ const REMOVED_COURT_RENDERER = [
   'splitTemplateContextHtml#1', 'canonicalSingleElimQueue#1', 'persistentContextHtml#1', // 32
 ];
 // feat/react-live-scores (M.13): the legacy Live Scores renderer, deleted. React draws Live Scores
-// (app/react/live-scores/); tests/golden/live-scores/*.json pin what this code drew. Same entry
+// (app/react/features/live-scores/); tests/golden/live-scores/*.json pin what this code drew. Same entry
 // forms as REMOVED_COURT_RENDERER. Shared helpers (audienceMeta(), teamSheetHtml(),
 // kachinukiSheetHtml(), divisionCompletePanelHtml(), the TV's) stay.
 const REMOVED_LIVE_SCORES_RENDERER = [
@@ -416,7 +416,7 @@ const REMOVED_LIVE_SCORES_RENDERER = [
   // 32: the division-complete wrapper; ksmRenderLiveScores() (36) makes its decision.
   { from: 'const renderPublic_v3121=renderPublic;', to: '  renderPublic_v3121();\n};\n' },
 ];
-// feat/react-tv (M.13): the legacy TV renderer, deleted. React draws the TV display (app/react/tv/);
+// feat/react-tv (M.13): the legacy TV renderer, deleted. React draws the TV display (app/react/features/tv/);
 // tests/golden/tv/*.json pin what this code drew. Same entry forms as REMOVED_COURT_RENDERER. The
 // TV's decisions stay (buildTV3ViewModel(), tv3UpcomingModel(), tv3Side() in 26;
 // tvUpcomingMatches(), tvIndividualSideLabel(), tvTeamNodeEntries(), tvAssignedCourt() in 25), and
@@ -438,7 +438,7 @@ const REMOVED_TV_RENDERER = [
   'kachinukiAudienceHtml#1', 'audienceNameHtml#1',
 ];
 // feat/react-results (M.13): the legacy Results renderer, deleted. React draws the Results screen
-// (app/react/results/); tests/golden/results/*.json pin what this code drew. Same entry forms as
+// (app/react/features/results/); tests/golden/results/*.json pin what this code drew. Same entry forms as
 // REMOVED_COURT_RENDERER. The Results decisions stay (resultPlacements(), the engine bridge, and
 // the awards actions addResultAward(), removeResultAward(), closeResultsBracket() in 27), and the
 // shared HTML helpers the Pools screen still drew with (bracketHtml(), singleElimBracketHtml(),
@@ -460,7 +460,7 @@ const REMOVED_RESULTS_RENDERER = [
   'teamSheetHtml#2', 'kachinukiSheetHtml#2', 'teamResultsBracketHtml#2',
 ];
 // feat/react-overview (M.13): the legacy Overview renderer, deleted. React draws the Overview
-// (app/react/overview/); tests/golden/overview/*.json pin what this code drew. Same entry forms as
+// (app/react/features/overview/); tests/golden/overview/*.json pin what this code drew. Same entry forms as
 // REMOVED_COURT_RENDERER. The Overview's decisions stay (tournamentSummary(), courtSummaryFor(),
 // directorDivisionProgress() and its helpers, directorMatchLabel(), startDirectorRefresh() /
 // stopDirectorRefresh() and the renderAll() wrapper in 30), and the empty renderProgress() (23),
@@ -474,7 +474,7 @@ const REMOVED_OVERVIEW_RENDERER = [
   'renderDirector#1:body',                                       // 30: publishes the Overview (react-overview)
 ];
 // feat/react-library (M.13): the legacy Tournament Library renderer, deleted. React draws the
-// library (app/react/library/); tests/golden/library/*.json pin what this code drew. Same entry
+// library (app/react/features/library/); tests/golden/library/*.json pin what this code drew. Same entry
 // forms as REMOVED_COURT_RENDERER. The library's decisions stay in 33 (renderHomeTournamentLibrary():
 // the cache, the cloud list / discover and the loading, empty, error and offline lines;
 // showHomePage(), createNewTournament(), openTournamentFromHome(), read/writeTournamentLibrary(),
@@ -484,7 +484,7 @@ const REMOVED_LIBRARY_RENDERER = [
   'paintHomeTournamentLibrary#1:body',                           // 33: publishes the library (react-library)
 ];
 // feat/react-pools (M.13): the legacy Pools renderer, deleted. React draws #poolOutput, the Pools
-// view and the Edit Pool editor (app/react/pools/); tests/golden/pools/*.json pin what this code
+// view and the Edit Pool editor (app/react/features/pools/); tests/golden/pools/*.json pin what this code
 // drew. Same entry forms as REMOVED_COURT_RENDERER. The Pools decisions and actions stay:
 // renderPools()'s division choice and toggleEditPools()'s guard (now marked publishers),
 // dragPoolPlayer(), dropPoolPlayer(), insertPoolPlayer(), movePoolPlayer(), saveEditedPools() (16),
@@ -504,7 +504,7 @@ const REMOVED_POOLS_RENDERER = [
   'alignedPointSlots#2',                                         // 29: the live declaration, used only by alignedMatchRowHtml()
 ];
 // feat/react-setup-screen (M.13): the legacy Setup renderer, deleted. React draws the divisions
-// table's rows and the hero's name (app/react/setup/); tests/golden/setup/*.json pin what this
+// table's rows and the hero's name (app/react/features/setup/); tests/golden/setup/*.json pin what this
 // code drew. Same entry forms as REMOVED_COURT_RENDERER. Setup's decisions and actions stay
 // (saveSetup(), addDivision(), addCustomDivision(), removeDivision(), toggleDivision(),
 // setDivisionFormat(), setDivisionCourt() in 01; the saveSetup() wrapper and the name's input
@@ -515,7 +515,7 @@ const REMOVED_SETUP_RENDERER = [
   'syncSetupHeader#1:body',                                      // 30: publishes the hero's name (react-setup)
 ];
 // feat/react-registration (M.13): the legacy players table and status card renderer, deleted. React
-// draws #regTable and the contents of #tournamentStatusCard (app/react/registration/);
+// draws #regTable and the contents of #tournamentStatusCard (app/react/features/registration/);
 // tests/golden/registration/*.json pin what this code drew. Same entry forms as
 // REMOVED_COURT_RENDERER. The decisions and actions stay (03: renderReg() and
 // renderTournamentStatus() as publishers, validateTournament(), updateComp(), addRow(),
@@ -526,7 +526,7 @@ const REMOVED_REGISTRATION_RENDERER = [
   { from: 'el.innerHTML=`<div class="tournament-status-head">', to: '</div>`;' }, // 03: renderTournamentStatus()'s card markup (react-registration publishes)
   'renderReg#1:body',                                            // 03: publishes the table (react-registration)
   // feat/react-registration-2 (M.13, part 2): React draws the team cards, the exhibition table and
-  // the tab bar's classes (app/react/registration/RegistrationTeams.tsx); tests/golden/registration-teams
+  // the tab bar's classes (app/react/features/registration/RegistrationTeams.tsx); tests/golden/registration-teams
   // pins what this code drew. The actions stay (addTeamRow(), addAutoTeam(), cycleTeamStatus(),
   // addExhibitionRow(), loadTeamSamples(), clearTeams(), clearExhibitions() in 03; regTab()'s
   // state.regMode, the cards' visibility and the Pools redraw in 23).
@@ -535,7 +535,7 @@ const REMOVED_REGISTRATION_RENDERER = [
   { from: "  if(window.indTab)indTab.classList.toggle('active',mode==='individual');\n", to: "if(window.poolsTab)poolsTab.classList.toggle('active',mode==='pools');\n" }, // 23: regTab()'s tab classes (react-registration publishes the tab)
 ];
 // feat/react-shell (M.13, the last step): the legacy shell renderer, deleted. React draws the
-// navigation bar, the header's status row and the pop-up dialogs (app/react/shell/);
+// navigation bar, the header's status row and the pop-up dialogs (app/react/features/shell/);
 // tests/golden/shell/*.json pin what this code drew. Same entry forms as REMOVED_COURT_RENDERER.
 // The decisions and actions stay: toggleNavMenu(), navigateTo(), chooseCourt(), the document
 // listeners and the resize listener (23), setSessionRole()'s role and body classes (33),

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   EMPTY_TV, NEXT_DIVISION_LABEL, NO_UPCOMING_TEXT, UPCOMING_TITLE, kachinukiState, nameParts, tvBodyView, tvView,
-} from '../../app/react/tv/tv-model.ts';
+} from '../../app/react/features/tv/tv-model.ts';
 
 const header = { court: 'A', division: 'Open', meta: 'Pool A' };
 
@@ -120,7 +120,7 @@ test('tvView: hansoku on an individual match and a team row (owner decision 5)',
 });
 
 test('tvView between matches (owner decision 6): waiting text, reason, Up next title', async () => {
-  const { TV_WAITING_TEXTS } = await import('../../app/react/tv/tv-model.ts');
+  const { TV_WAITING_TEXTS } = await import('../../app/react/features/tv/tv-model.ts');
   assert.deepEqual(TV_WAITING_TEXTS, { match: 'Waiting for the next match', division: 'Waiting for the next division' });
   const card = { white: 'M 1', red: 'M 2', whiteSub: '', redSub: '' };
   const view = tvView({ kind: 'tv', court: 'A', division: 'Split', meta: '', upcoming: [card, null], upNext: 'Masters',

@@ -2,15 +2,15 @@
 // lists its files in the service worker's APP_SHELL, so an offline device has them (see
 // vite.config.js). Each screen, and the shell (navigation, header, dialogs), mounts its islands
 // into the legacy page's markup.
-import './court/main.tsx';
-import './live-scores/main.tsx';
-import './tv/main.tsx';
-import './results/main.tsx';
-import './overview/main.tsx';
-import './library/main.tsx';
-import './pools/main.tsx';
-import './setup/main.tsx';
-import './registration/main.tsx';
-import './shell/main.tsx';
+import './features/court/main.tsx';
+import './features/live-scores/main.tsx';
+import './features/tv/main.tsx';
+import './features/results/main.tsx';
+import './features/overview/main.tsx';
+import './features/library/main.tsx';
+import './features/pools/main.tsx';
+import './features/setup/main.tsx';
+import './features/registration/main.tsx';
+import './features/shell/main.tsx';
 
-import "./auth0.tsx";
+import './features/account/auth0.tsx';

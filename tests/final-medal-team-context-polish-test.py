@@ -3,7 +3,7 @@ from ksm_source import app_source, court_react_source
 html=app_source()
 # The team bracket's Wins/Points column labels: teamResultsBracketHtml() (28-) drew them until the
 # Results modal moved to React (M.13); since then the court screen's Bracket component draws them
-# (app/react/court/CourtContext.tsx: the court context and the Results bracket modal).
+# (app/react/shared/ui/CourtContext.tsx: the court context and the Results bracket modal).
 react=court_react_source()
 checks={
  'medal badge background removed':'.division-complete-row b.gold,.division-complete-row b.silver,.division-complete-row b.bronze{background:transparent!important' in html,
