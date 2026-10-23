@@ -1,4 +1,3 @@
-import { RegenerateWarning } from './RegenerateWarning.tsx';
 // The app shell (M.13's last step): React islands in the legacy page (index.html, loaded with the
 // other screens by app/react/main.tsx; the build lists its files in the service worker's
 // APP_SHELL, so an offline device has them). The navigation bar (the contents of
@@ -13,6 +12,7 @@ import { mountIsland } from '../../shared/lib/island.tsx';
 import { CloudModal, FusenDialog, RegenerateDialog, ValidationDialog } from './Dialogs.tsx';
 import { Nav, StatusRow, TournamentChip } from './Shell.tsx';
 import { shellWindow, withoutPointingListeners } from './shell-dom.ts';
+import { RegenerateWarning } from './RegenerateWarning.tsx';
 
 function find(selector: string): Element {
   const el = document.querySelector(selector);

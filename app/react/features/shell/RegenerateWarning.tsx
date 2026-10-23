@@ -29,7 +29,7 @@ export function RegenerateWarning() {
       onCancel={event => { event.preventDefault(); if (!busy) close(); }} data-testid="regenerate-warning">
       <h2 id="regenerate-warning-title">Regenerate Tournament</h2>
       <p>To change one division, use Regenerate Single Division. To change a court, no redraw is needed.</p>
-      <p>Regenerate Tournament will erase <b>{warning.total} finished matches</b> in <b>{warning.divisions.length} divisions</b> ({warning.divisions.join(', ')}) and redraw everything. Every device will see it.</p>
+      <p>Regenerate Tournament will erase <b>{warning.total} finished {warning.total === 1 ? 'match' : 'matches'}</b> in <b>{warning.divisions.length} {warning.divisions.length === 1 ? 'division' : 'divisions'}</b> ({warning.divisions.join(', ')}) and redraw everything. Every device will see it.</p>
       <p>A tournament file will download before results are erased.</p>
       <form onSubmit={async event => {
         event.preventDefault();
