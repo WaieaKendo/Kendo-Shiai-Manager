@@ -24,7 +24,7 @@ export function isAdmin(env, email) {
   return Boolean(email && String(env.ADMIN_EMAILS || '').split(',').map(normalizeEmail).includes(email));
 }
 // Each Worker/DO owns its resolver: jose caches JWKS for 10 min and rate-limits unknown-kid
-// refreshes. No tokens, identities or roles are cached; every write re-reads the DO's directors.
+// refreshes. No tokens, identities or roles are cached; account checks re-read the access store.
 const verifiers = new WeakMap();
 export function identityVerifier(env) {
   if (verifiers.has(env)) return verifiers.get(env);
@@ -39,7 +39,7 @@ export function identityVerifier(env) {
     const { payload } = await jwtVerify(token, resolver, { issuer, audience: config.audience, algorithms: ['RS256'], requiredClaims: ['exp', 'sub'], clockTolerance: 0 });
     const email = normalizeEmail(payload[EMAIL_CLAIM]);
     if (!email || payload[VERIFIED_CLAIM] !== true || typeof payload.sub !== 'string' || !payload.sub) throw new Error('Verified email required');
-    return { email, sub: payload.sub, expiresAt: payload.exp * 1000 };
+    return { email, sub: payload.sub, emailVerified: true, expiresAt: payload.exp * 1000 };
   };
   verifiers.set(env, verify);
   return verify;

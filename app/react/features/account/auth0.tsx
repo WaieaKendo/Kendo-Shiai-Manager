@@ -1,6 +1,7 @@
 import { Auth0Client } from '@auth0/auth0-spa-js';
 import { tabSessionCache } from './auth-session-cache.ts';
 import { useEffect, useState, useSyncExternalStore } from 'react';
+import { PeopleAccess, TournamentAccess } from './access-ui.tsx';
 import { mountIsland } from '../../shared/lib/island.tsx';
 
 type Account = { enabled: boolean; token: string; role: string; globalRole: string; tournamentId: string; email: string; passwordFallback: boolean };
@@ -64,55 +65,42 @@ async function logout() {
   bridge.reconnect();
   await sdk?.logout({ logoutParams: { returnTo: `${location.origin}/` } });
 }
+const openPeople = () => window.dispatchEvent(new CustomEvent('ksm:people'));
+function accountRole(account: Account) {
+  if (account.globalRole === 'admin') return 'admin';
+  if (!document.body.classList.contains('ksm-home') && ['owner','director'].includes(account.role) && account.tournamentId === bridge.tournament()) return account.role;
+  return account.globalRole === 'creator' ? 'creator' : '';
+}
 function AuthControls() {
   const account = useSyncExternalStore(subscribe, () => snapshot);
   if (!account.enabled) return null;
-  return <>{account.email ? <details className="ksm-account-menu"><summary>Account</summary><div className="ksm-account-panel"><strong>{account.email}</strong><span>{account.globalRole === 'admin' ? 'Admin' : account.role === 'director' ? 'Director' : 'Spectator'}</span><a href="/">Tournament Library</a><button type="button" className="secondary" data-testid="auth0-sign-in" onClick={() => { void logout(); }}>Sign out</button></div></details> : <button type="button" className="secondary" data-testid="auth0-sign-in" onClick={() => { void login(); }}>Sign in</button>}{message && <span role="status">{message}</span>}</>;
+  return <>{account.email ? <details className="ksm-account-menu"><summary>Account</summary><div className="ksm-account-panel"><strong>{account.email}</strong><span>{accountRole(account) ? accountRole(account).charAt(0).toUpperCase()+accountRole(account).slice(1) : 'Spectator'}</span><a href="/">Tournament Library</a>{account.globalRole === 'admin' && <button type="button" onClick={openPeople}>People &amp; access</button>}<button type="button" className="secondary" data-testid="auth0-sign-in" onClick={() => { void logout(); }}>Sign out</button></div></details> : <button type="button" className="secondary" data-testid="auth0-sign-in" onClick={() => { void login(); }}>Sign in</button>}{message && <span role="status">{message}</span>}</>;
 }
 function RoleStrip() {
   const account = useSyncExternalStore(subscribe, () => snapshot);
-  const role = account.globalRole === 'admin' ? 'admin' : account.role === 'director' && account.tournamentId === bridge.tournament() ? 'director' : '';
+  const role = accountRole(account);
   if (!account.enabled || !account.token || !role || document.body.classList.contains('ksm-tv') || document.body.classList.contains('ksm-spectator') && !!bridge.tournament()) return null;
-  return <div className={`ksm-role-strip ksm-role-${role}`} data-testid="account-role" role="status">{role === 'admin' ? '◆ Admin' : `◆ Director · ${bridge.name()}`}</div>;
+  return <div className={`ksm-role-strip ksm-role-${['owner','director'].includes(role)?'director':'admin'}`} data-testid="account-role" role="status">{`◆ ${role.charAt(0).toUpperCase()+role.slice(1)}${['owner','director'].includes(role) ? ' · '+bridge.name() : ''}`}</div>;
 }
-function Directors() {
+function AccessPanel() {
   const account = useSyncExternalStore(subscribe, () => snapshot);
   const id = bridge.tournament();
-  const [emails, setEmails] = useState<string[]>([]), [email, setEmail] = useState(''), [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-  const admin = account.enabled && account.globalRole === 'admin' && !!account.token;
-  useEffect(() => {
-    let current = true;
-    setEmails([]); setError('');
-    if (admin && id) void fetch(`/api/tournaments/${encodeURIComponent(id)}/directors`, { headers: { authorization: `Bearer ${account.token}` } }).then(async response => {
-      if (!response.ok) throw new Error('Unable to load directors');
-      const body = await response.json() as { directors: string[] }; if (current) setEmails(body.directors);
-    }).catch(e => { if (current) setError((e as Error).message); });
-    return () => { current = false; };
-  }, [admin, id, account.token]);
-  if (!admin || !id) return null;
-  async function change(method: 'POST' | 'DELETE', value: string) {
-    setBusy(true); setError('');
-    try {
-      const response = await fetch(`/api/tournaments/${encodeURIComponent(id)}/directors`, { method, headers: { 'content-type': 'application/json', authorization: `Bearer ${account.token}` }, body: JSON.stringify({ email: value }) });
-      const result = await response.json() as { directors: string[]; error?: string };
-      if (!response.ok) throw new Error(result.error || 'Unable to update directors');
-      if (id === bridge.tournament()) { setEmails(result.directors); setEmail(''); }
-    } catch (e) { setError((e as Error).message); }
-    finally { setBusy(false); }
-  }
-  return <section className="ksm-directors" data-testid="directors-management"><h4>Tournament directors</h4>
-    <p>Directors can manage this tournament. Access requires an individual account.</p>
-    <ul>{emails.map(value => <li key={value}>{value} <button type="button" disabled={busy} onClick={() => { void change('DELETE', value); }} aria-label={`Remove ${value}`}>Remove</button></li>)}</ul>
-    {!emails.length && <p>No directors appointed. Only admins can manage this tournament.</p>}
-    <form onSubmit={event => { event.preventDefault(); void change('POST', email); }}><label>Director email <input type="email" required value={email} onChange={event => setEmail(event.target.value)} data-testid="director-email" /></label><button type="submit" disabled={busy}>Add director</button></form>
-    {error && <p role="alert">{error}</p>}
-  </section>;
+  const role = account.globalRole === 'admin' ? 'admin' : account.tournamentId === id ? account.role : '';
+  if (!account.enabled || !account.token || !id || !['admin','owner','director'].includes(role)) return null;
+  return <TournamentAccess key={`${id}-${account.token}-${role}`} id={id} token={account.token} role={role} refresh={async()=>{await w.ksmRefreshAccount?.();await bridge.library();bridge.refreshUi()}} />;
+}
+function PeopleHost() {
+  const account = useSyncExternalStore(subscribe, () => snapshot);
+  const [open,setOpen] = useState(false);
+  useEffect(()=>{const show=()=>setOpen(true);window.addEventListener('ksm:people',show);return()=>window.removeEventListener('ksm:people',show)},[]);
+  useEffect(()=>{if(account.globalRole !== 'admin')setOpen(false)},[account.globalRole]);
+  if (!open || account.globalRole !== 'admin' || !account.token) return null;
+  return <PeopleAccess key={account.token} token={account.token} onClose={()=>setOpen(false)} onChange={async()=>{await w.ksmRefreshAccount?.();await bridge.library()}} />;
 }
 function Visibility() {
   const account = useSyncExternalStore(subscribe, () => snapshot);
   const id = bridge.tournament();
-  const manage = account.globalRole === 'admin' || account.role === 'director' && account.tournamentId === id;
+  const manage = account.globalRole === 'admin' || ['owner','director'].includes(account.role) && account.tournamentId === id;
   const [isPublic, setPublic] = useState<boolean | null>(null), [error, setError] = useState(''), [busy, setBusy] = useState(false);
   useEffect(() => {
     let active = true; setPublic(null);
@@ -135,11 +123,12 @@ function Visibility() {
   }
   return <section className="ksm-visibility" data-testid="tournament-visibility"><h4>Public listing</h4>
     <label><input type="checkbox" checked={isPublic === true} disabled={isPublic === null || busy} onChange={e => { void change(e.target.checked); }} /> Show this tournament publicly</label>
-    <p>{isPublic ? 'Anyone can find this tournament and watch without signing in.' : 'Private: only admins and assigned directors can view or manage this tournament.'}</p>
+    <p>{isPublic ? 'Anyone can find this tournament and watch without signing in.' : 'Private: only admins, owners and directors can view or manage this tournament.'}</p>
     <p>The OBS overlay and TV links only work while the tournament is public.</p>
     {error && <p role="alert">{error}</p>}
   </section>;
 }
+window.addEventListener('ksm:library-auth-invalid', () => { message='Sign in again'; publish(); });
 window.addEventListener('ksm:sign-in', () => { void login(); });
 window.addEventListener('ksm:sign-out', () => { void logout(); });
 function mountAccountUi() {
@@ -153,7 +142,8 @@ document.querySelector('header.ksm-topbar')?.before(strip);
 mountIsland(strip, <RoleStrip />);
 const management = document.createElement('div');
 document.querySelector('#setup-tournament-actions .setup-tournament-actions > div')?.append(management);
-mountIsland(management, <><Visibility /><Directors /></>);
+mountIsland(management, <><Visibility /><AccessPanel /></>);
+const people = document.createElement('div');document.body.append(people);mountIsland(people,<PeopleHost />);
 // Explicit TV/spectator navigation and tournament renames must repaint the strip as well.
 new MutationObserver(publish).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 document.getElementById('tName')?.addEventListener('input', publish);
@@ -189,6 +179,7 @@ async function initialize() {
     }
     if (!(await sdk.isAuthenticated())) { try { await sdk.getTokenSilently({ timeoutInSeconds: 10 }); } catch (_) { /* No Auth0 session yet. */ } }
     if (await sdk.isAuthenticated()) await w.ksmRefreshAccount?.();
+    await bridge.library();
     bridge.refreshUi(); bridge.reconnect();
     setInterval(() => { if (bridge.state().email) void w.ksmRefreshAccount?.().then(() => bridge.refreshUi()); }, 30000);
     window.addEventListener('online', () => { void w.ksmRefreshAccount?.().then(() => bridge.reconnect()); });

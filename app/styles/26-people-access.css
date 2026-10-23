@@ -1,0 +1,28 @@
+/* ksm:post-split-begin people-access */
+.ksm-people-dialog { box-sizing:border-box; width:min(860px,calc(100vw - 24px)); max-height:calc(100dvh - 32px); margin:auto; padding:24px; border:1px solid var(--line); border-radius:var(--r); background:var(--bg); color:var(--ink); box-shadow:var(--shadow); overflow:auto; overflow-wrap:anywhere; }
+.ksm-people-dialog::backdrop { background:var(--ink); opacity:.5; }
+.ksm-people-heading { position:sticky; top:0; z-index:1; padding-block:8px; background:var(--bg); display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.ksm-people-heading h2 { margin:0; }
+.ksm-access-form { display:flex; flex-wrap:wrap; align-items:end; gap:12px; margin:16px 0; }
+.ksm-access-form label { display:flex; flex:1 1 160px; flex-direction:column; gap:6px; min-width:0; }
+.ksm-access-form input,.ksm-access-form select,.ksm-people-dialog textarea { box-sizing:border-box; width:100%; min-width:0; background:var(--card); color:var(--ink); border-color:var(--line); }
+.ksm-access-list { padding:0; list-style:none; }
+.ksm-access-list li { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 0; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+.ksm-access-list li div { display:flex; flex-direction:column; gap:4px; min-width:0; overflow-wrap:anywhere; }
+.ksm-people-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr)); gap:12px; }
+.ksm-person { display:flex; flex-direction:column; align-items:start; gap:10px; padding:16px; border:1px solid var(--line); border-radius:var(--r); min-width:0; }
+.ksm-person ul { padding-inline-start:20px; margin:0; }
+.ksm-person a { color:var(--red); }
+.ksm-person-roles { display:flex; flex-wrap:wrap; gap:10px; }
+.ksm-person-roles span { display:flex; align-items:center; gap:8px; }
+.ksm-person button,.ksm-people-dialog button { white-space:normal; }
+.ksm-access-section { margin-top:20px; padding-top:12px; border-top:1px solid var(--line); min-width:0; }
+.ksm-access-section [role=alert],.ksm-people-dialog [role=alert] { color:var(--red); }
+@media(max-width:600px) {
+  .ksm-people-dialog { padding:16px; }
+  .ksm-people-heading { align-items:start; }
+  .ksm-access-form { flex-direction:column; align-items:stretch; }
+  .ksm-access-form label { flex-basis:auto; width:100%; }
+  .library-account-tools { flex-wrap:wrap; }
+}
+/* ksm:post-split-end */
