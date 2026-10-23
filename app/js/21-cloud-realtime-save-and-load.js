@@ -377,7 +377,7 @@ async function confirmRecoveryFileLoad(pack){
 }
 /* ksm:post-split-end */
 async function loadRecoveryFile(event){const file=event.target.files&&event.target.files[0];if(!file)return;try{const pack=JSON.parse(await file.text());if(pack.fileType!=='KSM_RECOVERY'||!pack.latestLocalSnapshot?.state)throw new Error('Invalid recovery file');/* ksm:post-split-begin recovery-guard */if(!(await confirmRecoveryFileLoad(pack)))return;/* ksm:post-split-end */const restoredPassword=/* ksm:post-split-begin auth0-access */ksmUsesAccountAuth()?'':/* ksm:post-split-end */promptNewStaffPassword();if(/* ksm:post-split-begin auth0-access */!ksmUsesAccountAuth()&&/* ksm:post-split-end */!restoredPassword)throw new Error('New Staff password required');sessionStorage.setItem(KSM_V316_STAFF_SESSION,restoredPassword);setSessionRole('staff');cloudSession.tournamentId=null;cloudSession.revision=0;if(cloudSession.tournamentId&&pack.tournamentId&&cloudSession.tournamentId!==pack.tournamentId&&!confirm('This recovery file belongs to a different Tournament ID. Load its local snapshot anyway?'))return;applyTournamentPayload(pack.latestLocalSnapshot,false);/* ksm:post-split-begin autosave-origin was:localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(pack.latestLocalSnapshot)) */ksmStoreAutosave(pack.latestLocalSnapshot)/* ksm:post-split-end */;if(pack.outbox)/* ksm:post-split-begin two-tabs was:localStorage.setItem(KSM_CLOUD_OUTBOX_KEY,JSON.stringify(pack.outbox)) */{ksmRetagHistory(pack.outbox,KSM_TAB_ID);const {adoptedFrom:_,...entry}=pack.outbox;localStorage.setItem(ksmOutboxKey(),JSON.stringify({...entry,writer:KSM_TAB_ID}))}/* ksm:post-split-end */;cloudSession.tournamentId=null;cloudSession.revision=0;if(pack.assignedCourt)cloudSession.court=pack.assignedCourt;persistCloudSession();ksmSaveStatusMode='offline';setConnectionStatus(navigator.onLine?'Connected':'Offline',navigator.onLine?'online':'offline');renderPersistentSaveStatus();if(navigator.onLine&&pack.outbox)await flushCloudOutbox();updateSaveStatus('Recovery file loaded')}catch(err){console.error(err);alert('Unable to load this recovery file.')}finally{event.target.value=''}}
-function manualSaveTournament(){
+function manualSaveTournament(/* ksm:post-split-begin regenerate-warning */options={}/* ksm:post-split-end */){
   try{
     const payload=/* ksm:post-split-begin load-file-guard was:tournamentPayload() */tournamentFilePayload()/* ksm:post-split-end */;
     const base=(payload.setup?.tName||'KSM_Tournament').replace(/[^a-z0-9]+/gi,'_').replace(/^_+|_+$/g,'') || 'KSM_Tournament';
@@ -388,7 +388,7 @@ function manualSaveTournament(){
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),1000);
     updateSaveStatus('Saved file');
-  }catch(err){ alert('Unable to save tournament file.'); console.error(err); }
+  }catch(err){ /* ksm:post-split-begin regenerate-warning */if(options.throwOnError)throw err;/* ksm:post-split-end */alert('Unable to save tournament file.'); console.error(err); }
 }
 function triggerLoadTournament(){ document.getElementById('ksmLoadFile')?.click(); }
 function loadTournamentFromFile(event){

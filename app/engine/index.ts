@@ -79,3 +79,5 @@ export type {
   GrandChampion, GrandChampionStandIn, GrandChampionFormat, GrandChampionAwardMode, SourceResult, GrandChampionEntrant,
   GrandChampionEntrants, GrandChampionStructure, GrandChampionAction,
 } from './grand-champion.ts';
+
+export { finishedMatchSummary } from './finished-matches.ts';

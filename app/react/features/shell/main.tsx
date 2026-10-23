@@ -12,6 +12,7 @@ import { mountIsland } from '../../shared/lib/island.tsx';
 import { CloudModal, FusenDialog, RegenerateDialog, ValidationDialog } from './Dialogs.tsx';
 import { Nav, StatusRow, TournamentChip } from './Shell.tsx';
 import { shellWindow, withoutPointingListeners } from './shell-dom.ts';
+import { RegenerateWarning } from './RegenerateWarning.tsx';
 
 function find(selector: string): Element {
   const el = document.querySelector(selector);
@@ -38,5 +39,5 @@ mountIsland(fusen, <FusenDialog root={fusen} />);
 mountIsland(validation, <ValidationDialog root={validation} />);
 mountIsland(regenerate, <RegenerateDialog root={regenerate} />);
 // The cloud modal is a portal into <body>; its root is an element outside the page.
-mountIsland(document.createElement('div'), <CloudModal />);
+mountIsland(document.createElement('div'), <><CloudModal /><RegenerateWarning /></>);
 shellWindow().ksmShellMounted = true;

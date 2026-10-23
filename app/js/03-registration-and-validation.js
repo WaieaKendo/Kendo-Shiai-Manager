@@ -74,7 +74,19 @@ function renderTournamentStatus(){
 function showValidationDialog(result,onConfirm){
   /* ksm:post-split-begin react-shell */ksmShowValidationDialog(result,onConfirm);/* ksm:post-split-end */
 }
-function requestTournamentGeneration(){let result=validateTournament();showValidationDialog(result,()=>generatePools({validated:true}))}
+/* ksm:post-split-begin regenerate-warning was:function requestTournamentGeneration(){let result=validateTournament();showValidationDialog(result,()=>generatePools({validated:true}))} */
+function requestTournamentGeneration(){
+  const result=validateTournament();
+  showValidationDialog(result,()=>{
+    const summary=KSMEngine.finishedMatchSummary(state.allMatches);
+    if(!state.generated||!summary.total){generatePools({validated:true});return}
+    window.dispatchEvent(new CustomEvent('ksm:regenerate-warning',{detail:{
+      total:summary.total,divisions:summary.divisions.map(ksmDivisionName),
+      confirm:async()=>{await manualSaveTournament({throwOnError:true});generatePools({validated:true})}
+    }}));
+  });
+}
+/* ksm:post-split-end */
 function divisionRegenerationStatus(div){if(!state.allMatches?.[div])return /* ksm:post-split-begin draw-new-division was:'not-generated' */state.generated&&((ksmTeamDivision(div)?eligibleTeams(div):eligibleIndividuals(div))||[]).length?'new':'not-generated'/* ksm:post-split-end */;return divisionHasCompletedMatches(div)?'started':'ready'}
 function openRegenerateDivisionDialog(){
   /* ksm:post-split-begin react-shell */ksmOpenRegenerateDialog();/* ksm:post-split-end */
