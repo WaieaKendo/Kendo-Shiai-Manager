@@ -86,7 +86,7 @@ const KNOWN_POST_SPLIT_EDITS = {
   // renderQueue(), renderContext() (new declarations in place of the 32 wrappers) and
   // setCourtCompletePresentation() (32). Listed here because renderDivisions() (02) is its first
   // region: the check compares names in order of first appearance.
-  'react-court': 8,
+  'react-court': 9,
   // feat/react-shell (M.13, the last step): the shell's React islands (the navigation bar, the
   // header's status row, the Fusen-gachi, generation check, Regenerate Single Division and cloud
   // dialogs). app/js/44-react-shell.js keeps what the legacy shell drew as plain data, publishes it
@@ -305,6 +305,7 @@ const KNOWN_POST_SPLIT_EDITS = {
   'react-library': 2,
   // feat/react-overlay: app/js/33-stream-overlay-links.js (TV menu "copy overlay link").
   'stream-overlay': 1,
+  'queue-up-next': 2,
 };
 // The same markers in app/styles/*.css (count per name, in order of first appearance).
 const KNOWN_POST_SPLIT_CSS_EDITS = {
@@ -346,6 +347,7 @@ const KNOWN_POST_SPLIT_CSS_EDITS = {
   // #131: app/styles/26-people-access.css (theme tokens only).
   'people-access': 1,
   'regenerate-warning': 1,
+  'queue-up-next': 1,
 };
 // Old functions whose body now lives in app/engine/*.ts (parameter lists without braces).
 const MOVED_TO_ENGINE = [
