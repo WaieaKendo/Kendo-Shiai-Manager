@@ -62,6 +62,15 @@ export function CourtQueue() {
     case 'empty': return null;
     case 'message': return <div className="muted-card">{view.text}</div>;
     case 'results': return <FinalResults results={view.results} />;
+    case 'up-next':
+      return (
+        <section className="queue-group queue-up-next" data-testid="queue-up-next" aria-disabled="true">
+          <div className="queue-group-title">{view.title}</div>
+          <div className="queue-group-body">{view.rows.map((row, i) => (
+            <div key={i} aria-disabled="true"><Row row={row} /></div>
+          ))}</div>
+        </section>
+      );
     case 'groups':
       return (
         <>

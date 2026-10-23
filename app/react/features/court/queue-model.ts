@@ -49,7 +49,14 @@ export interface FinalResultsInput {
   lines: Array<{ place: string; name: string }>;
 }
 
-export type CourtQueueInput =
+export interface QueueUpNext {
+  division: string;
+  matches: Array<{ white: string; red: string }>;
+}
+
+export type CourtQueueInput = CourtOwnQueueInput & { upNext?: QueueUpNext | null };
+
+type CourtOwnQueueInput =
   /** Nothing (no division, a completed division, a single-elimination match on one court). */
   | { kind: 'empty' }
   /** A .muted-card message: 'No active division.', 'Queue complete.', 'Division complete.' */
@@ -75,6 +82,8 @@ export interface QueueGroupView {
 }
 
 export type CourtQueueView =
+  | { kind: 'up-next'; title: string; rows: QueueRowItemView[] }
+
   | { kind: 'empty' }
   | { kind: 'message'; text: string }
   | { kind: 'results'; results: FinalResultsInput | null }
@@ -108,6 +117,17 @@ function rowView(row: QueueRow): QueueRowItemView {
 }
 
 export function courtQueueView(input: CourtQueueInput): CourtQueueView {
+  const hasOwnRows = input.kind === 'groups' && input.groups.some(g => g.rows.length);
+  if (!hasOwnRows && input.upNext?.matches.length) {
+    return {
+      kind: 'up-next', title: `Up next: ${input.upNext.division} — not started`,
+      rows: input.upNext.matches.slice(0, 2).map(m => rowView({
+        kind: 'queue', team: false, placeholder: false, tiebreak: false,
+        white: { name: m.white, detail: null }, red: { name: m.red, detail: null },
+        center: 'vs', round: '',
+      })),
+    };
+  }
   if (input.kind !== 'groups') return input;
   return {
     kind: 'groups',
