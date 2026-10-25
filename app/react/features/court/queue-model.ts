@@ -82,8 +82,8 @@ export interface QueueGroupView {
 }
 
 export type CourtQueueView =
-  | { kind: 'up-next'; title: string; rows: QueueRowItemView[] }
-
+  // undefined: no results view; null: retain the team's existing Completed card.
+  | { kind: 'up-next'; title: string; rows: QueueRowItemView[]; results: FinalResultsInput | null | undefined }
   | { kind: 'empty' }
   | { kind: 'message'; text: string }
   | { kind: 'results'; results: FinalResultsInput | null }
@@ -121,6 +121,7 @@ export function courtQueueView(input: CourtQueueInput): CourtQueueView {
   if (!hasOwnRows && input.upNext?.matches.length) {
     return {
       kind: 'up-next', title: `Up next: ${input.upNext.division} — not started`,
+      results: input.kind === 'results' ? input.results : undefined,
       rows: input.upNext.matches.slice(0, 2).map(m => rowView({
         kind: 'queue', team: false, placeholder: false, tiebreak: false,
         white: { name: m.white, detail: null }, red: { name: m.red, detail: null },
