@@ -96,10 +96,29 @@ def main():
             # Expired access tokens renew through a rotating refresh token without an iframe.
             director.evaluate('''() => { for(const key of Object.keys(sessionStorage)) if(key.startsWith('ksm.auth0.')) {const entry=JSON.parse(sessionStorage[key]);if(entry.body?.access_token){entry.expiresAt=0;sessionStorage[key]=JSON.stringify(entry);}} }''')
             director.route('**/authorize?**', lambda route: route.abort())
+            # The role strip is published inside refresh(), before its reconnect and the
+            # remaining startup work. Track complete refresh calls on the reloaded page
+            # so the outage counter below cannot include a late startup reconnect.
+            director.add_init_script("""
+              window.authRefreshPending = 0;
+              let refreshAccount;
+              Object.defineProperty(window, 'ksmRefreshAccount', {
+                configurable: true,
+                get: () => refreshAccount,
+                set: refresh => { refreshAccount = async (...args) => {
+                  window.authRefreshPending++;
+                  try { return await refresh(...args); }
+                  finally { window.authRefreshPending--; }
+                }; },
+              });
+            """)
             with director.expect_request(lambda req: '/oauth/token' in req.url and 'refresh_token' in (req.post_data or '')):
                 director.reload()
             expect(director.get_by_test_id('account-role')).to_contain_text('Director')
             director.unroute('**/authorize?**')
+            # initialize() registers its interval after its final startup reconnect;
+            # an open socket also confirms the restored tournament finished loading.
+            director.wait_for_function("window.authIntervals.length > 0 && window.authRefreshPending === 0 && KSMTest.pendingReason().socket === 'open'")
             # Transient outages preserve already authorized editing; explicit denial revokes it.
             director.route('**/api/auth/me', lambda route: route.abort())
             director.evaluate('''() => {const bridge=window.ksmAuthBridge;const reconnect=bridge.reconnect;window.authReconnects=0;bridge.reconnect=()=>{window.authReconnects++;reconnect()};const refresh=window.ksmRefreshAccount;window.intervalRefreshDone=false;window.ksmRefreshAccount=async(...args)=>{try{return await refresh(...args)}finally{window.intervalRefreshDone=true}};window.authIntervals.forEach(fn=>fn());}''')

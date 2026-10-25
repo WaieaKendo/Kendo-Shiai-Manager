@@ -461,7 +461,9 @@ function ksmTeamQueueGroups(div,court,current){
 }
 // renderQueue() as the legacy renderer drew it (removed): the 32- wrapper (a split single
 // elimination: canonicalSingleElimQueue()), then renderQueue() (the last declaration, 24-).
-function ksmQueuePanelInput(){
+/* ksm:post-split-end */
+/* ksm:post-split-begin queue-up-next */
+function ksmOwnQueuePanelInput(){
   const div=state.currentDivision,court=state.currentCourt||'A';
   if(!div)return {kind:'empty'};
   if(divisionComplete(div))return {kind:'empty'};
@@ -499,6 +501,8 @@ function ksmQueuePanelInput(){
   return groupsOr([...out.groups,...ksmChampionshipQueueGroups(div,court)],doneOr('Queue complete.'));
 }
 
+/* ksm:post-split-end */
+/* ksm:post-split-begin react-court */
 // If the court module (app/react/court/main.tsx, a module script after app.js) did not run, say
 // so on the court screen instead of the static markup, which nothing updates any more (e.g. an
 // offline device whose cached copy lacks the module). Module scripts run before
@@ -514,4 +518,15 @@ function ksmShowCourtModuleMissing(){
   shell.before(notice);
 }
 document.addEventListener('DOMContentLoaded',ksmShowCourtModuleMissing);
+/* ksm:post-split-end */
+
+/* ksm:post-split-begin queue-up-next */
+// Resolve at render time: the TV/Live Scores helper in 36- is loaded by then.
+function ksmQueuePanelInput(){
+  const input=ksmOwnQueuePanelInput(),div=state.currentDivision,court=state.currentCourt||'A';
+  const current=state.matches?.[state.current]||null;
+  const queued=(state.allMatches?.[div]||[]).some(m=>isValidMatchObject(m)&&!m.done&&m!==current&&matchBelongsToCourt(m,court));
+  if(queued||(input.kind==='groups'&&input.groups.some(g=>g.rows.length)))return input;
+  return {...input,upNext:ksmUpNext(court,div)};
+}
 /* ksm:post-split-end */
