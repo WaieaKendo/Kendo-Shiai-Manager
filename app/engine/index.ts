@@ -7,6 +7,8 @@ export {
 } from './pools.ts';
 export type { PoolEntrant, SlottedPlayer, BuiltPool, PoolMatch, PoolNoShowMatch } from './pools.ts';
 export { readSettings, DEFAULT_SETTINGS } from './settings.ts';
+export { statusCycle } from './registration.ts';
+export type { EntryStatus } from './registration.ts';
 export type { TournamentSettings } from './settings.ts';
 export {
   matchRequiresWinner, completedResultWinnerValid, completedResultSnapshotValid, scoreWinnerOf, winnerOf,
@@ -17,7 +19,8 @@ export type {
   StandingsMatch, CompletedResultLike, StandingRow, TiebreakStatsRow, TiedGroup, StandingsPool, TiebreakMatch, TiebreakBlock,
 } from './standings.ts';
 export {
-  championshipTemplateForTotal, championshipLabels, firstRoundName, nextRoundFromName, roundMatchCount,
+  championshipTemplateForTotal, championshipLabels, firstRoundName, nextRoundFromName, previousRoundName, nextChampRoundName,
+  champRoundOrder, roundSequenceFromFirst, roundMatchCount,
   championshipCourtFor, championshipMatchObjectForNode, buildChampionshipTemplateMatches, poolFinished,
   poolSeedResolution, parseSeedLabel, seedNameForLabel, champWinnerObj, championshipNodeSource,
   syncChampionshipTemplate, sourceLabelForRound, individualPlacements,

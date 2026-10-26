@@ -82,6 +82,25 @@ export function firstRoundName(n: number): string {
 export function nextRoundFromName(name: string): string | null {
   if (name === 'Round of 16') return 'Quarterfinal'; if (name === 'Quarterfinal') return 'Semifinal'; if (name === 'Semifinal') return 'Final'; return null;
 }
+/** The round before `name`, or null for the first possible round (or an unknown name). */
+export function previousRoundName(name: string): string | null {
+  if (name === 'Quarterfinal') return 'Round of 16'; if (name === 'Semifinal') return 'Quarterfinal'; if (name === 'Final') return 'Semifinal'; return null;
+}
+/** The round after `current`; for any other name, the round that follows a round of `count` matches. */
+export function nextChampRoundName(current: string, count: number): string {
+  if (current === 'Round of 16') return 'Quarterfinal'; if (current === 'Quarterfinal') return 'Semifinal'; if (current === 'Semifinal') return 'Final';
+  if (count === 8) return 'Quarterfinal'; if (count === 4) return 'Semifinal'; return 'Final';
+}
+/** Sort key of a championship round: the number of competitors in it (0 for an unknown name). */
+export function champRoundOrder(name: string): number {
+  return name === 'Round of 16' ? 16 : name === 'Quarterfinal' ? 8 : name === 'Semifinal' ? 4 : name === 'Final' ? 2 : 0;
+}
+/** The rounds from `first` through the Final (stops at an unknown name). */
+export function roundSequenceFromFirst(first: string): string[] {
+  const seq: string[] = []; let r: string | null = first;
+  while (r) { seq.push(r); if (r === 'Final') break; r = nextRoundFromName(r); }
+  return seq;
+}
 /** Matches in `round` for a bracket whose first round has `initial` matches (as used for courts). */
 export function roundMatchCount(initial: number, round: string): number {
   if (round === 'Round of 16') return initial; if (round === 'Quarterfinal') return initial >= 8 ? 4 : initial;
