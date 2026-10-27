@@ -51,15 +51,8 @@ function buildHistoryPatches(before,after,path=[],patches=[]){
   return patches;
 }
 function currentHistoryCourt(){const c=String(state.currentCourt||cloudSession?.court||'A').toUpperCase();return c==='B'?'B':'A'}
-function stampHistoryPatchMatchIdentity(patch,before,after){
-  const path=patch?.path||[];
-  if(path[0]!=='allMatches'||typeof path[2]!=='number')return patch;
-  const div=path[1],index=path[2];
-  const afterMatch=after?.allMatches?.[div]?.[index],beforeMatch=before?.allMatches?.[div]?.[index];
-  const match=isValidMatchObject(afterMatch)?afterMatch:(isValidMatchObject(beforeMatch)?beforeMatch:null);
-  const matchIdentity=matchSyncIdentity(match);
-  return matchIdentity?{...patch,matchIdentity}:patch;
-}
+function stampHistoryPatchMatchIdentity(patch,before,after){/* ksm:post-split-begin engine-bridge */return KSMEngine.stampHistoryPatchMatchIdentity(patch,before,after);// moved to app/engine/sync-helpers.ts
+  /* ksm:post-split-end */}
 function performCourtAction(label,fn){
   ensureCourtHistory();const court=currentHistoryCourt(),before=historyComparableState();
   const result=fn();const after=historyComparableState(),patches=buildHistoryPatches(before,after).map(patch=>stampHistoryPatchMatchIdentity(patch,before,after));

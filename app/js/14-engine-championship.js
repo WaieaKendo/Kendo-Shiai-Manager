@@ -31,18 +31,8 @@ function requiredSeedPlaces(div){
  * @param {PoolStandingRow} b
  * @returns {boolean}
  */
-function poolRowsStillTied(a,b){
-  if(!a||!b)return false;
-  if(a.wins!==b.wins || a.pts!==b.pts)return false;
-  // If this tied base-position group has completed tiebreak data, use that data to resolve placement.
-  let aHasTb=typeof a.tbWins==='number' || typeof a.tbPts==='number';
-  let bHasTb=typeof b.tbWins==='number' || typeof b.tbPts==='number';
-  if(aHasTb||bHasTb){
-    let aw=a.tbWins||0, bw=b.tbWins||0, ap=a.tbPts||0, bp=b.tbPts||0;
-    if(aw!==bw || ap!==bp)return false;
-  }
-  return true;
-}
+function poolRowsStillTied(a,b){/* ksm:post-split-begin engine-bridge */return KSMEngine.poolRowsStillTied(a,b);// moved to app/engine/bracket-helpers.ts
+  /* ksm:post-split-end */}
 /**
  * @param {string} poolLabel
  * @param {string} [div]
@@ -122,7 +112,8 @@ function syncChampionshipTemplate(div){
 function championshipSeeds(div){
   return championshipLabels(div).map(([r,w])=>[r==='BYE'?{name:'BYE',dojo:''}:seedNameForLabel(div,r,true),w==='BYE'?{name:'BYE',dojo:''}:seedNameForLabel(div,w,true),r,w]);
 }
-function bracketPairsFromSeeds(seeds){return seeds}
+function bracketPairsFromSeeds(seeds){/* ksm:post-split-begin engine-bridge */return KSMEngine.bracketPairsFromSeeds(seeds);// moved to app/engine/bracket-helpers.ts
+  /* ksm:post-split-end */}
 function champRoundOrder(name){/* ksm:post-split-begin engine-bridge */return KSMEngine.champRoundOrder(name);// moved to app/engine/championship.ts
   /* ksm:post-split-end */}
 /**

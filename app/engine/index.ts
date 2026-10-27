@@ -7,7 +7,7 @@ export {
 } from './pools.ts';
 export type { PoolEntrant, SlottedPlayer, BuiltPool, PoolMatch, PoolNoShowMatch } from './pools.ts';
 export { readSettings, DEFAULT_SETTINGS } from './settings.ts';
-export { statusCycle } from './registration.ts';
+export { statusCycle, validationIssue } from './registration.ts';
 export {
   isTeamMatch, teamPositionOrder, individualMatchReady, isIndividualPoolTiebreakMatch, directorMatchLabel,
   matchBelongsToCourtInState,
@@ -16,7 +16,12 @@ export type { HelperMatch } from './match-helpers.ts';
 export { formatSnapshotBytes, snapshotValueSummary, normalizeQueueGroupLabel } from './labels.ts';
 export {
   normalizeCourt, historyValuesEqual, historyEntryIdentity,
+  cloneJson, mergeHistoryEntries, stampHistoryPatchMatchIdentity, nextReadyIndexInState,
 } from './sync-helpers.ts';
+export { esc, jsArg, printSheet, printNameBlock } from './html-text.ts';
+export {
+  bracketPairsFromSeeds, poolRowsStillTied, indivNodeHasMatch, canonicalSingleElimMatch, pointsFor,
+} from './bracket-helpers.ts';
 export type { EntryStatus } from './registration.ts';
 export type { TournamentSettings } from './settings.ts';
 export {

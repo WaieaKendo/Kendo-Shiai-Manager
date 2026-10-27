@@ -26,7 +26,8 @@ function cycleTeamStatus(i){
   }
   renderAll();scheduleAutoSave();
 }
-function validationIssue(severity,code,divisionId,message,suggestedAction=''){return {severity,code,divisionId,message,suggestedAction}}
+function validationIssue(severity,code,divisionId,message,suggestedAction=''){/* ksm:post-split-begin engine-bridge */return KSMEngine.validationIssue(severity,code,divisionId,message,suggestedAction);// moved to app/engine/registration.ts
+  /* ksm:post-split-end */}
 function validateTournament(options={}){
   let issues=[],target=options.division||null;
   /* ksm:post-split-begin team-divisions was:let divisions=target?[target]:state.divisions.filter */let divisions=target?(isTeamDivision(target)?[]:[target]):state.divisions.filter/* ksm:post-split-end */(d=>eligibleIndividuals(d).length||state.competitors.some(c=>c.division===d));

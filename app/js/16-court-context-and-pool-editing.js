@@ -58,10 +58,12 @@ function saveEditedPools(){
   scheduleAutoSave();
 }
 function renderAll(){/* ksm:post-split-begin tournament-switcher */if(typeof ksmRefreshTournamentChip==='function')ksmRefreshTournamentChip();/* ksm:post-split-end */ensureCourtHistory();renderDivisions();renderReg();renderTeams();renderExhibitions();renderPools();renderScore();renderProgress();renderContext();saveSetup();renderTournamentStatus();updateUndoButton()/* ksm:post-split-begin react-bridge */;if(typeof ksmNotifyStateChanged==='function')ksmNotifyStateChanged('render')/* ksm:post-split-end */}
-function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function esc(s){/* ksm:post-split-begin engine-bridge */return KSMEngine.esc(s);// moved to app/engine/html-text.ts
+  /* ksm:post-split-end */}
 // A value as a JavaScript string literal inside an inline on*="..." handler. esc() alone is not enough:
 // the HTML parser decodes &#39; back to ' before the handler runs, so a name could break out of '...'.
-function jsArg(v){return esc(JSON.stringify(String(v??'')))}
+function jsArg(v){/* ksm:post-split-begin engine-bridge */return KSMEngine.jsArg(v);// moved to app/engine/html-text.ts
+  /* ksm:post-split-end */}
 document.addEventListener('paste',e=>{if(!registration.classList.contains('hidden')&&state.regMode==='individual'){let text=e.clipboardData.getData('text');if(text&&text.includes('\t')){e.preventDefault();text.trim()./* ksm:post-split-begin paste-lines was:split(/\n/) */split(/\r\n|\r|\n/)/* ksm:post-split-end */.forEach(line=>{let[name,dojo,division,seed,status]=line.split('\t')/* ksm:post-split-begin paste-lines */.map(cell=>cell.trim())/* ksm:post-split-end */;/* ksm:post-split-begin owner-decisions was:if(name){if(division&&!state.divisions.includes(division))state.divisions.push(division);state.competitors.push({name,dojo:dojo||'',division:division||state.divisions[0],seed:seed||'',status:(status||'Registered').replace('Checked In','Checked')})} */if(name)ksmPasteRow(name,dojo,division,seed,status)/* ksm:post-split-end */});/* ksm:post-split-begin owner-decisions */ksmPasteNotice();/* ksm:post-split-end */renderDivisions();renderReg()/* ksm:post-split-begin paste-save */;scheduleAutoSave('Paste from Excel')/* ksm:post-split-end */}}});
 
 

@@ -76,7 +76,7 @@ const KNOWN_POST_SPLIT_EDITS = {
   'react-setup': 3,
   // refactor/engine-bridge (roadmap 2.0+): one delegation per MOVED_TO_ENGINE function. Listed
   // before react-court: isTeamMatch() (02, issue #136 step 1b) is its first region.
-  'engine-bridge': 105,
+  'engine-bridge': 119,
   // feat/react-court-screen, feat/react-court-header (M.8): the court screen's React islands
   // (app/js/35-react-court.js); renderScore() hands the match display over (check at the top of
   // the last renderScore()); renderDivisions() and updateScoreTournamentName() publish the
@@ -382,6 +382,10 @@ const MOVED_TO_ENGINE = [
   'isTeamMatch', 'teamPositionOrder', 'individualMatchReady', 'isIndividualPoolTiebreakMatch', 'directorMatchLabel',
   'matchBelongsToCourtInState', 'formatSnapshotBytes', 'snapshotValueSummary',
   'normalizeQueueGroupLabel', 'normalizeCourt', 'historyValuesEqual', 'historyEntryIdentity',
+  // issue #136 step 1c: pure helpers (html-text.ts, bracket-helpers.ts, sync-helpers.ts, registration.ts)
+  'validationIssue', 'esc', 'jsArg', 'cloneJson', 'mergeHistoryEntries', 'stampHistoryPatchMatchIdentity',
+  'nextReadyIndexInState', 'bracketPairsFromSeeds', 'poolRowsStillTied', 'indivNodeHasMatch',
+  'canonicalSingleElimMatch', 'pointsFor', 'printSheet', 'printNameBlock',
 ];
 // feat/react-court-finish (M.8 step 5): the legacy court renderer, deleted. React draws the
 // court screen (app/react/features/court/); tests/golden/court/*.json pin what this code drew. Entries:
