@@ -64,7 +64,8 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         app/js functions delegate to it, app/react imports the .ts files.
                         pools.ts: poolSizes; routes.ts: the path URL scheme (M.9), shared
                         by the classic app, the overlay page and the tests; divisions.ts: division renames (#25);
-                        registration.ts: registration helpers moved from app/js (#136)
+                        registration.ts: registration helpers moved from app/js (#136);
+                        match-helpers.ts, labels.ts, sync-helpers.ts: more pure helpers moved from app/js (#136 step 1b)
   types/*.d.ts        Tournament data types and globals for `npm run typecheck`
   public/             Icons, SVG assets and manifest, served at the site root unchanged
   service-worker.js   PWA service worker (the build adds the hashed bundle names); serves the

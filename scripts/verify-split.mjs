@@ -74,6 +74,9 @@ const KNOWN_POST_SPLIT_EDITS = {
   // Listed here because renderDivisionSetup() (01) is its first region: the check compares names
   // in order of first appearance.
   'react-setup': 3,
+  // refactor/engine-bridge (roadmap 2.0+): one delegation per MOVED_TO_ENGINE function. Listed
+  // before react-court: isTeamMatch() (02, issue #136 step 1b) is its first region.
+  'engine-bridge': 105,
   // feat/react-court-screen, feat/react-court-header (M.8): the court screen's React islands
   // (app/js/35-react-court.js); renderScore() hands the match display over (check at the top of
   // the last renderScore()); renderDivisions() and updateScoreTournamentName() publish the
@@ -110,9 +113,6 @@ const KNOWN_POST_SPLIT_EDITS = {
   // addRow() (03) is its first region. 03: a No Show after generation asks first
   // (cycleCompetitorStatus(), cycleTeamStatus(); 18).
   'owner-decisions': 8,
-  // refactor/engine-bridge (roadmap 2.0+): one delegation per MOVED_TO_ENGINE function. Listed
-  // before react-shell: statusCycle() (03, issue #136 step 1) is its first region.
-  'engine-bridge': 93,
   'react-shell': 24,
   // feat/react-registration (M.13): Registration part 1's React islands (#regTable, the contents
   // of #tournamentStatusCard). With the legacy renderer removed (REMOVED_REGISTRATION_RENDERER)
@@ -378,6 +378,10 @@ const MOVED_TO_ENGINE = [
   'enforceUniqueIndividualMatches', 'eligibleIndividuals', 'eligibleTeams', 'generateDivisionState',
   // issue #136 step 1: pure helpers (app/engine/championship.ts, registration.ts)
   'champRoundOrder', 'nextChampRoundName', 'previousRoundName', 'roundSequenceFromFirst', 'statusCycle',
+  // issue #136 step 1b: pure helpers (app/engine/match-helpers.ts, labels.ts, sync-helpers.ts)
+  'isTeamMatch', 'teamPositionOrder', 'individualMatchReady', 'isIndividualPoolTiebreakMatch', 'directorMatchLabel',
+  'matchBelongsToCourtInState', 'formatSnapshotBytes', 'snapshotValueSummary',
+  'normalizeQueueGroupLabel', 'normalizeCourt', 'historyValuesEqual', 'historyEntryIdentity',
 ];
 // feat/react-court-finish (M.8 step 5): the legacy court renderer, deleted. React draws the
 // court screen (app/react/features/court/); tests/golden/court/*.json pin what this code drew. Entries:

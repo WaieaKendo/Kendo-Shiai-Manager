@@ -1,4 +1,4 @@
-import { html as appSource, readRepoFile } from './lib/ksm-source.mjs';
+import { html as appSource, extractFunction, readRepoFile } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
 const html=appSource;
 // M.13: the TV display is React. app/js/37-react-tv.js publishes what buildTV3ViewModel() (26-)
@@ -14,7 +14,7 @@ const checks=[
  ['three fighter lineups',html.includes("slice(0,3)")],
  ['status only lineup',tvModel.includes("return index < active ? 'eliminated' : index === active ? 'active' : 'waiting';")&&tvReact.includes('<span>{row.name}</span><span className="tv3-k-state">{row.state}</span>')&&kachinukiBody.includes('<KachinukiRows rows={body.rowsW} />')],
  ['no kachinuki summary in renderer',kachinukiBody.length>0&&!kachinukiBody.includes('Summary')&&!kachinukiBody.includes('tv3-summary')],
- ['kachinuki uses team upcoming',html.includes("function isTeamMatch(m){return m && (m.type==='teamPosition'||m.type==='teamPlayoff'||m.type==='kachinuki')}")&&html.includes('teamMode=isTeamMatch(m);')&&html.includes('upcoming:tv3UpcomingModel(court,m,teamMode)')],
+ ['kachinuki uses team upcoming',/KSMEngine\.isTeamMatch\(m\)/.test(extractFunction(html,'isTeamMatch'))&&html.includes('teamMode=isTeamMatch(m);')&&html.includes('upcoming:tv3UpcomingModel(court,m,teamMode)')],
  ['render routes kachinuki to team context',html.includes("m.type==='teamPosition'||m.type==='teamPlayoff'||m.type==='kachinuki'")&&html.includes("format:m.type==='kachinuki'?'kachinuki':(teamMode?'team':'individual')")],
  ['centered standard teams',html.includes('grid-template-columns:820px 820px!important')&&html.includes('column-gap:100px!important')],
 ];

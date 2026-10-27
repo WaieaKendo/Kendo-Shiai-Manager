@@ -3,8 +3,10 @@ function writeCloudDiagnosticsState(patch={}){const next={...readCloudDiagnostic
 function clearCloudDiagnosticsError(){writeCloudDiagnosticsState({stage:'Idle',httpStatus:null,errorMessage:'',errorBody:'',retryCount:0})}
 function formatDiagnosticTime(value){if(!value)return 'None';const parsed=Date.parse(value);return Number.isFinite(parsed)?new Date(parsed).toLocaleString():String(value)}
 function payloadByteSize(payload){try{return new Blob([JSON.stringify(payload)]).size}catch(_){return 0}}
-function formatSnapshotBytes(bytes){const n=Number(bytes)||0;if(n>=1048576)return `${(n/1048576).toFixed(2)} MB`;if(n>=1024)return `${Math.round(n/1024)} KB`;return `${n} B`}
-function snapshotValueSummary(value){if(Array.isArray(value))return `Array (${value.length})`;if(value&&typeof value==='object')return `Object (${Object.keys(value).length} keys)`;return typeof value}
+function formatSnapshotBytes(bytes){/* ksm:post-split-begin engine-bridge */return KSMEngine.formatSnapshotBytes(bytes);// moved to app/engine/labels.ts
+  /* ksm:post-split-end */}
+function snapshotValueSummary(value){/* ksm:post-split-begin engine-bridge */return KSMEngine.snapshotValueSummary(value);// moved to app/engine/labels.ts
+  /* ksm:post-split-end */}
 function analyzeTournamentSnapshot(payload=tournamentPayload()){
   const totalBytes=payloadByteSize(payload),entries=[];
   const visit=(value,path,depth=0)=>{const bytes=payloadByteSize(value);entries.push({path,bytes,summary:snapshotValueSummary(value)});if(!value||typeof value!=='object'||depth>=4||Array.isArray(value))return;Object.entries(value).forEach(([key,child])=>visit(child,`${path}.${key}`,depth+1))};

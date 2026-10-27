@@ -28,7 +28,8 @@ function ensureCourtHistory(){
 }
 function cloneHistoryValue(value){return value===undefined?{...KSM_HISTORY_MISSING}:JSON.parse(JSON.stringify(value))}
 function historyComparableState(){const out={};Object.keys(state).forEach(k=>{if(!KSM_HISTORY_KEYS.has(k))out[k]=cloneHistoryValue(state[k])});return out}
-function historyValuesEqual(a,b){return a===b||(Number.isNaN(a)&&Number.isNaN(b))}
+function historyValuesEqual(a,b){/* ksm:post-split-begin engine-bridge */return KSMEngine.historyValuesEqual(a,b);// moved to app/engine/sync-helpers.ts
+  /* ksm:post-split-end */}
 function buildHistoryPatches(before,after,path=[],patches=[]){
   if(historyValuesEqual(before,after))return patches;
   const beforeMissing=before&&before.__ksmMissing===true;

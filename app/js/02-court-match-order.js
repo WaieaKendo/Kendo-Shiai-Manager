@@ -1,7 +1,9 @@
-function isTeamMatch(m){return m && (m.type==='teamPosition'||m.type==='teamPlayoff'||m.type==='kachinuki')}
+function isTeamMatch(m){/* ksm:post-split-begin engine-bridge */return KSMEngine.isTeamMatch(m);// moved to app/engine/match-helpers.ts
+  /* ksm:post-split-end */}
 function teamNodeOrderMap(div){let map={};(state.teamBracketNodes?.[div]||[]).forEach((n,i)=>map[n.id]=i);return map}
 function teamPairOrderMap(div){let map={},next=0;(state.allMatches[div]||[]).forEach(m=>{if(isTeamMatch(m)&&m.teamPair&&map[m.teamPair]==null)map[m.teamPair]=next++});return map}
-function teamPositionOrder(m){let p=String(m.position||'').toLowerCase();let order={'senpo':0,'jiho':1,'chuken':2,'fukusho':3,'taisho':4,'kachinuki':0,'team playoff':9,'kachinuki playoff':9};return order[p]??5}
+function teamPositionOrder(m){/* ksm:post-split-begin engine-bridge */return KSMEngine.teamPositionOrder(m);// moved to app/engine/match-helpers.ts
+  /* ksm:post-split-end */}
 function teamMatchSortKey(div,m){let map=teamNodeOrderMap(div);let node=(m.teamNodeId&&map[m.teamNodeId]!=null)?map[m.teamNodeId]:null;if(node==null && m.teamPair){let sib=(state.allMatches[div]||[]).find(x=>x.teamPair===m.teamPair && x.teamNodeId && map[x.teamNodeId]!=null);if(sib)node=map[sib.teamNodeId];}
   // Round-robin position Match Objects belong to one authoritative team pairing.
   // Keep Senpo -> ... -> Taisho -> representative playoff together before
@@ -11,11 +13,8 @@ function teamMatchSortKey(div,m){let map=teamNodeOrderMap(div);let node=(m.teamN
 function sortTeamMatches(div){let arr=state.allMatches[div]||[];if(!arr.some(isTeamMatch))return arr;arr.sort((a,b)=>{
   let at=isTeamMatch(a),bt=isTeamMatch(b);if(at&&bt)return teamMatchSortKey(div,a)-teamMatchSortKey(div,b);if(at&&!bt)return -1;if(!at&&bt)return 1;return 0;
 });state.allMatches[div]=arr;return arr;}
-function individualMatchReady(m){
-  if(!m||m.done)return false;
-  if(m.templateNode&&!m.ready)return false;
-  return !!(m.white&&m.red);
-}
+function individualMatchReady(m){/* ksm:post-split-begin engine-bridge */return KSMEngine.individualMatchReady(m);// moved to app/engine/match-helpers.ts
+  /* ksm:post-split-end */}
 function championshipRoundIndex(div,round){
   const first=firstRoundName((state.brackets?.[div]||championshipLabels(div)||[]).length);
   const seq=roundSequenceFromFirst(first);

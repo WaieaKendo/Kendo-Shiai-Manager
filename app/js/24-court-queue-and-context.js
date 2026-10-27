@@ -1,15 +1,6 @@
 // ---------- KSM v3.9.1 Grouped court queue ----------
-function normalizeQueueGroupLabel(label){
-  const raw=String(label||'Upcoming').trim();
-  const low=raw.toLowerCase();
-  if(low.includes('quarter'))return 'Quarterfinals';
-  if(low.includes('semi'))return 'Semifinals';
-  if(low==='final'||low.includes('final match'))return 'Final';
-  if(low.includes('round of 32'))return 'Round of 32';
-  if(low.includes('round of 16'))return 'Round of 16';
-  if(low.includes('first round'))return 'First Round';
-  return raw;
-}
+function normalizeQueueGroupLabel(label){/* ksm:post-split-begin engine-bridge */return KSMEngine.normalizeQueueGroupLabel(label);// moved to app/engine/labels.ts
+  /* ksm:post-split-end */}
 
 
 // ---------- KSM v3.9.1 Adaptive Court Context + Team Queue ----------

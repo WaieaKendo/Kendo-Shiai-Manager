@@ -28,7 +28,8 @@ const KSM_PINNED_COURT_PREFIX='ksm.pinned.court.v3_17_11';
 // preference per pinned court outside the serialized tournament state.
 const ksmLocalCourtDivision={A:null,B:null};
 const KSM_LOCAL_VIEW_STATE_KEYS=new Set(['currentCourt','publicCourt','currentDivision','matches','current','score']);
-function normalizeCourt(value){return String(value||'').toUpperCase()==='B'?'B':'A'}
+function normalizeCourt(value){/* ksm:post-split-begin engine-bridge */return KSMEngine.normalizeCourt(value);// moved to app/engine/sync-helpers.ts
+  /* ksm:post-split-end */}
 // Red/White sides are mirrored per court to match the scoring table's view (Setup → Referees).
 function redOnLeftForCourt(court){return document.getElementById(normalizeCourt(court)==='B'?'court2RedSide':'court1RedSide')?.value==='left'}
 function applyCourtSides(){document.body.classList.toggle('ksm-red-left',redOnLeftForCourt(state.currentCourt))}
@@ -65,12 +66,8 @@ function matchHasSyncIdentity(match,identity){
   /* ksm:post-split-begin engine-bridge */return KSMEngine.matchHasSyncIdentity(match,identity);
   /* ksm:post-split-end */
 }
-function matchBelongsToCourtInState(targetState,m,c){
-  if(!m)return false;
-  if(m.court)return m.court===c;
-  const mode=targetState?.divisionCourts?.[m.division]||'A';
-  return mode==='split'?c==='A':mode===c;
-}
+function matchBelongsToCourtInState(targetState,m,c){/* ksm:post-split-begin engine-bridge */return KSMEngine.matchBelongsToCourtInState(targetState,m,c);// moved to app/engine/match-helpers.ts
+  /* ksm:post-split-end */}
 function nextReadyIndexInState(targetState,div,court){
   const arr=targetState?.allMatches?.[div]||[];
   const idx=arr.findIndex(m=>individualMatchReady(m)&&matchBelongsToCourtInState(targetState,m,court));
@@ -173,7 +170,8 @@ function sanitizeLoadedTournamentState(targetState,source='load'){
 }
 function mergeHistoryEntries(remoteEntries=[],localEntries=[]){const map=new Map();[...remoteEntries,...localEntries].forEach(entry=>{if(!entry||entry.format!=='patch-v1')return;const key=[entry.clientId||'',entry.when||'',entry.court||'',entry.label||''].join('|');map.set(key,cloneJson(entry))});return [...map.values()].sort((a,b)=>String(a.when||'').localeCompare(String(b.when||''))).slice(-80)}
 const KSM_CLOUD_REBASE_MAX_ATTEMPTS=4;
-function historyEntryIdentity(entry){return [entry?.clientId||'',entry?.when||'',entry?.court||'',entry?.label||''].join('|')}
+function historyEntryIdentity(entry){/* ksm:post-split-begin engine-bridge */return KSMEngine.historyEntryIdentity(entry);// moved to app/engine/sync-helpers.ts
+  /* ksm:post-split-end */}
 function pendingLocalCourtActionsForRebase(localPayload,serverRecord,originalBaseRevision/* ksm:post-split-begin two-tabs */,court=pinnedCourt()||normalizeCourt(cloudSession.court||state.currentCourt)/* ksm:post-split-end */){
   /* ksm:post-split-begin two-tabs was:const court=pinnedCourt()||normalizeCourt(cloudSession.court||state.currentCourt); *//* ksm:post-split-end */
   const localEntries=localPayload?.state?.courtActionHistory?.[court]||[];
