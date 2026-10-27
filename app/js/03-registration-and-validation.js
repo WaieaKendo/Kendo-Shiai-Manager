@@ -1,7 +1,8 @@
 function addRow(n=1){for(let i=0;i<n;i++)state.competitors.push({name:'',dojo:'',division:state.divisions[0]||'',seed:'',status:'Registered'});/* ksm:post-split-begin owner-decisions */if(window.regFilter)regFilter.value='';/* ksm:post-split-end */renderReg()}
 function addTeamRow(n=1){for(let i=0;i<n;i++)state.teams.push(/* ksm:post-split-begin team-divisions was:{team:'',division:'Team Tournament', */{team:'',division:'Team Tournament',id:ksmNewTeamIdentity(),teamDivisionId:ksmDefaultTeamDivisionId(),/* ksm:post-split-end */type:/* ksm:post-split-begin team-divisions was:(teamFormat?.value||'5-Person Team') */ksmTeamSettings().teamFormat/* ksm:post-split-end */,senpo:'',jiho:'',chuken:'',fukusho:'',taisho:'',status:'Registered'});/* ksm:post-split-begin owner-decisions */if(window.teamFilter)teamFilter.value='';/* ksm:post-split-end */renderTeams()}
 function addAutoTeam(){let n=(state.teams||[]).length+1;let team='Auto Team '+n;state.teams.push(/* ksm:post-split-begin team-divisions was:{team,division:'Team Tournament', */{team,division:'Team Tournament',id:ksmNewTeamIdentity(),teamDivisionId:ksmDefaultTeamDivisionId(),/* ksm:post-split-end */type:/* ksm:post-split-begin team-divisions was:(teamFormat?.value||'3-Person Team') */ksmTeamSettings().teamFormat/* ksm:post-split-end */,senpo:team,jiho:team,chuken:team,fukusho:team,taisho:team,status:'Checked'});renderTeams()}
-function statusCycle(s){return s==='Checked'?'NoShow':s==='NoShow'?'Registered':'Checked'}
+function statusCycle(s){/* ksm:post-split-begin engine-bridge */return KSMEngine.statusCycle(s);// moved to app/engine/registration.ts
+  /* ksm:post-split-end */}
 
 function divisionHasCompletedMatches(div){return (state.allMatches?.[div]||[]).some(m=>m&&m.done)}
 function closeManagementModal(id){/* ksm:post-split-begin react-shell */if(!ksmCloseShellDialog(id))document.getElementById(id)?.classList.add('hidden');/* ksm:post-split-end */}

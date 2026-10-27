@@ -63,7 +63,8 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         into a classic script defining `KSMEngine`, loaded before app.js;
                         app/js functions delegate to it, app/react imports the .ts files.
                         pools.ts: poolSizes; routes.ts: the path URL scheme (M.9), shared
-                        by the classic app, the overlay page and the tests; divisions.ts: division renames (#25)
+                        by the classic app, the overlay page and the tests; divisions.ts: division renames (#25);
+                        registration.ts: registration helpers moved from app/js (#136)
   types/*.d.ts        Tournament data types and globals for `npm run typecheck`
   public/             Icons, SVG assets and manifest, served at the site root unchanged
   service-worker.js   PWA service worker (the build adds the hashed bundle names); serves the

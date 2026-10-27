@@ -123,7 +123,8 @@ function championshipSeeds(div){
   return championshipLabels(div).map(([r,w])=>[r==='BYE'?{name:'BYE',dojo:''}:seedNameForLabel(div,r,true),w==='BYE'?{name:'BYE',dojo:''}:seedNameForLabel(div,w,true),r,w]);
 }
 function bracketPairsFromSeeds(seeds){return seeds}
-function champRoundOrder(name){return name==='Round of 16'?16:name==='Quarterfinal'?8:name==='Semifinal'?4:name==='Final'?2:0}
+function champRoundOrder(name){/* ksm:post-split-begin engine-bridge */return KSMEngine.champRoundOrder(name);// moved to app/engine/championship.ts
+  /* ksm:post-split-end */}
 /**
  * @param {Match} m
  * @returns {{name: string, dojo: string}|null}
@@ -132,7 +133,8 @@ function champWinnerObj(m){
   /* ksm:post-split-begin engine-bridge */return KSMEngine.champWinnerObj(m);
   /* ksm:post-split-end */
 }
-function nextChampRoundName(current,count){if(current==='Round of 16')return 'Quarterfinal';if(current==='Quarterfinal')return 'Semifinal';if(current==='Semifinal')return 'Final';if(count===8)return 'Quarterfinal';if(count===4)return 'Semifinal';return 'Final'}
+function nextChampRoundName(current,count){/* ksm:post-split-begin engine-bridge */return KSMEngine.nextChampRoundName(current,count);// moved to app/engine/championship.ts
+  /* ksm:post-split-end */}
 function champSourceWinner(div,round,slot){
   let arr=state.allMatches[div]||[];
   let m=arr.find(x=>x.championship&&x.position===round&&x.bracketSlot===slot);
@@ -197,7 +199,8 @@ function nextRoundFromName(name){
  * @param {RoundName} name
  * @returns {RoundName|null}
  */
-function previousRoundName(name){if(name==='Quarterfinal')return 'Round of 16';if(name==='Semifinal')return 'Quarterfinal';if(name==='Final')return 'Semifinal';return null}
+function previousRoundName(name){/* ksm:post-split-begin engine-bridge */return KSMEngine.previousRoundName(name);// moved to app/engine/championship.ts
+  /* ksm:post-split-end */}
 function expectedRoundCount(div,round){
   let labels=championshipLabels(div);let first=firstRoundName(labels.length);let count=labels.length;
   if(round===first)return count;
@@ -209,7 +212,8 @@ function expectedRoundCount(div,round){
  * @param {RoundName} first
  * @returns {RoundName[]}
  */
-function roundSequenceFromFirst(first){let seq=[];let r=first;while(r){seq.push(r);if(r==='Final')break;r=nextRoundFromName(r)}return seq;}
+function roundSequenceFromFirst(first){/* ksm:post-split-begin engine-bridge */return KSMEngine.roundSequenceFromFirst(first);// moved to app/engine/championship.ts
+  /* ksm:post-split-end */}
 /**
  * @param {string} div
  * @param {RoundName} round

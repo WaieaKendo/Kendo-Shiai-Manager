@@ -110,6 +110,9 @@ const KNOWN_POST_SPLIT_EDITS = {
   // addRow() (03) is its first region. 03: a No Show after generation asks first
   // (cycleCompetitorStatus(), cycleTeamStatus(); 18).
   'owner-decisions': 8,
+  // refactor/engine-bridge (roadmap 2.0+): one delegation per MOVED_TO_ENGINE function. Listed
+  // before react-shell: statusCycle() (03, issue #136 step 1) is its first region.
+  'engine-bridge': 93,
   'react-shell': 24,
   // feat/react-registration (M.13): Registration part 1's React islands (#regTable, the contents
   // of #tournamentStatusCard). With the legacy renderer removed (REMOVED_REGISTRATION_RENDERER)
@@ -143,8 +146,6 @@ const KNOWN_POST_SPLIT_EDITS = {
   // feat/react-registration-2 (React escapes it; html-escaping-test.py pins it).
   // fix/pre-event (F8): clearTeams()/clearExhibitions() confirm first (app/js/03).
   'clear-confirm': 1,
-  // refactor/engine-bridge (roadmap 2.0+): one delegation per MOVED_TO_ENGINE function.
-  'engine-bridge': 88,
   // refactor/engine-settings (roadmap 2.1): tournamentSettings() accessor + inline
   // replacements of engine DOM reads (`was:` form, see below); 9 at 2.1, 4 left after
   // the team engine moved (2.6) and its bridges pass tournamentSettings() in; 3 after
@@ -375,6 +376,8 @@ const MOVED_TO_ENGINE = [
   'completedResultSnapshot', 'repairCompletedMatchResults', 'repairLoadedEliminationAdvancement', 'isValidMatchObject',
   'legacyTiebreakSyncIdentity', 'matchSyncIdentity', 'matchHasSyncIdentity', 'individualLogicalMatchKey',
   'enforceUniqueIndividualMatches', 'eligibleIndividuals', 'eligibleTeams', 'generateDivisionState',
+  // issue #136 step 1: pure helpers (app/engine/championship.ts, registration.ts)
+  'champRoundOrder', 'nextChampRoundName', 'previousRoundName', 'roundSequenceFromFirst', 'statusCycle',
 ];
 // feat/react-court-finish (M.8 step 5): the legacy court renderer, deleted. React draws the
 // court screen (app/react/features/court/); tests/golden/court/*.json pin what this code drew. Entries:
