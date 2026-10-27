@@ -7,3 +7,10 @@ export type EntryStatus = 'Registered' | 'Checked' | 'NoShow';
 export function statusCycle(s: string | null | undefined): EntryStatus {
   return s === 'Checked' ? 'NoShow' : s === 'NoShow' ? 'Registered' : 'Checked';
 }
+
+/** The record the registration validation reports for one problem (issue #136 step 1c). */
+export function validationIssue(
+  severity: unknown, code: unknown, divisionId: unknown, message: unknown, suggestedAction: unknown = '',
+) {
+  return { severity, code, divisionId, message, suggestedAction };
+}

@@ -49,7 +49,8 @@ function noteLocalMutation(){ksmLocalMutationVersion+=1}
 function localChangesPending(){return ksmLocalMutationVersion>ksmConfirmedMutationVersion||Boolean(ksmSaveTimer||ksmCloudTimer||ksmCloudSaveInFlight||ksmCloudSavePending||readOutbox())}
 function deferRemoteRecord(record,reason='Local changes pending'){if(!record)return false;if(!ksmDeferredSyncRecord||Number(record.revision||0)>Number(ksmDeferredSyncRecord.revision||0))ksmDeferredSyncRecord=record;clearTimeout(ksmDeferredSyncTimer);ksmDeferredSyncTimer=setTimeout(applyDeferredSyncRecord,1800);writeCloudDiagnosticsState({stage:'Remote snapshot deferred',deferredRevision:Number(record.revision||0),deferredReason:reason,pinnedCourt:pinnedCourt()||''});return false}
 function applyDeferredSyncRecord(){if(!ksmDeferredSyncRecord||localChangesPending())return false;const record=ksmDeferredSyncRecord;ksmDeferredSyncRecord=null;clearTimeout(ksmDeferredSyncTimer);ksmDeferredSyncTimer=null;return applyRemoteCloudRecord(record,true,false)}
-function cloneJson(value){return JSON.parse(JSON.stringify(value))}
+function cloneJson(value){/* ksm:post-split-begin engine-bridge */return KSMEngine.cloneJson(value);// moved to app/engine/sync-helpers.ts
+  /* ksm:post-split-end */}
 function isValidMatchObject(match){
   /* ksm:post-split-begin engine-bridge */return KSMEngine.isValidMatchObject(match);
   /* ksm:post-split-end */
@@ -68,11 +69,8 @@ function matchHasSyncIdentity(match,identity){
 }
 function matchBelongsToCourtInState(targetState,m,c){/* ksm:post-split-begin engine-bridge */return KSMEngine.matchBelongsToCourtInState(targetState,m,c);// moved to app/engine/match-helpers.ts
   /* ksm:post-split-end */}
-function nextReadyIndexInState(targetState,div,court){
-  const arr=targetState?.allMatches?.[div]||[];
-  const idx=arr.findIndex(m=>individualMatchReady(m)&&matchBelongsToCourtInState(targetState,m,court));
-  return idx<0?arr.length:idx;
-}
+function nextReadyIndexInState(targetState,div,court){/* ksm:post-split-begin engine-bridge */return KSMEngine.nextReadyIndexInState(targetState,div,court);// moved to app/engine/sync-helpers.ts
+  /* ksm:post-split-end */}
 function preserveOwnedCourtRuntimeState(rebasedState,localState,court){
   const c=normalizeCourt(court);
   const localCs=localState?.courtState?.[c];
@@ -168,7 +166,8 @@ function sanitizeLoadedTournamentState(targetState,source='load'){
   if(repaired)console.warn(`[KSM State Integrity] Removed ${repaired} invalid match entr${repaired===1?'y':'ies'} from ${source}`,divisions);
   return {repaired,divisions};
 }
-function mergeHistoryEntries(remoteEntries=[],localEntries=[]){const map=new Map();[...remoteEntries,...localEntries].forEach(entry=>{if(!entry||entry.format!=='patch-v1')return;const key=[entry.clientId||'',entry.when||'',entry.court||'',entry.label||''].join('|');map.set(key,cloneJson(entry))});return [...map.values()].sort((a,b)=>String(a.when||'').localeCompare(String(b.when||''))).slice(-80)}
+function mergeHistoryEntries(remoteEntries=[],localEntries=[]){/* ksm:post-split-begin engine-bridge */return KSMEngine.mergeHistoryEntries(remoteEntries,localEntries);// moved to app/engine/sync-helpers.ts
+  /* ksm:post-split-end */}
 const KSM_CLOUD_REBASE_MAX_ATTEMPTS=4;
 function historyEntryIdentity(entry){/* ksm:post-split-begin engine-bridge */return KSMEngine.historyEntryIdentity(entry);// moved to app/engine/sync-helpers.ts
   /* ksm:post-split-end */}

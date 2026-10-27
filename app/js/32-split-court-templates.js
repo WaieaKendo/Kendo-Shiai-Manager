@@ -9,13 +9,8 @@ function syncSingleElimNodeWinnerFromMatch(div,node,match){
   if(!node.winner||node.winner.name!==next.name){node.winner=next;return true;}
   return false;
 }
-function canonicalSingleElimMatch(div,node,arr){
-  const matches=arr.filter(m=>m.singleElim&&m.elimNodeId===node.id);
-  if(!matches.length)return null;
-  const kept=matches.find(m=>m.done)||matches[0];
-  matches.forEach(m=>{if(m!==kept){const i=arr.indexOf(m);if(i>=0)arr.splice(i,1);}});
-  return kept;
-}
+function canonicalSingleElimMatch(div,node,arr){/* ksm:post-split-begin engine-bridge */return KSMEngine.canonicalSingleElimMatch(div,node,arr);// moved to app/engine/bracket-helpers.ts
+  /* ksm:post-split-end */}
 function syncIndividualSingleElim(div,arr,comps){
   /* ksm:post-split-begin engine-bridge */state.singleElimNodes=state.singleElimNodes||{};
   const nodes=state.singleElimNodes[div]||[];

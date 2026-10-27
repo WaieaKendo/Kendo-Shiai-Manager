@@ -81,7 +81,8 @@ function indivSide(side,comps,div){
   /* ksm:post-split-begin engine-bridge */return KSMEngine.indivSide(side,comps,state.singleElimNodes?.[div]||[]);
   /* ksm:post-split-end */
 }
-function indivNodeHasMatch(arr,node){return arr.some(m=>individualLogicalMatchKey(m)===`single:${node.id}`)}
+function indivNodeHasMatch(arr,node){/* ksm:post-split-begin engine-bridge */return KSMEngine.indivNodeHasMatch(arr,node);// moved to app/engine/bracket-helpers.ts
+  /* ksm:post-split-end */}
 /**
  * @param {string} div
  * @param {Match[]} arr

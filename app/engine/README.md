@@ -17,10 +17,12 @@ Import from `index.ts` only: it is the public API.
 | `integrity.ts` | Completed-result snapshot, the load-time repair plan (restore / re-open / create), the elimination-repair plan, duplicate individual match removal, match identity for sync (`matchSyncIdentity`, `matchHasSyncIdentity`) |
 | `generation.ts` | Eligibility (`eligibleIndividuals`, `eligibleTeams`) and `generateDivision(input)`: the pools, templates, nodes and Match Objects for one division in any format |
 | `divisions.ts` | Division renames (#25): the rules (`divisionRenameError`: trimmed, non-empty, unique ignoring case, not the team event, nothing after the draw), the rewrite (`renamedDivisionState`), presets followed through their renames (`presetNames`) and the save-conflict replay (`rebaseDivisionRenames`, with the draws a rename blocks, #36), the guard against pools/matches under a name that is no division (`orphanedDivisionStructure`, `withoutDivisionStructure`) |
-| `registration.ts` | Registration helpers moved from `app/js` (#136 step 1): `statusCycle` (Registered → Checked → No Show) |
+| `registration.ts` | Registration helpers moved from `app/js` (#136 step 1): `statusCycle` (Registered → Checked → No Show); step 1c adds `validationIssue` |
 | `match-helpers.ts` | Match predicates and labels moved from `app/js` (#136 step 1b): `isTeamMatch`, `teamPositionOrder`, `individualMatchReady`, `isIndividualPoolTiebreakMatch`, `directorMatchLabel`, `matchBelongsToCourtInState` |
 | `labels.ts` | Text helpers moved from `app/js` (#136 step 1b): `formatSnapshotBytes`, `snapshotValueSummary`, `normalizeQueueGroupLabel` |
-| `sync-helpers.ts` | Small value helpers for sync/undo moved from `app/js` (#136 step 1b): `normalizeCourt`, `historyValuesEqual`, `historyEntryIdentity` |
+| `sync-helpers.ts` | Small value helpers for sync/undo moved from `app/js` (#136 step 1b): `normalizeCourt`, `historyValuesEqual`, `historyEntryIdentity`; step 1c adds `cloneJson`, `mergeHistoryEntries`, `stampHistoryPatchMatchIdentity`, `nextReadyIndexInState` |
+| `html-text.ts` | HTML escaping and print-sheet markup moved from `app/js` (#136 step 1c): `esc`, `jsArg`, `printSheet`, `printNameBlock` |
+| `bracket-helpers.ts` | Pool, bracket and result helpers moved from `app/js` (#136 step 1c): `bracketPairsFromSeeds`, `poolRowsStillTied`, `indivNodeHasMatch`, `canonicalSingleElimMatch`, `pointsFor` |
 | `routes.ts` | Not tournament logic, but pure and shared the same way: the path URL scheme (M.9). `resolveUrl(pathname, search)` (a path's route, or an old `?tournament=…` link's path to redirect to), `routePath`/`routeUrl` (the links the app generates), `legacyQuery` (the old link parameters for the classic code that still reads them), `servesAppShell`/`servesOverlay` (which page a path gets) |
 
 ## Pure/legacy boundary

@@ -44,8 +44,10 @@ function ksmPrintRenderer(payload){
 /* ksm:post-split-end */
 // ---------- KSM v3.2.1 Print / PDF Export (read-only) ----------
 function printMetaLine(){let bits=[];if(/* ksm:post-split-begin library-setup was:window.tDate&&tDate.value */tDate.value/* ksm:post-split-end */)bits.push(tDate.value);if(/* ksm:post-split-begin library-setup was:window.tLocation&&tLocation.value */tLocation.value/* ksm:post-split-end */)bits.push(tLocation.value);return bits.join(' • ')}
-function printSheet(title,subtitle,body,kicker='Kendo Shiai Manager'){return `<article class="print-sheet"><div class="print-head"><div class="print-kicker">${esc(kicker)}</div><div class="print-title">${esc(title)}</div><div class="print-subtitle">${esc(subtitle||'')}</div></div>${body}</article>`}
-function printNameBlock(name,dojo){return `<div><div class="print-name">${esc(name||'TBD')}</div>${dojo?`<div class="print-dojo">${esc(dojo)}</div>`:''}</div>`}
+function printSheet(title,subtitle,body,kicker='Kendo Shiai Manager'){/* ksm:post-split-begin engine-bridge */return KSMEngine.printSheet(title,subtitle,body,kicker);// moved to app/engine/html-text.ts
+  /* ksm:post-split-end */}
+function printNameBlock(name,dojo){/* ksm:post-split-begin engine-bridge */return KSMEngine.printNameBlock(name,dojo);// moved to app/engine/html-text.ts
+  /* ksm:post-split-end */}
 function printableDivisions(){let out=Object.keys(state.allMatches||{});return out.length?out:state.divisions.filter(d=>state.divisions.includes(d));}
 /* ksm:post-split-begin team-divisions was:function refreshPrintDivisionSelect(){if(!window.printDivSelect)return;let divs=printableDivisions();let old=printDivSelect.value;printDivSelect.innerHTML=divs.map(d=>`<option value="${esc(d)}">${esc(d)}</option>`).join('');if(old&&divs.includes(old))printDivSelect.value=old;}  */function refreshPrintDivisionSelect(){if(!window.printDivSelect)return;let divs=printableDivisions();let old=printDivSelect.value;printDivSelect.innerHTML=divs.map(d=>`<option value="${esc(d)}">${esc(ksmDivisionName(d))}</option>`).join('');if(old&&divs.includes(old))printDivSelect.value=old;}
 /* ksm:post-split-end */

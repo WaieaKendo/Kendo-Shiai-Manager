@@ -31,11 +31,8 @@ function scoreWinnerOf(m){
  * @param {'W'|'R'} side
  * @returns {PointLetter[]}
  */
-function pointsFor(m,side){
-  const snapshot=m?.done&&completedResultSnapshotValid(m,m.completedResult)?m.completedResult:null;
-  const saved=side==='W'?snapshot?.wp:snapshot?.rp;
-  return Array.isArray(saved)?saved:((side==='W'?m?.wp:m?.rp)||[]);
-}
+function pointsFor(m,side){/* ksm:post-split-begin engine-bridge */return KSMEngine.pointsFor(m,side);// moved to app/engine/bracket-helpers.ts
+  /* ksm:post-split-end */}
 /**
  * Winner's name (the saved result when it is valid), or 'Hikiwake'.
  * @param {Match} m
