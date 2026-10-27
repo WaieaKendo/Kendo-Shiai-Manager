@@ -103,7 +103,8 @@ const APPROVED_DYNAMIC_MATCH_TYPES=Object.freeze(new Set([
  * @param {Match} match
  * @returns {boolean}
  */
-function isIndividualPoolTiebreakMatch(match){return !!(match&&match.type==='individual'&&match.tiebreak&&!match.championship&&match.pool)}
+function isIndividualPoolTiebreakMatch(match){/* ksm:post-split-begin engine-bridge */return KSMEngine.isIndividualPoolTiebreakMatch(match);// moved to app/engine/match-helpers.ts
+  /* ksm:post-split-end */}
 /**
  * @param {TournamentState} targetState
  * @param {string} div

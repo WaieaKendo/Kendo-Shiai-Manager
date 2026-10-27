@@ -13,11 +13,8 @@ saveSetup=function(){
 };
 
 let directorRefreshTimer=null;
-function directorMatchLabel(m){
-  if(!m)return '';
-  if(m.type==='teamPosition'||m.type==='teamPlayoff'||m.type==='kachinuki')return m.position||m.pool||'';
-  return m.pool==='Championship'?(m.position||'Championship'):(m.pool?`Pool ${m.pool}`:'');
-}
+function directorMatchLabel(m){/* ksm:post-split-begin engine-bridge */return KSMEngine.directorMatchLabel(m);// moved to app/engine/match-helpers.ts
+  /* ksm:post-split-end */}
 // Director progress is a read-only projection of canonical tournament state.
 // Totals intentionally follow the operational units shown in Court Queue/Context:
 // - pool divisions: all pool bouts + the complete championship bracket

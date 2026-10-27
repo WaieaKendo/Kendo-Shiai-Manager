@@ -8,6 +8,15 @@ export {
 export type { PoolEntrant, SlottedPlayer, BuiltPool, PoolMatch, PoolNoShowMatch } from './pools.ts';
 export { readSettings, DEFAULT_SETTINGS } from './settings.ts';
 export { statusCycle } from './registration.ts';
+export {
+  isTeamMatch, teamPositionOrder, individualMatchReady, isIndividualPoolTiebreakMatch, directorMatchLabel,
+  matchBelongsToCourtInState,
+} from './match-helpers.ts';
+export type { HelperMatch } from './match-helpers.ts';
+export { formatSnapshotBytes, snapshotValueSummary, normalizeQueueGroupLabel } from './labels.ts';
+export {
+  normalizeCourt, historyValuesEqual, historyEntryIdentity,
+} from './sync-helpers.ts';
 export type { EntryStatus } from './registration.ts';
 export type { TournamentSettings } from './settings.ts';
 export {
