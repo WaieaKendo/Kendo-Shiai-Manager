@@ -328,7 +328,15 @@ def overview_module_missing(browser, errors):
     assert notice.is_visible(), 'no "Overview could not load" notice without the React module'
     assert 'Overview could not load' in notice.inner_text(), notice.inner_text()
     assert not page.locator('#director .director-dashboard').is_visible(), 'the empty Overview dashboard is shown without the React module'
-    assert page.evaluate('window.ksmOverviewInput.kind') == 'overview', 'renderDirector() did not publish without the island'
+    # The input is computed by the island (pull): without the module nothing computes it, but
+    # renderDirector() still signals (ksm:overview), which is safe before the module loads.
+    assert page.evaluate('window.ksmOverviewInput === undefined'), 'the Overview input exists without the React module'
+    assert page.evaluate("""() => {
+        let n = 0;
+        window.addEventListener('ksm:overview', () => { n++; });
+        KSMTest.app.renderDirector();
+        return n === 1 && window.ksmOverviewInput === undefined;
+    }"""), 'renderDirector() without the module must dispatch ksm:overview once and compute nothing'
     page.close()
 
 

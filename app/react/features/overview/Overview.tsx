@@ -2,19 +2,19 @@
 // and the court cards in #directorCourtGrid), with the same elements, ids, classes and test IDs
 // (overview-progress, overview-courts) as the static markup and the legacy renderer
 // (renderDirector(), directorMatchRow()) drew, so the Overview CSS and every test apply
-// unchanged; tests/golden/overview pins them. renderDirector() (app/js) publishes what to show
-// (ksm:overview). The screen has no buttons. No colors or images of its own: the Overview CSS
+// unchanged; tests/golden/overview pins them. publish.ts computes what to show on each
+// ksm:overview signal (legacy renderDirector() only dispatches it). The screen has no buttons. No colors or images of its own: the Overview CSS
 // and theme tokens; the white/red name columns keep the legacy side classes.
 import { useLayoutEffect, useRef, useSyncExternalStore } from 'react';
 import {
   DIVISION_PROGRESS_LABEL, EMPTY_OVERVIEW, NO_MATCH_TEXT, OVERALL_PROGRESS_LABEL, OVERVIEW_KICKER,
   overviewView, type OverviewCourtView, type OverviewInput, type OverviewMatchRowView,
 } from './overview-model.ts';
+import { OVERVIEW_EVENT } from './publish.ts';
 
-export const OVERVIEW_EVENT = 'ksm:overview';
 
 interface OverviewWindow {
-  /** The Overview as renderDirector() last published it. */
+  /** The Overview as publish.ts last computed it. */
   ksmOverviewInput?: OverviewInput;
 }
 
