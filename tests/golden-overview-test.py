@@ -334,7 +334,7 @@ def overview_module_missing(browser, errors):
     assert page.evaluate("""() => {
         let n = 0;
         window.addEventListener('ksm:overview', () => { n++; });
-        renderDirector();
+        KSMTest.app.renderDirector();
         return n === 1 && window.ksmOverviewInput === undefined;
     }"""), 'renderDirector() without the module must dispatch ksm:overview once and compute nothing'
     page.close()
