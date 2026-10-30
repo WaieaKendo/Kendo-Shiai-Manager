@@ -283,8 +283,9 @@ const KNOWN_POST_SPLIT_EDITS = {
   'overview-kachinuki': 1,
   // feat/react-overview (M.13): the Overview screen's React island. With the legacy renderer
   // removed (REMOVED_OVERVIEW_RENDERER) renderDirector()'s body (30) is a marked call of
-  // ksmRenderOverview(), and app/js/39-react-overview.js publishes the screen as plain data and
-  // shows a notice when the React module is missing.
+  // ksmRenderOverview(), and app/js/39-react-overview.js (one region) keeps only that signal
+  // stub (it dispatches ksm:overview; app/react/features/overview/publish.ts computes the data)
+  // and the notice shown when the React module is missing.
   'react-overview': 2,
   // fix/quirks-pass (court): the renderScore() wrapper (32) publishes the completed division's
   // title and "Division complete" as the header's match line (it kept the last match's).
