@@ -275,8 +275,9 @@ const KNOWN_POST_SPLIT_EDITS = {
   // feat/react-results (M.13): the Results screen's React islands. With the legacy renderer
   // removed (REMOVED_RESULTS_RENDERER) the bodies of renderResultsDashboard() and
   // openResultsBracket() (27) are marked calls of ksmRenderResults() / ksmRenderResultsBracket(),
-  // and app/js/38-react-results.js publishes the screen as plain data and shows a notice when the
-  // React module is missing.
+  // and app/js/38-react-results.js (one region) keeps only those signal stubs (they dispatch
+  // ksm:results / ksm:results-bracket; app/react/features/results/publish.ts computes the data),
+  // ksmSetResultAward() and the notice shown when the React module is missing.
   'react-results': 3,
   // fix/react-batch-1 (F15): tournamentSummary() (30) adds a kachinuki division's known bouts to
   // the total, as its completed count does.

@@ -1,103 +1,31 @@
 /* ksm:post-split-begin react-results */
 // ==========================================================
-// React Results (app/react/results/, roadmap M.13)
+// React Results (app/react/features/results/, roadmap M.13, #136 step 2)
 // The Results screen (#results) is drawn only by React: four islands (the result cards and awards
 // editor in #resultsBody, the hero's #resultsTournamentName, the bracket modal's
-// #resultsBracketTitle and #resultsBracketBody), mounted by app/react/results/main.tsx. The
-// legacy code still decides what is shown: renderResultsDashboard() (27-results-screen.js) calls
-// ksmRenderResults() below, which publishes the cards (the placements from resultPlacements(),
-// the engine's rule) and state.awards as plain data (ksm:results, window.ksmResultsInput);
-// openResultsBracket() (27-) publishes the modal's division detail (ksm:results-bracket,
-// window.ksmResultsBracketInput) and shows the modal. The legacy Results renderer (the DOM
-// writing of renderResultsDashboard() and openResultsBracket(), resultCardHtml(),
-// awardsEditorHtml(), completedResultDetailHtml(), teamResultsBracketHtml() in 27-/28-, and the
-// older renderResultsAll()/renderAwards() in 09-) was removed in M.13; the functions below mirror
-// its reads, in the same order, which tests/golden/results/*.json (recorded from it) pin;
-// text is what esc() showed (ksmText(), String(x||'')); the brackets are the court screen's data
-// (ksmBracket(), ksmTeamResults(), 35-react-court.js).
+// #resultsBracketTitle and #resultsBracketBody), mounted by app/react/features/results/main.tsx.
+// The islands' input is computed by the module (publish.ts: the placements from resultPlacements(),
+// the engine's rule, state.awards, and the modal's division detail, as plain data in
+// window.ksmResultsInput / window.ksmResultsBracketInput); legacy only signals.
+// renderResultsDashboard() (27-results-screen.js) calls ksmRenderResults() below, which dispatches
+// ksm:results; openResultsBracket() (27-) calls ksmRenderResultsBracket(div), which stores the
+// division and dispatches ksm:results-bracket, then shows the modal. They must not call a function
+// defined in the module: this script runs before it (the module may not exist yet, or at all).
+// ksmResultsRequested / ksmResultsBracketRequested tell the module, when it loads, that a signal
+// came earlier. tests/golden/results/*.json pin what the islands draw (recorded from the legacy
+// Results renderer, removed in M.13).
 // The awards editor's buttons call addResultAward() / removeResultAward() (27-) and its inputs'
-// change events ksmSetResultAward(), the legacy inline handlers' code.
+// change events ksmSetResultAward() below (classic state + saveAuto(): React calls legacy).
 // If the React module does not load, Results shows a notice (the end of this file).
 // Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
-function ksmPublishResults(input){
-  window.ksmResultsInput=input;
+function ksmRenderResults(){
+  window.ksmResultsRequested=true;
   window.dispatchEvent(new CustomEvent('ksm:results'));
 }
-function ksmPublishResultsBracket(input){
-  window.ksmResultsBracketInput=input;
-  window.dispatchEvent(new CustomEvent('ksm:results-bracket'));
-}
-// resultCardHtml(div) as data: placements null for the in-progress card (none yet).
-function ksmResultCard(div){
-  const placements=resultPlacements(div),roundRobin=isTeamRoundRobinDivision(div);
-  if(!placements.length){
-    const progress=roundRobin?teamRoundRobinProgress(div):null;
-    return {division:ksmText(div),name:ksmDivisionName(div),roundRobin:!!roundRobin,placements:null,progress:progress?{complete:progress.complete,total:progress.total}:null};
-  }
-  // The tier is printed into the class as it is (no esc()).
-  return {division:ksmText(div),name:ksmDivisionName(div),roundRobin:!!roundRobin,progress:null,
-    placements:placements.map(p=>({place:ksmText(p.place),name:ksmText(p.name),tier:String(p.tier)}))};
-}
-// renderResultsDashboard() (27-) as data: the tournament name, the Completed and In Progress
-// cards, and awardsEditorHtml()'s awards.
-// Owner request: once the tournament is generated, every division of the event has a card, in
-// Setup's running order (divisions, team divisions, grand champions): one not drawn yet shows "Not
-// drawn yet", a grand champion whose source divisions are still running "Waiting for: <sources>".
-function ksmResultPlaceholder(div){
-  const gc=ksmGrandChampion(div);
-  const waiting=gc?(gc.sources||[]).filter(s=>!divisionComplete(s)).map(s=>ksmText(ksmDivisionName(s))):[];
-  return {division:ksmText(div),name:ksmDivisionName(div),roundRobin:false,placements:null,progress:null,
-    ...(waiting.length?{waitingFor:waiting}:{notDrawn:true})};
-}
-function ksmResultsDashboardInput(){
-  const drawn=div=>(state.allMatches?.[div]||[]).length>0;
-  // Only divisions with entrants: an enabled division nobody registered for (such as the default
-  // team division) gets no card.
-  const entered=div=>(ksmTeamDivisions().some(d=>d.id===div)?eligibleTeams(div):eligibleIndividuals(div)).length>0;
-  const event=state.generated?[
-    ...(state.divisions||[]).filter(entered),
-    ...(tournamentSettings().teamEnabled!=='Disabled'?ksmTeamDivisions().map(d=>d.id).filter(entered):[]),
-    ...ksmGrandChampions().map(g=>g.id)
-  ]:[];
-  const divisions=[
-    ...new Set([
-      ...event,
-      ...(state.divisions||[]),
-      ...ksmTeamDivisions().filter(d=>state.allMatches?.[d.id]).map(d=>d.id),
-      ...Object.keys(state.allMatches||{})
-    ])
-  ].filter(div=>drawn(div)||event.includes(div));
-  const completed=divisions.filter(div=>drawn(div)&&divisionComplete(div));
-  const pending=divisions.filter(div=>!drawn(div)||!divisionComplete(div));
-  return {kind:'results',
-    tournamentName:(window.tName&&tName.value)?tName.value:'Kendo Tournament',
-    completed:completed.map(ksmResultCard),
-    pending:pending.map(div=>drawn(div)?ksmResultCard(div):ksmResultPlaceholder(div)),
-    noDivisions:!divisions.some(drawn),
-    awards:(state.awards||[]).map(a=>({award:ksmText(a.award||''),name:ksmText(a.name||''),dojo:ksmText(a.dojo||'')})),
-    // Owner decision 8 (#29): spectators see the awards read-only.
-    readOnly:isReadOnlySession()};
-}
-function ksmRenderResults(){
-  ksmPublishResults(ksmResultsDashboardInput());
-}
-// completedResultDetailHtml(div) (27-) as data.
-function ksmResultDetail(div){
-  // teamResultsBracketHtml() (the last declaration, 28-)
-  if(isTeamDivision(div))return {kind:'bracket',bracket:ksmTeamResults(div)};
-  const pools=state.pools?.[div]||[];
-  if(pools.length){
-    // Standings printed as they are (no esc()) apart from names and dojos.
-    const poolData=pools.map(pool=>{const {rows,note}=ksmPoolStandingRows(div,pool.label);
-      return {label:ksmText(pool.label),tiebreakNote:note,standings:rows}});
-    return {kind:'pools',pools:poolData,bracket:ksmBracket(div)};
-  }
-  return {kind:'bracket',bracket:ksmBracket(div)};
-}
-// openResultsBracket(div) (27-): the title is the division as textContent showed it.
 function ksmRenderResultsBracket(div){
-  ksmPublishResultsBracket({kind:'bracket',title:div==null?'':ksmDivisionName(String(div)),detail:ksmResultDetail(div)});
+  window.ksmResultsBracketRequested={div};
+  window.dispatchEvent(new CustomEvent('ksm:results-bracket'));
 }
 // An award input's change (awardsEditorHtml()'s inline handler: state.awards[i].<field>=this.value;saveAuto();
 // saveAuto() is the scheduled autosave defined for F11 in 20-cloud-session-and-autosave.js).

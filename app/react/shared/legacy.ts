@@ -7,6 +7,10 @@
 // must be a top-level `function` in app/js. When a legacy function moves into app/react or
 // app/engine, its entry is replaced by an import and removed here.
 
+import type { TournamentSettings } from '../../engine/settings.ts';
+import type { ResultPoolInput } from '../features/results/results-model.ts';
+import type { BracketInput } from './ui/context-model.ts';
+
 /** courtSummaryFor(court) (app/js/30-setup-header-and-director.js). */
 export interface LegacyCourtSummary {
   court: string;
@@ -39,6 +43,29 @@ export interface LegacyGlobals {
   /** 30-setup-header-and-director.js. */
   tournamentSummary: () => LegacyTournamentSummary;
   courtSummaryFor: (court: string) => LegacyCourtSummary;
+  /** 27-results-screen.js: a completed division's places (the engine's rule); [] while it is running. */
+  resultPlacements: (div: string) => Array<{ place: string; name: string; tier: string }>;
+  /** 13-engine-standings-and-tiebreaks.js. */
+  isTeamRoundRobinDivision: (div: string) => boolean;
+  teamRoundRobinProgress: (div?: string) => { complete: number; total: number };
+  /** 01-grand-champion.js: a grand champion row by id, or null. */
+  ksmGrandChampion: (id: string) => GrandChampion | null;
+  ksmGrandChampions: () => GrandChampion[];
+  /** 09-results-and-awards.js. */
+  divisionComplete: (div: string) => boolean;
+  /** 01-team-divisions.js. */
+  ksmTeamDivisions: () => TeamDivision[];
+  /** 04-engine-pools.js. */
+  eligibleTeams: (div: string) => Team[];
+  eligibleIndividuals: (div: string) => Competitor[];
+  isTeamDivision: (div: string) => boolean;
+  /** 20-cloud-session-and-autosave.js (33-staff-session-and-library.js defines isReadOnlySession too; the later one wins). */
+  tournamentSettings: () => TournamentSettings;
+  isReadOnlySession: () => boolean;
+  /** 35-react-court.js: the court screen's bracket data, reused by the Results modal. */
+  ksmBracket: (div: string) => BracketInput;
+  ksmTeamResults: (div: string) => BracketInput;
+  ksmPoolStandingRows: (div: string, poolLabel: string) => { note: string; rows: ResultPoolInput['standings'] };
 }
 
 /** A legacy function, read from `window` at call time; throws when app.js does not define it. */

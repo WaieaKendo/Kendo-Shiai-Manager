@@ -17,13 +17,11 @@
 import { useEffect, useLayoutEffect, useRef, useSyncExternalStore } from 'react';
 import { Bracket } from '../../shared/ui/CourtContext.tsx';
 import {
-  EMPTY_RESULTS, EMPTY_RESULTS_BRACKET, NO_AWARDS_TEXT, NO_DIVISIONS_TEXT,
+  EMPTY_RESULTS, EMPTY_RESULTS_BRACKET, NO_AWARDS_TEXT, NO_DIVISIONS_TEXT, RESULTS_BRACKET_EVENT, RESULTS_EVENT,
   resultsBracketView, resultsView, tournamentNameText,
   type AwardInput, type ResultCardView, type ResultDetailView, type ResultsBracketInput, type ResultsInput,
 } from './results-model.ts';
 
-export const RESULTS_EVENT = 'ksm:results';
-export const RESULTS_BRACKET_EVENT = 'ksm:results-bracket';
 
 type AwardField = keyof AwardInput;
 
