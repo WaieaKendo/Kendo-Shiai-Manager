@@ -3,11 +3,12 @@
 // build lists its files in the service worker's APP_SHELL, so an offline device has them): the
 // result cards and awards editor (#resultsBody), the hero's tournament name
 // (#resultsTournamentName) and the bracket modal's title and body (#resultsBracketTitle,
-// #resultsBracketBody). The legacy code computes what is shown; renderResultsDashboard() and
-// openResultsBracket() publish it (app/js/38-react-results.js) and never write these elements
-// (M.13). If this module does not load, the legacy code shows a "Results could not load" notice
+// #resultsBracketBody). The legacy code only signals (renderResultsDashboard() and
+// openResultsBracket() -> ksm:results / ksm:results-bracket, app/js/38-react-results.js);
+// publish.ts computes what is shown and these elements are never written by legacy (M.13). If this module does not load, the legacy code shows a "Results could not load" notice
 // instead (38-react-results.js, on DOMContentLoaded).
 import { mountIsland } from '../../shared/lib/island.tsx';
+import { startResultsInput } from './publish.ts';
 import { ResultsBody, ResultsBracketBody, ResultsBracketTitle, ResultsTournamentName } from './Results.tsx';
 
 interface LegacyWindow {
@@ -25,8 +26,11 @@ const name = find('#results #resultsTournamentName');
 const title = find('#resultsBracketModal #resultsBracketTitle');
 const bracket = find('#resultsBracketModal #resultsBracketBody');
 
-// renderResultsDashboard() has published since app.js started; the islands start from the last
-// publish (the modal from the last opened bracket, if any).
+// Pull: the input is computed from the legacy app on every ksm:results / ksm:results-bracket
+// signal (and now, for one sent before this module ran); started before mounting so it runs
+// ahead of the islands' own listeners. The islands start from the last input (the modal from the
+// last opened bracket, if any).
+startResultsInput();
 mountIsland(body, <ResultsBody />);
 mountIsland(name, <ResultsTournamentName />);
 mountIsland(title, <ResultsBracketTitle />);

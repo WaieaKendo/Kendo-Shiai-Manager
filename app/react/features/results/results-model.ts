@@ -12,6 +12,14 @@
 // placement-name), which tests/golden/results (recorded from it) pin.
 import { bracketView, type BracketInput, type BracketView } from '../../shared/ui/context-model.ts';
 
+// ------------------------------------------------------------------------------ events
+
+/** Legacy's signals (app/js/38-react-results.js): renderResultsDashboard() / openResultsBracket()
+ * ask for a redraw. publish.ts computes the input on them (registered before the islands'
+ * listeners, so the islands read the new input); the islands redraw on the same events. */
+export const RESULTS_EVENT = 'ksm:results';
+export const RESULTS_BRACKET_EVENT = 'ksm:results-bracket';
+
 // ------------------------------------------------------------------------------ input
 
 /** One placement as resultPlacements() gives it (text as esc() showed it). */

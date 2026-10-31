@@ -311,6 +311,7 @@ window.KSMTest = {
     renderQueue: (...a) => renderQueue(...a),
     renderReg: (...a) => renderReg(...a),
     renderResultsDashboard: (...a) => renderResultsDashboard(...a),
+    openResultsBracket: (...a) => openResultsBracket(...a),
     renderTeams: (...a) => renderTeams(...a),
     renderTournamentStatus: (...a) => renderTournamentStatus(...a),
     renderTvDisplay: (...a) => renderTvDisplay(...a),

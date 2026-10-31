@@ -355,7 +355,15 @@ def results_module_missing(browser, errors):
     assert notice.is_visible(), 'no "Results could not load" notice without the React module'
     assert 'Results could not load' in notice.inner_text(), notice.inner_text()
     assert not page.locator('#resultsBody').is_visible(), 'the empty Results body is shown without the React module'
-    assert page.evaluate('window.ksmResultsInput.kind') == 'results', 'renderResultsDashboard() did not publish without the islands'
+    # The input is computed by the module (pull): without it nothing computes it, but
+    # renderResultsDashboard() still signals (ksm:results), which is safe before the module loads.
+    assert page.evaluate('window.ksmResultsInput === undefined'), 'the Results input exists without the React module'
+    assert page.evaluate("""() => {
+        let n = 0;
+        window.addEventListener('ksm:results', () => { n++; });
+        KSMTest.app.renderResultsDashboard();
+        return n === 1 && window.ksmResultsInput === undefined;
+    }"""), 'renderResultsDashboard() without the module must dispatch ksm:results once and compute nothing'
     page.close()
 
 
