@@ -32,10 +32,12 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         app/js/37-react-tv.js publishes its data; the Final Results
                         reuse shared/ui/'s DivisionCompletePanel),
                         results/ (the Results screen #results: cards, awards editor,
-                        bracket modal, M.13; app/js/38-react-results.js publishes its
-                        data; the modal reuses shared/ui/'s Bracket),
+                        bracket modal, M.13; publish.ts computes its data when
+                        app/js/38-react-results.js signals; the modal reuses
+                        shared/ui/'s Bracket),
                         overview/ (the Overview screen #director, M.13;
-                        app/js/39-react-overview.js publishes its data),
+                        publish.ts computes its data when
+                        app/js/39-react-overview.js signals),
                         library/ (the Tournament Library, the home page #home, M.13;
                         app/js/40-react-library.js publishes its data; logo and card
                         mark from shared/ui/branding.ts),
