@@ -96,6 +96,9 @@ export interface LegacyGlobals {
   renderTvDisplay: () => void;
   /** 36-react-live-scores.js (stays classic: classic 35-react-court.js calls ksmUpNext()). */
   ksmBetweenMatches: (court: Court, own: string | null | undefined) => { reason: string | null; upNext: UpNextInput | null };
+  /** 42-react-setup.js (stay classic: classic ksmRemoveSetupDivision() calls them). */
+  ksmDivisionPresetNames: () => string[];
+  ksmDivisionRemoveBlocked: (division: string) => string | null;
   /** 35-react-court.js. */
   ksmTeamSheet: (div: string, pair: string | undefined, current: Match) => TeamSheetInput;
   ksmKachinukiSheet: (m: Match) => KachinukiSheetInput;

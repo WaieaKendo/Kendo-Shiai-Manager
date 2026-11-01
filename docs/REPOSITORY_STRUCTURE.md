@@ -49,8 +49,9 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         the Edit Pool editor, M.13; app/js/41-react-pools.js publishes
                         its data; the preview reuses shared/ui/'s Bracket),
                         setup/ (the Setup screen's divisions table rows #divisionSetupRows
-                        and hero name #setupTournamentName, M.13; app/js/42-react-setup.js
-                        publishes their data; the Setup fields stay legacy markup),
+                        and hero name #setupTournamentName, M.13; publish.ts computes
+                        their data when app/js/42-react-setup.js signals; the Setup
+                        actions and fields stay legacy),
                         registration/ (Registration, M.13. Part 1: the players table
                         #regTable and the status card's contents #tournamentStatusCard;
                         part 2 (RegistrationTeams.tsx, teams-model.ts): the team cards

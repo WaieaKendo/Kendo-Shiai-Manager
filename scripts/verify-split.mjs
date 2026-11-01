@@ -69,8 +69,8 @@ const KNOWN_POST_SPLIT_EDITS = {
   // feat/react-setup-screen (M.13): the Setup screen's React islands (#divisionSetupRows,
   // #setupTournamentName). With the legacy renderer removed (REMOVED_SETUP_RENDERER) the bodies of
   // renderDivisionSetup() (01) and syncSetupHeader() (30) are marked publishers, and
-  // app/js/42-react-setup.js publishes the rows and the name as plain data and shows a notice when
-  // the React module is missing.
+  // app/js/42-react-setup.js signals the module (which computes the rows and the name, #136
+  // step 2), keeps the actions the rows call and shows a notice when the React module is missing.
   // Listed here because renderDivisionSetup() (01) is its first region: the check compares names
   // in order of first appearance.
   'react-setup': 3,

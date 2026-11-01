@@ -230,6 +230,8 @@ interface TournamentState {
   /** #86: grand champion rows; each row's draw is the division keyed by its id ('gc:<hex>'). */
   grandChampions?: GrandChampion[];
   divisions: string[];
+  /** Owner request (4.0): preset divisions removed for this tournament (Setup's "Restore standard divisions" brings them back). */
+  hiddenPresets?: string[];
   divisionTypes: ByDivision<DivisionFormat>;
   divisionCourts: ByDivision<CourtMode>;
   competitors: Competitor[];
