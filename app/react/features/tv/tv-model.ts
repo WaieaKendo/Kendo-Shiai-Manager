@@ -3,14 +3,21 @@
 // the current match (individual, team bout sheet or kachinuki lineups; or a completed division's
 // Final Results) and Upcoming Matches (or, for Final Results, the court's next division).
 //
-// The legacy app still decides what is shown: buildTV3ViewModel() (app/js/26-tv-display.js)
+// The legacy app still chooses what is shown: buildTV3ViewModel() (app/js/26-tv-display.js)
 // chooses the TV court's match with courtCurrentMatch() (which also moves the court on, as
 // before), its upcoming matches (tvUpcomingMatches(), 25-live-scores.js) and when the Final
-// Results show; ksmTvDisplayInput() (37-react-tv.js) publishes a TvInput (ksm:tv) instead of writing
-// #tvLive. tvView() adds what the legacy tv3 renderer derived: "Court X", the name split into
+// Results show; ksmTvDisplayInput() (publish.ts) computes a TvInput from it (window.ksmTvInput)
+// instead of #tvLive being written. tvView() adds what the legacy tv3 renderer derived: "Court X", the name split into
 // first name and the rest, the point strings, classes, the kachinuki fighters' states.
 import { courtCompleteView, type CourtCompleteInput, type CourtCompleteView } from '../../shared/ui/complete-model.ts';
 import { hansokuView, pointText, upNextTitle, type HansokuCounts, type HansokuView } from '../live-scores/live-scores-model.ts';
+
+// ------------------------------------------------------------------------------ events
+
+/** Legacy's signal (app/js/37-react-tv.js): renderTvDisplay() asks for a redraw. publish.ts
+ * computes the input on it (registered before the island's listener, so the island reads the new
+ * input); the island redraws on the same event. */
+export const TV_EVENT = 'ksm:tv';
 
 // ------------------------------------------------------------------------------ input
 

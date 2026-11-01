@@ -1,8 +1,8 @@
 import { html as appSource, readRepoFile } from './lib/ksm-source.mjs';
 import fs from "node:fs";
 const html=appSource;
-// M.13: the TV display is React. app/js/37-react-tv.js publishes what buildTV3ViewModel() (26-)
-// chose, app/react/features/tv/ draws it (tests/golden/tv pins the result, recorded from the removed tv3
+// M.13: the TV display is React. app/react/features/tv/publish.ts computes what buildTV3ViewModel() (26-)
+// chose (app/js/37-react-tv.js only signals), app/react/features/tv/ draws it (tests/golden/tv pins the result, recorded from the removed tv3
 // renderer). Checks of TV markup point at that code.
 const tvReact=readRepoFile('app/react/features/tv/Tv.tsx'),tvModel=readRepoFile('app/react/features/tv/tv-model.ts');
 const checks=[

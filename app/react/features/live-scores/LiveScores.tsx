@@ -13,14 +13,12 @@ import { useSyncExternalStore } from 'react';
 import { DivisionCompletePanel } from '../../shared/ui/CourtComplete.tsx';
 import { ContextPanel } from '../../shared/ui/CourtContext.tsx';
 import {
-  EMPTY_LIVE_SCORES, IDLE_TEXT, WAITING_TEXT, LIVE_SCORES_HEADING, NO_NEXT_TEXT, liveScoresView,
+  EMPTY_LIVE_SCORES, IDLE_TEXT, WAITING_TEXT, LIVE_SCORES_HEADING, LIVE_SCORES_EVENT, NO_NEXT_TEXT, liveScoresView,
   type HansokuView, type LiveCourtBodyView, type LiveCourtView, type LivePlayerInput, type LiveScoresInput,
 } from './live-scores-model.ts';
 
-export const LIVE_SCORES_EVENT = 'ksm:live-scores';
-
 interface LiveScoresWindow {
-  /** Live Scores as renderPublic() last published it. */
+  /** Live Scores as publish.ts last computed it. */
   ksmLiveScoresInput?: LiveScoresInput;
 }
 

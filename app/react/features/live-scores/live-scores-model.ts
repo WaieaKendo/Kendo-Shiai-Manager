@@ -3,12 +3,12 @@
 // placements in its card), or, once neither court has a match, a finished division's placements
 // (F16).
 //
-// The legacy app still decides what is shown: renderPublic() (app/js) chooses each court's match
-// with courtCurrentMatch() (which also moves the court on, as before), audienceMeta() gives the
-// division and match line (shared with the TV), the court screen's own publishers give a team
+// publish.ts computes what is shown when renderPublic() (app/js) signals: it chooses each court's
+// match with courtCurrentMatch() (which also moves the court on, as before), audienceMeta() gives
+// the division and match line (shared with the TV), the court screen's own publishers give a team
 // match's bout sheet and a kachinuki sheet (ksmTeamSheet(), ksmKachinukiSheet(), the court's
-// context panel data) and resultPlacements() (engine) the placements. It publishes a
-// LiveScoresInput (ksm:live-scores) instead of writing #publicLive. liveScoresView() adds what the
+// context panel data) and resultPlacements() (engine) the placements. The result is a
+// LiveScoresInput (window.ksmLiveScoresInput) instead of #publicLive being written. liveScoresView() adds what the
 // legacy liveScoresCourtCard() derived: test IDs, classes, the "Court X" title, the meta line and
 // the point strings.
 import { courtCompleteView, type CourtCompleteInput, type CourtCompleteView } from '../../shared/ui/complete-model.ts';
@@ -16,6 +16,13 @@ import {
   kachinukiSheetView, teamSheetView,
   type KachinukiSheetInput, type KachinukiSheetView, type TeamSheetInput, type TeamSheetView,
 } from '../../shared/ui/context-model.ts';
+
+// ------------------------------------------------------------------------------ events
+
+/** Legacy's signal (app/js/36-react-live-scores.js): renderPublic() asks for a redraw.
+ * publish.ts computes the input on it (registered before the island's listener, so the island
+ * reads the new input); the island redraws on the same event. */
+export const LIVE_SCORES_EVENT = 'ksm:live-scores';
 
 // ------------------------------------------------------------------------------ input
 

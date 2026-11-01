@@ -1,89 +1,24 @@
 /* ksm:post-split-begin react-tv */
 // ==========================================================
-// React TV display (app/react/tv/, roadmap M.13)
+// React TV display (app/react/features/tv/, roadmap M.13, #136 step 2)
 // The TV display (?view=tv, body.ksm-tv, #tvLive) is drawn only by React: one island (Tv), mounted
-// by app/react/tv/main.tsx. The legacy code still chooses what the TV shows:
-// buildTV3ViewModel() (26-tv-display.js) takes the TV court's match with courtCurrentMatch()
-// (which also moves the court on, as before), its upcoming matches (tvUpcomingMatches(), which
-// sorts the division's matches in place) and decides when a completed division's Final Results
-// show. renderTvDisplay() (26-) calls ksmRenderTv() below, which publishes what to draw as
-// plain data (ksm:tv, window.ksmTvInput) and never writes #tvLive.
-// The legacy tv3 renderer (tv3Individual(), tv3Team(), tv3Kachinuki(), tv3Results(),
-// tv3Upcoming(), ... in 26-, and renderTvDisplay()'s body) and the first TV renderer that never
-// ran (25-: tvIndividualHtml(), tvTeamHtml(), ...) were removed in M.13; the functions below
-// mirror the tv3 renderer's reads, in the same order, which tests/golden/tv/*.json (recorded
-// from it) pin; text is what esc() showed (ksmText(), String(x||'')); the placements are the
-// court screen's division-complete data (ksmDivisionCompleteInput(), 35-react-court.js).
-// If the React module does not load, the TV shows a notice (the end of this file).
+// by app/react/features/tv/main.tsx. What it shows is computed by the module (publish.ts: from
+// buildTV3ViewModel() (26-tv-display.js), which takes the TV court's match with
+// courtCurrentMatch() (which also moves the court on, as before), its upcoming matches
+// (tvUpcomingMatches(), which sorts the division's matches in place) and decides when a completed
+// division's Final Results show; as plain data in window.ksmTvInput); legacy only signals.
+// renderTvDisplay() (26-) calls ksmRenderTv() below, which dispatches ksm:tv. The signal must not
+// call a function defined in the module: this script runs before it (the module may not exist
+// yet, or at all); ksmTvRequested tells the module, when it loads, that a signal came earlier.
+// tests/golden/tv/*.json pin what the island draws (recorded from the legacy tv3 renderer,
+// removed in M.13).
+// If the React module does not load, the TV shows a notice (below). ksmFitTv() and its resize
+// listener stay here (CSS fallback, harmless off the TV).
 // Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
-function ksmPublishTv(input){
-  window.ksmTvInput=input;
-  window.dispatchEvent(new CustomEvent('ksm:tv'));
-}
-// Point letters as Array.join() prints them (the view adds the '—' before the first point, as
-// tvPointText() did).
-function ksmTvLetters(arr){return (arr||[]).map(x=>x==null?'':String(x))}
-// tv3Upcoming(): up to two cards, null for an empty one.
-function ksmTvUpcoming(vm){
-  return (vm.upcoming||[]).map(x=>x?{white:ksmText(x.left),red:ksmText(x.right),whiteSub:ksmText(x.leftSub),redSub:ksmText(x.rightSub)}:null);
-}
-// tv3Team(): the pairing's bouts (after tvUpcomingMatches() sorted them), the current one marked.
-function ksmTvTeam(vm){
-  const m=vm.match,all=(state.allMatches[m.division]||[]).filter(x=>x.teamPair===m.teamPair&&(x.type==='teamPosition'||x.type==='teamPlayoff'));
-  const rows=all.length?all:[m],first=rows[0]||m,sum=teamPairSummary(m.division,m.teamPair);
-  return {kind:'team',teamWhite:ksmText(first.teamWhite||m.teamWhite||'White Team'),teamRed:ksmText(first.teamRed||m.teamRed||'Red Team'),
-    rows:rows.map(x=>{const p=activeScoreArrays(x);return {white:ksmText(x.white||'TBD'),red:ksmText(x.red||'TBD'),points:{W:ksmTvLetters(p.W),R:ksmTvLetters(p.R)},hansoku:ksmHansokuCounts(x),active:x===m}}),
-    // Printed into the template as they are (no esc()).
-    summary:{wWins:String(sum.wWins),wPts:String(sum.wPts),rWins:String(sum.rWins),rPts:String(sum.rPts)}};
-}
-// tv3Kachinuki(): the current bout and both three-fighter lineups.
-function ksmTvKachinuki(vm){
-  const m=vm.match,p=activeScoreArrays(m),lineup=arr=>{const l=(arr||[]).slice(0,3);while(l.length<3)l.push('—');return l.map(n=>ksmText(n||'—'))};
-  return {kind:'kachinuki',white:ksmText(m.white||'—'),red:ksmText(m.red||'—'),points:{W:ksmTvLetters(p.W),R:ksmTvLetters(p.R)},hansoku:ksmHansokuCounts(m),
-    teamWhite:ksmText(m.teamWhite||'White Team'),teamRed:ksmText(m.teamRed||'Red Team'),
-    lineupW:lineup(m.lineupW),lineupR:lineup(m.lineupR),wIndex:Number(m.wIndex||0),rIndex:Number(m.rIndex||0)};
-}
-// renderTvDisplay() as the tv3 renderer drew it: header, body by format, then Upcoming Matches
-// (or, for Final Results, the court's next division).
-function ksmTvDisplayInput(court){
-  document.body.classList.toggle('ksm-tv-red-left',document.getElementById(court==='B'?'court2TvRedSide':'court1TvRedSide')?.value==='left');
-  const vm=buildTV3ViewModel(court);
-  // D1: a team round robin's daihyosen bout is labelled as the header's match line.
-  const header={court:ksmText(vm.court),division:ksmText(ksmDivisionName(vm.meta?.division||vm.division||'No active match')),meta:ksmIsRoundRobinDaihyosen(vm.match)?ksmDaihyosenLabel():ksmText(vm.meta?.line||'')};
-  if(vm.empty){
-    // Owner decision 6: "Waiting for the next match" (with the reason when known) while the court's
-    // division waits; "Up next on this court" (the next division's first matches) in Upcoming.
-    const own=vm.division,between=ksmBetweenMatches(court,own);
-    const waiting=!!own&&(state.allMatches?.[own]||[]).some(m=>isValidMatchObject(m)&&!m.done&&matchBelongsToCourt(m,court));
-    const body={kind:'idle'};
-    if(waiting)body.waiting={next:'match',reason:between.reason};
-    else if(between.upNext)body.waiting={next:'division',reason:null};
-    if(!between.upNext)return {kind:'tv',...header,body,upcoming:ksmTvUpcoming(vm)};
-    const cards=between.upNext.matches.map(x=>({white:x.white,red:x.red,whiteSub:'',redSub:''}));
-    while(cards.length<2)cards.push(null);
-    return {kind:'tv',...header,body,upcoming:cards,upNext:between.upNext.division};
-  }
-  // Owner request: the footer shows the court's next division (the court screen's Continue to
-  // <next>, ksmNextCourtDivision()), information only; no "Division Complete" (the header says Final Results).
-  if(vm.format==='results'){const next=vm.division?ksmNextCourtDivision(court,vm.division):null;
-    return {kind:'tv',...header,body:{kind:'results',complete:ksmDivisionCompleteInput(vm.division,true)},upcoming:[],...(next?{nextDivision:ksmText(ksmDivisionName(next))}:{})}}
-  const upcoming=ksmTvUpcoming(vm);
-  // Owner request: once the division has no more matches to queue, the empty Upcoming cards give way
-  // to "Next: <the court's next division>".
-  const nextUp=upcoming.some(card=>!card)&&vm.division?ksmNextCourtDivision(court,vm.division):null;
-  if(nextUp)header.nextDivision=ksmText(ksmDivisionName(nextUp));
-  if(vm.format==='individual'){
-    const m=vm.match,p=activeScoreArrays(m);
-    return {kind:'tv',...header,upcoming,body:{kind:'individual',
-      white:{name:ksmText(tvIndividualSideLabel(m,'white')),sub:ksmText(m.wdojo)},red:{name:ksmText(tvIndividualSideLabel(m,'red')),sub:ksmText(m.rdojo)},
-      points:{W:ksmTvLetters(p.W),R:ksmTvLetters(p.R)},hansoku:ksmHansokuCounts(m)}};
-  }
-  return {kind:'tv',...header,upcoming,body:vm.format==='kachinuki'?ksmTvKachinuki(vm):ksmTvTeam(vm)};
-}
 function ksmRenderTv(){
-  if(!window.tvLive)return;
-  ksmPublishTv(ksmTvDisplayInput(tvAssignedCourt()));
+  window.ksmTvRequested=true;
+  window.dispatchEvent(new CustomEvent('ksm:tv'));
 }
 
 // If the React module (app/react/main.tsx, a module script after app.js) did not run, say so on

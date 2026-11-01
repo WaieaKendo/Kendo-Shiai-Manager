@@ -264,13 +264,16 @@ const KNOWN_POST_SPLIT_EDITS = {
   'court-clarity': 1,
   // feat/react-live-scores (M.13): the Live Scores screen's React island. With the legacy
   // renderer removed (REMOVED_LIVE_SCORES_RENDERER) renderPublic()'s body (25) is a marked call
-  // of ksmRenderLiveScores(), and app/js/36-react-live-scores.js publishes the screen as plain
-  // data and shows a notice when the React module is missing.
+  // of ksmRenderLiveScores(), and app/js/36-react-live-scores.js (one region) keeps only that
+  // signal stub (it dispatches ksm:live-scores; app/react/features/live-scores/publish.ts computes
+  // the screen), the between-matches helpers (ksmUpNext() is called by classic code) and the
+  // notice shown when the React module is missing.
   'react-live': 2,
   // feat/react-tv (M.13): the TV display's React island. With the legacy TV renderer removed
   // (REMOVED_TV_RENDERER) renderTvDisplay()'s body (26) is a marked call of ksmRenderTv(), and
-  // app/js/37-react-tv.js publishes the TV as plain data and shows a notice when the React module
-  // is missing.
+  // app/js/37-react-tv.js (one region) keeps only that signal stub (it dispatches ksm:tv;
+  // app/react/features/tv/publish.ts computes the TV), the notice shown when the React module is
+  // missing and ksmFitTv().
   'react-tv': 2,
   // feat/react-results (M.13): the Results screen's React islands. With the legacy renderer
   // removed (REMOVED_RESULTS_RENDERER) the bodies of renderResultsDashboard() and
@@ -428,9 +431,9 @@ const REMOVED_COURT_RENDERER = [
 // kachinukiSheetHtml(), divisionCompletePanelHtml(), the TV's) stay.
 const REMOVED_LIVE_SCORES_RENDERER = [
   'renderPublic#1',                                              // 11: never ran (overridden by #2)
-  'renderPublic#2:body',                                         // 25: publishes Live Scores (react-live)
+  'renderPublic#2:body',                                         // 25: signals Live Scores (react-live)
   'liveScorePoints#1', 'liveScoresCourtCard#1',                  // 25: only the removed renderPublic() used them
-  // 32: the division-complete wrapper; ksmRenderLiveScores() (36) makes its decision.
+  // 32: the division-complete wrapper; the Live Scores module (publish.ts) makes its decision.
   { from: 'const renderPublic_v3121=renderPublic;', to: '  renderPublic_v3121();\n};\n' },
 ];
 // feat/react-tv (M.13): the legacy TV renderer, deleted. React draws the TV display (app/react/features/tv/);
@@ -440,7 +443,7 @@ const REMOVED_LIVE_SCORES_RENDERER = [
 // audienceMeta() (Live Scores, TV).
 const REMOVED_TV_RENDERER = [
   // 26: the tv3 renderer's DOM writing (only renderTvDisplay() used them).
-  'renderTvDisplay#2:body',                                      // 26: publishes the TV (react-tv)
+  'renderTvDisplay#2:body',                                      // 26: signals the TV (react-tv)
   'tv3Name#1', 'tv3Header#1', 'tv3Upcoming#1', 'tv3Player#1', 'tv3Individual#1', 'tv3Team#1', 'tv3KRow#1',
   'tv3Kachinuki#1', 'tv3Results#1', 'tv3ResultsFooter#1',
   'divisionCompletePanelHtml#1',                                 // 32: its last user was tv3Results()

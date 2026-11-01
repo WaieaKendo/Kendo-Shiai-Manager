@@ -1,9 +1,10 @@
 import { html as appSource, sw as appServiceWorker, readRepoFile } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
 const html=appSource;
-// M.13: the TV display is React. app/js/37-react-tv.js publishes what buildTV3ViewModel() (26-)
-// chose, app/react/features/tv/ draws it (tests/golden/tv pins the result, recorded from the removed tv3
+// M.13: the TV display is React. app/react/features/tv/publish.ts computes what buildTV3ViewModel() (26-)
+// chose (app/js/37-react-tv.js only signals), app/react/features/tv/ draws it (tests/golden/tv pins the result, recorded from the removed tv3
 // renderer). Checks of TV markup point at that code.
+const tvPublish=readRepoFile('app/react/features/tv/publish.ts');
 const tvReact=readRepoFile('app/react/features/tv/Tv.tsx'),tvModel=readRepoFile('app/react/features/tv/tv-model.ts');
 const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
 const sw=appServiceWorker;
@@ -12,8 +13,8 @@ const checks=[
   [html.includes("division&&divisionComplete(division)&&resultPlacements(division).length"),'completed active division detection'],
   [html.includes("format:'results'"),'TV results view model'],
   // The court screen's completion panel: its data (ksmDivisionCompleteInput()) and component (DivisionCompletePanel).
-  [html.includes('complete:ksmDivisionCompleteInput(vm.division,true)')&&tvReact.includes('<div className="tv3-body tv3-results-body"><DivisionCompletePanel view={body.complete} /></div>'),'shared Court completion markup'],
-  [html.includes("if(vm.format==='results'){const next=vm.division?ksmNextCourtDivision(court,vm.division):null;\n    return {kind:'tv',...header,body:{kind:'results'")&&tvReact.includes("case 'results':"),'TV results render branch'],
+  [tvPublish.includes("complete: legacy('ksmDivisionCompleteInput')(vm.division as string, true)")&&tvReact.includes('<div className="tv3-body tv3-results-body"><DivisionCompletePanel view={body.complete} /></div>'),'shared Court completion markup'],
+  [tvPublish.includes("if (vm.format === 'results') {")&&tvPublish.includes("const next = vm.division ? legacy('ksmNextCourtDivision')(court, vm.division) : null;")&&tvPublish.includes("body: { kind: 'results'")&&tvReact.includes("case 'results':"),'TV results render branch'],
   // Owner decision 6 (#29): an idle court's Upcoming may be "Up next on this court" (its title).
   [tvModel.includes("footer: input.body.kind === 'results' ? (input.nextDivision ? { kind: 'results', next: input.nextDivision } : { kind: 'results' })\n      : input.upNext ? { kind: 'upcoming', cards: input.upcoming, title: upNextTitle(input.upNext) }\n")&&tvReact.includes('<div className={footer.next ? \'tv3-results-footer tv3-results-has-next\' : \'tv3-results-footer\'}>')&&!tvReact.includes('DIVISION_COMPLETE_TEXT'),'results footer branch'],
   [html.includes('.tv3-results-body .division-complete-row'),'isolated TV results styling']
