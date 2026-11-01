@@ -2,7 +2,8 @@
 // tv-header, tv-court, tv-division, tv-meta, tv-current-match, tv-white-name, tv-white-score,
 // tv-upcoming, tv-upcoming-card, ...) as the legacy tv3 renderer drew (tests/golden/tv pins them),
 // so the TV CSS (the fixed 1920×1080 canvas and its 210/610/260 px zones, app/styles/13-tv.css)
-// and the tests apply unchanged. renderTvDisplay() (app/js) publishes what to show (ksm:tv).
+// and the tests apply unchanged. publish.ts computes what to show when renderTvDisplay() (app/js)
+// signals (ksm:tv).
 //
 // Text the legacy template wrote as one string ("Court A", " 2   " around the summary
 // labels) is one text node here too. No colors or images of its own: the TV CSS (theme tokens
@@ -12,15 +13,13 @@ import { TieFlashBanner, useCourtClockStopped } from '../tie-flash/TieFlash.tsx'
 import { useEffect, useSyncExternalStore } from 'react';
 import { DivisionCompletePanel } from '../../shared/ui/CourtComplete.tsx';
 import {
-  EMPTY_TV, NEXT_DIVISION_LABEL, NO_UPCOMING_TEXT, UPCOMING_TITLE, tvView,
+  EMPTY_TV, NEXT_DIVISION_LABEL, NO_UPCOMING_TEXT, TV_EVENT, UPCOMING_TITLE, tvView,
   type TvBodyView, type TvFooterView, type TvInput, type TvKachinukiRowView, type TvPlayerView,
 } from './tv-model.ts';
 import type { HansokuView } from '../live-scores/live-scores-model.ts';
 
-export const TV_EVENT = 'ksm:tv';
-
 interface TvWindow {
-  /** The TV display as renderTvDisplay() last published it. */
+  /** The TV display as publish.ts last computed it. */
   ksmTvInput?: TvInput;
 }
 

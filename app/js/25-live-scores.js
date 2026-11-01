@@ -15,8 +15,8 @@ function audienceMeta(m){
 }
 function renderPublic(){
 /* ksm:post-split-begin react-live */
-  // Live Scores is React (app/react/live-scores/, 36-react-live-scores.js): the screen is
-  // published to it instead of written (M.13); on a TV device the TV display is redrawn too.
+  // Live Scores is React (app/react/features/live-scores/, 36-react-live-scores.js): this only
+  // signals; publish.ts computes the screen (M.13, #136) and, on a TV device, redraws the TV too.
   ksmRenderLiveScores();
 /* ksm:post-split-end */
 }

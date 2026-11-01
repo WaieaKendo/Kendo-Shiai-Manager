@@ -308,6 +308,7 @@ window.KSMTest = {
     renderDivisionSetup: (...a) => renderDivisionSetup(...a),
     renderHomeTournamentLibrary: (...a) => renderHomeTournamentLibrary(...a),
     renderPersistentSaveStatus: (...a) => renderPersistentSaveStatus(...a),
+    renderPublic: (...a) => renderPublic(...a),
     renderQueue: (...a) => renderQueue(...a),
     renderReg: (...a) => renderReg(...a),
     renderResultsDashboard: (...a) => renderResultsDashboard(...a),

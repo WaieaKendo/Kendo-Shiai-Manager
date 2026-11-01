@@ -28,8 +28,8 @@ function buildTV3ViewModel(court){
 }
 function renderTvDisplay(){
 /* ksm:post-split-begin react-tv */
-  // The TV display is React (app/react/tv/, 37-react-tv.js): what buildTV3ViewModel() chose is
-  // published to it instead of written (M.13).
+  // The TV display is React (app/react/features/tv/, 37-react-tv.js): this only signals;
+  // publish.ts computes what buildTV3ViewModel() chose into data (M.13, #136).
   ksmRenderTv();
 /* ksm:post-split-end */
 }

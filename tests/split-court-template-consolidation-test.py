@@ -7,8 +7,10 @@ react=court_react_source()
 # tests/golden/court/*.json pin the result. The court checks below point at that code.
 # Node/Match Object construction lives in app/engine/single-elim.ts since roadmap 2.5.
 engine=(Path(__file__).resolve().parent.parent/'app/engine/single-elim.ts').read_text()
-# M.13: Live Scores is React. app/js/36-react-live-scores.js publishes the complete division's
-# placements, app/react/features/live-scores/LiveScores.tsx draws them with the court's panel.
+# M.13: Live Scores is React. app/react/features/live-scores/publish.ts computes the complete division's
+# placements (app/js/36-react-live-scores.js only signals), app/react/features/live-scores/LiveScores.tsx
+# draws them with the court's panel.
+live_publish=(Path(__file__).resolve().parent.parent/'app/react/features/live-scores/publish.ts').read_text()
 live_react=(Path(__file__).resolve().parent.parent/'app/react/features/live-scores/LiveScores.tsx').read_text()
 checks={
  'single column split context':'split-template-context' in html and "return {kind:'split-single-elim',cards:" in html and 'single-elim-context-grid split-template-context' in react,
@@ -22,7 +24,7 @@ checks={
  'queue empty on complete':"if(divisionComplete(div))return {kind:'empty'};" in html,
  'court medalist panel':'setCourtCompletePresentation' in html,
  # F16: the placements are a court card's (kind 'complete') and fill the screen once neither court plays.
- 'live medalist panel':"kind:'complete',division:ksmText(ksmDivisionName(div)),complete:ksmDivisionCompleteInput(div,true)" in html and "ksmPublishLiveScores({kind:'complete',complete:finished.complete});" in html and "<div className=\"audience-hero\"><DivisionCompletePanel view={view.complete} /></div>" in live_react and "<div className=\"audience-hero\"><DivisionCompletePanel view={body.complete} /></div>" in live_react,
+ 'live medalist panel':"kind: 'complete', division: text(divisionName(div)), complete: legacy('ksmDivisionCompleteInput')(div, true)" in live_publish and "liveScoresWindow().ksmLiveScoresInput = { kind: 'complete', complete: finished.complete };" in live_publish and "<div className=\"audience-hero\"><DivisionCompletePanel view={view.complete} /></div>" in live_react and "<div className=\"audience-hero\"><DivisionCompletePanel view={body.complete} /></div>" in live_react,
 }
 failed=[k for k,v in checks.items() if not v]
 if failed:raise SystemExit('FAIL: '+', '.join(failed))

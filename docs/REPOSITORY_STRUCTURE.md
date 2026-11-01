@@ -27,9 +27,13 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         court/ (the court screen: React islands inside index.html that draw
                         all of it, M.8; app/js/35-react-court.js publishes their data),
                         live-scores/ (the Live Scores screen #public, M.13;
-                        app/js/36-react-live-scores.js publishes its data),
+                        publish.ts computes its data when
+                        app/js/36-react-live-scores.js signals; the between-matches
+                        helpers ksmUpNext() etc. stay classic there until the court
+                        file moves),
                         tv/ (the TV display #tvLive, ?view=tv, M.13;
-                        app/js/37-react-tv.js publishes its data; the Final Results
+                        publish.ts computes its data when
+                        app/js/37-react-tv.js signals; the Final Results
                         reuse shared/ui/'s DivisionCompletePanel),
                         results/ (the Results screen #results: cards, awards editor,
                         bracket modal, M.13; publish.ts computes its data when
