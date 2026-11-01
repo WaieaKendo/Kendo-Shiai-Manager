@@ -4,10 +4,9 @@
 // Add Custom Division, the team, exhibition, referee and court-side settings) is legacy markup:
 // the legacy code reads and writes those fields by id synchronously.
 //
-// The legacy app decides what is shown: renderDivisionSetup() (app/js/01-state-and-setup.js)
-// publishes a SetupDivisionsInput (ksm:setup-divisions) and syncSetupHeader()
-// (30-setup-header-and-director.js) a SetupHeaderInput (ksm:setup-header), through
-// app/js/42-react-setup.js. The legacy renderer (divisionSetupRow()'s markup, syncSetupHeader()'s
+// The input is computed by publish.ts when renderDivisionSetup() (app/js/01-state-and-setup.js)
+// and syncSetupHeader() (30-setup-header-and-director.js) signal (ksm:setup-divisions,
+// ksm:setup-header, app/js/42-react-setup.js): a SetupDivisionsInput and a SetupHeaderInput. The legacy renderer (divisionSetupRow()'s markup, syncSetupHeader()'s
 // text) is mirrored here: its texts, options, classes and test IDs (setup-division-row,
 // setup-division-enabled, setup-division-name, setup-division-format, setup-division-court),
 // which tests/golden/setup (recorded from it) pins.
@@ -16,6 +15,10 @@
 // so a later field is one more property here and one more cell in Setup.tsx.
 
 // ------------------------------------------------------------------------------ input
+
+/** The signals legacy sends (app/js/42-react-setup.js); publish.ts recomputes the input on each. */
+export const SETUP_DIVISIONS_EVENT = 'ksm:setup-divisions';
+export const SETUP_HEADER_EVENT = 'ksm:setup-header';
 
 /** One row of the divisions table (divisionSetupRow(d, enabled, custom)). */
 export interface SetupDivisionRowInput {

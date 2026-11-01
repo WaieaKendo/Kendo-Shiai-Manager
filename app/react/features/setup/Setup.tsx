@@ -20,13 +20,12 @@
 // No colors or images of its own: the Setup CSS and theme tokens.
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 import {
-  COURT_OPTIONS, CUSTOM_TEXT, EMPTY_SETUP_DIVISIONS, EMPTY_SETUP_HEADER, FORMAT_OPTIONS, MOVE_TEXTS, REMOVE_TEXT, RENAME_TEXTS,
+  COURT_OPTIONS, CUSTOM_TEXT, SETUP_DIVISIONS_EVENT, SETUP_HEADER_EVENT, EMPTY_SETUP_DIVISIONS, EMPTY_SETUP_HEADER, FORMAT_OPTIONS, MOVE_TEXTS, REMOVE_TEXT, RENAME_TEXTS,
   moveLabel, renameEditReducer, renameFieldLabel, renameLabel, setupDivisionRowView, setupHeaderText,
   type RenameAction, type RenameEdit, type SetupDivisionRowView, type SetupDivisionsInput, type SetupHeaderInput,
 } from './setup-model.ts';
 
-export const SETUP_DIVISIONS_EVENT = 'ksm:setup-divisions';
-export const SETUP_HEADER_EVENT = 'ksm:setup-header';
+export { SETUP_DIVISIONS_EVENT, SETUP_HEADER_EVENT };
 
 interface SetupWindow {
   /** The divisions table as renderDivisionSetup() last published it. */

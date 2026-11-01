@@ -51,7 +51,7 @@ chosen with select_option(); transitions are off.
                       and divisions; the test API's configure() (divisions, team settings).
 
 Since M.13 React draws the divisions table's rows and the hero's name (app/react/features/setup/: two
-islands, #divisionSetupRows and #setupTournamentName; app/js/42-react-setup.js publishes their
+islands, #divisionSetupRows and #setupTournamentName; app/react/features/setup/publish.ts computes their
 data). React must render every element of the rows (and both elements must be the islands'
 roots), and every kind of row and name must be covered. The Setup fields stay legacy markup.
 The legacy renderer is removed, so this test pins the React-only rows and name. Last, the app
@@ -470,10 +470,23 @@ def setup_module_missing(browser):
     assert not page.locator('#setup .setup-division-table-wrap:has(#divisionSetupRows)').is_visible(), 'the empty divisions table is shown without the React module'
     assert page.locator('#divisionSetupRows *').count() == 0, 'something drew the divisions table without the React module'
     assert page.locator('#setupTournamentName').text_content() == 'Kendo Tournament', 'the hero changed without the React module'
-    assert page.evaluate('window.ksmSetupDivisionsInput.rows.length') == 7, 'renderDivisionSetup() did not publish without the island'
+    # The inputs are computed by the module (pull): without it nothing computes them, but
+    # renderDivisionSetup() / syncSetupHeader() still signal (once each), which is safe before the
+    # module loads.
+    assert page.evaluate('window.ksmSetupDivisionsInput === undefined && window.ksmSetupHeaderInput === undefined'), 'a Setup input exists without the React module'
+    assert page.evaluate("""() => {
+        let divisions = 0, header = 0;
+        window.addEventListener('ksm:setup-divisions', () => { divisions++; });
+        window.addEventListener('ksm:setup-header', () => { header++; });
+        KSMTest.app.renderDivisionSetup();
+        const afterDivisions = divisions === 1 && header === 0 && window.ksmSetupDivisionsRequested === true;
+        KSMTest.app.syncSetupHeader();
+        return afterDivisions && divisions === 1 && header === 1 && window.ksmSetupHeaderRequested === true
+            && window.ksmSetupDivisionsInput === undefined && window.ksmSetupHeaderInput === undefined;
+    }"""), 'renderDivisionSetup() / syncSetupHeader() without the module must signal once each and compute nothing'
     type_into(page, '#tName', 'Still Works')
     assert page.evaluate('KSMTest.app.getSetupSnapshot().tName') == 'Still Works', 'the Setup fields do not work without the React module'
-    assert page.evaluate('window.ksmSetupHeaderInput.name') == 'Still Works', 'syncSetupHeader() did not publish without the island'
+    assert page.evaluate('window.ksmSetupHeaderInput === undefined'), 'the Setup header input exists without the React module'
     assert not errors, errors
     page.close()
 

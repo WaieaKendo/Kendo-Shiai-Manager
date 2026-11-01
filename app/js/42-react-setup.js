@@ -1,51 +1,36 @@
 /* ksm:post-split-begin react-setup */
 // ==========================================================
-// React Setup screen (app/react/setup/, roadmap M.13)
-// Setup (#setup) draws two parts with React islands, mounted by app/react/setup/main.tsx: the
-// Individual Divisions table's rows (#divisionSetupRows) and the tournament name in the hero
-// (#setupTournamentName). The legacy code still decides what is shown and runs every action:
-// renderDivisionSetup() (01-state-and-setup.js) calls ksmRenderSetupDivisions() below, which
-// publishes a row per preset division and per custom division as plain data
-// (ksm:setup-divisions, window.ksmSetupDivisionsInput); syncSetupHeader()
-// (30-setup-header-and-director.js) publishes the name field's value (ksm:setup-header,
-// window.ksmSetupHeaderInput). tests/golden/setup/*.json (recorded from the legacy renderer) pin
-// the result. Text is what esc() showed (ksmText(), String(x||'')), a division passed to the
-// handlers what jsArg() passed (String(x??'')). The rows' controls call toggleDivision(),
-// setDivisionFormat(), setDivisionCourt() (01) on their change event and × calls
-// ksmRemoveSetupDivision() below, as the inline handlers did.
+// React Setup screen (app/react/features/setup/, roadmap M.13, #136 step 2)
+// Setup (#setup) draws two parts with React islands, mounted by app/react/features/setup/main.tsx:
+// the Individual Divisions table's rows (#divisionSetupRows) and the tournament name in the hero
+// (#setupTournamentName). The islands' input is computed by the module (publish.ts: the rows from
+// the divisions in state, the name from the Setup field, as plain data in
+// window.ksmSetupDivisionsInput / window.ksmSetupHeaderInput); legacy only signals.
+// renderDivisionSetup() (01-state-and-setup.js) calls ksmRenderSetupDivisions() below and
+// syncSetupHeader() (30-setup-header-and-director.js) ksmRenderSetupHeader(); each sets a
+// ksmSetup...Requested flag and dispatches ksm:setup-divisions / ksm:setup-header. They must not
+// call a function defined in the module: this script runs before it (the module may not exist yet,
+// or at all). The flags tell the module, when it loads, that a signal came earlier.
+// tests/golden/setup/*.json (recorded from the legacy renderer) pin what the islands draw.
+// What stays here, and why: the ACTIONS the rows call (React calls legacy): ksmMoveSetupDivision,
+// ksmRenameSetupDivision, ksmRemoveSetupDivision, ksmRestoreStandardDivisions, ksmDivisionRenameError
+// and ksmDivisionRenameBlocked; the helpers classic code also calls or the module reads through
+// shared/legacy.ts: ksmDivisionPresetNames, ksmDivisionRemoveBlocked (ksmRemoveSetupDivision uses
+// both); and ksmPublishSetup, which 01-grand-champion.js still calls to publish the grand-champion
+// setup (not part of this step). The rows' controls call toggleDivision(),
+// setDivisionFormat(), setDivisionCourt() (01) on their change event and x calls
+// ksmRemoveSetupDivision().
 // Every other part of Setup stays legacy markup (app/index.html): the fields are read and
 // written synchronously by id (getSetupSnapshot()/applySetupSnapshot() in 20-, tournamentSettings(),
 // saveSetup(), the test API's configure(), print and the header) and 30- adds the name's input
-// listener while app.js runs, before the React module. The legacy Setup renderer (the innerHTML of
-// renderDivisionSetup(), divisionSetupRow(), syncSetupHeader()'s textContent) was removed in M.13.
-// If the React module does not load, Setup shows a notice in place of the divisions table (the end
-// of this file).
+// listener while app.js runs, before the React module. If the React module does not load, Setup
+// shows a notice in place of the divisions table (the end of this file).
 // Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
+// Still used by 01-grand-champion.js (ksmRenderGrandChampionSetup).
 function ksmPublishSetup(event,key,input){
   window[key]=input;
   window.dispatchEvent(new CustomEvent(event));
-}
-// renderDivisionSetup() (01) as data, as the removed divisionSetupRow() read it.
-// Issue #31 (was: the presets in their order, then the enabled custom divisions): the enabled
-// divisions in their running order (state.divisions: the order generation, each court's division
-// dropdown, Continue and the TV's Up next use), each with whether it can move up / down, then the
-// switched-off presets in their order, then (owner decision 12) the switched-off custom divisions:
-// switching one off keeps its format and court in state (toggleDivision()), so a custom division
-// with a format that is not in state.divisions is listed, unchecked, until × removes it.
-// Issue #25: a renamed preset is still a preset (no ×, listed among the presets when switched
-// off) under its new name, and its old name is not listed again (ksmDivisionPresetNames()).
-function ksmSetupDivisionsData(){
-  const presets=ksmDivisionPresetNames(),preset=d=>presets.includes(d),on=state.divisions;
-  const row=(d,enabled,custom,move)=>({division:String(d??''),name:ksmText(d),enabled:!!enabled,custom:!!custom,
-    format:state.divisionTypes[d]??null,court:state.divisionCourts[d]||'A',move,removable:true,removeBlocked:ksmDivisionRemoveBlocked(d)});
-  // Owner request: any division can be removed before its draw; a removed preset is hidden for this
-  // tournament (state.hiddenPresets) until "Restore standard divisions".
-  const hidden=state.hiddenPresets||[];
-  const off=presets.filter(d=>!on.includes(d)&&!hidden.includes(d));
-  const customOff=Object.keys(state.divisionTypes||{}).filter(d=>d&&!preset(d)&&!on.includes(d)&&d!=='Team Tournament'&&d!=='Exhibition Matches');
-  return {rows:[...on.map((d,i)=>row(d,true,!preset(d),{up:i>0,down:i<on.length-1})),...off.map(d=>row(d,false,false,null)),...customOff.map(d=>row(d,false,true,null))],
-    hiddenPresets:presets.filter(d=>hidden.includes(d)&&!on.includes(d)).length};
 }
 // Issue #31: a row's move up / down button. Swaps the division with its neighbour in the running
 // order (state.divisions), saved and synced like every Setup edit (the button's click asks for the
@@ -83,12 +68,12 @@ function ksmRenameSetupDivision(from,to){
   return null;
 }
 function ksmRenderSetupDivisions(){
-  ksmPublishSetup('ksm:setup-divisions','ksmSetupDivisionsInput',ksmSetupDivisionsData());
+  window.ksmSetupDivisionsRequested=true;
+  window.dispatchEvent(new CustomEvent('ksm:setup-divisions'));
 }
-// syncSetupHeader() (30) as data: the name field's value (the island shows 'Kendo Tournament'
-// when it is empty).
 function ksmRenderSetupHeader(){
-  ksmPublishSetup('ksm:setup-header','ksmSetupHeaderInput',{name:window.tName?String(tName.value):''});
+  window.ksmSetupHeaderRequested=true;
+  window.dispatchEvent(new CustomEvent('ksm:setup-header'));
 }
 // × of a custom division row: what its inline handler ran. A switched-off custom division (owner
 // decision 12) is not in state.divisions (removeDivision(-1) would remove the last division):

@@ -2,12 +2,13 @@
 // other screens by app/react/main.tsx; the build lists its files in the service worker's
 // APP_SHELL, so an offline device has them): the rows of the Individual Divisions table
 // (#divisionSetupRows) and the tournament name in the hero (#setupTournamentName). The legacy
-// code computes what is shown; renderDivisionSetup() and syncSetupHeader() publish it
-// (app/js/42-react-setup.js) and never write these elements (M.13). Every Setup field stays legacy
+// code only signals (renderDivisionSetup() and syncSetupHeader(), app/js/42-react-setup.js);
+// publish.ts computes what is shown and these elements are never written by legacy (M.13). Every Setup field stays legacy
 // markup (read and written by id). If this module does not load, the legacy code shows a
 // "Divisions could not load" notice in place of the divisions table (42-react-setup.js, on
 // DOMContentLoaded).
 import { mountIsland } from '../../shared/lib/island.tsx';
+import { startSetupInput } from './publish.ts';
 import { SetupDivisionRows, SetupHeader } from './Setup.tsx';
 import { GrandChampionSetup } from './GrandChampions.tsx';
 
@@ -21,8 +22,11 @@ if (!rows) throw new Error('KSM Setup: #setup #divisionSetupRows is missing');
 const header = document.querySelector('#setup #setupTournamentName');
 if (!header) throw new Error('KSM Setup: #setup #setupTournamentName is missing');
 
-// renderDivisionSetup() and syncSetupHeader() have published since app.js started (boot); the
-// islands start from the last publish.
+// Pull: the input is computed from the legacy app on every ksm:setup-divisions / ksm:setup-header
+// signal (and now, for one sent before this module ran: renderDivisionSetup() and
+// syncSetupHeader() have signalled since app.js started); started before mounting so it runs
+// ahead of the islands' own listeners. The islands start from the last input.
+startSetupInput();
 mountIsland(rows, <SetupDivisionRows />);
 mountIsland(header, <SetupHeader />);
 // #86: the Grand Champion section (ksmRenderGrandChampionSetup(), app/js/01-grand-champion.js).
