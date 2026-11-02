@@ -63,7 +63,7 @@ with Playwright's real mouse drag (locator.drag_to) in Chromium.
                       split, team RR 3, kachinuki RR 3.
 
 Since M.13 #poolOutput is drawn only by React (app/react/features/pools/: one island, the contents of
-#poolOutput; app/js/41-react-pools.js publishes its data); the legacy renderer is removed, so
+#poolOutput; app/react/features/pools/publish.ts computes its data); the legacy renderer is removed, so
 this test pins the React-only view. The division select, Regenerate and #poolOutput's class stay
 legacy. React must render every element of the island (and #poolOutput must be its root) and
 every kind of Pools content must be covered. Last, the app without the React module script must
@@ -513,7 +513,17 @@ def pools_module_missing(browser, errors):
     assert not page.locator('#poolOutput').is_visible(), 'the empty #poolOutput is shown without the React module'
     assert page.locator('#poolOutput *').count() == 0, 'something drew #poolOutput without the React module'
     assert page.locator('[data-testid="pool-division-select"]').is_visible(), 'the division select is gone without the React module'
-    assert page.evaluate('window.ksmPoolsInput.kind') == 'pools', 'renderPools() did not publish without the island'
+    # The input is computed by the module (pull): without it nothing computes it, but renderPools()
+    # still signals (once) and records the request, which is safe before the module loads.
+    assert page.evaluate('window.ksmPoolsInput === undefined'), 'a Pools input exists without the React module'
+    assert page.evaluate("""() => {
+        let signals = 0;
+        window.addEventListener('ksm:pools', () => { signals++; });
+        KSMTest.app.renderPools();
+        const view = signals === 1 && window.ksmPoolsRequested.kind === 'pools';
+        KSMTest.app.toggleEditPools();
+        return view && signals === 2 && window.ksmPoolsRequested.kind === 'editor' && window.ksmPoolsInput === undefined;
+    }"""), 'renderPools() / toggleEditPools() without the module must signal once each and compute nothing'
     page.close()
 
 

@@ -1,7 +1,7 @@
 // The Pools view's island: the contents of #poolOutput (Registration -> Pools), with the same
 // elements, classes and test IDs as the legacy renderPools() / toggleEditPools() drew, so the
 // pool CSS and every test apply unchanged; tests/golden/pools pins them. renderPools() and
-// toggleEditPools() (app/js) publish what to show (ksm:pools); #poolOutput's class
+// toggleEditPools() (app/js) signal (ksm:pools) and publish.ts computes what to show; #poolOutput's class
 // ('pools-layout'), the division select and Regenerate stay legacy (outside the island).
 //
 // Drag and drop and the buttons call the legacy functions the inline handlers called, with
@@ -16,11 +16,11 @@
 import { Fragment, useSyncExternalStore, type DragEvent } from 'react';
 import { Bracket } from '../../shared/ui/CourtContext.tsx';
 import {
-  CANCEL_TEXT, EDITOR_HELP, EDIT_POOL_TEXT, EMPTY_POOLS, POOLS_HEADING, SAVE_POOLS_TEXT,
+  CANCEL_TEXT, POOLS_EVENT, EDITOR_HELP, EDIT_POOL_TEXT, EMPTY_POOLS, POOLS_HEADING, SAVE_POOLS_TEXT,
   poolsView, type EditorRow, type PoolInput, type PoolPlayerInput, type PoolsInput,
 } from './pools-model.ts';
 
-export const POOLS_EVENT = 'ksm:pools';
+export { POOLS_EVENT };
 
 interface PoolsWindow {
   /** The view as renderPools() / toggleEditPools() last published it. */

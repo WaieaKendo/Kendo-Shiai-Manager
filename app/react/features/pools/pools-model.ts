@@ -18,6 +18,9 @@ import { bracketView, type BracketInput, type BracketView } from '../../shared/u
 
 // ------------------------------------------------------------------------------ input
 
+/** The signal legacy sends (app/js/41-react-pools.js); publish.ts recomputes the input on it. */
+export const POOLS_EVENT = 'ksm:pools';
+
 /** One player of a pool (text as esc() showed it). */
 export interface PoolPlayerInput {
   /** The slot letter: poolPlayerSlot() in the view, poolPlayerSlotLetter(index) in the editor. */

@@ -46,8 +46,9 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         app/js/40-react-library.js publishes its data; logo and card
                         mark from shared/ui/branding.ts),
                         pools/ (the Pools view's #poolOutput, Registration -> Pools, and
-                        the Edit Pool editor, M.13; app/js/41-react-pools.js publishes
-                        its data; the preview reuses shared/ui/'s Bracket),
+                        the Edit Pool editor, M.13; publish.ts computes their data when
+                        app/js/41-react-pools.js signals; the F12 edit copy stays
+                        classic; the preview reuses shared/ui/'s Bracket),
                         setup/ (the Setup screen's divisions table rows #divisionSetupRows
                         and hero name #setupTournamentName, M.13; publish.ts computes
                         their data when app/js/42-react-setup.js signals; the Setup

@@ -6,6 +6,7 @@
 // legacy. If this module does not load, the legacy code shows a "Pools could not load" notice
 // instead (41-react-pools.js, on DOMContentLoaded).
 import { mountIsland } from '../../shared/lib/island.tsx';
+import { startPoolsInput } from './publish.ts';
 import { PoolOutput } from './Pools.tsx';
 
 interface LegacyWindow {
@@ -16,7 +17,9 @@ interface LegacyWindow {
 const output = document.querySelector('#poolsReg #poolOutput');
 if (!output) throw new Error('KSM Pools: #poolsReg #poolOutput is missing');
 
-// renderPools() has published since app.js started (renderAll() at boot); the island starts from
-// the last publish.
+// Pull: the input is computed from the legacy app on every ksm:pools signal (and now, for one sent
+// before this module ran: renderPools() has signalled since app.js started); started before
+// mounting so it runs ahead of the island's own listener. The island starts from the last input.
+startPoolsInput();
 mountIsland(output, <PoolOutput />);
 (window as unknown as LegacyWindow).ksmPoolsMounted = true;
