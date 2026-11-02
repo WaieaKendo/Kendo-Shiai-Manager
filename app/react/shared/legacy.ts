@@ -104,6 +104,14 @@ export interface LegacyGlobals {
   poolPlayerSlotLetter: (index: number) => string;
   /** 41-react-pools.js (stays classic: the F12 edit copy is read and written synchronously by classic code). */
   ksmPoolEditPools: (div: string) => Pool[];
+  /** 43-react-registration.js (stay classic: classic actions read the rows' competitors and the stale flags synchronously, F17/F20; 21- and 44- call ksmHtmlText). */
+  ksmHtmlText: (s: unknown) => string;
+  ksmBindRegistrationRow: <R extends object>(competitor: Competitor, row: R) => R;
+  ksmBindRegistrationEntry: <R extends object>(entry: Team | Exhibition, row: R) => R;
+  ksmBlurRedrawn: (island: Element | null | undefined) => void;
+  ksmExhibitionsEnabled: () => boolean;
+  /** 01-team-divisions.js: the settings of a team division (the first one without an id). */
+  ksmTeamSettings: (id?: string) => TournamentSettings;
   /** 35-react-court.js. */
   ksmTeamSheet: (div: string, pair: string | undefined, current: Match) => TeamSheetInput;
   ksmKachinukiSheet: (m: Match) => KachinukiSheetInput;
@@ -141,3 +149,37 @@ export function legacyPublicLive(): Element | null {
 export function legacyTvLive(): Element | null {
   return (window as unknown as { tvLive?: Element }).tvLive ?? null;
 }
+
+/** An input element reached by its id as a window property (the Registration filters and Setup fields). */
+export type LegacyInputName = 'regFilter' | 'teamFilter' | 'teamDivisionFilter' | 'teamTournamentFormat' | 'tCourts';
+
+/** One of the Registration inputs (#regFilter, #teamFilter, #teamDivisionFilter, #teamTournamentFormat, #tCourts), if any. */
+export function legacyInput(name: LegacyInputName): { value: string } | null {
+  return (window as unknown as Partial<Record<LegacyInputName, { value: string }>>)[name] ?? null;
+}
+
+/** The individual players table (#regTable, reached as window.regTable by element id), if any. */
+export function legacyRegTable(): Element | null {
+  return (window as unknown as { regTable?: Element }).regTable ?? null;
+}
+
+/** The exhibition table (#exhibitionTable, reached as window.exhibitionTable by element id), if any. */
+export function legacyExhibitionTable(): Element | null {
+  return (window as unknown as { exhibitionTable?: Element }).exhibitionTable ?? null;
+}
+
+/** The team positions of a team format (KSMEngine.teamSlots, defined on window before app.js). */
+export function legacyTeamSlots(teamFormat: string | null | undefined): string[] {
+  return (window as unknown as { KSMEngine: { teamSlots: (f: string | null | undefined) => string[] } }).KSMEngine.teamSlots(teamFormat);
+}
+
+/**
+ * The classic stale flags of Registration (F17/F20): top-level `var`s of app/js/43-react-registration.js,
+ * so window properties. A redraw's blur sets one when it committed an edit into a competitor, team or
+ * exhibition of the new list.
+ */
+export type LegacyStaleFlag = 'ksmRegistrationRowsStale' | 'ksmTeamsStale' | 'ksmExhibitionsStale';
+export const legacyStale = {
+  get: (name: LegacyStaleFlag): boolean => !!(window as unknown as Partial<Record<LegacyStaleFlag, boolean>>)[name],
+  set: (name: LegacyStaleFlag, value: boolean): void => { (window as unknown as Record<LegacyStaleFlag, boolean>)[name] = value; },
+};

@@ -57,8 +57,10 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         #regTable and the status card's contents #tournamentStatusCard;
                         part 2 (RegistrationTeams.tsx, teams-model.ts): the team cards
                         #teamTable, the exhibition table #exhibitionTable and the tab
-                        bar; app/js/43-react-registration.js publishes their data; the
-                        toolbars, filters and the cards' visibility stay legacy),
+                        bar; publish.ts computes their data when
+                        app/js/43-react-registration.js signals; the actions, the F17/F20
+                        binding state and ksmHtmlText() stay classic; the toolbars, filters
+                        and the cards' visibility stay legacy),
                         account/ (Auth0 sign-in and the session cache: auth0.tsx, auth-session-cache.ts),
                         shell/ (the shell, M.13's last step: the navigation bar
                         nav.minimal-nav and the header's status row .cloud-status-wrap,

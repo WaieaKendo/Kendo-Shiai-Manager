@@ -19,6 +19,11 @@
 
 // ------------------------------------------------------------------------------ input
 
+/** The signals legacy sends (app/js/43-react-registration.js); publish.ts recomputes the input on them. */
+export const TEAMS_EVENT = 'ksm:registration-teams';
+export const EXHIBITIONS_EVENT = 'ksm:registration-exhibitions';
+export const TAB_EVENT = 'ksm:registration-tab';
+
 /** One team card (one team). Texts are as the legacy markup showed them. */
 export interface TeamCardInput {
   teamDivisionId?: string;

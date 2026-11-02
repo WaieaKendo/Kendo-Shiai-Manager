@@ -122,7 +122,9 @@ const KNOWN_POST_SPLIT_EDITS = {
   // feat/react-registration-2 (M.13, part 2): the team cards, the exhibition table and the tab bar
   // are React islands too. With their legacy renderer removed (REMOVED_REGISTRATION_RENDERER) the
   // bodies of renderTeams() and renderExhibitions() (03) are marked calls of their publishers in
-  // 43, and regTab() (23) publishes the tab in place of the four class toggles.
+  // 43, and regTab() (23) signals the tab in place of the four class toggles. #136 step 2: the
+  // module computes every input (app/react/features/registration/publish.ts); 43 keeps the actions,
+  // the F17/F20 binding state and ksmHtmlText(), and its stubs only record the request and signal.
   // Listed here because renderTournamentStatus() (03) is its
   // first region: the check compares names in order of first appearance.
   'react-registration': 6,

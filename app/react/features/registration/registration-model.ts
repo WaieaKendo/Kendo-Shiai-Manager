@@ -16,6 +16,10 @@
 
 // ------------------------------------------------------------------------------ input
 
+/** The signals legacy sends (app/js/43-react-registration.js); publish.ts recomputes the input on them. */
+export const PLAYERS_EVENT = 'ksm:registration-players';
+export const STATUS_EVENT = 'ksm:registration-status';
+
 /** One row of the players table (one competitor). Texts are as the legacy markup showed them. */
 export interface PlayerRowInput {
   /** The competitor's index in state.competitors (what the inline handlers passed). */

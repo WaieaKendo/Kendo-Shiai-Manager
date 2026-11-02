@@ -548,8 +548,21 @@ def reg_module_missing(browser):
     assert not page.locator('#tournamentStatusCard').is_visible(), 'the empty status card is shown without the React module'
     page.locator(tid('reg-add-row')).dispatch_event('click')
     assert page.locator('#regTable *').count() == 0, 'something drew the players table without the React module'
-    assert page.evaluate('window.ksmRegistrationPlayersInput.rows.length') == 1, 'renderReg() did not publish without the island'
-    assert page.evaluate('window.ksmRegistrationStatusInput') is not None, 'renderTournamentStatus() did not publish without the island'
+    # The inputs are computed by the module (pull): without it nothing computes them, but renderReg()
+    # and renderTournamentStatus() still signal (once each per call) and record the request, which is
+    # safe before the module loads.
+    assert page.evaluate('window.ksmRegistrationPlayersInput === undefined && window.ksmRegistrationStatusInput === undefined'), \
+        'a Registration input exists without the React module'
+    assert page.evaluate('''() => {
+        const counts = { players: 0, status: 0 };
+        window.addEventListener('ksm:registration-players', () => { counts.players++; });
+        window.addEventListener('ksm:registration-status', () => { counts.status++; });
+        KSMTest.app.renderReg();
+        const reg = counts.players === 1 && counts.status === 1 && window.ksmRegistrationPlayersRequested === true;
+        KSMTest.app.renderTournamentStatus();
+        return reg && counts.players === 1 && counts.status === 2 && typeof window.ksmRegistrationStatusRequested.valid === 'boolean'
+            && window.ksmRegistrationPlayersInput === undefined && window.ksmRegistrationStatusInput === undefined;
+    }'''), 'renderReg() / renderTournamentStatus() without the module must signal once each and compute nothing'
     assert page.locator(tid('reg-tab-team')).is_visible(), 'the tab bar is gone without the React module'
     assert not errors, errors
     page.close()
