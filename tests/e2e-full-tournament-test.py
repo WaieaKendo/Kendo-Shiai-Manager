@@ -79,7 +79,8 @@ class Scorekeeper:
         side, other = ('W', 'R') if winner == white else ('R', 'W')
         if m['meta'].startswith('Final'):
             return winner, [(side, 'M'), (other, 'K'), (side, 'K')]  # 2-1 final
-        return winner, [(side, 'M' if len(self.log) % 2 else 'K')]
+        # Letter depends only on the pair, not on how the two courts interleave.
+        return winner, [(side, 'M' if (RANK[white] + RANK[red]) % 2 else 'K')]
 
     def step(self):
         """Score one match, or move to the next division. Returns True if anything happened."""
