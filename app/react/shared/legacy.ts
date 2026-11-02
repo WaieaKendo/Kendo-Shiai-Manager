@@ -99,6 +99,11 @@ export interface LegacyGlobals {
   /** 42-react-setup.js (stay classic: classic ksmRemoveSetupDivision() calls them). */
   ksmDivisionPresetNames: () => string[];
   ksmDivisionRemoveBlocked: (division: string) => string | null;
+  /** 04-engine-pools.js: a pool player's slot (the letter, or the seed number). */
+  poolPlayerSlot: (player: PoolPlayer, index: number) => string;
+  poolPlayerSlotLetter: (index: number) => string;
+  /** 41-react-pools.js (stays classic: the F12 edit copy is read and written synchronously by classic code). */
+  ksmPoolEditPools: (div: string) => Pool[];
   /** 35-react-court.js. */
   ksmTeamSheet: (div: string, pair: string | undefined, current: Match) => TeamSheetInput;
   ksmKachinukiSheet: (m: Match) => KachinukiSheetInput;

@@ -156,8 +156,9 @@ const KNOWN_POST_SPLIT_EDITS = {
   'pool-no-show': 3,
   // feat/react-pools (M.13): the Pools view's React island (#poolOutput). With the legacy renderer
   // removed (REMOVED_POOLS_RENDERER) the bodies of renderPools() (08) and toggleEditPools() (16)
-  // are marked publishers, and app/js/41-react-pools.js publishes the view and the editor as
-  // plain data and shows a notice when the React module is missing. Listed here because renderPools() (08) is its first region: the check
+  // are marked publishers, and app/js/41-react-pools.js signals the module (which computes the
+  // view and the editor, #136 step 2), keeps the F12 edit copy and shows a notice when the React
+  // module is missing. Listed here because renderPools() (08) is its first region: the check
   // compares names in order of first appearance.
   'react-pools': 3,
   // fix/pre-event-2 (F30): Undo/Redo are logged per court (10-: KSM_HISTORY_KEYS, recordCourtUndoLog(),

@@ -1,44 +1,35 @@
 /* ksm:post-split-begin react-pools */
 // ==========================================================
-// React Pools view (app/react/pools/, roadmap M.13)
+// React Pools view (app/react/features/pools/, roadmap M.13, #136 step 2)
 // The Pools view (Registration -> Pools, #poolsReg) draws #poolOutput with one React island,
-// mounted by app/react/pools/main.tsx. The legacy code still decides what is shown and runs every
-// action: renderPools() (08-engine-generation.js) calls ksmRenderPools(div) below, which publishes
-// the division's pools, the message when there are none, whether Edit Pool is offered and the
-// Championship Preview / Team Standings as plain data (ksm:pools, window.ksmPoolsInput);
-// toggleEditPools() (16-court-context-and-pool-editing.js) publishes the editor through
-// ksmRenderPoolEditor(div). Both read what the legacy templates read; tests/golden/pools/*.json
-// (recorded from the legacy renderer) pin the result. Text is what esc() showed (ksmText(),
-// String(x||'')), the pool label of the drag-and-drop handlers what jsArg() passed
-// (String(x??'')), the bracket the court screen's data (ksmBracket(), 35-react-court.js: the
-// legacy bracketHtml()). The island's drag and drop and buttons call dragPoolPlayer(),
-// dropPoolPlayer(), insertPoolPlayer(), toggleEditPools(), saveEditedPools() and renderPools()
-// (08, 16), as the inline handlers did. The division select (#poolDiv, written by
+// mounted by app/react/features/pools/main.tsx. The island's input is computed by the module
+// (publish.ts: the division's pools, the message when there are none, whether Edit Pool is offered,
+// the Championship Preview / Team Standings, and the editor, as plain data in window.ksmPoolsInput);
+// legacy only signals. renderPools() (08-engine-generation.js) calls ksmRenderPools(div) and
+// toggleEditPools() (16-court-context-and-pool-editing.js) ksmRenderPoolEditor(div) below; each
+// records the request (window.ksmPoolsRequested = {kind:'pools'|'editor', div}) and dispatches
+// ksm:pools. They must not call a function defined in the module: this script runs before it (the
+// module may not exist yet, or at all). The module computes the LAST request, on the event and
+// once when it loads, for a request that came earlier.
+// tests/golden/pools/*.json (recorded from the legacy renderer) pin what the island draws. The
+// island's drag and drop and buttons call dragPoolPlayer(), dropPoolPlayer(), insertPoolPlayer(),
+// toggleEditPools(), saveEditedPools() and renderPools() (08, 16), as the inline handlers did.
+// What stays here, and why: the F12 edit copy (ksmPoolEdit, ksmPoolEditPools, ksmPoolEditorClick,
+// ksmPoolEditToSave): classic code reads and writes it synchronously (the drop handlers in 16-, the
+// click listener in 21-, Save in 16-), so it cannot move behind an event. The two stubs keep the
+// order that depends on it: ksmRenderPools() drops the copy first, ksmRenderPoolEditor() creates it
+// first, both synchronously, before the signal. The module reads the copy through
+// ksmPoolEditPools() (shared/legacy.ts). The division select (#poolDiv, written by
 // renderDivisions() in 02-, read synchronously by the pool functions), Regenerate and
-// #poolOutput's class stay legacy. The legacy Pools renderer (the innerHTML of renderPools() and
-// toggleEditPools(), and bracketHtml() with its helpers in 06-/14-/28-/29-) was removed in M.13.
+// #poolOutput's class stay legacy too, as does the notice below.
 // If the React module does not load, the Pools view shows a notice (the end of this file).
 // Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
-function ksmPublishPools(input){
-  window.ksmPoolsInput=input;
-  window.dispatchEvent(new CustomEvent('ksm:pools'));
-}
-// renderPools() (08) as data.
-function ksmPoolsViewInput(div){
-  const pools=state.pools[div]||[];
-  // The heading printed the label as it is (no esc()); labels are the engine's A, B, C, ...
-  const poolData=pools.map(p=>({label:String(p.label??''),title:`${isTeamDivision(div)?'Team Pool':'Pool'} ${p.label}`,
-    players:p.players.map((x,idx)=>({slot:ksmText(poolPlayerSlot(x,idx)),name:ksmText(x.name),dojo:ksmText(x.dojo)}))}));
-  const message=pools.length?null:(isTeamDivision(div)&&state.allMatches[div]?.length?'Single-elimination team bracket created. Team position matches are available in the Court queue.':((state.divisionTypes[div]==='Single Elimination'&&state.allMatches[div]?.length)?'Single-elimination bracket created. Matches are available in the Court queue.':'No pools generated yet.'));
-  const edit=!!(pools.length&&!isTeamRoundRobinDivision(div));
-  const rightTitle=isTeamRoundRobinDivision(div)?'Team Standings':'Championship Preview';
-  return {kind:'pools',pools:poolData,message,edit,rightTitle,bracket:ksmBracket(div)};
-}
 function ksmRenderPools(div){
   // The view replaces the editor: an edit not saved is dropped (F12, see below).
   ksmPoolEdit=null;
-  ksmPublishPools(ksmPoolsViewInput(div));
+  window.ksmPoolsRequested={kind:'pools',div};
+  window.dispatchEvent(new CustomEvent('ksm:pools'));
 }
 // F12: Edit Pool works on a copy of the division's pools. The drops (dropPoolPlayer(),
 // insertPoolPlayer(), movePoolPlayer() in 16-) move players in the copy, which the editor shows;
@@ -63,13 +54,12 @@ function ksmPoolEditToSave(div){
   ksmPoolEdit=null;
   return pools;
 }
-// toggleEditPools() (16) as data: the editor of the division's pools (slot letters by position).
+// toggleEditPools() (16): the editor of the division's pools. The edit copy is created here, before
+// the signal, exactly when it was; the module reads it (ksmPoolEditPools() returns the existing one).
 function ksmRenderPoolEditor(div){
-  const pools=ksmPoolEditPools(div);
-  ksmPublishPools({kind:'editor',
-    pools:pools.map(p=>({label:String(p.label??''),title:`Pool ${ksmText(p.label)}`,
-      players:p.players.map((x,idx)=>({slot:ksmText(poolPlayerSlotLetter(idx)),name:ksmText(x.name),dojo:ksmText(x.dojo||'')}))})),
-    bracket:ksmBracket(div)});
+  ksmPoolEditPools(div);
+  window.ksmPoolsRequested={kind:'editor',div};
+  window.dispatchEvent(new CustomEvent('ksm:pools'));
 }
 
 // If the React module (app/react/main.tsx, a module script after app.js) did not run, say so in the
