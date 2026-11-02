@@ -2,7 +2,7 @@
 // tournament status card (#tournamentStatusCard), with the same elements, classes and test IDs as
 // the legacy renderReg() / renderTournamentStatus() drew, so the Registration CSS and every test
 // apply unchanged; tests/golden/registration pins them. renderReg() and renderTournamentStatus()
-// (app/js) publish what to show (ksm:registration-players, ksm:registration-status).
+// (app/js) signal (ksm:registration-players, ksm:registration-status) and publish.ts computes what to show.
 //
 // The rows' controls run the inline handlers' code on the same native event: a field's change
 // event (a native listener: React's onChange runs on every key for a text field) calls
@@ -21,15 +21,14 @@
 // No colors or images of its own: the Registration CSS and theme tokens.
 import { useEffect, useLayoutEffect, useRef, useSyncExternalStore } from 'react';
 import {
-  EMPTY_PLAYERS, EMPTY_STATUS, PLAYER_HEADERS, REMOVE_TEXT, STATUS_TITLE,
+  EMPTY_PLAYERS, EMPTY_STATUS, PLAYER_HEADERS, PLAYERS_EVENT, STATUS_EVENT, REMOVE_TEXT, STATUS_TITLE,
   statusClass, statusText, statusView,
   notOfferedLabel,
   type PlayerRowInput, type PlayersInput, type StatusInput,
 } from './registration-model.ts';
 import { pressOnKey } from '../../shared/lib/keyboard.ts';
 
-export const PLAYERS_EVENT = 'ksm:registration-players';
-export const STATUS_EVENT = 'ksm:registration-status';
+export { PLAYERS_EVENT, STATUS_EVENT };
 
 type Field = 'name' | 'dojo' | 'seed' | 'division';
 

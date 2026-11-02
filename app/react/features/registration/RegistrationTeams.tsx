@@ -3,8 +3,8 @@
 // same elements, classes, ids and test IDs as the legacy renderTeams() / renderExhibitions() and
 // the static tab bar drew, so the Registration CSS and every test apply unchanged;
 // tests/golden/registration-teams pins them. renderTeams(), renderExhibitions() and regTab()
-// (app/js) publish what to show (ksm:registration-teams, ksm:registration-exhibitions,
-// ksm:registration-tab).
+// (app/js) signal (ksm:registration-teams, ksm:registration-exhibitions, ksm:registration-tab)
+// and publish.ts computes what to show.
 //
 // The controls run the inline handlers' code on the same native event: a text field's change
 // event (a native listener: React's onChange runs on every key) calls, for the team or match the
@@ -27,14 +27,12 @@ import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { statusClass, statusText, REMOVE_TEXT } from './registration-model.ts';
 import { pressOnKey } from '../../shared/lib/keyboard.ts';
 import {
-  EMPTY_EXHIBITIONS, EMPTY_TABS, EMPTY_TEAMS, EXHIBITION_HEADERS, TAB_BUTTONS, TEAM_NAME_LABEL,
+  EMPTY_EXHIBITIONS, EMPTY_TABS, EMPTY_TEAMS, EXHIBITION_HEADERS, EXHIBITIONS_EVENT, TAB_EVENT, TEAMS_EVENT, TAB_BUTTONS, TEAM_NAME_LABEL,
   tabButtonClass, teamFormatLine, visibleTabButtons,
   type ExhibitionRowInput, type ExhibitionsInput, type TabsInput, type TeamCardInput, type TeamsInput,
 } from './teams-model.ts';
 
-export const TEAMS_EVENT = 'ksm:registration-teams';
-export const EXHIBITIONS_EVENT = 'ksm:registration-exhibitions';
-export const TAB_EVENT = 'ksm:registration-tab';
+export { TEAMS_EVENT, EXHIBITIONS_EVENT, TAB_EVENT };
 
 interface TeamsWindow {
   ksmRegistrationTeamsInput?: TeamsInput | null;

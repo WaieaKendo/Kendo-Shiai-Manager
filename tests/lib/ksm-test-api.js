@@ -316,6 +316,7 @@ window.KSMTest = {
     renderResultsDashboard: (...a) => renderResultsDashboard(...a),
     openResultsBracket: (...a) => openResultsBracket(...a),
     renderTeams: (...a) => renderTeams(...a),
+    renderExhibitions: (...a) => renderExhibitions(...a),
     renderTournamentStatus: (...a) => renderTournamentStatus(...a),
     renderTvDisplay: (...a) => renderTvDisplay(...a),
     replaceTournamentFromFile: (...a) => replaceTournamentFromFile(...a),

@@ -1,58 +1,42 @@
 /* ksm:post-split-begin react-registration */
 // ==========================================================
-// React Registration, parts 1 and 2 (app/react/registration/, roadmap M.13; part 2, the team
-// cards, the exhibition table and the tab bar, is the second half of this file)
-// Registration draws two parts with React islands, mounted by app/react/registration/main.tsx:
+// React Registration, parts 1 and 2 (app/react/features/registration/, roadmap M.13, #136 step 2)
+// Registration draws two parts with React islands, mounted by app/react/features/registration/main.tsx:
 // the individual players table (#regTable) and the contents of the tournament status card
-// (#tournamentStatusCard). The legacy code still decides what is shown and runs every action:
-// renderReg() (03-registration-and-validation.js) calls ksmRenderRegistration() below, which
-// publishes the rows the filter lets through as plain data (ksm:registration-players,
-// window.ksmRegistrationPlayersInput); renderTournamentStatus() (03) sets the card's class and
-// publishes its counts (ksm:registration-status, window.ksmRegistrationStatusInput).
-// tests/golden/registration/*.json (recorded from the legacy renderer) pin the result. Text is what
-// esc() showed after the HTML parser read it (ksmHtmlText()), a row's competitor is its index in
-// state.competitors as the inline handlers had it. The rows' fields call ksmUpdateCompetitor()
-// below on their change event (updateComp() (03) for the competitor the row showed: F17), the
-// status chip cycleCompetitorStatus() (03) and × ksmRemoveCompetitor() below, as the inline
-// handlers did.
-// The toolbars and their buttons and the filter (#regFilter, read by renderReg() by id) stay
-// legacy markup (app/index.html).
-// The legacy renderer (the innerHTML of renderReg() and renderTournamentStatus(), and the 03- copy
-// of regTab(), overridden by 23-'s and never run) was removed in M.13. If the React module does not
-// load, Registration shows a notice in place of the players table (the end of this file).
+// (#tournamentStatusCard); part 2, the team cards, the exhibition table and the tab bar, is the
+// second half of this file. The islands' input is computed by the module (publish.ts: the rows
+// the filter lets through, the status card's counts, the team cards, the exhibition rows and the
+// tab, as plain data in window.ksmRegistrationPlayersInput, ...StatusInput, ...TeamsInput,
+// ...ExhibitionsInput and ...TabInput); legacy only signals. renderReg() and
+// renderTournamentStatus() (03-registration-and-validation.js), renderTeams(), renderExhibitions()
+// and regTab() (23-navigation.js) call the stubs below, which record the request on window
+// (ksmRegistrationPlayersRequested = true, ...StatusRequested = {valid,competitors,divisions,errors},
+// ...TeamsRequested = true, ...ExhibitionsRequested = true, ...TabRequested = {mode}) and dispatch
+// ksm:registration-players, -status, -teams, -exhibitions or -tab. They must not call a function
+// defined in the module: this script runs before it (the module may not exist yet, or at all). The
+// module computes each input on its event and, once, when it loads, for a request that came earlier.
+// tests/golden/registration*/*.json (recorded from the legacy renderer) pin what the islands draw.
+// The islands' controls call ksmUpdateCompetitor(), cycleCompetitorStatus() (03), ksmRemoveCompetitor(),
+// ksmSetTeamField(), cycleTeamStatus(), ksmRemoveTeam(), ksmSetExhibitionField(),
+// ksmCycleExhibitionStatus() and ksmRemoveExhibition() below, regTab() (23), as the inline handlers did.
+// What stays here, and why:
+// - every action (row, team and exhibition edits, remove, Paste from Excel, Import CSV): React and the
+//   inline handlers call them and they read classic state synchronously.
+// - the F17/F20 binding state the actions read: ksmBindRegistrationRow(), ksmBindRegistrationEntry(),
+//   ksmRegistrationRowCompetitors, ksmRegistrationEntries, the stale flags (ksmRegistrationRowsStale,
+//   ksmTeamsStale, ksmExhibitionsStale) and ksmBlurRedrawn(). The module binds each row through
+//   them, and sets and clears the stale flags as window properties, in the order the render
+//   functions had (compute, blur the focused field, compute again if the blur set the flag, publish).
+// - ksmHtmlText(): 21- and 44- call it; the module reads it through shared/legacy.ts.
+// - #teamDivisionFilter's options (DOM work, rebuilt by ksmRenderTeams() before it signals).
+// The toolbars and their buttons and the filters (#regFilter, #teamFilter, read by id) stay legacy
+// markup (app/index.html). If the React module does not load, Registration shows notices in place of
+// the tables (the end of this file).
 // Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
-function ksmPublishRegistration(event,key,input){
-  window[key]=input;
-  window.dispatchEvent(new CustomEvent(event));
-}
 // A text as the legacy markup showed it: esc() (String(x||'')) and then the HTML parser, which
 // turns CR LF and a lone CR into LF (in text and attribute values alike).
 function ksmHtmlText(s){return ksmText(s).replace(/\r\n?/g,'\n')}
-// The status as the chip shows it ('Checked In', 'No Show', 'Registered'), for the filter.
-function ksmStatusLabel(status){return status==='Checked'?'Checked In':status==='NoShow'?'No Show':'Registered'}
-// renderReg() (03) as data: the filter as it read it, then a row per competitor it let through.
-// The filter also matches the status as shown ("checked in", "no show"; quirk pass), not only
-// the stored word ("NoShow").
-function ksmRegistrationData(){
-  const f=(regFilter?.value||'').toLowerCase();
-  const rows=state.competitors.map((c,i)=>({...c,i})).filter(c=>!f||[c.name,c.dojo,c.division,c.status,ksmStatusLabel(c.status)].join(' ').toLowerCase().includes(f));
-  return {
-    divisions:state.divisions.map(ksmHtmlText),
-    rows:rows.map(c=>ksmBindRegistrationRow(state.competitors[c.i],{
-      index:c.i,
-      name:ksmHtmlText(c.name),dojo:ksmHtmlText(c.dojo),seed:ksmHtmlText(c.seed),
-      // The class printed as `status ${c.status}` (not escaped; see F19) and the status as compared.
-      status:String(c.status).replace(/\r\n?/g,'\n'),
-      checked:c.status==='Checked',noShow:c.status==='NoShow',
-      // The options printed `selected` (d===c.division), by position.
-      selected:state.divisions.map((d,j)=>d===c.division?j:-1).filter(j=>j>=0),
-      // Owner decision 15 (#29): a division that is no longer offered (switched off in Setup) is
-      // shown as an extra, selected "<division> (not offered)" option (it showed the first one).
-      ...(c.division&&!state.divisions.includes(c.division)?{notOffered:String(c.division)}:{}),
-    })),
-  };
-}
 // F17: a row's fields belong to the competitor the row showed, not to a place in the list. The
 // redraw commits the field being edited (its change event) after the new list is in place, so an
 // applied live update (a 409 rebase, the cloud copy loaded, Staff Login with queued work) used to
@@ -86,25 +70,18 @@ function ksmUpdateCompetitor(row,key,value){
   // that option once another division is chosen.
   if(key==='division'&&row.notOffered!==undefined&&value!==row.notOffered)renderReg();
 }
+// renderReg() (03): the module computes the players table (publish.ts: compute, blur the field being
+// edited in the table, compute again if the blur set ksmRegistrationRowsStale: F17) and publishes it.
 function ksmRenderRegistration(){
-  let input=ksmRegistrationData();
-  // The legacy innerHTML replaced every row, so a field being edited in the table lost the focus:
-  // the browser committed it (its change event, then blur and focusout) while the old row was
-  // removed, after the new rows had been computed. React replaces the rows later (at its render),
-  // so the focus leaves the table here, at the same moment, with the same events.
-  const active=document.activeElement;
-  ksmRegistrationRowsStale=false;
-  if(window.ksmRegistrationMounted&&active&&active!==document.body&&window.regTable&&regTable.contains(active))active.blur();
-  // F17: the blur committed an edit into a competitor of the new list (ksmUpdateCompetitor()).
-  if(ksmRegistrationRowsStale){ksmRegistrationRowsStale=false;input=ksmRegistrationData()}
-  ksmPublishRegistration('ksm:registration-players','ksmRegistrationPlayersInput',input);
+  window.ksmRegistrationPlayersRequested=true;
+  window.dispatchEvent(new CustomEvent('ksm:registration-players'));
   // Owner decision 19: renderReg() runs when Setup's Exhibition Matches changes; the tab follows.
   ksmSyncExhibitionTab();
 }
-// renderTournamentStatus() (03) as data: the validation result and the counts.
+// renderTournamentStatus() (03): the validation result and the counts; the module adds the courts.
 function ksmRenderTournamentStatus(valid,competitors,divisions,errors){
-  ksmPublishRegistration('ksm:registration-status','ksmRegistrationStatusInput',
-    {valid:!!valid,competitors,divisions,courts:ksmHtmlText(tCourts?.value||'2'),errors});
+  window.ksmRegistrationStatusRequested={valid,competitors,divisions,errors};
+  window.dispatchEvent(new CustomEvent('ksm:registration-status'));
 }
 // × of a row: what its inline handler ran.
 function ksmRemoveCompetitor(i){
@@ -131,59 +108,33 @@ function ksmConfirmRemove(name,division){
 // ---------------------------------------------------------- Registration part 2
 // The team cards (the wrapper of #teamTable in #teamReg), the exhibition table (#exhibitionTable)
 // and the tab bar (the first row of the toolbar card) are React islands too
-// (app/react/registration/RegistrationTeams.tsx). renderTeams() and renderExhibitions() (03) are
-// calls of the publishers below; regTab() (23) still sets state.regMode, shows and hides the cards
-// and redraws Pools, and publishes the tab (ksm:registration-tab) in place of toggling the tabs'
-// classes. tests/golden/registration-teams/*.json (recorded from the legacy renderer) pin the
-// result. The toolbars and their buttons, the team filter (#teamFilter, read by id on every key)
-// and the hint line stay legacy markup. The legacy renderer (renderTeams()'s outerHTML,
-// renderExhibitions()'s innerHTML, regTab()'s tab class toggles) was removed in M.13; without the
-// React module the cards say so (the end of this file).
+// (app/react/features/registration/RegistrationTeams.tsx). renderTeams() and renderExhibitions() (03)
+// call the stubs below, which signal the module (publish.ts computes the cards, the rows and the
+// tab); regTab() (23) still sets state.regMode, shows and hides the cards and redraws Pools, and
+// signals the tab (ksm:registration-tab) in place of toggling the tabs' classes.
+// tests/golden/registration-teams/*.json (recorded from the legacy renderer) pin the result. The
+// toolbars and their buttons, the team filter (#teamFilter, read by id on every key) and the hint
+// line stay legacy markup. Without the React module the cards say so (the end of this file).
 // A redraw replaced every card / row, so a field being edited lost the focus at that moment (its
 // change event, then blur and focusout, after the new cards had been computed); React replaces
-// them later, so the focus leaves the island here, as in ksmRenderRegistration().
+// them later, so the focus leaves the island at the same moment (the module calls this, F20, as
+// ksmRenderRegistration()'s blur is F17).
 function ksmBlurRedrawn(island){
   const active=document.activeElement;
   if(window.ksmRegistrationTeamsMounted&&active&&active!==document.body&&island&&island.contains(active))active.blur();
 }
-// renderTeams() (03) as data: the format line and positions of the Setup team format, then a card
-// per team the filter lets through.
-function ksmTeamsData(){
-  let f=(teamFilter?.value||'').toLowerCase();
-  let rows=state.teams.map((c,i)=>({...c,i})).filter(c=>(!window.teamDivisionFilter?.value||c.teamDivisionId===teamDivisionFilter.value)&&(!f||[c.team,ksmTeamSettings(c.teamDivisionId).teamFormat,c.senpo,c.jiho,c.chuken,c.fukusho,c.taisho].join(' ').toLowerCase().includes(f)));
-  let fmt=ksmTeamSettings().teamFormat||'5-Person Team';
-  let slots=fmt==='3-Person Team'||fmt==='Kachinuki'?['senpo','chuken','taisho']:['senpo','jiho','chuken','fukusho','taisho'];
-  return {
-    divisions:ksmTeamDivisions().map(d=>({id:d.id,name:d.name})),
-    format:ksmHtmlText(fmt),tournamentFormat:ksmHtmlText(teamTournamentFormat?.value||'Single Elimination'),slots,
-    cards:rows.map(c=>ksmBindRegistrationEntry(state.teams[c.i],{index:c.i,team:ksmHtmlText(c.team),teamDivisionId:c.teamDivisionId||ksmTeamDivisions()[0]?.id||'',slots:KSMEngine.teamSlots(ksmTeamSettings(c.teamDivisionId).teamFormat),format:ksmTeamSettings(c.teamDivisionId).teamFormat,tournamentFormat:ksmTeamSettings(c.teamDivisionId).teamTournamentFormat,members:KSMEngine.teamSlots(ksmTeamSettings(c.teamDivisionId).teamFormat).map(k=>ksmHtmlText(c[k])),
-      // The class printed as `status ${esc(c.status)}` (F19) and the status as compared.
-      status:ksmHtmlText(c.status),checked:c.status==='Checked',noShow:c.status==='NoShow'})),
-  };
-}
+// renderTeams() (03): the filter's options are rebuilt here (DOM work), then the module computes the
+// cards (publish.ts: compute, blur, compute again if the blur set ksmTeamsStale: F20).
 function ksmRenderTeams(){
   const filter=document.getElementById('teamDivisionFilter');if(filter){const selected=filter.value;filter.replaceChildren(new Option('All team divisions',''),...ksmTeamDivisions().map(d=>new Option(d.name,d.id)));filter.value=selected}
-  let input=ksmTeamsData();
-  ksmTeamsStale=false;
-  ksmBlurRedrawn(document.querySelector('#teamReg #teamTable'));
-  // F20: the blur committed an edit into a team of the new list (ksmSetTeamField()).
-  if(ksmTeamsStale){ksmTeamsStale=false;input=ksmTeamsData()}
-  ksmPublishRegistration('ksm:registration-teams','ksmRegistrationTeamsInput',input);
+  window.ksmRegistrationTeamsRequested=true;
+  window.dispatchEvent(new CustomEvent('ksm:registration-teams'));
 }
-// renderExhibitions() (03) as data: a row per exhibition match.
-function ksmExhibitionsData(){
-  let rows=state.exhibitions||[];
-  return {rows:rows.map((x,i)=>ksmBindRegistrationEntry(x,{index:i,white:ksmHtmlText(x.white),red:ksmHtmlText(x.red),
-    status:ksmHtmlText(x.status),checked:x.status==='Checked',noShow:x.status==='NoShow'}))};
-}
+// renderExhibitions() (03): the module computes the rows (publish.ts, with the same blur as the cards: F20).
 function ksmRenderExhibitions(){
   if(!window.exhibitionTable)return;
-  let input=ksmExhibitionsData();
-  ksmExhibitionsStale=false;
-  ksmBlurRedrawn(exhibitionTable);
-  // F20: the blur committed an edit into a match of the new list (ksmSetExhibitionField()).
-  if(ksmExhibitionsStale){ksmExhibitionsStale=false;input=ksmExhibitionsData()}
-  ksmPublishRegistration('ksm:registration-exhibitions','ksmRegistrationExhibitionsInput',input);
+  window.ksmRegistrationExhibitionsRequested=true;
+  window.dispatchEvent(new CustomEvent('ksm:registration-exhibitions'));
 }
 // Owner decisions 16 and 17 (#29): Paste from Excel. A pasted row (the document paste listener,
 // 16-: Name, Dojo, Division, Seed, Status, tab-separated) is added only with a division that is
@@ -284,7 +235,8 @@ function ksmImportCSVText(text,fileName){
 // shows (only while Setup's Exhibition Matches is Enabled).
 function ksmExhibitionsEnabled(){return window.exhibitionEnabled?exhibitionEnabled.value==='Enabled':false}
 function ksmRenderRegistrationTab(mode){
-  ksmPublishRegistration('ksm:registration-tab','ksmRegistrationTabInput',{mode:String(mode),exhibitions:ksmExhibitionsEnabled()});
+  window.ksmRegistrationTabRequested={mode};
+  window.dispatchEvent(new CustomEvent('ksm:registration-tab'));
 }
 // The Exhibition tab hidden while its card is shown: back to Individual Players.
 function ksmSyncExhibitionTab(){
