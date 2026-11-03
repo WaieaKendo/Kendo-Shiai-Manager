@@ -22,16 +22,13 @@ import { pressOnKey } from '../../shared/lib/keyboard.ts';
 import { TOURNAMENT_HOME } from '../../../engine/routes.ts';
 import { useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { DEFAULT_NAV_ICONS } from '../../shared/ui/branding.ts';
-import { EMPTY_HEADER, type HeaderInput } from './header-model.ts';
+import { EMPTY_HEADER, HEADER_EVENT, type HeaderInput } from './header-model.ts';
 import {
-  EMPTY_NAV, NAV_ENTRIES, NAV_FILE_ACCEPT, NAV_FILE_INPUTS, NAV_FILE_STYLE, NAV_MENU_ARROW,
+  EMPTY_NAV, NAV_ENTRIES, NAV_EVENT, NAV_FILE_ACCEPT, NAV_FILE_INPUTS, NAV_FILE_STYLE, NAV_MENU_ARROW,
   activeEntryIndex, menuClass, tileClass,
   type NavAction, type NavFileInput, type NavInput, type NavMenu, type NavMenuEntry, type NavTile,
 } from './nav-model.ts';
 import { rawStyle, shellWindow, subscribeTo, useNativeClick } from './shell-dom.ts';
-
-export const NAV_EVENT = 'ksm:shell-nav';
-export const HEADER_EVENT = 'ksm:shell-header';
 
 const subscribeNav = subscribeTo(NAV_EVENT);
 const subscribeHeader = subscribeTo(HEADER_EVENT);

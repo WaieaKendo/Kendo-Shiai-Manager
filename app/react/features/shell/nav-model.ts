@@ -18,6 +18,9 @@ export interface NavMenuStyle {
   maxHeight: string;
 }
 
+/** The window event legacy dispatches when it asks for the bar (app/js/44-react-shell.js). */
+export const NAV_EVENT = 'ksm:shell-nav';
+
 export interface NavInput {
   /** The id of the open menu (courtsMenu, tvMenu), or null. */
   open: string | null;

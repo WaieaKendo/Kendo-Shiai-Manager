@@ -95,8 +95,9 @@ const KNOWN_POST_SPLIT_EDITS = {
   'react-court': 9,
   // feat/react-shell (M.13, the last step): the shell's React islands (the navigation bar, the
   // header's status row, the Fusen-gachi, generation check, Regenerate Single Division and cloud
-  // dialogs). app/js/44-react-shell.js keeps what the legacy shell drew as plain data, publishes it
-  // and shows a notice when the React module is missing. With the legacy shell renderer removed
+  // dialogs). app/js/44-react-shell.js keeps the state the shell's writers patch and read back (#136
+  // step 2: app/react/features/shell/publish.ts copies it into the islands' inputs when the three
+  // signal stubs fire) and shows a notice when the React module is missing. With the legacy shell renderer removed
   // (REMOVED_SHELL_RENDERER) the legacy functions are marked publishers or call one:
   // closeManagementModal(), showValidationDialog(), openRegenerateDivisionDialog(),
   // continueRegenerateDivision() (03), regenerateSingleDivision() (08), setConnectionStatus(),

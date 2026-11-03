@@ -5,6 +5,9 @@
 // updateSaveStatus() and renderCloudPresence() (app/js) publish what they wrote (ksm:shell-header);
 // Header.tsx draws it; tests/golden/shell pins it.
 
+/** The window event legacy dispatches when it asks for the header (app/js/44-react-shell.js). */
+export const HEADER_EVENT = 'ksm:shell-header';
+
 export interface HeaderInput {
   tournamentName?: string;
   /** #staffAuthButton's text: "Staff Login", or "Logout" in a staff session. */

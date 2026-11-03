@@ -11,6 +11,7 @@
 // Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
 function ksmLegacyState(){return state}
+function ksmLegacyCloudSession(){return cloudSession}
 function ksmLegacyStateVersion(){return typeof window==='undefined'?0:(window.ksmStateVersion||0)}
 function ksmNotifyStateChanged(reason){
   if(typeof window==='undefined'||typeof window.dispatchEvent!=='function'||typeof CustomEvent!=='function')return;

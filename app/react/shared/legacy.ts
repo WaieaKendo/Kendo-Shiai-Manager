@@ -14,6 +14,9 @@ import type { CourtCompleteInput } from './ui/complete-model.ts';
 import type { BracketInput, CourtContextInput, KachinukiSheetInput, TeamSheetInput } from './ui/context-model.ts';
 import type { AlignedRowInput, BracketCardInput } from './ui/rows-model.ts';
 import type { FinalResultsInput, QueueUpNext } from '../features/court/queue-model.ts';
+import type { DialogsInput } from '../features/shell/dialogs-model.ts';
+import type { HeaderInput } from '../features/shell/header-model.ts';
+import type { NavMenuStyle } from '../features/shell/nav-model.ts';
 
 /** courtSummaryFor(court) (app/js/30-setup-header-and-director.js). */
 export interface LegacyCourtSummary {
@@ -48,6 +51,16 @@ export interface LegacyTvViewModel {
   meta?: { division: string; line: string };
   /** Up to two cards, null for an empty one (left/right: the sides' names, the subs: dojos or the round). */
   upcoming: Array<{ left: string; right: string; leftSub: string; rightSub: string; round: string } | null>;
+}
+
+/**
+ * The route ksmLinkUrl() (00-path-urls.js) builds an address from; publish.ts (features/shell) asks for
+ * the court screen.
+ */
+export interface LegacyLinkRoute {
+  screen: string;
+  id: string;
+  court?: string;
 }
 
 export interface LegacyGlobals {
@@ -172,6 +185,17 @@ export interface LegacyGlobals {
   isValidMatchObject: (m: unknown) => boolean;
   /** 08-engine-generation.js. */
   matchBelongsToCourt: (m: Match | null | undefined, court: Court) => boolean;
+  /**
+   * The shell's header and dialogs inputs are copies of classic state that classic writers patch and
+   * read back synchronously (44-react-shell.js stays classic for them): publish.ts (features/shell) copies it.
+   */
+  ksmShellHeaderState: () => HeaderInput;
+  ksmShellDialogsState: () => DialogsInput;
+  /** 00-path-urls.js, 21-cloud-realtime-save-and-load.js: the nav items' page addresses. */
+  ksmLinkUrl: (route: LegacyLinkRoute, query?: Array<[string, string | undefined]>) => string;
+  tvLink: (court: string) => string;
+  /** 00-react-bridge.js: the legacy `cloudSession` (a top-level `const`, so not on window itself). */
+  ksmLegacyCloudSession: () => { tournamentId?: string | null };
   /** 13-engine-standings-and-tiebreaks.js. */
   teamPairSummary: (div: string, pair: string) => { wWins: number; wPts: number; rWins: number; rPts: number };
 }
@@ -231,3 +255,13 @@ export const legacyStale = {
   get: (name: LegacyStaleFlag): boolean => !!(window as unknown as Partial<Record<LegacyStaleFlag, boolean>>)[name],
   set: (name: LegacyStaleFlag, value: boolean): void => { (window as unknown as Record<LegacyStaleFlag, boolean>)[name] = value; },
 };
+
+/**
+ * The navigation bar's classic state (top-level `var`s of app/js/44-react-shell.js, so window
+ * properties): the open menu's id, its placement on a phone or tablet, the label of the screen shown.
+ * Declared without a value, so any of them may be undefined.
+ */
+export function legacyNavState(): { open: string | null; style: NavMenuStyle | null; active: string | null } {
+  const w = window as unknown as { ksmNavOpenMenu?: string | null; ksmNavMenuStyle?: NavMenuStyle | null; ksmNavActive?: string | null };
+  return { open: w.ksmNavOpenMenu || null, style: w.ksmNavMenuStyle || null, active: w.ksmNavActive || null };
+}

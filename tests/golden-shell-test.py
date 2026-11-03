@@ -71,7 +71,7 @@ drew then; the other steps' snapshots came out unchanged).
 
 Since M.13 React draws the shell (app/react/features/shell/: the navigation bar, the status row, the three
 dialogs as islands with their roots, the cloud modal as a portal into <body>;
-app/js/44-react-shell.js publishes their data). React must render every element of the islands
+app/react/features/shell/publish.ts computes their data when app/js/44-react-shell.js signals). React must render every element of the islands
 (and they must be the islands' roots) and of the cloud modal, and every kind of content must be
 covered. The brand, the banner and the toast stay legacy. The legacy shell renderer is removed,
 so this test pins the React-only shell; last, the app without the React module script must show
@@ -616,27 +616,46 @@ def without_screens_module():
 def shell_module_missing(browser):
     """Without the React module nothing opens the menus, shows the dialogs or updates the status
     line: the header says so; the bar's plain tiles and Staff Login (static markup with their inline
-    handlers) still work, and the legacy code still publishes."""
+    handlers) still work. The classic code still changes its own state and signals, but nothing
+    computes the inputs (publish.ts is in the module): they stay undefined."""
     page = browser.new_page(viewport=DESKTOP)
     errors = []
     page.on('pageerror', lambda e: errors.append(f'shell module missing: {e}'))
     page.on('dialog', lambda d: d.dismiss())
     load_app(page, html=without_screens_module())
+    page.evaluate("""() => {
+      window.__shellSignals = {nav: 0, header: 0, dialogs: 0};
+      window.addEventListener('ksm:shell-nav', () => window.__shellSignals.nav++);
+      window.addEventListener('ksm:shell-header', () => window.__shellSignals.header++);
+      window.addEventListener('ksm:shell-dialogs', () => window.__shellSignals.dialogs++);
+    }""")
     notice = page.locator(f'header.ksm-topbar {tid("shell-module-missing")}')
     assert notice.is_visible(), 'no "Menus and dialogs could not load" notice without the React module'
     assert 'Menus and dialogs could not load' in notice.inner_text(), notice.inner_text()
+    signals = lambda: page.evaluate('window.__shellSignals')
     page.locator(tid('nav-results')).dispatch_event('click')
     assert page.evaluate(VIEW_JS) == ['results'], 'a plain tile does not work without the React module'
-    assert page.evaluate('window.ksmShellNavInput.active') == 'Results', 'setActiveNavForView() did not publish without the island'
+    assert page.evaluate('KSMTest.app.ksmNavActive') == 'Results', 'setActiveNavForView() did not change the classic state without the island'
+    assert signals()['nav'] >= 1, 'setActiveNavForView() did not signal ksm:shell-nav'
+    before = signals()['nav']
     page.locator(tid('nav-courts')).dispatch_event('click')
-    assert page.evaluate('window.ksmShellNavInput.open') == 'courtsMenu', 'toggleNavMenu() did not publish without the island'
+    assert page.evaluate('KSMTest.app.ksmNavOpenMenu') == 'courtsMenu', 'toggleNavMenu() did not change the classic state without the island'
+    assert signals()['nav'] > before, 'toggleNavMenu() did not signal ksm:shell-nav'
     assert page.locator('#courtsMenu').is_hidden(), 'something opened the menu without the React module'
+    before = signals()['dialogs']
     page.evaluate('() => KSMTest.app.requestTournamentGeneration()')
-    assert page.evaluate('window.ksmShellDialogsInput.validation.open') and page.locator('#validationModal').is_hidden(), \
-        'showValidationDialog() did not publish, or something showed the dialog, without the React module'
+    assert page.evaluate('KSMTest.app.ksmShellDialogsState().validation.open') and page.locator('#validationModal').is_hidden(), \
+        'showValidationDialog() did not change the classic state, or something showed the dialog, without the React module'
+    assert signals()['dialogs'] > before, 'showValidationDialog() did not signal ksm:shell-dialogs'
+    before = signals()['dialogs']
     page.evaluate('() => KSMTest.app.cloudDiagnostics()')
-    assert page.locator('#ksmCloudModal').count() == 0 and page.evaluate('window.ksmShellDialogsInput.cloud.title') == 'Developer Tools', \
-        'cloudDiagnostics() did not publish, or something drew the modal, without the React module'
+    assert page.locator('#ksmCloudModal').count() == 0 and page.evaluate('KSMTest.app.ksmShellDialogsState().cloud.title') == 'Developer Tools', \
+        'cloudDiagnostics() did not change the classic state, or something drew the modal, without the React module'
+    assert signals()['dialogs'] > before, 'cloudDiagnostics() did not signal ksm:shell-dialogs'
+    page.evaluate("() => KSMTest.app.setConnectionStatus('Online', 'online')")
+    assert signals()['header'] >= 1, 'the header writers did not signal ksm:shell-header'
+    undefined = page.evaluate('[typeof window.ksmShellNavInput, typeof window.ksmShellHeaderInput, typeof window.ksmShellDialogsInput]')
+    assert undefined == ['undefined'] * 3, f'something computed a shell input without the React module: {undefined}'
     assert not errors, errors
     page.close()
 
