@@ -9,6 +9,9 @@
 // renderScore() updates the tournament name alone and the rest keeps what it showed before.
 // courtHeaderView() turns that into what CourtHeader renders.
 
+/** Signalled by the legacy writers (renderDivisions(), renderScore(), ...); publish.ts computes the input and the island redraws. */
+export const HEADER_EVENT = 'ksm:court-header';
+
 export interface CourtHeaderInput {
   /** tName.value or "Kendo Tournament". */
   tournamentName: string;

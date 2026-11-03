@@ -89,6 +89,9 @@ const KNOWN_POST_SPLIT_EDITS = {
   // renderQueue(), renderContext() (new declarations in place of the 32 wrappers) and
   // setCourtCompletePresentation() (32). Listed here because renderDivisions() (02) is its first
   // region: the check compares names in order of first appearance.
+  // #136 step 2: the module computes every court input (app/react/features/court/publish.ts);
+  // 35 keeps the builders other classic code calls, the actions and the module-missing notice,
+  // and the writers' bodies (02, 10, 22, 32) only record the request on window and signal.
   'react-court': 9,
   // feat/react-shell (M.13, the last step): the shell's React islands (the navigation bar, the
   // header's status row, the Fusen-gachi, generation check, Regenerate Single Division and cloud
@@ -314,7 +317,9 @@ const KNOWN_POST_SPLIT_EDITS = {
   'react-library': 2,
   // feat/react-overlay: app/js/33-stream-overlay-links.js (TV menu "copy overlay link").
   'stream-overlay': 1,
-  'queue-up-next': 2,
+  // (queue-up-next had 2 regions in app/js/35-react-court.js: ksmOwnQueuePanelInput() and
+  // ksmQueuePanelInput(). #136 step 2 moved both into the court module (publish.ts), so no JS
+  // region is left; its CSS region, app/styles/28-queue-up-next.css, stays: see below.)
 };
 // The same markers in app/styles/*.css (count per name, in order of first appearance).
 const KNOWN_POST_SPLIT_CSS_EDITS = {

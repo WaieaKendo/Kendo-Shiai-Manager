@@ -3,11 +3,11 @@
 // CSS (including the Red/White side setting) and the tests apply unchanged.
 import { useSyncExternalStore } from 'react';
 import {
-  EMPTY_SCOREBOARD, scoreboardView,
+  EMPTY_SCOREBOARD, SCOREBOARD_EVENT, scoreboardView,
   type ScoreboardInput, type Side, type SideView,
 } from '../../shared/ui/scoreboard-model.ts';
 
-export const SCOREBOARD_EVENT = 'ksm:court-scoreboard';
+export { SCOREBOARD_EVENT };
 
 interface CourtWindow {
   /** The last ScoreboardInput the legacy renderScore() published. */

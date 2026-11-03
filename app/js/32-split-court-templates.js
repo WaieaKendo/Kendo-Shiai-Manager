@@ -24,12 +24,14 @@ function syncIndividualSingleElim(div,arr,comps){
   /* ksm:post-split-end */
 }
 /* ksm:post-split-begin react-court */
-// The court queue panel is React (CourtQueue, 35-react-court.js): ksmQueuePanelInput() makes the
-// decisions of the legacy queue renderer (this file's split-court wrapper around renderQueue()
-// in 24-, removed with the legacy court renderer in M.8 step 5) and publishes them.
+// The court queue panel is React (CourtQueue): the module's ksmQueuePanelInput()
+// (app/react/features/court/publish.ts) makes the decisions of the legacy queue renderer (this
+// file's split-court wrapper around renderQueue() in 24-, removed with the legacy court renderer
+// in M.8 step 5). This signals the request (see 35-react-court.js).
 function renderQueue(){
   if(!document.getElementById('queue'))return;
-  ksmPublishCourtQueue(ksmQueuePanelInput());
+  window.ksmCourtQueueRequested=true;
+  window.dispatchEvent(new CustomEvent('ksm:court-queue'));
 }
 /* ksm:post-split-end */
 
@@ -37,21 +39,24 @@ function contextDivisionForCourt(){
   return state.currentDivision||state.courtActiveDivision?.[state.currentCourt||'A']||state.courtState?.[state.currentCourt||'A']?.division||null;
 }
 /* ksm:post-split-begin react-court */
-// The court context panel is React (CourtContext, 35-react-court.js): ksmContextPanelInput()
-// makes the decisions of the legacy context renderer (this file's wrapper around renderContext()
-// in 31-, removed with the legacy court renderer in M.8 step 5), sets the layout classes
-// (setCourtSupportMode()) and publishes them.
+// The court context panel is React (CourtContext): the module's ksmContextPanelInput()
+// (app/react/features/court/publish.ts) makes the decisions of the legacy context renderer (this
+// file's wrapper around renderContext() in 31-, removed with the legacy court renderer in M.8
+// step 5) and sets the layout classes (setCourtSupportMode()). This signals the request (see
+// 35-react-court.js).
 function renderContext(){
   if(!window.courtContext)return;
-  ksmPublishCourtContext(ksmContextPanelInput());
+  window.ksmCourtContextRequested=true;
+  window.dispatchEvent(new CustomEvent('ksm:court-context'));
 }
 /* ksm:post-split-end */
 
 function setCourtCompletePresentation(div,complete){
 /* ksm:post-split-begin react-court */
-  // The React court screen (CourtComplete, 35-react-court.js) sets .division-complete on
-  // #score .scoreboard-card and draws the division-complete panel in it.
-  ksmPublishCourtComplete(ksmDivisionCompleteInput(div,complete));
+  // The React court screen (CourtComplete) sets .division-complete on #score .scoreboard-card and
+  // draws the division-complete panel in it; the module computes the panel (35-react-court.js).
+  window.ksmCourtCompleteRequested={div,complete};
+  window.dispatchEvent(new CustomEvent('ksm:court-complete'));
 /* ksm:post-split-end */
 }
 const renderScore_v3121=renderScore;
@@ -59,7 +64,7 @@ renderScore=function(){
   const div=state.currentDivision;
   const current=state.matches?.[state.current];
   if(div&&divisionComplete(div)&&(!current||current.done||!matchBelongsToCourt(current,state.currentCourt||'A'))){
-    updateScoreTournamentName();/* ksm:post-split-begin quirks-court */ksmPublishCourtHeader({divisionTitle:div,matchLine:'Division complete'});/* ksm:post-split-end */setCourtCompletePresentation(div,true);renderQueue();renderPublic();renderContext();return;
+    updateScoreTournamentName();/* ksm:post-split-begin quirks-court */ksmSignalCourtHeader({divisionTitle:div,matchLine:'Division complete'});/* ksm:post-split-end */setCourtCompletePresentation(div,true);renderQueue();renderPublic();renderContext();return;
   }
   setCourtCompletePresentation(div,false);renderScore_v3121();
 };

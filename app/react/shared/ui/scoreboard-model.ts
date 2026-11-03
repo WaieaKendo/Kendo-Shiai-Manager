@@ -7,6 +7,9 @@
 // CourtScoreboard renders: exactly what the legacy renderer (removed in M.8 step 5) wrote into
 // the same elements.
 
+/** Signalled by renderScore() (22-); publish.ts computes the input and the islands redraw. */
+export const SCOREBOARD_EVENT = 'ksm:court-scoreboard';
+
 export type Side = 'W' | 'R';
 
 export type ScoreboardMatch = Pick<Match, 'white' | 'red' | 'wdojo' | 'rdojo' | 'teamWhite' | 'teamRed' | 'type'> & {

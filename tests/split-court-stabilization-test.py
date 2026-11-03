@@ -81,10 +81,14 @@ with sync_playwright() as p:
       ]};KSMTest.app.state.brackets={Test:KSMTest.app.championshipTemplateForTotal(8)};KSMTest.app.state.championshipNodes={};KSMTest.app.state.allMatches={Test:KSMTest.app.buildChampionshipTemplateMatches('Test',KSMTest.app.state.brackets.Test)};KSMTest.app.state.byeWinners={Test:[]};
       KSMTest.app.poolPositionsResolved=()=>false;
     """)
-    # (The court queue's championship groups: ksmChampionshipQueueGroups(), 35-react-court.js, in
-    # place of the legacy poolChampionshipQueueGroups() removed in M.8 step 5.)
-    groups_a=page.evaluate("KSMTest.app.ksmChampionshipQueueGroups('Test','A').map(g=>[g.label,g.rows.length])")
-    groups_b=page.evaluate("KSMTest.app.ksmChampionshipQueueGroups('Test','B').map(g=>[g.label,g.rows.length])")
+    # (The court queue's championship groups: ksmChampionshipQueueGroups(), in the court module's
+    # publish.ts (#136 step 2), in place of the legacy poolChampionshipQueueGroups() removed in M.8
+    # step 5. The module is not reachable from the page scripts, so the queue is asked for, as the
+    # court screen does: renderQueue() signals and the module's input has these groups last.)
+    queue_groups="""court=>{const s=KSMTest.app.state,nodes=s.singleElimNodes;s.currentCourt=court;s.currentDivision='Test';s.matches=s.allMatches.Test;s.current=-1;s.singleElimNodes={};
+      KSMTest.app.renderQueue();s.singleElimNodes=nodes;return window.ksmCourtQueueInput.groups.map(g=>[g.label,g.rows.length])}"""
+    groups_a=page.evaluate(queue_groups,'A')
+    groups_b=page.evaluate(queue_groups,'B')
     assert groups_a==[['Semifinal',1],['Final',1]],groups_a
     assert groups_b==[['Semifinal',1]],groups_b
 

@@ -4,9 +4,9 @@
 // legacy selectScorekeeperDivision(), which republishes the header.
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { DEFAULT_COURT_LOGO_SRC } from '../../shared/ui/branding.ts';
-import { CONFIGURE_TEXTS, EMPTY_HEADER, RED_SIDE_OPTIONS, courtConfigView, courtHeaderView, type CourtHeaderInput, type RedSide } from './header-model.ts';
+import { CONFIGURE_TEXTS, EMPTY_HEADER, HEADER_EVENT, RED_SIDE_OPTIONS, courtConfigView, courtHeaderView, type CourtHeaderInput, type RedSide } from './header-model.ts';
 
-export const HEADER_EVENT = 'ksm:court-header';
+export { HEADER_EVENT };
 
 interface CourtWindow {
   /** The header as the legacy writers last published it. */

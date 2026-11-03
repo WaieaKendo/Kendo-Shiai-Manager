@@ -9,6 +9,9 @@
 // court screen and a completed division hide them through CSS alone (body.ksm-spectator,
 // .scoreboard-card.division-complete), which the React markup keeps.
 
+/** Signalled by updateUndoButton() (10-); publish.ts computes the input and the island redraws. */
+export const ACTIONS_EVENT = 'ksm:court-actions';
+
 export type Side = 'W' | 'R';
 
 export interface ScoreButton {
