@@ -357,7 +357,7 @@ def without_screens_module():
 
 
 # The library as if nothing had been published (the island before the first publish).
-UNPUBLISHED_JS = "() => { delete window.ksmLibraryInput; window.dispatchEvent(new CustomEvent('ksm:library')); }"
+UNPUBLISHED_JS = "() => { delete window.ksmLibraryRequested; delete window.ksmLibraryInput; window.dispatchEvent(new CustomEvent('ksm:library')); }"
 
 
 def library_static_markup(browser, errors):
@@ -393,6 +393,8 @@ def library_module_missing(browser, errors):
     page = context.new_page()
     page.on('pageerror', lambda e: errors.append(f'library module missing: {e}'))
     page.add_init_script(SECURE_CONTEXT_INIT)
+    # Count the classic signal (ksm:library); without the module nothing answers it.
+    page.add_init_script("window.ksmLibrarySignals = 0; window.addEventListener('ksm:library', () => { window.ksmLibrarySignals++; });")
     api = Api()
     load_app(page, html=without_screens_module(), session=None, api=api)
     api.answer(page, SEVERAL)
@@ -401,7 +403,12 @@ def library_module_missing(browser, errors):
     assert 'Tournament Library could not load' in notice.inner_text(), notice.inner_text()
     assert not page.locator('#homeTournamentLibrary').is_visible(), 'the empty library grid is shown without the React module'
     assert page.locator(sel('home-new-tournament')).is_visible(), 'the static ＋ New Tournament is hidden without the React module'
-    assert page.evaluate('window.ksmLibraryInput.cards.length') == len(SEVERAL), 'the library was not published without the island'
+    # The input is computed by the module (publish.ts): without it classic only signals.
+    assert page.evaluate('window.ksmLibraryInput === undefined'), 'the library input was computed without the React module'
+    signals = page.evaluate('window.ksmLibrarySignals')
+    assert signals >= 2, f'the library was not signalled for the boot cache and the cloud list ({signals} signals)'
+    assert page.evaluate('window.ksmLibraryRequested.list.length') == len(SEVERAL), 'the last request is not the cloud list'
+    assert page.evaluate('window.ksmLibraryError') is None, 'a library error was left behind'
     context.close()
 
 

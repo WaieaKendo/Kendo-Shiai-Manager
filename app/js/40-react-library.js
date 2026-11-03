@@ -1,18 +1,30 @@
 /* ksm:post-split-begin react-library */
 // ==========================================================
-// React Tournament Library (app/react/library/, roadmap M.13)
+// React Tournament Library (app/react/features/library/, roadmap M.13)
 // The Tournament Library, the home page the app boots to (#home, body.ksm-home), is drawn by one
 // React island: the contents of #home .home-shell (the brand, "Your Tournaments" with
 // ＋ New Tournament, and #homeTournamentLibrary with a card per tournament or one message),
-// mounted by app/react/library/main.tsx. The legacy code still decides what is shown and when:
-// showHomePage() and renderHomeTournamentLibrary() (33-staff-session-and-library.js) show the
+// mounted by app/react/features/library/main.tsx. The legacy code still decides what is shown and
+// when: showHomePage() and renderHomeTournamentLibrary() (33-staff-session-and-library.js) show the
 // device's cache, ask the cloud (the list, or discover with the cached IDs) and paint the answer,
-// the error or offline line; paintHomeTournamentLibrary(list,message) calls ksmRenderLibrary()
-// below, which publishes the rows and the message as plain data (ksm:library,
-// window.ksmLibraryInput). It reads what libraryCardMarkup() read, in the same order (list.length,
-// then each row's id and name), so a reply that is not a list fails where it failed before;
-// tests/golden/library/*.json (recorded from the legacy renderer) pin the result. Text is what
-// esc() showed (ksmText(), String(x||'')), the ID what jsArg() passed (String(x.id??'')).
+// the error or offline line.
+// #136 step 2: the input the island draws (the cards, the message, the draft summary and the
+// account fields) is computed by app/react/features/library/publish.ts (startLibraryInput(), which
+// main.tsx calls before the island mounts). What stays here is what other classic code reads or
+// runs synchronously: the draft (ksmReadLocalDraft(), ksmOpenLocalDraft(), the removal in
+// ksmDiscardLocalDraft()), the staff tokens (ksmLibraryStaffTokens, which 54- reads through
+// ksmCanManageLibraryTournament(); a top-level const, so ksmLibraryAuthorizedIds() hands the
+// module its IDs), the actions, and the signal:
+// - ksmRenderLibrary(list,message), called by paintHomeTournamentLibrary(list,message) (33) and
+//   by 44-react-shell.js, records the request (window.ksmLibraryRequested) and dispatches ksm:library;
+//   publish.ts computes window.ksmLibraryInput from it (what libraryCardMarkup() read, in the same
+//   order: list.length, then each row's id and name; tests/golden/library/*.json, recorded from the
+//   legacy renderer, pin the result). A listener's exception would be swallowed, and a reply that is not a
+//   list must still fail at the caller (renderHomeTournamentLibrary() paints inside a try and its
+//   catch shows "Unable to load the Tournament Library"), so the module stores the error in
+//   window.ksmLibraryError and the stub rethrows it. The input then stays as it was.
+// - ksmDecorateLibraryInput(input) is the hook 54-auth0-access.js reassigns to add the account
+//   fields; the module calls it on every build (it is not kept at start-up).
 // The island's buttons call createNewTournament() and openTournamentFromHome(id) (33), as the
 // inline handlers did. The legacy library renderer (the DOM writing of
 // paintHomeTournamentLibrary(), libraryCardMarkup()) was removed in M.13.
@@ -32,10 +44,6 @@ function ksmReadLocalDraft(){
     return payload;
   }catch(_){return null}
 }
-function ksmLocalDraftSummary(){
-  const payload=ksmReadLocalDraft();
-  return payload?{name:payload.setup?.tName||'Untitled tournament',saved:payload.savedAt?new Date(payload.savedAt).toLocaleString():'unknown time'}:null;
-}
 async function ksmOpenLocalDraft(){
   const payload=ksmReadLocalDraft();if(!payload)return;
   if(!(await ksmCanLeaveTournament()))return;
@@ -48,25 +56,31 @@ function ksmDiscardLocalDraft(){
   if(!ksmReadLocalDraft())return;
   if(localStorage.getItem(KSM_DETACHED_DRAFT_KEY))localStorage.removeItem(KSM_DETACHED_DRAFT_KEY);
   else ksmClearAutosave();
-  ksmPublishLibrary({...window.ksmLibraryInput,draft:null});
+  // Signal the last request again: the module recomputes the input (the draft is gone, so the summary is
+  // null; the other fields are worked out now, not copied). Nothing was drawn before a request: nothing to do.
+  if(window.ksmLibraryRequested)ksmSignalLibrary();
 }
 
 // If the React module does not load, the library shows a notice (the end of this file).
 // Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
-function ksmPublishLibrary(input){
-  window.ksmLibraryInput=input;
+// The signal stub. Clears the error, dispatches ksm:library (publish.ts computes the input) and
+// rethrows an error the module stored, so a failure reaches the caller as it did when the build ran here.
+function ksmSignalLibrary(){
+  window.ksmLibraryError=null;
   window.dispatchEvent(new CustomEvent('ksm:library'));
+  if(window.ksmLibraryError){const e=window.ksmLibraryError;window.ksmLibraryError=null;throw e}
 }
-// libraryCardMarkup(x) as data.
-function ksmLibraryCard(x){
-  return {id:String(x.id??''),name:ksmText(x.name)};
-}
-// paintHomeTournamentLibrary(list,message) as data: the cards, or the message when there are none.
+// paintHomeTournamentLibrary(list,message): the cards, or the message when there are none.
 function ksmRenderLibrary(list,message){
-  const cards=list.length?list.map(ksmLibraryCard):[];
-  ksmPublishLibrary({kind:'library',cards,message:ksmText(message),draft:ksmLocalDraftSummary(),canManage:!isReadOnlySession(),activeId:cloudSession.tournamentId||'',hasActive:(!isReadOnlySession()||ksmKeepStaffOutbox())&&!!(cloudSession.tournamentId||v316StaffPassword()),authorizedIds:[...ksmLibraryStaffTokens.keys()]});
+  window.ksmLibraryRequested={list,message};
+  ksmSignalLibrary();
 }
+// The hook 54-auth0-access.js reassigns to add the account fields to the input; the module calls it
+// (looked up on every call) on the input it built.
+function ksmDecorateLibraryInput(input){return input}
+// The IDs of the Library rows with a Staff token (ksmLibraryStaffTokens is a top-level const, so not on window).
+function ksmLibraryAuthorizedIds(){return [...ksmLibraryStaffTokens.keys()]}
 
 // If the React module (app/react/main.tsx, a module script after app.js) did not run, say so on
 // the home page instead of an empty library, which nothing fills any more (e.g. an offline device

@@ -313,7 +313,8 @@ const KNOWN_POST_SPLIT_EDITS = {
   'client-schema': 2,
   // feat/react-library (M.13): the Tournament Library's React island. With the legacy renderer
   // removed (REMOVED_LIBRARY_RENDERER) paintHomeTournamentLibrary()'s body (33) is a marked call of
-  // ksmRenderLibrary(), and app/js/40-react-library.js publishes the library as plain data and
+  // ksmRenderLibrary(), and app/js/40-react-library.js keeps the draft and staff-token code and the
+  // signal (#136 step 2: app/react/features/library/publish.ts computes the library's input) and
   // shows a notice when the React module is missing.
   'react-library': 2,
   // feat/react-overlay: app/js/33-stream-overlay-links.js (TV menu "copy overlay link").

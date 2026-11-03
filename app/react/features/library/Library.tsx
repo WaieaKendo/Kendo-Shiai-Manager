@@ -10,11 +10,9 @@
 import { useState, useSyncExternalStore } from 'react';
 import { DEFAULT_HOME_LOGO_SRC, DEFAULT_LIBRARY_CARD_MARK } from '../../shared/ui/branding.ts';
 import {
-  EMPTY_LIBRARY, HOME_SUBTITLE, HOME_TITLE, LIBRARY_HEADING, LIBRARY_INTRO, NEW_TOURNAMENT_TEXT,
+  EMPTY_LIBRARY, HOME_SUBTITLE, HOME_TITLE, LIBRARY_EVENT, LIBRARY_HEADING, LIBRARY_INTRO, NEW_TOURNAMENT_TEXT,
   libraryView, type LibraryCardView, type LibraryInput,
 } from './library-model.ts';
-
-export const LIBRARY_EVENT = 'ksm:library';
 
 interface LibraryWindow {
   /** The library as paintHomeTournamentLibrary() last published it. */

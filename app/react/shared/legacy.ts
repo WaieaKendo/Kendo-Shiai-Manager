@@ -17,6 +17,7 @@ import type { FinalResultsInput, QueueUpNext } from '../features/court/queue-mod
 import type { DialogsInput } from '../features/shell/dialogs-model.ts';
 import type { HeaderInput } from '../features/shell/header-model.ts';
 import type { NavMenuStyle } from '../features/shell/nav-model.ts';
+import type { LibraryInput } from '../features/library/library-model.ts';
 
 /** courtSummaryFor(court) (app/js/30-setup-header-and-director.js). */
 export interface LegacyCourtSummary {
@@ -196,6 +197,18 @@ export interface LegacyGlobals {
   tvLink: (court: string) => string;
   /** 00-react-bridge.js: the legacy `cloudSession` (a top-level `const`, so not on window itself). */
   ksmLegacyCloudSession: () => { tournamentId?: string | null };
+  /**
+   * The library's data builder (features/library/publish.ts) reads these. 40-react-library.js keeps
+   * ksmReadLocalDraft() (other classic code reads the draft synchronously) and defines
+   * ksmDecorateLibraryInput(), the hook 54-auth0-access.js reassigns to add the account fields (looked up on
+   * every call, never kept). 33-staff-session-and-library.js: the staff session and outbox.
+   */
+  ksmKeepStaffOutbox: () => boolean;
+  v316StaffPassword: () => string | null | undefined;
+  ksmReadLocalDraft: () => { setup?: { tName?: string }; savedAt?: string | number } | null;
+  ksmDecorateLibraryInput: (input: LibraryInput) => LibraryInput;
+  /** 40-react-library.js: the IDs of the Library rows this device holds a Staff token for (ksmLibraryStaffTokens, a top-level const). */
+  ksmLibraryAuthorizedIds: () => string[];
   /** 13-engine-standings-and-tiebreaks.js. */
   teamPairSummary: (div: string, pair: string) => { wWins: number; wPts: number; rWins: number; rPts: number };
 }
