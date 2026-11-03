@@ -6,9 +6,13 @@
 // The legacy app decides what is shown and when: renderHomeTournamentLibrary()
 // (app/js/33-staff-session-and-library.js) shows the device's cache, then asks the cloud (the
 // list, or discover with the cached IDs), and paintHomeTournamentLibrary() publishes a
-// LibraryInput (ksm:library, app/js/40-react-library.js) wherever it painted before. The legacy
+// signal (ksm:library, app/js/40-react-library.js) wherever it painted before, and publish.ts computes
+// the LibraryInput from it. The legacy
 // renderer (paintHomeTournamentLibrary()'s DOM writing, libraryCardMarkup()) is mirrored here: its
 // elements, classes and texts, which tests/golden/library (recorded from it) pins.
+
+/** The event the classic signal stub (ksmRenderLibrary(), app/js/40-react-library.js) dispatches; publish.ts answers it with the input. */
+export const LIBRARY_EVENT = 'ksm:library';
 
 // ------------------------------------------------------------------------------ input
 

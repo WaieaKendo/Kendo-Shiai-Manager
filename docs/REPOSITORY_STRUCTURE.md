@@ -47,8 +47,9 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         publish.ts computes its data when
                         app/js/39-react-overview.js signals),
                         library/ (the Tournament Library, the home page #home, M.13;
-                        app/js/40-react-library.js publishes its data; logo and card
-                        mark from shared/ui/branding.ts),
+                        publish.ts computes its data when app/js/40-react-library.js
+                        signals; the draft reading, staff tokens and actions stay
+                        classic; logo and card mark from shared/ui/branding.ts),
                         pools/ (the Pools view's #poolOutput, Registration -> Pools, and
                         the Edit Pool editor, M.13; publish.ts computes their data when
                         app/js/41-react-pools.js signals; the F12 edit copy stays

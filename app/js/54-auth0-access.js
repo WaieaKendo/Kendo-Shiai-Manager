@@ -82,15 +82,15 @@ var ksmAccountCanDelete=ksmCanDeleteTournament;
 ksmCanDeleteTournament=function(){return ksmAccount.enabled?ksmAccount.globalRole==='admin'&&!!ksmAccount.token&&!!cloudSession.tournamentId:ksmAccountCanDelete()};
 var ksmAccountManageLibrary=ksmCanManageLibraryTournament;
 ksmCanManageLibraryTournament=function(id){return ksmAccount.enabled?!ksmLibraryAuthInvalid&&!!ksmAccount.token&&!!ksmVisibleLibrary.find(row=>row.id===id)?.canManage:ksmAccountManageLibrary(id)};
-var ksmAccountPublishLibrary=ksmPublishLibrary;
-ksmPublishLibrary=function(input){
+var ksmAccountDecorateLibrary=ksmDecorateLibraryInput;
+ksmDecorateLibraryInput=function(input){
   if(ksmAccount.enabled&&input?.kind==='library'){
     const admin=!ksmLibraryAuthInvalid&&ksmAccount.globalRole==='admin'&&!!ksmAccount.token;
     const creator=!ksmLibraryAuthInvalid&&['admin','creator'].includes(ksmAccount.globalRole)&&!!ksmAccount.token;
     const active=ksmVisibleLibrary.find(row=>row.id===input.activeId);
     input={...input,hasActive:!!input.hasActive&&!!active&&!!cloudBaseFor(cloudSession.revision),activeName:active?.name||'',authEnabled:true,accountEmail:ksmAccount.email,accountRole:ksmAccount.globalRole,authInvalid:ksmLibraryAuthInvalid,canCreate:creator,canDelete:admin,accessLabels:Object.fromEntries(ksmVisibleLibrary.map(row=>[row.id,row.role])),authorizedIds:ksmLibraryAuthInvalid?[]:ksmVisibleLibrary.filter(row=>admin||row.canManage).map(row=>row.id)};
   }
-  return ksmAccountPublishLibrary(input);
+  return ksmAccountDecorateLibrary(input);
 };
 var ksmVisibleLibrary=[],ksmLibraryAuthInvalid=false;
 var ksmAccountReadLibrary=readTournamentLibrary;
