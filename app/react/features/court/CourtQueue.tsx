@@ -6,11 +6,11 @@
 import { useSyncExternalStore } from 'react';
 import { AlignedRow } from '../../shared/ui/MatchRows.tsx';
 import {
-  EMPTY_QUEUE, courtQueueView,
+  EMPTY_QUEUE, QUEUE_EVENT, courtQueueView,
   type CourtQueueInput, type FinalResultsInput, type QueueRowItemView, type QueueSideInput,
 } from './queue-model.ts';
 
-export const QUEUE_EVENT = 'ksm:court-queue';
+export { QUEUE_EVENT };
 
 interface CourtWindow {
   /** The queue as renderQueue() last published it. */

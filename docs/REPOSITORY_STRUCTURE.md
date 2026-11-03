@@ -25,7 +25,11 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         live/ (useTournamentRecord: GET + spectator WebSocket),
                         overlay/ (stream overlay; court-match.ts = the TV's match selection),
                         court/ (the court screen: React islands inside index.html that draw
-                        all of it, M.8; app/js/35-react-court.js publishes their data),
+                        all of it, M.8; publish.ts computes their data when
+                        app/js/35-react-court.js and the court writers signal; the builders
+                        other classic code calls (ksmBracket(), ksmTeamResults(), the team
+                        sheets, ksmDivisionCompleteInput(), ...), the Red side actions
+                        and the module-missing notice stay classic there),
                         live-scores/ (the Live Scores screen #public, M.13;
                         publish.ts computes its data when
                         app/js/36-react-live-scores.js signals; the between-matches

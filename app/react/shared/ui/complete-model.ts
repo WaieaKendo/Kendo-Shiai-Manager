@@ -11,6 +11,9 @@
 // CourtComplete renders: the markup of the legacy divisionCompletePanelHtml() (removed in M.13),
 // which Live Scores and the TV draw with the same component (DivisionCompletePanel).
 
+/** Signalled by setCourtCompletePresentation() (32-); publish.ts computes the input and the island redraws. */
+export const COMPLETE_EVENT = 'ksm:court-complete';
+
 export interface PlacementInput {
   /** '1st', '2nd', '3rd' ... as resultPlacements() gives them. */
   place: string;

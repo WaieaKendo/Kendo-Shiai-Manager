@@ -81,7 +81,7 @@ function renderDivisions(){
     let opts=all.filter(d=>{let c=state.divisionCourts[d]||'A';return c===court||c==='split'||/* ksm:post-split-begin team-divisions was:(d==='Team Tournament'&&(state.divisionCourts[d]||'Both')==='Both') */(isTeamDivision(d)&&(state.divisionCourts[d]||'Both')==='Both')/* ksm:post-split-end */});
 /* ksm:post-split-begin react-court */
     // The React court header (35-react-court.js) draws the court title and the select.
-    ksmPublishCourtHeader({court,divisions:opts,currentDivision:state.currentDivision||''});
+    ksmSignalCourtHeader({court,divisions:opts,currentDivision:state.currentDivision||''});
 /* ksm:post-split-end */
   }
 }

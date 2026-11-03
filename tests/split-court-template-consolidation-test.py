@@ -14,14 +14,14 @@ live_publish=(Path(__file__).resolve().parent.parent/'app/react/features/live-sc
 live_react=(Path(__file__).resolve().parent.parent/'app/react/features/live-scores/LiveScores.tsx').read_text()
 checks={
  'single column split context':'split-template-context' in html and "return {kind:'split-single-elim',cards:" in html and 'single-elim-context-grid split-template-context' in react,
- 'template node queue':"const nodes=state.singleElimNodes?.[div]||[],arr=enforceUniqueIndividualMatches(div),out=ksmQueueGroups();" in html,
+ 'template node queue':"const nodes = state.singleElimNodes?.[div] || [], arr = legacy('enforceUniqueIndividualMatches')(div), out = ksmQueueGroups();" in react,
  'all nodes instantiated':'KSMEngine.buildIndividualSingleElimMatches' in html and 'templateNode: true' in engine and 'nodes.map((node): SingleElimMatch<C> => ({' in engine,
  'no dynamic direct creation':"KSM template invariant: missing Match Object" in html and "arr.push({division:div,pool:'Championship'" not in html[html.rfind('function syncIndividualSingleElim'):html.find('function contextDivisionForCourt')],
  'readiness gate':'individualMatchReady' in html,
- 'court filter after template':'if(nodeCourt!==court)return' in html,
+ 'court filter after template':'if (nodeCourt !== court) return' in react,
  'one match per node':'elimNodeId: node.id' in engine,
- 'persistent context':'const div=contextDivisionForCourt();' in html and 'if((state.pools?.[div]||[]).length)return ksmPoolContext(div,null);' in html,
- 'queue empty on complete':"if(divisionComplete(div))return {kind:'empty'};" in html,
+ 'persistent context':"const div = legacy('contextDivisionForCourt')();" in react and 'if ((state.pools?.[div] || []).length) return ksmPoolContext(div, null);' in react,
+ 'queue empty on complete':"if (legacy('divisionComplete')(div)) return { kind: 'empty' };" in react,
  'court medalist panel':'setCourtCompletePresentation' in html,
  # F16: the placements are a court card's (kind 'complete') and fill the screen once neither court plays.
  'live medalist panel':"kind: 'complete', division: text(divisionName(div)), complete: legacy('ksmDivisionCompleteInput')(div, true)" in live_publish and "liveScoresWindow().ksmLiveScoresInput = { kind: 'complete', complete: finished.complete };" in live_publish and "<div className=\"audience-hero\"><DivisionCompletePanel view={view.complete} /></div>" in live_react and "<div className=\"audience-hero\"><DivisionCompletePanel view={body.complete} /></div>" in live_react,

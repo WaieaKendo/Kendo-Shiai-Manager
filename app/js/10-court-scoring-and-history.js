@@ -97,10 +97,10 @@ function applyHistoryValues(action,direction){
 }
 function updateUndoButton(){
 /* ksm:post-split-begin react-court */
-  // The React action row (35-react-court.js) draws the buttons: publish whether Undo/Redo may
+  // The React action row (35-react-court.js) draws the buttons: signal whether Undo/Redo may
   // be pressed (the labels stay plain "Undo"/"Redo").
   ensureCourtHistory();const court=currentHistoryCourt(),undoStack=state.courtActionHistory[court],redoStack=state.courtRedoHistory[court];
-  ksmPublishCourtActions({undo:{disabled:!undoStack.length,label:'Undo'},redo:{disabled:!redoStack.length,label:'Redo'}});
+  ksmSignalCourtActions({undo:{disabled:!undoStack.length,label:'Undo'},redo:{disabled:!redoStack.length,label:'Redo'}});
 /* ksm:post-split-end */
 }
 /* ksm:post-split-begin history-replay */

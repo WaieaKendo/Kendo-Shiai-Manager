@@ -50,8 +50,8 @@ function renderScore(){
   let m=ensureScorableCurrentMatch();
   if(m && !matchBelongsToCourt(m,state.currentCourt||'A'))m=null;
   const meta=matchDisplayMeta(m);
-  ksmPublishCourtHeader({matchLine:meta.line,divisionTitle:m?meta.division:(state.currentDivision||'—'),requiresWinner:m?!!matchRequiresWinner(m):null,redLeft:redOnLeftForCourt(state.currentCourt)});
-  ksmPublishCourtScoreboard(m);
+  ksmSignalCourtHeader({matchLine:meta.line,divisionTitle:m?meta.division:(state.currentDivision||'—'),requiresWinner:m?!!matchRequiresWinner(m):null,redLeft:redOnLeftForCourt(state.currentCourt)});
+  ksmSignalCourtScoreboard(m);
   renderQueue();renderPublic();renderContext();
 /* ksm:post-split-end */
 }
@@ -61,6 +61,6 @@ function renderScore(){
 function updateScoreTournamentName(){
 /* ksm:post-split-begin react-court */
   // The React court header (35-react-court.js) shows it.
-  ksmPublishCourtHeader({tournamentName:(window.tName&&tName.value)?tName.value:'Kendo Tournament'});
+  ksmSignalCourtHeader({tournamentName:(window.tName&&tName.value)?tName.value:'Kendo Tournament'});
 /* ksm:post-split-end */
 }

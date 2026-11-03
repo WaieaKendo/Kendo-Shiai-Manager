@@ -7,11 +7,11 @@ import { useSyncExternalStore } from 'react';
 import { DEFAULT_COURT_PANEL_ICONS, type CourtPanelIcons } from './branding.ts';
 import { AlignedRow, BracketCard } from './MatchRows.tsx';
 import {
-  EMPTY_CONTEXT, courtContextView,
+  CONTEXT_EVENT, EMPTY_CONTEXT, courtContextView,
   type BracketCardView, type BracketView, type CourtContextInput, type CourtContextView, type KachinukiLineView, type PoolCardView, type TeamStandingsView,
 } from './context-model.ts';
 
-export const CONTEXT_EVENT = 'ksm:court-context';
+export { CONTEXT_EVENT };
 
 interface CourtWindow {
   /** The context as renderContext() last published it. */

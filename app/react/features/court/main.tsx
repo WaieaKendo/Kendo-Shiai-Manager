@@ -1,8 +1,8 @@
 // The court (scorekeeper) screen: React islands in the legacy page (index.html; the build adds
 // this module after app.js and lists its files in the service worker's APP_SHELL, so an offline
-// device has it). The legacy code chooses the court's match and division, computes what is shown
-// and runs the actions; it publishes plain data for each island (app/js/35-react-court.js) and
-// never writes the court screen itself (M.8). The static court markup in index.html only holds
+// device has it). The legacy code chooses the court's match and division and runs the actions;
+// publish.ts computes what each island shows when the legacy writers signal (app/js/35-react-court.js)
+// and the legacy code never writes the court screen itself (M.8, #136 step 2). The static court markup in index.html only holds
 // the mount points until this module runs. If this module does not load, the legacy code shows
 // a "court screen not loaded" notice instead (35-react-court.js, on DOMContentLoaded).
 import { mountIsland } from '../../shared/lib/island.tsx';
@@ -11,6 +11,7 @@ import { CourtComplete } from '../../shared/ui/CourtComplete.tsx';
 import { CourtContext } from '../../shared/ui/CourtContext.tsx';
 import { CourtHeader } from './CourtHeader.tsx';
 import { CourtQueue } from './CourtQueue.tsx';
+import { startCourtInput } from './publish.ts';
 import { CourtScoreboard } from './CourtScoreboard.tsx';
 
 interface LegacyWindow {
@@ -39,9 +40,12 @@ const actions = el('#score .bottom-action-row');
 const context = el('#score #courtContext');
 const queue = el('#score #queue');
 
-// The legacy writers have published since app.js started (the islands read the last published
-// data when they mount); run them once more, in the order the islands used to take over, so
-// every island starts from the current court.
+// Pull: every input is computed from the legacy app on its signal (ksm:court-scoreboard, -header,
+// -actions, -complete, -queue, -context) and now, for each one sent before this module ran (the
+// legacy writers have signalled since app.js started); started before mounting, so it runs ahead of
+// the islands' own listeners. Then the writers run once more, in the order the islands used to take
+// over, so every island starts from the current court.
+startCourtInput();
 fn(legacy.renderDivisions, 'renderDivisions')();
 fn(legacy.renderScore, 'renderScore')();
 fn(legacy.updateUndoButton, 'updateUndoButton')();

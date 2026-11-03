@@ -9,6 +9,9 @@
 // out (as groupedQueueSection() did).
 import { alignedRowView, type AlignedRowInput, type AlignedRowView } from '../../shared/ui/rows-model.ts';
 
+/** Signalled by renderQueue() (32-); publish.ts computes the input and the island redraws. */
+export const QUEUE_EVENT = 'ksm:court-queue';
+
 export interface QueueSideInput {
   name: string;
   /** The dojo or team line under the name; null: no line (placeholders, team rows). */

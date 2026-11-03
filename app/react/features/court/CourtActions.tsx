@@ -7,12 +7,12 @@ import { MatchTimer } from './MatchTimer.tsx';
 import { useSyncExternalStore } from 'react';
 import { DEFAULT_COURT_ACTION_ICONS, type CourtActionIcons } from '../../shared/ui/branding.ts';
 import {
-  STATIC_ACTIONS, courtActionsView, fusenButtonView, scoreButtons,
+  ACTIONS_EVENT, STATIC_ACTIONS, courtActionsView, fusenButtonView, scoreButtons,
   type CourtActionsInput, type ScoreButton, type Side,
 } from './actions-model.ts';
-import { EMPTY_SCOREBOARD, HIKIWAKE_NEXT_LABEL, nextMatchView, type ScoreboardInput } from '../../shared/ui/scoreboard-model.ts';
+import { EMPTY_SCOREBOARD, HIKIWAKE_NEXT_LABEL, SCOREBOARD_EVENT, nextMatchView, type ScoreboardInput } from '../../shared/ui/scoreboard-model.ts';
 
-export const ACTIONS_EVENT = 'ksm:court-actions';
+export { ACTIONS_EVENT };
 
 interface CourtWindow {
   /** Undo/Redo as the legacy updateUndoButton() last published them. */
@@ -36,7 +36,6 @@ function subscribe(onChange: () => void): () => void {
 
 const snapshot = (): CourtActionsInput => courtWindow().ksmCourtActionsInput ?? STATIC_ACTIONS;
 
-const SCOREBOARD_EVENT = 'ksm:court-scoreboard';
 function subscribeMatch(onChange: () => void): () => void {
   window.addEventListener(SCOREBOARD_EVENT, onChange);
   return () => window.removeEventListener(SCOREBOARD_EVENT, onChange);

@@ -17,6 +17,9 @@ import {
 
 // ------------------------------------------------------------------------------ input
 
+/** Signalled by renderContext() (32-); publish.ts computes the input and the island redraws. */
+export const CONTEXT_EVENT = 'ksm:court-context';
+
 /** One competitor line of a pool card (poolResultCardHtml(), 31-spectator-refinements.js). */
 export interface PoolStandingInput {
   name: string;

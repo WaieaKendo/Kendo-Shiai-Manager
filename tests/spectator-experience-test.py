@@ -29,10 +29,10 @@ checks={
  'team lineup retained':"case 'team': return <><ContextPanel view={{ kind: 'team-sheet', ...body.sheet }} /><BoutHansoku hansoku={body.hansoku} /></>;" in live and "rows:matches.map(match=>{" in html,
  'next match retained':'<div className="live-next">' in live and '<span>Next</span>' in live and '<div className="tv3-upcoming-title">{footer.title ?? UPCOMING_TITLE}</div>' in tv,  # decision 6: or "Up next on this court"
  'pool completion helper':'function poolDisplayComplete(div,label)' in html,
- 'incomplete pools before bracket':'Pools In Progress' in react and react.index('Pools In Progress') < react.index('Championship Bracket Preview', react.index('export function CourtContext')) and "return {kind:'pools',inProgress,bracket:ksmBracket(div),completed:done};" in html,
+ 'incomplete pools before bracket':'Pools In Progress' in react and react.index('Pools In Progress') < react.index('Championship Bracket Preview', react.index('export function CourtContext')) and "return { kind: 'pools', inProgress, bracket: legacy('ksmBracket')(div), completed: done };" in react,
  'completed checkmark':'pool-complete-mark' in html and 'className="pool-complete-mark" data-testid="context-pool-complete" aria-label="Complete">{icons.poolComplete}' in react and "poolComplete: '✓'" in react,
- 'alphabetical pool ordering':'.sort((a,b)=>String(a.label).localeCompare(String(b.label)))' in html,
- 'render context shared rule':'return ksmPoolContext(m.division,m);' in html and 'return ksmPoolContext(div,null);' in html,
+ 'alphabetical pool ordering':'.sort((a, b) => String(a.label).localeCompare(String(b.label)))' in react,
+ 'render context shared rule':'return ksmPoolContext(m.division, m);' in react and 'return ksmPoolContext(div, null);' in react,
  'landscape live score media':'@media(orientation:landscape) and (max-height:560px) and (max-width:980px)' in html,
  'no engine schema change':'const state={brackets:' in html,
 }

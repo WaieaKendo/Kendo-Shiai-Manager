@@ -11,7 +11,9 @@ import type { TournamentSettings } from '../../engine/settings.ts';
 import type { ResultPoolInput } from '../features/results/results-model.ts';
 import type { HansokuCounts, UpNextInput } from '../features/live-scores/live-scores-model.ts';
 import type { CourtCompleteInput } from './ui/complete-model.ts';
-import type { BracketInput, KachinukiSheetInput, TeamSheetInput } from './ui/context-model.ts';
+import type { BracketInput, CourtContextInput, KachinukiSheetInput, TeamSheetInput } from './ui/context-model.ts';
+import type { AlignedRowInput, BracketCardInput } from './ui/rows-model.ts';
+import type { FinalResultsInput, QueueUpNext } from '../features/court/queue-model.ts';
 
 /** courtSummaryFor(court) (app/js/30-setup-header-and-director.js). */
 export interface LegacyCourtSummary {
@@ -112,6 +114,52 @@ export interface LegacyGlobals {
   ksmExhibitionsEnabled: () => boolean;
   /** 01-team-divisions.js: the settings of a team division (the first one without an id). */
   ksmTeamSettings: (id?: string) => TournamentSettings;
+  /**
+   * The court screen's data builders that publish.ts (features/court) reads. 35-react-court.js keeps
+   * these, because other classic code calls them (ksmBracket()/ksmTeamResults() call the row and card
+   * builders), or because they read a top-level `const` the module cannot reach
+   * (ksmSingleElimContext(): SINGLE_ELIM_CONTEXT_LAYOUTS; ksmFinalResults(): KSM_TEAM_PLACE_TIED).
+   */
+  ksmAlignedRow: (match: Match | null, options?: Record<string, unknown>) => AlignedRowInput;
+  ksmPlaceholderRow: (white: string, red: string, status?: string, compact?: boolean) => AlignedRowInput;
+  ksmSingleElimRoundCard: (div: string, round: string) => BracketCardInput | null;
+  ksmSingleElimContext: (div: string) => CourtContextInput;
+  ksmFinalResults: (div: string) => { kind: 'results'; results: FinalResultsInput | null } | null;
+  /** 02-court-match-order.js, 06-, 08-, 09-, 11-, 14-: the engine bridges the queue and context builders read. */
+  isTeamMatch: (m: Match | null | undefined) => boolean;
+  sortTeamMatches: (div: string) => Match[];
+  matchRequiresWinner: (m: Match) => boolean;
+  teamRoster: (team: string | undefined, div?: string) => string[];
+  canModifyRepresentative: (m: Match | undefined) => boolean;
+  divisionCourtMode: (div: string) => CourtMode;
+  poolDisplayComplete: (div: string, poolLabel: string) => boolean;
+  enforceUniqueIndividualMatches: (div: string) => Match[];
+  dedupeSingleElimMatches: (div: string) => Match[];
+  sideLabelGeneric: (side: unknown, div: string) => string;
+  specificMatchSideLabel: (match: Match, side: 'white' | 'red') => string;
+  eliminationFinalDone: (div: string) => boolean;
+  championshipLabels: (div: string) => string[][];
+  firstRoundName: (count: number) => string;
+  roundSequenceFromFirst: (first: string) => string[];
+  expectedRoundCount: (div: string, round: string) => number;
+  championshipCourtFor: (div: string, round: string, slot: number, total: number) => Court;
+  champMatchBySlot: (div: string, round: string, slot: number) => Match | undefined;
+  seedNameForLabel: (div: string, label: string | undefined, onlyFinalized?: boolean) => { name: string } | null;
+  previousRoundName: (round: string) => string;
+  sourceLabelForRound: (div: string, previousRound: string, slot: number) => { name: string };
+  nodePairId: (node: TeamBracketNode) => string;
+  teamSideLabel: (side: unknown, div: string) => string;
+  normalizeQueueGroupLabel: (label: string) => string;
+  /** 24-court-queue-and-context.js: sets the layout classes around the queue and context panels (writes the DOM). */
+  setCourtSupportMode: (mode: 'standard' | 'singleElim') => void;
+  /** 32-split-court-templates.js. */
+  contextDivisionForCourt: () => string | null;
+  /** 18-sync-state-and-rebase.js, 20-, 35-match-timer.js: the court header's timer fields. */
+  normalizeCourt: (value: unknown) => Court;
+  getSetupSnapshot: () => Record<string, unknown>;
+  ksmNormalizeTimerSettings: (data: Record<string, unknown>) => Record<string, string>;
+  /** 36-react-live-scores.js (stays classic): the court's next division and its first matches. */
+  ksmUpNext: (court: Court, own: string | null | undefined) => QueueUpNext | null;
   /** 35-react-court.js. */
   ksmTeamSheet: (div: string, pair: string | undefined, current: Match) => TeamSheetInput;
   ksmKachinukiSheet: (m: Match) => KachinukiSheetInput;

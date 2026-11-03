@@ -200,6 +200,42 @@ def court_module_missing(browser, errors):
     assert notice.is_visible(), 'no "court screen could not load" notice without the court module'
     assert 'Court screen could not load' in notice.inner_text(), notice.inner_text()
     assert not page.locator('#score .scorekeeper-shell').is_visible(), 'the static court markup is shown without the court module'
+    # The inputs are computed by the module (pull): without it nothing computes them, but the legacy
+    # writers still signal (once per call) and record the request on window, which is safe before the
+    # module loads (and for good when it never does). Nothing draws the court screen.
+    inputs = ['Scoreboard', 'Header', 'Actions', 'Complete', 'Queue', 'Context']
+    assert page.evaluate('(names) => names.every(n => window["ksmCourt" + n + "Input"] === undefined)', inputs), \
+        'a court input exists without the court module'
+    counts = page.evaluate('''() => {
+        const counts = {};
+        for (const n of ['scoreboard', 'header', 'actions', 'complete', 'queue', 'context'])
+            window.addEventListener('ksm:court-' + n, () => { counts[n] = (counts[n] || 0) + 1; });
+        const app = KSMTest.app, seen = [], run = (name, fn) => { for (const k in counts) delete counts[k]; fn(); seen.push([name, {...counts}]); };
+        run('updateScoreTournamentName', () => app.updateScoreTournamentName());
+        run('updateUndoButton', () => app.updateUndoButton());
+        run('renderQueue', () => app.renderQueue());
+        run('renderContext', () => app.renderContext());
+        run('setCourtCompletePresentation', () => app.setCourtCompletePresentation('Open', false));
+        run('renderDivisions', () => app.renderDivisions());
+        run('renderScore', () => app.renderScore());
+        return seen;
+    }''')
+    expected = {
+        'updateScoreTournamentName': {'header': 1}, 'updateUndoButton': {'actions': 1}, 'renderQueue': {'queue': 1},
+        'renderContext': {'context': 1}, 'setCourtCompletePresentation': {'complete': 1}, 'renderDivisions': {'header': 1},
+        # The renderScore() wrapper (32-): the complete signal, then the match display (header twice: tournament name, match line; scoreboard) and both panels.
+        'renderScore': {'complete': 1, 'header': 2, 'scoreboard': 1, 'queue': 1, 'context': 1},
+    }
+    assert {name: seen for name, seen in counts} == expected, f'the court signals without the module: {counts}'
+    assert page.evaluate('''() => window.ksmCourtScoreboardRequested && 'match' in window.ksmCourtScoreboardRequested
+        && window.ksmCourtActionsRequested.undo && window.ksmCourtCompleteRequested.complete === false
+        && window.ksmCourtQueueRequested === true && window.ksmCourtContextRequested === true
+        && typeof window.ksmCourtHeaderRequested.tournamentName === 'string' && typeof window.ksmCourtHeaderRequested.matchLine === 'string'
+        && window.ksmCourtHeaderRequested.court === 'A' && Array.isArray(window.ksmCourtHeaderRequested.divisions)'''), \
+        'the court requests are not recorded on window without the module'
+    assert page.evaluate('(names) => names.every(n => window["ksmCourt" + n + "Input"] === undefined)', inputs), \
+        'a signal computed a court input without the court module'
+    assert notice.is_visible(), 'the notice went away'
     page.close()
 
 

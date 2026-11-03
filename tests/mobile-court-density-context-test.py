@@ -14,8 +14,8 @@ checks={
  'controls no reserved height': '#score .score-controls-grid{' in html and 'min-height:0 !important' in html and 'height:auto !important' in html,
  'panels no reserved height': '#score .control-panel{' in html and 'min-height:0 !important' in html and 'height:auto !important' in html,
  'global court context description removed': 'Current division status, pool standings, and bracket context.' not in html,
- 'final team context uses sheet only': "return {kind:'team-sheet',sheet:ksmTeamSheet(m.division,m.teamPair,m)};" in html and "case 'team-sheet':\n      return (\n        <div className=\"team-sheet\">" in react,
- 'final kachinuki context uses sheet only': "if(m.type==='kachinuki')return {kind:'kachinuki',sheet:ksmKachinukiSheet(m)};" in html and "case 'kachinuki':\n      return (\n        <div className=\"team-sheet\">" in react,
+ 'final team context uses sheet only': "return { kind: 'team-sheet', sheet: legacy('ksmTeamSheet')(m.division, m.teamPair, m) };" in react and "case 'team-sheet':\n      return (\n        <div className=\"team-sheet\">" in react,
+ 'final kachinuki context uses sheet only': "if (m.type === 'kachinuki') return { kind: 'kachinuki', sheet: legacy('ksmKachinukiSheet')(m) };" in react and "case 'kachinuki':\n      return (\n        <div className=\"team-sheet\">" in react,
 }
 failed=[name for name,ok in checks.items() if not ok]
 for name,ok in checks.items(): print(('PASS' if ok else 'FAIL')+': '+name)

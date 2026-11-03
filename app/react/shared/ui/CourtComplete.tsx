@@ -9,11 +9,11 @@
 import { useLayoutEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  CONTINUE_TEXTS, DIVISION_COMPLETE_CLASS, NOT_COMPLETE, NO_PLACEMENTS_TEXT, continueBoxView, courtCompleteView, keptKey,
+  COMPLETE_EVENT, CONTINUE_TEXTS, DIVISION_COMPLETE_CLASS, NOT_COMPLETE, NO_PLACEMENTS_TEXT, continueBoxView, courtCompleteView, keptKey,
   type ContinueBoxView, type CourtCompleteInput, type CourtCompleteView,
 } from './complete-model.ts';
 
-export const COMPLETE_EVENT = 'ksm:court-complete';
+export { COMPLETE_EVENT };
 
 interface CourtWindow {
   /** The division-complete state as setCourtCompletePresentation() last published it. */
