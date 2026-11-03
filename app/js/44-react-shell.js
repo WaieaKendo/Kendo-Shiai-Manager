@@ -1,25 +1,34 @@
 /* ksm:post-split-begin react-shell */
 // ==========================================================
-// React shell (app/react/shell/, roadmap M.13: the navigation bar and its menus, the header's
-// status row and the pop-up dialogs)
+// React shell (app/react/features/shell/, roadmap M.13: the navigation bar and its menus, the
+// header's status row and the pop-up dialogs)
 // React islands draw the navigation bar (the contents of header nav.minimal-nav), the status row
 // (the contents of header .cloud-status-wrap), the Fusen-gachi dialog (#fusenDialog), the
 // generation check (#validationModal), Regenerate Single Division (#regenerateModal) and the cloud
-// modal (#ksmCloudModal, appended to <body>), mounted by app/react/shell/main.tsx. The legacy code
-// still decides what is shown and when, and runs every action; it publishes what it drew as plain
-// data, and these functions keep it:
-// - ksm:shell-nav (window.ksmShellNavInput): the open menu, its placement on a phone or tablet
+// modal (#ksmCloudModal, appended to <body>), mounted by app/react/features/shell/main.tsx. The
+// legacy code still decides what is shown and when, and runs every action.
+// #136 step 2: the three inputs the islands draw are computed by app/react/features/shell/publish.ts
+// (startShellInput(), which main.tsx calls before any island mounts). What stays here is the
+// state, because the shell's writers (ksmRenderSessionRole(), ksmRenderSaveStatus(),
+// ksmShowValidationDialog(), ksmCloseShellDialog(), the nav menu functions, ...) patch it
+// synchronously and read it back (ksmShellHeaderState(), ksmShellDialogsState(), ksmNavOpenMenu /
+// ksmNavMenuStyle / ksmNavActive, ksmValidationConfirm, ksmShellDialogKey), and the values they
+// patch in (the save status from readOutbox(), the dialog keys, the focus blur) must be worked out
+// at call time. The three signal stubs patch that state and signal; publish.ts copies it:
+// - ksm:shell-nav (window.ksmShellNavRequested): the open menu, its placement on a phone or tablet
 //   and the screen shown (toggleNavMenu(), closeNavMenus(), setNavMenuState(),
 //   positionMobileNavMenu() and the resize listener in 23; setActiveNavForView() in 24);
-// - ksm:shell-header (window.ksmShellHeaderInput): the staff button's text, the role, the
+// - ksm:shell-header (window.ksmShellHeaderRequested): the staff button's text, the role, the
 //   connection status, the devices online and the save status (setSessionRole() in 33,
 //   setConnectionStatus() / renderPersistentSaveStatus() / updateSaveStatus() in 20,
 //   renderCloudPresence() in 21);
-// - ksm:shell-dialogs (window.ksmShellDialogsInput): which dialog is shown and what it says
+// - ksm:shell-dialogs (window.ksmShellDialogsRequested): which dialog is shown and what it says
 //   (openFusenDialog() / closeFusenDialog() in 22; showValidationDialog(),
 //   openRegenerateDivisionDialog(), continueRegenerateDivision() and closeManagementModal() in 03;
 //   regenerateSingleDivision() in 08; openTournamentAccess() in 33; cloudDiagnostics(),
 //   confirmTournamentFileLoad() and closeCloudModal() in 21).
+// A signal sets its flag, so publish.ts also computes an input signalled before the module ran
+// (boot code signals first).
 // tests/golden/shell/*.json (recorded from the legacy shell) pin the result. Texts are what esc()
 // showed after the HTML parser read it (ksmHtmlText(), 43). What a redraw replaced (the dialogs'
 // innerHTML, a new cloud modal) lost the focus at that moment; React replaces it later, so the
@@ -34,10 +43,6 @@
 // (showKsmToast() in 21).
 // Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
-function ksmPublishShell(event,key,input){
-  window[key]=input;
-  window.dispatchEvent(new CustomEvent(event));
-}
 // A focused element inside `el` loses the focus, as when the legacy code replaced it.
 function ksmShellBlurIn(el){
   const active=document.activeElement;
@@ -49,20 +54,10 @@ function ksmShellBlurIn(el){
 // and the label of the screen shown. Declared without a value: the app's boot code runs before
 // this part of app.js, and a value here would undo what it set.
 var ksmNavOpenMenu,ksmNavMenuStyle,ksmNavActive;
+// Signal: publish.ts computes the input (with the Courts and TV menus' links, ksmNavLinks()).
 function ksmPublishNav(){
-  ksmPublishShell('ksm:shell-nav','ksmShellNavInput',{open:ksmNavOpenMenu||null,style:ksmNavMenuStyle||null,active:ksmNavActive||null,links:ksmNavLinks()});
-}
-// The Courts and TV menus' items as links (their addresses, worked out as a menu opens): a plain
-// click still runs chooseCourt() / launchTvDisplay(); a new-tab click opens the address. None
-// before the tournament has a cloud ID (launchTvDisplay() saves it first).
-function ksmNavLinks(){
-  const id=cloudSession?.tournamentId;if(!id)return {};
-  const links={};
-  ['A','B'].forEach(c=>{
-    links[`nav-court-${c.toLowerCase()}`]=ksmLinkUrl({screen:'court',id,court:c});
-    const tv=tvLink(c);if(tv)links[`nav-tv-${c.toLowerCase()}`]=tv;
-  });
-  return links;
+  window.ksmShellNavRequested=true;
+  window.dispatchEvent(new CustomEvent('ksm:shell-nav'));
 }
 // setNavMenuState(menu,open): a menu shown or hidden; hiding it drops its placement.
 function ksmSetNavMenuState(menu,open){
@@ -115,8 +110,9 @@ function ksmShellHeaderState(){
   return ksmShellHeader;
 }
 function ksmPublishHeader(patch){
-  const h=Object.assign(ksmShellHeaderState(),patch);
-  ksmPublishShell('ksm:shell-header','ksmShellHeaderInput',{...h});
+  Object.assign(ksmShellHeaderState(),patch);
+  window.ksmShellHeaderRequested=true;
+  window.dispatchEvent(new CustomEvent('ksm:shell-header'));
 }
 // setSessionRole() (33): the role (hidden) and the staff button.
 function ksmRenderSessionRole(){
@@ -175,7 +171,8 @@ function ksmShellDialogsState(){
 function ksmPublishDialogs(part,value){
   const d=ksmShellDialogsState();
   d[part]=value;
-  ksmPublishShell('ksm:shell-dialogs','ksmShellDialogsInput',{...d});
+  window.ksmShellDialogsRequested=true;
+  window.dispatchEvent(new CustomEvent('ksm:shell-dialogs'));
 }
 function ksmNextDialogKey(){ksmShellDialogKey=(ksmShellDialogKey||0)+1;return ksmShellDialogKey}
 // openFusenDialog() / closeFusenDialog() (22).

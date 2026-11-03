@@ -70,8 +70,10 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         nav.minimal-nav and the header's status row .cloud-status-wrap,
                         the Fusen-gachi, generation check and Regenerate Single Division
                         dialogs, the cloud modal #ksmCloudModal as a portal into <body>;
-                        app/js/44-react-shell.js publishes their data; the brand, the
-                        spectator banner and the toast stay legacy)
+                        publish.ts computes their data when app/js/44-react-shell.js
+                        signals; the state the shell's writers patch and read back
+                        stays classic; the brand, the spectator banner and the toast
+                        stay legacy)
   engine/             Pure tournament-engine modules, strict TypeScript (own tsconfig.json):
                         no DOM, no globals, explicit inputs/outputs. index.ts is bundled
                         into a classic script defining `KSMEngine`, loaded before app.js;

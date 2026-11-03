@@ -263,6 +263,9 @@ export const CLOUD_TEXTS = {
 
 // ------------------------------------------------------------------------------ all
 
+/** The window event legacy dispatches when it asks for the dialogs (app/js/44-react-shell.js). */
+export const DIALOGS_EVENT = 'ksm:shell-dialogs';
+
 export interface DialogsInput {
   fusen: FusenInput;
   validation: ValidationInput;

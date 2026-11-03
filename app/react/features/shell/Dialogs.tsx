@@ -24,15 +24,13 @@
 import { Fragment, useLayoutEffect, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  CLOUD_TEXTS, DELETE_TEXTS, EMPTY_DIALOGS, FUSEN_TEXTS, REGENERATE_TEXTS, fusenSides, VALIDATION_TEXTS,
+  CLOUD_TEXTS, DELETE_TEXTS, DIALOGS_EVENT, EMPTY_DIALOGS, FUSEN_TEXTS, REGENERATE_TEXTS, fusenSides, VALIDATION_TEXTS,
   deleteDevicesText, deleteEnabled, deleteRequiredName, regenerateOptionClass, regenerateStatusText,
   type CloudBody, type DeleteBody, type CloudDetail, type DialogsInput, type HistoryCourtView, type HistoryEntryView,
   type RegenerateContent, type SnapshotAnalysisView, type ValidationContent,
 } from './dialogs-model.ts';
 import { testToolsLabel } from './dialogs-model.ts';
 import { rawStyle, shellWindow, subscribeTo } from './shell-dom.ts';
-
-export const DIALOGS_EVENT = 'ksm:shell-dialogs';
 
 const subscribe = subscribeTo(DIALOGS_EVENT);
 const snapshot = (): DialogsInput => shellWindow().ksmShellDialogsInput ?? EMPTY_DIALOGS;
