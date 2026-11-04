@@ -3,9 +3,9 @@
 // app/index.html        markup; references /app.css and /app.js
 // app/styles/NN-*.css   concatenated in file-name order into /app.css
 // app/js/NN-*.js        concatenated in file-name order into /app.js, ONE classic script:
-//                       inline on*="..." handlers need globals, and ~35 functions are
-//                       redeclared later in the code, where the last declaration wins.
-//                       Separate <script> tags or ES modules would change both.
+//                       inline on*="..." handlers need globals; no function name may be declared twice (
+//                       tests/no-duplicate-declarations-test.mjs).
+//                       Separate <script> tags or ES modules would change the globals.
 // app/*.html           other pages (e.g. overlay.html): extra Vite entries, built with
 //                       ES-module scripts from app/react/ (React + strict TypeScript) and
 //                       served without the .html (/overlay); none of them load app.js
