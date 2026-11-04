@@ -234,6 +234,8 @@ function ksmImportCSVText(text,fileName){
 // regTab() (23): the tab marked active. Owner decision 19 (#29): and whether the Exhibition tab
 // shows (only while Setup's Exhibition Matches is Enabled).
 function ksmExhibitionsEnabled(){return window.exhibitionEnabled?exhibitionEnabled.value==='Enabled':false}
+// #129: the tournament is drawn: the tab bar drops Generate Tournament (Regenerate Tournament lives in Setup's Danger zone).
+function ksmTournamentGenerated(){return !!state.generated}
 function ksmRenderRegistrationTab(mode){
   window.ksmRegistrationTabRequested={mode};
   window.dispatchEvent(new CustomEvent('ksm:registration-tab'));
@@ -243,7 +245,7 @@ function ksmSyncExhibitionTab(){
   const mode=state.regMode||'individual';
   if(mode==='exhibition'&&!ksmExhibitionsEnabled()){regTab('individual');return}
   const current=window.ksmRegistrationTabInput;
-  if(!current||current.mode!==String(mode)||current.exhibitions!==ksmExhibitionsEnabled())ksmRenderRegistrationTab(mode);
+  if(!current||current.mode!==String(mode)||current.exhibitions!==ksmExhibitionsEnabled()||!!current.generated!==ksmTournamentGenerated())ksmRenderRegistrationTab(mode);
 }
 // F20 (F17 on the team cards and exhibition rows): a card's or row's fields belong to the team or
 // match it showed, not to a place in the list. The redraw commits the field being edited (its

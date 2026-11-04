@@ -126,6 +126,7 @@ export interface LegacyGlobals {
   ksmBindRegistrationEntry: <R extends object>(entry: Team | Exhibition, row: R) => R;
   ksmBlurRedrawn: (island: Element | null | undefined) => void;
   ksmExhibitionsEnabled: () => boolean;
+  ksmTournamentGenerated: () => boolean;
   /** 01-team-divisions.js: the settings of a team division (the first one without an id). */
   ksmTeamSettings: (id?: string) => TournamentSettings;
   /**

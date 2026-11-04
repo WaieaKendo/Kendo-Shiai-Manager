@@ -50,3 +50,10 @@ test('owner decision 19: the Exhibition tab only while exhibitions are enabled',
   assert.deepEqual(visibleTabButtons({ mode: 'individual', exhibitions: false }).map(b => b.testId),
     ['reg-tab-individual', 'reg-tab-team', 'reg-tab-pools', 'generate-button', 'regenerate-division-button']);
 });
+
+test('#129: once the tournament is drawn the toolbar drops Generate Tournament and keeps Regenerate Single Division', async () => {
+  const { visibleTabButtons } = await import('../../app/react/features/registration/teams-model.ts');
+  assert.deepEqual(visibleTabButtons({ mode: 'pools', exhibitions: true, generated: true }).map(b => b.testId),
+    ['reg-tab-individual', 'reg-tab-team', 'reg-tab-exhibition', 'reg-tab-pools', 'regenerate-division-button']);
+  assert.ok(visibleTabButtons({ mode: 'pools', generated: false }).some(b => b.testId === 'generate-button'));
+});

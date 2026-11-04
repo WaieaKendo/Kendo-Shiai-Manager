@@ -127,7 +127,7 @@ export function ksmStatusInput(request: StatusRequest): StatusInput {
 
 /** regTab() (23) as data: the tab marked active, and whether the Exhibition tab shows (owner decision 19). */
 export function ksmTabInput(request: { mode: string }): TabsInput {
-  return { mode: String(request.mode), exhibitions: legacy('ksmExhibitionsEnabled')() };
+  return { mode: String(request.mode), exhibitions: legacy('ksmExhibitionsEnabled')(), generated: legacy('ksmTournamentGenerated')() };
 }
 
 /**
