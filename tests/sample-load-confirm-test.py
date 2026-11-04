@@ -28,7 +28,7 @@ def main():
         app.nav('registration')
         app.click('reg-load-samples')  # nothing registered: no question
         assert len(names()) == 11, names()
-        app.expect_dialog('Clear all individual', accept=True)
+        app.expect_dialog('Clear ', accept=True)
         app.click('reg-clear')
         app.register('Kana', 'Aiea', "Women’s Open")
         app.register_team('Aiea', {'senpo': 'A1', 'chuken': 'A2', 'taisho': 'A3'})

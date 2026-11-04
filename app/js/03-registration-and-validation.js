@@ -89,6 +89,20 @@ function requestTournamentGeneration(){
   });
 }
 /* ksm:post-split-end */
+/* ksm:post-split-begin danger-zone */
+// #129: Setup → Advanced → Danger zone holds Regenerate Tournament (the toolbar drops it once the
+// tournament is drawn) and Delete tournament (also in Cloud Diagnostics). Both call the existing flows.
+function ksmDangerRegenerate(){if(!state.generated||isReadOnlySession())return;requestTournamentGeneration()}
+function ksmSyncDangerZone(){
+  const regen=document.querySelector('[data-testid="setup-regenerate-tournament"]'),del=document.querySelector('[data-testid="setup-delete-tournament"]'),note=document.getElementById('setupDangerReason');
+  if(!regen||!del||!note)return;
+  const canDelete=typeof ksmCanDeleteTournament==='function'&&!!ksmCanDeleteTournament(),reasons=[];
+  regen.disabled=isReadOnlySession()||!state.generated;del.disabled=!canDelete;
+  if(!state.generated)reasons.push('Regenerate Tournament is available once the tournament has been generated.');
+  if(!canDelete)reasons.push('Delete tournament is available to staff of a saved cloud tournament.');
+  note.textContent=reasons.join(' ');note.hidden=!reasons.length;
+}
+/* ksm:post-split-end */
 function divisionRegenerationStatus(div){if(!state.allMatches?.[div])return /* ksm:post-split-begin draw-new-division was:'not-generated' */state.generated&&((ksmTeamDivision(div)?eligibleTeams(div):eligibleIndividuals(div))||[]).length?'new':'not-generated'/* ksm:post-split-end */;return divisionHasCompletedMatches(div)?'started':'ready'}
 function openRegenerateDivisionDialog(){
   /* ksm:post-split-begin react-shell */ksmOpenRegenerateDialog();/* ksm:post-split-end */
@@ -131,9 +145,18 @@ function loadFullTournament(){
   alert('Loaded 50 individual competitors across 6 divisions plus sample team entries.');
 }
 
-function clearCompetitors(){if(confirm('Clear all individual competitors?')){state.competitors=[];renderReg()}}
+/* ksm:post-split-begin clear-counts was:function clearCompetitors(){if(confirm('Clear all individual competitors?')){state.competitors=[];renderReg()}} */
+// #129: Clear says how many entries go. After the draw the matches, pools and results keep the names
+// they were drawn with (checked in a browser test), so clearing leaves drawn divisions consistent; the
+// confirm says so.
+function ksmClearQuestion(count,one,many){
+  const n=count===1?`the 1 ${one}`:`all ${count} ${many}`;
+  return `Clear ${n}? This cannot be undone.`+(state.generated?'\n\nDrawn divisions keep their matches and results. To redraw a division later you will need to register its entries again.':'');
+}
+function clearCompetitors(){if(confirm(ksmClearQuestion(state.competitors.length,'individual competitor','individual competitors'))){state.competitors=[];renderReg()}}
+/* ksm:post-split-end */
 /* ksm:post-split-begin clear-confirm */
 // F8: Clear Teams and Clear Exhibitions ask first, like Clear Registration (clearCompetitors).
-function clearTeams(){if(confirm('Clear all teams?')){state.teams=[];renderTeams()}}
-function clearExhibitions(){if(confirm('Clear all exhibition matches?')){state.exhibitions=[];renderExhibitions()}}
+function clearTeams(){if(confirm(ksmClearQuestion(state.teams.length,'team','teams'))){state.teams=[];renderTeams()}}
+function clearExhibitions(){if(confirm(ksmClearQuestion(state.exhibitions.length,'exhibition match','exhibition matches'))){state.exhibitions=[];renderExhibitions()}}
 /* ksm:post-split-end */

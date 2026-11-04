@@ -70,6 +70,18 @@ Only whole-team no-shows are structurally handled. Elimination keeps the frozen 
 
 After a division has started, marking an entrant No Show does not alter generated structure.
 
+## Regenerate Tournament (Setup → Advanced → Danger zone)
+
+Registration shows **Generate Tournament** until the first draw. After that the button is gone from the toolbar: **Regenerate Single Division** covers divisions that changed or are new, and a court change needs no redraw. Redrawing everything (for example, starting over after a rehearsal) lives in **Setup → Advanced → Danger zone → Regenerate Tournament**, shown to staff only and available once the tournament has been generated. It runs the same check as Generate; when matches have been played it shows how many finished matches will be erased, downloads a backup file, and asks for the word REGENERATE to be typed. **Delete tournament** is in the same Danger zone (it also stays in Developer Tools / Cloud Diagnostics).
+
+## Clear Registration, Clear Teams, Clear Exhibitions
+
+Each asks first and states how many entries it removes ("Clear all 42 individual competitors? This cannot be undone."). After the draw the question adds that drawn divisions keep their matches and results: matches, pools and Results keep the names they were drawn with, so nothing already drawn changes. To redraw a division afterwards its entries must be registered again.
+
+## Load Tournament File: Replace
+
+When a file is a copy of the open tournament, the Replace question gives both finished-match counts ("The open tournament has 37 finished matches; the file has 12.") so the loss is visible before confirming.
+
 ## Regenerate Single Division
 
 Registration includes a Regenerate Single Division workflow:

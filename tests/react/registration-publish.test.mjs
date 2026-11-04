@@ -21,6 +21,7 @@ function fakeWindow({
     ksmBindRegistrationEntry: (entry, row) => { bound.set(row, entry); return row; },
     ksmBlurRedrawn: island => { blurred.push(island); onBlur(win); },
     ksmExhibitionsEnabled: () => exhibitionsEnabled,
+    ksmTournamentGenerated: () => !!s.generated,
     ksmTeamDivisions: () => teamDivisions,
     ksmTeamSettings: id => ({ teamFormat: formats[id ?? ''] ?? '5-Person Team', teamTournamentFormat: 'Single Elimination' }),
     KSMEngine: { teamSlots: f => (f === '3-Person Team' || f === 'Kachinuki' ? ['senpo', 'chuken', 'taisho'] : ['senpo', 'jiho', 'chuken', 'fukusho', 'taisho']) },
@@ -139,10 +140,12 @@ test('exhibitions: a bound row per match', () => {
   assert.deepEqual(ksmExhibitionsData().rows, []);
 });
 
-test('tab: the mode as text and whether exhibitions are enabled', () => {
+test('tab: the mode as text, whether exhibitions are enabled and whether the tournament is drawn', () => {
   fakeWindow({ exhibitionsEnabled: true });
-  assert.deepEqual(ksmTabInput({ mode: 'team' }), { mode: 'team', exhibitions: true });
-  assert.deepEqual(ksmTabInput({ mode: 5 }), { mode: '5', exhibitions: true });
+  assert.deepEqual(ksmTabInput({ mode: 'team' }), { mode: 'team', exhibitions: true, generated: false });
+  assert.deepEqual(ksmTabInput({ mode: 5 }), { mode: '5', exhibitions: true, generated: false });
+  fakeWindow({ exhibitionsEnabled: true, state: { generated: true } });
+  assert.equal(ksmTabInput({ mode: 'pools' }).generated, true);
 });
 
 test('events compute only what was requested', () => {
@@ -158,7 +161,7 @@ test('events compute only what was requested', () => {
   assert.equal(win.ksmRegistrationStatusInput.competitors, 1);
   win.ksmRegistrationTabRequested = { mode: 'pools' };
   win.dispatch('ksm:registration-tab');
-  assert.deepEqual(win.ksmRegistrationTabInput, { mode: 'pools', exhibitions: false });
+  assert.deepEqual(win.ksmRegistrationTabInput, { mode: 'pools', exhibitions: false, generated: false });
   win.ksmRegistrationTeamsRequested = true;
   win.dispatch('ksm:registration-teams');
   assert.deepEqual(win.ksmRegistrationTeamsInput.cards, []);
@@ -248,7 +251,7 @@ test('start-up computes every input whose request was made earlier, and only tho
   assert.equal(win.ksmRegistrationPlayersInput.rows.length, 1);
   assert.equal(win.ksmRegistrationStatusInput.errors, 2);
   assert.equal(win.ksmRegistrationTeamsInput.cards.length, 1);
-  assert.deepEqual(win.ksmRegistrationTabInput, { mode: 'team', exhibitions: true });
+  assert.deepEqual(win.ksmRegistrationTabInput, { mode: 'team', exhibitions: true, generated: false });
   assert.equal(win.ksmRegistrationExhibitionsInput, undefined);
 });
 

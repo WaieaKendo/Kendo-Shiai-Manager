@@ -16,8 +16,13 @@ def main():
                 {'name': f'Player {i}', 'dojo': f'Dojo {i}', 'seed': '', 'status': 'Checked'} for i in range(4)]}])
 
             def request():
-                app.nav('registration')
-                app.click('generate-button')
+                # #129: Generate Tournament in the toolbar before the draw, Setup -> Advanced -> Danger zone after it.
+                if app.payload()['state'].get('generated'):
+                    app.nav('setup')
+                    app.click('setup-regenerate-tournament')
+                else:
+                    app.nav('registration')
+                    app.click('generate-button')
                 page.wait_for_selector(f'{sel("validation-modal")}:not(.hidden)')
                 app.click('generate-confirm')
 

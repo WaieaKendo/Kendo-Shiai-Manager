@@ -53,7 +53,7 @@ def main():
 
         # Two players: valid, Generate offered.
         app.click('reg-tab-team')
-        app.expect_dialog('Clear all teams', accept=True)
+        app.expect_dialog('Clear ', accept=True)
         app.click('team-clear')
         app.register('Kana', 'Aiea', 'Women’s Open')
         app.register('Mio', 'Hilo', 'Women’s Open')

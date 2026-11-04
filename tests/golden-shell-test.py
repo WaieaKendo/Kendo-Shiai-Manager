@@ -451,7 +451,8 @@ def dialogs(browser, react_check):
         {'name': 'Open <A>', 'format': 'Round Robin', 'court': 'A', 'entrants': people('O', 4)},
         {'name': 'Women & "B"', 'format': 'Round Robin', 'court': 'B', 'entrants': people('W', 3)},
         {'name': 'Kids', 'format': 'Round Robin', 'court': 'A', 'entrants': []}]))
-    g.do('Generate (the check passes)', lambda a: click(a.page, tid('generate-button')))
+    # #129: once drawn the toolbar has no Generate button; the same check opens from Setup's Danger zone (by code here).
+    g.do('Generate (the check passes)', lambda a: a.page.evaluate('() => KSMTest.app.requestTournamentGeneration()'))
     g.do('the check: Generate', lambda a: click(a.page, tid('generate-confirm')))
     nav(g, 'courts', 'Courts menu opened')
     nav(g, 'court-a', 'Court A')

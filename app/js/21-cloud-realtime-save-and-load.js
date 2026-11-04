@@ -406,6 +406,12 @@ function tournamentFileDetails(payload){
   const saved=payload.savedAt&&!isNaN(new Date(payload.savedAt))?new Date(payload.savedAt).toLocaleString():'Unknown';
   return [['File',payload.setup?.tName||'Unnamed tournament','file-load-name'],['Saved',saved,'file-load-saved'],['Revision',payload.revision==null?'Unknown':String(payload.revision),'file-load-revision'],['Tournament ID',payload.tournamentId||'None (older file)','file-load-id'],['Open tournament',`${(window.tName&&tName.value)||'Kendo Tournament'} · revision ${Number(cloudSession.revision)||0}`,'file-load-open']];
 }
+// #129: what Replace trades, in finished matches: the open tournament's and the file's.
+function ksmReplaceCounts(payload){
+  const open=KSMEngine.finishedMatchSummary(state.allMatches).total,file=KSMEngine.finishedMatchSummary(payload.state?.allMatches).total;
+  const n=count=>`${count} finished ${count===1?'match':'matches'}`;
+  return `The open tournament has ${n(open)}; the file has ${file}.`;
+}
 let ksmPendingTournamentFile=null;
 function confirmTournamentFileLoad(payload,fileName){
   const problem=tournamentFileProblem(payload);
@@ -413,7 +419,7 @@ function confirmTournamentFileLoad(payload,fileName){
   ksmPendingTournamentFile={payload,fileName};
   const same=Boolean(!isReadOnlySession()&&cloudSession.tournamentId&&payload.tournamentId===cloudSession.tournamentId);
   const message=same
-    ?'This file is a copy of the open tournament. Replacing makes the file the tournament on every device: changes made after it was saved are lost.'
+    ?`This file is a copy of the open tournament. Replacing makes the file the tournament on every device: changes made after it was saved are lost. ${ksmReplaceCounts(payload)}`
     :`This file is ${cloudSession.tournamentId?'not the open tournament':'not an open cloud tournament'}, so it will not replace ${cloudSession.tournamentId?'it':'anything'}. It can be loaded as a new tournament with its own Staff password; the open tournament stays unchanged.`;
   const title=same?'Replace the open tournament?':'Load as a new tournament?';
   // The React shell (app/js/44-react-shell.js) draws the confirmation.

@@ -74,11 +74,14 @@ export interface TabsInput {
   mode: string;
   /** Owner decision 19: Setup's Exhibition Matches is Enabled (else the Exhibition tab is hidden). */
   exhibitions?: boolean;
+  /** #129: the tournament is drawn (state.generated). Regenerate Tournament left the toolbar for
+   * Setup's Danger zone, so Generate Tournament is hidden from then on. */
+  generated?: boolean;
 }
 
 /** Owner decision 19 (#29): the tab bar's buttons, without Exhibition while exhibitions are off. */
 export function visibleTabButtons(input: TabsInput): readonly TabButton[] {
-  return input.exhibitions === false ? TAB_BUTTONS.filter(b => b.mode !== 'exhibition') : TAB_BUTTONS;
+  return TAB_BUTTONS.filter(b => !(b.mode === 'exhibition' && input.exhibitions === false) && !(b.id === 'generateBtn' && input.generated));
 }
 
 /** Nothing published yet: the static markup's empty #teamTable (a <table>, which the first
