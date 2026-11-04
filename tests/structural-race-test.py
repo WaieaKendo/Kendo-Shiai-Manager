@@ -62,8 +62,12 @@ def main():
             raise AssertionError(f'no registration row for {name}')
 
         def generate():
-            director.nav('registration')
-            director.click('generate-button')
+            if director.page.evaluate('KSMTest.generated()'):  # #129: the Danger zone, once drawn
+                director.nav('setup')
+                director.click('setup-regenerate-tournament')
+            else:
+                director.nav('registration')
+                director.click('generate-button')
             director.page.wait_for_selector(f'{sel("validation-modal")}:not(.hidden)')
             director.click('generate-confirm')
 

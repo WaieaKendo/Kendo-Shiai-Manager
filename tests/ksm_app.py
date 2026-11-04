@@ -807,10 +807,16 @@ class KsmApp:
         self.click('regenerate-modal-close')
 
     def generate(self):
-        """Registration -> Generate Tournament -> confirm in the validation dialog."""
+        """Registration -> Generate Tournament -> confirm in the validation dialog.
+        Once the tournament is drawn the toolbar has no such button (#129): this is then Setup -> Advanced
+        -> Danger zone -> Regenerate Tournament (with results, the typed warning follows)."""
         page = self.page
-        self.nav('registration')
-        self.click('generate-button')
+        if page.evaluate('KSMTest.generated()'):
+            self.nav('setup')
+            self.click('setup-regenerate-tournament')
+        else:
+            self.nav('registration')
+            self.click('generate-button')
         page.wait_for_selector(f'{sel("validation-modal")}:not(.hidden)')
         confirm = page.locator(sel('generate-confirm'))
         if confirm.count() == 0:
