@@ -27,10 +27,8 @@ function buildTV3ViewModel(court){
   return {court,empty:false,division:m.division,data,match:m,meta,teamMode,format:m.type==='kachinuki'?'kachinuki':(teamMode?'team':'individual'),upcoming:tv3UpcomingModel(court,m,teamMode)};
 }
 function renderTvDisplay(){
-/* ksm:post-split-begin react-tv */
   // The TV display is React (app/react/features/tv/, 37-react-tv.js): this only signals;
   // publish.ts computes what buildTV3ViewModel() chose into data (M.13, #136).
   ksmRenderTv();
-/* ksm:post-split-end */
 }
 

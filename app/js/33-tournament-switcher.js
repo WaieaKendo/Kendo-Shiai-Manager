@@ -1,4 +1,3 @@
-/* ksm:post-split-begin tournament-switcher */
 // Issue #42: all tournament boundaries share the save gate and the same reset.
 let ksmTournamentTransition=false;
 var ksmStartupLoadFailed=false;
@@ -206,4 +205,3 @@ window.addEventListener('popstate',async()=>{
   try{await initializeCloudRoleFromUrl()}catch(err){console.warn(err);history.replaceState(null,'','/');await ksmShowLibrary()}
   ksmTournamentAddress=location.pathname+location.search+location.hash;
 });
-/* ksm:post-split-end */

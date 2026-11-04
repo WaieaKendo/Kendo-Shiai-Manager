@@ -1,6 +1,6 @@
 // ---------- KSM v3.9.1 Grouped court queue ----------
-function normalizeQueueGroupLabel(label){/* ksm:post-split-begin engine-bridge */return KSMEngine.normalizeQueueGroupLabel(label);// moved to app/engine/labels.ts
-  /* ksm:post-split-end */}
+function normalizeQueueGroupLabel(label){return KSMEngine.normalizeQueueGroupLabel(label);// moved to app/engine/labels.ts
+  }
 
 
 // ---------- KSM v3.9.1 Adaptive Court Context + Team Queue ----------
@@ -61,7 +61,7 @@ function setCourtSupportMode(mode){
 
 // ---------- KSM v3.9.1 Active navigation state ----------
 function setActiveNavForView(viewId){
-  /* ksm:post-split-begin react-shell */ksmSetActiveNav(viewId);/* ksm:post-split-end */
+  ksmSetActiveNav(viewId);
 }
 
 const originalShowForNav=show;

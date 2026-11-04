@@ -1,8 +1,8 @@
 // ---------- KSM v3.9.1 Setup header synchronization ----------
-function syncSetupHeader(){/* ksm:post-split-begin react-setup */
+function syncSetupHeader(){
   // The hero's name is React (app/react/setup/, 42-react-setup.js): the name field's value is
   // published to it instead of written (M.13).
-  ksmRenderSetupHeader();ksmRefreshTournamentChip();/* ksm:post-split-end */}
+  ksmRenderSetupHeader();ksmRefreshTournamentChip();}
 if(window.tName){
   tName.addEventListener('input',syncSetupHeader);
 }
@@ -13,8 +13,8 @@ saveSetup=function(){
 };
 
 let directorRefreshTimer=null;
-function directorMatchLabel(m){/* ksm:post-split-begin engine-bridge */return KSMEngine.directorMatchLabel(m);// moved to app/engine/match-helpers.ts
-  /* ksm:post-split-end */}
+function directorMatchLabel(m){return KSMEngine.directorMatchLabel(m);// moved to app/engine/match-helpers.ts
+  }
 // Director progress is a read-only projection of canonical tournament state.
 // Totals intentionally follow the operational units shown in Court Queue/Context:
 // - pool divisions: all pool bouts + the complete championship bracket
@@ -26,8 +26,8 @@ function directorTeamFormat(div){
   const teamDivision=matches.some(isTeamMatch)||(state.teamBracketNodes?.[div]||[]).length>0||isTeamDivision(div);
   if(!teamDivision)return null;
   if(matches.some(m=>m.type==='kachinuki'))return 'Kachinuki';
-  const registered=(state.teams||[]).find(t=>/* ksm:post-split-begin team-divisions was:t.division===div||div==='Team Tournament' */t.teamDivisionId===div||(!t.teamDivisionId&&div==='Team Tournament')/* ksm:post-split-end */);
-  return /* ksm:post-split-begin team-divisions was:registered?.type||window.teamFormat?.value||'5-Person Team' */(registered?.teamDivisionId?ksmTeamSettings(div).teamFormat:registered?.type)||ksmTeamSettings(div).teamFormat||'5-Person Team'/* ksm:post-split-end */;
+  const registered=(state.teams||[]).find(t=>t.teamDivisionId===div||(!t.teamDivisionId&&div==='Team Tournament'));
+  return (registered?.teamDivisionId?ksmTeamSettings(div).teamFormat:registered?.type)||ksmTeamSettings(div).teamFormat||'5-Person Team';
 }
 function directorTeamSize(div){
   return directorTeamFormat(div)==='3-Person Team'?3:5;
@@ -112,20 +112,19 @@ function tournamentSummary(){
   return divisions.reduce((sum,div)=>{
     const x=directorDivisionProgress(div,null);
     sum.completed+=x.completed||0;
-    if(x.total==null){sum.variable=true;/* ksm:post-split-begin overview-kachinuki */
+    if(x.total==null){sum.variable=true;
       // F15: a kachinuki division adds the bouts known so far (played and created) to the total, the
       // same bouts its completed count is taken from, so the overall bar never passes 100%.
       const known=(state.allMatches?.[div]||[]).filter(m=>m.type==='kachinuki'||m.type==='teamPlayoff').length;
       sum.total+=Math.max(known,x.completed||0);sum.remaining+=Math.max(0,known-(x.completed||0));
-      /* ksm:post-split-end */return sum;}
+      return sum;}
     sum.total+=x.total;
     sum.remaining+=x.remaining||0;
     return sum;
   },{completed:0,total:0,remaining:0,variable:false});
 }
 function renderDirector(){
-  /* ksm:post-split-begin react-overview */ksmRenderOverview();
-  /* ksm:post-split-end */
+  ksmRenderOverview();
 }
 function startDirectorRefresh(){stopDirectorRefresh();renderDirector();directorRefreshTimer=setInterval(()=>{if(!document.getElementById('director')?.classList.contains('hidden'))renderDirector();},5000)}
 function stopDirectorRefresh(){if(directorRefreshTimer){clearInterval(directorRefreshTimer);directorRefreshTimer=null}}

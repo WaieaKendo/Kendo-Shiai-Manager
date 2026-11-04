@@ -1,4 +1,3 @@
-/* ksm:post-split-begin react-library */
 // ==========================================================
 // React Tournament Library (app/react/features/library/, roadmap M.13)
 // The Tournament Library, the home page the app boots to (#home, body.ksm-home), is drawn by one
@@ -98,8 +97,6 @@ function ksmShowLibraryModuleMissing(){
   grid.before(notice);
 }
 document.addEventListener('DOMContentLoaded',ksmShowLibraryModuleMissing);
-/* ksm:post-split-end */
-/* ksm:post-split-begin library-setup */
 const ksmLibraryStaffTokens=new Map();
 function ksmCanManageLibraryTournament(id){return (id===cloudSession.tournamentId&&!isReadOnlySession())||ksmLibraryStaffTokens.has(id)}
 async function ksmAuthorizeLibraryTournament(id){
@@ -155,4 +152,3 @@ function ksmDownloadDeleteBackup(){
   if(id)return ksmExportLibraryTournament(id,'file');
   manualSaveTournament();
 }
-/* ksm:post-split-end */

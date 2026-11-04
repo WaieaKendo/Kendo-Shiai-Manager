@@ -5,8 +5,7 @@
  * @returns {string}
  */
 function clubGroup(d){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.clubGroup(d);// moved to app/engine/pools.ts
-  /* ksm:post-split-end */
+  return KSMEngine.clubGroup(d);// moved to app/engine/pools.ts
 }
 /**
  * @template {{name: string, dojo: string}} T
@@ -14,30 +13,27 @@ function clubGroup(d){
  * @returns {T[]}
  */
 function shuffleDeterministic(arr){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.shuffleDeterministic(arr);// moved to app/engine/pools.ts
-  /* ksm:post-split-end */
+  return KSMEngine.shuffleDeterministic(arr);// moved to app/engine/pools.ts
 }
 /**
  * @param {string} div
  * @returns {boolean}
  */
-function isTeamDivision(div){/* ksm:post-split-begin team-divisions was:return div==='Team Tournament'||/team|kachinuki/i.test(state.divisionTypes[div]||'') */return !!ksmTeamDivision(div)||div==='Team Tournament'||/team|kachinuki/i.test(state.divisionTypes[div]||'')/* ksm:post-split-end */}
+function isTeamDivision(div){return !!ksmTeamDivision(div)||div==='Team Tournament'||/team|kachinuki/i.test(state.divisionTypes[div]||'')}
 /**
  * Registered competitors of a division who are not no-shows.
  * @param {string} div
  * @returns {Competitor[]}
  */
 function eligibleIndividuals(div){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.eligibleIndividuals(state.competitors,div);
-  /* ksm:post-split-end */
+  return KSMEngine.eligibleIndividuals(state.competitors,div);
 }
 /**
  * @param {string} div
  * @returns {Team[]}
  */
 function eligibleTeams(div){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.eligibleTeams(state.teams.filter(t=>!state.teamDivisions||(t.teamDivisionId||'Team Tournament')===div));
-  /* ksm:post-split-end */
+  return KSMEngine.eligibleTeams(state.teams.filter(t=>!state.teamDivisions||(t.teamDivisionId||'Team Tournament')===div));
 }
 /**
  * Pool sizes for n entrants (frozen template library). Delegates to app/engine/pools.ts.
@@ -45,16 +41,14 @@ function eligibleTeams(div){
  * @returns {number[]}
  */
 function poolSizes(n){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.poolSizes(n);// moved to app/engine/pools.ts
-  /* ksm:post-split-end */
+  return KSMEngine.poolSizes(n);// moved to app/engine/pools.ts
 }
 /**
  * @param {number} index
  * @returns {string}
  */
 function poolPlayerSlotLetter(index){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.poolPlayerSlotLetter(index);// moved to app/engine/pools.ts
-  /* ksm:post-split-end */
+  return KSMEngine.poolPlayerSlotLetter(index);// moved to app/engine/pools.ts
 }
 /**
  * Gives each pool player its A/B/C/D slot (copies the players).
@@ -62,8 +56,7 @@ function poolPlayerSlotLetter(index){
  * @returns {Pool[]}
  */
 function assignPoolPlayerSlots(pools){
-  /* ksm:post-split-begin engine-bridge */KSMEngine.assignPoolPlayerSlots(pools).forEach((p,i)=>{pools[i].players=p.players});return pools;// moved to app/engine/pools.ts
-  /* ksm:post-split-end */
+  KSMEngine.assignPoolPlayerSlots(pools).forEach((p,i)=>{pools[i].players=p.players});return pools;// moved to app/engine/pools.ts
 }
 /**
  * @param {PoolPlayer} player
@@ -71,8 +64,7 @@ function assignPoolPlayerSlots(pools){
  * @returns {string}
  */
 function poolPlayerSlot(player,index){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.poolPlayerSlot(player,index);// moved to app/engine/pools.ts
-  /* ksm:post-split-end */
+  return KSMEngine.poolPlayerSlot(player,index);// moved to app/engine/pools.ts
 }
 /**
  * Seeds, then dojo-separated fill.
@@ -80,8 +72,7 @@ function poolPlayerSlot(player,index){
  * @returns {Pool[]}
  */
 function buildPools(comps){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.buildPools(comps);// moved to app/engine/pools.ts
-  /* ksm:post-split-end */
+  return KSMEngine.buildPools(comps);// moved to app/engine/pools.ts
 }
 /**
  * @param {string} div
@@ -103,8 +94,7 @@ function poolCourtFor(div,poolLabel,pools=state.pools[div]||[]){let mode=divisio
  * @returns {Court}
  */
 function championshipCourtFor(div,round,slot,totalInRound){
-  /* ksm:post-split-begin engine-bridge */return /** @type {Court} */(KSMEngine.championshipCourtFor(divisionCourtMode(div),round,slot,totalInRound));
-  /* ksm:post-split-end */
+  return /** @type {Court} */(KSMEngine.championshipCourtFor(divisionCourtMode(div),round,slot,totalInRound));
 }
 const POOL_MATCH_TEMPLATES=Object.freeze({
   2:Object.freeze([[0,1]]),
@@ -117,8 +107,7 @@ const POOL_MATCH_TEMPLATES=Object.freeze({
  * @returns {number[][]}
  */
 function poolMatchPairs(size){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.poolMatchPairs(size);// moved to app/engine/pools.ts
-  /* ksm:post-split-end */
+  return KSMEngine.poolMatchPairs(size);// moved to app/engine/pools.ts
 }
 /**
  * @param {string} div
@@ -126,6 +115,5 @@ function poolMatchPairs(size){
  * @returns {Match[]}
  */
 function buildPoolMatches(div,pools){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.buildPoolMatches(div,pools,(pools||[]).map(pool=>poolCourtFor(div,pool.label,pools)));// moved to app/engine/pools.ts
-  /* ksm:post-split-end */
+  return KSMEngine.buildPoolMatches(div,pools,(pools||[]).map(pool=>poolCourtFor(div,pool.label,pools)));// moved to app/engine/pools.ts
 }

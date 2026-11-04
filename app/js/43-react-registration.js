@@ -1,4 +1,3 @@
-/* ksm:post-split-begin react-registration */
 // ==========================================================
 // React Registration, parts 1 and 2 (app/react/features/registration/, roadmap M.13, #136 step 2)
 // Registration draws two parts with React islands, mounted by app/react/features/registration/main.tsx:
@@ -334,4 +333,3 @@ function ksmShowRegistrationTeamsModuleMissing(){
   });
 }
 document.addEventListener('DOMContentLoaded',ksmShowRegistrationTeamsModuleMissing);
-/* ksm:post-split-end */

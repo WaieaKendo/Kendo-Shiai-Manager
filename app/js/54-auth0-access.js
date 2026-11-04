@@ -1,4 +1,3 @@
-/* ksm:post-split-begin auth0-access */
 // The SDK lives in the module bundle. This bridge keeps legacy scoring on its existing staff /
 // spectator model; the server alone decides whether an account has tournament access.
 var ksmAccount={enabled:false,token:'',role:'spectator',globalRole:'spectator',tournamentId:'',email:'',passwordFallback:true};
@@ -154,4 +153,3 @@ function ksmRevealReadyUi(){document.documentElement.classList.add('ksm-ui-ready
 Promise.all([ksmBootstrapInitialization,ksmAuthReady]).then(ksmRevealReadyUi,ksmRevealReadyUi);
 // Preserve the existing module-load failure notices when the account module cannot run.
 document.addEventListener('DOMContentLoaded',()=>{if(!window.ksmShellMounted)ksmRevealReadyUi()});
-/* ksm:post-split-end */

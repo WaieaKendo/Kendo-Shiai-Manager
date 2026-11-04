@@ -1,4 +1,3 @@
-/* ksm:post-split-begin react-shell */
 // ==========================================================
 // React shell (app/react/features/shell/, roadmap M.13: the navigation bar and its menus, the
 // header's status row and the pop-up dialogs)
@@ -467,4 +466,3 @@ function ksmShowShellModuleMissing(){
   nav.before(notice);
 }
 document.addEventListener('DOMContentLoaded',ksmShowShellModuleMissing);
-/* ksm:post-split-end */

@@ -1,4 +1,3 @@
-/* ksm:post-split-begin react-pools */
 // ==========================================================
 // React Pools view (app/react/features/pools/, roadmap M.13, #136 step 2)
 // The Pools view (Registration -> Pools, #poolsReg) draws #poolOutput with one React island,
@@ -78,4 +77,3 @@ function ksmShowPoolsModuleMissing(){
   output.before(notice);
 }
 document.addEventListener('DOMContentLoaded',ksmShowPoolsModuleMissing);
-/* ksm:post-split-end */

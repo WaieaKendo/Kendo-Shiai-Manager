@@ -1,4 +1,3 @@
-/* ksm:post-split-begin react-tv */
 // ==========================================================
 // React TV display (app/react/features/tv/, roadmap M.13, #136 step 2)
 // The TV display (?view=tv, body.ksm-tv, #tvLive) is drawn only by React: one island (Tv), mounted
@@ -46,4 +45,3 @@ function ksmFitTv(){
   root.style.setProperty('--ksm-tv-fit',String(Math.min(window.innerWidth/1920,window.innerHeight/1080)||1));
 }
 if(typeof window!=='undefined'&&window.addEventListener){ksmFitTv();window.addEventListener('resize',ksmFitTv);}
-/* ksm:post-split-end */

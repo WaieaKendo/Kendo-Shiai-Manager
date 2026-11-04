@@ -13,15 +13,15 @@ function matchDisplayMeta(m){
 function openFusenDialog(){
   const m=state.matches?.[state.current];
   if(!m){return;}
-  /* ksm:post-split-begin react-shell */ksmSetFusenOpen(true,{white:m.white||'TBD',red:m.red||'TBD',redLeft:redOnLeftForCourt(state.currentCourt)});/* ksm:post-split-end */
+  ksmSetFusenOpen(true,{white:m.white||'TBD',red:m.red||'TBD',redLeft:redOnLeftForCourt(state.currentCourt)});
 }
 function closeFusenDialog(){
-  /* ksm:post-split-begin react-shell */ksmSetFusenOpen(false);/* ksm:post-split-end */
+  ksmSetFusenOpen(false);
 }
 function confirmFusen(side){
   closeFusenDialog();
   // #38: the dialog asks who won; fusen() takes the forfeiting side (the stored label and F F points are unchanged).
-  fusen(/* ksm:post-split-begin court-clarity was:side */side==='W'?'R':'W'/* ksm:post-split-end */);
+  fusen(side==='W'?'R':'W');
 }
 document.addEventListener('keydown',function(e){
   if(e.key==='Escape')closeFusenDialog();
@@ -43,7 +43,6 @@ function ensureScorableCurrentMatch(){
   return null;
 }
 function renderScore(){
-/* ksm:post-split-begin react-court */
   // The court screen is React (app/react/court/, 35-react-court.js): the division title, match
   // line and match display are published to it instead of written (M.8).
   updateScoreTournamentName();
@@ -53,14 +52,11 @@ function renderScore(){
   ksmSignalCourtHeader({matchLine:meta.line,divisionTitle:m?meta.division:(state.currentDivision||'—'),requiresWinner:m?!!matchRequiresWinner(m):null,redLeft:redOnLeftForCourt(state.currentCourt)});
   ksmSignalCourtScoreboard(m);
   renderQueue();renderPublic();renderContext();
-/* ksm:post-split-end */
 }
 
 
 // ---------- KSM v3.9.1 Header helpers ----------
 function updateScoreTournamentName(){
-/* ksm:post-split-begin react-court */
   // The React court header (35-react-court.js) shows it.
   ksmSignalCourtHeader({tournamentName:(window.tName&&tName.value)?tName.value:'Kendo Tournament'});
-/* ksm:post-split-end */
 }

@@ -1,4 +1,3 @@
-/* ksm:post-split-begin queue-up-next */
 #queue .queue-up-next,
 #queue .queue-up-next .queue-group-title,
 #queue .queue-up-next .queue-row,
@@ -6,4 +5,3 @@
 #queue .queue-up-next .queue-row .red,
 #queue .queue-up-next .queue-row .vs{color:var(--muted);cursor:default}
 #queue .queue-up-next .queue-group-title{text-transform:none}
-/* ksm:post-split-end */

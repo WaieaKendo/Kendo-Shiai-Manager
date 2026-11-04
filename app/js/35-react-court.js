@@ -1,4 +1,3 @@
-/* ksm:post-split-begin react-court */
 // ==========================================================
 // React court screen (app/react/features/court/, roadmap M.8, #136 step 2)
 // The court (scorekeeper) screen is drawn only by React: app/react/features/court/main.tsx mounts
@@ -322,8 +321,6 @@ function ksmFinalResults(div){
   const thirds=semi.map(m=>{const w=winnerOf(m);return w===m.red?m.white:m.red}).filter(Boolean);
   return {kind:'results',results:{title:'Final Results',lines:[{place:'1st',name:ksmText(first)},{place:'2nd',name:ksmText(second)},...thirds.map(t=>({place:'3rd',name:ksmText(t)}))]}};
 }
-/* ksm:post-split-end */
-/* ksm:post-split-begin react-court */
 // If the court module (app/react/features/court/main.tsx, a module script after app.js) did not run, say
 // so on the court screen instead of the static markup, which nothing updates any more (e.g. an
 // offline device whose cached copy lacks the module). Module scripts run before
@@ -339,4 +336,3 @@ function ksmShowCourtModuleMissing(){
   shell.before(notice);
 }
 document.addEventListener('DOMContentLoaded',ksmShowCourtModuleMissing);
-/* ksm:post-split-end */

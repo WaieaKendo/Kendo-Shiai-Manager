@@ -1,4 +1,3 @@
-/* ksm:post-split-begin react-bridge */
 // ==========================================================
 // React islands bridge (app/react/legacy-bridge.ts)
 // React components mounted inside this app re-render when `state` changes. The two
@@ -20,4 +19,3 @@ function ksmNotifyStateChanged(reason){
   window.ksmStateChangeReasons=[reason];
   queueMicrotask(()=>{const reasons=window.ksmStateChangeReasons||[];window.ksmStateChangeReasons=null;window.dispatchEvent(new CustomEvent('ksm:state-changed',{detail:{version:window.ksmStateVersion,reasons}}))});
 }
-/* ksm:post-split-end */

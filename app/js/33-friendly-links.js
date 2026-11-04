@@ -1,4 +1,3 @@
-/* ksm:post-split-begin friendly-links */
 var ksmPendingSlug=sessionStorage.getItem('ksm.pending-slug')||'';
 function ksmCacheTournament(record){
   const slug=record.slug||cloudSession.slug||null;
@@ -54,4 +53,3 @@ async function ksmSaveShortUrl(input){
   catch(err){hint.textContent=err.message;input.setAttribute('aria-invalid','true')}
   finally{ksmShortUrlSaving=false;input.disabled=false}
 }
-/* ksm:post-split-end */

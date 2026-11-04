@@ -1,4 +1,3 @@
-/* ksm:post-split-begin react-setup */
 // ==========================================================
 // React Setup screen (app/react/features/setup/, roadmap M.13, #136 step 2)
 // Setup (#setup) draws two parts with React islands, mounted by app/react/features/setup/main.tsx:
@@ -113,4 +112,3 @@ function ksmShowSetupModuleMissing(){
   table.before(notice);
 }
 document.addEventListener('DOMContentLoaded',ksmShowSetupModuleMissing);
-/* ksm:post-split-end */

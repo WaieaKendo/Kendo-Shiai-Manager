@@ -1,4 +1,3 @@
-/* ksm:post-split-begin react-overview */
 // ==========================================================
 // React Overview (app/react/features/overview/, roadmap M.13, #136 step 2)
 // The Overview screen (#director, nav "Overview") is drawn only by one React island: the contents
@@ -35,4 +34,3 @@ function ksmShowOverviewModuleMissing(){
   dashboard.before(notice);
 }
 document.addEventListener('DOMContentLoaded',ksmShowOverviewModuleMissing);
-/* ksm:post-split-end */

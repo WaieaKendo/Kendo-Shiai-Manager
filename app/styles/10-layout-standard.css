@@ -203,7 +203,6 @@ main > .view > .grid{gap:var(--ksm-card-gap)}
     appearance:none;
   }
 }
-/* ksm:post-split-begin team-divisions */
 /* The shared division table becomes labelled cards on phones. Team rows have six columns. */
 @media(max-width:760px){
   .setup-team-division-table td{grid-template-columns:110px minmax(0,1fr)}
@@ -215,4 +214,3 @@ main > .view > .grid{gap:var(--ksm-card-gap)}
   .setup-team-division-table td:nth-child(6)::before{content:'Actions'}
   .setup-team-division-table .setup-move-btn{min-height:44px;min-width:44px}
 }
-/* ksm:post-split-end */

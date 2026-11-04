@@ -1,12 +1,10 @@
 // ==========================================================
 // KSM v3.9.1 — Results presentation
 // ==========================================================
-/* ksm:post-split-begin team-rr-daihyosen */
 /** A team round robin's place with an award whose teams are still level (external PR review, #35). */
 const KSM_TEAM_PLACE_TIED='Tied — daihyosen needed';
-/* ksm:post-split-end */
 function resultPlacements(div){
-  /* ksm:post-split-begin engine-bridge */if(!divisionComplete(div))return [];
+  if(!divisionComplete(div))return [];
   if(isTeamDivision(div)){
     const p=teamFinalPlacements(div);
     if(!p)return [];
@@ -26,7 +24,6 @@ function resultPlacements(div){
   // #86: a grand champion's places are its awards (Grand Champion, and Runner-up when the row gives it).
   const gc=ksmGrandChampion(div);
   return gc?KSMEngine.grandChampionPlacements(placements,gc.awardMode,KSMEngine.grandChampionWithdrawn(gc)):placements;
-  /* ksm:post-split-end */
 }
 function addResultAward(){
   state.awards=state.awards||[];
@@ -40,22 +37,18 @@ function removeResultAward(index){
   renderResultsDashboard();
 }
 function renderResultsDashboard(){
-/* ksm:post-split-begin react-results */
   // Results is React (app/react/results/, 38-react-results.js): the cards and awards are
   // published to it instead of written (M.13).
   if(!window.resultsBody)return;
   ksmRenderResults();
-/* ksm:post-split-end */
 }
 function openResultsBracket(div){
-/* ksm:post-split-begin react-results */
   // The modal's title and body are React (38-react-results.js): the division's detail is
   // published to them; the modal itself stays legacy markup (M.13).
   const modal=document.getElementById('resultsBracketModal');
   if(!modal)return;
   ksmRenderResultsBracket(div);
   modal.classList.remove('hidden');
-/* ksm:post-split-end */
 }
 function closeResultsBracket(){
   const modal=document.getElementById('resultsBracketModal');

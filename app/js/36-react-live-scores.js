@@ -1,4 +1,3 @@
-/* ksm:post-split-begin react-live */
 // ==========================================================
 // React Live Scores (app/react/features/live-scores/, roadmap M.13, #136 step 2)
 // The Live Scores screen (#public) is drawn only by React: one island (LiveScores), mounted by
@@ -77,4 +76,3 @@ function ksmShowLiveScoresModuleMissing(){
   live.before(notice);
 }
 document.addEventListener('DOMContentLoaded',ksmShowLiveScoresModuleMissing);
-/* ksm:post-split-end */

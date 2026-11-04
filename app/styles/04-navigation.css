@@ -328,7 +328,7 @@ main,.view{position:relative;z-index:1;}
   align-self:center !important;
   justify-self:end;
   max-width:110px;
-  /* ksm:post-split-begin library-setup was:color:rgba(255,255,255,.68) !important */color:var(--ksm-save-status-color,rgba(255,255,255,.68)) !important/* ksm:post-split-end */;
+  color:var(--ksm-save-status-color,rgba(255,255,255,.68)) !important;
   line-height:1.25;
   text-align:right;
 }

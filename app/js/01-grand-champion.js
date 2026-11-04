@@ -1,4 +1,3 @@
-/* ksm:post-split-begin grand-champion */
 // ==========================================================
 // Grand champion (#86): the winners of chosen individual divisions meet for a Grand Champion
 // award. Rules and data shape: app/engine/grand-champion.ts.
@@ -327,4 +326,3 @@ function ksmGrandChampionSetupData(){
 function ksmRenderGrandChampionSetup(){
   if(typeof ksmPublishSetup==='function')ksmPublishSetup('ksm:setup-grand-champions','ksmGrandChampionSetupInput',ksmGrandChampionSetupData());
 }
-/* ksm:post-split-end */

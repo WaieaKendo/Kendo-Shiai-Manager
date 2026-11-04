@@ -10,21 +10,17 @@ const BRACKET_SLOT_TEMPLATES={
  * @returns {number}
  */
 function singleElimBracketSize(n){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.singleElimBracketSize(n);
-  /* ksm:post-split-end */
+  return KSMEngine.singleElimBracketSize(n);
 }
 function protectedSeedQuadrant(seed){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.protectedSeedQuadrant(seed);
-  /* ksm:post-split-end */
+  return KSMEngine.protectedSeedQuadrant(seed);
 }
 
 function singleElimSlotInfo(n){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.singleElimSlotInfo(n,teamBracketNodesForCount(n));
-  /* ksm:post-split-end */
+  return KSMEngine.singleElimSlotInfo(n,teamBracketNodesForCount(n));
 }
 function chooseBestSeedSlot(q,positions,info,allPositions){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.chooseBestSeedSlot(q,positions,info,allPositions);
-  /* ksm:post-split-end */
+  return KSMEngine.chooseBestSeedSlot(q,positions,info,allPositions);
 }
 /**
  * Bracket order: seeds in protected quadrants, then dojo-separated fill.
@@ -32,8 +28,7 @@ function chooseBestSeedSlot(q,positions,info,allPositions){
  * @returns {Competitor[]}
  */
 function placeIndividualsForSingleElim(comps){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.placeIndividualsForSingleElim(comps,comps.length>1?teamBracketNodesForCount(comps.length):[]);
-  /* ksm:post-split-end */
+  return KSMEngine.placeIndividualsForSingleElim(comps,comps.length>1?teamBracketNodesForCount(comps.length):[]);
 }
 function singleElimOrderMap(div){let map={};(state.singleElimNodes?.[div]||[]).forEach((n,i)=>map[n.id]=i);return map;}
 function sortIndividualSingleElimMatches(div,arr){let order=singleElimOrderMap(div);arr.sort((a,b)=>{
@@ -63,13 +58,12 @@ function dedupeSingleElimMatches(div){
  * @returns {Match[]}
  */
 function buildIndividualSingleElimMatches(div,comps){
-  /* ksm:post-split-begin engine-bridge */state.singleElimNodes=state.singleElimNodes||{};
+  state.singleElimNodes=state.singleElimNodes||{};
   const built=KSMEngine.buildIndividualSingleElimMatches(div,teamBracketNodesForCount(comps.length),/** @type {Court|'split'} */(state.divisionCourts[div]||'A'));
   state.singleElimNodes[div]=built.nodes;
   const arr=/** @type {Match[]} */(built.matches);
   syncIndividualSingleElim(div,arr,comps);
   return arr;
-  /* ksm:post-split-end */
 }
 /**
  * @param {BracketSource|null} side
@@ -78,11 +72,10 @@ function buildIndividualSingleElimMatches(div,comps){
  * @returns {{name: string, dojo: string}|null}
  */
 function indivSide(side,comps,div){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.indivSide(side,comps,state.singleElimNodes?.[div]||[]);
-  /* ksm:post-split-end */
+  return KSMEngine.indivSide(side,comps,state.singleElimNodes?.[div]||[]);
 }
-function indivNodeHasMatch(arr,node){/* ksm:post-split-begin engine-bridge */return KSMEngine.indivNodeHasMatch(arr,node);// moved to app/engine/bracket-helpers.ts
-  /* ksm:post-split-end */}
+function indivNodeHasMatch(arr,node){return KSMEngine.indivNodeHasMatch(arr,node);// moved to app/engine/bracket-helpers.ts
+  }
 /**
  * @param {Match} m
  */
@@ -92,8 +85,7 @@ function maybeAdvanceIndividualSingleElim(m){
   syncIndividualSingleElim(div,arr,comps);
 }
 function sideLabelGeneric(side,div){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.sideLabelGeneric(side,state.singleElimComps?.[div]||[],state.singleElimNodes?.[div]||[]);
-  /* ksm:post-split-end */
+  return KSMEngine.sideLabelGeneric(side,state.singleElimComps?.[div]||[],state.singleElimNodes?.[div]||[]);
 }
 function championshipSideLabel(side,div){
   if(!side)return 'BYE';

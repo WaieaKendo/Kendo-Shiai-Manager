@@ -1,19 +1,19 @@
 // ---------- KSM v3.9.1 Minimal navigation ----------
 function setNavMenuState(menu,open){
-  /* ksm:post-split-begin react-shell */ksmSetNavMenuState(menu,open);/* ksm:post-split-end */
+  ksmSetNavMenuState(menu,open);
 }
 function positionMobileNavMenu(menu,trigger){
-  /* ksm:post-split-begin react-shell */ksmPositionNavMenu(menu,trigger);/* ksm:post-split-end */
+  ksmPositionNavMenu(menu,trigger);
 }
 function closeNavMenus(exceptId){
-  /* ksm:post-split-begin react-shell */ksmCloseNavMenus(exceptId);/* ksm:post-split-end */
+  ksmCloseNavMenus(exceptId);
 }
 function toggleNavMenu(id,event){
   if(event){event.preventDefault();event.stopPropagation();}
   const menu=document.getElementById(id);
   if(!menu)return false;
   const trigger=(event&&event.currentTarget)||document.querySelector(`[aria-controls="${id}"]`);
-  const opening=/* ksm:post-split-begin react-shell was:menu.classList.contains('hidden') */ksmNavOpenMenu!==id/* ksm:post-split-end */;
+  const opening=ksmNavOpenMenu!==id;
   closeNavMenus(id);
   setNavMenuState(menu,opening);
   if(opening)positionMobileNavMenu(menu,trigger);
@@ -56,9 +56,9 @@ function regTab(mode){
   if(window.teamReg)teamReg.classList.toggle('hidden',mode!=='team');
   if(window.exhibitionReg)exhibitionReg.classList.toggle('hidden',mode!=='exhibition');
   if(window.poolsReg)poolsReg.classList.toggle('hidden',mode!=='pools');
-  /* ksm:post-split-begin react-registration */ksmRenderRegistrationTab(mode);/* ksm:post-split-end */
+  ksmRenderRegistrationTab(mode);
   if(mode==='pools')renderPools();
-  /* ksm:post-split-begin path-urls */if(!document.getElementById('registration').classList.contains('hidden'))ksmRecordScreenPath('registration');/* ksm:post-split-end */
+  if(!document.getElementById('registration').classList.contains('hidden'))ksmRecordScreenPath('registration');
 }
 function renderProgress(){ return; }
 document.addEventListener('click',function(event){
@@ -68,12 +68,12 @@ document.addEventListener('keydown',function(event){
   if(event.key==='Escape')closeNavMenus();
 });
 window.addEventListener('resize',function(){
-  const openMenu=/* ksm:post-split-begin react-shell was:document.querySelector('.nav-dropdown:not(.hidden)') */ksmNavOpenMenu?document.getElementById(ksmNavOpenMenu):null/* ksm:post-split-end */;
+  const openMenu=ksmNavOpenMenu?document.getElementById(ksmNavOpenMenu):null;
   if(!openMenu)return;
   const trigger=document.querySelector(`[aria-controls="${openMenu.id}"]`);
   if(window.matchMedia('(max-width:900px)').matches)positionMobileNavMenu(openMenu,trigger);
   else {
-    /* ksm:post-split-begin react-shell */ksmUnplaceNavMenu();/* ksm:post-split-end */
+    ksmUnplaceNavMenu();
   }
 });
 

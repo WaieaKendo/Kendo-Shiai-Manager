@@ -1,4 +1,3 @@
-/* ksm:post-split-begin team-divisions */
 function ksmNewTeamRows(rows){const division=ksmDefaultTeamDivisionId();return rows.map(t=>({...t,id:ksmNewTeamIdentity(),teamDivisionId:division}))}
 // The saved format this app understands (team divisions = 2, grand champion #86 = 3), sent with every
 // save (cloudHeaders(), 33). The server refuses saves from apps below its MIN_CLIENT_SCHEMA
@@ -145,4 +144,3 @@ function ksmRenderTeamDivisions(){
     });row.append(actions);body.append(row);
   });
 }
-/* ksm:post-split-end */

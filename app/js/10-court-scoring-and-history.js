@@ -13,7 +13,7 @@ function syncActiveScoreToMatch(){
 
 // ---------- KSM v3.17.8-test Compact action-patch court Undo / Redo ----------
 const KSM_HISTORY_LIMIT=100;
-const KSM_HISTORY_KEYS=new Set(['courtActionHistory','courtRedoHistory'/* ksm:post-split-begin history-replay */,'courtUndoLog'/* ksm:post-split-end */]);
+const KSM_HISTORY_KEYS=new Set(['courtActionHistory','courtRedoHistory','courtUndoLog']);
 const KSM_HISTORY_MISSING={__ksmMissing:true};
 function ensureCourtHistory(){
   state.courtActionHistory=state.courtActionHistory||{A:[],B:[]};
@@ -28,8 +28,8 @@ function ensureCourtHistory(){
 }
 function cloneHistoryValue(value){return value===undefined?{...KSM_HISTORY_MISSING}:JSON.parse(JSON.stringify(value))}
 function historyComparableState(){const out={};Object.keys(state).forEach(k=>{if(!KSM_HISTORY_KEYS.has(k))out[k]=cloneHistoryValue(state[k])});return out}
-function historyValuesEqual(a,b){/* ksm:post-split-begin engine-bridge */return KSMEngine.historyValuesEqual(a,b);// moved to app/engine/sync-helpers.ts
-  /* ksm:post-split-end */}
+function historyValuesEqual(a,b){return KSMEngine.historyValuesEqual(a,b);// moved to app/engine/sync-helpers.ts
+  }
 function buildHistoryPatches(before,after,path=[],patches=[]){
   if(historyValuesEqual(before,after))return patches;
   const beforeMissing=before&&before.__ksmMissing===true;
@@ -51,18 +51,18 @@ function buildHistoryPatches(before,after,path=[],patches=[]){
   return patches;
 }
 function currentHistoryCourt(){const c=String(state.currentCourt||cloudSession?.court||'A').toUpperCase();return c==='B'?'B':'A'}
-function stampHistoryPatchMatchIdentity(patch,before,after){/* ksm:post-split-begin engine-bridge */return KSMEngine.stampHistoryPatchMatchIdentity(patch,before,after);// moved to app/engine/sync-helpers.ts
-  /* ksm:post-split-end */}
+function stampHistoryPatchMatchIdentity(patch,before,after){return KSMEngine.stampHistoryPatchMatchIdentity(patch,before,after);// moved to app/engine/sync-helpers.ts
+  }
 function performCourtAction(label,fn){
   ensureCourtHistory();const court=currentHistoryCourt(),before=historyComparableState();
   const result=fn();const after=historyComparableState(),patches=buildHistoryPatches(before,after).map(patch=>stampHistoryPatchMatchIdentity(patch,before,after));
   if(patches.length){
     const stack=state.courtActionHistory[court];
-    /* ksm:post-split-begin history-replay was:stack.push({format:'patch-v1',label:label||'Action',court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',revision:cloudSession?.revision||0,patches}); */stack.push(withCourtHistoryIdentity({format:'patch-v1',label:label||'Action',court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',tabId:KSM_TAB_ID,revision:cloudSession?.revision||0,patches},before,after));/* ksm:post-split-end */
+    stack.push(withCourtHistoryIdentity({format:'patch-v1',label:label||'Action',court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',tabId:KSM_TAB_ID,revision:cloudSession?.revision||0,patches},before,after));
     if(stack.length>KSM_HISTORY_LIMIT)stack.splice(0,stack.length-KSM_HISTORY_LIMIT);
     state.courtRedoHistory[court]=[];
   }
-  updateUndoButton();/* ksm:post-split-begin react-bridge */if(typeof ksmNotifyStateChanged==='function')ksmNotifyStateChanged('court action');/* ksm:post-split-end */return result;
+  updateUndoButton();if(typeof ksmNotifyStateChanged==='function')ksmNotifyStateChanged('court action');return result;
 }
 function historyPathParent(path){
   let target=state;
@@ -86,8 +86,8 @@ function applyHistoryPatch(patch,direction){
 }
 function applyHistoryValues(action,direction){
   if(action?.format==='patch-v1'&&Array.isArray(action.patches)){
-    /* ksm:post-split-begin history-replay was:const patches=direction==='before'?[...action.patches].reverse():action.patches; */ksmLastHistoryOutcome=applyCourtHistoryEntry(action,direction);/* ksm:post-split-end */
-    /* ksm:post-split-begin history-replay was:patches.forEach(patch=>applyHistoryPatch(patch,direction)); *//* ksm:post-split-end */
+    ksmLastHistoryOutcome=applyCourtHistoryEntry(action,direction);
+    
   }else return;
   ensureCourtHistory();
   const court=currentHistoryCourt();
@@ -96,14 +96,11 @@ function applyHistoryValues(action,direction){
   renderAll();
 }
 function updateUndoButton(){
-/* ksm:post-split-begin react-court */
   // The React action row (35-react-court.js) draws the buttons: signal whether Undo/Redo may
   // be pressed (the labels stay plain "Undo"/"Redo").
   ensureCourtHistory();const court=currentHistoryCourt(),undoStack=state.courtActionHistory[court],redoStack=state.courtRedoHistory[court];
   ksmSignalCourtActions({undo:{disabled:!undoStack.length,label:'Undo'},redo:{disabled:!redoStack.length,label:'Redo'}});
-/* ksm:post-split-end */
 }
-/* ksm:post-split-begin history-replay */
 // F30: an Undo or Redo removes or re-adds an action instead of adding one, so a save conflict's
 // rebase (18-, replayPendingCourtHistory()) had nothing to replay and the server copy brought the
 // undone point back. Each Undo/Redo is also logged here (per court, with the action's patches and
@@ -285,25 +282,23 @@ function courtHistorySkippedNote(kind){
   if(typeof showKsmToast==='function')showKsmToast(`${kind}: a match it changed no longer exists, so that part was not applied`,3500,true);
   return ' (part of it was not applied: a match it changed no longer exists)';
 }
-/* ksm:post-split-end */
 function undo(){
   ensureCourtHistory();const court=currentHistoryCourt(),stack=state.courtActionHistory[court];const action=stack.pop();
   if(!action){updateSaveStatus('Nothing to undo');updateUndoButton();return}
-  /* ksm:post-split-begin history-replay */const matchesBefore=courtUndoMatchesBefore(action);/* ksm:post-split-end */applyHistoryValues(action,'before');/* ksm:post-split-begin history-replay */recordCourtUndoLog(court,'UNDO',courtHistoryAppliedEntry(action),matchesBefore);/* ksm:post-split-end */state.courtRedoHistory[court].push(action);if(state.courtRedoHistory[court].length>KSM_HISTORY_LIMIT)state.courtRedoHistory[court].shift();
-  updateUndoButton();/* ksm:post-split-begin history-replay was:updateSaveStatus('Undid '+action.label); */updateSaveStatus('Undid '+action.label+courtHistorySkippedNote('Undo'));/* ksm:post-split-end */criticalAutoSave('Undo: '+action.label);
+  const matchesBefore=courtUndoMatchesBefore(action);applyHistoryValues(action,'before');recordCourtUndoLog(court,'UNDO',courtHistoryAppliedEntry(action),matchesBefore);state.courtRedoHistory[court].push(action);if(state.courtRedoHistory[court].length>KSM_HISTORY_LIMIT)state.courtRedoHistory[court].shift();
+  updateUndoButton();updateSaveStatus('Undid '+action.label+courtHistorySkippedNote('Undo'));criticalAutoSave('Undo: '+action.label);
 }
 function redo(){
   ensureCourtHistory();const court=currentHistoryCourt(),stack=state.courtRedoHistory[court];const action=stack.pop();
   if(!action){updateSaveStatus('Nothing to redo');updateUndoButton();return}
-  /* ksm:post-split-begin history-replay */const matchesBefore=courtUndoMatchesBefore(action);/* ksm:post-split-end */applyHistoryValues(action,'after');/* ksm:post-split-begin history-replay */recordCourtUndoLog(court,'REDO',courtHistoryAppliedEntry(action),matchesBefore);/* ksm:post-split-end */state.courtActionHistory[court].push(action);if(state.courtActionHistory[court].length>KSM_HISTORY_LIMIT)state.courtActionHistory[court].shift();
-  updateUndoButton();/* ksm:post-split-begin history-replay was:updateSaveStatus('Redid '+action.label); */updateSaveStatus('Redid '+action.label+courtHistorySkippedNote('Redo'));/* ksm:post-split-end */criticalAutoSave('Redo: '+action.label);
+  const matchesBefore=courtUndoMatchesBefore(action);applyHistoryValues(action,'after');recordCourtUndoLog(court,'REDO',courtHistoryAppliedEntry(action),matchesBefore);state.courtActionHistory[court].push(action);if(state.courtActionHistory[court].length>KSM_HISTORY_LIMIT)state.courtActionHistory[court].shift();
+  updateUndoButton();updateSaveStatus('Redid '+action.label+courtHistorySkippedNote('Redo'));criticalAutoSave('Redo: '+action.label);
 }
-function point(side,letter){performCourtAction(`${side==='W'?'White':'Red'} ${letter}`,()=>{state.score[side].push(letter);/* ksm:post-split-begin match-timer */window.dispatchEvent(new Event('ksm:timer-point'));/* ksm:post-split-end */syncActiveScoreToMatch();renderScore()})}
-function hansoku(side){performCourtAction(`${side==='W'?'White':'Red'} Hansoku`,()=>{/* ksm:post-split-begin match-timer */window.dispatchEvent(new Event('ksm:timer-point'));/* ksm:post-split-end */if(side==='W'){state.score.WT++;if(state.score.WT%2===0)state.score.R.push('H')}else{state.score.RT++;if(state.score.RT%2===0)state.score.W.push('H')}syncActiveScoreToMatch();renderScore()})}
+function point(side,letter){performCourtAction(`${side==='W'?'White':'Red'} ${letter}`,()=>{state.score[side].push(letter);window.dispatchEvent(new Event('ksm:timer-point'));syncActiveScoreToMatch();renderScore()})}
+function hansoku(side){performCourtAction(`${side==='W'?'White':'Red'} Hansoku`,()=>{window.dispatchEvent(new Event('ksm:timer-point'));if(side==='W'){state.score.WT++;if(state.score.WT%2===0)state.score.R.push('H')}else{state.score.RT++;if(state.score.RT%2===0)state.score.W.push('H')}syncActiveScoreToMatch();renderScore()})}
 function fusen(side){performCourtAction(`${side==='W'?'White':'Red'} Fusen-gachi`,()=>{if(side==='W'){state.score.W=[];state.score.R=['F','F']}else{state.score.R=[];state.score.W=['F','F']}syncActiveScoreToMatch();renderScore()})}
 function matchRequiresWinner(m){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.matchRequiresWinner(m);
-  /* ksm:post-split-end */
+  return KSMEngine.matchRequiresWinner(m);
 }
 function nextMatch(){
   let m=state.matches[state.current];

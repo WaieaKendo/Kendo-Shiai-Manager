@@ -1,4 +1,3 @@
-/* ksm:post-split-begin react-results */
 // ==========================================================
 // React Results (app/react/features/results/, roadmap M.13, #136 step 2)
 // The Results screen (#results) is drawn only by React: four islands (the result cards and awards
@@ -48,4 +47,3 @@ function ksmShowResultsModuleMissing(){
   body.before(notice);
 }
 document.addEventListener('DOMContentLoaded',ksmShowResultsModuleMissing);
-/* ksm:post-split-end */
