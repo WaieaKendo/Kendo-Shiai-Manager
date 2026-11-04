@@ -31,7 +31,6 @@
 // The toolbars and their buttons and the filters (#regFilter, #teamFilter, read by id) stay legacy
 // markup (app/index.html). If the React module does not load, Registration shows notices in place of
 // the tables (the end of this file).
-// Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
 // A text as the legacy markup showed it: esc() (String(x||'')) and then the HTML parser, which
 // turns CR LF and a lone CR into LF (in text and attribute values alike).

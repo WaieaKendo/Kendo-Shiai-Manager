@@ -128,7 +128,6 @@ node scripts/health-check.mjs <production URL>
 
 - `app/index.html` (page title / About text, version badge), `app/js/19-cloud-diagnostics.js` (`appVersion` in the diagnostics downloads) and `app/service-worker.js` (`CACHE_NAME`) contain the placeholder `__KSM_VERSION__`; Vite fills it in from `package.json` in the build and in `npm run dev:vite` (`withVersion()` in `scripts/app-sources.mjs`). A new version renames the service worker cache, which makes installed devices drop the old offline copy.
 - `src-worker.js` imports `package.json`; wrangler bundles it in, so `/api/health` reports the deployed version.
-- `scripts/verify-split.mjs` lists exactly these placeholders (`VERSION_PLACEHOLDERS`) as a deliberate exception to its byte-for-byte check against the old single file.
 - `tests/version-consistency-test.mjs` checks the built `dist/` and `/api/health` against `package.json`, that no source hard-codes a version, and that `CHANGELOG.md` starts with this version.
 
 A release:

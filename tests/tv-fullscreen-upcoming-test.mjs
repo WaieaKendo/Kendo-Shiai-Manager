@@ -7,7 +7,7 @@ const html=appSource;
 const tvPublish=readRepoFile('app/react/features/tv/publish.ts');
 const tvReact=readRepoFile('app/react/features/tv/Tv.tsx'),tvModel=readRepoFile('app/react/features/tv/tv-model.ts');
 const checks=[
- ['TV court locked from URL',html.includes('function tvAssignedCourt()')&&html.includes("new URLSearchParams(location.search).get('court')")],
+ ['TV court locked from URL',html.includes('function tvAssignedCourt()')&&html.includes("ksmLinkParams().get('court')")],
  ['TV render uses assigned court',tvPublish.includes("tvWindow().ksmTvInput = ksmTvDisplayInput(legacy('tvAssignedCourt')());")&&html.includes('function buildTV3ViewModel(court){\n  const data=courtCurrentMatch(court);')],
  // The 1920x1080 canvas is the tv3 root (fitTvCanvas() belonged to the first TV renderer, which never ran; removed in M.13).
  ['TV fixed 16:9 canvas',html.includes('width:1920px;height:1080px')&&tvReact.includes('<div className="tv3-root" data-testid="tv-canvas">')],

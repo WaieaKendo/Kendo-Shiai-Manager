@@ -23,10 +23,10 @@ const checks = [
   // The court TV links: the TV menu's Court A TV / Court B TV (React, nav-model.ts) open tvLink(court).
   // (This checked the rows of the first openTournamentAccess() in 21-, which never ran and was
   // removed with the legacy shell in M.13.)
-  ['court specific TV links', html.includes("window.open(tvLink(court),'_blank','noopener')") && html.includes("url.searchParams.set('court',court)")
+  ['court specific TV links', html.includes("window.open(tvLink(court),'_blank','noopener')") && html.includes('court:normalizeCourt(court)')
     && shellReact.includes("label: 'Court A TV', testId: 'nav-tv-a', action: call('launchTvDisplay', 'A')") && shellReact.includes("label: 'Court B TV', testId: 'nav-tv-b', action: call('launchTvDisplay', 'B')")],
   ['TV has no normal navigation', html.includes('body.ksm-tv .ksm-topbar') && html.includes("requestedView==='tv'")],
-  ['TV remains spectator read only', html.includes("url.searchParams.set('view','tv')") && html.includes("roleLink('spectator',court)")]
+  ['TV remains spectator read only', html.includes("ksmLinkUrl({screen:'tv'") && html.includes('[[\'key\',cloudSession.credentials?.spectator]]')]
 ];
 let pass = 0;
 for (const [name, ok] of checks) {

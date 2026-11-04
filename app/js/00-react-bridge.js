@@ -7,7 +7,6 @@
 // microtask, so a burst of changes is one re-render). Everything lives on `window`, so
 // the helpers also work before this script has finished running and in extracted-
 // function tests without a window (then they do nothing).
-// Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
 function ksmLegacyState(){return state}
 function ksmLegacyCloudSession(){return cloudSession}

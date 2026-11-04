@@ -36,7 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Full history: verify-split and the engine legacy-equivalence tests read old commits.
+          # Full history: the engine legacy-equivalence tests read old commits.
           fetch-depth: 0
 
       - uses: actions/setup-node@v4

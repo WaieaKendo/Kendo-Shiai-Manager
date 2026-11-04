@@ -40,7 +40,6 @@
 // <body> before the header, sticky at the top, which the CSS selects as a child of <body>; a React
 // root needs an element of its own around it, which would change both) and the toast
 // (showKsmToast() in 21).
-// Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
 // A focused element inside `el` loses the focus, as when the legacy code replaced it.
 function ksmShellBlurIn(el){

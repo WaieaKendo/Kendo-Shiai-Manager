@@ -12,7 +12,7 @@ let failed=false;
 function check(ok,name){console.log(`${ok?'PASS':'FAIL'} ${name}`);if(!ok)failed=true}
 
 check(html.includes('sanitizeLoadedTournamentState(state'),'load-time state sanitizer');
-check(html.includes('resolveRebasePatch(localState,rebased.state,patch)'),'identity-safe rebase path');
+check(html.includes('resolveRebasePatch(localState,rebasedState,patch)'),'identity-safe rebase path');
 check(worker.includes("return json({ error: 'Invalid tournament state', integrityError }, 422)"),'Worker malformed-state rejection');
 check(html.includes("matches=(state.allMatches[div]||[]).filter(isValidMatchObject)"),'division completion null safety');
 

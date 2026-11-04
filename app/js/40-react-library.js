@@ -61,7 +61,6 @@ function ksmDiscardLocalDraft(){
 }
 
 // If the React module does not load, the library shows a notice (the end of this file).
-// Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
 // The signal stub. Clears the error, dispatches ksm:library (publish.ts computes the input) and
 // rethrows an error the module stored, so a failure reaches the caller as it did when the build ran here.

@@ -16,7 +16,6 @@
 // The awards editor's buttons call addResultAward() / removeResultAward() (27-) and its inputs'
 // change events ksmSetResultAward() below (classic state + saveAuto(): React calls legacy).
 // If the React module does not load, Results shows a notice (the end of this file).
-// Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
 function ksmRenderResults(){
   window.ksmResultsRequested=true;

@@ -48,7 +48,6 @@
 //   and the module-missing notice (the end of this file).
 // If the court module does not load, the court screen shows a notice (the end of this file); the
 // inputs are then never computed.
-// Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
 // D1 (owners' decision on F27): a team round robin's daihyosen bout is labelled on the court
 // screen, Live Scores and the TV. It still ends with Next Match (no automatic end at the point).

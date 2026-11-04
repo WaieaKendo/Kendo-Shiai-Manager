@@ -22,7 +22,6 @@
 // renderDivisions() in 02-, read synchronously by the pool functions), Regenerate and
 // #poolOutput's class stay legacy too, as does the notice below.
 // If the React module does not load, the Pools view shows a notice (the end of this file).
-// Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
 function ksmRenderPools(div){
   // The view replaces the editor: an edit not saved is dropped (F12, see below).

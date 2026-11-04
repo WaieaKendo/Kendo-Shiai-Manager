@@ -13,7 +13,6 @@
 // removed in M.13).
 // If the React module does not load, the TV shows a notice (below). ksmFitTv() and its resize
 // listener stay here (CSS fallback, harmless off the TV).
-// Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
 function ksmRenderTv(){
   window.ksmTvRequested=true;
