@@ -84,54 +84,6 @@ function indivSide(side,comps,div){
 function indivNodeHasMatch(arr,node){/* ksm:post-split-begin engine-bridge */return KSMEngine.indivNodeHasMatch(arr,node);// moved to app/engine/bracket-helpers.ts
   /* ksm:post-split-end */}
 /**
- * @param {string} div
- * @param {Match[]} arr
- * @param {Competitor[]} comps
- */
-function syncIndividualSingleElim(div,arr,comps){
-  state.singleElimNodes=state.singleElimNodes||{};
-  const nodes=state.singleElimNodes[div]||[];
-  const courtMode=/** @type {Court|'split'} */(state.divisionCourts[div]||'A');
-  let changed=true,guard=0;
-  while(changed&&guard++<50){
-    changed=false;
-    for(const node of nodes){
-      const match=arr.find(m=>m.singleElim&&m.elimNodeId===node.id);
-      if(!match){
-        console.error('KSM template invariant: missing Match Object for',div,node.id);
-        continue;
-      }
-      if(match.done){
-        const winner=winnerOf(match);
-        if(winner&&winner!=='Hikiwake'){
-          const next=winner===match.red?{name:match.red,dojo:match.rdojo}:{name:match.white,dojo:match.wdojo};
-          if(!node.winner||node.winner.name!==next.name){node.winner=next;changed=true;}
-        }
-        continue;
-      }
-      if(node.winner){match.ready=false;continue;}
-      const red=indivSide(node.left,comps,div),white=indivSide(node.right,comps,div);
-      if(red&&!white&&!node.right?.ref){node.winner=red;match.ready=false;changed=true;continue;}
-      if(white&&!red&&!node.left?.ref){node.winner=white;match.ready=false;changed=true;continue;}
-      match.position=node.round;
-      match.court=courtMode==='split'?(node.round==='Final'?'A':node.court):courtMode;
-      match.bracketSlot=node.slot||0;
-      if(red&&white){
-        match.red=red.name;match.rdojo=red.dojo||'';
-        match.white=white.name;match.wdojo=white.dojo||'';
-        match.ready=true;
-      }else{
-        match.red=red?.name||'';match.rdojo=red?.dojo||'';
-        match.white=white?.name||'';match.wdojo=white?.dojo||'';
-        match.ready=false;
-      }
-    }
-  }
-  sortIndividualSingleElimMatches(div,arr);
-  state.allMatches[div]=arr;
-  return enforceUniqueIndividualMatches(div);
-}
-/**
  * @param {Match} m
  */
 function maybeAdvanceIndividualSingleElim(m){

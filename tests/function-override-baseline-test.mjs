@@ -30,13 +30,11 @@ import { html, countDefinitions } from './lib/ksm-source.mjs';
 // (21-, overridden by 33-'s and never run) and showQr(), which only it used: 13 -> 12
 // (openTournamentAccess 2->1). The dead 21-/20- installRoleBanner(), setSessionRole() and
 // spectatorLink() stay for 2.10 (the banner stays legacy; the others are not renderer code).
-const BASELINE = {
-  canCloudWrite: 2, cloudHeaders: 2, cloudSocketUrl: 2, initializeCloudRoleFromUrl: 2,
-  installRoleBanner: 2, isReadOnlySession: 2, isSpectatorSession: 2,
-  loadTournamentFromCloud: 2,
-  sessionKey: 2,
-  setSessionRole: 2, spectatorLink: 2, syncIndividualSingleElim: 2,
-};
+// #136 step 3a (refactor/remove-dead-duplicates) removed the last 12 dead duplicates (the earlier copies of
+// syncIndividualSingleElim, setSessionRole, isReadOnlySession, isSpectatorSession, canCloudWrite, sessionKey,
+// cloudHeaders, cloudSocketUrl, loadTournamentFromCloud, spectatorLink, installRoleBanner and
+// initializeCloudRoleFromUrl): 12 -> 0. tests/no-duplicate-declarations.test.mjs now enforces none.
+const BASELINE = {};
 
 if(countDefinitions('/* function fake() {} */ function fake() {}','fake')!==1||countDefinitions('function fake() {} function fake() {}','fake')!==2)throw new Error('Declaration counting must ignore comments and detect executable overrides');
 

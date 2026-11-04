@@ -5,14 +5,8 @@ function persistCloudSession(){localStorage.setItem(KSM_CLOUD_SESSION_KEY,JSON.s
 function setConnectionStatus(text,mode='local'){/* ksm:post-split-begin react-shell */ksmRenderConnectionStatus(text,mode);/* ksm:post-split-end */}
 function humanSaveAge(){if(!ksmLastSuccessfulSaveAt)return 'Not saved yet';const min=Math.max(0,Math.floor((Date.now()-ksmLastSuccessfulSaveAt)/60000));if(min<1)return '✓ Saved just now';if(min<60)return `✓ Saved ${min} min ago`;return '✓ Saved at '+new Date(ksmLastSuccessfulSaveAt).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}
 function renderPersistentSaveStatus(){/* ksm:post-split-begin react-shell */ksmRenderSaveStatus(ksmPersistentSaveStatusText());/* ksm:post-split-end */}
-function setSessionRole(role){ksmSessionRole=role||'local';const names={spectator:'Spectator',scorekeeper:'Scorekeeper',director:'Director',admin:'Admin',local:'Local'};const el=document.getElementById('sessionRole');if(el){el.textContent=names[ksmSessionRole]||'Local';el.dataset.role=ksmSessionRole}document.body.classList.toggle('ksm-spectator',ksmSessionRole==='spectator');document.body.classList.toggle('ksm-scorekeeper',ksmSessionRole==='scorekeeper');document.body.classList.toggle('ksm-admin',ksmSessionRole==='admin')}
-function isReadOnlySession(){return ksmSessionRole==='spectator'}
-function isSpectatorSession(){return isReadOnlySession()}
-function canCloudWrite(){return ['scorekeeper','director','admin'].includes(ksmSessionRole)||!cloudSession.tournamentId}
-function sessionKey(){return cloudSession.credentials?.[ksmSessionRole]||cloudSession.directorKey||''}
 function ensureClientIdentity(){if(!cloudSession.clientId)cloudSession.clientId=crypto.randomUUID();if(!cloudSession.clientName)cloudSession.clientName='KSM Device';persistCloudSession()}
 function cloudEnvelope(payload=tournamentPayload()){return {schemaVersion:'1.2',tournamentId:cloudSession.tournamentId||null,engineVersion:'3.12.9',revision:cloudSession.revision||0,payload}}
-function cloudHeaders(){return {'content-type':'application/json','x-ksm-role':ksmSessionRole==='local'?'director':ksmSessionRole,'x-ksm-session-key':sessionKey(),'x-ksm-client-id':cloudSession.clientId||'','x-ksm-client-name':cloudSession.clientName||'KSM Device','x-ksm-court':cloudSession.court||''}}
 function readOutbox(){/* ksm:post-split-begin two-tabs was:try{return JSON.parse(localStorage.getItem(KSM_CLOUD_OUTBOX_KEY)||'null')}catch(_){return null} */
   // F36: this tab's own slot; else a closed tab's work for this tournament (shown, `peeked`; a staff tab
   // takes it over).

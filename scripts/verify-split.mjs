@@ -27,7 +27,9 @@
 // step 5; REMOVED_LIVE_SCORES_RENDERER, REMOVED_TV_RENDERER, REMOVED_RESULTS_RENDERER,
 // REMOVED_OVERVIEW_RENDERER, REMOVED_LIBRARY_RENDERER, REMOVED_POOLS_RENDERER, REMOVED_SETUP_RENDERER,
 // REMOVED_REGISTRATION_RENDERER and REMOVED_SHELL_RENDERER: the legacy Live Scores, TV, Results,
-// Overview, Tournament Library, Pools, Setup and Registration renderers and the legacy shell, M.13) is named piece by piece; the check deletes exactly those pieces from the old script before comparing, so every
+// Overview, Tournament Library, Pools, Setup and Registration renderers and the legacy shell, M.13;
+// REMOVED_DEAD_DUPLICATES: 12 old function declarations that a later one of the same name replaced,
+// #136 step 3a) is named piece by piece; the check deletes exactly those pieces from the old script before comparing, so every
 // other difference, and any piece that no longer matches, still fails.
 import { execFileSync } from 'node:child_process';
 import { minify } from 'vite';
@@ -226,7 +228,8 @@ const KNOWN_POST_SPLIT_EDITS = {
   // #40: persist and normalize the audience orientation.
   'tv-red-side': 2,
   // fix/pre-event (F11): saveAuto(), called by the awards editor but never defined (app/js/20).
-  'autosave-origin': 8,
+  // (8 -> 7: the dead loadTournamentFromCloud() in 21 carried one region; see REMOVED_DEAD_DUPLICATES.)
+  'autosave-origin': 7,
   // fix/f37-replace-conflict (F37, #88): Load Tournament File → Replace is saved on its own and never
   // rebased; on a 409 the director is asked (Replace anyway / Cancel). performCloudSave()'s options and
   // its 409 hand-off (33), ordinary saves and the outbox flush wait while the question is open, and
@@ -727,7 +730,18 @@ for (const name of MOVED_TO_ENGINE) {
   const at = oldScript.lastIndexOf(fn);
   oldScript = oldScript.slice(0, at) + fn.slice(0, fn.indexOf('{') + 1) + '}' + oldScript.slice(at + fn.length);
 }
-// Delete REMOVED_COURT_RENDERER, REMOVED_LIVE_SCORES_RENDERER, REMOVED_TV_RENDERER, REMOVED_RESULTS_RENDERER, REMOVED_OVERVIEW_RENDERER, REMOVED_LIBRARY_RENDERER, REMOVED_POOLS_RENDERER, REMOVED_SETUP_RENDERER, REMOVED_REGISTRATION_RENDERER and REMOVED_SHELL_RENDERER from the old script: find every
+// #136 step 3a: old function declarations that a LATER declaration of the same name replaced, so they
+// never ran (a classic script runs the last one). ES modules refuse duplicate declarations, so the dead
+// copies are deleted; the live copy (the later one) stays and is compared as usual. Same entry forms as
+// REMOVED_COURT_RENDERER.
+const REMOVED_DEAD_DUPLICATES = [
+  'syncIndividualSingleElim#1',                                  // 06 (live: 32)
+  'setSessionRole#1', 'isReadOnlySession#1', 'isSpectatorSession#1', // 20 (live: 33)
+  'canCloudWrite#1', 'sessionKey#1', 'cloudHeaders#1',           // 20 (live: 33)
+  'cloudSocketUrl#1', 'loadTournamentFromCloud#1', 'spectatorLink#1', // 21 (live: 33)
+  'installRoleBanner#1', 'initializeCloudRoleFromUrl#1',         // 21 (live: 33)
+];
+// Delete REMOVED_COURT_RENDERER, REMOVED_LIVE_SCORES_RENDERER, REMOVED_TV_RENDERER, REMOVED_RESULTS_RENDERER, REMOVED_OVERVIEW_RENDERER, REMOVED_LIBRARY_RENDERER, REMOVED_POOLS_RENDERER, REMOVED_SETUP_RENDERER, REMOVED_REGISTRATION_RENDERER, REMOVED_SHELL_RENDERER and REMOVED_DEAD_DUPLICATES from the old script: find every
 // piece first (positions in the old script as it is now), refuse overlaps, then cut from the end.
 {
   const removed = [
@@ -741,6 +755,7 @@ for (const name of MOVED_TO_ENGINE) {
     ...REMOVED_SETUP_RENDERER.map(entry => ['REMOVED_SETUP_RENDERER', entry]),
     ...REMOVED_REGISTRATION_RENDERER.map(entry => ['REMOVED_REGISTRATION_RENDERER', entry]),
     ...REMOVED_SHELL_RENDERER.map(entry => ['REMOVED_SHELL_RENDERER', entry]),
+    ...REMOVED_DEAD_DUPLICATES.map(entry => ['REMOVED_DEAD_DUPLICATES', entry]),
   ];
   const cuts = removed.map(([list, entry]) => {
     if (typeof entry === 'object') {
