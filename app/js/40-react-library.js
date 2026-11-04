@@ -1,4 +1,3 @@
-/* ksm:post-split-begin react-library */
 // ==========================================================
 // React Tournament Library (app/react/features/library/, roadmap M.13)
 // The Tournament Library, the home page the app boots to (#home, body.ksm-home), is drawn by one
@@ -62,7 +61,6 @@ function ksmDiscardLocalDraft(){
 }
 
 // If the React module does not load, the library shows a notice (the end of this file).
-// Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
 // The signal stub. Clears the error, dispatches ksm:library (publish.ts computes the input) and
 // rethrows an error the module stored, so a failure reaches the caller as it did when the build ran here.
@@ -98,8 +96,6 @@ function ksmShowLibraryModuleMissing(){
   grid.before(notice);
 }
 document.addEventListener('DOMContentLoaded',ksmShowLibraryModuleMissing);
-/* ksm:post-split-end */
-/* ksm:post-split-begin library-setup */
 const ksmLibraryStaffTokens=new Map();
 function ksmCanManageLibraryTournament(id){return (id===cloudSession.tournamentId&&!isReadOnlySession())||ksmLibraryStaffTokens.has(id)}
 async function ksmAuthorizeLibraryTournament(id){
@@ -155,4 +151,3 @@ function ksmDownloadDeleteBackup(){
   if(id)return ksmExportLibraryTournament(id,'file');
   manualSaveTournament();
 }
-/* ksm:post-split-end */

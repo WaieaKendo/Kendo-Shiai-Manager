@@ -1,4 +1,3 @@
-/* ksm:post-split-begin path-urls */
 // ==========================================================
 // Path URLs (roadmap M.9; the scheme is app/engine/routes.ts, KSMEngine.*)
 // /t/<id>, /t/<id>/live, /t/<id>/court/a|b, /t/<id>/tv/a|b (and /t/<id>/overlay/a|b, the
@@ -12,7 +11,6 @@
 // the path. The links the app makes (Tournament Access and its QR code, the TV menu, the
 // stream overlay links, roleLink()) are built by ksmLinkUrl(). In-app navigation
 // replaces the current screen path without adding a history entry.
-// Post-split code: scripts/verify-split.mjs removes the marked region before it compares.
 // ==========================================================
 var ksmRouteLoading=0;
 // Preserve an explicit read-only query before the path migration removes legacy keys.
@@ -88,4 +86,3 @@ function ksmReplaceUrl(path){try{history.replaceState(history.state,'',path);if(
   const resolved=ksmResolvedUrl();
   if(resolved.redirect!==null)ksmReplaceUrl(resolved.redirect+(resolved.route.screen==='invalid'?'':location.hash));
 })();
-/* ksm:post-split-end */

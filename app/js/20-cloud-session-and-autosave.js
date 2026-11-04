@@ -2,57 +2,49 @@ const cloudSession=loadCloudSession();
 let ksmSessionRole='local';
 function loadCloudSession(){try{return JSON.parse(localStorage.getItem(KSM_CLOUD_SESSION_KEY)||'{}')}catch(_){return {}}}
 function persistCloudSession(){localStorage.setItem(KSM_CLOUD_SESSION_KEY,JSON.stringify(cloudSession))}
-function setConnectionStatus(text,mode='local'){/* ksm:post-split-begin react-shell */ksmRenderConnectionStatus(text,mode);/* ksm:post-split-end */}
+function setConnectionStatus(text,mode='local'){ksmRenderConnectionStatus(text,mode);}
 function humanSaveAge(){if(!ksmLastSuccessfulSaveAt)return 'Not saved yet';const min=Math.max(0,Math.floor((Date.now()-ksmLastSuccessfulSaveAt)/60000));if(min<1)return '✓ Saved just now';if(min<60)return `✓ Saved ${min} min ago`;return '✓ Saved at '+new Date(ksmLastSuccessfulSaveAt).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}
-function renderPersistentSaveStatus(){/* ksm:post-split-begin react-shell */ksmRenderSaveStatus(ksmPersistentSaveStatusText());/* ksm:post-split-end */}
+function renderPersistentSaveStatus(){ksmRenderSaveStatus(ksmPersistentSaveStatusText());}
 function ensureClientIdentity(){if(!cloudSession.clientId)cloudSession.clientId=crypto.randomUUID();if(!cloudSession.clientName)cloudSession.clientName='KSM Device';persistCloudSession()}
 function cloudEnvelope(payload=tournamentPayload()){return {schemaVersion:'1.2',tournamentId:cloudSession.tournamentId||null,engineVersion:'3.12.9',revision:cloudSession.revision||0,payload}}
-function readOutbox(){/* ksm:post-split-begin two-tabs was:try{return JSON.parse(localStorage.getItem(KSM_CLOUD_OUTBOX_KEY)||'null')}catch(_){return null} */
+function readOutbox(){
   // F36: this tab's own slot; else a closed tab's work for this tournament (shown, `peeked`; a staff tab
   // takes it over).
   const own=ksmReadOutboxKey(ksmOutboxKey());if(own)return own;
   ksmAdoptOrphanOutbox();  // a staff tab claims it; taken over (and sent) a moment later
   return ksmPeekOrphanOutbox();
-/* ksm:post-split-end */}
-function writeOutbox(payload,reason='Local change'){/* ksm:post-split-begin staff-outbox */if(ksmKeepStaffOutbox())return;/* ksm:post-split-end */const queued={schemaVersion:'1.0',tournamentId:cloudSession.tournamentId,assignedCourt:cloudSession.court||state.currentCourt||'',role:ksmSessionRole,baseRevision:cloudSession.revision||0,/* ksm:post-split-begin edit-merge */basePayload:cloudBaseFor(cloudSession.revision||0),/* ksm:post-split-end */payload,actions:[{type:'snapshot',reason,createdAt:new Date().toISOString()}],queuedAt:new Date().toISOString()};/* ksm:post-split-begin two-tabs was:localStorage.setItem(KSM_CLOUD_OUTBOX_KEY,JSON.stringify(queued)); */queued.writer=KSM_TAB_ID;ksmReleaseAdoptedOutbox();localStorage.setItem(ksmOutboxKey(),JSON.stringify(queued));/* ksm:post-split-end */localStorage.setItem(KSM_CLOUD_RECOVERY_KEY,JSON.stringify({savedAt:new Date().toISOString(),outbox:queued,serverRevision:cloudSession.revision||0}));ksmSaveStatusMode='offline';renderPersistentSaveStatus()}
-function clearOutbox(){/* ksm:post-split-begin two-tabs was:localStorage.removeItem(KSM_CLOUD_OUTBOX_KEY) */
+}
+function writeOutbox(payload,reason='Local change'){if(ksmKeepStaffOutbox())return;const queued={schemaVersion:'1.0',tournamentId:cloudSession.tournamentId,assignedCourt:cloudSession.court||state.currentCourt||'',role:ksmSessionRole,baseRevision:cloudSession.revision||0,basePayload:cloudBaseFor(cloudSession.revision||0),payload,actions:[{type:'snapshot',reason,createdAt:new Date().toISOString()}],queuedAt:new Date().toISOString()};queued.writer=KSM_TAB_ID;ksmReleaseAdoptedOutbox();localStorage.setItem(ksmOutboxKey(),JSON.stringify(queued));localStorage.setItem(KSM_CLOUD_RECOVERY_KEY,JSON.stringify({savedAt:new Date().toISOString(),outbox:queued,serverRevision:cloudSession.revision||0}));ksmSaveStatusMode='offline';renderPersistentSaveStatus()}
+function clearOutbox(){
   // F36: only this tab's slot; a closed tab's work it took over but has not merged yet is given back.
   ksmReleaseAdoptedOutbox();
   localStorage.removeItem(ksmOutboxKey());
-/* ksm:post-split-end */}
+}
 function preserveRecovery(outbox,serverRecord){localStorage.setItem(KSM_CLOUD_RECOVERY_KEY,JSON.stringify({savedAt:new Date().toISOString(),outbox,serverRevision:serverRecord?.revision||0}));ksmSaveStatusMode='error';renderPersistentSaveStatus()}
 function downloadJson(value,name){const blob=new Blob([JSON.stringify(value,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function recoveryPackage(){const outbox=readOutbox();let stored=null;try{stored=JSON.parse(localStorage.getItem(KSM_CLOUD_RECOVERY_KEY)||'null')}catch(_){}return {fileType:'KSM_RECOVERY',schemaVersion:'1.0',appVersion:'3.17.3-test',engineVersion:'3.12.9',createdAt:new Date().toISOString(),tournamentId:cloudSession.tournamentId||outbox?.tournamentId||null,assignedCourt:cloudSession.court||state.currentCourt||'',role:ksmSessionRole,lastConfirmedCloudRevision:cloudSession.revision||0,latestLocalSnapshot:tournamentPayload(),queuedActions:outbox?.actions||[],outbox:outbox||null,conflictRecovery:stored||null}}
 function downloadRecoveryFile(){try{const pack=recoveryPackage();const court=pack.assignedCourt?`_Court-${pack.assignedCourt}`:'';const stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);downloadJson(pack,`KSM_Recovery${court}_${stamp}.ksm`);updateSaveStatus('Recovery file downloaded')}catch(err){console.error(err);alert('Unable to create recovery file.')}}
 function downloadCloudRecovery(){downloadRecoveryFile()}
 function getSetupSnapshot(){
-  const ids=['tName','tHost','tDate','tLocation','tCourts',/* ksm:post-split-begin library-setup was:'tType', *//* ksm:post-split-end */'teamEnabled','teamFormat','teamTournamentFormat','teamCourt','teamAwardMode','exhibitionEnabled','court1Refs','court2Refs','court1RedSide','court2RedSide'/* ksm:post-split-begin match-timer */,'timeRegular','timeQuarterfinal','timeSemifinal','timeFinal','timeEncho','court1TimerSound','court2TimerSound','court1TimerEnabled','court2TimerEnabled'/* ksm:post-split-end *//* ksm:post-split-begin tv-red-side */, 'court1TvRedSide','court2TvRedSide'/* ksm:post-split-end */];
+  const ids=['tName','tHost','tDate','tLocation','tCourts','teamEnabled','teamFormat','teamTournamentFormat','teamCourt','teamAwardMode','exhibitionEnabled','court1Refs','court2Refs','court1RedSide','court2RedSide','timeRegular','timeQuarterfinal','timeSemifinal','timeFinal','timeEncho','court1TimerSound','court2TimerSound','court1TimerEnabled','court2TimerEnabled', 'court1TvRedSide','court2TvRedSide'];
   const data={};
   ids.forEach(id=>{const el=document.getElementById(id); if(el) data[id]=el.value;});
   return data;
 }
-/* ksm:post-split-begin engine-settings */
 // Engine code reads tournament settings only through this accessor (app/engine/settings.ts);
 // the source is the same `setup` snapshot that tournamentPayload() persists.
 function tournamentSettings(setup=getSetupSnapshot()){return KSMEngine.readSettings(setup)}
-/* ksm:post-split-end */
 function applySetupSnapshot(data){
   if(!data) return;
-/* ksm:post-split-begin match-timer */
   data={...data,...ksmNormalizeTimerSettings(data)};
-/* ksm:post-split-end */
-/* ksm:post-split-begin tv-red-side */
   // Old tournaments and unrecognized values retain the original audience orientation.
   data={...data,court1TvRedSide:data.court1TvRedSide==='left'?'left':'right',court2TvRedSide:data.court2TvRedSide==='left'?'left':'right'};
-/* ksm:post-split-end */
   Object.keys(data).forEach(id=>{const el=document.getElementById(id); if(el) el.value=data[id];});
   applyCourtSides();
-  /* ksm:post-split-begin team-divisions was:if(data.teamCourt) state.divisionCourts['Team Tournament']=data.teamCourt; */
   if(!state.teamDivisions&&data.teamCourt)state.divisionCourts['Team Tournament']=data.teamCourt;
   (state.teamDivisions||[]).forEach(d=>state.divisionCourts[d.id]=d.court);
-  /* ksm:post-split-end */
   if(data.teamAwardMode) state.teamAwardMode=data.teamAwardMode;
-  /* ksm:post-split-begin team-divisions */ksmSyncLegacyTeamDivision();/* ksm:post-split-end */
+  ksmSyncLegacyTeamDivision();
 }
 function tournamentPayload(){
   return {
@@ -64,8 +56,7 @@ function tournamentPayload(){
     state:JSON.parse(JSON.stringify(state))
   };
 }
-function updateSaveStatus(text){/* ksm:post-split-begin react-shell */ksmRenderSaveStatus(text);/* ksm:post-split-end */}
-/* ksm:post-split-begin autosave-origin */
+function updateSaveStatus(text){ksmRenderSaveStatus(text);}
 const KSM_AUTOSAVE_CLOUD_ID=KSM_SAVE_KEY+':cloud-id';
 // Upgrade existing autosaves while their persisted session still identifies their origin.
 if(localStorage.getItem(KSM_SAVE_KEY)&&localStorage.getItem(KSM_AUTOSAVE_CLOUD_ID)===null&&cloudSession.tournamentId){
@@ -76,21 +67,18 @@ function ksmStoreAutosave(payload,id=cloudSession.tournamentId){
   localStorage.setItem(KSM_AUTOSAVE_CLOUD_ID,id||'');
   localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(payload));
 }
-/* ksm:post-split-end */
-function markLocalSave(reason='Local autosave'){try{/* ksm:post-split-begin autosave-origin was:localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(tournamentPayload())) */ksmStoreAutosave(tournamentPayload())/* ksm:post-split-end */;return true}catch(err){console.warn('Local save failed',err);ksmSaveStatusMode='error';renderPersistentSaveStatus();return false}}
-function autoSaveTournament(reason='Autosave'){/* ksm:post-split-begin replace-conflict */if(ksmFileReplace){if(!ksmApplyingRemoteSnapshot&&!isReadOnlySession())scheduleCloudSave(reason);return}/* ksm:post-split-end *//* ksm:post-split-begin tournament-switcher */if((document.body.classList.contains('ksm-home')&&!cloudSession.tournamentId&&!v316StaffPassword())||(ksmStartupLoadFailed&&!ksmStartupHasCache))return;/* ksm:post-split-end */if(!markLocalSave(reason))return;if(!ksmApplyingRemoteSnapshot&&!isReadOnlySession())scheduleCloudSave(reason)}
+function markLocalSave(reason='Local autosave'){try{ksmStoreAutosave(tournamentPayload());return true}catch(err){console.warn('Local save failed',err);ksmSaveStatusMode='error';renderPersistentSaveStatus();return false}}
+function autoSaveTournament(reason='Autosave'){if(ksmFileReplace){if(!ksmApplyingRemoteSnapshot&&!isReadOnlySession())scheduleCloudSave(reason);return}if((document.body.classList.contains('ksm-home')&&!cloudSession.tournamentId&&!v316StaffPassword())||(ksmStartupLoadFailed&&!ksmStartupHasCache))return;if(!markLocalSave(reason))return;if(!ksmApplyingRemoteSnapshot&&!isReadOnlySession())scheduleCloudSave(reason)}
 // Remote snapshots never echo into cloud: if(!ksmApplyingRemoteSnapshot)scheduleCloudSave()
-function scheduleAutoSave(reason='Edit'){/* ksm:post-split-begin library-setup */
+function scheduleAutoSave(reason='Edit'){
   // Read-only controls must not create mutations or rewrite the autosave/outbox.
   if(reason instanceof Event&&reason.target?.closest?.('#home, .cloud-status-wrap, #ksmCloudModal, .setup-tournament-actions, .setup-short-url, input[type="file"]'))return;
-/* ksm:post-split-end *//* ksm:post-split-begin startup-recovery */if(ksmStartupLoadFailed&&!ksmStartupHasCache)return;/* ksm:post-split-end *//* ksm:post-split-begin grand-champion */ksmSyncGrandChampions(typeof reason==='string'?reason:'edit');/* ksm:post-split-end */noteLocalMutation();clearTimeout(ksmSaveTimer);ksmSaveTimer=setTimeout(()=>{ksmSaveTimer=null;autoSaveTournament(reason)},2000)}
-/* ksm:post-split-begin award-save */
+if(ksmStartupLoadFailed&&!ksmStartupHasCache)return;ksmSyncGrandChampions(typeof reason==='string'?reason:'edit');noteLocalMutation();clearTimeout(ksmSaveTimer);ksmSaveTimer=setTimeout(()=>{ksmSaveTimer=null;autoSaveTournament(reason)},2000)}
 // F11: the Results awards editor calls saveAuto() (add, remove, edit), which was never defined, so
 // every award action threw: award edits were never autosaved and add/remove did not redraw.
 // It is an ordinary edit, saved like the others.
 function saveAuto(){scheduleAutoSave('Awards')}
-/* ksm:post-split-end */
-async function saveNow(){/* ksm:post-split-begin library-setup was:markLocalSave('Manual Save Now');showKsmToast('Saving…',0);const saved=await saveTournamentToCloudWithReason('Manual Save Now',true);if(saved){showKsmToast('✓ Tournament saved',2000)}else if(!navigator.onLine){showKsmToast('Saved locally · Waiting to sync',3000)}else{showKsmToast('Unable to save to cloud',3500,true)} */
+async function saveNow(){
   if(ksmStartupLoadFailed&&!ksmStartupHasCache)return;
   if(isReadOnlySession()){
     if(ksmKeepStaffOutbox())return toggleStaffSession();
@@ -110,6 +98,6 @@ async function saveNow(){/* ksm:post-split-begin library-setup was:markLocalSave
   }
   showKsmToast(saved?'✓ Tournament saved':'Not saved · Changes waiting',saved?2000:3500,!saved);
   return !!saved;
-/* ksm:post-split-end */}
-function criticalAutoSave(reason){/* ksm:post-split-begin startup-recovery */if(ksmStartupLoadFailed&&!ksmStartupHasCache)return;/* ksm:post-split-end *//* ksm:post-split-begin grand-champion */ksmSyncGrandChampions(reason);/* ksm:post-split-end */noteLocalMutation();markLocalSave(reason);if(!isReadOnlySession())saveTournamentToCloudWithReason(reason,true)}
+}
+function criticalAutoSave(reason){if(ksmStartupLoadFailed&&!ksmStartupHasCache)return;ksmSyncGrandChampions(reason);noteLocalMutation();markLocalSave(reason);if(!isReadOnlySession())saveTournamentToCloudWithReason(reason,true)}
 

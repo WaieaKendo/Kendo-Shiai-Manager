@@ -1,4 +1,3 @@
-/* ksm:post-split-begin react-bridge */
 // ==========================================================
 // React islands bridge (app/react/legacy-bridge.ts)
 // React components mounted inside this app re-render when `state` changes. The two
@@ -8,7 +7,6 @@
 // microtask, so a burst of changes is one re-render). Everything lives on `window`, so
 // the helpers also work before this script has finished running and in extracted-
 // function tests without a window (then they do nothing).
-// Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
 function ksmLegacyState(){return state}
 function ksmLegacyCloudSession(){return cloudSession}
@@ -20,4 +18,3 @@ function ksmNotifyStateChanged(reason){
   window.ksmStateChangeReasons=[reason];
   queueMicrotask(()=>{const reasons=window.ksmStateChangeReasons||[];window.ksmStateChangeReasons=null;window.dispatchEvent(new CustomEvent('ksm:state-changed',{detail:{version:window.ksmStateVersion,reasons}}))});
 }
-/* ksm:post-split-end */

@@ -5,8 +5,7 @@
  * @returns {BracketSource}
  */
 function T(n){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamSource(n);
-  /* ksm:post-split-end */
+  return KSMEngine.teamSource(n);
 }
 /**
  * Bracket side: winner of node id.
@@ -14,8 +13,7 @@ function T(n){
  * @returns {BracketSource}
  */
 function W(id){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.winnerSource(id);
-  /* ksm:post-split-end */
+  return KSMEngine.winnerSource(id);
 }
 /**
  * @param {string} id
@@ -27,8 +25,7 @@ function W(id){
  * @returns {TeamBracketNode}
  */
 function N(id,round,court,left,right,slot){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamNode(id,round,court,left,right,slot);
-  /* ksm:post-split-end */
+  return KSMEngine.teamNode(id,round,court,left,right,slot);
 }
 /**
  * Frozen bracket template for n teams (also used for individual single elimination).
@@ -36,10 +33,9 @@ function N(id,round,court,left,right,slot){
  * @returns {TeamBracketNode[]}
  */
 function teamBracketNodesForCount(n){
-  /* ksm:post-split-begin engine-bridge */const nodes=KSMEngine.teamBracketNodesForCount(n);
+  const nodes=KSMEngine.teamBracketNodesForCount(n);
   if(!nodes){alert('Team single-elimination templates currently support 2–32 teams.');return [];}
   return nodes;
-  /* ksm:post-split-end */
 }
 /**
  * Adds a pairing's bouts (one kachinuki bout, or one per position).
@@ -54,8 +50,7 @@ function teamBracketNodesForCount(n){
  * @param {TeamPosition[]} slots
  */
 function addTeamPairMatches(m,div,a,b,pool,pairId,court,matchFmt,slots){
-  /* ksm:post-split-begin engine-bridge */m.push(.../** @type {Match[]} */(KSMEngine.teamPairMatchObjects(div,a,b,pool,pairId,court,matchFmt,slots)));
-  /* ksm:post-split-end */
+  m.push(.../** @type {Match[]} */(KSMEngine.teamPairMatchObjects(div,a,b,pool,pairId,court,matchFmt,slots)));
 }
 /**
  * Next lineup indexes after a kachinuki bout: the winner stays, a draw eliminates both (except a last player).
@@ -63,8 +58,7 @@ function addTeamPairMatches(m,div,a,b,pool,pairId,court,matchFmt,slots){
  * @returns {{wi: number, ri: number, whiteExhausted: boolean, redExhausted: boolean}}
  */
 function kachinukiTransitionState(m){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.kachinukiTransitionState(m);
-  /* ksm:post-split-end */
+  return KSMEngine.kachinukiTransitionState(m);
 }
 /**
  * @param {string} div
@@ -72,8 +66,7 @@ function kachinukiTransitionState(m){
  * @returns {string|null}
  */
 function kachinukiPairWinner(div,pair){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.kachinukiPairWinner(teamPairMatches(div,pair));
-  /* ksm:post-split-end */
+  return KSMEngine.kachinukiPairWinner(teamPairMatches(div,pair));
 }
 /**
  * Winning team name of a pairing, or null while undecided.
@@ -82,15 +75,14 @@ function kachinukiPairWinner(div,pair){
  * @returns {string|null}
  */
 function teamWinner(div,pair){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamWinner(state.allMatches[div]||[],pair);
-  /* ksm:post-split-end */
+  return KSMEngine.teamWinner(state.allMatches[div]||[],pair);
 }
 /**
  * @param {Match} m
  */
 function maybeAdvanceTeamBracket(m){
   if(!m || !(m.type==='teamPosition'||m.type==='teamPlayoff'||m.type==='kachinuki'))return;
-  let div=m.division, fmt=/* ksm:post-split-begin engine-settings was:teamTournamentFormat?.value */ksmTeamSettings(div).teamTournamentFormat/* ksm:post-split-end */||'Single Elimination';
+  let div=m.division, fmt=ksmTeamSettings(div).teamTournamentFormat||'Single Elimination';
   if(fmt!=='Single Elimination')return;
   syncTeamBracket(div,state.allMatches[div]||[],state.teamElimTeams?.[div]||eligibleTeams(div));
 }

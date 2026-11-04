@@ -1,4 +1,3 @@
-/* ksm:post-split-begin match-timer */
 // Only configuration enters SetupSnapshot. Running timers live in the React court island.
 function ksmNormalizeTimerSettings(data){
   const out={};
@@ -43,4 +42,3 @@ function ksmMatchTimerInput(){
     sound:settings[court==='B'?'court2TimerSound':'court1TimerSound'],enabled:settings[court==='B'?'court2TimerEnabled':'court1TimerEnabled']!=='Off',durationMs:ms(settings[field]||settings.timeRegular),enchoMs:ms(settings.timeEncho),
     tied:(state.score?.W||[]).length===(state.score?.R||[]).length,scored:(state.score?.W||[]).length+(state.score?.R||[]).length>0,requiresWinner:!!matchRequiresWinner(m)};
 }
-/* ksm:post-split-end */

@@ -1,4 +1,3 @@
-/* ksm:post-split-begin auth0-roles */
 /* Reserved role palette. The tournament theme only controls its existing allowlisted tokens. */
 .ksm-role-strip {
   --ksm-role-director-bg: #fef3c7;
@@ -49,4 +48,3 @@ body.ksm-account-enabled #staffAuthButton { display: none !important; }
 .account-tournament-card .home-card-actions > button, .account-tournament-card summary { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; font-size: .875rem; font-weight: 600; text-align: center; }
 .account-tournament-card details .actions { display: flex; flex-direction: column; padding-top: 8px; }
 .account-tournament-card [data-testid="library-delete"] { color: var(--red); }
-/* ksm:post-split-end */

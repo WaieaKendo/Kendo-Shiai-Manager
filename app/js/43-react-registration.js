@@ -1,4 +1,3 @@
-/* ksm:post-split-begin react-registration */
 // ==========================================================
 // React Registration, parts 1 and 2 (app/react/features/registration/, roadmap M.13, #136 step 2)
 // Registration draws two parts with React islands, mounted by app/react/features/registration/main.tsx:
@@ -32,7 +31,6 @@
 // The toolbars and their buttons and the filters (#regFilter, #teamFilter, read by id) stay legacy
 // markup (app/index.html). If the React module does not load, Registration shows notices in place of
 // the tables (the end of this file).
-// Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
 // A text as the legacy markup showed it: esc() (String(x||'')) and then the HTML parser, which
 // turns CR LF and a lone CR into LF (in text and attribute values alike).
@@ -334,4 +332,3 @@ function ksmShowRegistrationTeamsModuleMissing(){
   });
 }
 document.addEventListener('DOMContentLoaded',ksmShowRegistrationTeamsModuleMissing);
-/* ksm:post-split-end */

@@ -18,7 +18,7 @@ const checks=[
  ['large next match section',html.includes('.tv-next-player strong')&&html.includes('font-size:clamp(34px,4.1vmin,68px)')],
  ['team sequence mirrors court context',tvPublish.includes("const all = (state().allMatches[m.division] || []).filter(x => x.teamPair === m.teamPair && (x.type === 'teamPosition' || x.type === 'teamPlayoff'));")&&tvReact.includes('{body.rows.map(row => (')],
  ['current team pair gold outlined',tvReact.includes("className={`tv3-team-row${row.active ? ' active' : ''}`}")&&html.includes('.tv3-team-row.active{border:5px solid #e3bd5b!important')],
- ['one court per TV link remains',html.includes("url.searchParams.set('court',court)")],
+ ['one court per TV link remains',html.includes('court:normalizeCourt(court)')],
  ['engine remains frozen',html.includes("engineVersion:'3.12.9'")]
 ];
 let failed=0;for(const [name,ok] of checks){console.log(`${ok?'PASS':'FAIL'}: ${name}`);if(!ok)failed++;}

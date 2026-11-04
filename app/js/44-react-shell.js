@@ -1,4 +1,3 @@
-/* ksm:post-split-begin react-shell */
 // ==========================================================
 // React shell (app/react/features/shell/, roadmap M.13: the navigation bar and its menus, the
 // header's status row and the pop-up dialogs)
@@ -41,7 +40,6 @@
 // <body> before the header, sticky at the top, which the CSS selects as a child of <body>; a React
 // root needs an element of its own around it, which would change both) and the toast
 // (showKsmToast() in 21).
-// Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
 // A focused element inside `el` loses the focus, as when the legacy code replaced it.
 function ksmShellBlurIn(el){
@@ -467,4 +465,3 @@ function ksmShowShellModuleMissing(){
   nav.before(notice);
 }
 document.addEventListener('DOMContentLoaded',ksmShowShellModuleMissing);
-/* ksm:post-split-end */

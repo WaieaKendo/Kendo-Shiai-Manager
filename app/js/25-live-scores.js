@@ -14,13 +14,11 @@ function audienceMeta(m){
   return {division:m.division||state.currentDivision||'—',line};
 }
 function renderPublic(){
-/* ksm:post-split-begin react-live */
   // Live Scores is React (app/react/features/live-scores/, 36-react-live-scores.js): this only
   // signals; publish.ts computes the screen (M.13, #136) and, on a TV device, redraws the TV too.
   ksmRenderLiveScores();
-/* ksm:post-split-end */
 }
-const KSM_TV_ASSIGNED_COURT=(()=>{const value=(/* ksm:post-split-begin path-urls was:new URLSearchParams(location.search) */ksmLinkParams()/* ksm:post-split-end */.get('court')||'A').toUpperCase();return value==='B'?'B':'A'})();
+const KSM_TV_ASSIGNED_COURT=(()=>{const value=(ksmLinkParams().get('court')||'A').toUpperCase();return value==='B'?'B':'A'})();
 function tvAssignedCourt(){return KSM_TV_ASSIGNED_COURT}
 function tvIndividualSideLabel(match,side){
   const direct=side==='white'?match?.white:match?.red;if(direct)return direct;

@@ -28,49 +28,43 @@ const KSM_PINNED_COURT_PREFIX='ksm.pinned.court.v3_17_11';
 // preference per pinned court outside the serialized tournament state.
 const ksmLocalCourtDivision={A:null,B:null};
 const KSM_LOCAL_VIEW_STATE_KEYS=new Set(['currentCourt','publicCourt','currentDivision','matches','current','score']);
-function normalizeCourt(value){/* ksm:post-split-begin engine-bridge */return KSMEngine.normalizeCourt(value);// moved to app/engine/sync-helpers.ts
-  /* ksm:post-split-end */}
+function normalizeCourt(value){return KSMEngine.normalizeCourt(value);// moved to app/engine/sync-helpers.ts
+  }
 // Red/White sides are mirrored per court to match the scoring table's view (Setup → Referees).
 function redOnLeftForCourt(court){return document.getElementById(normalizeCourt(court)==='B'?'court2RedSide':'court1RedSide')?.value==='left'}
 function applyCourtSides(){document.body.classList.toggle('ksm-red-left',redOnLeftForCourt(state.currentCourt))}
 function rememberLocalCourtDivision(court,division){const c=normalizeCourt(court);if(division&&typeof division==='string')ksmLocalCourtDivision[c]=division;return ksmLocalCourtDivision[c]}
 function localCourtDivision(court){return ksmLocalCourtDivision[normalizeCourt(court)]||null}
 function clearLocalCourtDivisions(){ksmLocalCourtDivision.A=null;ksmLocalCourtDivision.B=null}
-/* ksm:post-split-begin court-pin */
 // F3: the pin belongs to the device, not the session role: a scorekeeper reloads as a spectator
 // until Staff Login and must come back on the same court. TV displays keep their own key.
 function storedCourtPin(tournamentId){const key=courtPinStorageKey(tournamentId),value=sessionStorage.getItem(key)||localStorage.getItem(key);return value?normalizeCourt(value):null}
-/* ksm:post-split-end */
-function courtPinStorageKey(/* ksm:post-split-begin court-pin was: */tournamentId/* ksm:post-split-end */){/* ksm:post-split-begin court-pin was:const id=cloudSession?.tournamentId||new URLSearchParams(location.search).get('tournament')||'unassigned';const role=ksmSessionRole||new URLSearchParams(location.search).get('role')||'local';const view=isTvSession()?'tv':'court';return `${KSM_PINNED_COURT_PREFIX}:${id}:${role}:${view}` */const id=tournamentId||cloudSession?.tournamentId||ksmLinkParams().get('tournament')||'unassigned';const view=isTvSession()?'tv':'court';return `${KSM_PINNED_COURT_PREFIX}:${id}:${view}`/* ksm:post-split-end */}
-function pinnedCourt(){/* ksm:post-split-begin court-pin was:const session=sessionStorage.getItem(courtPinStorageKey());if(session)return normalizeCourt(session);const stored=localStorage.getItem(courtPinStorageKey());if(stored)return normalizeCourt(stored);const fromUrl=new URLSearchParams(location.search).get('court');if(fromUrl)return normalizeCourt(fromUrl);return cloudSession?.court?normalizeCourt(cloudSession.court):null */const stored=storedCourtPin();if(stored)return stored;const fromUrl=ksmLinkParams().get('court');if(fromUrl)return normalizeCourt(fromUrl);return cloudSession?.court?normalizeCourt(cloudSession.court):null/* ksm:post-split-end */}
+function courtPinStorageKey(tournamentId){const id=tournamentId||cloudSession?.tournamentId||ksmLinkParams().get('tournament')||'unassigned';const view=isTvSession()?'tv':'court';return `${KSM_PINNED_COURT_PREFIX}:${id}:${view}`}
+function pinnedCourt(){const stored=storedCourtPin();if(stored)return stored;const fromUrl=ksmLinkParams().get('court');if(fromUrl)return normalizeCourt(fromUrl);return cloudSession?.court?normalizeCourt(cloudSession.court):null}
 function pinCourtLocally(court){const normalized=normalizeCourt(court),key=courtPinStorageKey();sessionStorage.setItem(key,normalized);localStorage.setItem(key,normalized);cloudSession.court=normalized;persistCloudSession();return normalized}
 function restorePinnedCourt(){const court=pinnedCourt();if(!court)return null;cloudSession.court=court;state.currentCourt=court;if(isTvSession())state.publicCourt=court;return court}
 function noteLocalMutation(){ksmLocalMutationVersion+=1}
 function localChangesPending(){return ksmLocalMutationVersion>ksmConfirmedMutationVersion||Boolean(ksmSaveTimer||ksmCloudTimer||ksmCloudSaveInFlight||ksmCloudSavePending||readOutbox())}
 function deferRemoteRecord(record,reason='Local changes pending'){if(!record)return false;if(!ksmDeferredSyncRecord||Number(record.revision||0)>Number(ksmDeferredSyncRecord.revision||0))ksmDeferredSyncRecord=record;clearTimeout(ksmDeferredSyncTimer);ksmDeferredSyncTimer=setTimeout(applyDeferredSyncRecord,1800);writeCloudDiagnosticsState({stage:'Remote snapshot deferred',deferredRevision:Number(record.revision||0),deferredReason:reason,pinnedCourt:pinnedCourt()||''});return false}
 function applyDeferredSyncRecord(){if(!ksmDeferredSyncRecord||localChangesPending())return false;const record=ksmDeferredSyncRecord;ksmDeferredSyncRecord=null;clearTimeout(ksmDeferredSyncTimer);ksmDeferredSyncTimer=null;return applyRemoteCloudRecord(record,true,false)}
-function cloneJson(value){/* ksm:post-split-begin engine-bridge */return KSMEngine.cloneJson(value);// moved to app/engine/sync-helpers.ts
-  /* ksm:post-split-end */}
+function cloneJson(value){return KSMEngine.cloneJson(value);// moved to app/engine/sync-helpers.ts
+  }
 function isValidMatchObject(match){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.isValidMatchObject(match);
-  /* ksm:post-split-end */
+  return KSMEngine.isValidMatchObject(match);
 }
 function legacyTiebreakSyncIdentity(match){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.legacyTiebreakSyncIdentity(match);
-  /* ksm:post-split-end */
+  return KSMEngine.legacyTiebreakSyncIdentity(match);
 }
 function matchSyncIdentity(match){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.matchSyncIdentity(match);
-  /* ksm:post-split-end */
+  return KSMEngine.matchSyncIdentity(match);
 }
 function matchHasSyncIdentity(match,identity){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.matchHasSyncIdentity(match,identity);
-  /* ksm:post-split-end */
+  return KSMEngine.matchHasSyncIdentity(match,identity);
 }
-function matchBelongsToCourtInState(targetState,m,c){/* ksm:post-split-begin engine-bridge */return KSMEngine.matchBelongsToCourtInState(targetState,m,c);// moved to app/engine/match-helpers.ts
-  /* ksm:post-split-end */}
-function nextReadyIndexInState(targetState,div,court){/* ksm:post-split-begin engine-bridge */return KSMEngine.nextReadyIndexInState(targetState,div,court);// moved to app/engine/sync-helpers.ts
-  /* ksm:post-split-end */}
+function matchBelongsToCourtInState(targetState,m,c){return KSMEngine.matchBelongsToCourtInState(targetState,m,c);// moved to app/engine/match-helpers.ts
+  }
+function nextReadyIndexInState(targetState,div,court){return KSMEngine.nextReadyIndexInState(targetState,div,court);// moved to app/engine/sync-helpers.ts
+  }
 function preserveOwnedCourtRuntimeState(rebasedState,localState,court){
   const c=normalizeCourt(court);
   const localCs=localState?.courtState?.[c];
@@ -124,7 +118,7 @@ function resolveRebasePatch(localState,rebasedState,patch){
   const localMatch=localArr.find(match=>matchHasSyncIdentity(match,identity))||localArr[path[2]];
   if(!isValidMatchObject(localMatch))return null;
   let remoteIndex=remoteArr.findIndex(match=>matchHasSyncIdentity(match,identity));
-  /* ksm:post-split-begin grand-champion */if(remoteIndex<0&&KSMEngine.isGrandChampionId(div)&&!ksmSameGrandChampionDraw(localState,rebasedState,div)){ksmNoteGrandChampionPatchDropped(div);return null}/* ksm:post-split-end */
+  if(remoteIndex<0&&KSMEngine.isGrandChampionId(div)&&!ksmSameGrandChampionDraw(localState,rebasedState,div)){ksmNoteGrandChampionPatchDropped(div);return null}
   if(remoteIndex<0){
     // A local action may have created a new dynamic/tiebreak match after the remote
     // snapshot revision. Add the complete valid object without ever creating a sparse
@@ -138,7 +132,6 @@ function resolveRebasePatch(localState,rebasedState,patch){
     remoteIndex=remoteArr.findIndex(match=>matchHasSyncIdentity(match,identity));
     if(remoteIndex<0)return null;
   }
-  /* ksm:post-split-begin grand-champion */
   // #86: a grand champion's bracket match keeps its identity when another device draws it again with
   // other players (a source corrected before the start): a score recorded here for the old players is
   // not moved onto the new ones.
@@ -146,7 +139,6 @@ function resolveRebasePatch(localState,rebasedState,patch){
     const other=remoteArr[remoteIndex],clash=(a,b)=>!!a&&!!b&&a!==b;
     if(clash(localMatch.white,other?.white)||clash(localMatch.red,other?.red)){ksmNoteGrandChampionPatchDropped(div);return null}
   }
-  /* ksm:post-split-end */
   return {...patch,path:[path[0],div,remoteIndex,...path.slice(3)]};
 }
 function sanitizeLoadedTournamentState(targetState,source='load'){
@@ -166,19 +158,18 @@ function sanitizeLoadedTournamentState(targetState,source='load'){
   if(repaired)console.warn(`[KSM State Integrity] Removed ${repaired} invalid match entr${repaired===1?'y':'ies'} from ${source}`,divisions);
   return {repaired,divisions};
 }
-function mergeHistoryEntries(remoteEntries=[],localEntries=[]){/* ksm:post-split-begin engine-bridge */return KSMEngine.mergeHistoryEntries(remoteEntries,localEntries);// moved to app/engine/sync-helpers.ts
-  /* ksm:post-split-end */}
+function mergeHistoryEntries(remoteEntries=[],localEntries=[]){return KSMEngine.mergeHistoryEntries(remoteEntries,localEntries);// moved to app/engine/sync-helpers.ts
+  }
 const KSM_CLOUD_REBASE_MAX_ATTEMPTS=4;
-function historyEntryIdentity(entry){/* ksm:post-split-begin engine-bridge */return KSMEngine.historyEntryIdentity(entry);// moved to app/engine/sync-helpers.ts
-  /* ksm:post-split-end */}
-function pendingLocalCourtActionsForRebase(localPayload,serverRecord,originalBaseRevision/* ksm:post-split-begin two-tabs */,court=pinnedCourt()||normalizeCourt(cloudSession.court||state.currentCourt)/* ksm:post-split-end */){
-  /* ksm:post-split-begin two-tabs was:const court=pinnedCourt()||normalizeCourt(cloudSession.court||state.currentCourt); *//* ksm:post-split-end */
+function historyEntryIdentity(entry){return KSMEngine.historyEntryIdentity(entry);// moved to app/engine/sync-helpers.ts
+  }
+function pendingLocalCourtActionsForRebase(localPayload,serverRecord,originalBaseRevision,court=pinnedCourt()||normalizeCourt(cloudSession.court||state.currentCourt)){
+  
   const localEntries=localPayload?.state?.courtActionHistory?.[court]||[];
   const remoteEntries=serverRecord?.payload?.state?.courtActionHistory?.[court]||[];
   const remoteKeys=new Set(remoteEntries.map(historyEntryIdentity));
-  return localEntries.filter(action=>action?.format==='patch-v1'&&/* ksm:post-split-begin two-tabs was:action.clientId===cloudSession.clientId */ksmOwnHistoryEntry(action)/* ksm:post-split-end */&&Number(action.revision||0)>=Number(originalBaseRevision||0)&&!remoteKeys.has(historyEntryIdentity(action)));
+  return localEntries.filter(action=>action?.format==='patch-v1'&&ksmOwnHistoryEntry(action)&&Number(action.revision||0)>=Number(originalBaseRevision||0)&&!remoteKeys.has(historyEntryIdentity(action)));
 }
-/* ksm:post-split-begin history-replay */
 // F30: this device's Undo/Redo since the save's base revision (10-, recordCourtUndoLog()) that the
 // server copy does not have yet.
 function undoLogEntryIdentity(entry){return [entry?.clientId||'',entry?.when||'',entry?.court||'',entry?.kind||'',entry?.target||''].join('|')}
@@ -270,8 +261,6 @@ function mergeCourtHistoryStacks(rebasedState,localState,court,ownOnly=false){
   const byKey=new Map();[...(rebasedState.courtUndoLog?.[court]||[]),...(localState.courtUndoLog?.[court]||[]).filter(mine)].forEach(e=>{if(e?.format==='history-op-v1')byKey.set(undoLogEntryIdentity(e),e)});
   if(byKey.size){rebasedState.courtUndoLog=rebasedState.courtUndoLog||{A:[],B:[]};rebasedState.courtUndoLog[court]=[...byKey.values()].sort((a,b)=>String(a.when||'').localeCompare(String(b.when||''))).slice(-KSM_UNDO_LOG_LIMIT)}
 }
-/* ksm:post-split-end */
-/* ksm:post-split-begin edit-merge */
 // F4: director/staff edits that are not court actions (Setup fields, registration, divisions,
 // awards) are merged three-way against the cloud copy the local edit started from, so a
 // conflicting court save no longer drops them. Structural edits (generate, regenerate, pool
@@ -457,8 +446,6 @@ function noteDivisionRenamesRefused(refused){
   writeCloudDiagnosticsState({stage:'Division rename conflict: server version kept',renameConflict:refused.map(x=>({from:x.rename.from,to:x.rename.to,reason:x.reason}))});
   showKsmToast(`Your rename of ${names} was not saved: ${refused[0].reason}. The other device's version was kept.`,10000,true);
 }
-/* ksm:post-split-end */
-/* ksm:post-split-begin structural-replay */
 // F10: a structural director edit (Generate/Regenerate Tournament, Regenerate Single Division,
 // Edit Pool's Save Pool Changes, a no-show that rebuilds a division) raises managementRevision and
 // replaces divisions' pools and matches. On a save conflict (409 rebase) it is replayed onto the
@@ -525,22 +512,18 @@ function replayStructuralEdit(rebased,localPayload,basePayload,serverPayload){
   writeCloudDiagnosticsState({stage:conflicting.length?'Structural edit re-applied over a conflict':'Structural edit replayed',structuralReplay:changed});
   return changed; // F32: the replayed divisions (truthy), for the registration merge
 }
-/* ksm:post-split-end */
-function rebaseLocalPayloadOnRecord(localPayload,serverRecord,originalBaseRevision/* ksm:post-split-begin edit-merge */,basePayload=null/* ksm:post-split-end */){
-  /* ksm:post-split-begin team-divisions */
+function rebaseLocalPayloadOnRecord(localPayload,serverRecord,originalBaseRevision,basePayload=null){
   localPayload=ksmTeamDivisionPayload(localPayload);basePayload=ksmTeamDivisionPayload(basePayload);
   serverRecord={...serverRecord,payload:ksmTeamDivisionPayload(serverRecord.payload)};
-  /* ksm:post-split-end */
   const rebased=cloneJson(serverRecord.payload),court=pinnedCourt()||normalizeCourt(cloudSession.court||state.currentCourt);
   rebased.state=rebased.state||{};
   const localState=localPayload?.state||{};
-  /* ksm:post-split-begin grand-champion */ksmCarryGrandChampionDraws(rebased.state,localState);/* ksm:post-split-end */
+  ksmCarryGrandChampionDraws(rebased.state,localState);
   const actions=pendingLocalCourtActionsForRebase(localPayload,serverRecord,originalBaseRevision);
-  /* ksm:post-split-begin history-replay was:actions.forEach(action=>(action.patches||[]).forEach(patch=>{const resolved=resolveRebasePatch(localState,rebased.state,patch);if(resolved)applyPatchToStateObject(rebased.state,resolved)})); */replayPendingCourtHistory(actions,pendingLocalUndoLogForRebase(localPayload,serverRecord,originalBaseRevision,court),localState,rebased.state,serverRecord.payload?.state,court);/* ksm:post-split-end */
-  /* ksm:post-split-begin two-tabs */// F36: this tab's actions on the other court too (a closed tab's work it took over, or a director scoring both courts).
+  replayPendingCourtHistory(actions,pendingLocalUndoLogForRebase(localPayload,serverRecord,originalBaseRevision,court),localState,rebased.state,serverRecord.payload?.state,court);
+  // F36: this tab's actions on the other court too (a closed tab's work it took over, or a director scoring both courts).
   const otherCourts=ksmOtherRebaseCourts(localPayload,serverRecord,originalBaseRevision,court);
   otherCourts.forEach(c=>replayPendingCourtHistory(pendingLocalCourtActionsForRebase(localPayload,serverRecord,originalBaseRevision,c),pendingLocalUndoLogForRebase(localPayload,serverRecord,originalBaseRevision,c),localState,rebased.state,serverRecord.payload?.state,c));
-  /* ksm:post-split-end */
   sanitizeLoadedTournamentState(rebased.state,'concurrent rebase');
   normalizeAllIndividualPoolTiebreakOrder(rebased.state,'concurrent rebase');
   repairCompletedMatchResults(rebased.state,'concurrent rebase');
@@ -550,9 +533,9 @@ function rebaseLocalPayloadOnRecord(localPayload,serverRecord,originalBaseRevisi
   preserveOwnedCourtRuntimeState(rebased.state,localState,court);
   rebased.state.courtActionHistory=rebased.state.courtActionHistory||{A:[],B:[]};
   rebased.state.courtRedoHistory=rebased.state.courtRedoHistory||{A:[],B:[]};
-  /* ksm:post-split-begin history-replay was:rebased.state.courtActionHistory[court]=mergeHistoryEntries(rebased.state.courtActionHistory[court]||[],localState.courtActionHistory?.[court]||[]);rebased.state.courtRedoHistory[court]=mergeHistoryEntries(rebased.state.courtRedoHistory[court]||[],localState.courtRedoHistory?.[court]||[]); */mergeCourtHistoryStacks(rebased.state,localState,court);/* ksm:post-split-end */
-  /* ksm:post-split-begin two-tabs */otherCourts.forEach(c=>{rebased.state.courtActionHistory[c]=rebased.state.courtActionHistory[c]||[];rebased.state.courtRedoHistory[c]=rebased.state.courtRedoHistory[c]||[];mergeCourtHistoryStacks(rebased.state,localState,c,true)});/* ksm:post-split-end */
-  /* ksm:post-split-begin edit-merge */{const renames=rebaseDivisionRenamesForMerge(rebased,localPayload,basePayload,serverRecord.payload);noteMergeConflicts(mergeLocalEditsThreeWay(rebased,renames.local,renames.base,!renames.blocked.length&&replayStructuralEdit(rebased,renames.local,renames.base,renames.server)));noteDivisionRenamesRefused(renames.refused);noteStructuralEditBlockedByRename(renames.blocked);dropOrphanedDivisionStructure(rebased,serverRecord.payload);}/* ksm:post-split-end */
+  mergeCourtHistoryStacks(rebased.state,localState,court);
+  otherCourts.forEach(c=>{rebased.state.courtActionHistory[c]=rebased.state.courtActionHistory[c]||[];rebased.state.courtRedoHistory[c]=rebased.state.courtRedoHistory[c]||[];mergeCourtHistoryStacks(rebased.state,localState,c,true)});
+  {const renames=rebaseDivisionRenamesForMerge(rebased,localPayload,basePayload,serverRecord.payload);noteMergeConflicts(mergeLocalEditsThreeWay(rebased,renames.local,renames.base,!renames.blocked.length&&replayStructuralEdit(rebased,renames.local,renames.base,renames.server)));noteDivisionRenamesRefused(renames.refused);noteStructuralEditBlockedByRename(renames.blocked);dropOrphanedDivisionStructure(rebased,serverRecord.payload);}
   rebased.savedAt=new Date().toISOString();
   return rebased;
 }

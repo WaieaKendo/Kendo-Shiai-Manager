@@ -1,4 +1,3 @@
-/* ksm:post-split-begin two-tabs */
 // F36 (#81): every tab of a browser shares localStorage, so the device's clientId, the outbox and
 // the autosave were shared too. One tab's save cleared another tab's queued work, and one tab took
 // another tab's live update for its own echo (same clientId): it kept its older copy at the new
@@ -203,4 +202,3 @@ window.addEventListener('pagehide',()=>{ksmTabHidden=true;try{localStorage.remov
 window.addEventListener('pageshow',event=>{if(event.persisted){ksmTabHidden=false;ksmTabBeat()}});
 // Heartbeats of tabs gone long ago (closed without pagehide) are dropped.
 try{Object.keys(localStorage).forEach(key=>{if(key.startsWith(KSM_TAB_ALIVE_PREFIX)&&Date.now()-Number(localStorage.getItem(key)||0)>86400000)localStorage.removeItem(key)})}catch(_){}
-/* ksm:post-split-end */

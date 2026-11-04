@@ -1,4 +1,3 @@
-/* ksm:post-split-begin react-live */
 // ==========================================================
 // React Live Scores (app/react/features/live-scores/, roadmap M.13, #136 step 2)
 // The Live Scores screen (#public) is drawn only by React: one island (LiveScores), mounted by
@@ -14,7 +13,6 @@
 // ksmUpNext(), and classic code must never call a module function. The modules read them through
 // shared/legacy.ts; they move with the court file.
 // If the React module does not load, Live Scores shows a notice (the end of this file).
-// Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
 // Owner decision 6 (#29): what Live Scores and the TV show for a court between matches.
 // A match's stage as a reason names it: the bracket round (Final, Semifinal), the team bracket
@@ -77,4 +75,3 @@ function ksmShowLiveScoresModuleMissing(){
   live.before(notice);
 }
 document.addEventListener('DOMContentLoaded',ksmShowLiveScoresModuleMissing);
-/* ksm:post-split-end */

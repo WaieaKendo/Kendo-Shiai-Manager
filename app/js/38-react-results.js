@@ -1,4 +1,3 @@
-/* ksm:post-split-begin react-results */
 // ==========================================================
 // React Results (app/react/features/results/, roadmap M.13, #136 step 2)
 // The Results screen (#results) is drawn only by React: four islands (the result cards and awards
@@ -17,7 +16,6 @@
 // The awards editor's buttons call addResultAward() / removeResultAward() (27-) and its inputs'
 // change events ksmSetResultAward() below (classic state + saveAuto(): React calls legacy).
 // If the React module does not load, Results shows a notice (the end of this file).
-// Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
 function ksmRenderResults(){
   window.ksmResultsRequested=true;
@@ -48,4 +46,3 @@ function ksmShowResultsModuleMissing(){
   body.before(notice);
 }
 document.addEventListener('DOMContentLoaded',ksmShowResultsModuleMissing);
-/* ksm:post-split-end */

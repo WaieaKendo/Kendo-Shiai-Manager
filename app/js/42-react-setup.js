@@ -1,4 +1,3 @@
-/* ksm:post-split-begin react-setup */
 // ==========================================================
 // React Setup screen (app/react/features/setup/, roadmap M.13, #136 step 2)
 // Setup (#setup) draws two parts with React islands, mounted by app/react/features/setup/main.tsx:
@@ -25,7 +24,6 @@
 // saveSetup(), the test API's configure(), print and the header) and 30- adds the name's input
 // listener while app.js runs, before the React module. If the React module does not load, Setup
 // shows a notice in place of the divisions table (the end of this file).
-// Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
 // Still used by 01-grand-champion.js (ksmRenderGrandChampionSetup).
 function ksmPublishSetup(event,key,input){
@@ -113,4 +111,3 @@ function ksmShowSetupModuleMissing(){
   table.before(notice);
 }
 document.addEventListener('DOMContentLoaded',ksmShowSetupModuleMissing);
-/* ksm:post-split-end */

@@ -6,16 +6,14 @@ const CHAMPIONSHIP_TEMPLATE_VERSION='v1.0';
  * @returns {string[][]}
  */
 function championshipTemplateForTotal(total){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.championshipTemplateForTotal(total);
-  /* ksm:post-split-end */
+  return KSMEngine.championshipTemplateForTotal(total);
 }
 /**
  * @param {string} div
  * @returns {string[][]}
  */
 function championshipLabels(div){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.championshipLabels(state.generated,state.brackets?.[div],state.pools[div]||[]);
-  /* ksm:post-split-end */
+  return KSMEngine.championshipLabels(state.generated,state.brackets?.[div],state.pools[div]||[]);
 }
 /**
  * How many places of each pool feed the championship (pool label -> places).
@@ -23,24 +21,22 @@ function championshipLabels(div){
  * @returns {Record<string, number>}
  */
 function requiredSeedPlaces(div){
-  /* ksm:post-split-begin engine-bridge */const poolOnly=isPoolOnlyDivision(div);return KSMEngine.requiredSeedPlaces(poolOnly?state.pools[div][0]:null,poolOnly?[]:championshipLabels(div));
-  /* ksm:post-split-end */
+  const poolOnly=isPoolOnlyDivision(div);return KSMEngine.requiredSeedPlaces(poolOnly?state.pools[div][0]:null,poolOnly?[]:championshipLabels(div));
 }
 /**
  * @param {PoolStandingRow} a
  * @param {PoolStandingRow} b
  * @returns {boolean}
  */
-function poolRowsStillTied(a,b){/* ksm:post-split-begin engine-bridge */return KSMEngine.poolRowsStillTied(a,b);// moved to app/engine/bracket-helpers.ts
-  /* ksm:post-split-end */}
+function poolRowsStillTied(a,b){return KSMEngine.poolRowsStillTied(a,b);// moved to app/engine/bracket-helpers.ts
+  }
 /**
  * @param {string} poolLabel
  * @param {string} [div]
  * @returns {SeedResolution}
  */
 function poolSeedResolution(poolLabel,div=state.currentDivision){
-  /* ksm:post-split-begin engine-bridge */return /** @type {SeedResolution} */(KSMEngine.poolSeedResolution((state.pools[div]||[]).find(p=>p.label===poolLabel),poolLabel,state.allMatches[div]||[],requiredSeedPlaces(div)[poolLabel]||2));
-  /* ksm:post-split-end */
+  return /** @type {SeedResolution} */(KSMEngine.poolSeedResolution((state.pools[div]||[]).find(p=>p.label===poolLabel),poolLabel,state.allMatches[div]||[],requiredSeedPlaces(div)[poolLabel]||2));
 }
 /**
  * @param {string} poolLabel
@@ -56,8 +52,7 @@ function poolPositionsResolved(poolLabel,div=state.currentDivision){return poolS
  * @returns {PoolStandingRow|null}
  */
 function seedNameForLabel(div,label,onlyFinalized=true){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.seedNameForLabel(label,poolLabel=>poolSeedResolution(poolLabel,div),onlyFinalized);
-  /* ksm:post-split-end */
+  return KSMEngine.seedNameForLabel(label,poolLabel=>poolSeedResolution(poolLabel,div),onlyFinalized);
 }
 
 /**
@@ -66,8 +61,7 @@ function seedNameForLabel(div,label,onlyFinalized=true){
  * @returns {Match}
  */
 function championshipMatchObjectForNode(div,node){
-  /* ksm:post-split-begin engine-bridge */return /** @type {Match} */(KSMEngine.championshipMatchObjectForNode(div,node));
-  /* ksm:post-split-end */
+  return /** @type {Match} */(KSMEngine.championshipMatchObjectForNode(div,node));
 }
 /**
  * Creates the championship nodes (state.championshipNodes) and their Match Objects.
@@ -76,12 +70,11 @@ function championshipMatchObjectForNode(div,node){
  * @returns {Match[]}
  */
 function buildChampionshipTemplateMatches(div,seedPairs){
-  /* ksm:post-split-begin engine-bridge */if(!(seedPairs||[]).length)return [];
+  if(!(seedPairs||[]).length)return [];
   const built=KSMEngine.buildChampionshipTemplateMatches(div,seedPairs,(round,slot,total)=>championshipCourtFor(div,round,slot,total),(state.brackets[div]||championshipLabels(div)||[]).length);
   state.championshipNodes=state.championshipNodes||{};
   state.championshipNodes[div]=built.nodes;
   return /** @type {Match[]} */(built.matches);
-  /* ksm:post-split-end */
 }
 /**
  * @param {string} div
@@ -89,8 +82,7 @@ function buildChampionshipTemplateMatches(div,seedPairs){
  * @returns {{name: string, dojo: string}|null}
  */
 function championshipNodeSource(div,side){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.championshipNodeSource(side,label=>seedNameForLabel(div,label,true),state.allMatches?.[div]||[]);
-  /* ksm:post-split-end */
+  return KSMEngine.championshipNodeSource(side,label=>seedNameForLabel(div,label,true),state.allMatches?.[div]||[]);
 }
 /**
  * Fills championship matches from pool seeds and earlier winners.
@@ -98,7 +90,7 @@ function championshipNodeSource(div,side){
  * @returns {Match[]}
  */
 function syncChampionshipTemplate(div){
-  /* ksm:post-split-begin engine-bridge */const nodes=state.championshipNodes?.[div]||[];
+  const nodes=state.championshipNodes?.[div]||[];
   const arr=state.allMatches?.[div]||[];
   if(!nodes.length)return arr;
   const plan=KSMEngine.syncChampionshipTemplate(div,nodes,arr,label=>seedNameForLabel(div,label,true));
@@ -107,25 +99,23 @@ function syncChampionshipTemplate(div){
   plan.updates.forEach(u=>Object.assign(arr[u.index],u.set));
   state.allMatches[div]=arr;
   return arr;
-  /* ksm:post-split-end */
 }
 function championshipSeeds(div){
   return championshipLabels(div).map(([r,w])=>[r==='BYE'?{name:'BYE',dojo:''}:seedNameForLabel(div,r,true),w==='BYE'?{name:'BYE',dojo:''}:seedNameForLabel(div,w,true),r,w]);
 }
-function bracketPairsFromSeeds(seeds){/* ksm:post-split-begin engine-bridge */return KSMEngine.bracketPairsFromSeeds(seeds);// moved to app/engine/bracket-helpers.ts
-  /* ksm:post-split-end */}
-function champRoundOrder(name){/* ksm:post-split-begin engine-bridge */return KSMEngine.champRoundOrder(name);// moved to app/engine/championship.ts
-  /* ksm:post-split-end */}
+function bracketPairsFromSeeds(seeds){return KSMEngine.bracketPairsFromSeeds(seeds);// moved to app/engine/bracket-helpers.ts
+  }
+function champRoundOrder(name){return KSMEngine.champRoundOrder(name);// moved to app/engine/championship.ts
+  }
 /**
  * @param {Match} m
  * @returns {{name: string, dojo: string}|null}
  */
 function champWinnerObj(m){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.champWinnerObj(m);
-  /* ksm:post-split-end */
+  return KSMEngine.champWinnerObj(m);
 }
-function nextChampRoundName(current,count){/* ksm:post-split-begin engine-bridge */return KSMEngine.nextChampRoundName(current,count);// moved to app/engine/championship.ts
-  /* ksm:post-split-end */}
+function nextChampRoundName(current,count){return KSMEngine.nextChampRoundName(current,count);// moved to app/engine/championship.ts
+  }
 function champSourceWinner(div,round,slot){
   let arr=state.allMatches[div]||[];
   let m=arr.find(x=>x.championship&&x.position===round&&x.bracketSlot===slot);
@@ -137,26 +127,23 @@ function champSourceWinner(div,round,slot){
   return null;
 }
 function roundMatchCountForDivision(div,round){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.roundMatchCount((state.brackets[div]||championshipLabels(div)||[]).length,round);
-  /* ksm:post-split-end */
+  return KSMEngine.roundMatchCount((state.brackets[div]||championshipLabels(div)||[]).length,round);
 }
 /**
  * @param {Match} m
  * @returns {string}
  */
 function individualLogicalMatchKey(m){
-  /* ksm:post-split-begin engine-bridge */return /** @type {string} */(KSMEngine.individualLogicalMatchKey(m));
-  /* ksm:post-split-end */
+  return /** @type {string} */(KSMEngine.individualLogicalMatchKey(m));
 }
 /**
  * @param {string} div
  */
 function enforceUniqueIndividualMatches(div){
-  /* ksm:post-split-begin engine-bridge */const out=KSMEngine.uniqueIndividualMatches(state.allMatches?.[div]||[]);
+  const out=KSMEngine.uniqueIndividualMatches(state.allMatches?.[div]||[]);
   state.allMatches[div]=out;
   if(state.currentDivision===div)state.matches=out;
   return out;
-  /* ksm:post-split-end */
 }
 /**
  * @param {string} div
@@ -175,23 +162,21 @@ function maybeCreateChampionship(m){if(!m||m.type!=='individual'||m.championship
  * @returns {RoundName}
  */
 function firstRoundName(n){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.firstRoundName(n);
-  /* ksm:post-split-end */
+  return KSMEngine.firstRoundName(n);
 }
 /**
  * @param {RoundName} name
  * @returns {RoundName|null}
  */
 function nextRoundFromName(name){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.nextRoundFromName(name);
-  /* ksm:post-split-end */
+  return KSMEngine.nextRoundFromName(name);
 }
 /**
  * @param {RoundName} name
  * @returns {RoundName|null}
  */
-function previousRoundName(name){/* ksm:post-split-begin engine-bridge */return KSMEngine.previousRoundName(name);// moved to app/engine/championship.ts
-  /* ksm:post-split-end */}
+function previousRoundName(name){return KSMEngine.previousRoundName(name);// moved to app/engine/championship.ts
+  }
 function expectedRoundCount(div,round){
   let labels=championshipLabels(div);let first=firstRoundName(labels.length);let count=labels.length;
   if(round===first)return count;
@@ -203,8 +188,8 @@ function expectedRoundCount(div,round){
  * @param {RoundName} first
  * @returns {RoundName[]}
  */
-function roundSequenceFromFirst(first){/* ksm:post-split-begin engine-bridge */return KSMEngine.roundSequenceFromFirst(first);// moved to app/engine/championship.ts
-  /* ksm:post-split-end */}
+function roundSequenceFromFirst(first){return KSMEngine.roundSequenceFromFirst(first);// moved to app/engine/championship.ts
+  }
 /**
  * @param {string} div
  * @param {RoundName} round
@@ -213,6 +198,5 @@ function roundSequenceFromFirst(first){/* ksm:post-split-begin engine-bridge */r
  */
 function champMatchBySlot(div,round,slot){return (state.allMatches[div]||[]).find(x=>x.championship&&x.position===round&&x.bracketSlot===slot)}
 function sourceLabelForRound(div,prevRound,slot){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.sourceLabelForRound(state.allMatches[div]||[],prevRound,slot);
-  /* ksm:post-split-end */
+  return KSMEngine.sourceLabelForRound(state.allMatches[div]||[],prevRound,slot);
 }

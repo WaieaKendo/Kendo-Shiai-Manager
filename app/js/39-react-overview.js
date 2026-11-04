@@ -1,4 +1,3 @@
-/* ksm:post-split-begin react-overview */
 // ==========================================================
 // React Overview (app/react/features/overview/, roadmap M.13, #136 step 2)
 // The Overview screen (#director, nav "Overview") is drawn only by one React island: the contents
@@ -12,7 +11,6 @@
 // When the Overview is redrawn stays legacy: opening it (show() -> renderAll(), then
 // startDirectorRefresh()), renderAll() while it is shown, and the 5 s timer.
 // If the React module does not load, the Overview shows a notice (the end of this file).
-// Post-split code: scripts/verify-split.mjs removes the marked regions before it compares.
 // ==========================================================
 function ksmRenderOverview(){
   if(!window.directorCourtGrid)return;
@@ -35,4 +33,3 @@ function ksmShowOverviewModuleMissing(){
   dashboard.before(notice);
 }
 document.addEventListener('DOMContentLoaded',ksmShowOverviewModuleMissing);
-/* ksm:post-split-end */

@@ -6,8 +6,7 @@
  * @returns {boolean|number}
  */
 function poolFinished(poolLabel,div=state.currentDivision){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.poolFinished(state.allMatches[div]||[],poolLabel);
-  /* ksm:post-split-end */
+  return KSMEngine.poolFinished(state.allMatches[div]||[],poolLabel);
 }
 /**
  * @param {string} poolLabel
@@ -15,8 +14,7 @@ function poolFinished(poolLabel,div=state.currentDivision){
  * @returns {boolean}
  */
 function pendingTiebreak(poolLabel,div){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.pendingTiebreak(state.allMatches[div]||[],poolLabel);
-  /* ksm:post-split-end */
+  return KSMEngine.pendingTiebreak(state.allMatches[div]||[],poolLabel);
 }
 /**
  * @param {string} poolLabel
@@ -31,8 +29,7 @@ function topSeedsResolved(poolLabel,div=state.currentDivision){return poolPositi
  * @returns {PoolStandingRow[]}
  */
 function initialPoolStandings(poolLabel,div=state.currentDivision){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.initialPoolStandings((state.pools[div]||[]).find(p=>p.label===poolLabel),state.allMatches[div]||[]);
-  /* ksm:post-split-end */
+  return KSMEngine.initialPoolStandings((state.pools[div]||[]).find(p=>p.label===poolLabel),state.allMatches[div]||[]);
 }
 /**
  * @param {string} poolLabel
@@ -41,8 +38,7 @@ function initialPoolStandings(poolLabel,div=state.currentDivision){
  * @returns {{stats: TiebreakStatsRow[], done: Match[]}}
  */
 function tiebreakStatsForPlayers(poolLabel,div,players){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.tiebreakStatsForPlayers(state.allMatches[div]||[],poolLabel,players);
-  /* ksm:post-split-end */
+  return KSMEngine.tiebreakStatsForPlayers(state.allMatches[div]||[],poolLabel,players);
 }
 
 /**
@@ -53,8 +49,7 @@ function tiebreakStatsForPlayers(poolLabel,div,players){
  * @returns {{stats: TiebreakStatsRow[], matches: Match[]}}
  */
 function tiebreakSeriesStats(poolLabel,div,players,series){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.tiebreakSeriesStats(state.allMatches[div]||[],poolLabel,players,series);
-  /* ksm:post-split-end */
+  return KSMEngine.tiebreakSeriesStats(state.allMatches[div]||[],poolLabel,players,series);
 }
 /**
  * Orders a tied group by its tiebreak series, one series after another.
@@ -64,8 +59,7 @@ function tiebreakSeriesStats(poolLabel,div,players,series){
  * @returns {{locked: TiebreakStatsRow[], unresolved: PoolStandingRow[], ordered: (PoolStandingRow|TiebreakStatsRow)[], lastStats: TiebreakStatsRow[]}}
  */
 function resolveTiebreakBaseGroup(poolLabel,div,target){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.resolveTiebreakBaseGroup(state.allMatches[div]||[],poolLabel,target);
-  /* ksm:post-split-end */
+  return KSMEngine.resolveTiebreakBaseGroup(state.allMatches[div]||[],poolLabel,target);
 }
 /**
  * Players still tied for a place that matters (up to reqSeed), or null.
@@ -76,8 +70,7 @@ function resolveTiebreakBaseGroup(poolLabel,div,target){
  * @returns {PoolStandingRow[]|null}
  */
 function unresolvedRequiredTiebreakGroup(poolLabel,div,target,reqSeed){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.unresolvedRequiredTiebreakGroup(state.allMatches[div]||[],poolLabel,target,reqSeed);
-  /* ksm:post-split-end */
+  return KSMEngine.unresolvedRequiredTiebreakGroup(state.allMatches[div]||[],poolLabel,target,reqSeed);
 }
 /**
  * @param {string} div
@@ -86,8 +79,7 @@ function unresolvedRequiredTiebreakGroup(poolLabel,div,target,reqSeed){
  * @returns {Match[]}
  */
 function tiebreakMatchesForGroup(div,pool,players){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.tiebreakMatchesForGroup(state.allMatches?.[div]||[],div,pool,players,poolCourtFor(div,pool));
-  /* ksm:post-split-end */
+  return KSMEngine.tiebreakMatchesForGroup(state.allMatches?.[div]||[],div,pool,players,poolCourtFor(div,pool));
 }
 
 const APPROVED_DYNAMIC_MATCH_TYPES=Object.freeze(new Set([
@@ -103,8 +95,8 @@ const APPROVED_DYNAMIC_MATCH_TYPES=Object.freeze(new Set([
  * @param {Match} match
  * @returns {boolean}
  */
-function isIndividualPoolTiebreakMatch(match){/* ksm:post-split-begin engine-bridge */return KSMEngine.isIndividualPoolTiebreakMatch(match);// moved to app/engine/match-helpers.ts
-  /* ksm:post-split-end */}
+function isIndividualPoolTiebreakMatch(match){return KSMEngine.isIndividualPoolTiebreakMatch(match);// moved to app/engine/match-helpers.ts
+  }
 /**
  * @param {TournamentState} targetState
  * @param {string} div
@@ -241,8 +233,7 @@ function maybeCreateTiebreaks(m){
  * @returns {Match}
  */
 function makeTiebreakMatch(division,pool,a,b,requiresWinner=false,tiebreakSeries=1,tiebreakIndex=0){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.makeTiebreakMatch(division,pool,a,b,requiresWinner,tiebreakSeries,tiebreakIndex,poolCourtFor(division,pool));
-  /* ksm:post-split-end */
+  return KSMEngine.makeTiebreakMatch(division,pool,a,b,requiresWinner,tiebreakSeries,tiebreakIndex,poolCourtFor(division,pool));
 }
 
 /**
@@ -251,8 +242,7 @@ function makeTiebreakMatch(division,pool,a,b,requiresWinner=false,tiebreakSeries
  * @returns {Match[]}
  */
 function teamPairMatches(div,pair){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamPairMatches(state.allMatches[div]||[],pair);
-  /* ksm:post-split-end */
+  return KSMEngine.teamPairMatches(state.allMatches[div]||[],pair);
 }
 /**
  * @param {string} div
@@ -260,8 +250,7 @@ function teamPairMatches(div,pair){
  * @returns {Match[]}
  */
 function teamPositionMatches(div,pair){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamPositionMatches(state.allMatches[div]||[],pair);
-  /* ksm:post-split-end */
+  return KSMEngine.teamPositionMatches(state.allMatches[div]||[],pair);
 }
 /**
  * @param {string} div
@@ -269,16 +258,14 @@ function teamPositionMatches(div,pair){
  * @returns {TeamPairSummary}
  */
 function teamPairSummary(div,pair){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamPairSummary(state.allMatches[div]||[],pair);
-  /* ksm:post-split-end */
+  return KSMEngine.teamPairSummary(state.allMatches[div]||[],pair);
 }
 /**
  * @param {string} [div]
  * @returns {string[]}
  */
 function teamPairIds(div='Team Tournament'){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamPairIds(state.allMatches[div]||[]);
-  /* ksm:post-split-end */
+  return KSMEngine.teamPairIds(state.allMatches[div]||[]);
 }
 /**
  * @param {string} [div]
@@ -296,49 +283,41 @@ function isTeamRoundRobinDivision(div='Team Tournament'){
  * @returns {boolean}
  */
 function teamRoundRobinPairResolved(div,pair){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamRoundRobinPairResolved(state.allMatches[div]||[],pair);
-  /* ksm:post-split-end */
+  return KSMEngine.teamRoundRobinPairResolved(state.allMatches[div]||[],pair);
 }
 /**
  * @param {string} [div]
  * @returns {TeamStandingRow[]}
  */
 function teamStandings(div='Team Tournament'){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamStandings(state.allMatches[div]||[],eligibleTeams(div)||[],KSMEngine.teamRoundRobinCountedPlaces(ksmTeamSettings(div).teamAwardMode));
-  /* ksm:post-split-end */
+  return KSMEngine.teamStandings(state.allMatches[div]||[],eligibleTeams(div)||[],KSMEngine.teamRoundRobinCountedPlaces(ksmTeamSettings(div).teamAwardMode));
 }
 /**
  * @param {string} [div]
  * @returns {{complete: number, total: number}}
  */
 function teamRoundRobinProgress(div='Team Tournament'){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamRoundRobinProgress(state.allMatches[div]||[]);
-  /* ksm:post-split-end */
+  return KSMEngine.teamRoundRobinProgress(state.allMatches[div]||[]);
 }
 /**
  * @param {string} [div]
  */
 function teamRoundRobinPlacements(div='Team Tournament'){
-  /* ksm:post-split-begin engine-bridge */return KSMEngine.teamRoundRobinPlacements(!!divisionComplete(div),state.allMatches[div]||[],eligibleTeams(div)||[],KSMEngine.teamRoundRobinCountedPlaces(ksmTeamSettings(div).teamAwardMode));
-  /* ksm:post-split-end */
+  return KSMEngine.teamRoundRobinPlacements(!!divisionComplete(div),state.allMatches[div]||[],eligibleTeams(div)||[],KSMEngine.teamRoundRobinCountedPlaces(ksmTeamSettings(div).teamAwardMode));
 }
 /**
  * After a team bout: a representative playoff when the pairing is level.
  * @param {Match} m
  */
 function maybeCreateTeamTiebreak(m){
-  /* ksm:post-split-begin engine-bridge */const plan=KSMEngine.maybeCreateTeamTiebreak(m,state.allMatches[m?.division]||[],ksmTeamSettings(m?.division).teamFormat);
+  const plan=KSMEngine.maybeCreateTeamTiebreak(m,state.allMatches[m?.division]||[],ksmTeamSettings(m?.division).teamFormat);
   if(plan)appendApprovedDynamicMatches(m.division,plan.anchor,/** @type {Match} */(plan.playoff),plan.dynamicType);
-  /* ksm:post-split-end */
-  /* ksm:post-split-begin team-rr-daihyosen */
   // F27: once every pairing of a team round robin is decided, teams still level on team wins,
   // bout wins and points for a place with an award (D2: Setup's team award mode) get a one-point
   // daihyosen (KSMEngine.teamRoundRobinTiebreakPlan).
   const rr=m&&isTeamRoundRobinDivision(m.division)?KSMEngine.teamRoundRobinTiebreakPlan(m,state.allMatches[m.division]||[],eligibleTeams(m.division)||[],ksmTeamSettings(m.division).teamFormat,KSMEngine.teamRoundRobinCountedPlaces(ksmTeamSettings(m.division).teamAwardMode)):null;
   if(rr)appendApprovedDynamicMatches(m.division,rr.anchor,/** @type {Match[]} */(rr.bouts),rr.dynamicType);
-  /* ksm:post-split-end */
 }
-/* ksm:post-split-begin team-rr-daihyosen */
 // Found in external PR review (#35): the places a daihyosen decides follow Setup's team award mode
 // (D2), and the mode can change after a team round robin has ended. Changing it to more places
 // (e.g. "Champion only" -> "Champion + Runner-up" with three teams level for 2nd) adds the
@@ -365,7 +344,6 @@ function ksmAddDaihyosenForTeamAwards(){
 // The Setup field: its inline handler has set state.teamAwardMode; the document's change listener
 // has scheduled the autosave, which then carries the new bouts with the new mode.
 document.getElementById('teamAwardMode')?.addEventListener('change',()=>{if(ksmAddDaihyosenForTeamAwards().length)renderAll()});
-/* ksm:post-split-end */
 
 /**
  * @param {string} div

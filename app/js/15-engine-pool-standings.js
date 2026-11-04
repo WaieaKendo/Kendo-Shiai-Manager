@@ -6,6 +6,5 @@
  * @returns {PoolStandingRow[]}
  */
 function poolStandings(poolLabel,div=state.currentDivision){
-  /* ksm:post-split-begin engine-bridge */const pool=(state.pools[div]||[]).find(p=>p.label===poolLabel);return pool?KSMEngine.poolStandings(pool,state.allMatches[div]||[],requiredSeedPlaces(div)[poolLabel]||2):[];
-  /* ksm:post-split-end */
+  const pool=(state.pools[div]||[]).find(p=>p.label===poolLabel);return pool?KSMEngine.poolStandings(pool,state.allMatches[div]||[],requiredSeedPlaces(div)[poolLabel]||2):[];
 }

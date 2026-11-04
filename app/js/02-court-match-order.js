@@ -1,9 +1,9 @@
-function isTeamMatch(m){/* ksm:post-split-begin engine-bridge */return KSMEngine.isTeamMatch(m);// moved to app/engine/match-helpers.ts
-  /* ksm:post-split-end */}
+function isTeamMatch(m){return KSMEngine.isTeamMatch(m);// moved to app/engine/match-helpers.ts
+  }
 function teamNodeOrderMap(div){let map={};(state.teamBracketNodes?.[div]||[]).forEach((n,i)=>map[n.id]=i);return map}
 function teamPairOrderMap(div){let map={},next=0;(state.allMatches[div]||[]).forEach(m=>{if(isTeamMatch(m)&&m.teamPair&&map[m.teamPair]==null)map[m.teamPair]=next++});return map}
-function teamPositionOrder(m){/* ksm:post-split-begin engine-bridge */return KSMEngine.teamPositionOrder(m);// moved to app/engine/match-helpers.ts
-  /* ksm:post-split-end */}
+function teamPositionOrder(m){return KSMEngine.teamPositionOrder(m);// moved to app/engine/match-helpers.ts
+  }
 function teamMatchSortKey(div,m){let map=teamNodeOrderMap(div);let node=(m.teamNodeId&&map[m.teamNodeId]!=null)?map[m.teamNodeId]:null;if(node==null && m.teamPair){let sib=(state.allMatches[div]||[]).find(x=>x.teamPair===m.teamPair && x.teamNodeId && map[x.teamNodeId]!=null);if(sib)node=map[sib.teamNodeId];}
   // Round-robin position Match Objects belong to one authoritative team pairing.
   // Keep Senpo -> ... -> Taisho -> representative playoff together before
@@ -13,8 +13,8 @@ function teamMatchSortKey(div,m){let map=teamNodeOrderMap(div);let node=(m.teamN
 function sortTeamMatches(div){let arr=state.allMatches[div]||[];if(!arr.some(isTeamMatch))return arr;arr.sort((a,b)=>{
   let at=isTeamMatch(a),bt=isTeamMatch(b);if(at&&bt)return teamMatchSortKey(div,a)-teamMatchSortKey(div,b);if(at&&!bt)return -1;if(!at&&bt)return 1;return 0;
 });state.allMatches[div]=arr;return arr;}
-function individualMatchReady(m){/* ksm:post-split-begin engine-bridge */return KSMEngine.individualMatchReady(m);// moved to app/engine/match-helpers.ts
-  /* ksm:post-split-end */}
+function individualMatchReady(m){return KSMEngine.individualMatchReady(m);// moved to app/engine/match-helpers.ts
+  }
 function championshipRoundIndex(div,round){
   const first=firstRoundName((state.brackets?.[div]||championshipLabels(div)||[]).length);
   const seq=roundSequenceFromFirst(first);
@@ -73,16 +73,13 @@ function initCourtStates(){
 }
 function renderDivisions(){
   state.divisions.forEach(d=>state.divisionCourts[d]=state.divisionCourts[d]||'A');
-/* ksm:post-split-begin team-divisions was:  if(window.poolDiv){let all=[...new Set([...state.divisions,...Object.keys(state.allMatches||{})])];let selected=(poolDiv.value&&all.includes(poolDiv.value))?poolDiv.value:((state.poolViewDivision&&all.includes(state.poolViewDivision))?state.poolViewDivision:state.currentDivision);state.poolViewDivision=selected;poolDiv.innerHTML=all.map(d=>`<option ${d===selected?'selected':''}>${esc(d)}</option>`).join('');if(selected)poolDiv.value=selected;}  */  if(window.poolDiv){let all=[...new Set([...state.divisions,...ksmTeamDivisions().filter(d=>state.allMatches?.[d.id]).map(d=>d.id),...Object.keys(state.allMatches||{})])];let selected=(poolDiv.value&&all.includes(poolDiv.value))?poolDiv.value:((state.poolViewDivision&&all.includes(state.poolViewDivision))?state.poolViewDivision:state.currentDivision);state.poolViewDivision=selected;poolDiv.innerHTML=all.map(d=>`<option ${d===selected?'selected':''}${ksmDivisionName(d)!==d?` value="${esc(d)}"`:''}>${esc(ksmDivisionName(d))}</option>`).join('');if(selected)poolDiv.value=selected;}
-/* ksm:post-split-end */
+  if(window.poolDiv){let all=[...new Set([...state.divisions,...ksmTeamDivisions().filter(d=>state.allMatches?.[d.id]).map(d=>d.id),...Object.keys(state.allMatches||{})])];let selected=(poolDiv.value&&all.includes(poolDiv.value))?poolDiv.value:((state.poolViewDivision&&all.includes(state.poolViewDivision))?state.poolViewDivision:state.currentDivision);state.poolViewDivision=selected;poolDiv.innerHTML=all.map(d=>`<option ${d===selected?'selected':''}${ksmDivisionName(d)!==d?` value="${esc(d)}"`:''}>${esc(ksmDivisionName(d))}</option>`).join('');if(selected)poolDiv.value=selected;}
   if(window.scoreDiv){
     let court=state.currentCourt||'A';
     let all=[...new Set([...state.divisions,...Object.keys(state.allMatches||{})])];
-    let opts=all.filter(d=>{let c=state.divisionCourts[d]||'A';return c===court||c==='split'||/* ksm:post-split-begin team-divisions was:(d==='Team Tournament'&&(state.divisionCourts[d]||'Both')==='Both') */(isTeamDivision(d)&&(state.divisionCourts[d]||'Both')==='Both')/* ksm:post-split-end */});
-/* ksm:post-split-begin react-court */
+    let opts=all.filter(d=>{let c=state.divisionCourts[d]||'A';return c===court||c==='split'||(isTeamDivision(d)&&(state.divisionCourts[d]||'Both')==='Both')});
     // The React court header (35-react-court.js) draws the court title and the select.
     ksmSignalCourtHeader({court,divisions:opts,currentDivision:state.currentDivision||''});
-/* ksm:post-split-end */
   }
 }
 function openCourt(c){

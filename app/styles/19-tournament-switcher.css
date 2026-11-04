@@ -1,4 +1,3 @@
-/* ksm:post-split-begin tournament-switcher */
 body:not(.ksm-home) .nav-brand-copy { display:none; }
 .tournament-heading { min-width:0; }
 body.ksm-home .tournament-heading { display:none; }
@@ -69,4 +68,3 @@ body.ksm-nav-expanded { overflow:hidden !important; }
 .setup-short-url .small { margin:4px 0 0; }
 /* The TV display has no header: 12- and 13- hide it, but the grid rule above outranked them. */
 body.ksm-tv:not(.ksm-home) header.ksm-topbar { display:none !important; }
-/* ksm:post-split-end */

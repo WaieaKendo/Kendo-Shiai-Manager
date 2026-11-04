@@ -1,27 +1,26 @@
 
 function maybeCreateKachinukiNext(m){
-  /* ksm:post-split-begin engine-bridge */const plan=KSMEngine.maybeCreateKachinukiNext(m);if(!plan)return;
+  const plan=KSMEngine.maybeCreateKachinukiNext(m);if(!plan)return;
   let div=m.division,arr=state.allMatches[div]||[];
   if(plan.kind==='playoff')appendApprovedDynamicMatches(div,m,/** @type {Match} */(plan.match),'KACHINUKI_REPRESENTATIVE');
   else{let idx=arr.indexOf(m);arr.splice(idx+1,0,/** @type {Match} */(plan.match));state.allMatches[div]=arr;}
-  /* ksm:post-split-end */
 }
 
 function dragPoolPlayer(ev,poolLabel,idx){ev.dataTransfer.setData('text/plain',JSON.stringify({poolLabel,idx}));}
 function insertPoolPlayer(ev,toLabel,toIndex){
-  ev.preventDefault();ev.stopPropagation();let div=poolDiv?.value||state.currentDivision;let pools=/* ksm:post-split-begin pool-edit was:state.pools[div]||[] */ksmPoolEditPools(div)/* ksm:post-split-end */;let data;try{data=JSON.parse(ev.dataTransfer.getData('text/plain'))}catch(e){return}
+  ev.preventDefault();ev.stopPropagation();let div=poolDiv?.value||state.currentDivision;let pools=ksmPoolEditPools(div);let data;try{data=JSON.parse(ev.dataTransfer.getData('text/plain'))}catch(e){return}
   let from=pools.find(p=>p.label===data.poolLabel),to=pools.find(p=>p.label===toLabel);if(!from||!to)return;
   let player=from.players.splice(data.idx,1)[0];if(!player)return;
   if(from===to && data.idx<toIndex)toIndex--;
   to.players.splice(Math.max(0,Math.min(toIndex,to.players.length)),0,player);
   toggleEditPools();
 }
-function dropPoolPlayer(ev,toLabel){ev.preventDefault();let div=poolDiv?.value||state.currentDivision;let pools=/* ksm:post-split-begin pool-edit was:state.pools[div]||[] */ksmPoolEditPools(div)/* ksm:post-split-end */;let data;try{data=JSON.parse(ev.dataTransfer.getData('text/plain'))}catch(e){return}let from=pools.find(p=>p.label===data.poolLabel),to=pools.find(p=>p.label===toLabel);if(!from||!to)return;let player=from.players.splice(data.idx,1)[0];if(player)to.players.push(player);toggleEditPools();}
-function toggleEditPools(){/* ksm:post-split-begin react-pools */let div=poolDiv?.value||state.currentDivision;let pools=ksmPoolEditPools(div);if(!pools.length)return;poolOutput.className='pools-layout';ksmRenderPoolEditor(div);/* ksm:post-split-end */}
-function movePoolPlayer(fromPool,idx,toPool){let div=poolDiv?.value||state.currentDivision;let pools=/* ksm:post-split-begin pool-edit was:state.pools[div]||[] */ksmPoolEditPools(div)/* ksm:post-split-end */;toPool=parseInt(toPool,10);if(fromPool===toPool)return;let player=pools[fromPool].players.splice(idx,1)[0];if(player)pools[toPool].players.push(player);toggleEditPools();}
+function dropPoolPlayer(ev,toLabel){ev.preventDefault();let div=poolDiv?.value||state.currentDivision;let pools=ksmPoolEditPools(div);let data;try{data=JSON.parse(ev.dataTransfer.getData('text/plain'))}catch(e){return}let from=pools.find(p=>p.label===data.poolLabel),to=pools.find(p=>p.label===toLabel);if(!from||!to)return;let player=from.players.splice(data.idx,1)[0];if(player)to.players.push(player);toggleEditPools();}
+function toggleEditPools(){let div=poolDiv?.value||state.currentDivision;let pools=ksmPoolEditPools(div);if(!pools.length)return;poolOutput.className='pools-layout';ksmRenderPoolEditor(div);}
+function movePoolPlayer(fromPool,idx,toPool){let div=poolDiv?.value||state.currentDivision;let pools=ksmPoolEditPools(div);toPool=parseInt(toPool,10);if(fromPool===toPool)return;let player=pools[fromPool].players.splice(idx,1)[0];if(player)pools[toPool].players.push(player);toggleEditPools();}
 function saveEditedPools(){
   let div=poolDiv?.value||state.currentDivision;
-  /* ksm:post-split-begin pool-edit was:const pools=assignPoolPlayerSlots(state.pools[div]||[]); */const edited=ksmPoolEditToSave(div);if(!edited)return;const pools=assignPoolPlayerSlots(edited);/* ksm:post-split-end */
+  const edited=ksmPoolEditToSave(div);if(!edited)return;const pools=assignPoolPlayerSlots(edited);
   state.pools[div]=pools;
 
   // Pool editing occurs after the division has already been generated. Rebuild the
@@ -57,13 +56,13 @@ function saveEditedPools(){
   renderPools();
   scheduleAutoSave();
 }
-function renderAll(){/* ksm:post-split-begin tournament-switcher */if(typeof ksmRefreshTournamentChip==='function')ksmRefreshTournamentChip();/* ksm:post-split-end *//* ksm:post-split-begin danger-zone */ksmSyncDangerZone();/* ksm:post-split-end */ensureCourtHistory();renderDivisions();renderReg();renderTeams();renderExhibitions();renderPools();renderScore();renderProgress();renderContext();saveSetup();renderTournamentStatus();updateUndoButton()/* ksm:post-split-begin react-bridge */;if(typeof ksmNotifyStateChanged==='function')ksmNotifyStateChanged('render')/* ksm:post-split-end */}
-function esc(s){/* ksm:post-split-begin engine-bridge */return KSMEngine.esc(s);// moved to app/engine/html-text.ts
-  /* ksm:post-split-end */}
+function renderAll(){if(typeof ksmRefreshTournamentChip==='function')ksmRefreshTournamentChip();ksmSyncDangerZone();ensureCourtHistory();renderDivisions();renderReg();renderTeams();renderExhibitions();renderPools();renderScore();renderProgress();renderContext();saveSetup();renderTournamentStatus();updateUndoButton();if(typeof ksmNotifyStateChanged==='function')ksmNotifyStateChanged('render')}
+function esc(s){return KSMEngine.esc(s);// moved to app/engine/html-text.ts
+  }
 // A value as a JavaScript string literal inside an inline on*="..." handler. esc() alone is not enough:
 // the HTML parser decodes &#39; back to ' before the handler runs, so a name could break out of '...'.
-function jsArg(v){/* ksm:post-split-begin engine-bridge */return KSMEngine.jsArg(v);// moved to app/engine/html-text.ts
-  /* ksm:post-split-end */}
-document.addEventListener('paste',e=>{if(!registration.classList.contains('hidden')&&state.regMode==='individual'){let text=e.clipboardData.getData('text');if(text&&text.includes('\t')){e.preventDefault();text.trim()./* ksm:post-split-begin paste-lines was:split(/\n/) */split(/\r\n|\r|\n/)/* ksm:post-split-end */.forEach(line=>{let[name,dojo,division,seed,status]=line.split('\t')/* ksm:post-split-begin paste-lines */.map(cell=>cell.trim())/* ksm:post-split-end */;/* ksm:post-split-begin owner-decisions was:if(name){if(division&&!state.divisions.includes(division))state.divisions.push(division);state.competitors.push({name,dojo:dojo||'',division:division||state.divisions[0],seed:seed||'',status:(status||'Registered').replace('Checked In','Checked')})} */if(name)ksmPasteRow(name,dojo,division,seed,status)/* ksm:post-split-end */});/* ksm:post-split-begin owner-decisions */ksmPasteNotice();/* ksm:post-split-end */renderDivisions();renderReg()/* ksm:post-split-begin paste-save */;scheduleAutoSave('Paste from Excel')/* ksm:post-split-end */}}});
+function jsArg(v){return KSMEngine.jsArg(v);// moved to app/engine/html-text.ts
+  }
+document.addEventListener('paste',e=>{if(!registration.classList.contains('hidden')&&state.regMode==='individual'){let text=e.clipboardData.getData('text');if(text&&text.includes('\t')){e.preventDefault();text.trim().split(/\r\n|\r|\n/).forEach(line=>{let[name,dojo,division,seed,status]=line.split('\t').map(cell=>cell.trim());if(name)ksmPasteRow(name,dojo,division,seed,status)});ksmPasteNotice();renderDivisions();renderReg();scheduleAutoSave('Paste from Excel')}}});
 
 
