@@ -140,6 +140,22 @@ function validateTournamentPayload(payload) {
   }
   return null;
 }
+// #129 Undo regenerate: a marked full-tournament regenerate save (body restorePoint: 'regenerate') keeps
+// the record it replaces as the tournament's one restore point for 24 h (storage key 'restorePoint':
+// { record, takenAt, expiresAt, takenBy, id }, ms timestamps). A newer regenerate replaces it, POST
+// /restore-point writes it back as a new revision, expiry is checked on every read and an alarm
+// deletes it. Delete tournament and the admin reset remove it with everything else (deleteAll).
+const RESTORE_POINT_TTL_MS = 24 * 60 * 60 * 1000;
+// The same count as the app's finished-match warning (app/engine/finished-matches.ts): every done
+// entry of allMatches (each team position or kachinuki bout once). tests/worker-api-test.mjs checks
+// that both agree.
+function finishedMatchCount(payload) {
+  const allMatches = payload?.state?.allMatches;
+  if (!allMatches || typeof allMatches !== 'object') return 0;
+  let total = 0;
+  for (const matches of Object.values(allMatches)) if (Array.isArray(matches)) total += matches.filter(match => match?.done).length;
+  return total;
+}
 function tournamentGone(deletedAt, extra = {}) {
   return json({ error: 'Tournament deleted', code: 'tournament-deleted', deletedAt, ...extra }, 410);
 }
@@ -161,6 +177,30 @@ export class TournamentState {
 
   async staffPasswordHash() { return (await this.state.storage.get('staffPasswordHash')) || ''; }
   now() { return Date.now(); }
+  // The live restore point, or null: an expired one is deleted when it is read.
+  async liveRestorePoint() {
+    const point = await this.state.storage.get('restorePoint');
+    if (!point) return null;
+    if (point.expiresAt > this.now()) return point;
+    await this.state.storage.delete('restorePoint');
+    return null;
+  }
+  // Who may see and use the restore point: the write access a regenerate needs (an account with
+  // tournament access, or a staff session in the staff-key mode). Never counts as a password attempt
+  // when no key is supplied.
+  async restorePointAccess(request) {
+    const role = safeRole(request.headers.get('x-ksm-role') || 'spectator');
+    if (role !== 'staff' && !(auth0Enabled(this.env) && bearerToken(request))) return { ok: false, status: 403, body: { error: 'Write authorization required' } };
+    return this.writeAccess(request);
+  }
+  // The Durable Object alarm (#129): deletes the restore point when it expires. A point replaced
+  // later moves the alarm; one still live (a clock skew) sets it again.
+  async alarm() {
+    const point = await this.state.storage.get('restorePoint');
+    if (!point) return;
+    if (point.expiresAt > this.now()) { await this.state.storage.setAlarm(point.expiresAt); return; }
+    await this.state.storage.delete('restorePoint');
+  }
   async verifyStaffPassword(password) {
     const stored = await this.staffPasswordHash();
     // Devices on the previous app send the password with every save (the rollout fallback): the
@@ -413,7 +453,14 @@ export class TournamentState {
       const privateDenied = await this.readAccess(request);
       if (privateDenied) return privateDenied;
       const record = publicRecord(await this.state.storage.get('record'));
-      return json({ exists: Boolean(record), revision: record?.revision || 0, updatedAt: record?.updatedAt || null, connections: this.presence() });
+      // #129: the restore point, only for callers who may restore it (an expired one counts as none).
+      let restorePoint;
+      const mayRestore = record && (request.headers.get('x-ksm-session-key') || bearerToken(request)) && (await this.restorePointAccess(request)).ok;
+      if (mayRestore) {
+        const point = await this.liveRestorePoint();
+        restorePoint = point ? { takenAt: new Date(point.takenAt).toISOString(), expiresAt: new Date(point.expiresAt).toISOString(), finishedMatches: finishedMatchCount(point.record?.payload), revision: Number(point.record?.revision || 0) } : null;
+      }
+      return json({ exists: Boolean(record), revision: record?.revision || 0, updatedAt: record?.updatedAt || null, connections: this.presence(), ...(mayRestore ? { restorePoint } : {}) });
     }
 
     if (request.method === 'PUT' && url.pathname === '/snapshot') {
@@ -438,9 +485,60 @@ export class TournamentState {
         engineVersion: incoming.engineVersion || incoming.payload?.engineVersion || 'unknown',
         revision: currentRevision + 1, createdAt: existing?.createdAt || now, updatedAt: now,
         updatedBy: { role: access.role || role, clientId: request.headers.get('x-ksm-client-id') || '', name: (request.headers.get('x-ksm-client-name') || '').slice(0, 80), court: (request.headers.get('x-ksm-court') || '').slice(0, 8) },
+        // #129: the last Undo regenerate stays named in every later record, so a device whose
+        // unsaved work predates it can tell (app: performCloudSave's 409) and does not replay it.
+        ...(existing?.restored ? { restored: existing.restored } : {}),
         payload: sanitizePayload(incoming.payload)
       };
-      await this.state.storage.put('record', record);
+      // #129: a regenerate save keeps the record it replaces (record and point written together).
+      // The same regenerate sent again (a retry whose answer was lost) keeps the first point.
+      const pointId = typeof incoming.restorePointId === 'string' ? incoming.restorePointId.slice(0, 80) : '';
+      const previousPoint = incoming.restorePoint === 'regenerate' && existing ? await this.liveRestorePoint() : null;
+      if (incoming.restorePoint === 'regenerate' && existing && !(pointId && previousPoint?.id === pointId)) {
+        const takenAt = this.now();
+        const restorePoint = { record: existing, takenAt, expiresAt: takenAt + RESTORE_POINT_TTL_MS, takenBy: record.updatedBy, id: pointId };
+        await this.state.storage.put({ record, restorePoint });
+        await this.state.storage.setAlarm(restorePoint.expiresAt);
+      } else {
+        await this.state.storage.put('record', record);
+      }
+      const safe = publicRecord(record);
+      await this.broadcast({ type: 'snapshot', record: safe });
+      return json(safe);
+    }
+
+    // #129 Undo regenerate: the restore point becomes a new revision (with the caller's current
+    // revision, like a save), is deleted, and every device gets it as a snapshot.
+    if (request.method === 'POST' && url.pathname === '/restore-point') {
+      const access = await this.restorePointAccess(request);
+      if (!access.ok) return denied(access);
+      const body = await request.json().catch(() => ({}));
+      const existing = await this.state.storage.get('record');
+      if (!existing) return json({ error: 'Tournament not found' }, 404);
+      const stored = await this.state.storage.get('restorePoint');
+      if (!stored) return json({ error: 'There is no regenerate to undo.', code: 'no-restore-point' }, 404);
+      if (!(stored.expiresAt > this.now())) {
+        await this.state.storage.delete('restorePoint');
+        return json({ error: 'The regenerate can no longer be undone (24 hours have passed).', code: 'restore-point-expired' }, 410);
+      }
+      const currentRevision = Number(existing.revision || 0);
+      if (Number(body.revision ?? -1) !== currentRevision) return json({ error: 'Revision conflict', record: publicRecord(existing) }, 409);
+      const payload = stored.record?.payload;
+      if (!payload || typeof payload !== 'object') return json({ error: 'Tournament payload required' }, 400);
+      const integrityError = validateTournamentPayload(payload);
+      if (integrityError) return json({ error: 'Invalid tournament state', integrityError }, 422);
+      const now = new Date(this.now()).toISOString();
+      const revision = currentRevision + 1;
+      const record = {
+        schemaVersion: '1.2', tournamentId: existing.tournamentId,
+        engineVersion: stored.record.engineVersion || payload.engineVersion || 'unknown',
+        revision, createdAt: existing.createdAt || now, updatedAt: now,
+        updatedBy: { role: access.role || 'staff', clientId: request.headers.get('x-ksm-client-id') || '', name: (request.headers.get('x-ksm-client-name') || '').slice(0, 80), court: (request.headers.get('x-ksm-court') || '').slice(0, 8) },
+        restored: { revision, at: now, fromRevision: Number(stored.record.revision || 0), takenAt: new Date(stored.takenAt).toISOString() },
+        payload: sanitizePayload(payload)
+      };
+      await this.state.storage.transaction(async tx => { await tx.put('record', record); await tx.delete('restorePoint'); });
+      await this.state.storage.deleteAlarm();
       const safe = publicRecord(record);
       await this.broadcast({ type: 'snapshot', record: safe });
       return json(safe);
@@ -576,8 +674,10 @@ export class TournamentState {
       const access = await this.writeAccess(request, { adminOnly: true });
       if (!access.ok) return denied(access);
       const id = (await this.state.storage.get('record'))?.tournamentId;
-      // deleteAll clears the staff password hash and sessions with the record; the tombstone is
-      // written after it, so it is the only thing left in storage.
+      // deleteAll clears the staff password hash and sessions with the record (and #129's restore
+      // point); the tombstone is written after it, so it is the only thing left in storage. The
+      // restore point's alarm is removed explicitly.
+      await this.state.storage.deleteAlarm();
       await this.state.storage.deleteAll();
       this.verifiedPassword = null;
       await this.state.storage.put('deletedAt', new Date().toISOString());
@@ -589,6 +689,7 @@ export class TournamentState {
 
     if (request.method === 'DELETE' && url.pathname === '/reset-all') {
       const id = (await this.state.storage.get('record'))?.tournamentId;
+      await this.state.storage.deleteAlarm();
       await this.state.storage.deleteAll();
       if (auth0Enabled(this.env) && id) await accessCall(this.env, 'removeTournament', {id});
       for (const socket of this.state.getWebSockets()) try { socket.close(1000, 'Cloud test data reset'); } catch (_) {}
@@ -852,7 +953,7 @@ export default {
       return withSlug(response);
     }
 
-    const route = url.pathname.match(/^\/api\/tournaments\/([0-9a-f-]+)(?:\/(live|status|auth|slug|access|directors|visibility))?$/i);
+    const route = url.pathname.match(/^\/api\/tournaments\/([0-9a-f-]+)(?:\/(live|status|auth|slug|access|directors|visibility|restore-point))?$/i);
     if (route) {
       const [, id, action] = route;
       const stub = env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName(id));
@@ -862,6 +963,13 @@ export default {
         return stub.fetch(new Request(target, { method: 'GET', headers: request.headers }));
       }
       if (action === 'status' && request.method === 'GET') return stub.fetch(new Request('https://durable-object/status', { headers: request.headers }));
+      if (action === 'restore-point' && request.method === 'POST') {
+        const outdated = outdatedClient(request);
+        if (outdated) return outdated;
+        const response = await stub.fetch(new Request('https://durable-object/restore-point', { method: 'POST', headers: request.headers, body: request.body }));
+        if (response.ok) await updateLibrary(await response.clone().json());
+        return withSlug(response);
+      }
       if (action === 'slug' && request.method === 'POST') return stub.fetch(new Request('https://durable-object/slug', {method:'POST',headers:request.headers,body:request.body}));
       if (action === 'auth' && request.method === 'POST') return stub.fetch(new Request('https://durable-object/auth', { method: 'POST', headers: request.headers, body: request.body }));
       if (!action && request.method === 'GET') return withSlug(await stub.fetch(new Request('https://durable-object/snapshot', { headers: request.headers })));

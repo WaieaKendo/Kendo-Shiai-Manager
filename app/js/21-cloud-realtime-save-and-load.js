@@ -145,6 +145,11 @@ function applyRemoteCloudRecord(record,allowWhileEditing=false,forceApply=false)
   if(!record||record.tournamentId!==cloudSession.tournamentId){updateTvRealtimeDiagnostics({ignored:ksmTvRealtimeDiagnostics.ignored+1,lastReason:'Ignored wrong tournament'});return false}
   if(Number(record.revision||0)>=Number(cloudSession.revision||0))ksmCacheTournament(record);
   const incomingRevision=Number(record.revision||0);
+  // #129 part 3: an Undo regenerate this device has not seen. Its unsaved work (made on the regenerated
+  // draw) is not kept on top of the restored tournament: it goes to the recovery file. A save already
+  // on its way is answered 409 and handled the same way in its catch.
+  const restoredHere=ksmRestoredSince(record);
+  if(restoredHere&&canCloudWrite()&&!ksmCloudSaveInFlight&&localChangesPending())ksmDropWorkBeforeRestore(record);
   if(!forceApply&&canCloudWrite()&&localChangesPending())return deferRemoteRecord(record,`Revision ${incomingRevision} arrived while local Court ${pinnedCourt()||state.currentCourt||'—'} changes were pending`);
   if(!forceApply&&incomingRevision<=Number(cloudSession.revision||0)){updateTvRealtimeDiagnostics({ignored:ksmTvRealtimeDiagnostics.ignored+1,lastReason:`Ignored old revision ${incomingRevision}`});return false}
   // Staff pages ignore their own echoed save. Spectator/TV pages must apply it even when
@@ -162,6 +167,10 @@ function applyRemoteCloudRecord(record,allowWhileEditing=false,forceApply=false)
     updateSaveStatus('Live update waiting for editing to finish');updateTvRealtimeDiagnostics({lastReason:`Deferred revision ${incomingRevision} while editing`});return false;
   }
   const outbox=readOutbox();if(outbox&&!outbox.peeked&&Number(outbox.baseRevision||0)<incomingRevision&&!(isReadOnlySession()&&outbox.role==='staff'&&outbox.tournamentId===record.tournamentId)){preserveRecovery(outbox,record);clearOutbox()}
+  // After an Undo regenerate the court positions and current matches are the restored copy's, not the
+  // division this court device last chose on the regenerated draw (with no local choice left, the
+  // division preservation below takes the copy's courtState).
+  if(restoredHere){clearLocalCourtDivisions();ksmRestorePoint=null;ksmClearRestoreMark()}
   ksmApplyingRemoteSnapshot=true;
   try{
     applyTournamentPayload(record.payload,false,{pinnedCourt:pinnedCourt(),preserveLocalDivision:preserveLocalDivisionForRemoteSync(),source:'live sync'});restorePinnedCourt();ksmStoreAutosave(record.payload);cloudSession.revision=Math.max(Number(cloudSession.revision||0),incomingRevision);cloudSession.updatedAt=record.updatedAt;persistCloudSession();rememberCloudBase(record);const by=record.updatedBy?.name||record.updatedBy?.role;updateSaveStatus((by?`Updated by ${by} • `:'Live update • ')+new Date(record.updatedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}));setConnectionStatus('Live sync','online');const nextTvDivision=state.courtActiveDivision?.[tvCourt]||state.courtState?.[tvCourt]?.division||null;if(isTvSession()){renderTvDisplay();if(priorTvDivision!==nextTvDivision)console.info('[TV Realtime] Active division changed',tvCourt,priorTvDivision,'→',nextTvDivision)}console.info('[TV Realtime] Applied revision',incomingRevision);updateTvRealtimeDiagnostics({lastAppliedRevision:incomingRevision,lastReason:priorTvDivision!==nextTvDivision?`Applied ${incomingRevision}; Court ${tvCourt} division refreshed`:`Applied revision ${incomingRevision}`});return true
@@ -225,6 +234,8 @@ async function saveTournamentToCloudWithReason(reason='Autosave',force=false){
     console.warn('Cloud save failed',err);
     if(['slug-taken','invalid-slug'].includes(err?.code))writeCloudDiagnosticsState({errorMessage:String(err?.message||err)});
 if(err?.code==='transition-cancelled')return false;if(err?.code==='tournament-deleted')return false;
+    // #129 part 3: another device's Undo regenerate wins over this work (handled in 03-, synchronously).
+    if(err?.code==='superseded-by-restore'){globalThis.dispatchEvent?.(new CustomEvent('ksm:superseded-by-restore',{detail:{record:err.record,payload}}));return false}
     if(!String(err.message).includes('conflict'))writeOutbox(payload,reason);
     ksmSaveStatusMode=String(err.message).includes('conflict')?'error':'offline';
     setConnectionStatus(String(err.message).includes('conflict')?'Conflict':'Offline',String(err.message).includes('conflict')?'error':'offline');
@@ -248,19 +259,21 @@ function mergeQueuedStaffWork(){
   if(!outbox?.payload||isReadOnlySession()||(outbox.tournamentId&&outbox.tournamentId!==cloudSession.tournamentId))return false;
   if(outbox.peeked&&!(outbox=ksmTakeOrphanNow()))return false;  // F36: a closed tab's work, taken over first
   const merged=rebaseLocalPayloadOnRecord(outbox.payload,{payload:tournamentPayload(),revision:cloudSession.revision},Number(outbox.baseRevision||0),outbox.basePayload||null);
+  // #129 part 3: queued regenerate work keeps its restore-point mark in this tab (its next save sends it).
+  if(outbox.restorePoint==='regenerate')ksmSetRestoreMark(cloudSession.tournamentId,String(outbox.restorePointId||''),outbox.restorePointRevision);
   ksmApplyingRemoteSnapshot=true;
   try{applyTournamentPayload(merged,false,{pinnedCourt:pinnedCourt(),preserveLocalDivision:true,source:'queued work merge'});ksmStoreAutosave(merged)}finally{ksmApplyingRemoteSnapshot=false}
   ksmMarkOutboxMerged();
   return true;
 }
-async function flushCloudOutbox(){const outbox=readOutbox();if(!outbox||ksmCloudSaveInFlight||ksmFileReplace||isReadOnlySession()||!navigator.onLine)return false;if(outbox.peeked)return false;if(outbox.adoptedFrom!=null)return ksmSendAdoptedOutbox();if(outbox.tournamentId&&outbox.tournamentId!==cloudSession.tournamentId){writeCloudDiagnosticsState({stage:'Outbox blocked',errorMessage:'Queued snapshot belongs to a different tournament',queuedTournamentId:outbox.tournamentId||'',activeTournamentId:cloudSession.tournamentId||''});return false}ksmCloudSaveInFlight=true;ksmSaveStatusMode='syncing';writeCloudDiagnosticsState({stage:'Retrying queued snapshot',lastAttemptAt:new Date().toISOString(),baseRevision:outbox.baseRevision||0,snapshotBytes:payloadByteSize(outbox.payload),retryCount:(readCloudDiagnosticsState().retryCount||0)+1});renderPersistentSaveStatus();const mutationVersion=ksmLocalMutationVersion;try{const record=await performCloudSave(outbox.payload,outbox.baseRevision,0,outbox.baseRevision,outbox.basePayload||cloudBaseFor(outbox.baseRevision));
+async function flushCloudOutbox(){const outbox=readOutbox();if(!outbox||ksmCloudSaveInFlight||ksmFileReplace||isReadOnlySession()||!navigator.onLine)return false;if(outbox.peeked)return false;if(outbox.adoptedFrom!=null)return ksmSendAdoptedOutbox();if(outbox.tournamentId&&outbox.tournamentId!==cloudSession.tournamentId){writeCloudDiagnosticsState({stage:'Outbox blocked',errorMessage:'Queued snapshot belongs to a different tournament',queuedTournamentId:outbox.tournamentId||'',activeTournamentId:cloudSession.tournamentId||''});return false}ksmCloudSaveInFlight=true;ksmSaveStatusMode='syncing';writeCloudDiagnosticsState({stage:'Retrying queued snapshot',lastAttemptAt:new Date().toISOString(),baseRevision:outbox.baseRevision||0,snapshotBytes:payloadByteSize(outbox.payload),retryCount:(readCloudDiagnosticsState().retryCount||0)+1});renderPersistentSaveStatus();const mutationVersion=ksmLocalMutationVersion;try{const record=await performCloudSave(outbox.payload,outbox.baseRevision,0,outbox.baseRevision,outbox.basePayload||cloudBaseFor(outbox.baseRevision),{restoreMark:outbox.restorePoint==='regenerate'?{restorePoint:'regenerate',restorePointId:String(outbox.restorePointId||'')}:null});
   // After a reload the screen shows the older cloud copy and our own echo is ignored: show what
   // was just saved, replaying court actions taken while the flush was in flight (as a rebase does).
   // Also replay actions taken before the flush started (after a reload, staff can score before
   // the socket opens and triggers the flush): any unconfirmed local change, not only newer ones.
   if(record?.payload){const localPayload=ksmLocalMutationVersion===mutationVersion&&ksmLocalMutationVersion<=ksmConfirmedMutationVersion?record.payload:rebaseLocalPayloadOnRecord(tournamentPayload(),record,Number(outbox.baseRevision||0),outbox.payload);ksmApplyingRemoteSnapshot=true;try{applyTournamentPayload(localPayload,false,{pinnedCourt:pinnedCourt(),preserveLocalDivision:true,source:'outbox flush'});ksmStoreAutosave(localPayload)}finally{ksmApplyingRemoteSnapshot=false}}
 confirmQueuedMutation();
-  return true}catch(err){console.warn('Queued cloud save failed',err);if(err?.code==='transition-cancelled')return false;if(err?.code==='tournament-deleted')return false;writeCloudDiagnosticsState({stage:'Queued save failed',errorMessage:String(err?.message||err),lastFailureAt:new Date().toISOString()});ksmSaveStatusMode='error';renderPersistentSaveStatus();scheduleQueuedSaveRetry(err);return false}finally{ksmCloudSaveInFlight=false;await runPendingCloudSave()}}
+  return true}catch(err){console.warn('Queued cloud save failed',err);if(err?.code==='transition-cancelled')return false;if(err?.code==='tournament-deleted')return false;if(err?.code==='superseded-by-restore'){globalThis.dispatchEvent?.(new CustomEvent('ksm:superseded-by-restore',{detail:{record:err.record,payload:outbox.payload}}));return false}writeCloudDiagnosticsState({stage:'Queued save failed',errorMessage:String(err?.message||err),lastFailureAt:new Date().toISOString()});ksmSaveStatusMode='error';renderPersistentSaveStatus();scheduleQueuedSaveRetry(err);return false}finally{ksmCloudSaveInFlight=false;await runPendingCloudSave()}}
 // F35: a save that fails while the live connection stays open (a 5xx, a dropped request, one
 // that never answers) is queued in the outbox, but only the socket opening, the browser's
 // `online` event or the next edit sent the queue: with none of them the device stayed

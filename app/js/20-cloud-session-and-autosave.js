@@ -14,7 +14,10 @@ function readOutbox(){
   ksmAdoptOrphanOutbox();  // a staff tab claims it; taken over (and sent) a moment later
   return ksmPeekOrphanOutbox();
 }
-function writeOutbox(payload,reason='Local change'){if(ksmKeepStaffOutbox())return;const queued={schemaVersion:'1.0',tournamentId:cloudSession.tournamentId,assignedCourt:cloudSession.court||state.currentCourt||'',role:ksmSessionRole,baseRevision:cloudSession.revision||0,basePayload:cloudBaseFor(cloudSession.revision||0),payload,actions:[{type:'snapshot',reason,createdAt:new Date().toISOString()}],queuedAt:new Date().toISOString()};queued.writer=KSM_TAB_ID;ksmReleaseAdoptedOutbox();localStorage.setItem(ksmOutboxKey(),JSON.stringify(queued));localStorage.setItem(KSM_CLOUD_RECOVERY_KEY,JSON.stringify({savedAt:new Date().toISOString(),outbox:queued,serverRevision:cloudSession.revision||0}));ksmSaveStatusMode='offline';renderPersistentSaveStatus()}
+function writeOutbox(payload,reason='Local change'){if(ksmKeepStaffOutbox())return;const queued={schemaVersion:'1.0',tournamentId:cloudSession.tournamentId,assignedCourt:cloudSession.court||state.currentCourt||'',role:ksmSessionRole,baseRevision:cloudSession.revision||0,basePayload:cloudBaseFor(cloudSession.revision||0),payload,actions:[{type:'snapshot',reason,createdAt:new Date().toISOString()}],queuedAt:new Date().toISOString()};queued.writer=KSM_TAB_ID;
+  // #129 part 3: a queued regenerate keeps its mark (sent with the queued snapshot, or by the tab that takes it over).
+  const restoreMark=ksmPendingRestoreMark(cloudSession.tournamentId,payload);if(restoreMark){queued.restorePoint='regenerate';queued.restorePointId=restoreMark.restorePointId;queued.restorePointRevision=restoreMark.managementRevision}
+ksmReleaseAdoptedOutbox();localStorage.setItem(ksmOutboxKey(),JSON.stringify(queued));localStorage.setItem(KSM_CLOUD_RECOVERY_KEY,JSON.stringify({savedAt:new Date().toISOString(),outbox:queued,serverRevision:cloudSession.revision||0}));ksmSaveStatusMode='offline';renderPersistentSaveStatus()}
 function clearOutbox(){
   // F36: only this tab's slot; a closed tab's work it took over but has not merged yet is given back.
   ksmReleaseAdoptedOutbox();
