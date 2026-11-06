@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-type Warning = { total: number; divisions: string[]; confirm: () => Promise<void> };
+/** undo (#129 part 3): a cloud tournament this session can write; the server keeps the old copy 24 h. */
+type Warning = { total: number; divisions: string[]; undo?: boolean; confirm: () => Promise<void> };
 
 /** The Delete tournament form's typed-confirmation pattern and shared modal/button styles. */
 export function RegenerateWarning() {
@@ -31,6 +32,7 @@ export function RegenerateWarning() {
       <p>To change one division, use Regenerate Single Division. To change a court, no redraw is needed.</p>
       <p>Regenerate Tournament will erase <b>{warning.total} finished {warning.total === 1 ? 'match' : 'matches'}</b> in <b>{warning.divisions.length} {warning.divisions.length === 1 ? 'division' : 'divisions'}</b> ({warning.divisions.join(', ')}) and redraw everything. Every device will see it.</p>
       <p>A tournament file will download before results are erased.</p>
+      {warning.undo && <p data-testid="regenerate-warning-undo">You can undo this for 24 hours from Setup → Advanced → Danger zone.</p>}
       <form onSubmit={async event => {
         event.preventDefault();
         if (!enabled) return;

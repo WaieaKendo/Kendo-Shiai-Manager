@@ -76,6 +76,10 @@ async function performCloudSave(payload=tournamentPayload(),baseRevision=cloudSe
     setSessionRole('staff');
     envelope={...envelope,staffPassword:password, ...(ksmPendingSlug?{slug:ksmPendingSlug}:{})};
   }
+  // #129 part 3: the request that carries a full regenerate is marked, so the server keeps the record it
+  // replaces (Undo regenerate). The mark comes from the queued entry (options.restoreMark) or this tab.
+  const restoreMark=existing&&!options.wholeReplace?(options.restoreMark||ksmPendingRestoreMark(existing,payload)):null;
+  if(restoreMark)envelope={...envelope,restorePoint:'regenerate',restorePointId:restoreMark.restorePointId||''};
   const body=JSON.stringify(envelope);
   const snapshotAnalysis=analyzeTournamentSnapshot(payload);
   writeCloudDiagnosticsState({
@@ -149,6 +153,13 @@ async function performCloudSave(payload=tournamentPayload(),baseRevision=cloudSe
       writeCloudDiagnosticsState({attemptId,stage:'Replace met another save',serverRevision:serverRecord.revision||null});
       throw Object.assign(new Error('Replace conflict'),{code:'replace-conflict',record:serverRecord});
     }
+    // #129 part 3: another device undid the regenerate after this request's base: the restored copy wins.
+    // This device's work (made on the regenerated draw) is not replayed onto it; the caller keeps it in
+    // the recovery file and applies the restored record (03-, Undo regenerate).
+    if(serverRecord&&existing&&ksmRestoredSince(serverRecord,originalBaseRevision)){
+      writeCloudDiagnosticsState({attemptId,stage:'Save replaced by Undo regenerate',serverRevision:serverRecord.revision||null,originalBaseRevision});
+      throw Object.assign(new Error('Replaced by Undo regenerate'),{code:'superseded-by-restore',record:serverRecord,payload});
+    }
     if(serverRecord&&existing&&rebaseAttempt<KSM_CLOUD_REBASE_MAX_ATTEMPTS){
       const serverRevision=Number(serverRecord.revision||0);
       const replayActions=pendingLocalCourtActionsForRebase(payload,serverRecord,originalBaseRevision);
@@ -166,7 +177,7 @@ async function performCloudSave(payload=tournamentPayload(),baseRevision=cloudSe
       cloudSession.revision=serverRevision||Number(cloudSession.revision||0);
       cloudSession.updatedAt=serverRecord.updatedAt;
       persistCloudSession();
-      const savedRecord=await performCloudSave(rebased,cloudSession.revision,rebaseAttempt+1,originalBaseRevision,serverRecord.payload);
+      const savedRecord=await performCloudSave(rebased,cloudSession.revision,rebaseAttempt+1,originalBaseRevision,serverRecord.payload,{...options,restoreMark});
       savedRecord.__ksmRebased=true;
       savedRecord.__ksmOriginalBaseRevision=originalBaseRevision;
       savedRecord.__ksmRebaseAttempts=Math.max(Number(savedRecord.__ksmRebaseAttempts||0),rebaseAttempt+1);
@@ -210,6 +221,8 @@ async function performCloudSave(payload=tournamentPayload(),baseRevision=cloudSe
   if(!existing){const token=response.headers.get('x-ksm-session-token');if(ksmStaffToken(token))ksmStoreStaffToken(token,record.tournamentId)}
   setSessionRole(v316StaffPassword()?'staff':'spectator');
   clearOutbox();
+  // #129 part 3: the regenerate reached the server, which now keeps the copy before it (the Danger zone asks).
+  if(restoreMark){ksmClearRestoreMark(record.tournamentId,restoreMark.restorePointId);globalThis.dispatchEvent?.(new Event('ksm:regenerate-saved'))}
   ksmLastSuccessfulSaveAt=Date.parse(record.updatedAt)||Date.now();
   ksmSaveStatusMode='saved';
   writeCloudDiagnosticsState({

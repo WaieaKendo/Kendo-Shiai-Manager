@@ -69,9 +69,17 @@ export class MemoryStorage {
     catch (error) { this.map = before; throw error; }
   }
   async get(key) { return this.map.has(key) ? structuredClone(this.map.get(key)) : undefined; }
-  async put(key, value) { this.map.set(key, structuredClone(value)); }
+  // put(key, value) or put({ key: value, ... }) (several keys written together, as in Workers).
+  async put(key, value) {
+    if (key && typeof key === 'object') { for (const [k, v] of Object.entries(key)) this.map.set(k, structuredClone(v)); return; }
+    this.map.set(key, structuredClone(value));
+  }
   async delete(key) { return this.map.delete(key); }
   async deleteAll() { this.map.clear(); }
+  // The Durable Object alarm: only recorded here; a test runs instance.alarm() itself.
+  async setAlarm(time) { this.alarm = Number(time); }
+  async getAlarm() { return this.alarm ?? null; }
+  async deleteAlarm() { this.alarm = null; }
 }
 
 

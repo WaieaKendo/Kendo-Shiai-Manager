@@ -25,12 +25,16 @@ function generateDivisionState(div){
 }
 function generatePools(options={}){
   if(!options.validated){requestTournamentGeneration();return}
+  const regenerating=Boolean(state.generated);
   state.pools={};state.teamPools={};state.allMatches={};state.teamBracketNodes={};state.singleElimNodes={};state.singleElimComps={};state.teamElimTeams={};state.brackets={};state.championshipNodes={};state.byeWinners={};state.currentByDivision={};let generated=0;
   state.divisions.forEach(div=>{if(generateDivisionState(div))generated++});
   if(tournamentSettings().teamEnabled!=='Disabled')ksmTeamDivisions().forEach(d=>{if(generateDivisionState(d.id))generated++});
   if(generateDivisionState('Exhibition Matches'))generated++;
   if(!generated){alert('No registered or checked-in competitors, teams, or exhibitions found. No-show entries are excluded.');return}
-  initCourtStates();let chosen=state.courtState[state.currentCourt||'A']?.division||Object.keys(state.allMatches)[0];setActiveDivision(chosen,true);state.generated=true;state.managementRevision=(state.managementRevision||0)+1;if(window.generateBtn)generateBtn.textContent='Regenerate Tournament';renderAll();show('registration');regTab('pools');scheduleAutoSave();
+  initCourtStates();let chosen=state.courtState[state.currentCourt||'A']?.division||Object.keys(state.allMatches)[0];setActiveDivision(chosen,true);state.generated=true;state.managementRevision=(state.managementRevision||0)+1;if(window.generateBtn)generateBtn.textContent='Regenerate Tournament';
+  // #129 part 3: a full regenerate marks its save, so the server keeps the copy it replaces (Undo regenerate).
+  if(regenerating)ksmMarkRegenerateSave();
+  renderAll();show('registration');regTab('pools');scheduleAutoSave();
 }
 function regenerateSingleDivision(div){
   if(!['ready','new'].includes(divisionRegenerationStatus(div))){alert('This division cannot be regenerated after matches have started.');return}
