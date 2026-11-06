@@ -2,10 +2,14 @@
 //
 // app/index.html        markup; references /app.css and /app.js
 // app/styles/NN-*.css   concatenated in file-name order into /app.css
-// app/js/NN-*.js        concatenated in file-name order into /app.js, ONE classic script:
-//                       inline on*="..." handlers need globals; no function name may be declared twice (
-//                       tests/no-duplicate-declarations-test.mjs).
-//                       Separate <script> tags or ES modules would change the globals.
+// app/js/NN-*.js        concatenated in file-name order into /app.js, loaded as ONE ES module
+//                       (<script type="module">; step 3c of #136). Its top-level names are module
+//                       scoped, so whatever inline on*="..." handlers, app/react, the tests and
+//                       window.NAME reach is exported to window by the last file,
+//                       app/js/99-window-exports.js (tests/window-exports-test.mjs keeps it complete);
+//                       no function name may be declared twice (tests/no-duplicate-declarations-test.mjs).
+//                       The concatenation is still valid as a classic script: node tests evaluate it
+//                       that way (singleFileSource()). Splitting it into modules is step 3d.
 // app/*.html           other pages (e.g. overlay.html): extra Vite entries, built with
 //                       ES-module scripts from app/react/ (React + strict TypeScript) and
 //                       served without the .html (/overlay); none of them load app.js
@@ -13,7 +17,8 @@
 // app/engine/           pure strict-TS engine modules (no DOM, no globals). Bundled by
 //                       engineScript() into ONE classic IIFE script defining `KSMEngine`,
 //                       which index.html loads BEFORE app.js (/engine.js in dev, hashed in
-//                       the build); app/js delegates to it, app/react imports the modules.
+//                       the build), so `KSMEngine` is a global app.js reads; app/js delegates to it,
+//                       app/react imports the modules.
 // app/service-worker.js service worker (the build rewrites /app.css and /app.js to the
 //                       hashed bundle names in APP_SHELL)
 // app/public/           static files, copied to the site root unchanged
@@ -36,7 +41,7 @@ export const SCRIPT_URL = '/app.js';
 export const ENGINE_DIR = path.join(APP_DIR, 'engine');
 export const ENGINE_URL = '/engine.js';
 export const STYLE_TAG = `<link rel="stylesheet" href="${STYLE_URL}">`;
-export const SCRIPT_TAG = `<script src="${SCRIPT_URL}"></script>`;
+export const SCRIPT_TAG = `<script type="module" src="${SCRIPT_URL}"></script>`;
 export const VERSION_PLACEHOLDER = '__KSM_VERSION__';
 /** package.json "version", read fresh (a release bumps it while the dev server runs). */
 export const appVersion = () => JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
@@ -67,7 +72,8 @@ export const indexHtml = () => fs.readFileSync(path.join(APP_DIR, 'index.html'),
 export const serviceWorker = () => fs.readFileSync(path.join(APP_DIR, 'service-worker.js'), 'utf8');
 
 // index.html with the stylesheet and script inlined, as the app was a single file
-// before the split. Tests that read the source (grep checks, extractFunction) use this.
+// before the split. Tests that read the source (grep checks, extractFunction) use this. The script
+// is inlined as a classic script (not type="module"): the tests evaluate pieces of it in vm contexts.
 export function singleFileSource() {
   return indexHtml()
     .replace(STYLE_TAG, () => `<style>\n${appStyles()}</style>`)

@@ -6,7 +6,10 @@
 app/                 Front-end source (built by Vite into dist/, which is not committed)
   index.html          Markup
   styles/NN-*.css     Stylesheet, concatenated in file-name order
-  js/NN-*.js          App code, concatenated in file-name order into ONE classic script
+  js/NN-*.js          App code, concatenated in file-name order into ONE ES module
+                      (<script type="module">; 99-window-exports.js, the last file, puts on
+                      window what inline handlers, app/react and the tests reach: #136 step 3c;
+                      tests/window-exports-test.mjs keeps the list complete)
                       (00-path-urls.js: path URLs, M.9: an old ?tournament= link becomes its
                       path first, ksmLinkParams()/ksmLinkUrl(); 00-react-bridge.js: the
                       ksm:state-changed event for React islands)
@@ -77,7 +80,7 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         stay legacy)
   engine/             Pure tournament-engine modules, strict TypeScript (own tsconfig.json):
                         no DOM, no globals, explicit inputs/outputs. index.ts is bundled
-                        into a classic script defining `KSMEngine`, loaded before app.js;
+                        into a classic script defining `KSMEngine`, loaded before app.js (a module);
                         app/js functions delegate to it, app/react imports the .ts files.
                         pools.ts: poolSizes; routes.ts: the path URL scheme (M.9), shared
                         by the classic app, the overlay page and the tests; divisions.ts: division renames (#25);

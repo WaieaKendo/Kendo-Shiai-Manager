@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / 'app'
 DIST = ROOT / 'dist'
 STYLE_TAG = '<link rel="stylesheet" href="/app.css">'
-SCRIPT_TAG = '<script src="/app.js"></script>'
+SCRIPT_TAG = '<script type="module" src="/app.js"></script>'
 
 
 def _read_all(folder, ext):
