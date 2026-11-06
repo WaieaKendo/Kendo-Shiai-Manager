@@ -18,18 +18,21 @@ const dist = rel => fs.readFileSync(path.join(DIST_DIR, rel), 'utf8');
 
 const built = dist('index.html');
 const css = built.match(/<link rel="stylesheet" href="\/(assets\/app-\w+\.css)">/)?.[1];
-const js = built.match(/<script src="\/(assets\/app-\w+\.js)"><\/script>/)?.[1];
+const js = built.match(/<script type="module" src="\/(assets\/app-\w+\.js)"><\/script>/)?.[1];
 const engine = built.match(/<script src="\/(assets\/engine-\w+\.js)"><\/script>/)?.[1];
-check(css && js && engine, 'dist/index.html links one hashed stylesheet and two classic (non-module) scripts: engine, app');
+check(css && js && engine, 'dist/index.html links one hashed stylesheet, the classic engine script and the app script as an ES module');
 const modules = [...built.matchAll(/\n\s*<script type="module" crossorigin src="\/(assets\/index-[\w-]+\.js)"><\/script>/g)];
 const court = modules[0]?.[1];
 // The screens' entry chunk and the chunks it imports (React, mountIsland), as Vite wrote them.
 const courtFiles = court ? [court, ...[...dist(court).matchAll(/^import .* from "\.\/([\w.-]+\.js)";$/gm)].map(m => `assets/${m[1]}`)] : [];
-check(modules.length === 1 && [...built.matchAll(/type="module"/g)].length === 1, 'one module script: the React screens (court, Live Scores, TV, Results, Overview, Tournament Library, Pools, Setup, Registration, the shell)');
+check(modules.length === 1 && [...built.matchAll(/type="module"/g)].length === 2, 'two module scripts: app.js, then the React screens (court, Live Scores, TV, Results, Overview, Tournament Library, Pools, Setup, Registration, the shell)');
 check(court && dist(court).includes('ksm:court-scoreboard') && dist(court).includes('ksm:live-scores') && dist(court).includes('ksm:tv') && dist(court).includes('ksm:results') && dist(court).includes('ksm:overview') && dist(court).includes('ksm:library') && dist(court).includes('ksm:pools') && dist(court).includes('ksm:setup-divisions') && dist(court).includes('ksm:setup-header') && dist(court).includes('ksm:registration-players') && dist(court).includes('ksm:registration-status') && dist(court).includes('ksm:registration-teams') && dist(court).includes('ksm:registration-exhibitions') && dist(court).includes('ksm:registration-tab') && dist(court).includes('ksm:shell-nav') && dist(court).includes('ksm:shell-header') && dist(court).includes('ksm:shell-dialogs') && courtFiles.every(f => fs.existsSync(path.join(DIST_DIR, f)) && !dist(f).includes('function performCourtAction(')),
   `screens module bundled from app/react/features/court/, app/react/features/live-scores/, app/react/features/tv/, app/react/features/results/, app/react/features/overview/, app/react/features/library/, app/react/features/pools/, app/react/features/setup/, app/react/features/registration/ and app/react/features/shell/ without the classic app (${courtFiles.join(', ')})`);
-check(built.replace(modules[0]?.[0] ?? '', '') === withVersion(indexHtml()).replace(STYLE_TAG, `<link rel="stylesheet" href="/${css}">`).replace(SCRIPT_TAG, `<script src="/${engine}"></script>\n<script src="/${js}"></script>`),
-  'dist/index.html = app/index.html apart from the bundle URLs, the screens module and the version, with the engine script right before app.js');
+// Vite hoists the screens module into <head>; the build moves it right after app.js, because modules run in
+// document order and the React screens need app.js's globals (window.* exports) first.
+const screensTag = modules[0]?.[0].trim() ?? '';
+check(built.replace(`\n${screensTag}`, '') === withVersion(indexHtml()).replace(STYLE_TAG, `<link rel="stylesheet" href="/${css}">`).replace(SCRIPT_TAG, `<script src="/${engine}"></script>\n<script type="module" src="/${js}"></script>`) && built.indexOf(`</script>\n${screensTag}`) > built.indexOf(`src="/${js}"`),
+  'dist/index.html = app/index.html apart from the bundle URLs, the screens module and the version, with the engine script right before app.js and the screens module right after it');
 check(engine && dist(engine) === await engineScript() && /^var KSMEngine = /.test(dist(engine)), 'engine script = app/engine/index.ts as a classic IIFE defining KSMEngine');
 check(css && dist(css) === appStyles(), 'stylesheet = app/styles/*.css in order, untransformed');
 check(js && dist(js) === withVersion(appScript()), 'script = app/js/*.js in order, untransformed apart from the version');

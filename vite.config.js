@@ -15,12 +15,14 @@ const DEV_SERVICE_WORKER = `self.addEventListener('install', () => self.skipWait
 self.addEventListener('activate', event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => self.clients.claim())));
 `;
 
-// The app is still one classic script plus one stylesheet (see scripts/app-sources.mjs).
-// This plugin serves them in dev and emits them verbatim (no transform or minify) as
+// The app is one script (app/js/*.js concatenated, loaded as an ES module, step 3c of #136) plus one
+// stylesheet (see scripts/app-sources.mjs). This plugin serves them in dev and emits them verbatim
+// (no Vite bundling, transform, minify or tree-shaking: app.js is the concatenation as written) as
 // hashed files in the build; Vite handles index.html and copies app/public/.
-// The engine (app/engine/*.ts) is bundled into a second classic script that defines
-// `KSMEngine`; the plugin adds its tag right before app.js (app/index.html is unchanged).
-// Only index.html gets the classic bundle; extra pages (app/*.html) are ordinary Vite
+// The engine (app/engine/*.ts) is bundled into a classic script that defines `KSMEngine`; the plugin
+// adds its tag right before app.js (app/index.html is unchanged). Order: engine.js (classic, runs at
+// once) -> app.js (module) -> the screens module below; modules run in document order, after parsing.
+// Only index.html gets the app.js / engine.js tags; extra pages (app/*.html) are ordinary Vite
 // entries with module scripts from app/react/.
 // index.html also gets one module script after app.js: the React screens' islands
 // (SCREENS_MODULE: the court screen, Live Scores, the TV display and Results), which Vite bundles like any page script.
@@ -90,7 +92,7 @@ function ksmClassicBundle() {
         if (!built) return html;
         return html
           .replace(STYLE_TAG, () => `<link rel="stylesheet" href="/${built.cssFile}" vite-ignore>`)
-          .replace(SCRIPT_TAG, () => `<script src="/${built.engineFile}" vite-ignore></script>\n<script src="/${built.jsFile}" vite-ignore></script>\n${SCREENS_TAG}`);
+          .replace(SCRIPT_TAG, () => `<script src="/${built.engineFile}" vite-ignore></script>\n<script type="module" src="/${built.jsFile}" vite-ignore></script>\n${SCREENS_TAG}`);
       },
     },
     generateBundle(_options, bundle) {
@@ -117,7 +119,19 @@ export default defineConfig({
   plugins: [react(), ksmClassicBundle(), {
     // Vite drops the vite-ignore attribute but leaves its space behind.
     name: 'ksm-tidy-bundle-tags',
-    transformIndexHtml: { order: 'post', handler: html => html.replace(/(\/assets\/(?:app|engine)-\w+\.(?:css|js)") >/g, '$1>') },
+    transformIndexHtml: {
+      order: 'post',
+      handler(html) {
+        html = html.replace(/(\/assets\/(?:app|engine)-\w+\.(?:css|js)") >/g, '$1>');
+        // Vite hoists the screens module into <head>, where it would run BEFORE app.js, which is a module
+        // too and sits at the end of <body> (modules run in document order). Put it right after app.js,
+        // as the dev server serves them: engine.js (classic) -> app.js -> the React screens.
+        const screens = /\n\s*(<script type="module" crossorigin src="\/assets\/index-[\w-]+\.js"><\/script>)/;
+        const tag = html.match(screens)?.[1];
+        if (!tag) return html;
+        return html.replace(screens, '').replace(/<script type="module" src="\/assets\/app-\w+\.js"><\/script>/, app => `${app}\n${tag}`);
+      },
+    },
   }],
   build: {
     outDir: DIST_DIR,

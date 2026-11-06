@@ -11,7 +11,7 @@ import { html, worker, pkg, readRepoFile } from './lib/ksm-source.mjs';
 const v = pkg.version;
 const dist = rel => fs.readFileSync(path.join(DIST_DIR, rel), 'utf8');
 const builtHtml = dist('index.html');
-const appJs = builtHtml.match(/<script src="\/(assets\/app-\w+\.js)"><\/script>/)?.[1];
+const appJs = builtHtml.match(/<script type="module" src="\/(assets\/app-\w+\.js)"><\/script>/)?.[1];
 const builtJs = appJs ? dist(appJs) : '';
 const builtSw = dist('service-worker.js');
 const lock = JSON.parse(readRepoFile('package-lock.json'));
