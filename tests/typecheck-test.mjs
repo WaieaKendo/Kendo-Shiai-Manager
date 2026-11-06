@@ -1,12 +1,12 @@
 // `npm run typecheck` (tsc --noEmit, both projects) must pass, so type errors fail `npm test`.
-// Classic app/js: only files that start with `// @ts-check` are checked (tsconfig.json:
+// Classic app/js and app/modules: only files that start with `// @ts-check` are checked (tsconfig.json:
 // checkJs off). app/react: strict TypeScript, all files (app/react/tsconfig.json).
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { APP_DIR, ROOT, scriptFiles } from '../scripts/app-sources.mjs';
+import { APP_DIR, ROOT, scriptFiles, moduleFiles } from '../scripts/app-sources.mjs';
 
-const checked = scriptFiles().filter(f => fs.readFileSync(f, 'utf8').startsWith('// @ts-check'));
+const checked = [...scriptFiles(), ...moduleFiles()].filter(f => fs.readFileSync(f, 'utf8').startsWith('// @ts-check'));
 for (const project of [ROOT, path.join(APP_DIR, 'react')]) {
   const tsc = spawnSync(process.execPath, [path.join(ROOT, 'node_modules', 'typescript', 'bin', 'tsc'), '--noEmit', '-p', project], { cwd: ROOT, encoding: 'utf8' });
   if (tsc.status !== 0) {

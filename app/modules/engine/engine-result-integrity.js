@@ -1,4 +1,5 @@
 // @ts-check
+import {state} from '../app-state.js';
 /**
  * @param {Match} m
  * @param {string} winner
@@ -35,14 +36,14 @@ function pointsFor(m,side){return KSMEngine.pointsFor(m,side);// moved to app/en
  * @param {Match} m
  * @returns {string}
  */
-function winnerOf(m){
+export function winnerOf(m){
   return KSMEngine.winnerOf(m);
 }
 /**
  * @param {Match} m
  * @returns {CompletedResult}
  */
-function completedResultSnapshot(m){
+export function completedResultSnapshot(m){
   return /** @type {CompletedResult} */(KSMEngine.completedResultSnapshot(m,new Date().toISOString()));
 }
 /**
@@ -50,7 +51,7 @@ function completedResultSnapshot(m){
  * @param {string} [source]
  * @returns {{restored: number, created: number, reopened: number}}
  */
-function repairCompletedMatchResults(targetState=state,source='load'){
+export function repairCompletedMatchResults(targetState=state,source='load'){
   const plan=KSMEngine.planCompletedResultRepairs(targetState?.allMatches,new Date().toISOString());
   const all=/** @type {Record<string, Match[]>} */(targetState?.allMatches);
   plan.repairs.forEach(r=>{
@@ -67,4 +68,3 @@ function repairCompletedMatchResults(targetState=state,source='load'){
   if(restored||created||reopened)console.info('[KSM Result Integrity] Normalized completed match results',{source,restored,created,reopened});
   return {restored,created,reopened};
 }
-

@@ -1,56 +1,4 @@
 // @ts-check
-const BRACKET_SLOT_TEMPLATES={
-  4:[{slot:1,quadrant:0,protectedSeed:1},{slot:2,quadrant:0},{slot:3,quadrant:1,protectedSeed:2},{slot:4,quadrant:1}],
-  8:[{slot:1,quadrant:0,protectedSeed:1},{slot:2,quadrant:0},{slot:3,quadrant:1,protectedSeed:4},{slot:4,quadrant:1},{slot:5,quadrant:2,protectedSeed:3},{slot:6,quadrant:2},{slot:7,quadrant:3,protectedSeed:2},{slot:8,quadrant:3}],
-  16:[{slot:1,quadrant:0,protectedSeed:1},{slot:2,quadrant:0},{slot:3,quadrant:0},{slot:4,quadrant:0},{slot:5,quadrant:1,protectedSeed:4},{slot:6,quadrant:1},{slot:7,quadrant:1},{slot:8,quadrant:1},{slot:9,quadrant:2,protectedSeed:3},{slot:10,quadrant:2},{slot:11,quadrant:2},{slot:12,quadrant:2},{slot:13,quadrant:3,protectedSeed:2},{slot:14,quadrant:3},{slot:15,quadrant:3},{slot:16,quadrant:3}],
-  32:[{slot:1,quadrant:0,protectedSeed:1},{slot:9,quadrant:1,protectedSeed:4},{slot:17,quadrant:2,protectedSeed:3},{slot:25,quadrant:3,protectedSeed:2}]
-};
-/**
- * @param {number} n
- * @returns {number}
- */
-function singleElimBracketSize(n){
-  return KSMEngine.singleElimBracketSize(n);
-}
-function protectedSeedQuadrant(seed){
-  return KSMEngine.protectedSeedQuadrant(seed);
-}
-
-function singleElimSlotInfo(n){
-  return KSMEngine.singleElimSlotInfo(n,teamBracketNodesForCount(n));
-}
-function chooseBestSeedSlot(q,positions,info,allPositions){
-  return KSMEngine.chooseBestSeedSlot(q,positions,info,allPositions);
-}
-/**
- * Bracket order: seeds in protected quadrants, then dojo-separated fill.
- * @param {Competitor[]} comps
- * @returns {Competitor[]}
- */
-function placeIndividualsForSingleElim(comps){
-  return KSMEngine.placeIndividualsForSingleElim(comps,comps.length>1?teamBracketNodesForCount(comps.length):[]);
-}
-function singleElimOrderMap(div){let map={};(state.singleElimNodes?.[div]||[]).forEach((n,i)=>map[n.id]=i);return map;}
-function sortIndividualSingleElimMatches(div,arr){let order=singleElimOrderMap(div);arr.sort((a,b)=>{
-  let oa=order[a.elimNodeId]??9999, ob=order[b.elimNodeId]??9999;
-  if(oa!==ob)return oa-ob;
-  return (a.bracketSlot||0)-(b.bracketSlot||0);
-});return arr;}
-function dedupeSingleElimMatches(div){
-  let arr=state.allMatches[div]||[];
-  let seen=new Set(), out=[];
-  sortIndividualSingleElimMatches(div,arr).forEach(m=>{
-    if(m.singleElim){
-      let k=m.elimNodeId||m.position+'-'+(m.bracketSlot||'');
-      if(seen.has(k))return;
-      seen.add(k);
-    }
-    out.push(m);
-  });
-  state.allMatches[div]=out;
-  return out;
-}
-
 /**
  * One Match Object per bracket node (state.singleElimNodes), filled as winners are known.
  * @param {string} div
@@ -66,26 +14,12 @@ function buildIndividualSingleElimMatches(div,comps){
   return arr;
 }
 /**
- * @param {BracketSource|null} side
- * @param {Competitor[]} comps
- * @param {string} div
- * @returns {{name: string, dojo: string}|null}
- */
-function indivSide(side,comps,div){
-  return KSMEngine.indivSide(side,comps,state.singleElimNodes?.[div]||[]);
-}
-function indivNodeHasMatch(arr,node){return KSMEngine.indivNodeHasMatch(arr,node);// moved to app/engine/bracket-helpers.ts
-  }
-/**
  * @param {Match} m
  */
 function maybeAdvanceIndividualSingleElim(m){
   if(!m||!m.singleElim)return;
   let div=m.division,arr=state.allMatches[div]||[],comps=(state.singleElimComps&&state.singleElimComps[div])||eligibleIndividuals(div).filter(c=>c.name);
   syncIndividualSingleElim(div,arr,comps);
-}
-function sideLabelGeneric(side,div){
-  return KSMEngine.sideLabelGeneric(side,state.singleElimComps?.[div]||[],state.singleElimNodes?.[div]||[]);
 }
 function championshipSideLabel(side,div){
   if(!side)return 'BYE';
