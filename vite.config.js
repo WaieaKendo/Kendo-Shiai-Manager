@@ -6,7 +6,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import {
   APP_DIR, DIST_DIR, STYLE_TAG, SCRIPT_TAG, STYLE_URL, SCRIPT_URL, ENGINE_URL,
-  appStyles, appScript, engineScript, serviceWorker, styleFiles, scriptFiles, engineFiles, extraPages,
+  appStyles, appBundle, engineScript, serviceWorker, styleFiles, scriptFiles, moduleFiles, engineFiles, extraPages,
   ROOT, withVersion,
 } from './scripts/app-sources.mjs';
 import { servesOverlay, servesAppShell } from './app/engine/routes.ts';
@@ -15,10 +15,11 @@ const DEV_SERVICE_WORKER = `self.addEventListener('install', () => self.skipWait
 self.addEventListener('activate', event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => self.clients.claim())));
 `;
 
-// The app is one script (app/js/*.js concatenated, loaded as an ES module, step 3c of #136) plus one
-// stylesheet (see scripts/app-sources.mjs). This plugin serves them in dev and emits them verbatim
-// (no Vite bundling, transform, minify or tree-shaking: app.js is the concatenation as written) as
-// hashed files in the build; Vite handles index.html and copies app/public/.
+// The app is one script (app/js/*.js concatenated into the entry, plus the app/modules it imports, loaded
+// as an ES module; steps 3c and 3d of #136) plus one stylesheet (see scripts/app-sources.mjs). This plugin
+// serves them in dev and emits them as hashed files in the build; Vite handles index.html and copies
+// app/public/. app.js is bundled by rolldown (appBundle(): ONE ESM file, no code splitting, no minify,
+// no tree-shaking), per request in dev and once in buildStart; the stylesheet is emitted verbatim.
 // The engine (app/engine/*.ts) is bundled into a classic script that defines `KSMEngine`; the plugin
 // adds its tag right before app.js (app/index.html is unchanged). Order: engine.js (classic, runs at
 // once) -> app.js (module) -> the screens module below; modules run in document order, after parsing.
@@ -56,13 +57,13 @@ function ksmClassicBundle() {
   return {
     name: 'ksm-classic-bundle',
     configureServer(server) {
-      server.watcher.add([...styleFiles(), ...scriptFiles(), ...engineFiles()]);
+      server.watcher.add([...styleFiles(), ...scriptFiles(), ...moduleFiles(), ...engineFiles()]);
       server.middlewares.use(async (req, res, next) => {
         const url = req.url.split('?')[0];
         const send = (type, body) => { res.setHeader('Content-Type', type); res.setHeader('Cache-Control', 'no-store'); res.end(body); };
         if (url === '/print/theme.css') return send('text/css; charset=utf-8', printTheme(appStyles()));
         if (url === STYLE_URL) return send('text/css; charset=utf-8', appStyles());
-        if (url === SCRIPT_URL) return send('text/javascript; charset=utf-8', withVersion(appScript()));
+        if (url === SCRIPT_URL) return send('text/javascript; charset=utf-8', withVersion(await appBundle()));
         if (url === ENGINE_URL) return send('text/javascript; charset=utf-8', await engineScript());
         // No offline cache in dev, so edits show on reload: this worker only clears old caches.
         if (url === '/service-worker.js') return send('text/javascript; charset=utf-8', DEV_SERVICE_WORKER);
@@ -77,8 +78,8 @@ function ksmClassicBundle() {
       });
     },
     async buildStart() {
-      for (const file of [...styleFiles(), ...scriptFiles(), ...engineFiles(), path.join(ROOT, 'package.json')]) this.addWatchFile(file);
-      const css = appStyles(), js = withVersion(appScript()), engine = await engineScript();
+      for (const file of [...styleFiles(), ...scriptFiles(), ...moduleFiles(), ...engineFiles(), path.join(ROOT, 'package.json')]) this.addWatchFile(file);
+      const css = appStyles(), js = withVersion(await appBundle()), engine = await engineScript();
       built = { css, js, engine, cssFile: hashed('app', '.css', css), jsFile: hashed('app', '.js', js), engineFile: hashed('engine', '.js', engine) };
     },
     transformIndexHtml: {

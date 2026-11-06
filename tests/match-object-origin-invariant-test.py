@@ -52,7 +52,10 @@ with sync_playwright() as p:
 
     # Static source contract: championship synchronizer contains no array insertion.
     source=app_source()
-    section=source[source.index('function recomputeChampionshipAdvancement'):source.index('function firstRoundName',source.index('function recomputeChampionshipAdvancement'))]
+    # recomputeChampionshipAdvancement(), maybeAdvanceChampionship() and maybeCreateChampionship(), which end where the next
+    # function begins (firstRoundName() used to follow them; step 3d of #136 moved it to app/modules).
+    start=source.index('function recomputeChampionshipAdvancement')
+    section=source[start:source.index('\nfunction ',source.index('function maybeCreateChampionship',start))]
     assert '.push(' not in section and '.splice(' not in section, section
 
     assert not errors,errors

@@ -43,6 +43,7 @@ for (const file of scriptFiles()) {
   for (const s of parseAst(fs.readFileSync(file, 'utf8'), { lang: 'js' }).body) {
     if (s.type === 'FunctionDeclaration' || s.type === 'ClassDeclaration') topLevel.set(s.id.name, s.type === 'FunctionDeclaration' ? 'function' : 'class');
     else if (s.type === 'VariableDeclaration') s.declarations.forEach(d => patternNames(d.id).forEach(n => topLevel.set(n, s.kind)));
+    else if (s.type === 'ImportDeclaration') s.specifiers.forEach(sp => topLevel.set(sp.local.name, 'import'));
   }
 }
 // Handler code: the names it calls, not the text of its string arguments ('W', 'setup').
@@ -68,7 +69,7 @@ else {
 }
 const exported = new Set([...plain, ...live]);
 for (const n of plain) if (live.has(n)) problems.push(`${n} is exported twice (Object.assign and defineProperties)`);
-for (const n of exported) if (!topLevel.has(n)) problems.push(`${EXPORTS_FILE} exports ${n}, which is not a top-level declaration in app/js`);
+for (const n of exported) if (!topLevel.has(n)) problems.push(`${EXPORTS_FILE} exports ${n}, which is not a top-level declaration or import in app/js`);
 
 // --- what must be exported, and why ---
 const need = new Map();
@@ -92,7 +93,7 @@ const stringsOf = (file, lang) => {
 };
 const handlerRe = /\bon[a-z]+\s*=\s*(["'])([\s\S]*?)(?:\1|$)/g;
 const reactFiles = walkFiles('app/react', ['.ts', '.tsx']);
-for (const f of [...walkFiles('app/js', ['.js']).filter(f => f !== EXPORTS_FILE), ...reactFiles]) {
+for (const f of [...walkFiles('app/js', ['.js']).filter(f => f !== EXPORTS_FILE), ...walkFiles('app/modules', ['.js']), ...reactFiles]) {
   const lang = f.endsWith('.tsx') ? 'tsx' : f.endsWith('.ts') ? 'ts' : 'js';
   const strings = stringsOf(f, lang);
   for (const s of strings) for (const m of s.matchAll(handlerRe)) handlerTokens(m[2]).forEach(t => needed(t, `handler in a string, ${path.basename(f)}`));
@@ -100,7 +101,7 @@ for (const f of [...walkFiles('app/js', ['.js']).filter(f => f !== EXPORTS_FILE)
 }
 
 // window.NAME in app/js
-for (const f of walkFiles('app/js', ['.js']).filter(f => f !== EXPORTS_FILE))
+for (const f of [...walkFiles('app/js', ['.js']).filter(f => f !== EXPORTS_FILE), ...walkFiles('app/modules', ['.js'])])
   for (const m of read(f).matchAll(/\b(?:window|globalThis)\.([A-Za-z_$][\w$]*)/g)) needed(m[1], `window.${m[1]} in ${path.basename(f)}`);
 
 // what app/react types or reads off window: *Window / *Globals interfaces, `window as unknown as {...}`, w.NAME
@@ -165,6 +166,10 @@ for (const f of fs.readdirSync(path.join(ROOT, 'tests')).filter(f => f.endsWith(
 for (const f of reactFiles) for (const m of read(f).matchAll(/\b(?:w|window|\w+Window\(\))\.([A-Za-z_$][\w$]*)\s*=(?![=>])/g)) mustBeLive(m[1], `window.${m[1]} = in ${path.basename(f)}`);
 // A const cannot be assigned: nothing to keep live.
 for (const [n] of accessor) if (topLevel.get(n) === 'const' || topLevel.get(n) === 'class') accessor.delete(n);
+// An imported name cannot be assigned from the entry (or through window): a test or React that replaces it
+// (window.NAME = ..., a KSMTest setter) would never be seen by the module's own calls. Keep such a function
+// declared in app/js, where it can be exported as a live accessor.
+for (const [n, why] of accessor) if (topLevel.get(n) === 'import') { problems.push(`${n} is imported from a module but is replaced from outside (${[...why][0]}); declare it in app/js instead`); accessor.delete(n); }
 
 const missing = [...need.keys()].filter(n => !exported.has(n)).sort();
 if (missing.length) problems.push(`not exported but reached from outside app.js (${missing.length}); add to ${EXPORTS_FILE}:\n    ` + missing.map(n => `${n}  <- ${[...need.get(n)][0]}`).join('\n    '));

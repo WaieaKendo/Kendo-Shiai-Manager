@@ -34,7 +34,7 @@ const checks = [
   [!hardCoded.length, `no hard-coded release version in the sources, only ${VERSION_PLACEHOLDER}${hardCoded.length ? ': ' + hardCoded.join(', ') : ''}`],
   [footer.includes(`About: Kendo Shiai Manager <span class="version-badge">v${v}</span>`), 'Library footer About version matches package.json'],
   [builtHtml.includes(`<span class="version-badge">v${v}</span>`) && builtHtml.includes('<title>Kendo Shiai Manager</title>'), 'built HTML badge matches package.json; title has no version'],
-  [builtJs.split(`appVersion:'${v}'`).length - 1 === 2, 'built app.js diagnostics downloads carry the version (2)'],
+  [(builtJs.match(new RegExp(`appVersion:\\s*['"]${v.replace(/[.+]/g, '\\$&')}['"]`, 'g')) || []).length === 2, 'built app.js diagnostics downloads carry the version (2)'],
   [builtSw.includes(`const CACHE_NAME = 'ksm-shell-v${v}'`), 'built service worker cache name matches (forces PWA update on release)'],
   [health.version === v, `/api/health version matches (${health.version})`],
   // An "## Unreleased — …" section on top (notes for the next release, written ahead) is allowed.

@@ -30,9 +30,11 @@ Import from `index.ts` only: it is the public API.
 Engine functions take plain data (matches, pools, nodes, settings) and **return new values or
 a plan** (`{ updates, winners, added, missing, repairs, … }`). They never change their inputs.
 The only exception is the pool objects that `generateDivision` creates itself: it sets `court`
-on them. Each moved legacy function in `app/js` keeps its name and position. Its body is a
+on them. Each moved legacy function keeps its name. Its body is a
 marked `engine-bridge` delegation that reads `state`, calls `KSMEngine.*`, and writes the result
-back. Settings come from `tournamentSettings()`.
+back. Settings come from `tournamentSettings()`. Since #136 step 3d most of these adapters live in
+`app/modules/engine/engine-*.js` (ES modules importing `state` from `app/modules/app-state.js`, still
+calling the `KSMEngine` global); the ones that still call an `app/js` function stay in `app/js`.
 
 These parts are still in `app/js`, and why:
 

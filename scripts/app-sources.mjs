@@ -2,14 +2,21 @@
 //
 // app/index.html        markup; references /app.css and /app.js
 // app/styles/NN-*.css   concatenated in file-name order into /app.css
-// app/js/NN-*.js        concatenated in file-name order into /app.js, loaded as ONE ES module
+// app/js/NN-*.js        concatenated in file-name order into the ENTRY of /app.js, loaded as ONE ES module
 //                       (<script type="module">; step 3c of #136). Its top-level names are module
 //                       scoped, so whatever inline on*="..." handlers, app/react, the tests and
 //                       window.NAME reach is exported to window by the last file,
 //                       app/js/99-window-exports.js (tests/window-exports-test.mjs keeps it complete);
-//                       no function name may be declared twice (tests/no-duplicate-declarations-test.mjs).
-//                       The concatenation is still valid as a classic script: node tests evaluate it
-//                       that way (singleFileSource()). Splitting it into modules is step 3d.
+//                       no name may be declared twice (tests/no-duplicate-declarations-test.mjs).
+//                       Since step 3d the entry may `import` (app/js/00-imports.js lists the imports,
+//                       one single-line `import {a,b} from '...';` per module) and /app.js is the
+//                       rolldown bundle of entry + modules (appBundle()), still ONE ES module file.
+// app/modules/          the modules the entry imports, plain `.js` with `// @ts-check` (step 3d of #136,
+//                       area by area: app-state.js, engine/engine-*.js; the court area is next). A module
+//                       never imports from the entry. Tests that read or run the app's code see the
+//                       entry plus the modules as one classic script (singleFileSource(), classicAppScript():
+//                       the modules in import order with `import` lines removed and `export ` dropped;
+//                       tests/ksm_source.py does the same).
 // app/*.html           other pages (e.g. overlay.html): extra Vite entries, built with
 //                       ES-module scripts from app/react/ (React + strict TypeScript) and
 //                       served without the .html (/overlay); none of them load app.js
@@ -51,13 +58,61 @@ export const withVersion = text => text.replaceAll(VERSION_PLACEHOLDER, appVersi
 const ordered = (dir, ext) => fs.readdirSync(dir).filter(f => f.endsWith(ext)).sort().map(f => path.join(dir, f));
 export const styleFiles = () => ordered(path.join(APP_DIR, 'styles'), '.css');
 export const scriptFiles = () => ordered(path.join(APP_DIR, 'js'), '.js');
+export const MODULES_DIR = path.join(APP_DIR, 'modules');
+/** Every app/modules/**\/*.js file, sorted by path. */
+export const moduleFiles = () => fs.readdirSync(MODULES_DIR, { recursive: true }).filter(f => f.endsWith('.js')).sort().map(f => path.join(MODULES_DIR, f));
 const concat = files => files.map(f => fs.readFileSync(f, 'utf8')).join('');
 
 /** Extra entry pages: every app/*.html except index.html (file names, sorted). */
 export const extraPages = () => fs.readdirSync(APP_DIR).filter(f => f.endsWith('.html') && f !== 'index.html').sort().concat(Object.values(printDocuments));
 
 export const appStyles = () => concat(styleFiles());
+/** The entry of app.js: app/js/*.js concatenated (its `import` lines resolve against app/js). */
 export const appScript = () => concat(scriptFiles());
+
+const ENTRY_ID = path.join(APP_DIR, 'js', '__app-entry__.js');
+/**
+ * /app.js: the entry (appScript()) and the modules it imports, bundled by rolldown into ONE ES module
+ * file: no code splitting, no minify, no tree-shaking (the entry's top-level code is reached through
+ * `window`, by inline handlers). rolldown keeps JSDoc and legal comments only; plain // and /* comments
+ * are dropped from the output (the sources keep them). Returns the code (version placeholders intact).
+ */
+export async function appBundle() {
+  const bundle = await rolldown({
+    input: ENTRY_ID, logLevel: 'silent', treeshake: false,
+    plugins: [{ name: 'ksm-app-entry', resolveId: id => (id === ENTRY_ID ? id : null), load: id => (id === ENTRY_ID ? appScript() : null) }],
+  });
+  try {
+    const { output } = await bundle.generate({ format: 'esm', minify: false, codeSplitting: false, comments: true });
+    if (output.length !== 1) throw new Error(`app.js must be one file, rolldown produced ${output.length}`);
+    return output[0].code;
+  } finally { await bundle.close(); }
+}
+
+const IMPORT_LINE = /^import \{([^}]*)\} from '([^']+)';?[ \t]*\r?\n/gm;
+const hasUnsupportedModuleSyntax = text => /^\s*(?:import\s*[\w{*'"]|export\s+(?:\{|\*|default))/m.test(text.replace(IMPORT_LINE, ''));
+/**
+ * The entry plus its modules as ONE classic script, for tests that read or run the app's code: each module
+ * (in import order, dependencies first, each once) with its `import` lines removed and `export ` dropped
+ * from its declarations, then the entry without its `import` lines. Only single-line `import {a,b} from '...';`
+ * and `export function|const|let|class|async function` are supported (anything else throws).
+ * tests/ksm_source.py does the same.
+ */
+export function classicAppScript() {
+  const done = new Set(), out = [];
+  const strip = (file, text) => {
+    if (hasUnsupportedModuleSyntax(text)) throw new Error(`${path.relative(ROOT, file)}: only single-line \`import {a,b} from '...';\` and \`export function|const|let|class\` are supported`);
+    for (const m of text.matchAll(IMPORT_LINE)) visit(path.resolve(path.dirname(file), m[2]));
+    return text.replace(IMPORT_LINE, '');
+  };
+  const visit = file => {
+    if (done.has(file)) return;
+    done.add(file);
+    out.push(strip(file, fs.readFileSync(file, 'utf8')).replace(/^export (?=(?:async\s+)?function\b|const\b|let\b|class\b)/gm, ''));
+  };
+  const entry = scriptFiles().map(f => strip(f, fs.readFileSync(f, 'utf8'))).join('');
+  return out.join('') + entry;
+}
 export const engineFiles = () => ordered(ENGINE_DIR, '.ts');
 
 /** app/engine/index.ts as a classic script: `var KSMEngine = (function(exports){...})({});`. */
@@ -77,5 +132,5 @@ export const serviceWorker = () => fs.readFileSync(path.join(APP_DIR, 'service-w
 export function singleFileSource() {
   return indexHtml()
     .replace(STYLE_TAG, () => `<style>\n${appStyles()}</style>`)
-    .replace(SCRIPT_TAG, () => `<script>\n${appScript()}</script>`);
+    .replace(SCRIPT_TAG, () => `<script>\n${classicAppScript()}</script>`);
 }

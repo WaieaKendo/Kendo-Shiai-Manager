@@ -10,7 +10,7 @@ import { printTheme } from '../scripts/print-theme.mjs';
 import { printDocuments } from '../app/print-documents.mjs';
 import vm from 'node:vm';
 import path from 'node:path';
-import { APP_DIR, DIST_DIR, STYLE_TAG, SCRIPT_TAG, VERSION_PLACEHOLDER, withVersion, indexHtml, appStyles, appScript, engineScript, serviceWorker, extraPages } from '../scripts/app-sources.mjs';
+import { APP_DIR, DIST_DIR, STYLE_TAG, SCRIPT_TAG, VERSION_PLACEHOLDER, withVersion, indexHtml, appStyles, appBundle, engineScript, serviceWorker, extraPages } from '../scripts/app-sources.mjs';
 
 const checks = [];
 const check = (ok, name) => checks.push([ok, name]);
@@ -35,7 +35,7 @@ check(built.replace(`\n${screensTag}`, '') === withVersion(indexHtml()).replace(
   'dist/index.html = app/index.html apart from the bundle URLs, the screens module and the version, with the engine script right before app.js and the screens module right after it');
 check(engine && dist(engine) === await engineScript() && /^var KSMEngine = /.test(dist(engine)), 'engine script = app/engine/index.ts as a classic IIFE defining KSMEngine');
 check(css && dist(css) === appStyles(), 'stylesheet = app/styles/*.css in order, untransformed');
-check(js && dist(js) === withVersion(appScript()), 'script = app/js/*.js in order, untransformed apart from the version');
+check(js && dist(js) === withVersion(await appBundle()) && !/^(?:import|export) /m.test(dist(js)), 'script = the rolldown bundle of app/js/*.js and app/modules (one ES module file), apart from the version');
 
 const theme = dist('print/theme.css');
 const printCss = fs.readFileSync(path.join(APP_DIR, 'print/print.css'), 'utf8');

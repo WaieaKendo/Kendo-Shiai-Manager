@@ -2,17 +2,20 @@
 // top-level function declaration with the same name silently replaces an earlier one; an ES module
 // refuses to load at all. #136 step 3a removed the last such duplicates, and this test keeps it so:
 // it fails, naming the files, if any top-level function is declared twice.
+// Step 3d: the entry also imports modules (app/modules). No name may be declared twice across the entry
+// (app/js) and those modules either, and a name a module declares must not also be declared in the entry.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { parseAst } from 'rolldown/parseAst';
-import { scriptFiles } from '../scripts/app-sources.mjs';
+import { scriptFiles, moduleFiles, ROOT } from '../scripts/app-sources.mjs';
 
 // Every top-level function declaration, as { name, file }, found in the concatenation (the same
 // text the build ships) and mapped back to its file by offset.
 function topLevelFunctions(files) {
   const parts = files.map(f => ({ file: f, text: fs.readFileSync(f, 'utf8') }));
-  const source = parts.map(p => p.text).join('');
+  // import lines are blanked (same length, so offsets still map to files): a script cannot contain them
+  const source = parts.map(p => p.text.replace(/^import \{[^}]*\} from '[^']+';?/gm, m => ' '.repeat(m.length))).join('');
   const program = parseAst(source, { lang: 'js', sourceType: 'script' });
   const starts = []; let at = 0;
   for (const p of parts) { starts.push(at); at += p.text.length; }
@@ -43,3 +46,44 @@ const dups = duplicates(declared);
 for (const [name, files] of dups) console.log(`FAIL ${name}() is declared ${files.length} times: ${files.join(', ')}`);
 if (dups.length) { console.log('A later declaration silently replaces an earlier one in a classic script, and an ES module refuses duplicates. Delete the dead copy.'); process.exit(1); }
 console.log(`PASS no top-level function in app/js is declared twice (${declared.length} functions)`);
+
+// --- modules (app/modules): every top-level declaration, against the entry's and against each other ---
+const patternNames = (p, out = []) => {
+  if (!p) return out;
+  if (p.type === 'Identifier') out.push(p.name);
+  else if (p.type === 'ObjectPattern') p.properties.forEach(q => patternNames(q.type === 'RestElement' ? q.argument : q.value, out));
+  else if (p.type === 'ArrayPattern') p.elements.forEach(e => patternNames(e, out));
+  else if (p.type === 'AssignmentPattern') patternNames(p.left, out);
+  else if (p.type === 'RestElement') patternNames(p.argument, out);
+  return out;
+};
+const declarations = s => {
+  if (s.type === 'ExportNamedDeclaration' && s.declaration) s = s.declaration;
+  if (s.type === 'FunctionDeclaration' || s.type === 'ClassDeclaration') return [s.id.name];
+  if (s.type === 'VariableDeclaration') return s.declarations.flatMap(d => patternNames(d.id));
+  return [];
+};
+const entryNames = new Map(), moduleNames = [];
+for (const f of scriptFiles()) {
+  const body = parseAst(fs.readFileSync(f, 'utf8').replace(/^import \{[^}]*\} from '[^']+';?/gm, m => ' '.repeat(m.length)), { lang: 'js' }).body;
+  body.flatMap(declarations).forEach(n => entryNames.set(n, path.basename(f)));
+}
+const bad = [];
+const importedNames = new Set();
+for (const f of scriptFiles()) for (const s of parseAst(fs.readFileSync(f, 'utf8'), { lang: 'js' }).body)
+  if (s.type === 'ImportDeclaration') s.specifiers.forEach(sp => { importedNames.add(sp.local.name); if (entryNames.has(sp.local.name)) bad.push(`${sp.local.name} is imported and also declared in app/js/${entryNames.get(sp.local.name)}`); });
+for (const f of moduleFiles()) {
+  for (const s of parseAst(fs.readFileSync(f, 'utf8'), { lang: 'js' }).body) for (const n of declarations(s)) moduleNames.push({ name: n, file: path.relative(ROOT, f) });
+}
+for (const [name, files] of duplicates(moduleNames)) bad.push(`${name} is declared in ${files.length} modules: ${files.join(', ')}`);
+for (const { name, file } of moduleNames) if (entryNames.has(name)) bad.push(`${name} is declared in ${file} and in app/js/${entryNames.get(name)}`);
+// app/types/module-globals.d.ts declares the imported names for tsc (app/js is type-checked as scripts): same list.
+{
+  const dts = fs.readFileSync(path.join(ROOT, 'app/types/module-globals.d.ts'), 'utf8');
+  const typed = new Set([...dts.matchAll(/^\s+const ([\w$]+): typeof /gm)].map(m => m[1]));
+  for (const n of importedNames) if (!typed.has(n)) bad.push(`${n} is imported by app/js but not declared in app/types/module-globals.d.ts`);
+  for (const n of typed) if (!importedNames.has(n)) bad.push(`${n} is declared in app/types/module-globals.d.ts but not imported by app/js`);
+}
+for (const b of bad) console.log(`FAIL ${b}`);
+if (bad.length) process.exit(1);
+console.log(`PASS no name is declared in both app/js and a module, or in two modules (${moduleNames.length} module declarations, ${importedNames.size} imported names)`);

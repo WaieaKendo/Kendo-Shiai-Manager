@@ -7,13 +7,6 @@ function teamSlots(div){
   return KSMEngine.teamSlots(ksmTeamSettings(div).teamFormat);
 }
 /**
- * @param {string} k
- * @returns {string} 'senpo' -> 'Senpo'
- */
-function slotLabel(k){
-  return KSMEngine.slotLabel(k);
-}
-/**
  * Team event matches: single-elimination bracket (state.teamBracketNodes) or round robin.
  * @param {string} div
  * @param {Team[]} teams
@@ -28,25 +21,6 @@ function buildTeamMatches(div,teams){
     syncTeamBracket(div,m,state.teamElimTeams[div]);
   }
   return m;
-}
-/**
- * @param {BracketSource|null} side
- * @param {Team[]} teams
- * @param {string} div
- * @returns {Team|null}
- */
-function teamSideTeam(side,teams,div){
-  return /** @type {Team|null} */(KSMEngine.teamSideTeam(side,teams,state.teamBracketNodes?.[div]||[]));
-}
-function nodeHasMatch(arr,node){
-  return KSMEngine.nodeHasMatch(arr,node);
-}
-/**
- * @param {TeamBracketNode} node
- * @returns {string}
- */
-function nodePairId(node){
-  return KSMEngine.nodePairId(node);
 }
 /**
  * Creates the bouts of every team node whose two teams are known.

@@ -6,10 +6,18 @@
 app/                 Front-end source (built by Vite into dist/, which is not committed)
   index.html          Markup
   styles/NN-*.css     Stylesheet, concatenated in file-name order
-  js/NN-*.js          App code, concatenated in file-name order into ONE ES module
+  js/NN-*.js          App code, concatenated in file-name order into the entry of ONE ES module
                       (<script type="module">; 99-window-exports.js, the last file, puts on
                       window what inline handlers, app/react and the tests reach: #136 step 3c;
-                      tests/window-exports-test.mjs keeps the list complete)
+                      tests/window-exports-test.mjs keeps the list complete).
+                      Since step 3d the entry imports app/modules (00-imports.js lists the
+                      imports) and rolldown bundles both into the single /app.js file
+  modules/            Real ES modules the entry imports, plain `.js` with `// @ts-check`
+                      (#136 step 3d, area by area; a module never imports from app/js):
+                        app-state.js: `state` and DIVISION_PRESETS;
+                        engine/engine-*.js: the adapters around the KSMEngine global (pools,
+                        team matches, single elimination, team bracket, result integrity,
+                        standings and tiebreaks, championship). Next area: court
                       (00-path-urls.js: path URLs, M.9: an old ?tournament= link becomes its
                       path first, ksmLinkParams()/ksmLinkUrl(); 00-react-bridge.js: the
                       ksm:state-changed event for React islands)

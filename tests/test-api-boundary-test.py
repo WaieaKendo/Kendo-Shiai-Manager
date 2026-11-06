@@ -40,10 +40,11 @@ WEAK = {'show', 'hansoku', 'point', 'undo', 'redo', 'render', 'print'}
 
 def app_globals():
     names = set()
-    for f in (ROOT / 'app' / 'js').glob('*.js'):
+    # app/js (the entry) and app/modules (step 3d of #136; their exported names are window exports too)
+    for f in [*(ROOT / 'app' / 'js').glob('*.js'), *(ROOT / 'app' / 'modules').rglob('*.js')]:
         s = f.read_text(encoding='utf-8')
-        names |= set(re.findall(r'^(?:async\s+)?function\s+([A-Za-z_$][\w$]*)', s, re.M))
-        names |= set(re.findall(r'^(?:let|const|var)\s+([A-Za-z_$][\w$]*)', s, re.M))
+        names |= set(re.findall(r'^(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)', s, re.M))
+        names |= set(re.findall(r'^(?:export\s+)?(?:let|const|var)\s+([A-Za-z_$][\w$]*)', s, re.M))
     return {n for n in names if len(n) > 2} | {'state'}
 
 

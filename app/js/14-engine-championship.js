@@ -1,20 +1,4 @@
 // @ts-check
-const CHAMPIONSHIP_TEMPLATE_VERSION='v1.0';
-/**
- * Frozen first-round seed pairs for `total` pool entrants, e.g. [['A1','B2'],['B1','A2']].
- * @param {number} total
- * @returns {string[][]}
- */
-function championshipTemplateForTotal(total){
-  return KSMEngine.championshipTemplateForTotal(total);
-}
-/**
- * @param {string} div
- * @returns {string[][]}
- */
-function championshipLabels(div){
-  return KSMEngine.championshipLabels(state.generated,state.brackets?.[div],state.pools[div]||[]);
-}
 /**
  * How many places of each pool feed the championship (pool label -> places).
  * @param {string} div
@@ -23,13 +7,6 @@ function championshipLabels(div){
 function requiredSeedPlaces(div){
   const poolOnly=isPoolOnlyDivision(div);return KSMEngine.requiredSeedPlaces(poolOnly?state.pools[div][0]:null,poolOnly?[]:championshipLabels(div));
 }
-/**
- * @param {PoolStandingRow} a
- * @param {PoolStandingRow} b
- * @returns {boolean}
- */
-function poolRowsStillTied(a,b){return KSMEngine.poolRowsStillTied(a,b);// moved to app/engine/bracket-helpers.ts
-  }
 /**
  * @param {string} poolLabel
  * @param {string} [div]
@@ -53,28 +30,6 @@ function poolPositionsResolved(poolLabel,div=state.currentDivision){return poolS
  */
 function seedNameForLabel(div,label,onlyFinalized=true){
   return KSMEngine.seedNameForLabel(label,poolLabel=>poolSeedResolution(poolLabel,div),onlyFinalized);
-}
-
-/**
- * @param {string} div
- * @param {ChampionshipNode} node
- * @returns {Match}
- */
-function championshipMatchObjectForNode(div,node){
-  return /** @type {Match} */(KSMEngine.championshipMatchObjectForNode(div,node));
-}
-/**
- * Creates the championship nodes (state.championshipNodes) and their Match Objects.
- * @param {string} div
- * @param {string[][]} seedPairs
- * @returns {Match[]}
- */
-function buildChampionshipTemplateMatches(div,seedPairs){
-  if(!(seedPairs||[]).length)return [];
-  const built=KSMEngine.buildChampionshipTemplateMatches(div,seedPairs,(round,slot,total)=>championshipCourtFor(div,round,slot,total),(state.brackets[div]||championshipLabels(div)||[]).length);
-  state.championshipNodes=state.championshipNodes||{};
-  state.championshipNodes[div]=built.nodes;
-  return /** @type {Match[]} */(built.matches);
 }
 /**
  * @param {string} div
@@ -103,48 +58,6 @@ function syncChampionshipTemplate(div){
 function championshipSeeds(div){
   return championshipLabels(div).map(([r,w])=>[r==='BYE'?{name:'BYE',dojo:''}:seedNameForLabel(div,r,true),w==='BYE'?{name:'BYE',dojo:''}:seedNameForLabel(div,w,true),r,w]);
 }
-function bracketPairsFromSeeds(seeds){return KSMEngine.bracketPairsFromSeeds(seeds);// moved to app/engine/bracket-helpers.ts
-  }
-function champRoundOrder(name){return KSMEngine.champRoundOrder(name);// moved to app/engine/championship.ts
-  }
-/**
- * @param {Match} m
- * @returns {{name: string, dojo: string}|null}
- */
-function champWinnerObj(m){
-  return KSMEngine.champWinnerObj(m);
-}
-function nextChampRoundName(current,count){return KSMEngine.nextChampRoundName(current,count);// moved to app/engine/championship.ts
-  }
-function champSourceWinner(div,round,slot){
-  let arr=state.allMatches[div]||[];
-  let m=arr.find(x=>x.championship&&x.position===round&&x.bracketSlot===slot);
-  if(m&&m.done)return champWinnerObj(m);
-  if(round===firstRoundName((state.brackets[div]||[]).length)){
-    let b=((state.byeWinners&&state.byeWinners[div])||[]).find(x=>x.slot===slot);
-    if(b)return b.obj;
-  }
-  return null;
-}
-function roundMatchCountForDivision(div,round){
-  return KSMEngine.roundMatchCount((state.brackets[div]||championshipLabels(div)||[]).length,round);
-}
-/**
- * @param {Match} m
- * @returns {string}
- */
-function individualLogicalMatchKey(m){
-  return /** @type {string} */(KSMEngine.individualLogicalMatchKey(m));
-}
-/**
- * @param {string} div
- */
-function enforceUniqueIndividualMatches(div){
-  const out=KSMEngine.uniqueIndividualMatches(state.allMatches?.[div]||[]);
-  state.allMatches[div]=out;
-  if(state.currentDivision===div)state.matches=out;
-  return out;
-}
 /**
  * @param {string} div
  */
@@ -157,46 +70,3 @@ function maybeAdvanceChampionship(m){if(!m||!m.championship||m.type!=='individua
  * @param {Match} m
  */
 function maybeCreateChampionship(m){if(!m||m.type!=='individual'||m.championship)return;syncChampionshipTemplate(m.division)}
-/**
- * @param {number} n number of first-round matches
- * @returns {RoundName}
- */
-function firstRoundName(n){
-  return KSMEngine.firstRoundName(n);
-}
-/**
- * @param {RoundName} name
- * @returns {RoundName|null}
- */
-function nextRoundFromName(name){
-  return KSMEngine.nextRoundFromName(name);
-}
-/**
- * @param {RoundName} name
- * @returns {RoundName|null}
- */
-function previousRoundName(name){return KSMEngine.previousRoundName(name);// moved to app/engine/championship.ts
-  }
-function expectedRoundCount(div,round){
-  let labels=championshipLabels(div);let first=firstRoundName(labels.length);let count=labels.length;
-  if(round===first)return count;
-  let r=nextRoundFromName(first);
-  while(r){count=Math.ceil(count/2);if(r===round)return count;if(r==='Final')break;r=nextRoundFromName(r)}
-  return 0;
-}
-/**
- * @param {RoundName} first
- * @returns {RoundName[]}
- */
-function roundSequenceFromFirst(first){return KSMEngine.roundSequenceFromFirst(first);// moved to app/engine/championship.ts
-  }
-/**
- * @param {string} div
- * @param {RoundName} round
- * @param {number} slot
- * @returns {Match|undefined}
- */
-function champMatchBySlot(div,round,slot){return (state.allMatches[div]||[]).find(x=>x.championship&&x.position===round&&x.bracketSlot===slot)}
-function sourceLabelForRound(div,prevRound,slot){
-  return KSMEngine.sourceLabelForRound(state.allMatches[div]||[],prevRound,slot);
-}
