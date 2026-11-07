@@ -7,18 +7,24 @@
 // with its own, which do the same. tests/window-exports-test.mjs keeps this list equal to the legacy.js wrappers.
 // Delete a name here with its wrapper when its area moves into a module.
 Object.assign(window, {
-  appendApprovedDynamicMatches, applyCourtSides, cloneJson, eliminationFinalDone, getSetupSnapshot, historyEntryIdentity, isReadOnlySession,
-  isTeamDivision, isTvSession, ksmDivisionName, ksmLegacyCloudSession, ksmNotifyStateChanged, ksmPoolEditPools, ksmPoolEditToSave,
-  ksmRenderPoolEditor, ksmSetFusenOpen, ksmSignalCourtActions, ksmSignalCourtHeader, ksmTabId, ksmTeamDivisions, localCourtDivision,
-  matchBelongsToCourt, matchHasSyncIdentity, matchSyncIdentity, maybeAdvanceChampionship, maybeAdvanceTeamBracket, maybeCreateChampionship,
-  maybeCreateTeamTiebreak, maybeCreateTiebreaks, pinCourtLocally, redOnLeftForCourt, rememberLocalCourtDivision, renderPools, renderProgress,
-  renderPublic, replayCourtMatchOps, setActiveDivision, showKsmToast, syncChampionshipTemplate, updateSaveStatus,
+  appendApprovedDynamicMatches, applyCourtSides, applyIndividualNoShow, applyWholeTeamNoShow, cloneJson, divisionComplete,
+  eliminationFinalDone, generateDivisionState, generatePools, getSetupSnapshot, historyEntryIdentity, isReadOnlySession, isTvSession,
+  ksmAddDaihyosenForTeamAwards, ksmCloseCloudModal, ksmCloseShellDialog, ksmCloudModalOpen, ksmConfirmNoShow,
+  ksmContinueRegenerateDivision, ksmIsApplyingRemoteSnapshot, ksmLegacyCloudSession, ksmNotifyStateChanged, ksmOpenCloudModal,
+  ksmOpenRegenerateDialog, ksmPoolEditPools, ksmPoolEditToSave, ksmPublishSetup, ksmRefreshRestorePoint, ksmRefreshTournamentChip,
+  ksmRenderExhibitions, ksmRenderOverview, ksmRenderPoolEditor, ksmRenderRegistration, ksmRenderSetupDivisions, ksmRenderSetupHeader,
+  ksmRenderTeams, ksmRenderTournamentStatus, ksmRenderUndoRegenerate, ksmSetFusenOpen, ksmShowValidationDialog, ksmSignalCourtActions,
+  ksmSignalCourtHeader, ksmTabId, ksmUndoRegenerateOffered, localCourtDivision, manualSaveTournament, matchBelongsToCourt,
+  matchHasSyncIdentity, matchSyncIdentity, maybeAdvanceChampionship, maybeCreateChampionship, maybeCreateTiebreaks, pinCourtLocally,
+  redOnLeftForCourt, rememberLocalCourtDivision, renderPools, renderProgress, renderPublic, replayCourtMatchOps, resultPlacements,
+  setActiveDivision, showKsmToast, syncChampionshipTemplate, tournamentSettings, updateSaveStatus, writeCloudDiagnosticsState,
 });
 {
   // Reassigned later by app/js (wrapped by tests, React or the later files): a live accessor, like 99-window-exports.js.
   const live = (get, set) => ({ get, set, enumerable: true, configurable: true });
   Object.defineProperties(window, {
     criticalAutoSave: live(() => criticalAutoSave, v => { criticalAutoSave = v; }),
+    ksmCanDeleteTournament: live(() => ksmCanDeleteTournament, v => { ksmCanDeleteTournament = v; }),
     renderAll: live(() => renderAll, v => { renderAll = v; }),
     renderScore: live(() => renderScore, v => { renderScore = v; }),
     saveSetup: live(() => saveSetup, v => { saveSetup = v; }),

@@ -13,6 +13,8 @@ let ksmTvVerificationTimer=null;
 let ksmTvRefreshInFlight=null;
 let ksmTvLastVerifiedAt=0;
 let ksmApplyingRemoteSnapshot=false;
+// Read by app/modules/registration/grand-champion.js through legacy.js (a module cannot read this `let`).
+function ksmIsApplyingRemoteSnapshot(){return ksmApplyingRemoteSnapshot}
 let ksmCloudSaveInFlight=false;
 let ksmCloudSavePending=null;
 let ksmLastSuccessfulSaveAt=null;

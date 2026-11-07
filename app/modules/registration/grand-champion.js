@@ -1,3 +1,13 @@
+// @ts-check
+import {state} from '../app-state.js';
+import {findNextForCourt,renderDivisions} from '../court/court-match-order.js';
+import {enforceUniqueIndividualMatches} from '../engine/engine-championship.js';
+import {completedResultSnapshot} from '../engine/engine-result-integrity.js';
+import {maybeAdvanceIndividualSingleElim} from '../engine/engine-single-elim.js';
+import {divisionComplete,generateDivisionState,isReadOnlySession,ksmCloseCloudModal,ksmCloudModalOpen,ksmIsApplyingRemoteSnapshot,ksmOpenCloudModal,ksmPublishSetup,maybeAdvanceChampionship,maybeCreateChampionship,maybeCreateTiebreaks,renderAll,resultPlacements,scheduleAutoSave,showKsmToast,writeCloudDiagnosticsState} from '../legacy.js';
+import {ksmDivisionName} from './team-divisions.js';
+import {renderTournamentStatus} from './validation.js';
+import {renderDivisionSetup} from '../setup/division-setup.js';
 // ==========================================================
 // Grand champion (#86): the winners of chosen individual divisions meet for a Grand Champion
 // award. Rules and data shape: app/engine/grand-champion.ts.
@@ -14,9 +24,9 @@
 // decision is saved in the row (keep / rebuild), so every device then does the same.
 // ==========================================================
 function ksmNewGrandChampionId(){return KSMEngine.GRAND_CHAMPION_PREFIX+Array.from(crypto.getRandomValues(new Uint8Array(12)),n=>n.toString(16).padStart(2,'0')).join('')}
-function ksmGrandChampions(){return KSMEngine.sortGrandChampions(state.grandChampions||[])}
-function ksmGrandChampion(id){return KSMEngine.isGrandChampionId(id)?(state.grandChampions||[]).find(g=>g.id===id)||null:null}
-function ksmGrandChampionError(gc){return KSMEngine.grandChampionSetupError(gc,state.divisions||[],(state.teamDivisions||[]).map(d=>d.id))}
+export function ksmGrandChampions(){return KSMEngine.sortGrandChampions(state.grandChampions||[])}
+export function ksmGrandChampion(id){return KSMEngine.isGrandChampionId(id)?(state.grandChampions||[]).find(g=>g.id===id)||null:null}
+export function ksmGrandChampionError(gc){return KSMEngine.grandChampionSetupError(gc,state.divisions||[],(state.teamDivisions||[]).map(d=>d.id))}
 function ksmGrandChampionChanged(reason='Grand champion'){
   renderDivisionSetup();renderDivisions();renderTournamentStatus();scheduleAutoSave(reason);
 }
@@ -25,7 +35,7 @@ function ksmGrandChampionChanged(reason='Grand champion'){
 // removal); one not drawn yet can be added, changed and removed after generation, and fills in when its
 // divisions finish.
 function ksmGrandChampionDrawn(id){return (state.allMatches?.[id]||[]).length>0}
-function ksmAddGrandChampion(){
+export function ksmAddGrandChampion(){
   if(isReadOnlySession())return null;
   const rows=ksmGrandChampions(),gc=KSMEngine.newGrandChampion(ksmNewGrandChampionId(),Math.max(-1,...rows.map(r=>r.order))+1);
   state.grandChampions=[...rows,gc];state.divisionCourts[gc.id]=gc.court;
@@ -33,7 +43,7 @@ function ksmAddGrandChampion(){
 }
 const KSM_GC_EDITABLE_AFTER_DRAW=['name','awardMode'];
 /** Changes fields of a row; why not (nothing changed), or null. */
-function ksmUpdateGrandChampion(id,patch){
+export function ksmUpdateGrandChampion(id,patch){
   const gc=ksmGrandChampion(id);if(!gc)return 'This grand champion match no longer exists.';
   if(isReadOnlySession())return 'Read only';
   if(patch.name!==undefined&&!String(patch.name).trim())return 'Enter a name for the grand champion match.';
@@ -42,18 +52,18 @@ function ksmUpdateGrandChampion(id,patch){
   if(patch.court)state.divisionCourts[id]=gc.court;
   ksmGrandChampionChanged();return null;
 }
-function ksmToggleGrandChampionSource(id,div,on){
+export function ksmToggleGrandChampionSource(id,div,on){
   const gc=ksmGrandChampion(id);if(!gc)return 'This grand champion match no longer exists.';
   const sources=on?(gc.sources.includes(div)?gc.sources:[...gc.sources,div]):gc.sources.filter(s=>s!==div);
   // Sources follow Setup's running order, so the draw does not depend on the clicking order.
   return ksmUpdateGrandChampion(id,{sources:(state.divisions||[]).filter(d=>sources.includes(d)).concat(sources.filter(s=>!(state.divisions||[]).includes(s)))});
 }
-function ksmMoveGrandChampion(id,direction){
+export function ksmMoveGrandChampion(id,direction){
   const rows=ksmGrandChampions(),i=rows.findIndex(r=>r.id===id),j=i+(direction==='up'?-1:1);
   if(i<0||j<0||j>=rows.length||isReadOnlySession())return;
   [rows[i],rows[j]]=[rows[j],rows[i]];rows.forEach((r,index)=>r.order=index);state.grandChampions=rows;ksmGrandChampionChanged();
 }
-function ksmRemoveGrandChampion(id){
+export function ksmRemoveGrandChampion(id){
   if(ksmGrandChampionDrawn(id)||isReadOnlySession()||!ksmGrandChampion(id))return false;
   state.grandChampions=ksmGrandChampions().filter(r=>r.id!==id);delete state.divisionCourts[id];
   ksmClearGrandChampionStructure(id);ksmGrandChampionChanged();return true;
@@ -76,7 +86,7 @@ function ksmGrandChampionNow(gc){
   return KSMEngine.grandChampionEntrants(gc,Object.fromEntries(gc.sources.map(s=>[s,ksmGrandChampionSourceResult(s)])));
 }
 /** The draw's competitors (generateDivisionState(id), 08-): the entrants the sources give now. */
-function ksmGrandChampionCompetitors(id){
+export function ksmGrandChampionCompetitors(id){
   const gc=ksmGrandChampion(id);if(!gc)return [];
   return KSMEngine.grandChampionCompetitors(id,ksmGrandChampionNow(gc).entrants.filter(Boolean));
 }
@@ -84,7 +94,7 @@ function ksmGrandChampionStructure(id){
   let matches=state.allMatches?.[id];
   // Points on this court's screen for the grand champion count as started, also before they reach the match.
   const live=state.currentDivision===id&&state.score&&((state.score.W||[]).length||(state.score.R||[]).length||state.score.WT||state.score.RT);
-  if(live&&Array.isArray(matches))matches=[...matches,{done:false,wp:state.score.W||[],rp:state.score.R||[],wt:state.score.WT,rt:state.score.RT}];
+  if(live&&Array.isArray(matches))matches=[...matches,/** @type {any} */({done:false,wp:state.score.W||[],rp:state.score.R||[],wt:state.score.WT,rt:state.score.RT})];
   return {matches,singleElimComps:state.singleElimComps?.[id],pools:state.pools?.[id]};
 }
 // ---------------------------------------------------------- the draw
@@ -157,7 +167,7 @@ let ksmGrandChampionSyncing=false;
  * Makes every grand champion's draw follow its sources (see the top of this file). Only on a
  * device that saves, once the tournament is generated. Returns whether `state` changed.
  */
-function ksmSyncGrandChampions(source='sync'){
+export function ksmSyncGrandChampions(source='sync'){
   if(ksmGrandChampionSyncing||!state.generated||!(state.grandChampions||[]).length)return false;
   if(typeof isReadOnlySession==='function'&&isReadOnlySession())return false;
   ksmGrandChampionSyncing=true;let changed=false;
@@ -177,7 +187,7 @@ function ksmSyncGrandChampions(source='sync'){
     }
     if(changed){
       writeCloudDiagnosticsState({stage:'Grand champion draw updated',source});
-      if(!ksmApplyingRemoteSnapshot)renderAll();
+      if(!ksmIsApplyingRemoteSnapshot())renderAll();
     }
   }finally{ksmGrandChampionSyncing=false}
   return changed;
@@ -185,7 +195,7 @@ function ksmSyncGrandChampions(source='sync'){
 // A save conflict (18-, resolveRebasePatch()): this court's points for players the grand champion no
 // longer has (another device drew it again) are not saved; say so once per rebase.
 let ksmGrandChampionDropNoted=0;
-function ksmNoteGrandChampionPatchDropped(id){
+export function ksmNoteGrandChampionPatchDropped(id){
   if(Date.now()-ksmGrandChampionDropNoted<2000)return;
   ksmGrandChampionDropNoted=Date.now();
   // Through window: the rebase is also run outside the page (tests extract it with its dependencies).
@@ -196,7 +206,7 @@ function ksmNoteGrandChampionPatchDropped(id){
 // champion this device has drawn (it finished the last source, or scored the match, offline or
 // meanwhile). The draw comes along so this court's scores replay onto it; afterwards the sync
 // compares it with the merged sources (kept as is, or the director is asked once it started).
-function ksmCarryGrandChampionDraws(rebasedState,localState){
+export function ksmCarryGrandChampionDraws(rebasedState,localState){
   Object.keys(localState?.allMatches||{}).filter(id=>KSMEngine.isGrandChampionId(id)&&(localState.allMatches[id]||[]).length).forEach(id=>{
     if((rebasedState.allMatches?.[id]||[]).length)return;
     if(!(rebasedState.grandChampions||[]).some(g=>g.id===id))return;
@@ -204,7 +214,7 @@ function ksmCarryGrandChampionDraws(rebasedState,localState){
   });
 }
 // Both copies hold a draw of the same players (a bout or tiebreak added here then comes along).
-function ksmSameGrandChampionDraw(localState,rebasedState,id){
+export function ksmSameGrandChampionDraw(localState,rebasedState,id){
   const players=st=>{const d=KSMEngine.drawnEntrants({matches:st?.allMatches?.[id],singleElimComps:st?.singleElimComps?.[id],pools:st?.pools?.[id]});return d?JSON.stringify(d.map(e=>e.name+'|'+e.dojo).sort()):null};
   const mine=players(localState);return !!mine&&mine===players(rebasedState);
 }
@@ -213,7 +223,6 @@ function ksmSameGrandChampionDraw(localState,rebasedState,id){
 // a message and choice buttons, each calling ksmGrandChampionChoose(choice). Closing it decides
 // nothing; Setup's row keeps a "Decide" button while a decision is open.
 let ksmGrandChampionQuestion=null;
-function ksmGrandChampionDialogOpen(){return !!(typeof ksmShellDialogs==='object'&&ksmShellDialogs?.cloud)}
 function ksmShowGrandChampionQuestion(question,title,message,choices){
   ksmGrandChampionQuestion=question;
   ksmOpenCloudModal(title,{kind:'grand-champion',message,choices});
@@ -231,7 +240,7 @@ function ksmAskGrandChampion(gc,plan,force=false){
     return;
   }
   // Another question is open: this one is asked at the next change (Setup's Decide… meanwhile).
-  if(!force&&ksmGrandChampionDialogOpen())return;
+  if(!force&&ksmCloudModalOpen())return;
   ksmGrandChampionAsked.add(key);
   const now=ksmGrandChampionNow(gc),changed=gc.sources.filter((s,i)=>{
     const drawn=KSMEngine.drawnEntrants(ksmGrandChampionStructure(gc.id))||[],e=now.entrants[i];
@@ -254,7 +263,7 @@ function ksmGrandChampionWithdrawChoices(gc){
     return !arr.some(m=>m&&(m.white===entrant.name||m.red===entrant.name)&&KSMEngine.grandChampionStarted([m]));
   });
 }
-function ksmOpenGrandChampionWithdraw(id){
+export function ksmOpenGrandChampionWithdraw(id){
   const gc=ksmGrandChampion(id);if(!gc||isReadOnlySession())return;
   const now=ksmGrandChampionNow(gc);
   const duplicate=now.unavailable[0]||now.duplicates[0];
@@ -280,7 +289,7 @@ function ksmOpenGrandChampionStandIn(id,source){
     :`${entrant.name} withdraws from ${gc.name}. This cannot be undone once the match is decided.`;
   ksmShowGrandChampionQuestion({kind:'stand-in',id,source,winner:result.winner.name},`${gc.name}: ${ksmSourceName(source)}`,message,choices);
 }
-function ksmGrandChampionChoose(choice){
+export function ksmGrandChampionChoose(choice){
   const q=ksmGrandChampionQuestion;ksmGrandChampionQuestion=null;ksmCloseCloudModal();
   const gc=q&&ksmGrandChampion(q.id);if(!gc||isReadOnlySession())return;
   if(q.kind==='withdraw'&&String(choice).startsWith('source:'))return ksmOpenGrandChampionStandIn(gc.id,String(choice).slice(7));
@@ -293,7 +302,7 @@ function ksmGrandChampionChoose(choice){
   ksmGrandChampionChanged('Grand champion decision');
 }
 // Setup's "Decide…" for an open question.
-function ksmDecideGrandChampion(id){
+export function ksmDecideGrandChampion(id){
   const gc=ksmGrandChampion(id),plan=ksmGrandChampionAsks[id];
   if(gc&&plan)ksmAskGrandChampion(gc,plan,true);
 }
@@ -323,6 +332,6 @@ function ksmGrandChampionSetupData(){
     rows:rows.map((gc,i)=>ksmGrandChampionRowData(gc,i,rows)),
   };
 }
-function ksmRenderGrandChampionSetup(){
+export function ksmRenderGrandChampionSetup(){
   if(typeof ksmPublishSetup==='function')ksmPublishSetup('ksm:setup-grand-champions','ksmGrandChampionSetupInput',ksmGrandChampionSetupData());
 }

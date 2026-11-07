@@ -1,6 +1,8 @@
 // @ts-check
 import {state} from '../app-state.js';
-import {poolCourtFor} from './engine-pools.js';
+import {eligibleTeams,isTeamDivision,poolCourtFor} from './engine-pools.js';
+import {appendApprovedDynamicMatches} from '../legacy.js';
+import {ksmTeamSettings} from '../registration/team-divisions.js';
 /**
  * @param {string} poolLabel
  * @param {string} div
@@ -123,3 +125,33 @@ function allPoolMatchesComplete(div){let arr=state.allMatches[div]||[];let poolM
  * @returns {boolean}
  */
 function hasPendingIndividualTiebreak(div){return (state.allMatches[div]||[]).some(m=>m&&m.type==='individual'&&m.tiebreak&&!m.done)}
+/**
+ * @param {string} [div]
+ * @returns {boolean}
+ */
+export function isTeamRoundRobinDivision(div='Team Tournament'){
+  if(!isTeamDivision(div))return false;
+  if((state.teamBracketNodes?.[div]||[]).length)return false;
+  const matches=state.allMatches?.[div]||[];
+  return matches.some(match=>match.teamPair&&(match.type==='teamPosition'||match.type==='teamPlayoff'||match.type==='kachinuki'));
+}
+/**
+ * @param {string} [div]
+ * @returns {TeamStandingRow[]}
+ */
+export function teamStandings(div='Team Tournament'){
+  return KSMEngine.teamStandings(state.allMatches[div]||[],eligibleTeams(div)||[],KSMEngine.teamRoundRobinCountedPlaces(ksmTeamSettings(div).teamAwardMode));
+}
+/**
+ * After a team bout: a representative playoff when the pairing is level.
+ * @param {Match} m
+ */
+export function maybeCreateTeamTiebreak(m){
+  const plan=KSMEngine.maybeCreateTeamTiebreak(m,state.allMatches[m?.division]||[],ksmTeamSettings(m?.division).teamFormat);
+  if(plan)appendApprovedDynamicMatches(m.division,plan.anchor,/** @type {Match} */(plan.playoff),plan.dynamicType);
+  // F27: once every pairing of a team round robin is decided, teams still level on team wins,
+  // bout wins and points for a place with an award (D2: Setup's team award mode) get a one-point
+  // daihyosen (KSMEngine.teamRoundRobinTiebreakPlan).
+  const rr=m&&isTeamRoundRobinDivision(m.division)?KSMEngine.teamRoundRobinTiebreakPlan(m,state.allMatches[m.division]||[],eligibleTeams(m.division)||[],ksmTeamSettings(m.division).teamFormat,KSMEngine.teamRoundRobinCountedPlaces(ksmTeamSettings(m.division).teamAwardMode)):null;
+  if(rr)appendApprovedDynamicMatches(m.division,rr.anchor,/** @type {Match[]} */(rr.bouts),rr.dynamicType);
+}

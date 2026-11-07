@@ -5,7 +5,9 @@ import {applyCourtState,findNextForCourt} from './court-match-order.js';
 import {enforceUniqueIndividualMatches} from '../engine/engine-championship.js';
 import {completedResultSnapshot} from '../engine/engine-result-integrity.js';
 import {maybeAdvanceIndividualSingleElim} from '../engine/engine-single-elim.js';
-import {cloneJson,criticalAutoSave,historyEntryIdentity,ksmLegacyCloudSession,ksmNotifyStateChanged,ksmSignalCourtActions,ksmTabId,matchHasSyncIdentity,matchSyncIdentity,maybeAdvanceChampionship,maybeAdvanceTeamBracket,maybeCreateChampionship,maybeCreateTeamTiebreak,maybeCreateTiebreaks,renderAll,renderPools,renderProgress,renderPublic,renderScore,replayCourtMatchOps,showKsmToast,updateSaveStatus} from '../legacy.js';
+import {maybeCreateTeamTiebreak} from '../engine/engine-standings-and-tiebreaks.js';
+import {maybeAdvanceTeamBracket} from '../engine/engine-team-bracket.js';
+import {cloneJson,criticalAutoSave,historyEntryIdentity,ksmLegacyCloudSession,ksmNotifyStateChanged,ksmSignalCourtActions,ksmTabId,matchHasSyncIdentity,matchSyncIdentity,maybeAdvanceChampionship,maybeCreateChampionship,maybeCreateTiebreaks,renderAll,renderPools,renderProgress,renderPublic,renderScore,replayCourtMatchOps,showKsmToast,updateSaveStatus} from '../legacy.js';
 export function loadScoreFromMatch(m){
   if(!m || m.done){state.score={W:[],R:[],WT:0,RT:0};return;}
   state.score={W:[...(m.wp||[])],R:[...(m.rp||[])],WT:m.wt||0,RT:m.rt||0};

@@ -168,39 +168,9 @@ function maybeCreateTiebreaks(m){
 }
 /**
  * @param {string} [div]
- * @returns {boolean}
- */
-function isTeamRoundRobinDivision(div='Team Tournament'){
-  if(!isTeamDivision(div))return false;
-  if((state.teamBracketNodes?.[div]||[]).length)return false;
-  const matches=state.allMatches?.[div]||[];
-  return matches.some(match=>match.teamPair&&(match.type==='teamPosition'||match.type==='teamPlayoff'||match.type==='kachinuki'));
-}
-/**
- * @param {string} [div]
- * @returns {TeamStandingRow[]}
- */
-function teamStandings(div='Team Tournament'){
-  return KSMEngine.teamStandings(state.allMatches[div]||[],eligibleTeams(div)||[],KSMEngine.teamRoundRobinCountedPlaces(ksmTeamSettings(div).teamAwardMode));
-}
-/**
- * @param {string} [div]
  */
 function teamRoundRobinPlacements(div='Team Tournament'){
   return KSMEngine.teamRoundRobinPlacements(!!divisionComplete(div),state.allMatches[div]||[],eligibleTeams(div)||[],KSMEngine.teamRoundRobinCountedPlaces(ksmTeamSettings(div).teamAwardMode));
-}
-/**
- * After a team bout: a representative playoff when the pairing is level.
- * @param {Match} m
- */
-function maybeCreateTeamTiebreak(m){
-  const plan=KSMEngine.maybeCreateTeamTiebreak(m,state.allMatches[m?.division]||[],ksmTeamSettings(m?.division).teamFormat);
-  if(plan)appendApprovedDynamicMatches(m.division,plan.anchor,/** @type {Match} */(plan.playoff),plan.dynamicType);
-  // F27: once every pairing of a team round robin is decided, teams still level on team wins,
-  // bout wins and points for a place with an award (D2: Setup's team award mode) get a one-point
-  // daihyosen (KSMEngine.teamRoundRobinTiebreakPlan).
-  const rr=m&&isTeamRoundRobinDivision(m.division)?KSMEngine.teamRoundRobinTiebreakPlan(m,state.allMatches[m.division]||[],eligibleTeams(m.division)||[],ksmTeamSettings(m.division).teamFormat,KSMEngine.teamRoundRobinCountedPlaces(ksmTeamSettings(m.division).teamAwardMode)):null;
-  if(rr)appendApprovedDynamicMatches(m.division,rr.anchor,/** @type {Match[]} */(rr.bouts),rr.dynamicType);
 }
 // Found in external PR review (#35): the places a daihyosen decides follow Setup's team award mode
 // (D2), and the mode can change after a team round robin has ended. Changing it to more places

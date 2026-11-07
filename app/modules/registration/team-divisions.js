@@ -1,35 +1,41 @@
-function ksmNewTeamRows(rows){const division=ksmDefaultTeamDivisionId();return rows.map(t=>({...t,id:ksmNewTeamIdentity(),teamDivisionId:division}))}
+// @ts-check
+import {state} from '../app-state.js';
+import {renderDivisions} from '../court/court-match-order.js';
+import {getSetupSnapshot,isReadOnlySession,ksmAddDaihyosenForTeamAwards,scheduleAutoSave,tournamentSettings,writeCloudDiagnosticsState} from '../legacy.js';
+import {renderTeams} from './registration.js';
+import {renderTournamentStatus} from './validation.js';
+export function ksmNewTeamRows(rows){const division=ksmDefaultTeamDivisionId();return rows.map(t=>({...t,id:ksmNewTeamIdentity(),teamDivisionId:division}))}
 // The saved format this app understands (team divisions = 2, grand champion #86 = 3), sent with every
 // save (cloudHeaders(), 33). The server refuses saves from apps below its MIN_CLIENT_SCHEMA
 // (src-worker.js): raise both together.
-const KSM_CLIENT_SCHEMA=3;
-function ksmNewTeamIdentity(){return 'team:'+Array.from(crypto.getRandomValues(new Uint8Array(16)),n=>n.toString(16).padStart(2,'0')).join('')}
-function ksmTeamDivisionPayload(payload){return payload?.state?{...payload,state:KSMEngine.migrateGrandChampions(KSMEngine.migrateTeamDivisions(payload.state,payload.setup||{}))}:payload}
+export const KSM_CLIENT_SCHEMA=3;
+export function ksmNewTeamIdentity(){return 'team:'+Array.from(crypto.getRandomValues(new Uint8Array(16)),n=>n.toString(16).padStart(2,'0')).join('')}
+export function ksmTeamDivisionPayload(payload){return payload?.state?{...payload,state:KSMEngine.migrateGrandChampions(KSMEngine.migrateTeamDivisions(payload.state,payload.setup||{}))}:payload}
 // #95 review: a loaded copy whose teams name a team division it does not have (an older client, a
 // removed division) has them moved to the first division; say so in the diagnostics, not silently.
-function ksmNoteTeamsReassigned(before,after,source){
+export function ksmNoteTeamsReassigned(before,after,source){
   const known=new Set((after.teamDivisions||[]).map(d=>d.id));
   const moved=(before?.teams||[]).filter(t=>t?.teamDivisionId&&!known.has(t.teamDivisionId)).map(t=>t.team||t.id);
   if(!moved.length)return;
   console.warn('[KSM Team divisions] Teams of an unknown team division moved to the first one',source||'load',moved);
   writeCloudDiagnosticsState({stage:'Team division assignment repaired on load',teamsReassigned:moved});
 }
-function ksmTeamDivisions(){
-  if(!state.teamDivisions)Object.assign(state,KSMEngine.migrateTeamDivisions(state,getSetupSnapshot()));
+export function ksmTeamDivisions(){
+  if(!state.teamDivisions)Object.assign(state,KSMEngine.migrateTeamDivisions(/** @type {any} */(state),getSetupSnapshot()));
   return [...state.teamDivisions].sort((a,b)=>a.order-b.order||a.id.localeCompare(b.id));
 }
-function ksmTeamDivision(id){return (state.teamDivisions||[]).find(d=>d.id===id)}
+export function ksmTeamDivision(id){return (state.teamDivisions||[]).find(d=>d.id===id)}
 // #86: a grand champion's division shows its row's name.
-function ksmDivisionName(id){return KSMEngine.grandChampionName(state.grandChampions,id)??KSMEngine.teamDivisionName(state.teamDivisions,id)}
+export function ksmDivisionName(id){return KSMEngine.grandChampionName(state.grandChampions,id)??KSMEngine.teamDivisionName(state.teamDivisions,id)}
 // Legacy controls serialize old files, but cannot override authoritative division records.
-function ksmSyncLegacyTeamDivision(){
+export function ksmSyncLegacyTeamDivision(){
   const d=ksmTeamDivision('Team Tournament');if(!d)return;
-  state.teamAwardMode=d.awardMode;state.divisionCourts[d.id]=d.court;
+  state.teamAwardMode=d.awardMode;state.divisionCourts[d.id]=/** @type {any} */(d.court);
   for(const [key,value] of Object.entries({teamFormat:d.teamFormat,teamTournamentFormat:d.teamTournamentFormat,teamCourt:d.court,teamAwardMode:d.awardMode})){
-    const el=document.getElementById(key);if(el)el.value=value;
+    const el=/** @type {HTMLInputElement|null} */(document.getElementById(key));if(el)el.value=value;
   }
 }
-function ksmTeamSettings(id){
+export function ksmTeamSettings(id){
   const d=ksmTeamDivision(id)||(!id?ksmTeamDivisions()[0]:null),settings=tournamentSettings();
   return d?{...settings,teamFormat:d.teamFormat,teamTournamentFormat:d.teamTournamentFormat,teamCourt:d.court,teamAwardMode:d.awardMode}:settings;
 }
@@ -39,31 +45,31 @@ function ksmTeamSettings(id){
 // (Regenerate Single Division).
 function ksmTeamDivisionDrawn(id){return Boolean(id)&&(state.allMatches?.[id]||[]).length>0}
 /** Where a new team goes: the first team division without a draw (after generation), else the first. */
-function ksmDefaultTeamDivisionId(){const rows=ksmTeamDivisions();return (rows.find(d=>!ksmTeamDivisionDrawn(d.id))||rows[0])?.id||''}
-function ksmAddTeamDivision(name='Team division'){
+export function ksmDefaultTeamDivisionId(){const rows=ksmTeamDivisions();return (rows.find(d=>!ksmTeamDivisionDrawn(d.id))||rows[0])?.id||''}
+export function ksmAddTeamDivision(name='Team division'){
   const divisions=ksmTeamDivisions(),id=ksmNewTeamIdentity();
   state.teamDivisions.push({id,name,teamFormat:'3-Person Team',teamTournamentFormat:'Single Elimination',court:'Both',awardMode:'top2',order:Math.max(-1,...divisions.map(d=>d.order))+1});
   state.divisionCourts[id]='Both';
   if(!divisions.length)state.teams.filter(t=>!t.teamDivisionId).forEach(t=>t.teamDivisionId=id);
   ksmTeamDivisionChanged();return id;
 }
-function ksmUpdateTeamDivision(id,patch){
+export function ksmUpdateTeamDivision(id,patch){
   const d=ksmTeamDivision(id);if(!d)return 'Team division no longer exists';
   if(patch.name!==undefined&&!String(patch.name).trim())return 'Enter a division name';
   if(ksmTeamDivisionDrawn(id)&&Object.keys(patch).some(k=>!['name','order','awardMode'].includes(k)))return 'Match format and court cannot change once this division is drawn';
   Object.assign(d,patch,{id:d.id,name:String(patch.name??d.name).trim()});
-  if(patch.court)state.divisionCourts[id]=d.court;
+  if(patch.court)state.divisionCourts[id]=/** @type {any} */(d.court);
   if(patch.teamFormat)state.teams.filter(t=>t.teamDivisionId===id).forEach(t=>t.type=d.teamFormat);
   if(id==='Team Tournament')ksmSyncLegacyTeamDivision();
   if(patch.awardMode)ksmAddDaihyosenForTeamAwards();
   ksmTeamDivisionChanged();return null;
 }
-function ksmMoveTeamDivision(id,direction){
+export function ksmMoveTeamDivision(id,direction){
   const rows=ksmTeamDivisions(),i=rows.findIndex(d=>d.id===id),j=i+(direction==='up'?-1:1);
   if(i<0||j<0||j>=rows.length)return;
   [rows[i],rows[j]]=[rows[j],rows[i]];rows.forEach((d,index)=>d.order=index);ksmTeamDivisionChanged();
 }
-function ksmRemoveTeamDivision(id){
+export function ksmRemoveTeamDivision(id){
   const rows=ksmTeamDivisions(),d=rows.find(d=>d.id===id);if(!d)return false;
   if(ksmTeamDivisionDrawn(id)){alert(`${d.name} is drawn: it cannot be removed.`);return false}
   // Its teams move to a division without a draw (moving them into a drawn one would change its draw).
@@ -73,7 +79,7 @@ function ksmRemoveTeamDivision(id){
   state.teamDivisions=rows.filter(d=>d.id!==id);teams.forEach(t=>t.teamDivisionId=fallback.id);
   delete state.divisionCourts[id];ksmTeamDivisionChanged();return true;
 }
-function ksmAssignTeamDivision(team,id){
+export function ksmAssignTeamDivision(team,id){
   const d=ksmTeamDivision(id);if(!d)return false;
   const from=ksmTeamDivision(team.teamDivisionId);
   if(team.teamDivisionId!==id&&(ksmTeamDivisionDrawn(team.teamDivisionId)||ksmTeamDivisionDrawn(id))){alert(`${ksmTeamDivisionDrawn(id)?d.name:from?.name||'Its division'} is drawn: teams cannot move into or out of it.`);ksmTeamDivisionChanged();return false}
@@ -84,10 +90,10 @@ function ksmTeamDivisionChanged(){
 }
 // Why a team division's control is off (shown as its tooltip): drawn divisions keep format, court and teams.
 function ksmTeamDivisionLockTip(d){return ksmTeamDivisionDrawn(d.id)?`Fixed: ${d.name} is drawn, so its match format, court and teams can't change. Its name, awards and order can still change.`:''}
-function ksmRenderTeamDivisions(){
+export function ksmRenderTeamDivisions(){
   const root=document.getElementById('teamDivisionSetup');if(!root)return;
   const rows=ksmTeamDivisions(),off=tournamentSettings().teamEnabled==='Disabled'||isReadOnlySession();
-  const add=document.querySelector('[data-testid="team-division-add"]');if(add)add.disabled=off;
+  const add=/** @type {HTMLButtonElement|null} */(document.querySelector('[data-testid="team-division-add"]'));if(add)add.disabled=off;
   // Say why the team setup can't change (it looked editable while disabled): teams off, or fixed by the draw.
   const teamsOff=tournamentSettings().teamEnabled==='Disabled';
   if(teamsOff)root.dataset.teamsOff='1';else delete root.dataset.teamsOff;
@@ -106,15 +112,15 @@ function ksmRenderTeamDivisions(){
     rows.forEach((d,i)=>{
       const row=root.querySelectorAll('[data-testid="team-division-row"]')[i];if(!row)return;
       for(const field of ['name','teamFormat','teamTournamentFormat','court','awardMode']){
-        const input=row.querySelector(`[data-testid="team-division-${field}"]`);
+        const input=/** @type {HTMLInputElement} */(row.querySelector(`[data-testid="team-division-${field}"]`));
         if(document.activeElement!==input)input.value=d[field];
         if(field!=='name')input.setAttribute('aria-label',input.getAttribute('aria-label').split(' — ')[0]+' — '+d.name);
         input.disabled=off||(ksmTeamDivisionDrawn(d.id)&&!['name','awardMode'].includes(field));
         input.title=input.disabled&&!off?ksmTeamDivisionLockTip(d):'';
       }
-      row.querySelector('[data-testid="team-division-up"]').disabled=off||i===0;
-      row.querySelector('[data-testid="team-division-down"]').disabled=off||i===rows.length-1;
-      const remove=row.querySelector('[data-testid="team-division-remove"]');remove.disabled=off||ksmTeamDivisionDrawn(d.id);
+      /** @type {HTMLButtonElement} */(row.querySelector('[data-testid="team-division-up"]')).disabled=off||i===0;
+      /** @type {HTMLButtonElement} */(row.querySelector('[data-testid="team-division-down"]')).disabled=off||i===rows.length-1;
+      const remove=/** @type {HTMLButtonElement} */(row.querySelector('[data-testid="team-division-remove"]'));remove.disabled=off||ksmTeamDivisionDrawn(d.id);
       remove.title=remove.disabled&&!off?ksmTeamDivisionLockTip(d):'Remove — '+d.name;
     });return;
   }

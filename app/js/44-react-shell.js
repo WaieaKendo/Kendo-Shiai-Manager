@@ -257,6 +257,8 @@ function ksmOpenCloudModal(title,body){
   ksmShellBlurIn(document.getElementById('ksmCloudModal'));
   ksmPublishDialogs('cloud',{key:ksmNextDialogKey(),title:ksmHtmlText(title),body});
 }
+// Whether a cloud modal is open (read by app/modules/registration/grand-champion.js through legacy.js).
+function ksmCloudModalOpen(){return !!(typeof ksmShellDialogs==='object'&&ksmShellDialogs?.cloud)}
 // closeCloudModal() (21).
 function ksmCloseCloudModal(){
   ksmShellBlurIn(document.getElementById('ksmCloudModal'));
