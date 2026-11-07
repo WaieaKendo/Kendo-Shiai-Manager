@@ -10,5 +10,30 @@ declare var teamFormat: HTMLSelectElement;
 /** Setup → team tournament format select (Single Elimination / Round Robin). */
 declare var teamTournamentFormat: HTMLSelectElement;
 
+// Elements the court modules (app/modules/court) reach by id, as the browser's named element globals.
+/** Pools screen division select. */
+declare var poolDiv: HTMLSelectElement;
+/** Pools screen output. */
+declare var poolOutput: HTMLElement;
+/** Court screen division select and the court context panel (their React islands mount into them). */
+declare var scoreDiv: HTMLSelectElement;
+declare var courtContext: HTMLElement;
+/** The requests the court modules make of the React court screen (35-react-court.js). */
+interface Window {
+  ksmCourtQueueRequested?: boolean;
+  ksmCourtContextRequested?: boolean;
+  ksmCourtCompleteRequested?: { div: string; complete: boolean };
+}
+/** Live Scores title. */
+declare var publicTitle: HTMLElement;
+/** Setup tournament name input. */
+declare var tName: HTMLInputElement;
+/** Search tab: name and dojo inputs, their result lists and the profile panel. */
+declare var searchName: HTMLInputElement;
+declare var searchDojo: HTMLInputElement;
+declare var nameResults: HTMLElement;
+declare var dojoResults: HTMLElement;
+declare var profile: HTMLElement;
+
 /** The pure engine modules (app/engine/index.ts), loaded as a classic script before app.js. */
 declare var KSMEngine: typeof import('../engine/index.ts');

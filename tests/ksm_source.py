@@ -27,6 +27,7 @@ def _read_all(folder, ext):
     return ''.join(f.read_text(encoding='utf-8') for f in sorted((APP / folder).glob(f'*{ext}')))
 
 
+LEGACY_MODULE = (APP / 'modules' / 'legacy.js').resolve()
 _IMPORT_LINE = re.compile(r"^import \{([^}]*)\} from '([^']+)';?[ \t]*\r?\n", re.M)
 _EXPORT = re.compile(r'^export (?=(?:async\s+)?function\b|const\b|let\b|class\b)', re.M)
 _UNSUPPORTED = re.compile(r'''^\s*(?:import\s*[\w{*'"]|export\s+(?:\{|\*|default))''', re.M)
@@ -48,6 +49,8 @@ def classic_app_script():
         if file in done:
             return
         done.add(file)
+        if file == LEGACY_MODULE:  # only wraps app/js functions for calls from a module; in one script they are in scope
+            return
         out.append(_EXPORT.sub('', strip(file, file.read_text(encoding='utf-8'))))
 
     entry = ''.join(strip(f, f.read_text(encoding='utf-8')) for f in sorted((APP / 'js').glob('*.js')))

@@ -72,7 +72,8 @@ const bad = [];
 const importedNames = new Set();
 for (const f of scriptFiles()) for (const s of parseAst(fs.readFileSync(f, 'utf8'), { lang: 'js' }).body)
   if (s.type === 'ImportDeclaration') s.specifiers.forEach(sp => { importedNames.add(sp.local.name); if (entryNames.has(sp.local.name)) bad.push(`${sp.local.name} is imported and also declared in app/js/${entryNames.get(sp.local.name)}`); });
-for (const f of moduleFiles()) {
+// app/modules/legacy.js only wraps app/js functions by the same names (tests/window-exports-test.mjs checks it): not declarations.
+for (const f of moduleFiles().filter(f => path.basename(f) !== 'legacy.js')) {
   for (const s of parseAst(fs.readFileSync(f, 'utf8'), { lang: 'js' }).body) for (const n of declarations(s)) moduleNames.push({ name: n, file: path.relative(ROOT, f) });
 }
 for (const [name, files] of duplicates(moduleNames)) bad.push(`${name} is declared in ${files.length} modules: ${files.join(', ')}`);

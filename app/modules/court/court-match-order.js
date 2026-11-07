@@ -1,4 +1,11 @@
-function isTeamMatch(m){return KSMEngine.isTeamMatch(m);// moved to app/engine/match-helpers.ts
+// @ts-check
+import {state} from '../app-state.js';
+import {loadScoreFromMatch} from './court-scoring-and-history.js';
+import {championshipLabels,firstRoundName,roundSequenceFromFirst} from '../engine/engine-championship.js';
+import {singleElimOrderMap} from '../engine/engine-single-elim.js';
+import {esc} from '../html-text.js';
+import {applyCourtSides,isTeamDivision,ksmDivisionName,ksmSignalCourtHeader,ksmTeamDivisions,localCourtDivision,matchBelongsToCourt,pinCourtLocally,rememberLocalCourtDivision,renderPublic,renderScore,show} from '../legacy.js';
+export function isTeamMatch(m){return KSMEngine.isTeamMatch(m);// moved to app/engine/match-helpers.ts
   }
 function teamNodeOrderMap(div){let map={};(state.teamBracketNodes?.[div]||[]).forEach((n,i)=>map[n.id]=i);return map}
 function teamPairOrderMap(div){let map={},next=0;(state.allMatches[div]||[]).forEach(m=>{if(isTeamMatch(m)&&m.teamPair&&map[m.teamPair]==null)map[m.teamPair]=next++});return map}
@@ -10,10 +17,10 @@ function teamMatchSortKey(div,m){let map=teamNodeOrderMap(div);let node=(m.teamN
   // advancing the court to another pair. Elimination continues to use node order.
   if(node==null&&m.teamPair){let pairOrder=teamPairOrderMap(div);if(pairOrder[m.teamPair]!=null)return pairOrder[m.teamPair]*100+teamPositionOrder(m)}
   if(node==null)node=999;return node*100+teamPositionOrder(m)}
-function sortTeamMatches(div){let arr=state.allMatches[div]||[];if(!arr.some(isTeamMatch))return arr;arr.sort((a,b)=>{
+export function sortTeamMatches(div){let arr=state.allMatches[div]||[];if(!arr.some(isTeamMatch))return arr;arr.sort((a,b)=>{
   let at=isTeamMatch(a),bt=isTeamMatch(b);if(at&&bt)return teamMatchSortKey(div,a)-teamMatchSortKey(div,b);if(at&&!bt)return -1;if(!at&&bt)return 1;return 0;
 });state.allMatches[div]=arr;return arr;}
-function individualMatchReady(m){return KSMEngine.individualMatchReady(m);// moved to app/engine/match-helpers.ts
+export function individualMatchReady(m){return KSMEngine.individualMatchReady(m);// moved to app/engine/match-helpers.ts
   }
 function championshipRoundIndex(div,round){
   const first=firstRoundName((state.brackets?.[div]||championshipLabels(div)||[]).length);
@@ -21,7 +28,7 @@ function championshipRoundIndex(div,round){
   const idx=seq.indexOf(round);
   return idx<0?999:idx;
 }
-function sortIndividualDivisionMatches(div,arr){
+export function sortIndividualDivisionMatches(div,arr){
   const indexed=arr.map((m,i)=>({m,i}));
   indexed.sort((a,b)=>{
     const ac=a.m.championship?1:0,bc=b.m.championship?1:0;
@@ -38,7 +45,7 @@ function sortIndividualDivisionMatches(div,arr){
   });
   const out=indexed.map(x=>x.m);state.allMatches[div]=out;return out;
 }
-function findNextForCourt(court,preferredDiv=null,startIndex=0){
+export function findNextForCourt(court,preferredDiv=null,startIndex=0){
   // The active match must always be pulled from the same ordered queue that
   // is displayed to the scorekeeper. Team brackets are especially sensitive:
   // play-ins must remain ahead of any dependent or later-round match, even if
@@ -56,7 +63,7 @@ function findNextForCourt(court,preferredDiv=null,startIndex=0){
   for(let d of divs){let found=firstForDivision(d);if(found.index < (state.allMatches[d]||[]).length)return found;}
   return {division:state.currentDivision,index:(state.allMatches[state.currentDivision]||[]).length};
 }
-function applyCourtState(court,cs,keepScore=true){
+export function applyCourtState(court,cs,keepScore=true){
   state.currentCourt=court;
   state.courtState[court]=cs;
   state.courtActiveDivision[court]=cs.division;
@@ -68,10 +75,10 @@ function applyCourtState(court,cs,keepScore=true){
   else{state.score={W:[],R:[],WT:0,RT:0};state.history=[]}
   applyCourtSides();
 }
-function initCourtStates(){
+export function initCourtStates(){
   ['A','B'].forEach(c=>{state.courtState[c]=findNextForCourt(c,null,0);state.courtActiveDivision[c]=state.courtState[c].division;});
 }
-function renderDivisions(){
+export function renderDivisions(){
   state.divisions.forEach(d=>state.divisionCourts[d]=state.divisionCourts[d]||'A');
   if(window.poolDiv){let all=[...new Set([...state.divisions,...ksmTeamDivisions().filter(d=>state.allMatches?.[d.id]).map(d=>d.id),...Object.keys(state.allMatches||{})])];let selected=(poolDiv.value&&all.includes(poolDiv.value))?poolDiv.value:((state.poolViewDivision&&all.includes(state.poolViewDivision))?state.poolViewDivision:state.currentDivision);state.poolViewDivision=selected;poolDiv.innerHTML=all.map(d=>`<option ${d===selected?'selected':''}${ksmDivisionName(d)!==d?` value="${esc(d)}"`:''}>${esc(ksmDivisionName(d))}</option>`).join('');if(selected)poolDiv.value=selected;}
   if(window.scoreDiv){
@@ -82,7 +89,7 @@ function renderDivisions(){
     ksmSignalCourtHeader({court,divisions:opts,currentDivision:state.currentDivision||''});
   }
 }
-function openCourt(c){
+export function openCourt(c){
   c=pinCourtLocally(c);
   const preferred=localCourtDivision(c);
   let cs=preferred&&state.allMatches?.[preferred]?findNextForCourt(c,preferred,0):state.courtState?.[c];
@@ -94,4 +101,4 @@ function openCourt(c){
   if(cs?.division)rememberLocalCourtDivision(c,cs.division);
   renderDivisions();renderScore();show('score');
 }
-function openPublicCourt(c){state.publicCourt=c;if(window.publicTitle)publicTitle.textContent='Live Scores • Court '+c;renderPublic();show('public')}
+export function openPublicCourt(c){state.publicCourt=c;if(window.publicTitle)publicTitle.textContent='Live Scores • Court '+c;renderPublic();show('public')}
