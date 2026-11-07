@@ -1,6 +1,9 @@
 // @ts-check
 import {state} from '../app-state.js';
+import {eligibleTeams} from './engine-pools.js';
 import {teamPairMatches} from './engine-standings-and-tiebreaks.js';
+import {syncTeamBracket} from './engine-team-matches.js';
+import {ksmTeamSettings} from '../registration/team-divisions.js';
 /**
  * Bracket side: team number n (1-based registration order).
  * @param {number} n
@@ -78,4 +81,13 @@ function kachinukiPairWinner(div,pair){
  */
 export function teamWinner(div,pair){
   return KSMEngine.teamWinner(state.allMatches[div]||[],pair);
+}
+/**
+ * @param {Match} m
+ */
+export function maybeAdvanceTeamBracket(m){
+  if(!m || !(m.type==='teamPosition'||m.type==='teamPlayoff'||m.type==='kachinuki'))return;
+  let div=m.division, fmt=ksmTeamSettings(div).teamTournamentFormat||'Single Elimination';
+  if(fmt!=='Single Elimination')return;
+  syncTeamBracket(div,state.allMatches[div]||[],state.teamElimTeams?.[div]||eligibleTeams(div));
 }

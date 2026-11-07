@@ -14,34 +14,45 @@ Object.assign(window, {
   ksmHeaderLogo, ksmLinkUrl, ksmReplaceUrl, ksmTournamentHomeUrl,
   // 00-react-bridge.js
   ksmLegacyCloudSession, ksmLegacyState, ksmLegacyStateVersion, ksmNotifyStateChanged,
-  // 01-grand-champion.js
+  // app/modules/registration/grand-champion.js
   ksmAddGrandChampion, ksmDecideGrandChampion, ksmGrandChampion, ksmGrandChampionChoose, ksmGrandChampions, ksmMoveGrandChampion,
   ksmOpenGrandChampionWithdraw, ksmRemoveGrandChampion, ksmToggleGrandChampionSource, ksmUpdateGrandChampion,
+  // app/modules/setup/division-setup.js
+  addCustomDivision, renderDivisionSetup, setDivisionFormat, syncSetupHeader, toggleDivision,
   // 01-state-and-setup.js
-  addCustomDivision, renderDivisionSetup, setDivisionFormat, state, toggleDivision,
-  // 01-team-divisions.js
+  state,
+  // app/modules/registration/team-divisions.js
   ksmAddTeamDivision, ksmAssignTeamDivision, ksmDivisionName, ksmMoveTeamDivision, ksmNewTeamRows, ksmRemoveTeamDivision,
   ksmRenderTeamDivisions, ksmTeamDivisions, ksmTeamSettings, ksmUpdateTeamDivision,
   // app/modules/court/court-match-order.js
   applyCourtState, findNextForCourt, individualMatchReady, initCourtStates, isTeamMatch, renderDivisions,
   sortIndividualDivisionMatches, sortTeamMatches,
-  // 03-registration-and-validation.js
-  addAutoTeam, addExhibitionRow, addRow, addTeamRow, clearCompetitors, clearExhibitions,
-  clearTeams, closeManagementModal, continueRegenerateDivision, cycleCompetitorStatus, cycleTeamStatus, ksmDangerRegenerate,
-  ksmSyncDangerZone, loadFullTournament, loadSamples, loadTeamSamples, openRegenerateDivisionDialog, renderExhibitions,
-  renderReg, renderTeams, renderTournamentStatus, requestTournamentGeneration, validateTournament,
+  // app/modules/registration/registration.js
+  addAutoTeam, addExhibitionRow, addRow, addTeamRow, clearCompetitors, clearExhibitions, clearTeams, closeManagementModal,
+  continueRegenerateDivision, cycleCompetitorStatus, cycleTeamStatus, loadFullTournament, loadSamples, loadTeamSamples,
+  openRegenerateDivisionDialog, renderExhibitions, renderReg, renderTeams,
+  // app/modules/setup/danger-zone.js
+  ksmDangerRegenerate, ksmSyncDangerZone,
+  // app/modules/registration/validation.js
+  renderTournamentStatus, requestTournamentGeneration, validateTournament,
+  // app/modules/engine/engine-pools.js
+  isTeamDivision,
   // 04-engine-pools.js
-  buildPoolMatches, championshipCourtFor, divisionCourtMode, eligibleIndividuals, eligibleTeams, isTeamDivision,
-  poolMatchPairs, poolPlayerSlot, poolPlayerSlotLetter,
+  buildPoolMatches, championshipCourtFor, divisionCourtMode, eligibleIndividuals, eligibleTeams, poolMatchPairs, poolPlayerSlot,
+  poolPlayerSlotLetter,
+  // app/modules/engine/engine-team-matches.js
+  teamSlots,
   // 05-engine-team-matches.js
-  nodePairId, teamSlots,
+  nodePairId,
   // 06-engine-single-elim.js
   dedupeSingleElimMatches, maybeAdvanceIndividualSingleElim, sideLabelGeneric, specificMatchSideLabel,
+  // app/modules/engine/engine-team-bracket.js
+  maybeAdvanceTeamBracket,
   // 07-engine-team-bracket.js
-  maybeAdvanceTeamBracket, teamBracketNodesForCount,
+  teamBracketNodesForCount,
   // 08-engine-generation.js
-  applyIndividualNoShow, eliminationFinalDone, generateDivisionState, generatePools, matchBelongsToCourt, regenerateSingleDivision, renderPools,
-  selectScorekeeperDivision, setActiveDivision,
+  applyIndividualNoShow, applyWholeTeamNoShow, eliminationFinalDone, generateDivisionState, generatePools, matchBelongsToCourt,
+  regenerateSingleDivision, renderPools, selectScorekeeperDivision, setActiveDivision,
   // 09-results-and-awards.js
   canModifyRepresentative, divisionComplete, exportCSV, setRepresentative, teamRoster,
   // app/modules/court/court-scoring-and-history.js
@@ -51,9 +62,11 @@ Object.assign(window, {
   activeScoreArrays, courtCurrentMatch, showCompProfile, teamSideLabel,
   // 12-engine-result-integrity.js
   winnerOf,
+  // app/modules/engine/engine-standings-and-tiebreaks.js
+  isTeamRoundRobinDivision, maybeCreateTeamTiebreak, teamStandings,
   // 13-engine-standings-and-tiebreaks.js
-  appendApprovedDynamicMatches, APPROVED_DYNAMIC_MATCH_TYPES, isTeamRoundRobinDivision, makeTiebreakMatch, maybeCreateTeamTiebreak,
-  maybeCreateTiebreaks, teamPairSummary, teamRoundRobinProgress, teamStandings, tiebreakMatchesForGroup, unresolvedRequiredTiebreakGroup,
+  appendApprovedDynamicMatches, APPROVED_DYNAMIC_MATCH_TYPES, ksmAddDaihyosenForTeamAwards, makeTiebreakMatch, maybeCreateTiebreaks,
+  teamPairSummary, teamRoundRobinProgress, tiebreakMatchesForGroup, unresolvedRequiredTiebreakGroup,
   // 14-engine-championship.js
   buildChampionshipTemplateMatches, championshipLabels, championshipTemplateForTotal, champMatchBySlot, enforceUniqueIndividualMatches, expectedRoundCount,
   firstRoundName, individualLogicalMatchKey, maybeAdvanceChampionship, maybeCreateChampionship, poolSeedResolution, previousRoundName,
@@ -63,9 +76,10 @@ Object.assign(window, {
   // 17-print.js
   previewAllDivisionSheets, previewFullPrintPacket, previewResultsSheet, previewSelectedDivisionSheet, printDivisionSheet,
   // 18-sync-state-and-rebase.js
-  applyCourtSides, cloneJson, historyEntryIdentity, isValidMatchObject, KSM_CLOUD_OUTBOX_KEY, KSM_CLOUD_SESSION_KEY, KSM_MERGE_LABELS, KSM_SAVE_KEY,
-  localChangesPending, localCourtDivision, matchHasSyncIdentity, matchSyncIdentity, mergeLocalEditsThreeWay, normalizeCourt, pinCourtLocally,
-  rebaseLocalPayloadOnRecord, redOnLeftForCourt, rememberLocalCourtDivision, replayCourtMatchOps,
+  applyCourtSides, cloneJson, historyEntryIdentity, isValidMatchObject, KSM_CLOUD_OUTBOX_KEY, KSM_CLOUD_SESSION_KEY, KSM_MERGE_LABELS,
+  KSM_SAVE_KEY, ksmIsApplyingRemoteSnapshot, localChangesPending, localCourtDivision, matchHasSyncIdentity, matchSyncIdentity,
+  mergeLocalEditsThreeWay, normalizeCourt, pinCourtLocally, rebaseLocalPayloadOnRecord, redOnLeftForCourt, rememberLocalCourtDivision,
+  replayCourtMatchOps,
   // 18-two-tabs.js
   KSM_TAB_ID, ksmOutboxKey, ksmReleaseReplaceBackups, ksmTabId, ksmWriterId,
   // 19-cloud-diagnostics.js
@@ -91,8 +105,8 @@ Object.assign(window, {
   buildTV3ViewModel, renderTvDisplay,
   // 27-results-screen.js
   addResultAward, closeResultsBracket, openResultsBracket, removeResultAward, renderResultsDashboard, resultPlacements,
-  // 30-setup-header-and-director.js
-  courtSummaryFor, directorDivisionProgress, directorSingleElimTotal, renderDirector, syncSetupHeader, tournamentSummary,
+  // app/modules/setup/director-progress.js
+  courtSummaryFor, directorDivisionProgress, directorSingleElimTotal, renderDirector, tournamentSummary,
   // 31-spectator-refinements.js
   poolDisplayComplete,
   // app/modules/court/split-court-templates.js
@@ -106,7 +120,7 @@ Object.assign(window, {
   // 33-stream-overlay-links.js
   copyStreamOverlayLink,
   // 33-tournament-switcher.js
-  KSM_DETACHED_DRAFT_KEY, ksmShowLibrary,
+  KSM_DETACHED_DRAFT_KEY, ksmRefreshTournamentChip, ksmShowLibrary,
   // app/modules/court/match-timer.js
   ksmMatchTimerInput, ksmNormalizeTimerSettings, ksmSaveTimerSettings, ksmSetCourtTimerEnabled, ksmSetCourtTimerSound,
   // 35-react-court.js
@@ -123,15 +137,22 @@ Object.assign(window, {
   // 41-react-pools.js
   ksmPoolEditPools, ksmPoolEditToSave, ksmRenderPoolEditor,
   // 42-react-setup.js
-  ksmDivisionPresetNames, ksmDivisionRemoveBlocked, ksmDivisionRenameBlocked, ksmMoveSetupDivision, ksmRemoveSetupDivision, ksmRenameSetupDivision,
-  ksmRestoreStandardDivisions,
+  ksmDivisionPresetNames, ksmDivisionRemoveBlocked, ksmDivisionRenameBlocked, ksmMoveSetupDivision, ksmPublishSetup, ksmRemoveSetupDivision,
+  ksmRenameSetupDivision, ksmRenderSetupDivisions, ksmRenderSetupHeader, ksmRestoreStandardDivisions,
   // 43-react-registration.js
-  ksmBindRegistrationEntry, ksmBindRegistrationRow, ksmBlurRedrawn, ksmCycleExhibitionStatus, ksmExhibitionsEnabled, ksmHtmlText,
-  ksmImportCSV, ksmImportCSVFile, ksmPasteHelp, ksmRemoveCompetitor, ksmRemoveExhibition, ksmRemoveTeam,
-  ksmSetExhibitionField, ksmSetTeamField, ksmTournamentGenerated, ksmUpdateCompetitor,
+  ksmBindRegistrationEntry, ksmBindRegistrationRow, ksmBlurRedrawn, ksmConfirmNoShow, ksmCycleExhibitionStatus, ksmExhibitionsEnabled,
+  ksmHtmlText, ksmImportCSV, ksmImportCSVFile, ksmPasteHelp, ksmRemoveCompetitor, ksmRemoveExhibition, ksmRemoveTeam, ksmRenderExhibitions,
+  ksmRenderRegistration, ksmRenderTeams, ksmRenderTournamentStatus, ksmSetExhibitionField, ksmSetTeamField, ksmTournamentGenerated,
+  ksmUpdateCompetitor,
   // 44-react-shell.js
-  ksmConfirmDeleteTournament, ksmConfirmValidation, ksmOpenDeleteTournament, ksmPersistentSaveStatusText, ksmRegeneratePoolDivision, ksmSetActiveNav,
-  ksmSetFusenOpen, ksmSetTestTools, ksmShellDialogsState, ksmShellHeaderState, ksmToggleTestTools,
+  ksmCloseCloudModal, ksmCloseShellDialog, ksmCloudModalOpen, ksmConfirmDeleteTournament, ksmConfirmValidation,
+  ksmContinueRegenerateDivision, ksmOpenCloudModal, ksmOpenDeleteTournament, ksmOpenRegenerateDialog, ksmPersistentSaveStatusText,
+  ksmRegeneratePoolDivision, ksmSetActiveNav, ksmSetFusenOpen, ksmSetTestTools, ksmShellDialogsState, ksmShellHeaderState,
+  ksmShowValidationDialog, ksmToggleTestTools,
+  // 03-undo-regenerate.js
+  ksmRefreshRestorePoint, ksmRenderUndoRegenerate, ksmUndoRegenerateOffered,
+  // 39-react-overview.js
+  ksmRenderOverview,
 });
 
 // Second block: live accessors, for names that are assigned after their declaration (a wrapped function,
@@ -204,6 +225,7 @@ Object.assign(window, {
     ksmRegistrationRowsStale: live(() => ksmRegistrationRowsStale, v => { ksmRegistrationRowsStale = v; }),
     ksmTeamsStale: live(() => ksmTeamsStale, v => { ksmTeamsStale = v; }),
     // 44-react-shell.js
+    ksmCanDeleteTournament: live(() => ksmCanDeleteTournament, v => { ksmCanDeleteTournament = v; }),
     ksmNavActive: live(() => ksmNavActive, v => { ksmNavActive = v; }),
     ksmNavMenuStyle: live(() => ksmNavMenuStyle, v => { ksmNavMenuStyle = v; }),
     ksmNavOpenMenu: live(() => ksmNavOpenMenu, v => { ksmNavOpenMenu = v; }),

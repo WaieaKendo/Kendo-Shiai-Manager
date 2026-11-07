@@ -35,5 +35,20 @@ declare var nameResults: HTMLElement;
 declare var dojoResults: HTMLElement;
 declare var profile: HTMLElement;
 
+// Elements the registration and setup modules (app/modules/registration, app/modules/setup) reach by id.
+/** Registration filters, Setup's custom division controls and team court / awards fields, the validation card. */
+declare var regFilter: HTMLInputElement;
+declare var teamFilter: HTMLInputElement;
+declare var teamEnabled: HTMLSelectElement;
+declare var teamCourt: HTMLSelectElement;
+declare var teamAwardMode: HTMLSelectElement;
+declare var customDivName: HTMLInputElement;
+declare var customDivFormat: HTMLSelectElement;
+declare var customDivCourt: HTMLSelectElement;
+declare var newDiv: HTMLSelectElement;
+declare var newDivType: HTMLSelectElement;
+declare var tournamentStatusCard: HTMLElement;
+declare var divisionSetupRows: HTMLElement;
+
 /** The pure engine modules (app/engine/index.ts), loaded as a classic script before app.js. */
 declare var KSMEngine: typeof import('../engine/index.ts');

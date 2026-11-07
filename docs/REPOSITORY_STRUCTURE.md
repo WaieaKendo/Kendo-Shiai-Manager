@@ -22,10 +22,13 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         court/*.js: the court (match order, scoring and undo history, queue and
                         views, pool editing, scorekeeper screen, support-mode layouts, split-court
                         templates, match timer); html-text.js: esc(), jsArg();
+                        registration/*.js: registration rows and teams, validation and Generate,
+                        team divisions, grand champion; setup/*.js: division setup and the
+                        header, the Danger zone, Overview progress (director-progress.js);
                         legacy.js: one wrapper per not-yet-moved app/js function the moved code
                         calls, through `window` at call time (app/js/00-legacy-exports.js puts those names on
                         window first; each is deleted when its area moves;
-                        tests/window-exports-test.mjs checks them). Next area: registration/setup
+                        tests/window-exports-test.mjs checks them). Next area: results/print
                       (00-path-urls.js: path URLs, M.9: an old ?tournament= link becomes its
                       path first, ksmLinkParams()/ksmLinkUrl(); 00-react-bridge.js: the
                       ksm:state-changed event for React islands)

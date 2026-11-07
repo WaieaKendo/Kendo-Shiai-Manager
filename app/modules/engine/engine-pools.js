@@ -1,5 +1,6 @@
 // @ts-check
 import {state} from '../app-state.js';
+import {ksmTeamDivision} from '../registration/team-divisions.js';
 /**
  * Dojo group used to keep dojo-mates apart in pools (Aiea and Waipahu count as one).
  * @param {string} d
@@ -113,3 +114,8 @@ export function poolMatchPairs(size){
 export function buildPoolMatches(div,pools){
   return KSMEngine.buildPoolMatches(div,pools,(pools||[]).map(pool=>poolCourtFor(div,pool.label,pools)));// moved to app/engine/pools.ts
 }
+/**
+ * @param {string} div
+ * @returns {boolean}
+ */
+export function isTeamDivision(div){return !!ksmTeamDivision(div)||div==='Team Tournament'||/team|kachinuki/i.test(state.divisionTypes[div]||'')}

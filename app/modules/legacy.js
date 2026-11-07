@@ -21,25 +21,27 @@ export const ksmNotifyStateChanged = /** @type {typeof globalThis.ksmNotifyState
 export const saveSetup = /** @type {typeof globalThis.saveSetup} */ ((...args) => w.saveSetup(...args));
 export const show = /** @type {typeof globalThis.show} */ ((...args) => w.show(...args));
 
-// 01-team-divisions.js
-export const ksmDivisionName = /** @type {typeof globalThis.ksmDivisionName} */ ((...args) => w.ksmDivisionName(...args));
-export const ksmTeamDivisions = /** @type {typeof globalThis.ksmTeamDivisions} */ ((...args) => w.ksmTeamDivisions(...args));
-
-// 04-engine-pools.js
-export const isTeamDivision = /** @type {typeof globalThis.isTeamDivision} */ ((...args) => w.isTeamDivision(...args));
-
-// 07-engine-team-bracket.js
-export const maybeAdvanceTeamBracket = /** @type {typeof globalThis.maybeAdvanceTeamBracket} */ ((...args) => w.maybeAdvanceTeamBracket(...args));
+// 03-undo-regenerate.js
+export const ksmRefreshRestorePoint = /** @type {typeof globalThis.ksmRefreshRestorePoint} */ ((...args) => w.ksmRefreshRestorePoint(...args));
+export const ksmRenderUndoRegenerate = /** @type {typeof globalThis.ksmRenderUndoRegenerate} */ ((...args) => w.ksmRenderUndoRegenerate(...args));
+export const ksmUndoRegenerateOffered = /** @type {typeof globalThis.ksmUndoRegenerateOffered} */ ((...args) => w.ksmUndoRegenerateOffered(...args));
 
 // 08-engine-generation.js
+export const applyIndividualNoShow = /** @type {typeof globalThis.applyIndividualNoShow} */ ((...args) => w.applyIndividualNoShow(...args));
+export const applyWholeTeamNoShow = /** @type {typeof globalThis.applyWholeTeamNoShow} */ ((...args) => w.applyWholeTeamNoShow(...args));
 export const eliminationFinalDone = /** @type {typeof globalThis.eliminationFinalDone} */ ((...args) => w.eliminationFinalDone(...args));
+export const generateDivisionState = /** @type {typeof globalThis.generateDivisionState} */ ((...args) => w.generateDivisionState(...args));
+export const generatePools = /** @type {typeof globalThis.generatePools} */ ((...args) => w.generatePools(...args));
 export const matchBelongsToCourt = /** @type {typeof globalThis.matchBelongsToCourt} */ ((...args) => w.matchBelongsToCourt(...args));
 export const renderPools = /** @type {typeof globalThis.renderPools} */ ((...args) => w.renderPools(...args));
 export const setActiveDivision = /** @type {typeof globalThis.setActiveDivision} */ ((...args) => w.setActiveDivision(...args));
 
+// 09-results-and-awards.js
+export const divisionComplete = /** @type {typeof globalThis.divisionComplete} */ ((...args) => w.divisionComplete(...args));
+
 // 13-engine-standings-and-tiebreaks.js
 export const appendApprovedDynamicMatches = /** @type {typeof globalThis.appendApprovedDynamicMatches} */ ((...args) => w.appendApprovedDynamicMatches(...args));
-export const maybeCreateTeamTiebreak = /** @type {typeof globalThis.maybeCreateTeamTiebreak} */ ((...args) => w.maybeCreateTeamTiebreak(...args));
+export const ksmAddDaihyosenForTeamAwards = /** @type {typeof globalThis.ksmAddDaihyosenForTeamAwards} */ ((...args) => w.ksmAddDaihyosenForTeamAwards(...args));
 export const maybeCreateTiebreaks = /** @type {typeof globalThis.maybeCreateTiebreaks} */ ((...args) => w.maybeCreateTiebreaks(...args));
 
 // 14-engine-championship.js
@@ -54,6 +56,7 @@ export const renderAll = /** @type {typeof globalThis.renderAll} */ ((...args) =
 export const applyCourtSides = /** @type {typeof globalThis.applyCourtSides} */ ((...args) => w.applyCourtSides(...args));
 export const cloneJson = /** @type {typeof globalThis.cloneJson} */ ((...args) => w.cloneJson(...args));
 export const historyEntryIdentity = /** @type {typeof globalThis.historyEntryIdentity} */ ((...args) => w.historyEntryIdentity(...args));
+export const ksmIsApplyingRemoteSnapshot = /** @type {typeof globalThis.ksmIsApplyingRemoteSnapshot} */ ((...args) => w.ksmIsApplyingRemoteSnapshot(...args));
 export const localCourtDivision = /** @type {typeof globalThis.localCourtDivision} */ ((...args) => w.localCourtDivision(...args));
 export const matchHasSyncIdentity = /** @type {typeof globalThis.matchHasSyncIdentity} */ ((...args) => w.matchHasSyncIdentity(...args));
 export const matchSyncIdentity = /** @type {typeof globalThis.matchSyncIdentity} */ ((...args) => w.matchSyncIdentity(...args));
@@ -65,14 +68,19 @@ export const replayCourtMatchOps = /** @type {typeof globalThis.replayCourtMatch
 // 18-two-tabs.js
 export const ksmTabId = /** @type {typeof globalThis.ksmTabId} */ ((...args) => w.ksmTabId(...args));
 
+// 19-cloud-diagnostics.js
+export const writeCloudDiagnosticsState = /** @type {typeof globalThis.writeCloudDiagnosticsState} */ ((...args) => w.writeCloudDiagnosticsState(...args));
+
 // 20-cloud-session-and-autosave.js
 export const criticalAutoSave = /** @type {typeof globalThis.criticalAutoSave} */ ((...args) => w.criticalAutoSave(...args));
 export const getSetupSnapshot = /** @type {typeof globalThis.getSetupSnapshot} */ ((...args) => w.getSetupSnapshot(...args));
 export const scheduleAutoSave = /** @type {typeof globalThis.scheduleAutoSave} */ ((...args) => w.scheduleAutoSave(...args));
+export const tournamentSettings = /** @type {typeof globalThis.tournamentSettings} */ ((...args) => w.tournamentSettings(...args));
 export const updateSaveStatus = /** @type {typeof globalThis.updateSaveStatus} */ ((...args) => w.updateSaveStatus(...args));
 
 // 21-cloud-realtime-save-and-load.js
 export const isTvSession = /** @type {typeof globalThis.isTvSession} */ ((...args) => w.isTvSession(...args));
+export const manualSaveTournament = /** @type {typeof globalThis.manualSaveTournament} */ ((...args) => w.manualSaveTournament(...args));
 export const showKsmToast = /** @type {typeof globalThis.showKsmToast} */ ((...args) => w.showKsmToast(...args));
 
 // 22-scorekeeper-screen.js
@@ -84,17 +92,46 @@ export const renderProgress = /** @type {typeof globalThis.renderProgress} */ ((
 // 25-live-scores.js
 export const renderPublic = /** @type {typeof globalThis.renderPublic} */ ((...args) => w.renderPublic(...args));
 
+// 27-results-screen.js
+export const resultPlacements = /** @type {typeof globalThis.resultPlacements} */ ((...args) => w.resultPlacements(...args));
+
 // 33-staff-session-and-library.js
 export const isReadOnlySession = /** @type {typeof globalThis.isReadOnlySession} */ ((...args) => w.isReadOnlySession(...args));
+
+// 33-tournament-switcher.js
+export const ksmRefreshTournamentChip = /** @type {typeof globalThis.ksmRefreshTournamentChip} */ ((...args) => w.ksmRefreshTournamentChip(...args));
 
 // 35-react-court.js
 export const ksmSignalCourtActions = /** @type {typeof globalThis.ksmSignalCourtActions} */ ((...args) => w.ksmSignalCourtActions(...args));
 export const ksmSignalCourtHeader = /** @type {typeof globalThis.ksmSignalCourtHeader} */ ((...args) => w.ksmSignalCourtHeader(...args));
+
+// 39-react-overview.js
+export const ksmRenderOverview = /** @type {typeof globalThis.ksmRenderOverview} */ ((...args) => w.ksmRenderOverview(...args));
 
 // 41-react-pools.js
 export const ksmPoolEditPools = /** @type {typeof globalThis.ksmPoolEditPools} */ ((...args) => w.ksmPoolEditPools(...args));
 export const ksmPoolEditToSave = /** @type {typeof globalThis.ksmPoolEditToSave} */ ((...args) => w.ksmPoolEditToSave(...args));
 export const ksmRenderPoolEditor = /** @type {typeof globalThis.ksmRenderPoolEditor} */ ((...args) => w.ksmRenderPoolEditor(...args));
 
+// 42-react-setup.js
+export const ksmPublishSetup = /** @type {typeof globalThis.ksmPublishSetup} */ ((...args) => w.ksmPublishSetup(...args));
+export const ksmRenderSetupDivisions = /** @type {typeof globalThis.ksmRenderSetupDivisions} */ ((...args) => w.ksmRenderSetupDivisions(...args));
+export const ksmRenderSetupHeader = /** @type {typeof globalThis.ksmRenderSetupHeader} */ ((...args) => w.ksmRenderSetupHeader(...args));
+
+// 43-react-registration.js
+export const ksmConfirmNoShow = /** @type {typeof globalThis.ksmConfirmNoShow} */ ((...args) => w.ksmConfirmNoShow(...args));
+export const ksmRenderExhibitions = /** @type {typeof globalThis.ksmRenderExhibitions} */ ((...args) => w.ksmRenderExhibitions(...args));
+export const ksmRenderRegistration = /** @type {typeof globalThis.ksmRenderRegistration} */ ((...args) => w.ksmRenderRegistration(...args));
+export const ksmRenderTeams = /** @type {typeof globalThis.ksmRenderTeams} */ ((...args) => w.ksmRenderTeams(...args));
+export const ksmRenderTournamentStatus = /** @type {typeof globalThis.ksmRenderTournamentStatus} */ ((...args) => w.ksmRenderTournamentStatus(...args));
+
 // 44-react-shell.js
+export const ksmCanDeleteTournament = /** @type {typeof globalThis.ksmCanDeleteTournament} */ ((...args) => w.ksmCanDeleteTournament(...args));
+export const ksmCloseCloudModal = /** @type {typeof globalThis.ksmCloseCloudModal} */ ((...args) => w.ksmCloseCloudModal(...args));
+export const ksmCloseShellDialog = /** @type {typeof globalThis.ksmCloseShellDialog} */ ((...args) => w.ksmCloseShellDialog(...args));
+export const ksmCloudModalOpen = /** @type {typeof globalThis.ksmCloudModalOpen} */ ((...args) => w.ksmCloudModalOpen(...args));
+export const ksmContinueRegenerateDivision = /** @type {typeof globalThis.ksmContinueRegenerateDivision} */ ((...args) => w.ksmContinueRegenerateDivision(...args));
+export const ksmOpenCloudModal = /** @type {typeof globalThis.ksmOpenCloudModal} */ ((...args) => w.ksmOpenCloudModal(...args));
+export const ksmOpenRegenerateDialog = /** @type {typeof globalThis.ksmOpenRegenerateDialog} */ ((...args) => w.ksmOpenRegenerateDialog(...args));
 export const ksmSetFusenOpen = /** @type {typeof globalThis.ksmSetFusenOpen} */ ((...args) => w.ksmSetFusenOpen(...args));
+export const ksmShowValidationDialog = /** @type {typeof globalThis.ksmShowValidationDialog} */ ((...args) => w.ksmShowValidationDialog(...args));
