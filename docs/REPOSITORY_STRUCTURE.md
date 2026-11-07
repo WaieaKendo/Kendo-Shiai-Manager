@@ -17,7 +17,15 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         app-state.js: `state` and DIVISION_PRESETS;
                         engine/engine-*.js: the adapters around the KSMEngine global (pools,
                         team matches, single elimination, team bracket, result integrity,
-                        standings and tiebreaks, championship). Next area: court
+                        standings and tiebreaks, championship, plus the two single-elimination
+                        builders that needed the court's syncIndividualSingleElim);
+                        court/*.js: the court (match order, scoring and undo history, queue and
+                        views, pool editing, scorekeeper screen, support-mode layouts, split-court
+                        templates, match timer); html-text.js: esc(), jsArg();
+                        legacy.js: one wrapper per not-yet-moved app/js function the moved code
+                        calls, through `window` at call time (app/js/00-legacy-exports.js puts those names on
+                        window first; each is deleted when its area moves;
+                        tests/window-exports-test.mjs checks them). Next area: registration/setup
                       (00-path-urls.js: path URLs, M.9: an old ?tournament= link becomes its
                       path first, ksmLinkParams()/ksmLinkUrl(); 00-react-bridge.js: the
                       ksm:state-changed event for React islands)

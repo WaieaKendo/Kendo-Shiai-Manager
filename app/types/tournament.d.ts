@@ -109,6 +109,8 @@ interface Match {
   pool?: string;
   /** Round name for championship/elimination bouts, position name ('Senpo', ...) for team bouts. */
   position?: string;
+  /** Round name of a bout (the timer reads it for team bouts). */
+  round?: string;
   poolOrder?: number;
   poolTemplateOrder?: number;
   whitePoolSlot?: string;
@@ -261,6 +263,8 @@ interface TournamentState {
   currentByDivision: ByDivision<number>;
   courtActionHistory: ByCourt<CourtAction[]>;
   courtRedoHistory: ByCourt<CourtAction[]>;
+  /** Undo/Redo log the save rebase replays (recordCourtUndoLog()). */
+  courtUndoLog?: ByCourt<unknown[]>;
 
   // View state of this device (not merged from other devices)
   currentCourt: Court;

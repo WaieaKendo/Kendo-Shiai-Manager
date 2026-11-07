@@ -17,6 +17,8 @@
 // The autosave (KSM_SAVE_KEY) stays one copy per browser, last writer wins: it is only a cache for
 // startup, and every tab's unsaved work is kept in its own outbox slot until the server has it.
 const KSM_TAB_ID=(()=>{try{return crypto.randomUUID()}catch(_){return Math.random().toString(36).slice(2)+Date.now().toString(36)}})();
+// The const read at call time by the court modules (app/modules/legacy.js cannot read a const when it loads).
+function ksmTabId(){return KSM_TAB_ID}
 const KSM_TAB_ALIVE_PREFIX='ksm.tab.alive.v1:';
 // A hidden tab's timers can be slowed to once a minute; a tab is gone after three missed minutes.
 const KSM_TAB_BEAT_MS=20000,KSM_TAB_GONE_MS=180000;

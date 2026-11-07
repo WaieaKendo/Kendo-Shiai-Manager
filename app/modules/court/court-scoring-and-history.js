@@ -1,4 +1,12 @@
-function loadScoreFromMatch(m){
+// @ts-check
+import {state} from '../app-state.js';
+import {maybeCreateKachinukiNext} from './court-context-and-pool-editing.js';
+import {applyCourtState,findNextForCourt} from './court-match-order.js';
+import {enforceUniqueIndividualMatches} from '../engine/engine-championship.js';
+import {completedResultSnapshot} from '../engine/engine-result-integrity.js';
+import {maybeAdvanceIndividualSingleElim} from '../engine/engine-single-elim.js';
+import {cloneJson,criticalAutoSave,historyEntryIdentity,ksmLegacyCloudSession,ksmNotifyStateChanged,ksmSignalCourtActions,ksmTabId,matchHasSyncIdentity,matchSyncIdentity,maybeAdvanceChampionship,maybeAdvanceTeamBracket,maybeCreateChampionship,maybeCreateTeamTiebreak,maybeCreateTiebreaks,renderAll,renderPools,renderProgress,renderPublic,renderScore,replayCourtMatchOps,showKsmToast,updateSaveStatus} from '../legacy.js';
+export function loadScoreFromMatch(m){
   if(!m || m.done){state.score={W:[],R:[],WT:0,RT:0};return;}
   state.score={W:[...(m.wp||[])],R:[...(m.rp||[])],WT:m.wt||0,RT:m.rt||0};
 }
@@ -15,7 +23,7 @@ function syncActiveScoreToMatch(){
 const KSM_HISTORY_LIMIT=100;
 const KSM_HISTORY_KEYS=new Set(['courtActionHistory','courtRedoHistory','courtUndoLog']);
 const KSM_HISTORY_MISSING={__ksmMissing:true};
-function ensureCourtHistory(){
+export function ensureCourtHistory(){
   state.courtActionHistory=state.courtActionHistory||{A:[],B:[]};
   state.courtRedoHistory=state.courtRedoHistory||{A:[],B:[]};
   ['A','B'].forEach(c=>{
@@ -50,15 +58,15 @@ function buildHistoryPatches(before,after,path=[],patches=[]){
   patches.push({path:[...path],before:cloneHistoryValue(before),after:cloneHistoryValue(after)});
   return patches;
 }
-function currentHistoryCourt(){const c=String(state.currentCourt||cloudSession?.court||'A').toUpperCase();return c==='B'?'B':'A'}
+function currentHistoryCourt(){const c=String(state.currentCourt||ksmLegacyCloudSession()?.court||'A').toUpperCase();return c==='B'?'B':'A'}
 function stampHistoryPatchMatchIdentity(patch,before,after){return KSMEngine.stampHistoryPatchMatchIdentity(patch,before,after);// moved to app/engine/sync-helpers.ts
   }
-function performCourtAction(label,fn){
+export function performCourtAction(label,fn){
   ensureCourtHistory();const court=currentHistoryCourt(),before=historyComparableState();
   const result=fn();const after=historyComparableState(),patches=buildHistoryPatches(before,after).map(patch=>stampHistoryPatchMatchIdentity(patch,before,after));
   if(patches.length){
     const stack=state.courtActionHistory[court];
-    stack.push(withCourtHistoryIdentity({format:'patch-v1',label:label||'Action',court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',tabId:KSM_TAB_ID,revision:cloudSession?.revision||0,patches},before,after));
+    stack.push(withCourtHistoryIdentity({format:'patch-v1',label:label||'Action',court,when:new Date().toISOString(),clientId:ksmLegacyCloudSession()?.clientId||'',tabId:ksmTabId(),revision:ksmLegacyCloudSession()?.revision||0,patches},before,after));
     if(stack.length>KSM_HISTORY_LIMIT)stack.splice(0,stack.length-KSM_HISTORY_LIMIT);
     state.courtRedoHistory[court]=[];
   }
@@ -95,7 +103,7 @@ function applyHistoryValues(action,direction){
   if(cs?.division)applyCourtState(court,cs,true);
   renderAll();
 }
-function updateUndoButton(){
+export function updateUndoButton(){
   // The React action row (35-react-court.js) draws the buttons: signal whether Undo/Redo may
   // be pressed (the labels stay plain "Undo"/"Redo").
   ensureCourtHistory();const court=currentHistoryCourt(),undoStack=state.courtActionHistory[court],redoStack=state.courtRedoHistory[court];
@@ -105,7 +113,7 @@ function updateUndoButton(){
 // rebase (18-, replayPendingCourtHistory()) had nothing to replay and the server copy brought the
 // undone point back. Each Undo/Redo is also logged here (per court, with the action's patches and
 // who/when, like a court action) so the rebase replays it in time order with the court actions.
-const KSM_UNDO_LOG_LIMIT=40;
+export const KSM_UNDO_LOG_LIMIT=40;
 /** The match lists of the divisions `action` changes, before its Undo/Redo is applied (for courtUndoMatchOps()). */
 function courtUndoMatchesBefore(action){
   const out={};
@@ -155,7 +163,7 @@ function withCourtMatchOps(entry,beforeAll,afterAll){
 function recordCourtUndoLog(court,kind,action,matchesBefore){
   state.courtUndoLog=state.courtUndoLog||{A:[],B:[]};
   const log=Array.isArray(state.courtUndoLog[court])?state.courtUndoLog[court]:(state.courtUndoLog[court]=[]);
-  const entry={format:'history-op-v1',kind,court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',tabId:KSM_TAB_ID,revision:cloudSession?.revision||0,
+  const entry={format:'history-op-v1',kind,court,when:new Date().toISOString(),clientId:ksmLegacyCloudSession()?.clientId||'',tabId:ksmTabId(),revision:ksmLegacyCloudSession()?.revision||0,
     target:historyEntryIdentity(action),label:action.label||'Action',patches:cloneJson(action.patches||[])};
   const matchOps=courtUndoMatchOps(matchesBefore);if(matchOps)entry.matchOps=matchOps;
   log.push(entry);
@@ -282,25 +290,25 @@ function courtHistorySkippedNote(kind){
   if(typeof showKsmToast==='function')showKsmToast(`${kind}: a match it changed no longer exists, so that part was not applied`,3500,true);
   return ' (part of it was not applied: a match it changed no longer exists)';
 }
-function undo(){
+export function undo(){
   ensureCourtHistory();const court=currentHistoryCourt(),stack=state.courtActionHistory[court];const action=stack.pop();
   if(!action){updateSaveStatus('Nothing to undo');updateUndoButton();return}
   const matchesBefore=courtUndoMatchesBefore(action);applyHistoryValues(action,'before');recordCourtUndoLog(court,'UNDO',courtHistoryAppliedEntry(action),matchesBefore);state.courtRedoHistory[court].push(action);if(state.courtRedoHistory[court].length>KSM_HISTORY_LIMIT)state.courtRedoHistory[court].shift();
   updateUndoButton();updateSaveStatus('Undid '+action.label+courtHistorySkippedNote('Undo'));criticalAutoSave('Undo: '+action.label);
 }
-function redo(){
+export function redo(){
   ensureCourtHistory();const court=currentHistoryCourt(),stack=state.courtRedoHistory[court];const action=stack.pop();
   if(!action){updateSaveStatus('Nothing to redo');updateUndoButton();return}
   const matchesBefore=courtUndoMatchesBefore(action);applyHistoryValues(action,'after');recordCourtUndoLog(court,'REDO',courtHistoryAppliedEntry(action),matchesBefore);state.courtActionHistory[court].push(action);if(state.courtActionHistory[court].length>KSM_HISTORY_LIMIT)state.courtActionHistory[court].shift();
   updateUndoButton();updateSaveStatus('Redid '+action.label+courtHistorySkippedNote('Redo'));criticalAutoSave('Redo: '+action.label);
 }
-function point(side,letter){performCourtAction(`${side==='W'?'White':'Red'} ${letter}`,()=>{state.score[side].push(letter);window.dispatchEvent(new Event('ksm:timer-point'));syncActiveScoreToMatch();renderScore()})}
-function hansoku(side){performCourtAction(`${side==='W'?'White':'Red'} Hansoku`,()=>{window.dispatchEvent(new Event('ksm:timer-point'));if(side==='W'){state.score.WT++;if(state.score.WT%2===0)state.score.R.push('H')}else{state.score.RT++;if(state.score.RT%2===0)state.score.W.push('H')}syncActiveScoreToMatch();renderScore()})}
-function fusen(side){performCourtAction(`${side==='W'?'White':'Red'} Fusen-gachi`,()=>{if(side==='W'){state.score.W=[];state.score.R=['F','F']}else{state.score.R=[];state.score.W=['F','F']}syncActiveScoreToMatch();renderScore()})}
-function matchRequiresWinner(m){
+export function point(side,letter){performCourtAction(`${side==='W'?'White':'Red'} ${letter}`,()=>{state.score[side].push(letter);window.dispatchEvent(new Event('ksm:timer-point'));syncActiveScoreToMatch();renderScore()})}
+export function hansoku(side){performCourtAction(`${side==='W'?'White':'Red'} Hansoku`,()=>{window.dispatchEvent(new Event('ksm:timer-point'));if(side==='W'){state.score.WT++;if(state.score.WT%2===0)state.score.R.push('H')}else{state.score.RT++;if(state.score.RT%2===0)state.score.W.push('H')}syncActiveScoreToMatch();renderScore()})}
+export function fusen(side){performCourtAction(`${side==='W'?'White':'Red'} Fusen-gachi`,()=>{if(side==='W'){state.score.W=[];state.score.R=['F','F']}else{state.score.R=[];state.score.W=['F','F']}syncActiveScoreToMatch();renderScore()})}
+export function matchRequiresWinner(m){
   return KSMEngine.matchRequiresWinner(m);
 }
-function nextMatch(){
+export function nextMatch(){
   let m=state.matches[state.current];
   if(m){
     let attemptedTie=state.score.W.length===state.score.R.length;
@@ -324,5 +332,3 @@ function nextMatch(){
   });
   if(m)criticalAutoSave(`Completed match: ${m.white||m.teamWhite||'White'} vs ${m.red||m.teamRed||'Red'}`);
 }
-
-

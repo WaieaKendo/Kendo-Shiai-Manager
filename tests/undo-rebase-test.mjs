@@ -43,7 +43,7 @@ const code = [engine, constant('KSM_LOCAL_VIEW_STATE_KEYS'), constant('KSM_UNDO_
     'isIndividualPoolTiebreakMatch', 'reindexPointersAfterMatchReorder', 'normalizeIndividualPoolTiebreakOrderInState', 'normalizeAllIndividualPoolTiebreakOrder',
     // the court's own actions and Undo/Redo (10-), to press them on the device's copy and the rebased copy
     'historyPathParent', 'applyHistoryPatch', 'cloneHistoryValue', 'historyComparableState', 'historyValuesEqual', 'buildHistoryPatches',
-    'currentHistoryCourt', 'stampHistoryPatchMatchIdentity', 'ensureCourtHistory', 'performCourtAction', 'applyHistoryValues',
+    'currentHistoryCourt', 'ksmLegacyCloudSession', 'ksmTabId', 'stampHistoryPatchMatchIdentity', 'ensureCourtHistory', 'performCourtAction', 'applyHistoryValues',
     'courtUndoMatchesBefore', 'courtUndoMatchOps', 'withCourtMatchOps', 'recordCourtUndoLog', 'undo', 'redo',
     // ordinary Undo/Redo by match identity (10-)
     'withCourtHistoryIdentity', 'historyIndexDivision', 'historyIndexRef', 'resolveHistoryIndexRef', 'invertCourtMatchOps', 'applyCourtHistoryEntry',

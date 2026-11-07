@@ -1,5 +1,9 @@
+// @ts-check
+import {state} from '../app-state.js';
+import {matchRequiresWinner} from './court-scoring-and-history.js';
+import {getSetupSnapshot,isReadOnlySession,isTvSession,ksmLegacyCloudSession,matchBelongsToCourt,matchSyncIdentity,renderAll,saveSetup} from '../legacy.js';
 // Only configuration enters SetupSnapshot. Running timers live in the React court island.
-function ksmNormalizeTimerSettings(data){
+export function ksmNormalizeTimerSettings(data){
   const out={};
   ['timeRegular','timeQuarterfinal','timeSemifinal','timeFinal','timeEncho'].forEach(id=>{
     const fallback=id==='timeRegular'||id==='timeEncho'?'3:00':'';
@@ -15,21 +19,21 @@ function ksmNormalizeTimerSettings(data){
   out.court2TimerEnabled=data.court2TimerEnabled==='Off'?'Off':'On';
   return out;
 }
-function ksmSaveTimerSettings(){
+export function ksmSaveTimerSettings(){
   const settings=ksmNormalizeTimerSettings(getSetupSnapshot());
-  Object.keys(settings).forEach(id=>{document.getElementById(id).value=settings[id]});
+  Object.keys(settings).forEach(id=>{/** @type {HTMLInputElement} */(document.getElementById(id)).value=settings[id]});
   saveSetup();renderAll();
 }
-function ksmSetCourtTimerSound(sound){
+export function ksmSetCourtTimerSound(sound){
   if(sound!=='whistle01'&&sound!=='whistle02')return;
-  const el=document.getElementById(state.currentCourt==='B'?'court2TimerSound':'court1TimerSound');
+  const el=/** @type {HTMLInputElement|null} */(document.getElementById(state.currentCourt==='B'?'court2TimerSound':'court1TimerSound'));
   if(el){el.value=sound;el.dispatchEvent(new Event('change',{bubbles:true}))}
 }
-function ksmSetCourtTimerEnabled(enabled){
-  const el=document.getElementById(state.currentCourt==='B'?'court2TimerEnabled':'court1TimerEnabled');
+export function ksmSetCourtTimerEnabled(enabled){
+  const el=/** @type {HTMLInputElement|null} */(document.getElementById(state.currentCourt==='B'?'court2TimerEnabled':'court1TimerEnabled'));
   if(el){el.value=enabled?'On':'Off';el.dispatchEvent(new Event('change',{bubbles:true}))}
 }
-function ksmMatchTimerInput(){
+export function ksmMatchTimerInput(){
   const m=state.matches?.[state.current],court=state.currentCourt||'A';
   if(isReadOnlySession()||isTvSession()||!m||m.done||!matchBelongsToCourt(m,court))return null;
   const settings=ksmNormalizeTimerSettings(getSetupSnapshot());
@@ -38,7 +42,7 @@ function ksmMatchTimerInput(){
   const field={Quarterfinal:'timeQuarterfinal',Semifinal:'timeSemifinal',Final:'timeFinal'}[stage];
   const ms=value=>{if(!value)return 0;const [minutes,seconds]=value.split(':').map(Number);return (minutes*60+seconds)*1000};
   // Unassigned local tournaments have one local autosave slot; cloud tournaments use their ID.
-  return {tournamentId:cloudSession.tournamentId||'local',court,matchKey:matchSyncIdentity(m),
+  return {tournamentId:ksmLegacyCloudSession().tournamentId||'local',court,matchKey:matchSyncIdentity(m),
     sound:settings[court==='B'?'court2TimerSound':'court1TimerSound'],enabled:settings[court==='B'?'court2TimerEnabled':'court1TimerEnabled']!=='Off',durationMs:ms(settings[field]||settings.timeRegular),enchoMs:ms(settings.timeEncho),
     tied:(state.score?.W||[]).length===(state.score?.R||[]).length,scored:(state.score?.W||[]).length+(state.score?.R||[]).length>0,requiresWinner:!!matchRequiresWinner(m)};
 }

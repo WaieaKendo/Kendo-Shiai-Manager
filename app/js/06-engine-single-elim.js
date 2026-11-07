@@ -1,26 +1,4 @@
 // @ts-check
-/**
- * One Match Object per bracket node (state.singleElimNodes), filled as winners are known.
- * @param {string} div
- * @param {Competitor[]} comps
- * @returns {Match[]}
- */
-function buildIndividualSingleElimMatches(div,comps){
-  state.singleElimNodes=state.singleElimNodes||{};
-  const built=KSMEngine.buildIndividualSingleElimMatches(div,teamBracketNodesForCount(comps.length),/** @type {Court|'split'} */(state.divisionCourts[div]||'A'));
-  state.singleElimNodes[div]=built.nodes;
-  const arr=/** @type {Match[]} */(built.matches);
-  syncIndividualSingleElim(div,arr,comps);
-  return arr;
-}
-/**
- * @param {Match} m
- */
-function maybeAdvanceIndividualSingleElim(m){
-  if(!m||!m.singleElim)return;
-  let div=m.division,arr=state.allMatches[div]||[],comps=(state.singleElimComps&&state.singleElimComps[div])||eligibleIndividuals(div).filter(c=>c.name);
-  syncIndividualSingleElim(div,arr,comps);
-}
 function championshipSideLabel(side,div){
   if(!side)return 'BYE';
   if(side.seed){

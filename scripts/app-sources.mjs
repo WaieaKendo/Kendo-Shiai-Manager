@@ -12,8 +12,11 @@
 //                       one single-line `import {a,b} from '...';` per module) and /app.js is the
 //                       rolldown bundle of entry + modules (appBundle()), still ONE ES module file.
 // app/modules/          the modules the entry imports, plain `.js` with `// @ts-check` (step 3d of #136,
-//                       area by area: app-state.js, engine/engine-*.js; the court area is next). A module
-//                       never imports from the entry. Tests that read or run the app's code see the
+//                       area by area: app-state.js, engine/engine-*.js, court/*.js, html-text.js; next:
+//                       registration/setup). A module never imports from the entry; its calls into app/js
+//                       code that has not moved go through legacy.js (one wrapper per function, calling
+//                       window.NAME at call time; app/js/00-legacy-exports.js puts those names on window
+//                       first, since the entry's load-time code runs court code before 99-window-exports.js). Tests that read or run the app's code see the
 //                       entry plus the modules as one classic script (singleFileSource(), classicAppScript():
 //                       the modules in import order with `import` lines removed and `export ` dropped;
 //                       tests/ksm_source.py does the same).
@@ -89,12 +92,15 @@ export async function appBundle() {
   } finally { await bundle.close(); }
 }
 
+/** app/modules/legacy.js: wrappers for the calls modules make into app/js (left out of the classic script). */
+export const LEGACY_MODULE = path.join(MODULES_DIR, 'legacy.js');
 const IMPORT_LINE = /^import \{([^}]*)\} from '([^']+)';?[ \t]*\r?\n/gm;
 const hasUnsupportedModuleSyntax = text => /^\s*(?:import\s*[\w{*'"]|export\s+(?:\{|\*|default))/m.test(text.replace(IMPORT_LINE, ''));
 /**
  * The entry plus its modules as ONE classic script, for tests that read or run the app's code: each module
  * (in import order, dependencies first, each once) with its `import` lines removed and `export ` dropped
- * from its declarations, then the entry without its `import` lines. Only single-line `import {a,b} from '...';`
+ * from its declarations, then the entry without its `import` lines. app/modules/legacy.js is skipped (see
+ * LEGACY_MODULE). Only single-line `import {a,b} from '...';`
  * and `export function|const|let|class|async function` are supported (anything else throws).
  * tests/ksm_source.py does the same.
  */
@@ -108,6 +114,8 @@ export function classicAppScript() {
   const visit = file => {
     if (done.has(file)) return;
     done.add(file);
+    // legacy.js only wraps app/js functions for calls from a module; in one script the functions themselves are in scope.
+    if (file === LEGACY_MODULE) return;
     out.push(strip(file, fs.readFileSync(file, 'utf8')).replace(/^export (?=(?:async\s+)?function\b|const\b|let\b|class\b)/gm, ''));
   };
   const entry = scriptFiles().map(f => strip(f, fs.readFileSync(f, 'utf8'))).join('');

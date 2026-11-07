@@ -71,6 +71,48 @@ const exported = new Set([...plain, ...live]);
 for (const n of plain) if (live.has(n)) problems.push(`${n} is exported twice (Object.assign and defineProperties)`);
 for (const n of exported) if (!topLevel.has(n)) problems.push(`${EXPORTS_FILE} exports ${n}, which is not a top-level declaration or import in app/js`);
 
+// --- app/modules/legacy.js: the wrappers modules use to call app/js functions that have not moved yet ---
+// Each one is `export const NAME = ... ((...args) => w.NAME(...args));`, calling window.NAME at call time, so it must
+// name a function app/js still declares and exports to window (a moved function is imported instead, and its
+// wrapper deleted; a stale wrapper would call something that is gone).
+const LEGACY_FILE = 'app/modules/legacy.js';
+let legacyWrappers = 0;
+for (const line of read(LEGACY_FILE).split('\n')) {
+  if (!line.startsWith('export ')) continue;
+  const m = /^export const (\w+) = (?:\/\*\*[^*]*\*\/ )?\(\(\.\.\.args\) => w\.(\w+)\(\.\.\.args\)\);$/.exec(line);
+  if (!m) { problems.push(`${LEGACY_FILE}: not a wrapper of the form \`export const NAME = ((...args) => w.NAME(...args));\`: ${line.slice(0, 80)}`); continue; }
+  legacyWrappers++;
+  const [, name, target] = m;
+  if (name !== target) problems.push(`${LEGACY_FILE}: ${name} calls w.${target}`);
+  else if (topLevel.get(name) !== 'function') problems.push(`${LEGACY_FILE}: ${name} is not a function declared in app/js any more (${topLevel.get(name) || 'undeclared'}); import it from its module and delete the wrapper`);
+  else if (!exported.has(name)) problems.push(`${LEGACY_FILE}: ${name} is wrapped but not exported to window by ${EXPORTS_FILE}`);
+}
+
+// The same names are put on window at the START of the entry (app/js/00-legacy-exports.js), because the entry's load-time
+// code (the first renderAll(), the bootstrap files) calls court code before 99-window-exports.js has run. The two lists
+// must be equal, and a name that 99-window-exports.js exports live is live there too.
+{
+  const EARLY_FILE = 'app/js/00-legacy-exports.js';
+  const early = new Set(), earlyLive = new Set();
+  const walkEarly = n => {
+    if (!n || typeof n !== 'object') return;
+    if (Array.isArray(n)) return n.forEach(walkEarly);
+    if (n.type === 'CallExpression' && n.callee.type === 'MemberExpression' && n.callee.object.name === 'Object' && n.arguments[0]?.name === 'window' && n.arguments[1]?.type === 'ObjectExpression') {
+      const into = n.callee.property.name === 'assign' ? early : n.callee.property.name === 'defineProperties' ? earlyLive : null;
+      if (into) n.arguments[1].properties.forEach(p => into.add(p.key.name ?? p.key.value));
+    }
+    for (const k in n) if (k !== 'type') walkEarly(n[k]);
+  };
+  walkEarly(parseAst(read(EARLY_FILE), { lang: 'js' }).body);
+  const wrappedNames = new Set([...read(LEGACY_FILE).matchAll(/^export const (\w+) =/gm)].map(m => m[1]));
+  for (const n of wrappedNames) {
+    if (!early.has(n) && !earlyLive.has(n)) problems.push(`${EARLY_FILE} does not export ${n}, which ${LEGACY_FILE} wraps (the entry's load-time code would find window.${n} undefined)`);
+    else if (live.has(n) && !earlyLive.has(n)) problems.push(`${EARLY_FILE}: ${n} is a live accessor in ${EXPORTS_FILE}, make it one here too`);
+    else if (!live.has(n) && earlyLive.has(n)) problems.push(`${EARLY_FILE}: ${n} is exported live here but by value in ${EXPORTS_FILE}`);
+  }
+  for (const n of [...early, ...earlyLive]) if (!wrappedNames.has(n)) problems.push(`${EARLY_FILE} exports ${n}, which ${LEGACY_FILE} does not wrap; delete it`);
+}
+
 // --- what must be exported, and why ---
 const need = new Map();
 const needed = (name, why) => { if (topLevel.has(name)) (need.get(name) || need.set(name, new Set()).get(name)).add(why); };
@@ -180,4 +222,4 @@ if (needlessLive.length) problems.push(`live accessor for a name that is never a
 // Unused exports are allowed (step 3d shrinks the list) but each must be a real declaration (checked above).
 
 if (problems.length) { console.log(problems.join('\n')); process.exitCode = 1; }
-else console.log(`window-exports: ${exported.size} names exported (${live.size} live), ${need.size} reached from outside the module`);
+else console.log(`window-exports: ${exported.size} names exported (${live.size} live), ${need.size} reached from outside the module, ${legacyWrappers} legacy.js wrappers all exported`);

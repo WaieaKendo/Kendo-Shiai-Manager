@@ -1,5 +1,7 @@
 // @ts-check
 import {state} from '../app-state.js';
+import {syncIndividualSingleElim} from '../court/split-court-templates.js';
+import {eligibleIndividuals} from './engine-pools.js';
 import {teamBracketNodesForCount} from './engine-team-bracket.js';
 const BRACKET_SLOT_TEMPLATES={
   4:[{slot:1,quadrant:0,protectedSeed:1},{slot:2,quadrant:0},{slot:3,quadrant:1,protectedSeed:2},{slot:4,quadrant:1}],
@@ -64,4 +66,26 @@ function indivNodeHasMatch(arr,node){return KSMEngine.indivNodeHasMatch(arr,node
   }
 export function sideLabelGeneric(side,div){
   return KSMEngine.sideLabelGeneric(side,state.singleElimComps?.[div]||[],state.singleElimNodes?.[div]||[]);
+}
+/**
+ * One Match Object per bracket node (state.singleElimNodes), filled as winners are known.
+ * @param {string} div
+ * @param {Competitor[]} comps
+ * @returns {Match[]}
+ */
+export function buildIndividualSingleElimMatches(div,comps){
+  state.singleElimNodes=state.singleElimNodes||{};
+  const built=KSMEngine.buildIndividualSingleElimMatches(div,teamBracketNodesForCount(comps.length),/** @type {Court|'split'} */(state.divisionCourts[div]||'A'));
+  state.singleElimNodes[div]=built.nodes;
+  const arr=/** @type {Match[]} */(built.matches);
+  syncIndividualSingleElim(div,arr,comps);
+  return arr;
+}
+/**
+ * @param {Match} m
+ */
+export function maybeAdvanceIndividualSingleElim(m){
+  if(!m||!m.singleElim)return;
+  let div=m.division,arr=state.allMatches[div]||[],comps=(state.singleElimComps&&state.singleElimComps[div])||eligibleIndividuals(div).filter(c=>c.name);
+  syncIndividualSingleElim(div,arr,comps);
 }
