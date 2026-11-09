@@ -32,10 +32,15 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         regenerate (their `let`s are assigned elsewhere only through setNAME(value);
                         their load-time side effects are init*() calls left in app/js where the files
                         loaded);
+                        session/*.js: staff sessions, the role and the Tournament Library, switching
+                        tournaments; links/*.js: the tournament short name and cached records, the
+                        stream overlay links; auth/auth0-access.js: Auth0 accounts in the legacy app
+                        (the account-aware setSessionRole(), cloudHeaders(), ... around the plain
+                        ksmAccount*() functions they call);
                         legacy.js: one wrapper per not-yet-moved app/js function the moved code
                         calls, through `window` at call time (app/js/00-legacy-exports.js puts those names on
                         window first; each is deleted when its area moves;
-                        tests/window-exports-test.mjs checks them). Next area: sync part 2 (33-*, 54)
+                        tests/window-exports-test.mjs checks them). Next: boot (34) and the React bridges
                       (00-path-urls.js: path URLs, M.9: an old ?tournament= link becomes its
                       path first, ksmLinkParams()/ksmLinkUrl(); 00-react-bridge.js: the
                       ksm:state-changed event for React islands)

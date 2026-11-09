@@ -90,7 +90,7 @@ export interface LegacyGlobals {
   eligibleTeams: (div: string) => Team[];
   eligibleIndividuals: (div: string) => Competitor[];
   isTeamDivision: (div: string) => boolean;
-  /** 20-cloud-session-and-autosave.js (33-staff-session-and-library.js defines isReadOnlySession too; the later one wins). */
+  /** app/modules/sync/cloud-session-and-autosave.js (isReadOnlySession: app/modules/session/staff-session-and-library.js). */
   tournamentSettings: () => TournamentSettings;
   isReadOnlySession: () => boolean;
   /** 35-react-court.js: the court screen's bracket data, reused by the Results modal. */
@@ -202,7 +202,7 @@ export interface LegacyGlobals {
    * The library's data builder (features/library/publish.ts) reads these. 40-react-library.js keeps
    * ksmReadLocalDraft() (other classic code reads the draft synchronously) and defines
    * ksmDecorateLibraryInput(), the hook 54-auth0-access.js reassigns to add the account fields (looked up on
-   * every call, never kept). 33-staff-session-and-library.js: the staff session and outbox.
+   * every call, never kept). app/modules/session/staff-session-and-library.js: the staff session and outbox.
    */
   ksmKeepStaffOutbox: () => boolean;
   v316StaffPassword: () => string | null | undefined;

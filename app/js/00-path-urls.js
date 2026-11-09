@@ -12,9 +12,10 @@
 // stream overlay links, roleLink()) are built by ksmLinkUrl(). In-app navigation
 // replaces the current screen path without adding a history entry.
 // ==========================================================
-var ksmRouteLoading=0;
 // Preserve an explicit read-only query before the path migration removes legacy keys.
 var ksmExplicitSpectatorUrl=new URLSearchParams(location.search).get('role')==='spectator'||new URLSearchParams(location.search).has('spectator');
+// Read by app/modules/session and app/modules/auth through legacy.js (a module cannot read a `var` of app/js).
+function ksmIsExplicitSpectatorUrl(){return ksmExplicitSpectatorUrl}
 function ksmResolvedUrl(){return KSMEngine.resolveUrl(location.pathname||'/',location.search||'')}
 // The page's link parameters by their old names (tournament, court, view; key= and others as
 // they are), as new URLSearchParams(location.search) gave them for an old link.
@@ -51,7 +52,7 @@ function ksmRecordScreenPath(view){
   const slug=current.slug||(current.id?undefined:cloudSession.slug);
   const route={screen,id:cloudSession.tournamentId,slug,court:normalizeCourt(view==='tv'?cloudSession.court:state.currentCourt)};
   ksmReplaceUrl(KSMEngine.routePath(route)+location.search+location.hash);
-  ksmTournamentAddress=location.pathname+location.search+location.hash;
+  setKsmTournamentAddress(location.pathname+location.search+location.hash);
 }
 function ksmHeaderLogo(){if(!isReadOnlySession())return showHomePage();navigateTo(KSMEngine.TOURNAMENT_HOME.view)}
 function ksmTournamentHomeUrl(){return cloudSession.tournamentId?ksmLinkUrl({screen:KSMEngine.DEFAULT_TOURNAMENT_SCREEN,id:cloudSession.tournamentId}):'/'}
@@ -80,7 +81,7 @@ function ksmLinkUrl(route,query){
   const slug=route.id===cloudSession.tournamentId?cloudSession.slug:readTournamentLibrary().find(row=>row.id===route.id)?.slug;
   return new URL(KSMEngine.routeUrl({...route,...(slug?{slug}:{})},query||[]),location.href).toString();
 }
-function ksmReplaceUrl(path){try{history.replaceState(history.state,'',path);if(typeof ksmTournamentAddress!=='undefined')ksmTournamentAddress=location.pathname+location.search+location.hash;}catch(err){console.warn('KSM could not update the address',err)}}
+function ksmReplaceUrl(path){try{history.replaceState(history.state,'',path);if(typeof ksmTournamentAddress!=='undefined')setKsmTournamentAddress(location.pathname+location.search+location.hash);}catch(err){console.warn('KSM could not update the address',err)}}
 (function ksmApplyPathRoute(){
   if(typeof location==='undefined'||typeof history==='undefined'||typeof KSMEngine==='undefined')return;
   const resolved=ksmResolvedUrl();

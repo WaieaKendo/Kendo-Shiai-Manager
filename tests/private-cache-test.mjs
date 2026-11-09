@@ -20,14 +20,15 @@ assert.equal(await response,cachedResponse);assert.equal(reads,1);
 console.log('PASS API reads bypass even pre-existing PWA cache entries; app assets retain offline caching');
 
 // Exercise the actual application cache and offline fetch overrides, separately from the PWA.
-const source=fs.readFileSync(new URL('../app/js/54-auth0-access.js',import.meta.url),'utf8');
+// app/modules/auth/auth0-access.js (step 3d of #136): ksmCacheTournament() calls the plain ksmAccountCacheTournament().
+const source=fs.readFileSync(new URL('../app/modules/auth/auth0-access.js',import.meta.url),'utf8');
 const entries=new Map();
 const app={ksmAccount:{enabled:true},navigator:{onLine:false},Response,JSON,
   localStorage:{getItem:key=>entries.get(key)||null,setItem:(key,value)=>entries.set(key,value),removeItem:key=>entries.delete(key)},
   ksmAccountCacheTournament:record=>entries.set('ksm.tournament.record:'+record.tournamentId,JSON.stringify(record))};
 vm.createContext(app);
-vm.runInContext(source.split('\n').find(line=>line.startsWith('ksmCacheTournament=function')),app);
-vm.runInContext(source.slice(source.indexOf('async function ksmPrivateFetch('),source.indexOf('var ksmAccountCacheTournament=')),app);
+vm.runInContext(source.split('\n').find(line=>line.startsWith('export function ksmCacheTournament(')).replace(/^export /,''),app);
+vm.runInContext(source.slice(source.indexOf('async function ksmPrivateFetch('),source.indexOf('export function ksmCacheTournament(')),app);
 app.ksmCacheTournament({tournamentId:'public',isPublic:true,payload:{name:'Public Cup'}});
 assert.equal((await (await app.ksmPrivateFetch('public')).json()).payload.name,'Public Cup');
 app.ksmCacheTournament({tournamentId:'private',isPublic:false,payload:{name:'Private Cup'}});

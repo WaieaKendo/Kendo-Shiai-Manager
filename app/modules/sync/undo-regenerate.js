@@ -1,6 +1,7 @@
 // @ts-check
 import {state} from '../app-state.js';
-import {cloudHeaders,isReadOnlySession,ksmCacheTournament} from '../legacy.js';
+import {cloudHeaders,ksmCacheTournament} from '../auth/auth0-access.js';
+import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {writeCloudDiagnosticsState} from './cloud-diagnostics.js';
 import {applyRemoteCloudRecord,applyTournamentPayload,flushCloudOutbox,ksmAnnounceTournamentGone,ksmClockId,ksmCloudSavePending,ksmCloudTimer,ksmConfirmedMutationVersion,ksmLocalMutationVersion,ksmQueuedSaveRetryTimer,ksmSaveTimer,saveTournamentToCloudWithReason,setKsmApplyingRemoteSnapshot,setKsmCloudSavePending,setKsmCloudTimer,setKsmConfirmedMutationVersion,setKsmLastSuccessfulSaveAt,setKsmOutboxMutationVersion,setKsmQueuedSaveRetryTimer,setKsmSaveStatusMode,setKsmSaveTimer,showKsmToast} from './cloud-realtime-save-and-load.js';
 import {clearOutbox,cloudSession,ksmStoreAutosave,persistCloudSession,readOutbox,renderPersistentSaveStatus,tournamentPayload} from './cloud-session-and-autosave.js';
