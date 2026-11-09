@@ -74,17 +74,43 @@ function ksmRemoveTeamDivision(id){
   state.teamDivisions=rows.filter(d=>d.id!==id);teams.forEach(t=>t.teamDivisionId=fallback.id);
   delete state.divisionCourts[id];ksmTeamDivisionChanged();return true;
 }
+/** Whether a team is part of a division's draw (in its bracket or pools), not just assigned to it.
+ * A team added after the draw is not, until the division is regenerated. */
+function ksmTeamInDraw(team,div){return ksmTeamDivisionDrawn(div)&&ksmTeamInDrawOf(state,team,div)}
+/** ksmTeamInDraw() for any state (the sync merge checks the merged one). Draw entries are team copies
+ * (matched by id, else name) or, in older data, plain ids or names. */
+function ksmTeamInDrawOf(st,team,div){
+  if(!team||!div)return false;
+  const name=String(team.team||'').trim();
+  const same=x=>x!=null&&(typeof x==='string'?Boolean((team.id&&x===team.id)||(name&&x.trim()===name)):Boolean((team.id&&x.id===team.id)||(name&&String(typeof x.team==='string'?x.team:x.name||'').trim()===name)));
+  if((st?.teamElimTeams?.[div]||[]).some(same))return true;
+  return (st?.teamPools?.[div]||[]).some(p=>(p?.players||[]).some(same));
+}
 function ksmAssignTeamDivision(team,id){
   const d=ksmTeamDivision(id);if(!d)return false;
+  if(team.teamDivisionId===id)return true;
   const from=ksmTeamDivision(team.teamDivisionId);
-  if(team.teamDivisionId!==id&&(ksmTeamDivisionDrawn(team.teamDivisionId)||ksmTeamDivisionDrawn(id))){alert(`${ksmTeamDivisionDrawn(id)?d.name:from?.name||'Its division'} is drawn: teams cannot move into or out of it.`);ksmTeamDivisionChanged();return false}
-  team.teamDivisionId=id;team.type=d.teamFormat;ksmTeamDivisionChanged();return true;
+  // Teams in a draw stay in it (its matches refer to them). A team not drawn yet (added after the draw)
+  // can join a drawn division until that division has played a match; Regenerate Single Division
+  // then puts it in the bracket.
+  if(ksmTeamInDraw(team,team.teamDivisionId)){alert(`${team.team||'This team'} is in the ${from?.name||'division'} draw: it cannot move to another division.`);ksmTeamDivisionChanged();return false}
+  if(ksmTeamDivisionDrawn(id)&&divisionHasCompletedMatches(id)){alert(`${d.name} has started: new teams cannot join it.`);ksmTeamDivisionChanged();return false}
+  team.teamDivisionId=id;team.type=d.teamFormat;ksmTeamDivisionChanged();
+  if(ksmTeamDivisionDrawn(id))ksmTeamNeedsRedraw(d);
+  return true;
+}
+/** Tell the director once per division that a team added after the draw needs a redraw to play. */
+function ksmTeamNeedsRedraw(d){
+  if(typeof isReadOnlySession==='function'&&isReadOnlySession())return;
+  ksmTeamNeedsRedraw.told=ksmTeamNeedsRedraw.told||new Set();if(ksmTeamNeedsRedraw.told.has(d.id))return;
+  ksmTeamNeedsRedraw.told.add(d.id);
+  alert(`${d.name} is already drawn. To add this team to its bracket, use Regenerate Single Division on ${d.name} (before any of its matches are played).`);
 }
 function ksmTeamDivisionChanged(){
   ksmRenderTeamDivisions();renderDivisions();renderTeams();renderTournamentStatus();scheduleAutoSave('Team divisions');
 }
 // Why a team division's control is off (shown as its tooltip): drawn divisions keep format, court and teams.
-function ksmTeamDivisionLockTip(d){return ksmTeamDivisionDrawn(d.id)?`Fixed: ${d.name} is drawn, so its match format, court and teams can't change. Its name, awards and order can still change.`:''}
+function ksmTeamDivisionLockTip(d){return ksmTeamDivisionDrawn(d.id)?`Fixed: ${d.name} is drawn, so its match format and court can't change and its drawn teams stay in it. Its name, awards and order can still change.`:''}
 function ksmRenderTeamDivisions(){
   const root=document.getElementById('teamDivisionSetup');if(!root)return;
   const rows=ksmTeamDivisions(),off=tournamentSettings().teamEnabled==='Disabled'||isReadOnlySession();
@@ -93,7 +119,7 @@ function ksmRenderTeamDivisions(){
   const teamsOff=tournamentSettings().teamEnabled==='Disabled';
   if(teamsOff)root.dataset.teamsOff='1';else delete root.dataset.teamsOff;
   const text=isReadOnlySession()?'':teamsOff?'Teams are disabled. Set Teams enabled to Enabled to set up team divisions.'
-    :rows.some(d=>ksmTeamDivisionDrawn(d.id))?'Drawn team divisions are fixed: match format, court and their teams. Names, awards and order can still change. A new team division can be added and drawn with Regenerate Single Division.':'';
+    :rows.some(d=>ksmTeamDivisionDrawn(d.id))?'Drawn team divisions keep their match format and court, and drawn teams stay in their division. Names, awards and order can still change. New teams can join a drawn division before it starts: then use Regenerate Single Division on it. A new team division can be added and drawn the same way.':'';
   let note=document.getElementById('teamDivisionNote');
   if(!text)note?.remove();
   else if(add){

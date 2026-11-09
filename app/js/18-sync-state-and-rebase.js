@@ -381,17 +381,22 @@ function mergeRegistrationListSplit(server,local,base,divisions,label,conflicts,
   return outside.slice(0,before).concat(inside,outside.slice(before));
 }
 /**
- * #95: a team moved into or out of a team division the other device has already drawn would change that
- * draw's team list under its matches (they refer to teams by position): the drawn division keeps the
- * server's assignment, with the usual "their version was kept" notice. A division this device's own
- * structural edit replays is not the server's draw (its teams come from this device, see above).
+ * #95: a team in a draw that moved to another division would change that draw's team list under its
+ * matches (they refer to teams by position), and a division that has started takes no new teams: the
+ * server's assignment is kept, with the usual "their version was kept" notice. A team not in any draw
+ * (added after the draw) may join a drawn division that has not started, as ksmAssignTeamDivision()
+ * allows; Regenerate Single Division then draws it in. A division this device's own structural edit
+ * replays is not the server's draw (its teams come from this device, see above).
  */
 function ksmKeepDrawnTeamAssignments(st,serverTeams,replayed,conflicts){
-  const drawn=div=>Boolean(div)&&!replayed.includes(div)&&((st.allMatches?.[div]||[]).length>0||Boolean(st.teamElimTeams?.[div]));
+  const theirs=div=>Boolean(div)&&!replayed.includes(div);
+  const started=div=>theirs(div)&&(st.allMatches?.[div]||[]).some(m=>m&&m.done);
   const onServer=new Map(serverTeams.filter(t=>t?.id).map(t=>[t.id,t]));
   (st.teams||[]).forEach(t=>{
     const s=t?.id&&onServer.get(t.id);
-    if(!s||t.teamDivisionId===s.teamDivisionId||!(drawn(s.teamDivisionId)||drawn(t.teamDivisionId)))return;
+    if(!s||t.teamDivisionId===s.teamDivisionId)return;
+    const from=s.teamDivisionId,inDraw=theirs(from)&&(ksmTeamInDrawOf(st,s,from)||ksmTeamInDrawOf(st,t,from));
+    if(!inDraw&&!started(t.teamDivisionId))return;
     t.teamDivisionId=s.teamDivisionId;
     const label='Team division assignment (division already drawn)';
     if(!conflicts.includes(label))conflicts.push(label);

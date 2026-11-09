@@ -39,7 +39,7 @@ def main():
         a.page.evaluate('''() => { const app = KSMTest.app, id = KSMTest.teamDivisions()[0].id;
           app.state.generated = true; app.state.allMatches = {...app.state.allMatches, [id]: [{type: 'teamPlayoff'}]}; app.ksmRenderTeamDivisions(); }''')
         s = a.page.evaluate(STATE)
-        assert not s['add'] and s['note'].startswith('Drawn team divisions are fixed'), s
+        assert not s['add'] and s['note'].startswith('Drawn team divisions keep their match format'), s
         s['disabled'] = s['disabled'][:len(s['disabled']) // 2]  # the drawn (first) row
         fields = [x for x in s['disabled'] if not x.startswith(('team-division-up', 'team-division-down'))]
         editable = {x.split('=')[0] for x in fields if x.endswith('=false')}
