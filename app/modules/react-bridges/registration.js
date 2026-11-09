@@ -1,3 +1,13 @@
+// @ts-check
+import {state} from '../app-state.js';
+import {renderDivisions} from '../court/court-match-order.js';
+import {regTab,scheduleAutoSave} from '../legacy.js';
+import {renderExhibitions,renderReg,renderTeams,statusCycle,updateComp} from '../registration/registration.js';
+import {ksmAssignTeamDivision,ksmDivisionName,ksmTeamDivisions} from '../registration/team-divisions.js';
+import {renderTournamentStatus} from '../registration/validation.js';
+import {isReadOnlySession} from '../session/staff-session-and-library.js';
+import {showKsmToast} from '../sync/cloud-realtime-save-and-load.js';
+import {ksmText} from './court.js';
 // ==========================================================
 // React Registration, parts 1 and 2 (app/react/features/registration/, roadmap M.13, #136 step 2)
 // Registration draws two parts with React islands, mounted by app/react/features/registration/main.tsx:
@@ -34,7 +44,7 @@
 // ==========================================================
 // A text as the legacy markup showed it: esc() (String(x||'')) and then the HTML parser, which
 // turns CR LF and a lone CR into LF (in text and attribute values alike).
-function ksmHtmlText(s){return ksmText(s).replace(/\r\n?/g,'\n')}
+export function ksmHtmlText(s){return ksmText(s).replace(/\r\n?/g,'\n')}
 // F17: a row's fields belong to the competitor the row showed, not to a place in the list. The
 // redraw commits the field being edited (its change event) after the new list is in place, so an
 // applied live update (a 409 rebase, the cloud copy loaded, Staff Login with queued work) used to
@@ -43,15 +53,19 @@ function ksmHtmlText(s){return ksmText(s).replace(/\r\n?/g,'\n')}
 // competitor is the one entry with every field as the row showed it. If there is none (removed,
 // or changed on the other device too) or more than one, the edit is dropped with a notice.
 // (var, the map made on first use: renderReg() runs at boot, before this part of app.js.)
-var ksmRegistrationRowCompetitors=null,ksmRegistrationRowsStale=false;
-function ksmBindRegistrationRow(competitor,row){
+/** @type {WeakMap<object,any>|null} */
+let ksmRegistrationRowCompetitors=null;
+// Written from outside through window (the React registration module clears it; tests set it): setKsmRegistrationRowsStale().
+export let ksmRegistrationRowsStale=false;
+export function setKsmRegistrationRowsStale(value){ksmRegistrationRowsStale=value}
+export function ksmBindRegistrationRow(competitor,row){
   if(!ksmRegistrationRowCompetitors)ksmRegistrationRowCompetitors=new WeakMap();
   ksmRegistrationRowCompetitors.set(row,competitor);return row;
 }
 function ksmSameCompetitor(a,b){return ['name','dojo','division','seed','status'].every(k=>String(a?.[k]??'')===String(b?.[k]??''))}
 // A row's field changed (its change event): what the inline onchange's updateComp(index,...) did,
 // for the competitor the row belongs to.
-function ksmUpdateCompetitor(row,key,value){
+export function ksmUpdateCompetitor(row,key,value){
   const competitor=ksmRegistrationRowCompetitors?.get(row);
   let index=competitor?state.competitors.indexOf(competitor):row.index;
   if(index<0){
@@ -70,19 +84,19 @@ function ksmUpdateCompetitor(row,key,value){
 }
 // renderReg() (03): the module computes the players table (publish.ts: compute, blur the field being
 // edited in the table, compute again if the blur set ksmRegistrationRowsStale: F17) and publishes it.
-function ksmRenderRegistration(){
+export function ksmRenderRegistration(){
   window.ksmRegistrationPlayersRequested=true;
   window.dispatchEvent(new CustomEvent('ksm:registration-players'));
   // Owner decision 19: renderReg() runs when Setup's Exhibition Matches changes; the tab follows.
   ksmSyncExhibitionTab();
 }
 // renderTournamentStatus() (03): the validation result and the counts; the module adds the courts.
-function ksmRenderTournamentStatus(valid,competitors,divisions,errors){
+export function ksmRenderTournamentStatus(valid,competitors,divisions,errors){
   window.ksmRegistrationStatusRequested={valid,competitors,divisions,errors};
   window.dispatchEvent(new CustomEvent('ksm:registration-status'));
 }
 // × of a row: what its inline handler ran.
-function ksmRemoveCompetitor(i){
+export function ksmRemoveCompetitor(i){
   // Owner decision 18 (#29): × on a player of a generated division asks first.
   const c=state.competitors[i];if(c&&c.name&&ksmInGeneratedDivision(c.name,c.division,false)&&!ksmConfirmRemove(c.name,c.division))return;
   state.competitors.splice(i,1);renderReg();renderTournamentStatus();
@@ -91,7 +105,7 @@ function ksmRemoveCompetitor(i){
 // or bracket (applyIndividualNoShow(), applyWholeTeamNoShow()) and × leaves its matches in place,
 // so both ask first (cycleCompetitorStatus(), cycleTeamStatus() in 03; ksmRemoveCompetitor(),
 // ksmRemoveTeam() here). Before generation nothing asks.
-function ksmConfirmNoShow(name,division){
+export function ksmConfirmNoShow(name,division){
   return confirm(`Mark ${name} as No Show? ${ksmDivisionName(division)} is already generated: ${name} is taken out of its pools or bracket.`);
 }
 function ksmInGeneratedDivision(name,division,team){
@@ -117,19 +131,19 @@ function ksmConfirmRemove(name,division){
 // change event, then blur and focusout, after the new cards had been computed); React replaces
 // them later, so the focus leaves the island at the same moment (the module calls this, F20, as
 // ksmRenderRegistration()'s blur is F17).
-function ksmBlurRedrawn(island){
-  const active=document.activeElement;
+export function ksmBlurRedrawn(island){
+  const active=/** @type {HTMLElement|null} */ (document.activeElement);
   if(window.ksmRegistrationTeamsMounted&&active&&active!==document.body&&island&&island.contains(active))active.blur();
 }
 // renderTeams() (03): the filter's options are rebuilt here (DOM work), then the module computes the
 // cards (publish.ts: compute, blur, compute again if the blur set ksmTeamsStale: F20).
-function ksmRenderTeams(){
-  const filter=document.getElementById('teamDivisionFilter');if(filter){const selected=filter.value;filter.replaceChildren(new Option('All team divisions',''),...ksmTeamDivisions().map(d=>new Option(d.name,d.id)));filter.value=selected}
+export function ksmRenderTeams(){
+  const filter=/** @type {HTMLSelectElement|null} */ (document.getElementById('teamDivisionFilter'));if(filter){const selected=filter.value;filter.replaceChildren(new Option('All team divisions',''),...ksmTeamDivisions().map(d=>new Option(d.name,d.id)));filter.value=selected}
   window.ksmRegistrationTeamsRequested=true;
   window.dispatchEvent(new CustomEvent('ksm:registration-teams'));
 }
 // renderExhibitions() (03): the module computes the rows (publish.ts, with the same blur as the cards: F20).
-function ksmRenderExhibitions(){
+export function ksmRenderExhibitions(){
   if(!window.exhibitionTable)return;
   window.ksmRegistrationExhibitionsRequested=true;
   window.dispatchEvent(new CustomEvent('ksm:registration-exhibitions'));
@@ -139,8 +153,9 @@ function ksmRenderExhibitions(){
 // offered (empty: the first division) and a known status (empty: Registered; Registered, Checked
 // In / Checked, No Show / NoShow, in any case); other rows are not added (before: an unknown
 // division was created, an unknown status kept as typed) and ksmPasteNotice() names them.
-var ksmPasteRefused=[];
-var KSM_PASTE_STATUSES={'':'Registered','registered':'Registered','checked in':'Checked','checked':'Checked','no show':'NoShow','noshow':'NoShow'};
+/** @type {any[]} */
+let ksmPasteRefused=[];
+const KSM_PASTE_STATUSES={'':'Registered','registered':'Registered','checked in':'Checked','checked':'Checked','no show':'NoShow','noshow':'NoShow'};
 // A typed division matches an offered one ignoring case, extra spaces, the dash kind ("1-3" for
 // Setup's "1–3") and the apostrophe kind ("Women's" for "Women’s"); the offered spelling is kept.
 // '' when none matches.
@@ -148,7 +163,7 @@ function ksmOfferedDivision(division){
   const key=d=>String(d).toLowerCase().replace(/[‐-―−]/g,'-').replace(/[‘’ʼ′]/g,"'").replace(/\s+/g,' ').trim();
   return state.divisions.find(d=>key(d)===key(division))||'';
 }
-function ksmPasteRow(name,dojo,division,seed,status){
+export function ksmPasteRow(name,dojo,division,seed,status){
   const st=KSM_PASTE_STATUSES[String(status||'').trim().toLowerCase()],why=[];
   if(division)division=ksmOfferedDivision(division)||division;
   if(division&&!state.divisions.includes(division))why.push(`division "${division}" is not offered`);
@@ -156,13 +171,13 @@ function ksmPasteRow(name,dojo,division,seed,status){
   if(why.length){ksmPasteRefused.push(`${name}: ${why.join('; ')}`);return}
   state.competitors.push({name,dojo:dojo||'',division:division||state.divisions[0],seed:seed||'',status:st});
 }
-function ksmPasteNotice(){
+export function ksmPasteNotice(){
   if(!ksmPasteRefused.length)return;
   const rows=ksmPasteRefused;ksmPasteRefused=[];
   alert(`Not added (${rows.length} ${rows.length===1?'row':'rows'}):\n${rows.join('\n')}\n\nUse a division offered in Setup and the status Registered, Checked In or No Show, then paste those rows again.`);
 }
 // The Paste from Excel button (app/index.html): how the paste works (decision 17).
-function ksmPasteHelp(){
+export function ksmPasteHelp(){
   alert('Paste from Excel: copy rows with the columns Name, Dojo, Division, Seed, Status (in that order; only Name is required) and paste them (Ctrl+V / Cmd+V) while Individual Players is shown. Division must be one offered in Setup (empty: the first division). Status: Registered, Checked In or No Show (empty: Registered). Rows with another division or status are not added; a notice lists them.');
 }
 // Import CSV (the Registration button, was a placeholder alert): a .csv file whose first row names
@@ -170,7 +185,7 @@ function ksmPasteHelp(){
 // Academy), Division, Seed, Status. Other columns are ignored. Each row is added like a pasted row
 // (ksmPasteRow(): an unknown division or status is not added and is listed); a player already
 // registered in that division is skipped, so Export CSV's own file can be imported again.
-var KSM_IMPORT_COLUMNS={name:'name',player:'name',firstname:'first',lastname:'last',dojo:'dojo',club:'dojo',academy:'dojo',division:'division',seed:'seed',status:'status'};
+const KSM_IMPORT_COLUMNS={name:'name',player:'name',firstname:'first',lastname:'last',dojo:'dojo',club:'dojo',academy:'dojo',division:'division',seed:'seed',status:'status'};
 function ksmParseCsv(text){
   const rows=[];let row=[],cell='',quoted=false;
   text=String(text||'').replace(/^﻿/,'');
@@ -185,12 +200,12 @@ function ksmParseCsv(text){
   if(cell!==''||row.length){row.push(cell);rows.push(row)}
   return rows.filter(r=>r.some(c=>c.trim()!==''));
 }
-function ksmImportCSV(){
+export function ksmImportCSV(){
   if(typeof isReadOnlySession==='function'&&isReadOnlySession())return;
-  const input=document.getElementById('ksmImportCsvFile');
+  const input=/** @type {HTMLInputElement|null} */ (document.getElementById('ksmImportCsvFile'));
   input.value='';input.click();
 }
-function ksmImportCSVFile(event){
+export function ksmImportCSVFile(event){
   const file=event.target.files&&event.target.files[0];
   if(file)file.text().then(text=>ksmImportCSVText(text,file.name));
 }
@@ -231,10 +246,10 @@ function ksmImportCSVText(text,fileName){
 }
 // regTab() (23): the tab marked active. Owner decision 19 (#29): and whether the Exhibition tab
 // shows (only while Setup's Exhibition Matches is Enabled).
-function ksmExhibitionsEnabled(){return window.exhibitionEnabled?exhibitionEnabled.value==='Enabled':false}
+export function ksmExhibitionsEnabled(){return window.exhibitionEnabled?exhibitionEnabled.value==='Enabled':false}
 // #129: the tournament is drawn: the tab bar drops Generate Tournament (Regenerate Tournament lives in Setup's Danger zone).
-function ksmTournamentGenerated(){return !!state.generated}
-function ksmRenderRegistrationTab(mode){
+export function ksmTournamentGenerated(){return !!state.generated}
+export function ksmRenderRegistrationTab(mode){
   window.ksmRegistrationTabRequested={mode};
   window.dispatchEvent(new CustomEvent('ksm:registration-tab'));
 }
@@ -254,10 +269,15 @@ function ksmSyncExhibitionTab(){
 // (removed, or changed on the other device too) or more than one, the edit is dropped with a
 // notice. (var without a value, the map made on first use: renderTeams() runs at boot, before this part of
 // app.js, and a declaration with a value would drop that map when it runs.)
-var ksmRegistrationEntries,ksmTeamsStale,ksmExhibitionsStale;
-var KSM_TEAM_FIELDS=['id','teamDivisionId','team','division','type','senpo','jiho','chuken','fukusho','taisho','status'];
-var KSM_EXHIBITION_FIELDS=['white','red','division','status'];
-function ksmBindRegistrationEntry(entry,row){
+/** @type {WeakMap<object,any>|undefined} */
+let ksmRegistrationEntries;
+// Written from outside through window (the React registration module clears them; tests set them): the setters.
+export let ksmTeamsStale,ksmExhibitionsStale;
+export function setKsmTeamsStale(value){ksmTeamsStale=value}
+export function setKsmExhibitionsStale(value){ksmExhibitionsStale=value}
+const KSM_TEAM_FIELDS=['id','teamDivisionId','team','division','type','senpo','jiho','chuken','fukusho','taisho','status'];
+const KSM_EXHIBITION_FIELDS=['white','red','division','status'];
+export function ksmBindRegistrationEntry(entry,row){
   if(!ksmRegistrationEntries)ksmRegistrationEntries=new WeakMap();
   ksmRegistrationEntries.set(row,entry);return row;
 }
@@ -275,26 +295,26 @@ function ksmEditDropped(what,list){
 }
 // What the cards' and rows' inline handlers ran (`state` is not a window property), for the
 // entry the card or row showed (F20).
-function ksmSetTeamField(card,key,value){
+export function ksmSetTeamField(card,key,value){
   const index=ksmRegistrationEntryIndex(state.teams,card,KSM_TEAM_FIELDS);
   if(index<0){ksmEditDropped(ksmRegistrationEntries.get(card).team||'a team','team list');return}
   if(state.teams[index]!==ksmRegistrationEntries?.get(card))ksmTeamsStale=true;
   if(key==='teamDivisionId'){ksmAssignTeamDivision(state.teams[index],value);return}
   state.teams[index][key]=value;
 }
-function ksmRemoveTeam(i){
+export function ksmRemoveTeam(i){
   // Owner decision 18 (#29): × on a team of the generated team division asks first.
   const t=state.teams[i];if(t&&t.team&&ksmInGeneratedDivision(t.team,t.teamDivisionId||'Team Tournament',true)&&!ksmConfirmRemove(t.team,t.teamDivisionId||'Team Tournament'))return;
   state.teams.splice(i,1);renderTeams();renderTournamentStatus();
 }
-function ksmSetExhibitionField(row,key,value){
+export function ksmSetExhibitionField(row,key,value){
   const index=ksmRegistrationEntryIndex(state.exhibitions||[],row,KSM_EXHIBITION_FIELDS);
   if(index<0){const x=ksmRegistrationEntries.get(row);ksmEditDropped(x.white||x.red?`the exhibition match ${x.white||'?'} vs ${x.red||'?'}`:'an exhibition match','exhibition list');return}
   if(state.exhibitions[index]!==ksmRegistrationEntries?.get(row))ksmExhibitionsStale=true;
   state.exhibitions[index][key]=value;
 }
-function ksmCycleExhibitionStatus(i){state.exhibitions[i].status=statusCycle(state.exhibitions[i].status);renderExhibitions()}
-function ksmRemoveExhibition(i){state.exhibitions.splice(i,1);renderExhibitions()}
+export function ksmCycleExhibitionStatus(i){state.exhibitions[i].status=statusCycle(state.exhibitions[i].status);renderExhibitions()}
+export function ksmRemoveExhibition(i){state.exhibitions.splice(i,1);renderExhibitions()}
 
 // If the React module (app/react/main.tsx, a module script after app.js) did not run, say so on
 // Individual Players instead of an empty table, which nothing fills any more (e.g. an offline
@@ -313,7 +333,6 @@ function ksmShowRegistrationModuleMissing(){
   const card=document.getElementById('tournamentStatusCard');
   if(card)card.style.display='none';
 }
-document.addEventListener('DOMContentLoaded',ksmShowRegistrationModuleMissing);
 // The same for part 2: Team Registration and Exhibition say so in place of their (empty) tables;
 // the toolbars, the filter and the tabs stay usable (without the island the current tab is no
 // longer marked, regTab() still switches the cards).
@@ -331,4 +350,12 @@ function ksmShowRegistrationTeamsModuleMissing(){
     table.before(notice);
   });
 }
-document.addEventListener('DOMContentLoaded',ksmShowRegistrationTeamsModuleMissing);
+
+// Load-time side effects (app/js/34-bootstrap.js runs them, in the order the files used to load). The three `var`s with a
+// value are set here, where the file used to set them.
+export function initRegistrationBridge(){
+  ksmRegistrationRowCompetitors=null;ksmRegistrationRowsStale=false;
+  ksmPasteRefused=[];
+  document.addEventListener('DOMContentLoaded',ksmShowRegistrationModuleMissing);
+  document.addEventListener('DOMContentLoaded',ksmShowRegistrationTeamsModuleMissing);
+}

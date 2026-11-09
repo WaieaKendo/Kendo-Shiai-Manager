@@ -1,3 +1,6 @@
+// @ts-check
+import {state} from '../app-state.js';
+import {saveAuto} from '../legacy.js';
 // ==========================================================
 // React Results (app/react/features/results/, roadmap M.13, #136 step 2)
 // The Results screen (#results) is drawn only by React: four islands (the result cards and awards
@@ -17,17 +20,17 @@
 // change events ksmSetResultAward() below (classic state + saveAuto(): React calls legacy).
 // If the React module does not load, Results shows a notice (the end of this file).
 // ==========================================================
-function ksmRenderResults(){
+export function ksmRenderResults(){
   window.ksmResultsRequested=true;
   window.dispatchEvent(new CustomEvent('ksm:results'));
 }
-function ksmRenderResultsBracket(div){
+export function ksmRenderResultsBracket(div){
   window.ksmResultsBracketRequested={div};
   window.dispatchEvent(new CustomEvent('ksm:results-bracket'));
 }
 // An award input's change (awardsEditorHtml()'s inline handler: state.awards[i].<field>=this.value;saveAuto();
 // saveAuto() is the scheduled autosave defined for F11 in 20-cloud-session-and-autosave.js).
-function ksmSetResultAward(index,field,value){
+export function ksmSetResultAward(index,field,value){
   state.awards[index][field]=value;saveAuto();
 }
 
@@ -45,4 +48,8 @@ function ksmShowResultsModuleMissing(){
   body.style.display='none';
   body.before(notice);
 }
-document.addEventListener('DOMContentLoaded',ksmShowResultsModuleMissing);
+
+// Load-time side effects (app/js/34-bootstrap.js runs them, in the order the files used to load).
+export function initResultsBridge(){
+  document.addEventListener('DOMContentLoaded',ksmShowResultsModuleMissing);
+}

@@ -206,6 +206,8 @@ for (const m of testApi.matchAll(/\bset\s+([A-Za-z_$][\w$]*)\s*\(/g)) mustBeLive
 for (const f of fs.readdirSync(path.join(ROOT, 'tests')).filter(f => f.endsWith('.py') || f.endsWith('.js') || f.endsWith('.mjs')))
   for (const m of read(path.join('tests', f)).matchAll(/\bwindow\.([A-Za-z_$][\w$]*)\s*=(?!=)/g)) mustBeLive(m[1], `window.${m[1]} = in tests/${f}`);
 for (const f of reactFiles) for (const m of read(f).matchAll(/\b(?:w|window|\w+Window\(\))\.([A-Za-z_$][\w$]*)\s*=(?![=>])/g)) mustBeLive(m[1], `window.${m[1]} = in ${path.basename(f)}`);
+// legacyStale.set('NAME', value) (app/react/shared/legacy.ts) assigns window.NAME.
+for (const f of reactFiles) for (const m of read(f).matchAll(/\blegacyStale\.set\('([A-Za-z_$][\w$]*)'/g)) mustBeLive(m[1], `legacyStale.set('${m[1]}') in ${path.basename(f)}`);
 // A const cannot be assigned: nothing to keep live.
 for (const [n] of accessor) if (topLevel.get(n) === 'const' || topLevel.get(n) === 'class') accessor.delete(n);
 // A module's `let` (the sync state, step 3d of #136) changes inside its module: exported to window, it is a live

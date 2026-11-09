@@ -13,7 +13,7 @@ Object.assign(window, {
   // 00-path-urls.js
   ksmHeaderLogo, ksmIsExplicitSpectatorUrl, ksmLinkParams, ksmLinkUrl, ksmRecordScreenPath, ksmReplaceUrl, ksmResolvedUrl, ksmResolveSlug,
   ksmShowRequestedScreen, ksmTournamentHomeUrl,
-  // 00-react-bridge.js
+  // app/modules/react-bridges/state-bridge.js
   ksmLegacyCloudSession, ksmLegacyState, ksmLegacyStateVersion, ksmNotifyStateChanged,
   // app/modules/registration/grand-champion.js
   ksmAddGrandChampion, ksmDecideGrandChampion, ksmGrandChampion, ksmGrandChampionChoose, ksmGrandChampions, ksmMoveGrandChampion,
@@ -136,38 +136,38 @@ Object.assign(window, {
   ksmRefreshTournamentChip, ksmShowLibrary,
   // app/modules/court/match-timer.js
   ksmMatchTimerInput, ksmNormalizeTimerSettings, ksmSaveTimerSettings, ksmSetCourtTimerEnabled, ksmSetCourtTimerSound,
-  // 35-react-court.js
+  // app/modules/react-bridges/court.js
   ksmAlignedRow, ksmBracket, ksmDaihyosenLabel, ksmDivisionCompleteInput, ksmFinalResults, ksmHansokuCounts, ksmIsRoundRobinDaihyosen,
   ksmKachinukiSheet, ksmNextCourtDivision, ksmOpenCourtSetup, ksmPlaceholderRow, ksmPoolStandingRows, ksmSetCourtRedSide, ksmSetCourtTvRedSide,
   ksmSignalCourtActions, ksmSignalCourtHeader, ksmSingleElimContext, ksmSingleElimRoundCard, ksmTeamResults, ksmTeamSheet, ksmText,
-  // 36-react-live-scores.js
+  // app/modules/react-bridges/live-scores.js
   ksmBetweenMatches, ksmRenderLiveScores, ksmUpNext,
-  // 38-react-results.js
+  // app/modules/react-bridges/results.js
   ksmRenderResults, ksmRenderResultsBracket, ksmSetResultAward,
-  // 40-react-library.js
-  ksmAuthorizeLibraryTournament, ksmDeleteLibraryTournament, ksmDiscardLocalDraft, ksmDownloadDeleteBackup, ksmExportLibraryTournament, ksmLibraryAuthorizedIds,
+  // app/modules/react-bridges/library.js
+  ksmAuthorizeLibraryTournament, ksmDecorateLibraryInput, ksmDeleteLibraryTournament, ksmDiscardLocalDraft, ksmDownloadDeleteBackup, ksmExportLibraryTournament, ksmLibraryAuthorizedIds,
   ksmOpenLocalDraft, ksmReadLocalDraft, ksmRenderLibrary, ksmReturnFromLibrary,
-  // 41-react-pools.js
+  // app/modules/react-bridges/pools.js
   ksmPoolEditPools, ksmPoolEditToSave, ksmRenderPoolEditor,
-  // 42-react-setup.js
+  // app/modules/react-bridges/setup.js
   ksmDivisionPresetNames, ksmDivisionRemoveBlocked, ksmDivisionRenameBlocked, ksmMoveSetupDivision, ksmPublishSetup, ksmRemoveSetupDivision,
   ksmRenameSetupDivision, ksmRenderSetupDivisions, ksmRenderSetupHeader, ksmRestoreStandardDivisions,
-  // 43-react-registration.js
+  // app/modules/react-bridges/registration.js
   ksmBindRegistrationEntry, ksmBindRegistrationRow, ksmBlurRedrawn, ksmConfirmNoShow, ksmCycleExhibitionStatus, ksmExhibitionsEnabled,
   ksmHtmlText, ksmImportCSV, ksmImportCSVFile, ksmPasteHelp, ksmRemoveCompetitor, ksmRemoveExhibition, ksmRemoveTeam, ksmRenderExhibitions,
   ksmRenderRegistration, ksmRenderTeams, ksmRenderTournamentStatus, ksmSetExhibitionField, ksmSetTeamField, ksmTournamentGenerated,
   ksmUpdateCompetitor,
-  // 44-react-shell.js
-  ksmCloseCloudModal, ksmCloseShellDialog, ksmCloudModalOpen, ksmConfirmDeleteTournament, ksmConfirmValidation,
+  // app/modules/react-bridges/shell.js
+  ksmCanDeleteTournament, ksmCloseCloudModal, ksmCloseShellDialog, ksmCloudModalOpen, ksmConfirmDeleteTournament, ksmConfirmValidation,
   ksmContinueRegenerateDivision, ksmOpenCloudModal, ksmOpenDeleteTournament, ksmOpenDiagnostics, ksmOpenFileLoadModal,
   ksmOpenRegenerateDialog, ksmOpenTournamentAccess, ksmPersistentSaveStatusText, ksmPublishHeader, ksmRegeneratePoolDivision,
   ksmRenderConnectionStatus, ksmRenderPresence, ksmRenderSaveStatus, ksmRenderSessionRole, ksmSetActiveNav, ksmSetFusenOpen,
   ksmSetTestTools, ksmShellDialogsState, ksmShellHeaderState, ksmShowValidationDialog, ksmToggleTestTools, setKsmForgotTournament,
   // app/modules/sync/undo-regenerate.js
   ksmRefreshRestorePoint, ksmRenderUndoRegenerate, ksmUndoRegenerateOffered,
-  // 39-react-overview.js
+  // app/modules/react-bridges/overview.js
   ksmRenderOverview,
-  // 37-react-tv.js
+  // app/modules/react-bridges/tv.js
   ksmRenderTv,
   // app/modules/auth/auth0-access.js
   cloudHeaders, connectCloudSocket, ksmCacheTournament, ksmFetchTournament, ksmReadHeaders, ksmUsesAccountAuth, loadTournamentFileAsNew,
@@ -234,17 +234,14 @@ Object.assign(window, {
     KSM_DETACHED_DRAFT_KEY: live(() => KSM_DETACHED_DRAFT_KEY),
     ksmStartupHasCache: live(() => ksmStartupHasCache, v => { setKsmStartupHasCache(v); }),
     ksmTournamentTransition: live(() => ksmTournamentTransition, v => { setKsmTournamentTransition(v); }),
-    // 40-react-library.js
-    ksmDecorateLibraryInput: live(() => ksmDecorateLibraryInput, v => { ksmDecorateLibraryInput = v; }),
-    // 43-react-registration.js
-    ksmExhibitionsStale: live(() => ksmExhibitionsStale, v => { ksmExhibitionsStale = v; }),
-    ksmRegistrationRowsStale: live(() => ksmRegistrationRowsStale, v => { ksmRegistrationRowsStale = v; }),
-    ksmTeamsStale: live(() => ksmTeamsStale, v => { ksmTeamsStale = v; }),
-    // 44-react-shell.js
-    ksmCanDeleteTournament: live(() => ksmCanDeleteTournament, v => { ksmCanDeleteTournament = v; }),
-    ksmNavActive: live(() => ksmNavActive, v => { ksmNavActive = v; }),
-    ksmNavMenuStyle: live(() => ksmNavMenuStyle, v => { ksmNavMenuStyle = v; }),
-    ksmNavOpenMenu: live(() => ksmNavOpenMenu, v => { ksmNavOpenMenu = v; }),
-    ksmShellDialogs: live(() => ksmShellDialogs, v => { ksmShellDialogs = v; }),
+    // app/modules/react-bridges/registration.js
+    ksmExhibitionsStale: live(() => ksmExhibitionsStale, v => { setKsmExhibitionsStale(v); }),
+    ksmRegistrationRowsStale: live(() => ksmRegistrationRowsStale, v => { setKsmRegistrationRowsStale(v); }),
+    ksmTeamsStale: live(() => ksmTeamsStale, v => { setKsmTeamsStale(v); }),
+    // app/modules/react-bridges/shell.js
+    ksmNavActive: live(() => ksmNavActive),
+    ksmNavMenuStyle: live(() => ksmNavMenuStyle),
+    ksmNavOpenMenu: live(() => ksmNavOpenMenu),
+    ksmShellDialogs: live(() => ksmShellDialogs),
   });
 }

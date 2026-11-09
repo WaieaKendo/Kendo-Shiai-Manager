@@ -1,3 +1,20 @@
+// @ts-check
+import {state} from '../app-state.js';
+import {individualMatchReady,isTeamMatch} from '../court/court-match-order.js';
+import {SINGLE_ELIM_CONTEXT_LAYOUTS} from '../court/court-queue-and-context.js';
+import {activeScoreArrays,teamSideLabel} from '../court/court-queue-and-views.js';
+import {champMatchBySlot,championshipLabels,expectedRoundCount,firstRoundName,nextRoundFromName,previousRoundName,roundSequenceFromFirst,seedNameForLabel,sourceLabelForRound} from '../engine/engine-championship.js';
+import {divisionCourtMode,isTeamDivision} from '../engine/engine-pools.js';
+import {winnerOf} from '../engine/engine-result-integrity.js';
+import {sideLabelGeneric,specificMatchSideLabel} from '../engine/engine-single-elim.js';
+import {isTeamRoundRobinDivision,teamPairIds,teamPairSummary,teamRoundRobinPairResolved,teamRoundRobinProgress,teamStandings} from '../engine/engine-standings-and-tiebreaks.js';
+import {teamWinner} from '../engine/engine-team-bracket.js';
+import {matchBelongsToCourt,navigateTo,poolStandings} from '../legacy.js';
+import {ksmGrandChampion} from '../registration/grand-champion.js';
+import {ksmDivisionName,ksmTeamDivisions,ksmTeamSettings} from '../registration/team-divisions.js';
+import {divisionComplete,isPoolOnlyDivision,teamFinalPlacements} from '../results/results-and-awards.js';
+import {KSM_TEAM_PLACE_TIED,resultPlacements} from '../results/results-screen.js';
+import {isValidMatchObject,normalizeCourt} from '../sync/sync-state-and-rebase.js';
 // ==========================================================
 // React court screen (app/react/features/court/, roadmap M.8, #136 step 2)
 // The court (scorekeeper) screen is drawn only by React: app/react/features/court/main.tsx mounts
@@ -52,12 +69,12 @@
 // D1 (owners' decision on F27): a team round robin's daihyosen bout is labelled on the court
 // screen, Live Scores and the TV. It still ends with Next Match (no automatic end at the point).
 // (A function, not a const: app.js publishes before this file's top level has run.)
-function ksmDaihyosenLabel(){return 'Daihyosen — first point wins'}
-function ksmIsRoundRobinDaihyosen(m){return !!(m&&m.roundRobinTiebreak&&m.type==='teamPlayoff')}
+export function ksmDaihyosenLabel(){return 'Daihyosen — first point wins'}
+export function ksmIsRoundRobinDaihyosen(m){return !!(m&&m.roundRobinTiebreak&&m.type==='teamPlayoff')}
 // Owner decision 5 (#29): a match's hansoku per side, as the court screen shows them: the live
 // count for the match this device is scoring (state.score, as activeScoreArrays() reads its
 // points), else the match's stored wt/rt. Live Scores and the TV show them too.
-function ksmHansokuCounts(m){
+export function ksmHansokuCounts(m){
   if(!m)return {W:0,R:0};
   const arr=state.allMatches?.[m.division]||[],idx=arr.indexOf(m);
   if(m.division===state.currentDivision&&idx===state.current&&!m.done)return {W:Number(state.score?.WT)||0,R:Number(state.score?.RT)||0};
@@ -66,28 +83,28 @@ function ksmHansokuCounts(m){
 // #38 "Configure court": set this court's Red side by editing Setup's field (Court A/B — Red side), so
 // it saves and syncs exactly like a Setup edit (the field's own onchange, and the document's change
 // listener that schedules the autosave).
-function ksmSetCourtRedSide(side){
-  const el=document.getElementById(normalizeCourt(state.currentCourt)==='B'?'court2RedSide':'court1RedSide');
+export function ksmSetCourtRedSide(side){
+  const el=/** @type {HTMLSelectElement|null} */ (document.getElementById(normalizeCourt(state.currentCourt)==='B'?'court2RedSide':'court1RedSide'));
   if(!el||el.value===side||(side!=='left'&&side!=='right'))return;
   el.value=side;
   el.dispatchEvent(new Event('change',{bubbles:true}));
 }
 // #40: the audience setting uses the same Setup change path, independently of the table.
-function ksmSetCourtTvRedSide(side){
-  const el=document.getElementById(normalizeCourt(state.currentCourt)==='B'?'court2TvRedSide':'court1TvRedSide');
+export function ksmSetCourtTvRedSide(side){
+  const el=/** @type {HTMLSelectElement|null} */ (document.getElementById(normalizeCourt(state.currentCourt)==='B'?'court2TvRedSide':'court1TvRedSide'));
   if(!el||el.value===side||(side!=='left'&&side!=='right'))return;
   el.value=side;
   el.dispatchEvent(new Event('change',{bubbles:true}));
 }
 // "More court settings in Setup": Setup, scrolled to this court's Red side field.
-function ksmOpenCourtSetup(){
+export function ksmOpenCourtSetup(){
   navigateTo('setup');
   const el=document.getElementById(normalizeCourt(state.currentCourt)==='B'?'court2RedSide':'court1RedSide');
   if(el){el.scrollIntoView({block:'center'});el.focus()}
 }
 // divisionCompletePanelHtml() (32-; removed in M.13, the TV was its last user) as data: esc()
 // text (String(x||'')).
-function ksmDivisionCompleteInput(div,complete){
+export function ksmDivisionCompleteInput(div,complete){
   if(!complete)return {complete:false,placements:[]};
   return {complete:true,placements:resultPlacements(div).map(p=>({place:ksmText(p.place),name:ksmText(p.name),tier:ksmText(p.tier)}))};
 }
@@ -105,7 +122,7 @@ function ksmDivisionReadyOnCourt(d,court){
 }
 // Owner decision 7 / #31: the division a court continues to after `current`: the next one in the
 // court's list that has a match ready on the court (after `current`, then from the top), or null.
-function ksmNextCourtDivision(court,current){
+export function ksmNextCourtDivision(court,current){
   const list=ksmCourtDivisionList(court),i=list.indexOf(current);
   const order=i<0?list:[...list.slice(i+1),...list.slice(0,i)];
   return order.find(d=>d!==current&&ksmDivisionReadyOnCourt(d,court))||null;
@@ -113,23 +130,23 @@ function ksmNextCourtDivision(court,current){
 
 // Signals (see the header). Each records its request on window and dispatches; the module
 // computes the input. No function of the module is called here.
-function ksmSignalCourtScoreboard(m){
+export function ksmSignalCourtScoreboard(m){
   window.ksmCourtScoreboardRequested={match:m};
   window.dispatchEvent(new CustomEvent('ksm:court-scoreboard'));
 }
 // Cumulative: each writer sends only its own fields, merged over the earlier requests.
-function ksmSignalCourtHeader(fields){
+export function ksmSignalCourtHeader(fields){
   window.ksmCourtHeaderRequested={...(window.ksmCourtHeaderRequested||{}),...fields};
   window.dispatchEvent(new CustomEvent('ksm:court-header'));
 }
-function ksmSignalCourtActions(actions){
+export function ksmSignalCourtActions(actions){
   window.ksmCourtActionsRequested=actions;
   window.dispatchEvent(new CustomEvent('ksm:court-actions'));
 }
 // Text is what esc() showed (String(x||'')); numbers the templates printed as is are String(x).
-function ksmText(s){return String(s||'')}
+export function ksmText(s){return String(s||'')}
 // alignedMatchRowHtml(match,options) (28-, removed) with its option defaults resolved.
-function ksmAlignedRow(match,options={}){
+export function ksmAlignedRow(match,options={}){
   const white=options.white ?? (match?specificMatchSideLabel(match,'white'):'TBD');
   const red=options.red ?? (match?specificMatchSideLabel(match,'red'):'TBD');
   const wp=options.wp ?? match?.wp ?? [];
@@ -139,7 +156,7 @@ function ksmAlignedRow(match,options={}){
   return {kind:'aligned',white:ksmText(white),red:ksmText(red),wp:slots(wp),rp:slots(rp),status:ksmText(status),current:!!options.current,compact:!!options.compact};
 }
 // alignedPlaceholderRowHtml() (28-, removed).
-function ksmPlaceholderRow(white,red,status='awaiting',compact=false){return ksmAlignedRow(null,{white,red,wp:[],rp:[],status,compact})}
+export function ksmPlaceholderRow(white,red,status='awaiting',compact=false){return ksmAlignedRow(null,{white,red,wp:[],rp:[],status,compact})}
 // A first-round championship slot before its match exists (bracketHtml(), 28-, removed).
 function ksmSeedPlaceholderRow(div,pair){
   const redLabel=pair[0],whiteLabel=pair[1];
@@ -163,7 +180,7 @@ function ksmFutureRoundCards(startRound,matchCount){
   return cards;
 }
 // singleElimRoundCardHtml() (24-/28-, removed); null for a round without nodes.
-function ksmSingleElimRoundCard(div,round){
+export function ksmSingleElimRoundCard(div,round){
   const nodes=(state.singleElimNodes?.[div]||[]).filter(node=>node.round===round);
   if(!nodes.length)return null;
   return {round:ksmText(round),rows:nodes.map(node=>{
@@ -188,7 +205,7 @@ function ksmTeamStandings(div,options={}){
 }
 // bracketHtml() (28-, removed in M.13: the Pools view was its last user); also the Pools view's
 // Championship Preview / Team Standings (41-react-pools.js) and the Results modal.
-function ksmBracket(div){
+export function ksmBracket(div){
   if(isTeamRoundRobinDivision(div))return ksmTeamStandings(div,{compact:true,includePairResults:false});
   if(state.singleElimNodes&&state.singleElimNodes[div]){
     // singleElimBracketHtml() (28-, removed)
@@ -227,7 +244,7 @@ function ksmBracket(div){
   return {kind:'message',text:'Championship bracket will appear after pools are generated.'};
 }
 // teamResultsBracketHtml() (28-, removed in M.13: the Results modal was its last user).
-function ksmTeamResults(div){
+export function ksmTeamResults(div){
   if(isTeamRoundRobinDivision(div))return ksmTeamStandings(div,{includePairResults:true});
   const nodes=state.teamBracketNodes?.[div]||[];
   if(!nodes.length)return {kind:'results-empty',text:'No team bracket is available.'};
@@ -248,7 +265,7 @@ function ksmTeamResults(div){
 // the table explains ("* Wins and points include the tiebreak. A, B and C were tied after the pool
 // at 1 win, 1 pt; the tiebreak only decides their order."). Individual pools only (a team pool's
 // tiebreak is not counted in these stats), once every tiebreak bout of the pool is done.
-function ksmPoolStandingRows(div,poolLabel){
+export function ksmPoolStandingRows(div,poolLabel){
   const standings=poolStandings(poolLabel,div);
   const tiebreaks=(state.allMatches?.[div]||[]).filter(m=>m&&m.pool===poolLabel&&m.tiebreak);
   const played=tiebreaks.length>0&&tiebreaks.every(m=>m.done&&!isTeamMatch(m));
@@ -263,7 +280,7 @@ function ksmPoolStandingRows(div,poolLabel){
     :{name:ksmText(row.name),dojo:ksmText(row.dojo||''),wins:String(row.wins),pts:String(row.pts),tiebreak:false})};
 }
 // renderSingleElimContext() (the 32- wrapper around 24-, removed).
-function ksmSingleElimContext(div){
+export function ksmSingleElimContext(div){
   if(divisionCourtMode(div)==='split'){
     // splitTemplateContextHtml() (32-, removed)
     const nodes=state.singleElimNodes?.[div]||[];
@@ -276,9 +293,9 @@ function ksmSingleElimContext(div){
   return {kind:'single-elim',left:cards(layout.left),right:cards(layout.right)};
 }
 // teamSheetHtml() (11-/28-, removed in M.13).
-function ksmTeamSheet(div,pair,currentMatch){
+export function ksmTeamSheet(div,pair,currentMatch){
   const matches=(state.allMatches[div]||[]).filter(m=>m.teamPair===pair&&(m.type==='teamPosition'||m.type==='teamPlayoff'));
-  const first=matches[0]||{},s=teamPairSummary(div,pair);
+  const first=/** @type {any} */ (matches[0]||{}),s=teamPairSummary(div,pair);
   return {teamWhite:ksmText(first.teamWhite||'White Team'),teamRed:ksmText(first.teamRed||'Red Team'),
     rows:matches.map(match=>{
       const pts=activeScoreArrays(match);
@@ -288,14 +305,14 @@ function ksmTeamSheet(div,pair,currentMatch){
     totals:{wWins:String(s.wWins),wPts:String(s.wPts),rWins:String(s.rWins),rPts:String(s.rPts)}};
 }
 // kachinukiSheetHtml() (16-/28-, removed in M.13).
-function ksmKachinukiSheet(m){
+export function ksmKachinukiSheet(m){
   const pts=activeScoreArrays(m);
   const side=(lineup,index)=>({lineup:(lineup||[]).map(ksmText),index:index??null});
   return {teamWhite:ksmText(m.teamWhite),teamRed:ksmText(m.teamRed),current:ksmAlignedRow(m,{wp:pts.W,rp:pts.R,status:'NOW',current:true}),
     white:side(m.lineupW,m.wIndex),red:side(m.lineupR,m.rIndex)};
 }
 // finalResultsHtml() (11-, removed) as data; null where it returned ''.
-function ksmFinalResults(div){
+export function ksmFinalResults(div){
   if(isTeamDivision(div)){
     if(!divisionComplete(div))return null;
     // teamFinalResultsHtml() (09-, removed in M.13)
@@ -326,7 +343,7 @@ function ksmFinalResults(div){
 // DOMContentLoaded, so a working page never shows this.
 function ksmShowCourtModuleMissing(){
   if(window.ksmCourtScreenMounted)return;
-  const shell=document.querySelector('#score .scorekeeper-shell');
+  const shell=/** @type {HTMLElement|null} */ (document.querySelector('#score .scorekeeper-shell'));
   if(!shell||document.getElementById('courtModuleMissing'))return;
   const notice=document.createElement('div');
   notice.id='courtModuleMissing';notice.className='card';notice.setAttribute('role','alert');notice.setAttribute('data-testid','court-module-missing');
@@ -334,4 +351,8 @@ function ksmShowCourtModuleMissing(){
   shell.style.display='none';
   shell.before(notice);
 }
-document.addEventListener('DOMContentLoaded',ksmShowCourtModuleMissing);
+
+// Load-time side effects (app/js/34-bootstrap.js runs them, in the order the files used to load).
+export function initCourtBridge(){
+  document.addEventListener('DOMContentLoaded',ksmShowCourtModuleMissing);
+}

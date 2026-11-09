@@ -7,11 +7,11 @@ import {
   ksmStaticCourtHeader, startCourtInput,
 } from '../../app/react/features/court/publish.ts';
 
-// The classic signal stubs (app/js/35-react-court.js), run as they are against the fake window.
-const classic = readFileSync(new URL('../../app/js/35-react-court.js', import.meta.url), 'utf8');
+// The classic signal stubs (app/modules/react-bridges/court.js), run as they are against the fake window.
+const classic = readFileSync(new URL('../../app/modules/react-bridges/court.js', import.meta.url), 'utf8');
 const stubSource = ['ksmSignalCourtScoreboard', 'ksmSignalCourtHeader', 'ksmSignalCourtActions'].map(name => {
   const start = classic.indexOf(`function ${name}(`);
-  assert.ok(start >= 0, `${name} is missing from 35-react-court.js`);
+  assert.ok(start >= 0, `${name} is missing from react-bridges/court.js`);
   return classic.slice(start, classic.indexOf('\n}\n', start) + 3);
 }).join('\n');
 
@@ -81,7 +81,7 @@ function fake({ state = {}, legacy = {}, elements = {}, names = {} } = {}) {
   };
   win.upNext = undefined;
   globalThis.window = win;
-  // The classic stubs, as written in app/js/35-react-court.js.
+  // The classic stubs, as written in app/modules/react-bridges/court.js.
   const context = vm.createContext({ window: win, CustomEvent: class { constructor(type) { this.type = type; } } });
   vm.runInContext(stubSource, context);
   for (const name of ['ksmSignalCourtScoreboard', 'ksmSignalCourtHeader', 'ksmSignalCourtActions']) win[name] = context[name];
@@ -137,7 +137,7 @@ test('scoreboard: D1 labels a team round robin daihyosen bout', () => {
 
 // --------------------------------------------------------------------------------- header
 
-// The old ksmPublishCourtHeader() (app/js/35-react-court.js before #136 step 2), as the reference.
+// The old ksmPublishCourtHeader() (app/modules/react-bridges/court.js before #136 step 2), as the reference.
 function oldPublish(win, previous, fields) {
   const legacy = name => win[name];
   if (fields.divisionTitle) fields.divisionTitle = legacy('ksmDivisionName')(fields.divisionTitle);

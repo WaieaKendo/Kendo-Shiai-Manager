@@ -1,3 +1,14 @@
+// @ts-check
+import {connectCloudSocket,ksmAccount,ksmLibraryAuthInvalid,ksmReadHeaders,ksmVisibleLibrary,readTournamentLibrary,setSessionRole} from '../auth/auth0-access.js';
+import {esc} from '../html-text.js';
+import {ksmIsExplicitSpectatorUrl,ksmLinkParams,navigateTo,show} from '../legacy.js';
+import {ksmPrintRenderer} from '../results/print.js';
+import {installRoleBanner,isReadOnlySession,v316StaffPassword} from '../session/staff-session-and-library.js';
+import {KSM_DETACHED_DRAFT_KEY,ksmCanLeaveTournament,ksmLibraryReturnView,ksmRefreshTournamentChip,ksmResetTournament} from '../session/tournament-switcher.js';
+import {applyTournamentPayload,manualSaveTournament,showKsmToast,tournamentFileProblem} from '../sync/cloud-realtime-save-and-load.js';
+import {cloudSession,downloadJson,ksmClearAutosave,ksmStoreAutosave,updateSaveStatus} from '../sync/cloud-session-and-autosave.js';
+import {KSM_AUTOSAVE_CLOUD_ID,KSM_SAVE_KEY,cloudBaseFor} from '../sync/sync-state-and-rebase.js';
+import {ksmOpenCloudModal,ksmOpenDeleteTournament,ksmShellDialogsState} from './shell.js';
 // ==========================================================
 // React Tournament Library (app/react/features/library/, roadmap M.13)
 // The Tournament Library, the home page the app boots to (#home, body.ksm-home), is drawn by one
@@ -22,15 +33,15 @@
 //   list must still fail at the caller (renderHomeTournamentLibrary() paints inside a try and its
 //   catch shows "Unable to load the Tournament Library"), so the module stores the error in
 //   window.ksmLibraryError and the stub rethrows it. The input then stays as it was.
-// - ksmDecorateLibraryInput(input) is the hook 54-auth0-access.js still reassigns to add the account
+// - ksmDecorateLibraryInput(input) is the hook that adds the account
 //   fields; the module calls it on every build (it is not kept at start-up).
 // The island's buttons call createNewTournament() and openTournamentFromHome(id) (33), as the
 // inline handlers did. The legacy library renderer (the DOM writing of
 // paintHomeTournamentLibrary(), libraryCardMarkup()) was removed in M.13.
 // Draft recovery is explicit and never runs while following a tournament or display link.
-function ksmReadLocalDraft(){
+export function ksmReadLocalDraft(){
   const params=ksmLinkParams();
-  if(params.get('tournament')||params.get('spectator')||['tv','overlay'].includes(params.get('view'))||ksmExplicitSpectatorUrl||params.get('role')==='spectator')return null;
+  if(params.get('tournament')||params.get('spectator')||['tv','overlay'].includes(params.get('view'))||ksmIsExplicitSpectatorUrl()||params.get('role')==='spectator')return null;
   try{
     const detached=JSON.parse(localStorage.getItem(KSM_DETACHED_DRAFT_KEY)||'null');
     if(detached?.state)return detached;
@@ -43,7 +54,7 @@ function ksmReadLocalDraft(){
     return payload;
   }catch(_){return null}
 }
-async function ksmOpenLocalDraft(){
+export async function ksmOpenLocalDraft(){
   const payload=ksmReadLocalDraft();if(!payload)return;
   if(!(await ksmCanLeaveTournament()))return;
   ksmResetTournament();localStorage.removeItem(KSM_DETACHED_DRAFT_KEY);
@@ -51,7 +62,7 @@ async function ksmOpenLocalDraft(){
   document.body.classList.remove('ksm-home');setSessionRole('staff');installRoleBanner('staff');applyTournamentPayload(payload,false);ksmStoreAutosave(payload);
   updateSaveStatus('Restored autosave');navigateTo('setup');
 }
-function ksmDiscardLocalDraft(){
+export function ksmDiscardLocalDraft(){
   if(!ksmReadLocalDraft())return;
   if(localStorage.getItem(KSM_DETACHED_DRAFT_KEY))localStorage.removeItem(KSM_DETACHED_DRAFT_KEY);
   else ksmClearAutosave();
@@ -70,15 +81,27 @@ function ksmSignalLibrary(){
   if(window.ksmLibraryError){const e=window.ksmLibraryError;window.ksmLibraryError=null;throw e}
 }
 // paintHomeTournamentLibrary(list,message): the cards, or the message when there are none.
-function ksmRenderLibrary(list,message){
+export function ksmRenderLibrary(list,message){
   window.ksmLibraryRequested={list,message};
   ksmSignalLibrary();
 }
 // The hook 54-auth0-access.js reassigns to add the account fields to the input; the module calls it
 // (looked up on every call) on the input it built.
-function ksmDecorateLibraryInput(input){return input}
+// The original (no account) and, below it, the final function: the account rules app/js/54-auth0-access.js used to add by
+// reassigning it at load (step 3d of #136). No account can be enabled before 54 runs, so until then the final function
+// does what the original did.
+function ksmAccountDecorateLibrary(input){return input}
+export function ksmDecorateLibraryInput(input){
+  if(ksmAccount.enabled&&input?.kind==='library'){
+    const admin=!ksmLibraryAuthInvalid&&ksmAccount.globalRole==='admin'&&!!ksmAccount.token;
+    const creator=!ksmLibraryAuthInvalid&&['admin','creator'].includes(ksmAccount.globalRole)&&!!ksmAccount.token;
+    const active=ksmVisibleLibrary.find(row=>row.id===input.activeId);
+    input={...input,hasActive:!!input.hasActive&&!!active&&!!cloudBaseFor(cloudSession.revision),activeName:active?.name||'',authEnabled:true,accountEmail:ksmAccount.email,accountRole:ksmAccount.globalRole,authInvalid:ksmLibraryAuthInvalid,canCreate:creator,canDelete:admin,accessLabels:Object.fromEntries(ksmVisibleLibrary.map(row=>[row.id,row.role])),authorizedIds:ksmLibraryAuthInvalid?[]:ksmVisibleLibrary.filter(row=>admin||row.canManage).map(row=>row.id)};
+  }
+  return ksmAccountDecorateLibrary(input);
+}
 // The IDs of the Library rows with a Staff token (ksmLibraryStaffTokens is a top-level const, so not on window).
-function ksmLibraryAuthorizedIds(){return [...ksmLibraryStaffTokens.keys()]}
+export function ksmLibraryAuthorizedIds(){return [...ksmLibraryStaffTokens.keys()]}
 
 // If the React module (app/react/main.tsx, a module script after app.js) did not run, say so on
 // the home page instead of an empty library, which nothing fills any more (e.g. an offline device
@@ -95,10 +118,11 @@ function ksmShowLibraryModuleMissing(){
   grid.style.display='none';
   grid.before(notice);
 }
-document.addEventListener('DOMContentLoaded',ksmShowLibraryModuleMissing);
-const ksmLibraryStaffTokens=new Map();
-function ksmCanManageLibraryTournament(id){return (id===cloudSession.tournamentId&&!isReadOnlySession())||ksmLibraryStaffTokens.has(id)}
-async function ksmAuthorizeLibraryTournament(id){
+export const ksmLibraryStaffTokens=new Map();
+function ksmAccountManageLibrary(id){return (id===cloudSession.tournamentId&&!isReadOnlySession())||ksmLibraryStaffTokens.has(id)}
+// Final function (the account rules of app/js/54-auth0-access.js, step 3d of #136; same reason as ksmDecorateLibraryInput()).
+export function ksmCanManageLibraryTournament(id){return ksmAccount.enabled?!ksmLibraryAuthInvalid&&!!ksmAccount.token&&!!ksmVisibleLibrary.find(row=>row.id===id)?.canManage:ksmAccountManageLibrary(id)}
+export async function ksmAuthorizeLibraryTournament(id){
   const password=prompt('Enter Staff password');if(!password)return;
   try{
     const response=await fetch(`/api/tournaments/${encodeURIComponent(id)}/auth`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password})});
@@ -109,11 +133,11 @@ async function ksmAuthorizeLibraryTournament(id){
 }
 // Browse the Library without crossing a tournament boundary. Open/New/import still use the
 // existing save/replacement gates. In particular, browsing and exporting cannot clear a queue.
-function ksmReturnFromLibrary(){
+export function ksmReturnFromLibrary(){
   if(!cloudSession.tournamentId&&!v316StaffPassword())return;
   document.body.classList.remove('ksm-home');show(isReadOnlySession()?'public':ksmLibraryReturnView);connectCloudSocket();ksmRefreshTournamentChip();
 }
-async function ksmExportLibraryTournament(id,kind){
+export async function ksmExportLibraryTournament(id,kind){
   if(!ksmCanManageLibraryTournament(id))return;
   try{
     const response=await fetch(`/api/tournaments/${encodeURIComponent(id)}`,{cache:'no-store',headers:ksmReadHeaders()});
@@ -136,7 +160,7 @@ async function ksmExportLibraryTournament(id,kind){
   }catch(err){showKsmToast(err.message||'Unable to export tournament',4000,true)}
 }
 // The same typed-name confirmation and DELETE operation, with an explicit Library target.
-async function ksmDeleteLibraryTournament(id){
+export async function ksmDeleteLibraryTournament(id){
   if(!ksmCanManageLibraryTournament(id))return;
   if(id===cloudSession.tournamentId&&!isReadOnlySession()){ksmOpenDeleteTournament();return}
   try{
@@ -146,8 +170,13 @@ async function ksmDeleteLibraryTournament(id){
     ksmOpenCloudModal('Delete Tournament',{kind:'delete',libraryId:id,name:record.payload?.setup?.tName||'',devices:null,busy:false,error:''});
   }catch(err){showKsmToast(err.message,4000,true)}
 }
-function ksmDownloadDeleteBackup(){
+export function ksmDownloadDeleteBackup(){
   const id=ksmShellDialogsState().cloud?.body?.libraryId;
   if(id)return ksmExportLibraryTournament(id,'file');
   manualSaveTournament();
+}
+
+// Load-time side effect (app/js/34-bootstrap.js runs it, in the order the files used to load).
+export function initLibraryBridge(){
+  document.addEventListener('DOMContentLoaded',ksmShowLibraryModuleMissing);
 }

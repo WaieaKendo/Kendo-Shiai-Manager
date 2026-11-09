@@ -4,16 +4,17 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { ksmLibraryCard, ksmLibraryInput, ksmLocalDraftSummary, startLibraryInput } from '../../app/react/features/library/publish.ts';
 
-// The classic signal stub, hook and discard (app/js/40-react-library.js), run as they are against the fake window.
-const classic = readFileSync(new URL('../../app/js/40-react-library.js', import.meta.url), 'utf8');
+// The classic signal stub, hook and discard (app/modules/react-bridges/library.js), run as they are against the fake window.
+const classic = readFileSync(new URL('../../app/modules/react-bridges/library.js', import.meta.url), 'utf8');
 function source(name) {
   const start = classic.indexOf(`function ${name}(`);
-  assert.ok(start >= 0, `${name} is missing from 40-react-library.js`);
+  assert.ok(start >= 0, `${name} is missing from react-bridges/library.js`);
   const lineEnd = classic.indexOf('\n', start);
   if (!classic.slice(start, lineEnd).endsWith('{')) return classic.slice(start, lineEnd + 1);
   return classic.slice(start, classic.indexOf('\n}\n', start) + 3);
 }
-const NAMES = ['ksmSignalLibrary', 'ksmRenderLibrary', 'ksmDecorateLibraryInput', 'ksmDiscardLocalDraft'];
+// ksmDecorateLibraryInput() is the final function (the account rules and, below them, the original): no account is enabled here.
+const NAMES = ['ksmSignalLibrary', 'ksmRenderLibrary', 'ksmAccountDecorateLibrary', 'ksmDecorateLibraryInput', 'ksmDiscardLocalDraft'];
 
 // A fake `window` with the classic functions publish.ts reads through shared/legacy.ts.
 function fake({ draft = null, readOnly = false, outbox = false, password = '', tournamentId = null, tokens = [] } = {}) {
@@ -36,6 +37,7 @@ function fake({ draft = null, readOnly = false, outbox = false, password = '', t
     window: win,
     CustomEvent: class { constructor(type) { this.type = type; } },
     KSM_DETACHED_DRAFT_KEY: 'detached',
+    ksmAccount: { enabled: false },
     localStorage: { getItem: () => null, removeItem: key => { log.removed.push(key); state.draft = null; } },
     ksmClearAutosave: () => { log.removed.push('autosave'); state.draft = null; },
     ksmReadLocalDraft: () => state.draft,
