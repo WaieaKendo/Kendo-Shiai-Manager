@@ -3,7 +3,8 @@ import {state} from '../app-state.js';
 import {isTeamMatch,sortTeamMatches} from '../court/court-match-order.js';
 import {championshipLabels,firstRoundName,nextRoundFromName} from '../engine/engine-championship.js';
 import {championshipCourtFor,isTeamDivision} from '../engine/engine-pools.js';
-import {ksmRenderOverview,matchBelongsToCourt} from '../legacy.js';
+import {matchBelongsToCourt} from '../legacy.js';
+import {ksmRenderOverview} from '../react-bridges/overview.js';
 import {ksmTeamSettings} from '../registration/team-divisions.js';
 function directorMatchLabel(m){return KSMEngine.directorMatchLabel(m);// moved to app/engine/match-helpers.ts
   }

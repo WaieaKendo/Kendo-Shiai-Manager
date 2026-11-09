@@ -69,5 +69,52 @@ declare var printBody: HTMLElement;
 /** Results screen: the React island mount (renderResultsDashboard only publishes when it exists). */
 declare var resultsBody: HTMLElement;
 
+// The React bridges (app/modules/react-bridges, step 3d of #136): the requests they put on window for the React islands
+// (app/react) and the flags the islands set, read through `window.NAME`.
+interface Window {
+  ksmStateVersion?: number;
+  ksmStateChangeReasons?: any[] | null;
+  ksmCourtScoreboardRequested?: any;
+  ksmCourtHeaderRequested?: any;
+  ksmCourtActionsRequested?: any;
+  ksmCourtScreenMounted?: boolean;
+  ksmLiveScoresRequested?: boolean;
+  ksmLiveScoresMounted?: boolean;
+  ksmTvRequested?: boolean;
+  ksmTvMounted?: boolean;
+  ksmResultsRequested?: boolean;
+  ksmResultsBracketRequested?: any;
+  ksmResultsMounted?: boolean;
+  ksmOverviewRequested?: boolean;
+  ksmOverviewMounted?: boolean;
+  ksmLibraryRequested?: any;
+  ksmLibraryInput?: any;
+  ksmLibraryError?: any;
+  ksmLibraryMounted?: boolean;
+  ksmPoolsRequested?: any;
+  ksmPoolsMounted?: boolean;
+  ksmSetupDivisionsRequested?: boolean;
+  ksmSetupHeaderRequested?: boolean;
+  ksmSetupMounted?: boolean;
+  ksmRegistrationPlayersRequested?: boolean;
+  ksmRegistrationStatusRequested?: any;
+  ksmRegistrationTeamsRequested?: boolean;
+  ksmRegistrationExhibitionsRequested?: boolean;
+  ksmRegistrationTabRequested?: any;
+  ksmRegistrationTabInput?: any;
+  ksmRegistrationMounted?: boolean;
+  ksmRegistrationTeamsMounted?: boolean;
+  ksmShellNavRequested?: boolean;
+  ksmShellHeaderRequested?: boolean;
+  ksmShellDialogsRequested?: boolean;
+  ksmShellMounted?: boolean;
+  /** Elements reached through their id (the browser's named element globals). */
+  directorCourtGrid?: HTMLElement;
+  exhibitionEnabled?: HTMLSelectElement;
+  exhibitionTable?: HTMLElement;
+}
+/** Registration -> Exhibition Matches enable select (Setup). */
+declare var exhibitionEnabled: HTMLSelectElement;
+
 /** The pure engine modules (app/engine/index.ts), loaded as a classic script before app.js. */
 declare var KSMEngine: typeof import('../engine/index.ts');

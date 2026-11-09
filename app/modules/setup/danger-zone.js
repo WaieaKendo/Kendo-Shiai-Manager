@@ -1,6 +1,6 @@
 // @ts-check
 import {state} from '../app-state.js';
-import {ksmCanDeleteTournament} from '../legacy.js';
+import {ksmCanDeleteTournament} from '../react-bridges/shell.js';
 import {requestTournamentGeneration} from '../registration/validation.js';
 import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {ksmRefreshRestorePoint,ksmRenderUndoRegenerate} from '../sync/undo-regenerate.js';

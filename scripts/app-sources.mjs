@@ -13,7 +13,7 @@
 //                       rolldown bundle of entry + modules (appBundle()), still ONE ES module file.
 // app/modules/          the modules the entry imports, plain `.js` with `// @ts-check` (step 3d of #136,
 //                       area by area: app-state.js, engine/engine-*.js, court/*.js, registration/*.js, setup/*.js,
-//                       results/*.js, sync/*.js, session/*.js, links/*.js, auth/*.js, html-text.js; next: boot and the React bridges). A module never imports from the entry; its calls into app/js
+//                       results/*.js, sync/*.js, session/*.js, links/*.js, auth/*.js, html-text.js, boot.js, react-bridges/*.js; next: step 4). A module never imports from the entry; its calls into app/js
 //                       code that has not moved go through legacy.js (one wrapper per function, calling
 //                       window.NAME at call time; app/js/00-legacy-exports.js puts those names on window
 //                       first, since the entry's load-time code runs court code before 99-window-exports.js). Tests that read or run the app's code see the

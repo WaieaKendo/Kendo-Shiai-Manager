@@ -1,6 +1,8 @@
 // @ts-check
 import {cloudHeaders,connectCloudSocket,ksmCacheTournament,ksmCreateTournament,ksmExpireStaffSession,ksmFetchTournament,ksmUsesAccountAuth,loadTournamentFromCloud,readTournamentLibrary,renderHomeTournamentLibrary,setSessionRole,writeTournamentLibrary} from '../auth/auth0-access.js';
-import {closeNavMenus,ksmIsExplicitSpectatorUrl,ksmLinkParams,ksmLinkUrl,ksmOpenTournamentAccess,ksmRenderLibrary,ksmRenderSessionRole,ksmResolveSlug,ksmShowRequestedScreen,navigateTo,show} from '../legacy.js';
+import {closeNavMenus,ksmIsExplicitSpectatorUrl,ksmLinkParams,ksmLinkUrl,ksmResolveSlug,ksmShowRequestedScreen,navigateTo,show} from '../legacy.js';
+import {ksmRenderLibrary} from '../react-bridges/library.js';
+import {ksmOpenTournamentAccess,ksmRenderSessionRole} from '../react-bridges/shell.js';
 import {ksmPendingSlug,setKsmPendingSlug} from '../links/friendly-links.js';
 import {KSM_CLIENT_SCHEMA} from '../registration/team-divisions.js';
 import {renderTvDisplay} from '../results/tv-display.js';

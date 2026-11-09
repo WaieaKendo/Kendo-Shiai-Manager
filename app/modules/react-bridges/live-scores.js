@@ -1,3 +1,10 @@
+// @ts-check
+import {state} from '../app-state.js';
+import {individualMatchReady,isTeamMatch,sortIndividualDivisionMatches,sortTeamMatches} from '../court/court-match-order.js';
+import {matchBelongsToCourt} from '../legacy.js';
+import {ksmDivisionName} from '../registration/team-divisions.js';
+import {isValidMatchObject} from '../sync/sync-state-and-rebase.js';
+import {ksmNextCourtDivision,ksmText} from './court.js';
 // ==========================================================
 // React Live Scores (app/react/features/live-scores/, roadmap M.13, #136 step 2)
 // The Live Scores screen (#public) is drawn only by React: one island (LiveScores), mounted by
@@ -36,7 +43,7 @@ function ksmWaitingReason(court,div){
 }
 // "Up next on this court": the next division in the court's running order (#31, as Continue
 // picks it) and its first two matches ready on this court (a team pairing once), or null.
-function ksmUpNext(court,own){
+export function ksmUpNext(court,own){
   const next=ksmNextCourtDivision(court,own||null);if(!next)return null;
   let arr=state.allMatches[next]||[];arr=arr.some(isTeamMatch)?sortTeamMatches(next):sortIndividualDivisionMatches(next,arr);
   const seen=new Set(),matches=[];
@@ -48,14 +55,14 @@ function ksmUpNext(court,own){
   }
   return matches.length?{division:ksmText(ksmDivisionName(next)),matches}:null;
 }
-function ksmBetweenMatches(court,own){
+export function ksmBetweenMatches(court,own){
   return {reason:own?ksmWaitingReason(court,own):null,upNext:ksmUpNext(court,own)};
 }
 // Signal: renderPublic() (25-live-scores.js) asks for a redraw. The module (app/react/features/
 // live-scores/publish.ts) computes what to show on ksm:live-scores; ksmLiveScoresRequested tells
 // it, when it loads, that a signal came earlier. Classic code must not call a module function:
 // this script runs before it (the module may not exist yet, or at all).
-function ksmRenderLiveScores(){
+export function ksmRenderLiveScores(){
   window.ksmLiveScoresRequested=true;
   window.dispatchEvent(new CustomEvent('ksm:live-scores'));
 }
@@ -74,4 +81,8 @@ function ksmShowLiveScoresModuleMissing(){
   live.style.display='none';
   live.before(notice);
 }
-document.addEventListener('DOMContentLoaded',ksmShowLiveScoresModuleMissing);
+
+// Load-time side effects (app/js/34-bootstrap.js runs them, in the order the files used to load).
+export function initLiveScoresBridge(){
+  document.addEventListener('DOMContentLoaded',ksmShowLiveScoresModuleMissing);
+}

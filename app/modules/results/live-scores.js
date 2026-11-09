@@ -4,7 +4,8 @@ import {isTeamMatch,sortIndividualDivisionMatches,sortTeamMatches} from '../cour
 import {teamSideLabel} from '../court/court-queue-and-views.js';
 import {championshipLabels,firstRoundName,previousRoundName,sourceLabelForRound} from '../engine/engine-championship.js';
 import {sideLabelGeneric} from '../engine/engine-single-elim.js';
-import {closeNavMenus,ksmRenderLiveScores,matchBelongsToCourt} from '../legacy.js';
+import {closeNavMenus,matchBelongsToCourt} from '../legacy.js';
+import {ksmRenderLiveScores} from '../react-bridges/live-scores.js';
 import {tvLink} from '../sync/cloud-realtime-save-and-load.js';
 import {cloudSession,saveNow} from '../sync/cloud-session-and-autosave.js';
 // ==========================================================

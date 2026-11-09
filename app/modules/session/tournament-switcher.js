@@ -1,7 +1,8 @@
 // @ts-check
 import {state} from '../app-state.js';
 import {ksmKeepFailedStartup,ksmUsesAccountAuth,renderHomeTournamentLibrary,setSessionRole} from '../auth/auth0-access.js';
-import {closeNavMenus,ksmDirectorRefreshTimer,ksmEmptySetup,ksmEmptyState,ksmIsExplicitSpectatorUrl,ksmLinkParams,ksmLinkUrl,ksmPublishHeader,ksmRecordScreenPath,ksmShowRequestedScreen,navigateTo,setDirectorRefreshTimer,setKsmForgotTournament,show} from '../legacy.js';
+import {closeNavMenus,ksmDirectorRefreshTimer,ksmEmptySetup,ksmEmptyState,ksmIsExplicitSpectatorUrl,ksmLinkParams,ksmLinkUrl,ksmRecordScreenPath,ksmShowRequestedScreen,navigateTo,setDirectorRefreshTimer,show} from '../legacy.js';
+import {ksmPublishHeader,setKsmForgotTournament} from '../react-bridges/shell.js';
 import {ksmPendingSlug,setKsmPendingSlug} from '../links/friendly-links.js';
 import {applyTournamentPayload,closeCloudModal,disconnectCloudSocket,flushCloudOutbox,ksmCloudSaveInFlight,ksmCloudTimer,ksmDeferredRemoteTimer,ksmLocalMutationVersion,ksmQueuedSaveRetryTimer,ksmSaveTimer,mergeQueuedStaffWork,noteQueuedMutation,saveTournamentToCloudWithReason,setKsmCloudTimer,setKsmConfirmedMutationVersion,setKsmDeferredRemoteRecord,setKsmFileReplace,setKsmLastSuccessfulSaveAt,setKsmLocalMutationVersion,setKsmOutboxMutationVersion,setKsmQueuedSaveRetryAttempt,setKsmQueuedSaveRetryTimer,setKsmSaveStatusMode,setKsmSaveTimer,setKsmTvLastVerifiedAt,setKsmTvRefreshInFlight,showKsmToast} from '../sync/cloud-realtime-save-and-load.js';
 import {applySetupSnapshot,clearOutbox,cloudSession,ksmSessionRole,markLocalSave,persistCloudSession,setConnectionStatus,tournamentPayload,writeOutbox} from '../sync/cloud-session-and-autosave.js';

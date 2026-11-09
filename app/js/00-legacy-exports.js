@@ -8,16 +8,9 @@
 // Delete a name here with its wrapper when its area moves into a module.
 Object.assign(window, {
   applyIndividualNoShow, applyWholeTeamNoShow, closeNavMenus, eliminationFinalDone, generateDivisionState, generatePools,
-  ksmCloseCloudModal, ksmCloseShellDialog, ksmCloudModalOpen, ksmConfirmNoShow, ksmContinueRegenerateDivision,
-  ksmDirectorRefreshTimer, ksmEmptySetup, ksmEmptyState, ksmHtmlText, ksmIsExplicitSpectatorUrl, ksmLinkParams, ksmLinkUrl,
-  ksmNotifyStateChanged, ksmOpenCloudModal, ksmOpenDiagnostics, ksmOpenFileLoadModal, ksmOpenRegenerateDialog,
-  ksmOpenTournamentAccess, ksmPersistentSaveStatusText, ksmPoolEditPools, ksmPoolEditToSave, ksmPublishHeader, ksmPublishSetup,
-  ksmRecordScreenPath, ksmRenderConnectionStatus, ksmRenderExhibitions, ksmRenderLibrary, ksmRenderLiveScores, ksmRenderOverview,
-  ksmRenderPoolEditor, ksmRenderPresence, ksmRenderRegistration, ksmRenderResults, ksmRenderResultsBracket, ksmRenderSaveStatus,
-  ksmRenderSessionRole, ksmRenderSetupDivisions, ksmRenderSetupHeader, ksmRenderTeams, ksmRenderTournamentStatus, ksmRenderTv,
-  ksmReplaceUrl, ksmResolvedUrl, ksmResolveSlug, ksmSetFusenOpen, ksmShowRequestedScreen, ksmShowValidationDialog,
-  ksmSignalCourtActions, ksmSignalCourtHeader, matchBelongsToCourt, navigateTo, renderPools, renderProgress, setActiveDivision,
-  setDirectorRefreshTimer, setKsmForgotTournament, tvAssignedCourt,
+  ksmDirectorRefreshTimer, ksmEmptySetup, ksmEmptyState, ksmIsExplicitSpectatorUrl, ksmLinkParams, ksmLinkUrl,
+  ksmRecordScreenPath, ksmReplaceUrl, ksmResolveSlug, ksmResolvedUrl, ksmShowRequestedScreen, matchBelongsToCourt, navigateTo,
+  regTab, renderPools, renderProgress, setActiveDivision, setDirectorRefreshTimer, tvAssignedCourt,
 });
 {
   // Reassigned later by app/js (wrapped by tests, React or the later files): a live accessor, like 99-window-exports.js.
@@ -25,7 +18,6 @@ Object.assign(window, {
   Object.defineProperties(window, {
     criticalAutoSave: live(() => criticalAutoSave, v => { criticalAutoSave = v; }),
     initialPoolStandings: live(() => initialPoolStandings, v => { initialPoolStandings = v; }),
-    ksmCanDeleteTournament: live(() => ksmCanDeleteTournament, v => { ksmCanDeleteTournament = v; }),
     noteLocalMutation: live(() => noteLocalMutation, v => { noteLocalMutation = v; }),
     pendingTiebreak: live(() => pendingTiebreak, v => { pendingTiebreak = v; }),
     poolPositionsResolved: live(() => poolPositionsResolved, v => { poolPositionsResolved = v; }),

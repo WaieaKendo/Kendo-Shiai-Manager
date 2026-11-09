@@ -1,3 +1,13 @@
+// @ts-check
+import {DIVISION_PRESETS,state} from '../app-state.js';
+import {renderDivisions} from '../court/court-match-order.js';
+import {scheduleAutoSave} from '../legacy.js';
+import {renderReg} from '../registration/registration.js';
+import {renderTournamentStatus} from '../registration/validation.js';
+import {isReadOnlySession} from '../session/staff-session-and-library.js';
+import {removeDivision,renderDivisionSetup} from '../setup/division-setup.js';
+import {cloudSession} from '../sync/cloud-session-and-autosave.js';
+import {ksmLocalCourtDivision} from '../sync/sync-state-and-rebase.js';
 // ==========================================================
 // React Setup screen (app/react/features/setup/, roadmap M.13, #136 step 2)
 // Setup (#setup) draws two parts with React islands, mounted by app/react/features/setup/main.tsx:
@@ -26,14 +36,14 @@
 // shows a notice in place of the divisions table (the end of this file).
 // ==========================================================
 // Still used by 01-grand-champion.js (ksmRenderGrandChampionSetup).
-function ksmPublishSetup(event,key,input){
+export function ksmPublishSetup(event,key,input){
   window[key]=input;
   window.dispatchEvent(new CustomEvent(event));
 }
 // Issue #31: a row's move up / down button. Swaps the division with its neighbour in the running
 // order (state.divisions), saved and synced like every Setup edit (the button's click asks for the
 // autosave, the document-wide listener in 21-).
-function ksmMoveSetupDivision(d,direction){
+export function ksmMoveSetupDivision(d,direction){
   const i=state.divisions.indexOf(d),j=i+(direction==='up'?-1:1);
   if(i<0||j<0||j>=state.divisions.length)return;
   [state.divisions[i],state.divisions[j]]=[state.divisions[j],state.divisions[i]];
@@ -48,28 +58,28 @@ function ksmMoveSetupDivision(d,direction){
 // state.divisionRenames, so a save conflict replays it whole (rebaseLocalPayloadOnRecord(), 18-).
 // Returns why it was refused (shown in the row; nothing changed), or null. Saved and synced like
 // every Setup edit.
-function ksmDivisionPresetNames(){return KSMEngine.presetNames(DIVISION_PRESETS.map(p=>p[0]),state.divisionRenames)}
-function ksmDivisionRenameError(from,to){return KSMEngine.divisionRenameError(state,DIVISION_PRESETS.map(p=>p[0]),String(from??''),String(to??''))}
+export function ksmDivisionPresetNames(){return KSMEngine.presetNames(DIVISION_PRESETS.map(p=>p[0]),/** @type {any} */ (state).divisionRenames)}
+function ksmDivisionRenameError(from,to){return KSMEngine.divisionRenameError(/** @type {any} */ (state),DIVISION_PRESETS.map(p=>p[0]),String(from??''),String(to??''))}
 // Why the row's Rename cannot open (after the draw), or null.
-function ksmDivisionRenameBlocked(d){return ksmDivisionRenameError(d,d)}
-function ksmRenameSetupDivision(from,to){
+export function ksmDivisionRenameBlocked(d){return ksmDivisionRenameError(d,d)}
+export function ksmRenameSetupDivision(from,to){
   from=String(from??'');const name=String(to??'').trim();
   const error=ksmDivisionRenameError(from,name);
   if(error)return error;
   if(name===from)return null;
   const client=(typeof cloudSession==='object'&&cloudSession?.clientId)||'local';
   const record={id:`${client}:${Date.now().toString(36)}:${Math.random().toString(36).slice(2,8)}`,from,to:name};
-  Object.assign(state,KSMEngine.renamedDivisionState(state,from,name,record));
+  Object.assign(state,KSMEngine.renamedDivisionState(/** @type {any} */ (state),from,name,record));
   ['A','B'].forEach(c=>{if(ksmLocalCourtDivision[c]===from)ksmLocalCourtDivision[c]=name});
   renderDivisionSetup();renderDivisions();renderReg();renderTournamentStatus();
   scheduleAutoSave('Division renamed');
   return null;
 }
-function ksmRenderSetupDivisions(){
+export function ksmRenderSetupDivisions(){
   window.ksmSetupDivisionsRequested=true;
   window.dispatchEvent(new CustomEvent('ksm:setup-divisions'));
 }
-function ksmRenderSetupHeader(){
+export function ksmRenderSetupHeader(){
   window.ksmSetupHeaderRequested=true;
   window.dispatchEvent(new CustomEvent('ksm:setup-header'));
 }
@@ -79,8 +89,8 @@ function ksmRenderSetupHeader(){
 // Owner request (4.0): every row has × before its draw, presets too. A removed preset is hidden for
 // this tournament (state.hiddenPresets, merged like the other Setup lists on a save conflict); its
 // registered players stay in Registration without a division, after a question.
-function ksmDivisionRemoveBlocked(d){return (state.allMatches?.[d]||[]).length?`${d} is drawn: it can no longer be removed.`:null}
-function ksmRemoveSetupDivision(d){
+export function ksmDivisionRemoveBlocked(d){return (state.allMatches?.[d]||[]).length?`${d} is drawn: it can no longer be removed.`:null}
+export function ksmRemoveSetupDivision(d){
   if(isReadOnlySession())return;
   const blocked=ksmDivisionRemoveBlocked(d);if(blocked){alert(blocked);return}
   const players=(state.competitors||[]).filter(c=>c.division===d&&c.name).length;
@@ -90,7 +100,7 @@ function ksmRemoveSetupDivision(d){
   if(i>=0){removeDivision(i);scheduleAutoSave('Division removed');return}
   delete state.divisionTypes[d];delete state.divisionCourts[d];renderDivisionSetup();renderDivisions();renderReg();scheduleAutoSave('Division removed');
 }
-function ksmRestoreStandardDivisions(){
+export function ksmRestoreStandardDivisions(){
   if(isReadOnlySession())return;
   state.hiddenPresets=[];renderDivisionSetup();scheduleAutoSave('Standard divisions restored');
 }
@@ -102,7 +112,7 @@ function ksmRestoreStandardDivisions(){
 // DOMContentLoaded, so a working page never shows this. Existing styles only (.muted-card, .small).
 function ksmShowSetupModuleMissing(){
   if(window.ksmSetupMounted)return;
-  const table=document.querySelector('#setup .setup-division-table-wrap');
+  const table=/** @type {HTMLElement|null} */ (document.querySelector('#setup .setup-division-table-wrap'));
   if(!table||document.getElementById('setupModuleMissing'))return;
   const notice=document.createElement('div');
   notice.id='setupModuleMissing';notice.className='muted-card';notice.setAttribute('role','alert');notice.setAttribute('data-testid','setup-module-missing');
@@ -110,4 +120,8 @@ function ksmShowSetupModuleMissing(){
   table.style.display='none';
   table.before(notice);
 }
-document.addEventListener('DOMContentLoaded',ksmShowSetupModuleMissing);
+
+// Load-time side effects (app/js/34-bootstrap.js runs them, in the order the files used to load).
+export function initSetupBridge(){
+  document.addEventListener('DOMContentLoaded',ksmShowSetupModuleMissing);
+}

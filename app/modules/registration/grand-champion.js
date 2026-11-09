@@ -5,7 +5,9 @@ import {enforceUniqueIndividualMatches,maybeAdvanceChampionship,maybeCreateChamp
 import {completedResultSnapshot} from '../engine/engine-result-integrity.js';
 import {maybeAdvanceIndividualSingleElim} from '../engine/engine-single-elim.js';
 import {maybeCreateTiebreaks} from '../engine/engine-standings-and-tiebreaks.js';
-import {generateDivisionState,ksmCloseCloudModal,ksmCloudModalOpen,ksmOpenCloudModal,ksmPublishSetup,renderAll,scheduleAutoSave} from '../legacy.js';
+import {generateDivisionState,renderAll,scheduleAutoSave} from '../legacy.js';
+import {ksmPublishSetup} from '../react-bridges/setup.js';
+import {ksmCloseCloudModal,ksmCloudModalOpen,ksmOpenCloudModal} from '../react-bridges/shell.js';
 import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {ksmDivisionName} from './team-divisions.js';
 import {renderTournamentStatus} from './validation.js';
