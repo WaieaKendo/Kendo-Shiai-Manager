@@ -319,7 +319,8 @@ export function mergeQueuedStaffWork(){
   // #129: work queued before an Undo regenerate that this tab's copy already shows is not merged onto the
   // restored tournament (its save would go out at the current revision, past performCloudSave's 409 check).
   const restoredRevision=ksmKnownRestoredRevision(cloudSession.tournamentId);
-  if(restoredRevision>Number(outbox.baseRevision||0)){ksmMarkOutboxMerged();clearOutbox();ksmDropQueuedWorkBeforeRestore(outbox,restoredRevision);return false}
+  // The copy is kept first; the queue is cleared only once it is (else the work stays queued).
+  if(restoredRevision>Number(outbox.baseRevision||0)){if(ksmDropQueuedWorkBeforeRestore(outbox,restoredRevision)){ksmMarkOutboxMerged();clearOutbox()}return false}
   const merged=rebaseLocalPayloadOnRecord(outbox.payload,{payload:tournamentPayload(),revision:cloudSession.revision},Number(outbox.baseRevision||0),outbox.basePayload||null);
   // #129 part 3: queued regenerate work keeps its restore-point mark in this tab (its next save sends it).
   if(outbox.restorePoint==='regenerate')ksmSetRestoreMark(cloudSession.tournamentId,String(outbox.restorePointId||''),outbox.restorePointRevision);

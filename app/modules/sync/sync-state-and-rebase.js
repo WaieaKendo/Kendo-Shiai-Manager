@@ -20,17 +20,40 @@ export const KSM_CLOUD_OUTBOX_KEY='ksm.cloud.outbox.v3_15';
 export const KSM_CLOUD_RECOVERY_KEY='ksm.cloud.recovery.v3_15';
 export const KSM_CLOUD_DIAGNOSTICS_KEY='ksm.cloud.diagnostics.v3_17_1';
 // #129: work dropped by an Undo regenerate is kept under its own key (prefix:tournamentId:restoreRevision:time),
-// never in the single KSM_CLOUD_RECOVERY_KEY slot that the next offline queue overwrites. The newest few
-// are kept; Download Recovery File includes this tournament's (restoreRecovery).
+// never in the single KSM_CLOUD_RECOVERY_KEY slot that the next offline queue overwrites. Download Recovery
+// File includes this tournament's (restoreRecovery). The copies are capped (per tournament, in all, and in
+// size) and trimmed before a new one is written, so they never fill the storage the outbox and autosave need.
 export const KSM_RESTORE_RECOVERY_PREFIX=KSM_CLOUD_RECOVERY_KEY+':restore:';
-const KSM_RESTORE_RECOVERY_LIMIT=5;
+const KSM_RESTORE_RECOVERY_LIMIT=5,KSM_RESTORE_RECOVERY_PER_TOURNAMENT=3,KSM_RESTORE_RECOVERY_MAX_CHARS=1000000;
 /** The kept copies' keys, oldest first. */
 function ksmRestoreRecoveryKeys(){const keys=[];for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(key?.startsWith(KSM_RESTORE_RECOVERY_PREFIX))keys.push(key)}const at=key=>Number(key.split(':').slice(-2)[0])||0;return keys.sort((a,b)=>at(a)-at(b))}
+let ksmLastRecoveryAt=0;
+/** Keeps a copy; returns its key, or null when it could not be kept (too large, or storage full). */
 export function ksmKeepRestoreRecovery(tournamentId,restoredRevision,entry){
-  const key=`${KSM_RESTORE_RECOVERY_PREFIX}${tournamentId||''}:${Number(restoredRevision||0)}:${Date.now()}:${Math.random().toString(36).slice(2,8)}`;
-  try{localStorage.setItem(key,JSON.stringify(entry))}catch(_){return null}
-  try{const keys=ksmRestoreRecoveryKeys();keys.slice(0,Math.max(0,keys.length-KSM_RESTORE_RECOVERY_LIMIT)).forEach(k=>localStorage.removeItem(k))}catch(_){}
-  return key;
+  const prefix=`${KSM_RESTORE_RECOVERY_PREFIX}${tournamentId||''}:`;
+  // The time orders the copies (oldest trimmed first): strictly increasing within this tab.
+  ksmLastRecoveryAt=Math.max(Date.now(),ksmLastRecoveryAt+1);
+  const key=`${prefix}${Number(restoredRevision||0)}:${ksmLastRecoveryAt}:${Math.random().toString(36).slice(2,8)}`;
+  let value;
+  try{value=JSON.stringify(entry)}catch(_){return null}
+  if(value.length>KSM_RESTORE_RECOVERY_MAX_CHARS)return null;
+  try{
+    // Room first: the oldest copies go until this one fits every cap.
+    let keys=ksmRestoreRecoveryKeys();
+    const size=k=>(localStorage.getItem(k)||'').length;
+    let total=keys.reduce((sum,k)=>sum+size(k),0);
+    const own=()=>keys.filter(k=>k.startsWith(prefix));
+    const over=()=>keys.length>=KSM_RESTORE_RECOVERY_LIMIT||own().length>=KSM_RESTORE_RECOVERY_PER_TOURNAMENT||total+value.length>KSM_RESTORE_RECOVERY_MAX_CHARS;
+    while(keys.length&&over()){
+      const oldest=own().length>=KSM_RESTORE_RECOVERY_PER_TOURNAMENT?own()[0]:keys[0];
+      total-=size(oldest);localStorage.removeItem(oldest);keys=keys.filter(k=>k!==oldest);
+    }
+    // Storage full for other reasons: give up older copies before giving up this one.
+    for(;;){
+      try{localStorage.setItem(key,value);return key}
+      catch(_){if(!keys.length)return null;localStorage.removeItem(keys.shift())}
+    }
+  }catch(_){return null}
 }
 /** This tournament's copies of work dropped by an Undo regenerate, oldest first. */
 export function ksmRestoreRecoveries(tournamentId){

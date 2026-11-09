@@ -409,6 +409,8 @@ declare global {
   const historyEntryIdentity: typeof m37.historyEntryIdentity;
   const isValidMatchObject: typeof m37.isValidMatchObject;
   const ksmClearRestoreRecoveries: typeof m37.ksmClearRestoreRecoveries;
+  const ksmKeepRestoreRecovery: typeof m37.ksmKeepRestoreRecovery;
+  const ksmRestoreRecoveries: typeof m37.ksmRestoreRecoveries;
   const ksmDeferredSyncRecord: typeof m37.ksmDeferredSyncRecord;
   const ksmDeferredSyncTimer: typeof m37.ksmDeferredSyncTimer;
   const ksmLocalCourtDivision: typeof m37.ksmLocalCourtDivision;

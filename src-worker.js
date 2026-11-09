@@ -528,9 +528,10 @@ export class TournamentState {
         return json({ error: 'The regenerate can no longer be undone (24 hours have passed).', code: 'restore-point-expired' }, 410);
       }
       // The point the director confirmed (its id from /status): a newer regenerate since then is not undone.
+      // A point stored before points had ids (id '') is undone with no id or an empty one.
       const pointId = typeof body.restorePointId === 'string' ? body.restorePointId : '';
-      if (!pointId) return json({ error: 'Name the restore point to undo (restorePointId).', code: 'restore-point-id-required' }, 400);
-      if (pointId !== stored.id) return json({ error: 'The regenerate to undo has changed since it was confirmed.', code: 'restore-point-changed' }, 409);
+      if (!pointId && stored.id) return json({ error: 'Name the restore point to undo (restorePointId).', code: 'restore-point-id-required' }, 400);
+      if (pointId !== (stored.id || '')) return json({ error: 'The regenerate to undo has changed since it was confirmed.', code: 'restore-point-changed' }, 409);
       const currentRevision = Number(existing.revision || 0);
       if (Number(body.revision ?? -1) !== currentRevision) return json({ error: 'Revision conflict', record: publicRecord(existing) }, 409);
       const payload = stored.record?.payload;

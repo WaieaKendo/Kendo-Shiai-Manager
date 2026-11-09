@@ -4,7 +4,7 @@ import {cloudHeaders,ksmCacheTournament} from '../auth/auth0-access.js';
 import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {writeCloudDiagnosticsState} from './cloud-diagnostics.js';
 import {applyRemoteCloudRecord,applyTournamentPayload,flushCloudOutbox,ksmAnnounceTournamentGone,ksmClockId,ksmCloudSavePending,ksmCloudTimer,ksmConfirmedMutationVersion,ksmLocalMutationVersion,ksmQueuedSaveRetryTimer,ksmSaveTimer,saveTournamentToCloudWithReason,setKsmApplyingRemoteSnapshot,setKsmCloudSavePending,setKsmCloudTimer,setKsmConfirmedMutationVersion,setKsmLastSuccessfulSaveAt,setKsmOutboxMutationVersion,setKsmQueuedSaveRetryTimer,setKsmSaveStatusMode,setKsmSaveTimer,showKsmToast} from './cloud-realtime-save-and-load.js';
-import {clearOutbox,cloudSession,ksmStoreAutosave,persistCloudSession,readOutbox,renderPersistentSaveStatus,tournamentPayload} from './cloud-session-and-autosave.js';
+import {clearOutbox,cloudSession,downloadRecoveryFile,ksmStoreAutosave,persistCloudSession,readOutbox,renderPersistentSaveStatus,tournamentPayload} from './cloud-session-and-autosave.js';
 import {clearLocalCourtDivisions,ksmKeepRestoreRecovery,localChangesPending,pinnedCourt,rememberCloudBase,restorePinnedCourt} from './sync-state-and-rebase.js';
 // #129 part 3: Undo regenerate (step 3d of #136, from app/js/03-undo-regenerate.js). Its listeners are
 // initUndoRegenerate(), which app/js/03-undo-regenerate.js runs where this file used to load.
@@ -113,12 +113,15 @@ export function ksmRestoredSince(record,revision=cloudSession.revision){return N
 // (Setup -> Advanced -> Download Recovery File) and the restored copy is applied.
 export function ksmDropWorkBeforeRestore(record,payload=tournamentPayload()){
   const outbox=readOutbox();
-  ksmKeepWorkBeforeRestore(outbox||{tournamentId:cloudSession.tournamentId,baseRevision:cloudSession.revision||0,payload,queuedAt:new Date().toISOString()},record?.restored?.revision,record?.revision);
+  // The copy is kept before the outbox is cleared. If it cannot be kept on this device (storage full), the
+  // recovery file (with this work: the outbox and the screen's copy, not yet replaced) is downloaded first.
+  const kept=ksmKeepWorkBeforeRestore(outbox||{tournamentId:cloudSession.tournamentId,baseRevision:cloudSession.revision||0,payload,queuedAt:new Date().toISOString()},record?.restored?.revision,record?.revision);
+  if(!kept)downloadRecoveryFile();
   clearOutbox();clearTimeout(ksmSaveTimer);setKsmSaveTimer(null);clearTimeout(ksmCloudTimer);setKsmCloudTimer(null);clearTimeout(ksmQueuedSaveRetryTimer);setKsmQueuedSaveRetryTimer(null);
   const pending=ksmCloudSavePending;setKsmCloudSavePending(null);pending?.resolvers.forEach(resolve=>resolve(false));setKsmConfirmedMutationVersion(Math.max(ksmConfirmedMutationVersion,ksmLocalMutationVersion));setKsmOutboxMutationVersion(0);
   ksmClearRestoreMark();
   writeCloudDiagnosticsState({stage:'Local changes replaced by Undo regenerate',serverRevision:Number(record?.revision||0)});
-  showKsmToast('Undo regenerate on another device replaced this device’s unsaved changes (kept in the recovery file).',6000,true);
+  showKsmToast(kept?'Undo regenerate on another device replaced this device’s unsaved changes (kept in the recovery file).':'Undo regenerate on another device replaced this device’s unsaved changes (saved in the downloaded recovery file).',6000,true);
 }
 // The dropped work's own copy (one per drop, see ksmKeepRestoreRecovery): a later offline queue, which
 // writes the single recovery slot, does not overwrite it.
@@ -127,10 +130,16 @@ export function ksmKeepWorkBeforeRestore(outbox,restoredRevision,serverRevision=
 }
 // Queued work of a closed tab (or of this tab before a reload) made before an Undo regenerate that this
 // tab's copy already shows: kept in the recovery file, not merged onto the restored tournament (F36 + #129).
+// Returns false when the copy could not be kept: the caller then leaves the work queued (nothing is lost).
 export function ksmDropQueuedWorkBeforeRestore(outbox,restoredRevision){
-  ksmKeepWorkBeforeRestore(outbox,restoredRevision,cloudSession.revision);
+  if(!ksmKeepWorkBeforeRestore(outbox,restoredRevision,cloudSession.revision)){
+    writeCloudDiagnosticsState({stage:'Queued work before Undo regenerate kept queued (no room for its recovery copy)'});
+    showKsmToast('Work queued on this device before Undo regenerate was not merged and is still queued: storage is full. Use Download Recovery File.',6000,true);
+    return false;
+  }
   writeCloudDiagnosticsState({stage:'Queued work replaced by Undo regenerate',serverRevision:Number(cloudSession.revision||0)});
   showKsmToast('Work queued on this device before Undo regenerate was not merged (kept in the recovery file).',6000,true);
+  return true;
 }
 // Load-time side effects (the listeners), run from app/js where this file was loaded.
 export function initUndoRegenerate(){

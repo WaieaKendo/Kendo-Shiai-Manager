@@ -243,6 +243,22 @@ const clock = object => { let now = Date.now(); object.now = () => now; return {
     assert.equal((await restore(u, 2, staff(u.token), id)).status, 200);
   });
 
+  await test('a point stored before points had ids (id empty) is still undone, with no id or an empty one', async () => {
+    for (const restorePointId of [null, '']) {
+      const t = await create();
+      await put(t, 1, redrawn, mark());
+      const storage = api.storage(t.id), point = await storage.get('restorePoint');
+      delete point.id;  // as stored by the app before this fix
+      await storage.put('restorePoint', point);
+      assert.equal((await status(t)).restorePoint.id, '');
+      // A named id does not match it: refused like a newer point.
+      assert.equal((await body(await restore(t, 2, staff(t.token), 'some-id'))).code, 'restore-point-changed');
+      const res = await restore(t, 2, staff(t.token), restorePointId);
+      assert.equal(res.status, 200, JSON.stringify(restorePointId));
+      assert.deepEqual((await body(res)).payload, before);
+    }
+  });
+
   await test('a restore that commits during a save\'s access check makes that save 409 (the save reads the record after it)', async () => {
     const t = await create();
     await put(t, 1, redrawn, mark());
