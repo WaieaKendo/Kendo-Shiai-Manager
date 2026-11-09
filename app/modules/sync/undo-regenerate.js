@@ -5,7 +5,7 @@ import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {writeCloudDiagnosticsState} from './cloud-diagnostics.js';
 import {applyRemoteCloudRecord,applyTournamentPayload,flushCloudOutbox,ksmAnnounceTournamentGone,ksmClockId,ksmCloudSavePending,ksmCloudTimer,ksmConfirmedMutationVersion,ksmLocalMutationVersion,ksmQueuedSaveRetryTimer,ksmSaveTimer,saveTournamentToCloudWithReason,setKsmApplyingRemoteSnapshot,setKsmCloudSavePending,setKsmCloudTimer,setKsmConfirmedMutationVersion,setKsmLastSuccessfulSaveAt,setKsmOutboxMutationVersion,setKsmQueuedSaveRetryTimer,setKsmSaveStatusMode,setKsmSaveTimer,showKsmToast} from './cloud-realtime-save-and-load.js';
 import {clearOutbox,cloudSession,ksmStoreAutosave,persistCloudSession,readOutbox,renderPersistentSaveStatus,tournamentPayload} from './cloud-session-and-autosave.js';
-import {KSM_CLOUD_RECOVERY_KEY,clearLocalCourtDivisions,localChangesPending,pinnedCourt,rememberCloudBase,restorePinnedCourt} from './sync-state-and-rebase.js';
+import {clearLocalCourtDivisions,ksmKeepRestoreRecovery,localChangesPending,pinnedCourt,rememberCloudBase,restorePinnedCourt} from './sync-state-and-rebase.js';
 // #129 part 3: Undo regenerate (step 3d of #136, from app/js/03-undo-regenerate.js). Its listeners are
 // initUndoRegenerate(), which app/js/03-undo-regenerate.js runs where this file used to load.
 // ---- #129 part 3: Undo regenerate ----
@@ -70,6 +70,7 @@ export function ksmRenderUndoRegenerate(){
   info.textContent=`Regenerated at ${ksmRestoreTime(point.takenAt)}. Undo regenerate brings back the tournament from before it, with ${ksmMatchWord(point.finishedMatches)}; available until ${ksmRestoreTime(point.expiresAt)}.`+(offline?' Undo regenerate needs a connection.':'');
 }
 async function ksmUndoRegenerate(){
+  // The point shown and confirmed: the server refuses the undo if a newer regenerate replaced it meanwhile.
   const point=ksmLiveRestorePoint();
   if(!point||ksmRestorePointBusy)return;
   if(!navigator.onLine){alert('Undo regenerate needs a connection.');return}
@@ -82,11 +83,12 @@ async function ksmUndoRegenerate(){
     if(localChangesPending()){alert('This device has changes that are not saved yet. Wait until they are saved, then try again.');return}
     const id=cloudSession.tournamentId;
     let response,parsed=null;
-    try{response=await fetch(`/api/tournaments/${encodeURIComponent(id)}/restore-point`,{method:'POST',headers:cloudHeaders(),body:JSON.stringify({revision:Number(cloudSession.revision||0)})})}
+    try{response=await fetch(`/api/tournaments/${encodeURIComponent(id)}/restore-point`,{method:'POST',headers:cloudHeaders(),body:JSON.stringify({revision:Number(cloudSession.revision||0),restorePointId:String(point.id||'')})})}
     catch(_){alert('Undo regenerate needs a connection. Nothing was changed.');return}
     try{parsed=await response.json()}catch(_){}
     if(id!==cloudSession.tournamentId)return;
     if(response.ok&&parsed?.payload){ksmApplyRestoredRecord(parsed);ksmRestorePoint=null;showKsmToast('✓ Regenerate undone',2600);return}
+    if(response.status===409&&parsed?.code==='restore-point-changed'){alert('The regenerate to undo has changed: another regenerate was made after you pressed Undo regenerate. Nothing was changed. Check Undo regenerate again (Setup → Advanced → Danger zone).');return}
     if(response.status===409&&parsed?.record){applyRemoteCloudRecord(parsed.record,true,false);alert('Another device saved a change just now. Check the tournament, then press Undo regenerate again.');return}
     if(response.status===410&&parsed?.code==='tournament-deleted'){ksmAnnounceTournamentGone(id);return}
     if(['restore-point-expired','no-restore-point'].includes(parsed?.code)){ksmRestorePoint=null;alert(parsed.code==='restore-point-expired'?'The regenerate can no longer be undone: 24 hours have passed.':'There is no regenerate to undo (it may have been undone on another device).');return}
@@ -111,12 +113,24 @@ export function ksmRestoredSince(record,revision=cloudSession.revision){return N
 // (Setup -> Advanced -> Download Recovery File) and the restored copy is applied.
 export function ksmDropWorkBeforeRestore(record,payload=tournamentPayload()){
   const outbox=readOutbox();
-  try{localStorage.setItem(KSM_CLOUD_RECOVERY_KEY,JSON.stringify({savedAt:new Date().toISOString(),outbox:outbox||{tournamentId:cloudSession.tournamentId,baseRevision:cloudSession.revision||0,payload,queuedAt:new Date().toISOString()},serverRevision:record?.revision||0,reason:'Replaced by Undo regenerate'}))}catch(_){}
+  ksmKeepWorkBeforeRestore(outbox||{tournamentId:cloudSession.tournamentId,baseRevision:cloudSession.revision||0,payload,queuedAt:new Date().toISOString()},record?.restored?.revision,record?.revision);
   clearOutbox();clearTimeout(ksmSaveTimer);setKsmSaveTimer(null);clearTimeout(ksmCloudTimer);setKsmCloudTimer(null);clearTimeout(ksmQueuedSaveRetryTimer);setKsmQueuedSaveRetryTimer(null);
   const pending=ksmCloudSavePending;setKsmCloudSavePending(null);pending?.resolvers.forEach(resolve=>resolve(false));setKsmConfirmedMutationVersion(Math.max(ksmConfirmedMutationVersion,ksmLocalMutationVersion));setKsmOutboxMutationVersion(0);
   ksmClearRestoreMark();
   writeCloudDiagnosticsState({stage:'Local changes replaced by Undo regenerate',serverRevision:Number(record?.revision||0)});
   showKsmToast('Undo regenerate on another device replaced this device’s unsaved changes (kept in the recovery file).',6000,true);
+}
+// The dropped work's own copy (one per drop, see ksmKeepRestoreRecovery): a later offline queue, which
+// writes the single recovery slot, does not overwrite it.
+export function ksmKeepWorkBeforeRestore(outbox,restoredRevision,serverRevision=restoredRevision){
+  return ksmKeepRestoreRecovery(outbox?.tournamentId||cloudSession.tournamentId,restoredRevision,{savedAt:new Date().toISOString(),outbox,serverRevision:Number(serverRevision||0),restoredRevision:Number(restoredRevision||0),reason:'Replaced by Undo regenerate'});
+}
+// Queued work of a closed tab (or of this tab before a reload) made before an Undo regenerate that this
+// tab's copy already shows: kept in the recovery file, not merged onto the restored tournament (F36 + #129).
+export function ksmDropQueuedWorkBeforeRestore(outbox,restoredRevision){
+  ksmKeepWorkBeforeRestore(outbox,restoredRevision,cloudSession.revision);
+  writeCloudDiagnosticsState({stage:'Queued work replaced by Undo regenerate',serverRevision:Number(cloudSession.revision||0)});
+  showKsmToast('Work queued on this device before Undo regenerate was not merged (kept in the recovery file).',6000,true);
 }
 // Load-time side effects (the listeners), run from app/js where this file was loaded.
 export function initUndoRegenerate(){

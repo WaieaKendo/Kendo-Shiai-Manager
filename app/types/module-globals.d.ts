@@ -408,6 +408,7 @@ declare global {
   const cloudBaseFor: typeof m37.cloudBaseFor;
   const historyEntryIdentity: typeof m37.historyEntryIdentity;
   const isValidMatchObject: typeof m37.isValidMatchObject;
+  const ksmClearRestoreRecoveries: typeof m37.ksmClearRestoreRecoveries;
   const ksmDeferredSyncRecord: typeof m37.ksmDeferredSyncRecord;
   const ksmDeferredSyncTimer: typeof m37.ksmDeferredSyncTimer;
   const ksmLocalCourtDivision: typeof m37.ksmLocalCourtDivision;

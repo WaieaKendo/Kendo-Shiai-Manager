@@ -9,7 +9,11 @@
     as a court device opened afresh), and the server copy stays the restored one;
   * offline the button is disabled with a reason; a regenerate made offline is queued with its mark
     and, once online, the server keeps its restore point (the outbox replay keeps the mark);
-  * a spectator sees no button; a local-only tournament's warning has no undo line.
+  * a spectator sees no button; a local-only tournament's warning has no undo line;
+  * review fixes of #156: the court's dropped work has its own recovery copy (a later offline queue does
+    not overwrite it) and Download Recovery File includes it; a closed tab's work queued before the undo
+    is kept there too, not merged onto the restored tournament; an undo confirmed before a newer
+    regenerate is refused (restore-point-changed) and the button shows the newer one.
 """
 import json
 import urllib.request
@@ -26,6 +30,22 @@ UNDO_LINE = 'You can undo this for 24 hours from Setup → Advanced → Danger z
 
 def status(base, tid):
     req = urllib.request.Request(f'{base}/api/tournaments/{tid}/status', headers={'x-ksm-role': 'staff', 'x-ksm-session-key': staff_token(base, tid), **CLIENT_SCHEMA})
+    with urllib.request.urlopen(req) as r:
+        return json.load(r)
+
+
+def restore_recoveries(app, tid):
+    """The device's copies of work an Undo regenerate dropped, oldest first (one key each)."""
+    return app.page.evaluate("""(tid) => Object.keys(localStorage).filter(k => k.startsWith(`ksm.cloud.recovery.v3_15:restore:${tid}:`))
+      .sort((a, b) => Number(a.split(':').slice(-2)[0]) - Number(b.split(':').slice(-2)[0])).map(k => JSON.parse(localStorage.getItem(k)))""", tid)
+
+
+def regenerate_put(base, tid, payload, revision, point_id):
+    """A full regenerate's save from another staff device (marked, so the server keeps a restore point)."""
+    body = json.dumps({'tournamentId': tid, 'revision': revision, 'payload': payload, 'restorePoint': 'regenerate', 'restorePointId': point_id}).encode()
+    req = urllib.request.Request(f'{base}/api/tournaments/{tid}', data=body, method='PUT', headers={
+        'content-type': 'application/json', 'x-ksm-role': 'staff', 'x-ksm-session-key': staff_token(base, tid),
+        'x-ksm-client-id': 'other-director', 'x-ksm-client-name': 'Other director', **CLIENT_SCHEMA})
     with urllib.request.urlopen(req) as r:
         return json.load(r)
 
@@ -181,8 +201,8 @@ def main():
         # (Finals) and its court action history were written over it (revision + 1).
         assert after['revision'] == restored['revision'], 'the court device saved its post-regenerate work over the restored tournament'
         assert after['payload']['state']['courtState']['A']['division'] == 'Kids', after['payload']['state']['courtState']
-        recovery = court.page.evaluate("() => JSON.parse(localStorage.getItem('ksm.cloud.recovery.v3_15') || 'null')")
-        assert recovery and recovery.get('reason') == 'Replaced by Undo regenerate', recovery
+        assert restore_recoveries(court, tid) and restore_recoveries(court, tid)[-1]['reason'] == 'Replaced by Undo regenerate', restore_recoveries(court, tid)
+        assert restore_recoveries(court, tid)[-1]['restoredRevision'] == restored['revision']
         # Its court shows the restored copy's division and match, as a court device opened afresh does.
         fresh = KsmApp.open_device(browser, base, 'Fresh Court A', problems, app_path(tid, 'court', 'A'))
         fresh.wait_revision(after['revision'])
@@ -191,6 +211,39 @@ def main():
         assert court_position(court)['division'] == 'Kids', court_position(court)
         court.wait_for(lambda: court.current_match() == fresh.current_match(), message='the same match as a fresh court device')
         fresh.close()
+
+        # The dropped work keeps its own copy: a later offline queue (which writes the single recovery slot)
+        # does not overwrite it, and Download Recovery File includes it.
+        slot = court.page.evaluate("""() => { KSMTest.app.writeOutbox(KSMTest.app.tournamentPayload(), 'Later offline edit');
+          const slot = JSON.parse(localStorage.getItem('ksm.cloud.recovery.v3_15') || 'null'); KSMTest.app.clearOutbox(); return slot; }""")
+        assert slot and slot.get('reason') is None, slot
+        kept = restore_recoveries(court, tid)
+        assert len(kept) == 1 and kept[0]['reason'] == 'Replaced by Undo regenerate', kept
+        open_advanced(court)
+        with court.page.expect_download() as download:
+            court.click('setup-download-recovery')
+        with open(download.value.path()) as f:
+            pack = json.load(f)
+        assert [r.get('reason') for r in pack.get('restoreRecovery') or []] == ['Replaced by Undo regenerate'], pack.get('restoreRecovery')
+        assert pack['restoreRecovery'][0]['outbox']['payload'], 'the recovery file lacks the dropped work'
+
+        # A closed tab's work queued before the undo is not merged onto the restored tournament (F36 + #129):
+        # the director's tab takes it over (Save Now) and keeps it in the recovery file instead.
+        director.wait_idle()
+        orphan = director.page.evaluate("() => { const p = KSMTest.app.tournamentPayload(); p.setup.tName = 'Closed tab edit'; return p; }")
+        director.page.evaluate("""([tid, payload, base]) => localStorage.setItem('ksm.cloud.outbox.v3_15:gone-tab', JSON.stringify({schemaVersion: '1.0',
+          tournamentId: tid, role: 'staff', baseRevision: base, payload, actions: [{type: 'snapshot', reason: 'Closed tab', createdAt: new Date().toISOString()}],
+          queuedAt: new Date().toISOString(), writer: 'gone-tab'}))""", [tid, orphan, restored['revision'] - 1])
+        director.page.evaluate('() => KSMTest.app.saveNow()')
+        director.wait_for(lambda: director.page.evaluate("() => localStorage.getItem('ksm.cloud.outbox.v3_15:gone-tab') === null") and restore_recoveries(director, tid),
+                          message="the closed tab's work kept in the recovery file")
+        director.wait_idle()
+        kept = restore_recoveries(director, tid)
+        assert kept[-1]['outbox'].get('adoptedFrom') == 'gone-tab' and kept[-1]['outbox']['payload']['setup']['tName'] == 'Closed tab edit', {k: v for k, v in kept[-1]['outbox'].items() if k != 'payload'}
+        assert director.page.evaluate('() => KSMTest.app.readOutbox()') is None
+        current = fetch_record(base, tid)
+        assert current['payload']['state']['allMatches'] == before_matches and current['payload']['setup']['tName'] != 'Closed tab edit', current['payload']['setup']
+        assert director.page.evaluate('() => KSMTest.app.tournamentPayload().setup.tName') != 'Closed tab edit'
 
         # ---- A spectator sees no Undo regenerate
         spectator = KsmApp.open_device(browser, base, 'Spectator', problems, app_path(tid))
@@ -220,6 +273,26 @@ def main():
         director.page.context.set_offline(False)
         director.page.evaluate("() => window.dispatchEvent(new Event('online'))")
         director.wait_for(lambda: undo.is_enabled(), message='Undo regenerate enabled online')
+
+        # An undo confirmed before a newer regenerate landed is refused: the newer one is not undone.
+        confirmed = status(base, tid)['restorePoint']
+        assert confirmed and confirmed['id'], confirmed
+        def newer_regenerate(route):
+            record = fetch_record(base, tid)
+            regenerate_put(base, tid, record['payload'], record['revision'], 'newer-regenerate')
+            route.continue_()
+        director.page.route('**/restore-point', newer_regenerate)
+        director.expect_dialog('Undo regenerate?', accept=True)
+        director.expect_dialog('The regenerate to undo has changed', accept=True)
+        director.seen_dialogs.clear()
+        revision_before = fetch_record(base, tid)['revision']
+        undo.click()
+        seen = director.wait_for_dialogs(2)
+        assert seen[1].startswith('The regenerate to undo has changed'), seen
+        director.page.unroute('**/restore-point')
+        assert fetch_record(base, tid)['revision'] == revision_before + 1, 'the refused undo wrote a revision'
+        assert status(base, tid)['restorePoint']['id'] == 'newer-regenerate'
+        director.wait_for(lambda: undo.count() == 1 and undo.is_enabled(), message='Undo regenerate still offered (the newer point)')
         size = len(json.dumps(fetch_record(base, tid)))
         print(f'     record size {size} bytes (the restore point holds one more copy)')
 

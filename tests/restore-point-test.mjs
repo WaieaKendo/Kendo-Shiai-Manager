@@ -46,7 +46,9 @@ const clock = object => { let now = Date.now(); object.now = () => now; return {
   }
   const put = (t, revision, data, extra = {}, headers = staff(t.token)) => api.call('PUT', `/api/tournaments/${t.id}`, { headers, body: { tournamentId: t.id, revision, engineVersion: '3.12.9', payload: data, ...extra } });
   const status = (t, headers = staff(t.token)) => api.call('GET', `/api/tournaments/${t.id}/status`, { headers }).then(body);
-  const restore = (t, revision, headers = staff(t.token)) => api.call('POST', `/api/tournaments/${t.id}/restore-point`, { headers, body: { revision } });
+  // As the app: the id of the point the director confirmed (from /status; here read from storage).
+  const pointIdOf = async t => (await api.storage(t.id).get('restorePoint'))?.id ?? 'none';
+  const restore = async (t, revision, headers = staff(t.token), restorePointId) => api.call('POST', `/api/tournaments/${t.id}/restore-point`, { headers, body: { revision, restorePointId: restorePointId === undefined ? await pointIdOf(t) : restorePointId } });
   const mark = (id = 'regen-1') => ({ restorePoint: 'regenerate', restorePointId: id });
 
   await test('an unmarked save keeps no restore point; a marked one keeps the replaced record with the new one in one write', async () => {
@@ -68,7 +70,7 @@ const clock = object => { let now = Date.now(); object.now = () => now; return {
     assert.equal(point.takenBy.name, 'Director');
     assert.equal(await storage.getAlarm(), clk.now + DAY);
     const s = await status(t);
-    assert.deepEqual(s.restorePoint, { takenAt: new Date(clk.now).toISOString(), expiresAt: new Date(clk.now + DAY).toISOString(), finishedMatches: 2, revision: 2 });
+    assert.deepEqual(s.restorePoint, { id: 'regen-1', takenAt: new Date(clk.now).toISOString(), expiresAt: new Date(clk.now + DAY).toISOString(), finishedMatches: 2, revision: 2 });
     console.log(`     restore point copy: ${JSON.stringify(point).length} bytes for a ${JSON.stringify((await storage.get('record'))).length}-byte record`);
   });
 
@@ -215,6 +217,59 @@ const clock = object => { let now = Date.now(); object.now = () => now; return {
     assert.equal(await api.storage(u.id).getAlarm(), null);
   });
 
+  await test('restore names the point it confirmed: a newer regenerate since then is 409 restore-point-changed; no id is 400', async () => {
+    const t = await create();
+    await put(t, 1, redrawn, mark('confirmed'));
+    const shown = (await status(t)).restorePoint;
+    assert.equal(shown.id, 'confirmed');
+    // Another regenerate lands after the director confirmed the undo of the first one.
+    await put(t, 2, before);
+    await put(t, 3, redrawn, mark('newer'));
+    const res = await restore(t, 4, staff(t.token), shown.id);
+    assert.equal(res.status, 409);
+    assert.equal((await body(res)).code, 'restore-point-changed');
+    assert.equal((await api.storage(t.id).get('restorePoint')).id, 'newer', 'the newer point was used or dropped');
+    assert.equal((await body(await api.call('GET', `/api/tournaments/${t.id}`))).revision, 4, 'a refused undo wrote a revision');
+    for (const missing of [null, '']) {
+      const r = await restore(t, 4, staff(t.token), missing);
+      assert.equal(r.status, 400);
+      assert.equal((await body(r)).code, 'restore-point-id-required');
+    }
+    // A regenerate saved without an id still gets one (so it can be named and undone).
+    const u = await create();
+    await put(u, 1, redrawn, { restorePoint: 'regenerate' });
+    const id = (await status(u)).restorePoint.id;
+    assert.ok(id && id === (await api.storage(u.id).get('restorePoint')).id, id);
+    assert.equal((await restore(u, 2, staff(u.token), id)).status, 200);
+  });
+
+  await test('a restore that commits during a save\'s access check makes that save 409 (the save reads the record after it)', async () => {
+    const t = await create();
+    await put(t, 1, redrawn, mark());
+    const object = api.durableObject(t.id), original = object.writeAccess;
+    let interleaved = null;
+    // The access check can call the access Durable Object (the input gate opens): the restore runs then.
+    object.writeAccess = async function (...args) {
+      const result = await original.apply(this, args);
+      if (!interleaved) {
+        object.writeAccess = original;
+        interleaved = await object.fetch(new Request('https://durable-object/restore-point', { method: 'POST', headers: { ...staff(t.token), 'content-type': 'application/json' }, body: JSON.stringify({ revision: 2, restorePointId: 'regen-1' }) }));
+      }
+      return result;
+    };
+    const res = await put(t, 2, payload('Court point on the redraw', [bout('Aoki', 'Doi', true), bout('Baba', 'Chiba', false)]));
+    object.writeAccess = original;
+    assert.equal(interleaved?.status, 200, 'the restore did not run during the save');
+    assert.equal(res.status, 409, 'the save passed the revision check against the record read before the restore');
+    const conflict = await body(res);
+    assert.equal(conflict.record.revision, 3);
+    assert.equal(conflict.record.restored.revision, 3);
+    const stored = await api.storage(t.id).get('record');
+    assert.equal(stored.revision, 3);
+    assert.deepEqual(stored.payload, before, 'the save overwrote the restored tournament');
+    assert.equal(stored.restored.revision, 3);
+  });
+
   await test("the worker's finished-match count agrees with the app's warning (KSMEngine.finishedMatchSummary)", async () => {
     const scope = vm.createContext({});
     vm.runInContext(await engineScript(), scope);
@@ -249,7 +304,7 @@ const clock = object => { let now = Date.now(); object.now = () => now; return {
     assert.equal((await api.call('PUT', `/api/tournaments/${id}/visibility`, { headers: headers(jwt.admin), body: { isPublic: true } })).status, 200);
     assert.equal((await api.call('POST', `/api/tournaments/${id}/directors`, { headers: headers(jwt.admin), body: { email: 'director@example.com' } })).status, 200);
     const status = token => api.call('GET', `/api/tournaments/${id}/status`, { headers: token ? headers(token) : {} }).then(body);
-    const restore = (token, revision) => api.call('POST', `/api/tournaments/${id}/restore-point`, { headers: token ? headers(token) : {}, body: { revision } });
+    const restore = async (token, revision) => api.call('POST', `/api/tournaments/${id}/restore-point`, { headers: token ? headers(token) : {}, body: { revision, restorePointId: (await api.storage(id).get('restorePoint'))?.id } });
 
     await test('Auth0: a director sees and restores the point; an outsider and a spectator do not', async () => {
       assert.equal((await api.call('PUT', `/api/tournaments/${id}`, { headers: headers(jwt.director), body: { revision: 1, payload: redrawn, restorePoint: 'regenerate', restorePointId: 'a' } })).status, 200);

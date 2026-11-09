@@ -17,9 +17,9 @@ import {KSM_V316_STAFF_SESSION,canCloudWrite,installRoleBanner,isReadOnlySession
 import {ksmStartupHasCache,ksmStartupLoadFailed,ksmTournamentEpoch} from '../session/tournament-switcher.js';
 import {analyzeCourtActionHistory,analyzeTournamentSnapshot,formatDiagnosticTime,formatSnapshotBytes,payloadByteSize,readCloudDiagnosticsState,writeCloudDiagnosticsState} from './cloud-diagnostics.js';
 import {applySetupSnapshot,autoSaveTournament,clearOutbox,cloudSession,ksmSessionRole,ksmStoreAutosave,markLocalSave,persistCloudSession,preserveRecovery,readOutbox,renderPersistentSaveStatus,setConnectionStatus,tournamentPayload,updateSaveStatus,writeOutbox} from './cloud-session-and-autosave.js';
-import {KSM_SAVE_KEY,applyDeferredSyncRecord,clearLocalCourtDivisions,cloudBaseFor,deferRemoteRecord,localChangesPending,localCourtDivision,normalizeCourt,pinCourtLocally,pinnedCourt,rebaseLocalPayloadOnRecord,rememberCloudBase,rememberLocalCourtDivision,restorePinnedCourt,sanitizeLoadedTournamentState} from './sync-state-and-rebase.js';
+import {KSM_SAVE_KEY,applyDeferredSyncRecord,clearLocalCourtDivisions,cloudBaseFor,deferRemoteRecord,ksmKnownRestoredRevision,localChangesPending,localCourtDivision,normalizeCourt,pinCourtLocally,pinnedCourt,rebaseLocalPayloadOnRecord,rememberCloudBase,rememberLocalCourtDivision,restorePinnedCourt,sanitizeLoadedTournamentState} from './sync-state-and-rebase.js';
 import {KSM_REPLACE_BACKUP_PREFIX,KSM_TAB_ID,ksmDropOutboxesFor,ksmMarkOutboxMerged,ksmOutboxKey,ksmRetagHistory,ksmSendAdoptedOutbox,ksmTakeOrphanNow,ksmWriterId} from './two-tabs.js';
-import {ksmClearRestoreMark,ksmDropWorkBeforeRestore,ksmRestoredSince,ksmSetRestoreMark,setKsmRestorePoint} from './undo-regenerate.js';
+import {ksmClearRestoreMark,ksmDropQueuedWorkBeforeRestore,ksmDropWorkBeforeRestore,ksmRestoredSince,ksmSetRestoreMark,setKsmRestorePoint} from './undo-regenerate.js';
 // Live sync, cloud saves, the offline outbox replay and tournament files (step 3d of #136, from
 // app/js/21-cloud-realtime-save-and-load.js; the save state lets of 18- are declared here, where they are written).
 // Its load-time side effects are initCloudRealtime(), run from app/js/21-. connectCloudSocket() and
@@ -316,6 +316,10 @@ export function mergeQueuedStaffWork(){
   let outbox=readOutbox();
   if(!outbox?.payload||isReadOnlySession()||(outbox.tournamentId&&outbox.tournamentId!==cloudSession.tournamentId))return false;
   if(outbox.peeked&&!(outbox=ksmTakeOrphanNow()))return false;  // F36: a closed tab's work, taken over first
+  // #129: work queued before an Undo regenerate that this tab's copy already shows is not merged onto the
+  // restored tournament (its save would go out at the current revision, past performCloudSave's 409 check).
+  const restoredRevision=ksmKnownRestoredRevision(cloudSession.tournamentId);
+  if(restoredRevision>Number(outbox.baseRevision||0)){ksmMarkOutboxMerged();clearOutbox();ksmDropQueuedWorkBeforeRestore(outbox,restoredRevision);return false}
   const merged=rebaseLocalPayloadOnRecord(outbox.payload,{payload:tournamentPayload(),revision:cloudSession.revision},Number(outbox.baseRevision||0),outbox.basePayload||null);
   // #129 part 3: queued regenerate work keeps its restore-point mark in this tab (its next save sends it).
   if(outbox.restorePoint==='regenerate')ksmSetRestoreMark(cloudSession.tournamentId,String(outbox.restorePointId||''),outbox.restorePointRevision);

@@ -392,6 +392,7 @@ function ksmForgetTournament(id){
   const outbox=readOutbox();
   if(outbox&&outbox.tournamentId===id)clearOutbox();
   ksmDropOutboxesFor(id);  // F36: also work a closed tab left for it
+  ksmClearRestoreRecoveries(id);  // #129: work an Undo regenerate dropped
   try{
     const recovery=JSON.parse(localStorage.getItem(KSM_CLOUD_RECOVERY_KEY)||'null');
     if(recovery&&recovery.outbox&&recovery.outbox.tournamentId===id)localStorage.removeItem(KSM_CLOUD_RECOVERY_KEY);
