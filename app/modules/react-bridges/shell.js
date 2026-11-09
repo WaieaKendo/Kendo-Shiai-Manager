@@ -8,7 +8,7 @@ import {ksmResetTournament,ksmShowLibrary,ksmStartupHasCache,ksmStartupLoadFaile
 import {formatDiagnosticTime,formatSnapshotBytes} from '../sync/cloud-diagnostics.js';
 import {closeCloudModal,cloudDiagnostics,disconnectCloudSocket,ksmCancelReplace,ksmCloudSavePending,ksmCloudTimer,ksmDeferredRemoteTimer,ksmFileReplace,ksmLocalMutationVersion,ksmQueuedSaveRetryTimer,ksmSaveStatusMode,ksmSaveTimer,setKsmCloudSavePending,setKsmCloudTimer,setKsmConfirmedMutationVersion,setKsmDeferredRemoteRecord,setKsmFileReplace,setKsmLastSuccessfulSaveAt,setKsmOutboxMutationVersion,setKsmQueuedSaveRetryAttempt,setKsmQueuedSaveRetryTimer,setKsmSaveStatusMode,setKsmSaveTimer,showKsmToast} from '../sync/cloud-realtime-save-and-load.js';
 import {clearOutbox,cloudSession,humanSaveAge,ksmClearAutosave,ksmSessionRole,persistCloudSession,readOutbox,renderPersistentSaveStatus,tournamentSettings} from '../sync/cloud-session-and-autosave.js';
-import {KSM_CLOUD_BASE,KSM_CLOUD_RECOVERY_KEY,ksmDeferredSyncTimer,setKsmDeferredSyncRecord,setKsmDeferredSyncTimer} from '../sync/sync-state-and-rebase.js';
+import {KSM_CLOUD_BASE,KSM_CLOUD_RECOVERY_KEY,ksmClearRestoreRecoveries,ksmDeferredSyncTimer,setKsmDeferredSyncRecord,setKsmDeferredSyncTimer} from '../sync/sync-state-and-rebase.js';
 import {ksmDropOutboxesFor} from '../sync/two-tabs.js';
 import {ksmCanManageLibraryTournament,ksmLibraryStaffTokens,ksmRenderLibrary} from './library.js';
 import {ksmHtmlText} from './registration.js';
@@ -413,6 +413,7 @@ function ksmForgetTournament(id){
   const outbox=readOutbox();
   if(outbox&&outbox.tournamentId===id)clearOutbox();
   ksmDropOutboxesFor(id);  // F36: also work a closed tab left for it
+  ksmClearRestoreRecoveries(id);  // #129: work an Undo regenerate dropped
   try{
     const recovery=JSON.parse(localStorage.getItem(KSM_CLOUD_RECOVERY_KEY)||'null');
     if(recovery&&recovery.outbox&&recovery.outbox.tournamentId===id)localStorage.removeItem(KSM_CLOUD_RECOVERY_KEY);

@@ -19,6 +19,70 @@ export const KSM_CLOUD_SESSION_KEY='ksm.cloud.session.v3_15';
 export const KSM_CLOUD_OUTBOX_KEY='ksm.cloud.outbox.v3_15';
 export const KSM_CLOUD_RECOVERY_KEY='ksm.cloud.recovery.v3_15';
 export const KSM_CLOUD_DIAGNOSTICS_KEY='ksm.cloud.diagnostics.v3_17_1';
+// #129: work dropped by an Undo regenerate is kept under its own key (prefix:tournamentId:restoreRevision:time),
+// never in the single KSM_CLOUD_RECOVERY_KEY slot that the next offline queue overwrites. Download Recovery
+// File includes this tournament's (restoreRecovery). The copies are capped (per tournament, in all, and in
+// size) and trimmed before a new one is written, so they never fill the storage the outbox and autosave need.
+export const KSM_RESTORE_RECOVERY_PREFIX=KSM_CLOUD_RECOVERY_KEY+':restore:';
+const KSM_RESTORE_RECOVERY_LIMIT=5,KSM_RESTORE_RECOVERY_PER_TOURNAMENT=3,KSM_RESTORE_RECOVERY_MAX_CHARS=1000000;
+/** The kept copies' keys, oldest first. */
+function ksmRestoreRecoveryKeys(){const keys=[];for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(key?.startsWith(KSM_RESTORE_RECOVERY_PREFIX))keys.push(key)}const at=key=>Number(key.split(':').slice(-2)[0])||0;return keys.sort((a,b)=>at(a)-at(b))}
+let ksmLastRecoveryAt=0;
+/** Keeps a copy; returns its key, or null when it could not be kept (too large, or storage full). */
+export function ksmKeepRestoreRecovery(tournamentId,restoredRevision,entry){
+  const prefix=`${KSM_RESTORE_RECOVERY_PREFIX}${tournamentId||''}:`;
+  // The time orders the copies (oldest trimmed first): strictly increasing within this tab.
+  ksmLastRecoveryAt=Math.max(Date.now(),ksmLastRecoveryAt+1);
+  const key=`${prefix}${Number(restoredRevision||0)}:${ksmLastRecoveryAt}:${Math.random().toString(36).slice(2,8)}`;
+  let value;
+  try{value=JSON.stringify(entry)}catch(_){return null}
+  if(value.length>KSM_RESTORE_RECOVERY_MAX_CHARS)return null;
+  // Every copy removed to make room is put back if this one still cannot be kept.
+  const removed=[];
+  const remove=k=>{removed.push([k,localStorage.getItem(k)]);localStorage.removeItem(k)};
+  const putBack=()=>{for(const [k,v] of removed)if(v!=null)try{localStorage.setItem(k,v)}catch(_){}};
+  try{
+    // Room first: the oldest copies go until this one fits every cap.
+    let keys=ksmRestoreRecoveryKeys();
+    const size=k=>(localStorage.getItem(k)||'').length;
+    let total=keys.reduce((sum,k)=>sum+size(k),0);
+    const own=()=>keys.filter(k=>k.startsWith(prefix));
+    const over=()=>keys.length>=KSM_RESTORE_RECOVERY_LIMIT||own().length>=KSM_RESTORE_RECOVERY_PER_TOURNAMENT||total+value.length>KSM_RESTORE_RECOVERY_MAX_CHARS;
+    while(keys.length&&over()){
+      const oldest=own().length>=KSM_RESTORE_RECOVERY_PER_TOURNAMENT?own()[0]:keys[0];
+      total-=size(oldest);remove(oldest);keys=keys.filter(k=>k!==oldest);
+    }
+    // Storage full for other reasons: give up this tournament's older copies, one at a time, only until
+    // this one fits (never another tournament's).
+    for(;;){
+      try{localStorage.setItem(key,value);return key}
+      catch(_){const older=own()[0];if(!older){putBack();return null}remove(older);keys=keys.filter(k=>k!==older)}
+    }
+  }catch(_){putBack();return null}
+}
+/** This tournament's copies of work dropped by an Undo regenerate, oldest first. */
+export function ksmRestoreRecoveries(tournamentId){
+  const prefix=`${KSM_RESTORE_RECOVERY_PREFIX}${tournamentId||''}:`;
+  return ksmRestoreRecoveryKeys().filter(k=>k.startsWith(prefix)).map(k=>{try{return JSON.parse(localStorage.getItem(k)||'null')}catch(_){return null}}).filter(Boolean);
+}
+// #129 review: dropped work whose recovery copy could not be kept (storage full) is parked, not cleared: moved
+// out of the outbox (so no save clears or replays it) under its own key, or held in memory if even that
+// fails. Download Recovery File includes it (parkedBeforeRestore).
+export const KSM_PARKED_WORK_PREFIX='ksm.cloud.restore-parked.v1:';
+const ksmParkedInMemory=[];
+/** Moves the work (and this tab's queue slot holding it, `slotKey`) to a parked key; returns where it is. */
+export function ksmParkWork(tournamentId,entry,slotKey){
+  const raw=slotKey?localStorage.getItem(slotKey):null;
+  if(raw!=null)localStorage.removeItem(slotKey);  // frees its room for the parked copy
+  try{localStorage.setItem(`${KSM_PARKED_WORK_PREFIX}${tournamentId||''}:${Date.now()}`,JSON.stringify(entry));return 'storage'}
+  catch(_){if(raw!=null)try{localStorage.setItem(slotKey,raw)}catch(_){}ksmParkedInMemory.push({tournamentId:tournamentId||'',entry});return 'memory'}
+}
+export function ksmParkedWork(tournamentId){
+  const prefix=`${KSM_PARKED_WORK_PREFIX}${tournamentId||''}:`,rows=[];
+  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k?.startsWith(prefix))try{rows.push(JSON.parse(localStorage.getItem(k)||'null'))}catch(_){}}
+  return [...rows.filter(Boolean),...ksmParkedInMemory.filter(row=>row.tournamentId===(tournamentId||'')).map(row=>row.entry)];
+}
+export function ksmClearRestoreRecoveries(tournamentId){const prefix=`${KSM_RESTORE_RECOVERY_PREFIX}${tournamentId||''}:`;ksmRestoreRecoveryKeys().filter(k=>k.startsWith(prefix)).forEach(k=>localStorage.removeItem(k))}
 export let ksmDeferredSyncRecord=null;
 // A module's `let` is read-only to importers: app/js, the window accessors and the other sync modules assign it here.
 export function setKsmDeferredSyncRecord(value){ksmDeferredSyncRecord=value}
@@ -280,7 +344,10 @@ function cloudBaseSubset(payload){
   // division renames, to tell which renames are new on either side.
   return {setup:cloneJson(payload.setup||{}),state:Object.fromEntries(KSM_MERGED_STATE_KEYS.concat(KSM_STRUCTURAL_DIVISION_KEYS,['divisionRenames']).filter(k=>st[k]!==undefined).map(k=>[k,cloneJson(st[k])]).concat([['managementRevision',st.managementRevision||0]]))};
 }
-export function rememberCloudBase(record){if(!record?.payload)return;KSM_CLOUD_BASE.revision=Number(record.revision||0);KSM_CLOUD_BASE.payload=cloudBaseSubset(record.payload)}
+export function rememberCloudBase(record){if(!record?.payload)return;KSM_CLOUD_BASE.revision=Number(record.revision||0);KSM_CLOUD_BASE.payload=cloudBaseSubset(record.payload);ksmKnownRestore={tournamentId:String(record.tournamentId||''),revision:Number(record.restored?.revision||0)}}
+// #129: the last Undo regenerate named by the newest server record this tab has (every later record carries it).
+let ksmKnownRestore={tournamentId:'',revision:0};
+export function ksmKnownRestoredRevision(tournamentId){return ksmKnownRestore.tournamentId&&ksmKnownRestore.tournamentId===tournamentId?ksmKnownRestore.revision:0}
 export function cloudBaseFor(revision){return KSM_CLOUD_BASE.payload&&KSM_CLOUD_BASE.revision===Number(revision||0)?KSM_CLOUD_BASE.payload:null}
 function sameJsonValue(a,b){return JSON.stringify(a)===JSON.stringify(b)}
 function isPlainJsonObject(v){return v!==null&&typeof v==='object'&&!Array.isArray(v)}

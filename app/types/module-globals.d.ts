@@ -552,6 +552,8 @@ declare global {
   const historyEntryIdentity: typeof m50.historyEntryIdentity;
   const isValidMatchObject: typeof m50.isValidMatchObject;
   const ksmDeferredSyncRecord: typeof m50.ksmDeferredSyncRecord;
+  const ksmKeepRestoreRecovery: typeof m50.ksmKeepRestoreRecovery;
+  const ksmRestoreRecoveries: typeof m50.ksmRestoreRecoveries;
   const ksmDeferredSyncTimer: typeof m50.ksmDeferredSyncTimer;
   const ksmLocalCourtDivision: typeof m50.ksmLocalCourtDivision;
   const localChangesPending: typeof m50.localChangesPending;

@@ -81,6 +81,8 @@
 .ksm-toast{position:fixed;left:50%;bottom:28px;z-index:1100;transform:translate(-50%,12px);opacity:0;pointer-events:none;background:#09263b;color:#fff;padding:11px 16px;border-radius:12px;box-shadow:0 14px 38px rgba(5,22,35,.28);font-weight:750;transition:opacity .18s ease,transform .18s ease}
 .ksm-toast.show{opacity:1;transform:translate(-50%,0)}
 .ksm-toast.error{background:#8f2e34}
+/* #129: a toast that offers an action (Download Recovery File after Undo regenerate, storage full) */
+.ksm-toast.show button{pointer-events:auto;margin-left:8px}
 @media(max-width:700px){.cloud-access-row{grid-template-columns:1fr}.cloud-access-actions{justify-content:flex-start}.cloud-detail-grid{grid-template-columns:1fr}}
 #poolsReg{
   margin-top:0;

@@ -84,7 +84,7 @@ Object.assign(window, {
   previewAllDivisionSheets, previewFullPrintPacket, previewResultsSheet, previewSelectedDivisionSheet, printDivisionSheet,
   // app/modules/sync/sync-state-and-rebase.js
   applyCourtSides, cloneJson, historyEntryIdentity, isValidMatchObject, KSM_AUTOSAVE_CLOUD_ID, KSM_CLOUD_OUTBOX_KEY, KSM_CLOUD_SESSION_KEY,
-  KSM_MERGE_LABELS, KSM_SAVE_KEY, localChangesPending, localCourtDivision, matchBelongsToCourtInState, matchHasSyncIdentity,
+  KSM_MERGE_LABELS, KSM_SAVE_KEY, ksmKeepRestoreRecovery, ksmRestoreRecoveries, localChangesPending, localCourtDivision, matchBelongsToCourtInState, matchHasSyncIdentity,
   matchSyncIdentity, mergeLocalEditsThreeWay, nextReadyIndexInState, normalizeCourt, pinCourtLocally, rebaseLocalPayloadOnRecord,
   redOnLeftForCourt, rememberLocalCourtDivision, replayCourtMatchOps,
   // app/modules/sync/two-tabs.js

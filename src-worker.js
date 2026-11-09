@@ -458,19 +458,23 @@ export class TournamentState {
       const mayRestore = record && (request.headers.get('x-ksm-session-key') || bearerToken(request)) && (await this.restorePointAccess(request)).ok;
       if (mayRestore) {
         const point = await this.liveRestorePoint();
-        restorePoint = point ? { takenAt: new Date(point.takenAt).toISOString(), expiresAt: new Date(point.expiresAt).toISOString(), finishedMatches: finishedMatchCount(point.record?.payload), revision: Number(point.record?.revision || 0) } : null;
+        restorePoint = point ? { id: point.id || '', takenAt: new Date(point.takenAt).toISOString(), expiresAt: new Date(point.expiresAt).toISOString(), finishedMatches: finishedMatchCount(point.record?.payload), revision: Number(point.record?.revision || 0) } : null;
       }
       return json({ exists: Boolean(record), revision: record?.revision || 0, updatedAt: record?.updatedAt || null, connections: this.presence(), ...(mayRestore ? { restorePoint } : {}) });
     }
 
     if (request.method === 'PUT' && url.pathname === '/snapshot') {
       const incoming = await request.json();
-      const existing = await this.state.storage.get('record');
       const role = safeRole(request.headers.get('x-ksm-role') || 'director');
       const suppliedKey = request.headers.get('x-ksm-session-key') || request.headers.get('x-ksm-director-key') || '';
       if (role !== 'staff' && !(auth0Enabled(this.env) && bearerToken(request))) return json({ error: 'Write authorization required' }, 403);
       const access = await this.writeAccess(request, { key: suppliedKey });
       if (!access.ok) return denied(access);
+      // Read the record only after the access check: it can call the access Durable Object, which lets
+      // other requests in meanwhile (a restore or another save could commit). The revision check, the
+      // `restored` carry-over and the restore point below all use this fresh read; only storage
+      // calls (which keep the input gate closed) come between it and the write.
+      const existing = await this.state.storage.get('record');
       if (auth0Enabled(this.env) && !existing) return json({ error: 'Tournament not found' }, 404);
       const expectedRevision = Number(incoming.revision || 0);
       const currentRevision = Number(existing?.revision || 0);
@@ -496,7 +500,8 @@ export class TournamentState {
       const previousPoint = incoming.restorePoint === 'regenerate' && existing ? await this.liveRestorePoint() : null;
       if (incoming.restorePoint === 'regenerate' && existing && !(pointId && previousPoint?.id === pointId)) {
         const takenAt = this.now();
-        const restorePoint = { record: existing, takenAt, expiresAt: takenAt + RESTORE_POINT_TTL_MS, takenBy: record.updatedBy, id: pointId };
+        // Every point has an id: Undo names the one it confirmed (POST /restore-point restorePointId).
+        const restorePoint = { record: existing, takenAt, expiresAt: takenAt + RESTORE_POINT_TTL_MS, takenBy: record.updatedBy, id: pointId || crypto.randomUUID() };
         await this.state.storage.put({ record, restorePoint });
         await this.state.storage.setAlarm(restorePoint.expiresAt);
       } else {
@@ -513,6 +518,7 @@ export class TournamentState {
       const access = await this.restorePointAccess(request);
       if (!access.ok) return denied(access);
       const body = await request.json().catch(() => ({}));
+      // Read after every non-storage await (the access check), as PUT does.
       const existing = await this.state.storage.get('record');
       if (!existing) return json({ error: 'Tournament not found' }, 404);
       const stored = await this.state.storage.get('restorePoint');
@@ -521,6 +527,11 @@ export class TournamentState {
         await this.state.storage.delete('restorePoint');
         return json({ error: 'The regenerate can no longer be undone (24 hours have passed).', code: 'restore-point-expired' }, 410);
       }
+      // The point the director confirmed (its id from /status): a newer regenerate since then is not undone.
+      // A point stored before points had ids (id '') is undone with no id or an empty one.
+      const pointId = typeof body.restorePointId === 'string' ? body.restorePointId : '';
+      if (!pointId && stored.id) return json({ error: 'Name the restore point to undo (restorePointId).', code: 'restore-point-id-required' }, 400);
+      if (pointId !== (stored.id || '')) return json({ error: 'The regenerate to undo has changed since it was confirmed.', code: 'restore-point-changed' }, 409);
       const currentRevision = Number(existing.revision || 0);
       if (Number(body.revision ?? -1) !== currentRevision) return json({ error: 'Revision conflict', record: publicRecord(existing) }, 409);
       const payload = stored.record?.payload;
