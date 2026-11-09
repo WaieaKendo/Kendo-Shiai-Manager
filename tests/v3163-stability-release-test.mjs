@@ -7,7 +7,7 @@ const icon = fs.readFileSync('app/public/assets/nav-icons/registration.svg', 'ut
 const checks = [
   ['supplied registration icon', icon.includes('id="Registration"') && icon.includes('rgb(202,53,53)')],
   ['setup mobile alignment', html.includes('.icon-nav .setup-nav-tile') && html.includes('setup-nav-tile"')],
-  ['staff representative selection', html.includes("['local','admin','director','staff'].includes(ksmSessionRole)")],
+  ['staff representative selection', html.includes("['local','admin','director','staff'].includes(ksmCurrentSessionRole())")],
   ['debounced local autosave', /setTimeout\(\(\)=>\{ksmSaveTimer=null;autoSaveTournament\(reason\)\},\d+\)/.test(html)],
   ['debounced cloud save', /scheduleCloudSave\(reason='Autosave',delay=\d+\)/.test(html)],
   ['deterministic pending save', html.includes('queuePendingCloudSave') && html.includes('runPendingCloudSave') && !html.includes('ksmCloudSaveQueued=true')],

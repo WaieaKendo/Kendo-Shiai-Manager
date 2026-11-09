@@ -1,3 +1,11 @@
+// @ts-check
+import {state} from '../app-state.js';
+import {isTeamMatch} from '../court/court-match-order.js';
+import {courtCurrentMatch,teamSideLabel} from '../court/court-queue-and-views.js';
+import {ksmRenderTv} from '../legacy.js';
+import {audienceMeta,tvIndividualSideLabel,tvUpcomingMatches} from './live-scores.js';
+import {divisionComplete} from './results-and-awards.js';
+import {resultPlacements} from './results-screen.js';
 // ==========================================================
 // KSM v3.15.14 — clean-room fixed-grid TV renderer
 // ==========================================================
@@ -14,7 +22,7 @@ function tv3UpcomingModel(court,current,teamMode){
   while(found.length<2)found.push(null);
   return found;
 }
-function buildTV3ViewModel(court){
+export function buildTV3ViewModel(court){
   const data=courtCurrentMatch(court);
   const division=state.courtActiveDivision?.[court]||state.courtState?.[court]?.division||null;
   if(!data){
@@ -26,9 +34,8 @@ function buildTV3ViewModel(court){
   const m=data.match,meta=audienceMeta(m),teamMode=isTeamMatch(m);
   return {court,empty:false,division:m.division,data,match:m,meta,teamMode,format:m.type==='kachinuki'?'kachinuki':(teamMode?'team':'individual'),upcoming:tv3UpcomingModel(court,m,teamMode)};
 }
-function renderTvDisplay(){
+export function renderTvDisplay(){
   // The TV display is React (app/react/features/tv/, 37-react-tv.js): this only signals;
   // publish.ts computes what buildTV3ViewModel() chose into data (M.13, #136).
   ksmRenderTv();
 }
-

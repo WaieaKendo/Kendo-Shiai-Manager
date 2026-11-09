@@ -7,26 +7,32 @@
 // with its own, which do the same. tests/window-exports-test.mjs keeps this list equal to the legacy.js wrappers.
 // Delete a name here with its wrapper when its area moves into a module.
 Object.assign(window, {
-  appendApprovedDynamicMatches, applyCourtSides, applyIndividualNoShow, applyWholeTeamNoShow, cloneJson, divisionComplete,
-  eliminationFinalDone, generateDivisionState, generatePools, getSetupSnapshot, historyEntryIdentity, isReadOnlySession, isTvSession,
-  ksmAddDaihyosenForTeamAwards, ksmCloseCloudModal, ksmCloseShellDialog, ksmCloudModalOpen, ksmConfirmNoShow,
-  ksmContinueRegenerateDivision, ksmIsApplyingRemoteSnapshot, ksmLegacyCloudSession, ksmNotifyStateChanged, ksmOpenCloudModal,
+  applyCourtSides, applyIndividualNoShow, applyWholeTeamNoShow, cloneJson, closeNavMenus, eliminationFinalDone,
+  generateDivisionState, generatePools, getSetupSnapshot, historyEntryIdentity, isReadOnlySession, isTvSession,
+  isValidMatchObject, ksmCloseCloudModal, ksmCloseShellDialog, ksmCloudModalOpen, ksmConfirmNoShow, ksmContinueRegenerateDivision,
+  ksmCurrentSessionRole, ksmIsApplyingRemoteSnapshot, ksmLegacyCloudSession, ksmNotifyStateChanged, ksmOpenCloudModal,
   ksmOpenRegenerateDialog, ksmPoolEditPools, ksmPoolEditToSave, ksmPublishSetup, ksmRefreshRestorePoint, ksmRefreshTournamentChip,
-  ksmRenderExhibitions, ksmRenderOverview, ksmRenderPoolEditor, ksmRenderRegistration, ksmRenderSetupDivisions, ksmRenderSetupHeader,
-  ksmRenderTeams, ksmRenderTournamentStatus, ksmRenderUndoRegenerate, ksmSetFusenOpen, ksmShowValidationDialog, ksmSignalCourtActions,
-  ksmSignalCourtHeader, ksmTabId, ksmUndoRegenerateOffered, localCourtDivision, manualSaveTournament, matchBelongsToCourt,
-  matchHasSyncIdentity, matchSyncIdentity, maybeAdvanceChampionship, maybeCreateChampionship, maybeCreateTiebreaks, pinCourtLocally,
-  redOnLeftForCourt, rememberLocalCourtDivision, renderPools, renderProgress, renderPublic, replayCourtMatchOps, resultPlacements,
-  setActiveDivision, showKsmToast, syncChampionshipTemplate, tournamentSettings, updateSaveStatus, writeCloudDiagnosticsState,
+  ksmRenderExhibitions, ksmRenderLiveScores, ksmRenderOverview, ksmRenderPoolEditor, ksmRenderRegistration, ksmRenderResults,
+  ksmRenderResultsBracket, ksmRenderSetupDivisions, ksmRenderSetupHeader, ksmRenderTeams, ksmRenderTournamentStatus, ksmRenderTv,
+  ksmRenderUndoRegenerate, ksmSetFusenOpen, ksmShowValidationDialog, ksmSignalCourtActions, ksmSignalCourtHeader, ksmTabId,
+  ksmUndoRegenerateOffered, localCourtDivision, manualSaveTournament, matchBelongsToCourt, matchBelongsToCourtInState,
+  matchHasSyncIdentity, matchSyncIdentity, nextReadyIndexInState, pinCourtLocally, redOnLeftForCourt, rememberLocalCourtDivision,
+  renderPools, renderProgress, replayCourtMatchOps, saveNow, setActiveDivision, showKsmToast, tournamentPayload,
+  tournamentSettings, tvLink, updateSaveStatus, writeCloudDiagnosticsState,
 });
 {
   // Reassigned later by app/js (wrapped by tests, React or the later files): a live accessor, like 99-window-exports.js.
   const live = (get, set) => ({ get, set, enumerable: true, configurable: true });
   Object.defineProperties(window, {
     criticalAutoSave: live(() => criticalAutoSave, v => { criticalAutoSave = v; }),
+    initialPoolStandings: live(() => initialPoolStandings, v => { initialPoolStandings = v; }),
     ksmCanDeleteTournament: live(() => ksmCanDeleteTournament, v => { ksmCanDeleteTournament = v; }),
+    pendingTiebreak: live(() => pendingTiebreak, v => { pendingTiebreak = v; }),
+    poolPositionsResolved: live(() => poolPositionsResolved, v => { poolPositionsResolved = v; }),
+    poolStandings: live(() => poolStandings, v => { poolStandings = v; }),
     renderAll: live(() => renderAll, v => { renderAll = v; }),
     renderScore: live(() => renderScore, v => { renderScore = v; }),
+    saveAuto: live(() => saveAuto, v => { saveAuto = v; }),
     saveSetup: live(() => saveSetup, v => { saveSetup = v; }),
     scheduleAutoSave: live(() => scheduleAutoSave, v => { scheduleAutoSave = v; }),
     show: live(() => show, v => { show = v; }),

@@ -50,5 +50,12 @@ declare var newDivType: HTMLSelectElement;
 declare var tournamentStatusCard: HTMLElement;
 declare var divisionSetupRows: HTMLElement;
 
+// Elements the results modules (app/modules/results) reach by id.
+/** Print / PDF Export: the division select and the preview area. */
+declare var printDivSelect: HTMLSelectElement;
+declare var printBody: HTMLElement;
+/** Results screen: the React island mount (renderResultsDashboard only publishes when it exists). */
+declare var resultsBody: HTMLElement;
+
 /** The pure engine modules (app/engine/index.ts), loaded as a classic script before app.js. */
 declare var KSMEngine: typeof import('../engine/index.ts');

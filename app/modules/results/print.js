@@ -1,7 +1,14 @@
+// @ts-check
+import {firstRoundName,nextRoundFromName} from '../engine/engine-championship.js';
+import {poolPlayerSlot} from '../engine/engine-pools.js';
+import {slotLabel} from '../engine/engine-team-matches.js';
+import {esc} from '../html-text.js';
+import {tournamentPayload} from '../legacy.js';
+import {KSM_TEAM_PLACE_TIED} from './results-screen.js';
 // One renderer for Setup and Library exports. Its input is a snapshot, never the live app.
 // Shadow only the read dependencies of the original print operations; no payload application,
 // session, storage, navigation or socket operations occur in this renderer.
-function ksmPrintRenderer(payload){
+export function ksmPrintRenderer(payload){
   const setup=payload.setup||{},state=KSMEngine.migrateGrandChampions(KSMEngine.migrateTeamDivisions(payload.state,setup));
   const ksmTeamDivision=id=>state.teamDivisions?.find(d=>d.id===id);
   // #86: a grand champion's division is printed under its row's name, its places as its awards.
@@ -81,23 +88,23 @@ function printResultsSheet(){let divs=printableDivisions();let rows=divs.map(div
 
   return {printMetaLine,printSheet,printNameBlock,printableDivisions,refreshPrintDivisionSelect,previewSelectedDivisionSheet,previewAllDivisionSheets,previewResultsSheet,previewFullPrintPacket,printDivisionSheet,printIndividualDivisionSheet,printMatchLine,printBracketCards,printSingleElimBracketCards,printTeamRoundRobinStandings,printTeamDivisionSheet,printTeamRosterRows,printTeamBracketCards,printPlacementsForDivision,printResultsSheet};
 }
-const printMetaLine=(...args)=>ksmPrintRenderer(tournamentPayload()).printMetaLine(...args);
-const printSheet=(...args)=>ksmPrintRenderer(tournamentPayload()).printSheet(...args);
-const printNameBlock=(...args)=>ksmPrintRenderer(tournamentPayload()).printNameBlock(...args);
-const printableDivisions=(...args)=>ksmPrintRenderer(tournamentPayload()).printableDivisions(...args);
-const refreshPrintDivisionSelect=(...args)=>ksmPrintRenderer(tournamentPayload()).refreshPrintDivisionSelect(...args);
-const previewSelectedDivisionSheet=(...args)=>ksmPrintRenderer(tournamentPayload()).previewSelectedDivisionSheet(...args);
-const previewAllDivisionSheets=(...args)=>ksmPrintRenderer(tournamentPayload()).previewAllDivisionSheets(...args);
-const previewResultsSheet=(...args)=>ksmPrintRenderer(tournamentPayload()).previewResultsSheet(...args);
-const previewFullPrintPacket=(...args)=>ksmPrintRenderer(tournamentPayload()).previewFullPrintPacket(...args);
-const printDivisionSheet=(...args)=>ksmPrintRenderer(tournamentPayload()).printDivisionSheet(...args);
-const printIndividualDivisionSheet=(...args)=>ksmPrintRenderer(tournamentPayload()).printIndividualDivisionSheet(...args);
-const printMatchLine=(...args)=>ksmPrintRenderer(tournamentPayload()).printMatchLine(...args);
-const printBracketCards=(...args)=>ksmPrintRenderer(tournamentPayload()).printBracketCards(...args);
-const printSingleElimBracketCards=(...args)=>ksmPrintRenderer(tournamentPayload()).printSingleElimBracketCards(...args);
-const printTeamRoundRobinStandings=(...args)=>ksmPrintRenderer(tournamentPayload()).printTeamRoundRobinStandings(...args);
-const printTeamDivisionSheet=(...args)=>ksmPrintRenderer(tournamentPayload()).printTeamDivisionSheet(...args);
-const printTeamRosterRows=(...args)=>ksmPrintRenderer(tournamentPayload()).printTeamRosterRows(...args);
-const printTeamBracketCards=(...args)=>ksmPrintRenderer(tournamentPayload()).printTeamBracketCards(...args);
-const printPlacementsForDivision=(...args)=>ksmPrintRenderer(tournamentPayload()).printPlacementsForDivision(...args);
-const printResultsSheet=(...args)=>ksmPrintRenderer(tournamentPayload()).printResultsSheet(...args);
+const printMetaLine=(...args)=>/** @type {any} */(ksmPrintRenderer(tournamentPayload())).printMetaLine(...args);
+const printSheet=(...args)=>/** @type {any} */(ksmPrintRenderer(tournamentPayload())).printSheet(...args);
+const printNameBlock=(...args)=>/** @type {any} */(ksmPrintRenderer(tournamentPayload())).printNameBlock(...args);
+const printableDivisions=(...args)=>/** @type {any} */(ksmPrintRenderer(tournamentPayload())).printableDivisions(...args);
+const refreshPrintDivisionSelect=(...args)=>/** @type {any} */(ksmPrintRenderer(tournamentPayload())).refreshPrintDivisionSelect(...args);
+export const previewSelectedDivisionSheet=(...args)=>/** @type {any} */(ksmPrintRenderer(tournamentPayload())).previewSelectedDivisionSheet(...args);
+export const previewAllDivisionSheets=(...args)=>/** @type {any} */(ksmPrintRenderer(tournamentPayload())).previewAllDivisionSheets(...args);
+export const previewResultsSheet=(...args)=>/** @type {any} */(ksmPrintRenderer(tournamentPayload())).previewResultsSheet(...args);
+export const previewFullPrintPacket=(...args)=>/** @type {any} */(ksmPrintRenderer(tournamentPayload())).previewFullPrintPacket(...args);
+export const printDivisionSheet=(...args)=>/** @type {any} */(ksmPrintRenderer(tournamentPayload())).printDivisionSheet(...args);
+const printIndividualDivisionSheet=(...args)=>/** @type {any} */(ksmPrintRenderer(tournamentPayload())).printIndividualDivisionSheet(...args);
+const printMatchLine=(...args)=>/** @type {any} */(ksmPrintRenderer(tournamentPayload())).printMatchLine(...args);
+const printBracketCards=(...args)=>/** @type {any} */(ksmPrintRenderer(tournamentPayload())).printBracketCards(...args);
+const printSingleElimBracketCards=(...args)=>/** @type {any} */(ksmPrintRenderer(tournamentPayload())).printSingleElimBracketCards(...args);
+const printTeamRoundRobinStandings=(...args)=>/** @type {any} */(ksmPrintRenderer(tournamentPayload())).printTeamRoundRobinStandings(...args);
+const printTeamDivisionSheet=(...args)=>/** @type {any} */(ksmPrintRenderer(tournamentPayload())).printTeamDivisionSheet(...args);
+const printTeamRosterRows=(...args)=>/** @type {any} */(ksmPrintRenderer(tournamentPayload())).printTeamRosterRows(...args);
+const printTeamBracketCards=(...args)=>/** @type {any} */(ksmPrintRenderer(tournamentPayload())).printTeamBracketCards(...args);
+const printPlacementsForDivision=(...args)=>/** @type {any} */(ksmPrintRenderer(tournamentPayload())).printPlacementsForDivision(...args);
+const printResultsSheet=(...args)=>/** @type {any} */(ksmPrintRenderer(tournamentPayload())).printResultsSheet(...args);
