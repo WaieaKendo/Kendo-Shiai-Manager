@@ -14,8 +14,10 @@
     not overwrite it) and Download Recovery File includes it; a closed tab's work queued before the undo
     is kept there too, not merged onto the restored tournament; an undo confirmed before a newer
     regenerate is refused (restore-point-changed) and the button shows the newer one;
-  * recovery copies are capped and trimmed before writing; with storage full the queue still writes and a
-    closed tab's work stays queued (not dropped) until its copy can be kept.
+  * recovery copies are capped and trimmed before writing (with storage full, only this tournament's older
+    copies, and none if it still does not fit); with storage full the queue still writes, a closed tab's work
+    stays queued (one notice) until its copy can be kept, and a court's dropped work is parked and offered as
+    a download from a button.
 """
 import json
 import urllib.request
@@ -310,6 +312,49 @@ def main():
         assert caps['count'] <= 5 and caps['chars'] <= 1000000 and caps['b1'] and caps['b2Kept'] and caps['huge'] is None, caps
         d.evaluate("() => Object.keys(localStorage).filter(k => k.startsWith('ksm.cloud.recovery.v3_15:restore:')).forEach(k => localStorage.removeItem(k))")
 
+        # Storage full while keeping a copy: only this tournament's older copies are given up, and only until the
+        # new one fits; when it still does not fit, nothing is deleted.
+        trims = d.evaluate("""(tid) => { const A = KSMTest.app, P = 'ksm.cloud.recovery.v3_15:restore:', original = Storage.prototype.setItem;
+          const restoreKeys = () => Object.keys(localStorage).filter(k => k.startsWith(P));
+          const a = A.ksmKeepRestoreRecovery(tid, 9, {n: 'a'}), b = A.ksmKeepRestoreRecovery(tid, 9, {n: 'b'}), c = A.ksmKeepRestoreRecovery('other', 9, {n: 'c'});
+          let limit = 0; const before = new Set([a, b, c]);  // copies put back always fit again
+          Storage.prototype.setItem = function (k, v) { if (String(k).startsWith(P) && !before.has(k) && restoreKeys().length >= limit) throw new DOMException('full', 'QuotaExceededError'); return original.call(this, k, v); };
+          try {
+            limit = 0;  // never fits
+            const none = A.ksmKeepRestoreRecovery(tid, 9, {n: 'never'});
+            const allKept = [a, b, c].every(k => localStorage.getItem(k) !== null) && restoreKeys().length === 3;
+            limit = 2;  // fits once two of the three older copies are gone
+            const fits = A.ksmKeepRestoreRecovery(tid, 9, {n: 'd'});
+            return {none, allKept, fits: !!fits, a: localStorage.getItem(a) !== null, b: localStorage.getItem(b) !== null, c: localStorage.getItem(c) !== null, own: A.ksmRestoreRecoveries(tid).map(r => r.n)};
+          } finally { Storage.prototype.setItem = original; restoreKeys().forEach(k => localStorage.removeItem(k)); } }""", tid)
+        assert trims == {'none': None, 'allKept': True, 'fits': True, 'a': False, 'b': False, 'c': True, 'own': ['d']}, trims
+
+        # A court's work dropped by an undo while its copy cannot be kept is parked (not cleared, never sent) and
+        # the director downloads it with a tap.
+        director.wait_idle()
+        d.evaluate("""() => { const original = Storage.prototype.setItem; window.__ksmSetItem = original;
+          Storage.prototype.setItem = function (k, v) { if (String(k).startsWith('ksm.cloud.recovery.v3_15')) throw new DOMException('full', 'QuotaExceededError'); return original.call(this, k, v); }; }""")
+        d.evaluate("() => { const p = KSMTest.app.tournamentPayload(); p.setup.tName = 'Parked edit'; KSMTest.app.writeOutbox(p, 'Before the undo'); }")
+        d.evaluate("(record) => window.dispatchEvent(new CustomEvent('ksm:superseded-by-restore', {detail: {record}}))", fetch_record(base, tid))
+        d.evaluate("() => { Storage.prototype.setItem = window.__ksmSetItem; }")
+        parked = """(tid) => Object.keys(localStorage).filter(k => k.startsWith(`ksm.cloud.restore-parked.v1:${tid}:`)).map(k => JSON.parse(localStorage.getItem(k)))"""
+        rows = d.evaluate(parked, tid)
+        assert len(rows) == 1 and rows[0]['outbox']['payload']['setup']['tName'] == 'Parked edit', rows
+        assert d.evaluate('() => KSMTest.app.readOutbox()') is None, 'the parked work is still queued'
+        offer = d.locator('[data-testid="toast-download-recovery"]')
+        offer.wait_for()
+        with d.expect_download() as download:
+            offer.click()
+        with open(download.value.path()) as f:
+            pack = json.load(f)
+        assert [r['outbox']['payload']['setup']['tName'] for r in pack.get('parkedBeforeRestore') or []] == ['Parked edit'], pack.get('parkedBeforeRestore')
+        # A later save neither sends nor clears it.
+        d.evaluate('() => KSMTest.app.saveNow()')
+        director.wait_idle()
+        assert fetch_record(base, tid)['payload']['setup']['tName'] != 'Parked edit'
+        assert len(d.evaluate(parked, tid)) == 1
+        d.evaluate("(tid) => Object.keys(localStorage).filter(k => k.startsWith(`ksm.cloud.restore-parked.v1:${tid}:`)).forEach(k => localStorage.removeItem(k))", tid)
+
         # Storage full for recovery copies: the offline queue still writes, and a closed tab's work from before
         # the undo is not dropped (it stays queued) until its copy can be kept.
         director.wait_idle()
@@ -322,8 +367,13 @@ def main():
           tournamentId: tid, role: 'staff', baseRevision: base, payload, actions: [{type: 'snapshot', reason: 'Closed tab', createdAt: new Date().toISOString()}],
           queuedAt: new Date().toISOString(), writer: 'gone-tab-2'}))""", [tid, orphan, restored['revision'] - 1])
         held = """() => Object.keys(localStorage).filter(k => k.startsWith('ksm.cloud.outbox.v3_15')).some(k => { try { return JSON.parse(localStorage.getItem(k)).payload.setup.tName === 'Closed tab edit 2'; } catch (_) { return false; } })"""
+        d.evaluate("""() => { window.__ksmFullNotices = 0; new MutationObserver(list => { for (const m of list) for (const n of m.addedNodes)
+          if (n.dataset?.testid === 'toast-download-recovery') window.__ksmFullNotices++; }).observe(document.body, {subtree: true, childList: true}); }""")
         d.evaluate('() => KSMTest.app.saveNow()')
         d.wait_for_timeout(1500)  # not wait_idle: the held work keeps the device unsaved, by design
+        d.evaluate('() => KSMTest.app.saveNow()')  # a retry of the same queued work: no second notice
+        d.wait_for_timeout(1500)
+        assert d.evaluate('() => window.__ksmFullNotices') == 1, d.evaluate('() => window.__ksmFullNotices')
         assert d.evaluate(held), "the closed tab's work was dropped although its recovery copy could not be kept"
         assert restore_recoveries(director, tid) == []
         assert fetch_record(base, tid)['payload']['setup']['tName'] != 'Closed tab edit 2'

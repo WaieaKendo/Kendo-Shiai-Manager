@@ -37,6 +37,10 @@ export function ksmKeepRestoreRecovery(tournamentId,restoredRevision,entry){
   let value;
   try{value=JSON.stringify(entry)}catch(_){return null}
   if(value.length>KSM_RESTORE_RECOVERY_MAX_CHARS)return null;
+  // Every copy removed to make room is put back if this one still cannot be kept.
+  const removed=[];
+  const remove=k=>{removed.push([k,localStorage.getItem(k)]);localStorage.removeItem(k)};
+  const putBack=()=>{for(const [k,v] of removed)if(v!=null)try{localStorage.setItem(k,v)}catch(_){}};
   try{
     // Room first: the oldest copies go until this one fits every cap.
     let keys=ksmRestoreRecoveryKeys();
@@ -46,19 +50,37 @@ export function ksmKeepRestoreRecovery(tournamentId,restoredRevision,entry){
     const over=()=>keys.length>=KSM_RESTORE_RECOVERY_LIMIT||own().length>=KSM_RESTORE_RECOVERY_PER_TOURNAMENT||total+value.length>KSM_RESTORE_RECOVERY_MAX_CHARS;
     while(keys.length&&over()){
       const oldest=own().length>=KSM_RESTORE_RECOVERY_PER_TOURNAMENT?own()[0]:keys[0];
-      total-=size(oldest);localStorage.removeItem(oldest);keys=keys.filter(k=>k!==oldest);
+      total-=size(oldest);remove(oldest);keys=keys.filter(k=>k!==oldest);
     }
-    // Storage full for other reasons: give up older copies before giving up this one.
+    // Storage full for other reasons: give up this tournament's older copies, one at a time, only until
+    // this one fits (never another tournament's).
     for(;;){
       try{localStorage.setItem(key,value);return key}
-      catch(_){if(!keys.length)return null;localStorage.removeItem(keys.shift())}
+      catch(_){const older=own()[0];if(!older){putBack();return null}remove(older);keys=keys.filter(k=>k!==older)}
     }
-  }catch(_){return null}
+  }catch(_){putBack();return null}
 }
 /** This tournament's copies of work dropped by an Undo regenerate, oldest first. */
 export function ksmRestoreRecoveries(tournamentId){
   const prefix=`${KSM_RESTORE_RECOVERY_PREFIX}${tournamentId||''}:`;
   return ksmRestoreRecoveryKeys().filter(k=>k.startsWith(prefix)).map(k=>{try{return JSON.parse(localStorage.getItem(k)||'null')}catch(_){return null}}).filter(Boolean);
+}
+// #129 review: dropped work whose recovery copy could not be kept (storage full) is parked, not cleared: moved
+// out of the outbox (so no save clears or replays it) under its own key, or held in memory if even that
+// fails. Download Recovery File includes it (parkedBeforeRestore).
+export const KSM_PARKED_WORK_PREFIX='ksm.cloud.restore-parked.v1:';
+const ksmParkedInMemory=[];
+/** Moves the work (and this tab's queue slot holding it, `slotKey`) to a parked key; returns where it is. */
+export function ksmParkWork(tournamentId,entry,slotKey){
+  const raw=slotKey?localStorage.getItem(slotKey):null;
+  if(raw!=null)localStorage.removeItem(slotKey);  // frees its room for the parked copy
+  try{localStorage.setItem(`${KSM_PARKED_WORK_PREFIX}${tournamentId||''}:${Date.now()}`,JSON.stringify(entry));return 'storage'}
+  catch(_){if(raw!=null)try{localStorage.setItem(slotKey,raw)}catch(_){}ksmParkedInMemory.push({tournamentId:tournamentId||'',entry});return 'memory'}
+}
+export function ksmParkedWork(tournamentId){
+  const prefix=`${KSM_PARKED_WORK_PREFIX}${tournamentId||''}:`,rows=[];
+  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k?.startsWith(prefix))try{rows.push(JSON.parse(localStorage.getItem(k)||'null'))}catch(_){}}
+  return [...rows.filter(Boolean),...ksmParkedInMemory.filter(row=>row.tournamentId===(tournamentId||'')).map(row=>row.entry)];
 }
 export function ksmClearRestoreRecoveries(tournamentId){const prefix=`${KSM_RESTORE_RECOVERY_PREFIX}${tournamentId||''}:`;ksmRestoreRecoveryKeys().filter(k=>k.startsWith(prefix)).forEach(k=>localStorage.removeItem(k))}
 export let ksmDeferredSyncRecord=null;
