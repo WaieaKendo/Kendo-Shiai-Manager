@@ -26,7 +26,13 @@ function toggleDivision(d,on){if(on&&!state.divisions.includes(d)){state.divisio
 // court). Pools, pool championships and single elimination get the court the draw would have given
 // them (split: the same A/B rule); played matches stay where they were. A court left showing this
 // division, or one now holding the division's next match while idle, picks its next match again.
-function ksmReassignDivisionCourt(d){
+// A court with nothing of its own to play: no match picked, or its division finished or waiting.
+function ksmCourtIdle(c,cs){
+  const m=cs?(state.allMatches?.[cs.division]||[])[cs.index]:null;
+  return !m||m.done||!individualMatchReady(m)||!matchBelongsToCourt(m,c);
+}
+// moved: the court setting really changed (an idle court only picks the division up then).
+function ksmReassignDivisionCourt(d,moved=true){
   const all=state.allMatches?.[d];if(!all)return;
   const mode=divisionCourtMode(d);
   if(mode!=='split')(state.pools[d]||[]).forEach(p=>{delete p.court});
@@ -41,11 +47,12 @@ function ksmReassignDivisionCourt(d){
   ['A','B'].forEach(c=>{
     const cs=state.courtState?.[c];
     if(cs&&cs.division===d){state.courtState[c]=findNextForCourt(c,null,0);state.courtActiveDivision[c]=state.courtState[c].division}
+    else if(moved&&ksmCourtIdle(c,cs)&&ksmDivisionReadyOnCourt(d,c)){state.courtState[c]=findNextForCourt(c,d,0);state.courtActiveDivision[c]=d}
   });
 }
 /* ksm:post-split-end */
 function setDivisionFormat(d,v){state.divisionTypes[d]=v;renderReg()}
-function setDivisionCourt(d,v){state.divisionCourts[d]=v;/* ksm:post-split-begin court-reassign */ksmReassignDivisionCourt(d);/* ksm:post-split-end */renderDivisions();renderTournamentStatus()}
+function setDivisionCourt(d,v){const before=state.divisionCourts[d];state.divisionCourts[d]=v;/* ksm:post-split-begin court-reassign */ksmReassignDivisionCourt(d,before!==v);/* ksm:post-split-end */renderDivisions();renderTournamentStatus()}
 function renderDivisionSetup(){/* ksm:post-split-begin react-setup */
   // The divisions table's rows are React (app/react/setup/, 42-react-setup.js): they are published
   // to it instead of written (M.13). The team court and awards fields stay legacy markup.

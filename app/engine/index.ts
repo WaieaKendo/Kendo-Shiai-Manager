@@ -18,7 +18,7 @@ export type {
 } from './standings.ts';
 export {
   championshipTemplateForTotal, championshipLabels, firstRoundName, nextRoundFromName, roundMatchCount,
-  championshipCourtFor, championshipMatchObjectForNode, buildChampionshipTemplateMatches, poolFinished,
+  championshipCourtFor, championshipNodesForCourtMode, championshipMatchObjectForNode, buildChampionshipTemplateMatches, poolFinished,
   poolSeedResolution, parseSeedLabel, seedNameForLabel, champWinnerObj, championshipNodeSource,
   syncChampionshipTemplate, sourceLabelForRound, individualPlacements,
 } from './championship.ts';

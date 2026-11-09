@@ -108,9 +108,12 @@ function championshipNodeSource(div,side){
  * @returns {Match[]}
  */
 function syncChampionshipTemplate(div){
-  /* ksm:post-split-begin engine-bridge */const nodes=state.championshipNodes?.[div]||[];
-  const arr=state.allMatches?.[div]||[];
-  if(!nodes.length)return arr;
+  /* ksm:post-split-begin engine-bridge */const arr=state.allMatches?.[div]||[];
+  if(!(state.championshipNodes?.[div]||[]).length)return arr;
+  // The nodes' courts follow the division's court setting now, not the one at the draw: a division
+  // split between the courts after the draw would otherwise have every bout go back to its old court.
+  const nodes=/** @type {ChampionshipNode[]} */(KSMEngine.championshipNodesForCourtMode(state.championshipNodes[div],state.divisionCourts?.[div]||'A'));
+  state.championshipNodes[div]=nodes;
   const plan=KSMEngine.syncChampionshipTemplate(div,nodes,arr,label=>seedNameForLabel(div,label,true));
   // Self-heal: a generated championship node must always have a Match Object.
   plan.missing.forEach(m=>{arr.push(/** @type {Match} */(m));console.warn('KSM repaired missing championship Match Object',div,m.champNodeId);});
