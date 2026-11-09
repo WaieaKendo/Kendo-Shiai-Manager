@@ -4,7 +4,7 @@
 // ("Loading tournaments…", "No tournaments yet.", the error and offline lines).
 //
 // The legacy app decides what is shown and when: renderHomeTournamentLibrary()
-// (app/js/33-staff-session-and-library.js) shows the device's cache, then asks the cloud (the
+// (app/modules/auth/auth0-access.js, app/modules/session/staff-session-and-library.js) shows the device's cache, then asks the cloud (the
 // list, or discover with the cached IDs), and paintHomeTournamentLibrary() publishes a
 // signal (ksm:library, app/js/40-react-library.js) wherever it painted before, and publish.ts computes
 // the LibraryInput from it. The legacy

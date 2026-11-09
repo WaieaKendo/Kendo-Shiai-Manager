@@ -1,5 +1,7 @@
 // @ts-check
-import {isReadOnlySession,ksmHasStartupCache,ksmIsStartupLoadFailed,noteLocalMutation} from '../legacy.js';
+import {noteLocalMutation} from '../legacy.js';
+import {isReadOnlySession} from '../session/staff-session-and-library.js';
+import {ksmStartupHasCache,ksmStartupLoadFailed} from '../session/tournament-switcher.js';
 import {ksmCloudSaveInFlight,ksmCloudSavePending,ksmCloudTimer,ksmConfirmedMutationVersion,ksmFileReplace,ksmLocalMutationVersion,ksmSaveTimer,mergeQueuedStaffWork,saveTournamentToCloudWithReason} from './cloud-realtime-save-and-load.js';
 import {cloudSession,ksmSessionRole,readOutbox} from './cloud-session-and-autosave.js';
 import {KSM_CLOUD_OUTBOX_KEY,normalizeCourt,pendingLocalCourtActionsForRebase,pendingLocalUndoLogForRebase} from './sync-state-and-rebase.js';
@@ -147,7 +149,7 @@ export async function ksmSendAdoptedOutbox(){
   if(!outbox||outbox.adoptedFrom==null||ksmSendingAdoptedOutbox||isReadOnlySession()||!cloudSession.tournamentId)return false;
   // Not onto an empty screen: a failed startup without a cached copy has no tournament to merge into
   // (Retry loads it; the work stays queued meanwhile).
-  if(ksmIsStartupLoadFailed()&&!ksmHasStartupCache())return false;
+  if(ksmStartupLoadFailed&&!ksmStartupHasCache)return false;
   // Merged once this tab's own save has answered (its result replaces the state).
   if(ksmCloudSaveInFlight){setTimeout(ksmSendAdoptedOutbox,1000);return false}
   ksmSendingAdoptedOutbox=true;

@@ -1,7 +1,8 @@
 // @ts-check
 import {state} from '../app-state.js';
-import {isReadOnlySession,ksmCanDeleteTournament} from '../legacy.js';
+import {ksmCanDeleteTournament} from '../legacy.js';
 import {requestTournamentGeneration} from '../registration/validation.js';
+import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {ksmRefreshRestorePoint,ksmRenderUndoRegenerate} from '../sync/undo-regenerate.js';
 // #129: Setup → Advanced → Danger zone holds Regenerate Tournament (the toolbar drops it once the
 // tournament is drawn) and Delete tournament (also in Cloud Diagnostics). Both call the existing flows.

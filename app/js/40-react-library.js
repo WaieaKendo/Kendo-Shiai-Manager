@@ -4,7 +4,7 @@
 // React island: the contents of #home .home-shell (the brand, "Your Tournaments" with
 // ＋ New Tournament, and #homeTournamentLibrary with a card per tournament or one message),
 // mounted by app/react/features/library/main.tsx. The legacy code still decides what is shown and
-// when: showHomePage() and renderHomeTournamentLibrary() (33-staff-session-and-library.js) show the
+// when: showHomePage() and renderHomeTournamentLibrary() (app/modules/session/staff-session-and-library.js, app/modules/auth) show the
 // device's cache, ask the cloud (the list, or discover with the cached IDs) and paint the answer,
 // the error or offline line.
 // #136 step 2: the input the island draws (the cards, the message, the draft summary and the
@@ -22,7 +22,7 @@
 //   list must still fail at the caller (renderHomeTournamentLibrary() paints inside a try and its
 //   catch shows "Unable to load the Tournament Library"), so the module stores the error in
 //   window.ksmLibraryError and the stub rethrows it. The input then stays as it was.
-// - ksmDecorateLibraryInput(input) is the hook 54-auth0-access.js reassigns to add the account
+// - ksmDecorateLibraryInput(input) is the hook 54-auth0-access.js still reassigns to add the account
 //   fields; the module calls it on every build (it is not kept at start-up).
 // The island's buttons call createNewTournament() and openTournamentFromHome(id) (33), as the
 // inline handlers did. The legacy library renderer (the DOM writing of

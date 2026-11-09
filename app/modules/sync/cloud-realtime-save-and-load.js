@@ -1,5 +1,6 @@
 // @ts-check
 import {state} from '../app-state.js';
+import {cloudSocketUrl,connectCloudSocket,ksmCacheTournament,ksmReadHeaders,ksmUsesAccountAuth,loadTournamentFromCloud,setSessionRole} from '../auth/auth0-access.js';
 import {applyCourtState,findNextForCourt,individualMatchReady} from '../court/court-match-order.js';
 import {ensureCourtHistory,updateUndoButton} from '../court/court-scoring-and-history.js';
 import {syncIndividualSingleElim} from '../court/split-court-templates.js';
@@ -8,10 +9,12 @@ import {eligibleIndividuals,isTeamDivision} from '../engine/engine-pools.js';
 import {repairCompletedMatchResults} from '../engine/engine-result-integrity.js';
 import {ksmAddDaihyosenForTeamAwards,normalizeAllIndividualPoolTiebreakOrder} from '../engine/engine-standings-and-tiebreaks.js';
 import {esc} from '../html-text.js';
-import {canCloudWrite,connectCloudSocket,isReadOnlySession,ksmCacheTournament,ksmCloseCloudModal,ksmCurrentTournamentEpoch,ksmHasStartupCache,ksmHtmlText,ksmIsStartupLoadFailed,ksmLinkParams,ksmLinkUrl,ksmOpenCloudModal,ksmOpenDiagnostics,ksmOpenFileLoadModal,ksmReadHeaders,ksmRenderPresence,ksmUsesAccountAuth,ksmV316StaffSessionKey,loadTournamentFromCloud,matchBelongsToCourt,noteLocalMutation,performCloudSave,promptNewStaffPassword,renderAll,scheduleAutoSave,setSessionRole,spectatorLink,tvAssignedCourt} from '../legacy.js';
+import {ksmCloseCloudModal,ksmHtmlText,ksmLinkParams,ksmLinkUrl,ksmOpenCloudModal,ksmOpenDiagnostics,ksmOpenFileLoadModal,ksmRenderPresence,ksmReplaceUrl,matchBelongsToCourt,noteLocalMutation,renderAll,scheduleAutoSave,tvAssignedCourt} from '../legacy.js';
 import {ksmSyncGrandChampions} from '../registration/grand-champion.js';
 import {ksmNoteTeamsReassigned} from '../registration/team-divisions.js';
 import {renderTvDisplay} from '../results/tv-display.js';
+import {KSM_V316_STAFF_SESSION,canCloudWrite,installRoleBanner,isReadOnlySession,performCloudSave,promptNewStaffPassword,spectatorLink,v316StaffPassword} from '../session/staff-session-and-library.js';
+import {ksmStartupHasCache,ksmStartupLoadFailed,ksmTournamentEpoch} from '../session/tournament-switcher.js';
 import {analyzeCourtActionHistory,analyzeTournamentSnapshot,formatDiagnosticTime,formatSnapshotBytes,payloadByteSize,readCloudDiagnosticsState,writeCloudDiagnosticsState} from './cloud-diagnostics.js';
 import {applySetupSnapshot,autoSaveTournament,clearOutbox,cloudSession,ksmSessionRole,ksmStoreAutosave,markLocalSave,persistCloudSession,preserveRecovery,readOutbox,renderPersistentSaveStatus,setConnectionStatus,tournamentPayload,updateSaveStatus,writeOutbox} from './cloud-session-and-autosave.js';
 import {KSM_SAVE_KEY,applyDeferredSyncRecord,clearLocalCourtDivisions,cloudBaseFor,deferRemoteRecord,localChangesPending,localCourtDivision,normalizeCourt,pinCourtLocally,pinnedCourt,rebaseLocalPayloadOnRecord,rememberCloudBase,rememberLocalCourtDivision,restorePinnedCourt,sanitizeLoadedTournamentState} from './sync-state-and-rebase.js';
@@ -19,8 +22,9 @@ import {KSM_REPLACE_BACKUP_PREFIX,KSM_TAB_ID,ksmDropOutboxesFor,ksmMarkOutboxMer
 import {ksmClearRestoreMark,ksmDropWorkBeforeRestore,ksmRestoredSince,ksmSetRestoreMark,setKsmRestorePoint} from './undo-regenerate.js';
 // Live sync, cloud saves, the offline outbox replay and tournament files (step 3d of #136, from
 // app/js/21-cloud-realtime-save-and-load.js; the save state lets of 18- are declared here, where they are written).
-// Its load-time side effects are initCloudRealtime(), run from app/js/21-; connectCloudSocket() and
-// loadTournamentFileAsNew() stay in app/js (54-auth0-access.js replaces them).
+// Its load-time side effects are initCloudRealtime(), run from app/js/21-. connectCloudSocket() and
+// loadTournamentFileAsNew() are the account-aware ones of app/modules/auth/auth0-access.js; ksmAccountConnect() and
+// ksmAccountFileAsNew() below are the plain ones they call (54-auth0-access.js replaced them at load until step 3d).
 export let ksmSaveTimer=null;
 // A module's `let` is read-only to importers: app/js, the window accessors and the other sync modules assign it here.
 export function setKsmSaveTimer(value){ksmSaveTimer=value}
@@ -95,11 +99,11 @@ export async function refreshTvFromCloud(reason='TV full refresh',forceApply=tru
   if(!isTvSession()||!cloudSession.tournamentId||location.protocol==='file:'||!navigator.onLine)return false;
   if(ksmTvRefreshInFlight)return ksmTvRefreshInFlight;
   updateTvRealtimeDiagnostics({status:'Verifying',lastReason:reason});
-  const refreshEpoch=ksmCurrentTournamentEpoch();
+  const refreshEpoch=ksmTournamentEpoch;
   ksmTvRefreshInFlight=(async()=>{
     try{
       const response=await fetch(`/api/tournaments/${encodeURIComponent(cloudSession.tournamentId)}?tvRefresh=${Date.now()}`,{cache:'no-store',headers:{'cache-control':'no-cache', ...ksmReadHeaders()}});
-      if(refreshEpoch!==ksmCurrentTournamentEpoch())return false;
+      if(refreshEpoch!==ksmTournamentEpoch)return false;
       if(response.status===410){ksmAnnounceTournamentGone(cloudSession.tournamentId);throw ksmGoneError()}
       if(!response.ok)throw new Error(`Refresh failed (${response.status})`);
       const record=await response.json();
@@ -111,7 +115,7 @@ export async function refreshTvFromCloud(reason='TV full refresh',forceApply=tru
       console.warn('[TV Realtime] Full refresh failed',err);
       updateTvRealtimeDiagnostics({status:navigator.onLine?'Refresh failed':'Offline',lastReason:`${reason}: ${err?.message||err}`});
       return false;
-    }finally{if(refreshEpoch===ksmCurrentTournamentEpoch())ksmTvRefreshInFlight=null}
+    }finally{if(refreshEpoch===ksmTournamentEpoch)ksmTvRefreshInFlight=null}
   })();
   return ksmTvRefreshInFlight;
 }
@@ -147,6 +151,35 @@ export function ksmSendTieFlash(){
 }
 export function disconnectCloudSocket(){clearTimeout(ksmCloudReconnectTimer);ksmCloudReconnectTimer=null;clearTvSyncTimers();if(ksmCloudSocket){const socket=ksmCloudSocket;ksmCloudSocket=null;ksmTieFlashConnectionChanged();try{socket.close(1000,'Reconnect')}catch(_){}}}
 export function scheduleCloudReconnect(){clearTimeout(ksmCloudReconnectTimer);if(!cloudSession.tournamentId||location.protocol==='file:')return;ksmCloudReconnectTimer=setTimeout(()=>connectCloudSocket(),2000)}
+export function ksmAccountConnect(){
+  if((document.body.classList.contains('ksm-home')&&!ksmLinkParams().get('tournament')&&!ksmLinkParams().get('spectator'))||ksmStartupLoadFailed)return;
+  if(!cloudSession.tournamentId||location.protocol==='file:'||!location.host)return;
+  if(ksmCloudSocket&&(ksmCloudSocket.readyState===WebSocket.OPEN||ksmCloudSocket.readyState===WebSocket.CONNECTING))return;
+  clearTimeout(ksmCloudReconnectTimer);setConnectionStatus('Sync connecting…','connecting');
+  const socket=new WebSocket(cloudSocketUrl(cloudSession.tournamentId));setKsmCloudSocket(socket);
+  socket.addEventListener('open',()=>{if(socket!==ksmCloudSocket)return;console.info('[TV Realtime] Connected');updateTvRealtimeDiagnostics({status:'Connected',lastReason:'Socket opened'});setConnectionStatus('Live sync','online');try{socket.send('ping')}catch(_){}flushCloudOutbox();beginTvInitialSync()});
+  socket.addEventListener('message',event=>{if(socket!==ksmCloudSocket)return;try{
+    const message=JSON.parse(event.data);const revision=Number(message.record?.revision||0),current=Number(cloudSession.revision||0);
+    console.info('[TV Realtime] Message',message.type,revision||'');
+    updateTvRealtimeDiagnostics({messages:ksmTvRealtimeDiagnostics.messages+1,lastMessageAt:Date.now(),lastReceivedRevision:revision||ksmTvRealtimeDiagnostics.lastReceivedRevision,lastReason:`Received ${message.type||'message'}`});
+    if((message.type==='snapshot'||message.type==='connected')&&message.record){
+      if(isTvSession()&&revision>current+1){updateTvRealtimeDiagnostics({lastReason:`Revision gap ${current} → ${revision}; requesting full refresh`});refreshTvFromCloud('Revision gap recovery')}
+      else applyRemoteCloudRecord(message.record,false,isTvSession()&&message.type==='connected');
+    }
+    if(message.type==='flash')window.dispatchEvent(new CustomEvent('ksm:tie-flash',{detail:message}));
+    if(message.type==='clock')window.dispatchEvent(new CustomEvent('ksm:court-clock',{detail:message}));
+    if(message.presence)renderCloudPresence(message.presence);if(message.type==='presence')renderCloudPresence(message.clients||[]);
+    if(message.type==='credential-rotated'&&message.role===ksmSessionRole){setConnectionStatus('Access key changed','offline');disconnectCloudSocket()}
+  }catch(err){console.warn('Cloud sync message failed',err);updateTvRealtimeDiagnostics({lastReason:`Message error: ${err?.message||err}`})}});
+  socket.addEventListener('close',()=>{if(socket!==ksmCloudSocket)return;console.info('[TV Realtime] Disconnected');setKsmCloudSocket(null);clearTvSyncTimers();updateTvRealtimeDiagnostics({status:navigator.onLine?'Reconnecting':'Offline',lastReason:'Socket closed'});setConnectionStatus(navigator.onLine?'Sync reconnecting…':'Offline • local saved',navigator.onLine?'connecting':'offline');scheduleCloudReconnect()});
+  // Issue #26: a deleted tournament closes every live connection ('Tournament deleted') after a
+  // 'deleted' message; a device that reconnects later is refused (410) and ends the same way.
+  {const tournamentId=cloudSession.tournamentId;
+  socket.addEventListener('message',event=>{try{if(JSON.parse(event.data).type==='deleted')ksmAnnounceTournamentGone(tournamentId)}catch(_){}});
+  socket.addEventListener('close',event=>{if(event.reason!=='Reconnect')ksmAnnounceSocketEnd(tournamentId,event.reason)})}
+  for(const event of ['open','close','error'])socket.addEventListener(event,ksmTieFlashConnectionChanged);
+  socket.addEventListener('error',()=>{if(socket===ksmCloudSocket){console.warn('[TV Realtime] Socket error');updateTvRealtimeDiagnostics({status:'Interrupted',lastReason:'Socket error'});setConnectionStatus('Sync interrupted','offline')}});
+}
 export function renderCloudPresence(clients=[]){cloudSession.presence=clients;ksmRenderPresence(clients);}
 export let ksmDeferredRemoteRecord=null;
 // A module's `let` is read-only to importers: app/js, the window accessors and the other sync modules assign it here.
@@ -373,7 +406,7 @@ async function confirmRecoveryFileLoad(pack){
   if(!saved||readOutbox()){alert('This device has changes that could not be saved to the cloud yet. Connect to the internet (or use Save Now), then load the recovery file again. Nothing was changed.');return false}
   return true;
 }
-export async function loadRecoveryFile(event){const file=event.target.files&&event.target.files[0];if(!file)return;try{const pack=JSON.parse(await file.text());if(pack.fileType!=='KSM_RECOVERY'||!pack.latestLocalSnapshot?.state)throw new Error('Invalid recovery file');if(!(await confirmRecoveryFileLoad(pack)))return;const restoredPassword=ksmUsesAccountAuth()?'':promptNewStaffPassword();if(!ksmUsesAccountAuth()&&!restoredPassword)throw new Error('New Staff password required');sessionStorage.setItem(ksmV316StaffSessionKey(),restoredPassword);setSessionRole('staff');cloudSession.tournamentId=null;cloudSession.revision=0;if(cloudSession.tournamentId&&pack.tournamentId&&cloudSession.tournamentId!==pack.tournamentId&&!confirm('This recovery file belongs to a different Tournament ID. Load its local snapshot anyway?'))return;applyTournamentPayload(pack.latestLocalSnapshot,false);ksmStoreAutosave(pack.latestLocalSnapshot);if(pack.outbox){ksmRetagHistory(pack.outbox,KSM_TAB_ID);const {adoptedFrom:_,...entry}=pack.outbox;localStorage.setItem(ksmOutboxKey(),JSON.stringify({...entry,writer:KSM_TAB_ID}))};cloudSession.tournamentId=null;cloudSession.revision=0;if(pack.assignedCourt)cloudSession.court=pack.assignedCourt;persistCloudSession();ksmSaveStatusMode='offline';setConnectionStatus(navigator.onLine?'Connected':'Offline',navigator.onLine?'online':'offline');renderPersistentSaveStatus();if(navigator.onLine&&pack.outbox)await flushCloudOutbox();updateSaveStatus('Recovery file loaded')}catch(err){console.error(err);alert('Unable to load this recovery file.')}finally{event.target.value=''}}
+export async function loadRecoveryFile(event){const file=event.target.files&&event.target.files[0];if(!file)return;try{const pack=JSON.parse(await file.text());if(pack.fileType!=='KSM_RECOVERY'||!pack.latestLocalSnapshot?.state)throw new Error('Invalid recovery file');if(!(await confirmRecoveryFileLoad(pack)))return;const restoredPassword=ksmUsesAccountAuth()?'':promptNewStaffPassword();if(!ksmUsesAccountAuth()&&!restoredPassword)throw new Error('New Staff password required');sessionStorage.setItem(KSM_V316_STAFF_SESSION,restoredPassword);setSessionRole('staff');cloudSession.tournamentId=null;cloudSession.revision=0;if(cloudSession.tournamentId&&pack.tournamentId&&cloudSession.tournamentId!==pack.tournamentId&&!confirm('This recovery file belongs to a different Tournament ID. Load its local snapshot anyway?'))return;applyTournamentPayload(pack.latestLocalSnapshot,false);ksmStoreAutosave(pack.latestLocalSnapshot);if(pack.outbox){ksmRetagHistory(pack.outbox,KSM_TAB_ID);const {adoptedFrom:_,...entry}=pack.outbox;localStorage.setItem(ksmOutboxKey(),JSON.stringify({...entry,writer:KSM_TAB_ID}))};cloudSession.tournamentId=null;cloudSession.revision=0;if(pack.assignedCourt)cloudSession.court=pack.assignedCourt;persistCloudSession();ksmSaveStatusMode='offline';setConnectionStatus(navigator.onLine?'Connected':'Offline',navigator.onLine?'online':'offline');renderPersistentSaveStatus();if(navigator.onLine&&pack.outbox)await flushCloudOutbox();updateSaveStatus('Recovery file loaded')}catch(err){console.error(err);alert('Unable to load this recovery file.')}finally{event.target.value=''}}
 export function manualSaveTournament(options={}){
   try{
     const payload=tournamentFilePayload();
@@ -573,6 +606,25 @@ function ksmFileReplaceBeforeUnload(){
   ksmStoreAutosave(replace.before.payload);
   return true;
 }
+export async function ksmAccountFileAsNew(){
+  const pending=ksmPendingTournamentFile;if(!pending)return;
+  // The open tournament's own unsaved work must reach the cloud first: its offline queue would
+  // otherwise be replaced by the new tournament's.
+  const saved=cloudSession.tournamentId&&!isReadOnlySession()?await saveTournamentToCloudWithReason('Before loading a tournament file',true):true;
+  if(!saved||readOutbox()){alert('The open tournament has changes that could not be saved to the cloud yet. Connect to the internet (or use Save Now), then load the file again. Nothing was changed.');return}
+  const password=ksmUsesAccountAuth()?'':promptNewStaffPassword();if(!ksmUsesAccountAuth()&&!password)return;
+  setKsmPendingTournamentFile(null);closeCloudModal();
+  clearTimeout(ksmSaveTimer);setKsmSaveTimer(null);clearTimeout(ksmCloudTimer);setKsmCloudTimer(null);
+  const previous={session:{...cloudSession},password:v316StaffPassword(),role:ksmSessionRole};
+  disconnectCloudSocket();cloudSession.tournamentId=null;cloudSession.revision=0;cloudSession.updatedAt=null;cloudSession.court='';persistCloudSession();
+  if(password)sessionStorage.setItem(KSM_V316_STAFF_SESSION,password);setSessionRole('staff');installRoleBanner('staff');document.body.classList.remove('ksm-home');
+  if(!applyTournamentFilePayload(pending.payload,false)){Object.assign(cloudSession,previous.session);persistCloudSession();if(previous.password)sessionStorage.setItem(KSM_V316_STAFF_SESSION,previous.password);else sessionStorage.removeItem(KSM_V316_STAFF_SESSION);setSessionRole(previous.role);if(cloudSession.tournamentId)connectCloudSocket();return}
+  // A tournament link in the address bar would reopen the old tournament after a reload.
+  const linked=Boolean(ksmLinkParams().get('tournament'));if(linked)ksmReplaceUrl('/');
+  markLocalSave('Tournament file loaded as new tournament');updateSaveStatus('Loaded '+pending.fileName);showKsmToast('Creating tournament in cloud…',0);
+  try{await performCloudSave(tournamentPayload(),0);if(linked&&cloudSession.tournamentId)ksmReplaceUrl(KSMEngine.routePath({screen:'tournament',id:cloudSession.tournamentId}));showKsmToast('✓ Loaded as a new tournament',2200)}
+  catch(err){console.error(err);writeOutbox(tournamentPayload(),'Tournament file loaded as new tournament');showKsmToast(navigator.onLine?'Unable to create tournament in cloud':'Offline · Tournament will sync when connected',3500,true)}
+}
 function repairLoadedEliminationAdvancement(source='tournament load'){
   repairCompletedMatchResults(state,source);
   KSMEngine.loadedEliminationRepairPlan(Object.keys(state.allMatches||{}),state.championshipNodes,state.singleElimNodes).forEach(({division:div,championship,singleElim})=>{
@@ -662,7 +714,7 @@ export function restoreAutoSaveIfWanted(){
 // A reload before the debounced cloud save runs must not drop staff work: queue it in the
 // outbox, which survives the reload and is flushed once staff access is back.
 // An older queued snapshot keeps its base revision so the flush still replays its court actions.
-export function queueUnsyncedStaffWorkBeforeUnload(){if(ksmIsStartupLoadFailed()&&!ksmHasStartupCache())return;if(ksmFileReplaceBeforeUnload())return;if(isReadOnlySession()||!cloudSession.tournamentId||!localChangesPending())return;const earlier=readOutbox();if(earlier?.tournamentId&&earlier.tournamentId!==cloudSession.tournamentId)return;writeOutbox(tournamentPayload(),'Unsynced changes at page unload');if(earlier&&earlier.adoptedFrom==null){const queued=readOutbox();if(Number(earlier.baseRevision||0)<Number(queued.baseRevision||0)){queued.baseRevision=Number(earlier.baseRevision||0);queued.basePayload=earlier.basePayload||null}localStorage.setItem(ksmOutboxKey(),JSON.stringify(queued))}}
+export function queueUnsyncedStaffWorkBeforeUnload(){if(ksmStartupLoadFailed&&!ksmStartupHasCache)return;if(ksmFileReplaceBeforeUnload())return;if(isReadOnlySession()||!cloudSession.tournamentId||!localChangesPending())return;const earlier=readOutbox();if(earlier?.tournamentId&&earlier.tournamentId!==cloudSession.tournamentId)return;writeOutbox(tournamentPayload(),'Unsynced changes at page unload');if(earlier&&earlier.adoptedFrom==null){const queued=readOutbox();if(Number(earlier.baseRevision||0)<Number(queued.baseRevision||0)){queued.baseRevision=Number(earlier.baseRevision||0);queued.basePayload=earlier.basePayload||null}localStorage.setItem(ksmOutboxKey(),JSON.stringify(queued))}}
 // Load-time side effects (the clock source read from sessionStorage, the live-update, editing and connection
 // listeners), run from app/js where this file was loaded. The save listeners and timers below stay in app/js.
 export function initCloudRealtime(){
@@ -677,5 +729,5 @@ document.addEventListener('input',event=>{
   }
 },true);
 document.addEventListener('focusout',()=>setTimeout(applyDeferredRemoteRecord,50),true);
-window.addEventListener('online',()=>{setConnectionStatus('Reconnecting','connecting');ksmSaveStatusMode=readOutbox()?'syncing':'saved';renderPersistentSaveStatus();connectCloudSocket();flushCloudOutbox()});window.addEventListener('offline',()=>{setConnectionStatus('Offline','offline');if(!isReadOnlySession()&&(!document.body.classList.contains('ksm-home')||cloudSession.tournamentId)&&!(ksmIsStartupLoadFailed()&&!ksmHasStartupCache())){markLocalSave('Offline safety save');writeOutbox(tournamentPayload(),'Connection lost')}});
+window.addEventListener('online',()=>{setConnectionStatus('Reconnecting','connecting');ksmSaveStatusMode=readOutbox()?'syncing':'saved';renderPersistentSaveStatus();connectCloudSocket();flushCloudOutbox()});window.addEventListener('offline',()=>{setConnectionStatus('Offline','offline');if(!isReadOnlySession()&&(!document.body.classList.contains('ksm-home')||cloudSession.tournamentId)&&!(ksmStartupLoadFailed&&!ksmStartupHasCache)){markLocalSave('Offline safety save');writeOutbox(tournamentPayload(),'Connection lost')}});
 }

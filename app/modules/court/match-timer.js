@@ -1,7 +1,8 @@
 // @ts-check
 import {state} from '../app-state.js';
+import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {matchRequiresWinner} from './court-scoring-and-history.js';
-import {isReadOnlySession,matchBelongsToCourt,renderAll,saveSetup} from '../legacy.js';
+import {matchBelongsToCourt,renderAll,saveSetup} from '../legacy.js';
 import {isTvSession} from '../sync/cloud-realtime-save-and-load.js';
 import {cloudSession,getSetupSnapshot} from '../sync/cloud-session-and-autosave.js';
 import {matchSyncIdentity} from '../sync/sync-state-and-rebase.js';

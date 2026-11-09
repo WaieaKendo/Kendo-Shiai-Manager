@@ -1,8 +1,11 @@
 // @ts-check
 import {state} from '../app-state.js';
+import {toggleStaffSession} from '../auth/auth0-access.js';
 import {ksmNormalizeTimerSettings} from '../court/match-timer.js';
-import {isReadOnlySession,ksmHasStartupCache,ksmIsStartupLoadFailed,ksmKeepStaffOutbox,ksmPersistentSaveStatusText,ksmRenderConnectionStatus,ksmRenderSaveStatus,toggleStaffSession,v316StaffPassword} from '../legacy.js';
+import {ksmPersistentSaveStatusText,ksmRenderConnectionStatus,ksmRenderSaveStatus} from '../legacy.js';
 import {ksmSyncLegacyTeamDivision} from '../registration/team-divisions.js';
+import {isReadOnlySession,ksmKeepStaffOutbox,v316StaffPassword} from '../session/staff-session-and-library.js';
+import {ksmStartupHasCache,ksmStartupLoadFailed} from '../session/tournament-switcher.js';
 import {ksmApplyingRemoteSnapshot,ksmCloudTimer,ksmFileReplace,ksmLastSuccessfulSaveAt,ksmQueuedSaveRetryTimer,ksmSaveTimer,mergeQueuedStaffWork,saveTournamentToCloudWithReason,scheduleCloudSave,setKsmCloudTimer,setKsmQueuedSaveRetryTimer,setKsmSaveStatusMode,setKsmSaveTimer,showKsmToast} from './cloud-realtime-save-and-load.js';
 import {KSM_AUTOSAVE_CLOUD_ID,KSM_CLOUD_RECOVERY_KEY,KSM_CLOUD_SESSION_KEY,KSM_SAVE_KEY,applyCourtSides,cloudBaseFor} from './sync-state-and-rebase.js';
 import {KSM_TAB_ID,ksmAdoptOrphanOutbox,ksmOutboxKey,ksmPeekOrphanOutbox,ksmReadOutboxKey,ksmReleaseAdoptedOutbox} from './two-tabs.js';
@@ -80,9 +83,9 @@ export function ksmStoreAutosave(payload,id=cloudSession.tournamentId){
   localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(payload));
 }
 export function markLocalSave(reason='Local autosave'){try{ksmStoreAutosave(tournamentPayload());return true}catch(err){console.warn('Local save failed',err);setKsmSaveStatusMode('error');renderPersistentSaveStatus();return false}}
-export function autoSaveTournament(reason='Autosave'){if(ksmFileReplace){if(!ksmApplyingRemoteSnapshot&&!isReadOnlySession())scheduleCloudSave(reason);return}if((document.body.classList.contains('ksm-home')&&!cloudSession.tournamentId&&!v316StaffPassword())||(ksmIsStartupLoadFailed()&&!ksmHasStartupCache()))return;if(!markLocalSave(reason))return;if(!ksmApplyingRemoteSnapshot&&!isReadOnlySession())scheduleCloudSave(reason)}
+export function autoSaveTournament(reason='Autosave'){if(ksmFileReplace){if(!ksmApplyingRemoteSnapshot&&!isReadOnlySession())scheduleCloudSave(reason);return}if((document.body.classList.contains('ksm-home')&&!cloudSession.tournamentId&&!v316StaffPassword())||(ksmStartupLoadFailed&&!ksmStartupHasCache))return;if(!markLocalSave(reason))return;if(!ksmApplyingRemoteSnapshot&&!isReadOnlySession())scheduleCloudSave(reason)}
 export async function saveNow(){
-  if(ksmIsStartupLoadFailed()&&!ksmHasStartupCache())return;
+  if(ksmStartupLoadFailed&&!ksmStartupHasCache)return;
   if(isReadOnlySession()){
     if(ksmKeepStaffOutbox())return toggleStaffSession();
     return;

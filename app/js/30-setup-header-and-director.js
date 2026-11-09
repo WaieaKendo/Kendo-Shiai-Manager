@@ -9,6 +9,9 @@ saveSetup=function(){
 };
 
 let directorRefreshTimer=null;
+// Read and cleared by app/modules/session (ksmResetTournament()) through legacy.js (a module cannot reach a `let` of app/js).
+function ksmDirectorRefreshTimer(){return directorRefreshTimer}
+function setDirectorRefreshTimer(value){directorRefreshTimer=value}
 function startDirectorRefresh(){stopDirectorRefresh();renderDirector();directorRefreshTimer=setInterval(()=>{if(!document.getElementById('director')?.classList.contains('hidden'))renderDirector();},5000)}
 function stopDirectorRefresh(){if(directorRefreshTimer){clearInterval(directorRefreshTimer);directorRefreshTimer=null}}
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stopDirectorRefresh();else if(!document.getElementById('director')?.classList.contains('hidden'))startDirectorRefresh()});

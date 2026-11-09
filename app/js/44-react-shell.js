@@ -419,6 +419,8 @@ function ksmLeaveTournamentAddress(){
 // The unload autosave (21) writes the screens' leftover data back as this device's autosave, which
 // the next start offers to restore: not for a tournament deleted here, while the Library is shown.
 var ksmForgotTournament=false;
+// Set by app/modules/session (ksmResetTournament(), ksmShowLibrary()) through legacy.js (a module cannot assign a `var` of app/js).
+function setKsmForgotTournament(value){ksmForgotTournament=value}
 window.addEventListener('beforeunload',function(){
   if(ksmForgotTournament&&!cloudSession.tournamentId&&document.body.classList.contains('ksm-home'))ksmClearAutosave();
 });

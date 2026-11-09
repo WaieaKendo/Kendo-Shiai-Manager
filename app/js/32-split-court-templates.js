@@ -10,6 +10,8 @@ renderScore=function(){
 };
 
 const KSM_EMPTY_SETUP=getSetupSnapshot();
+// Read by app/modules/session through legacy.js (a module cannot read a `const` of app/js).
+function ksmEmptySetup(){return KSM_EMPTY_SETUP}
 if(!restoreAutoSaveIfWanted()) renderAll();
 setConnectionStatus(cloudSession.tournamentId?'Sync connecting…':'Local only',cloudSession.tournamentId?'connecting':'local');
 

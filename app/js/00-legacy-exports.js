@@ -7,28 +7,25 @@
 // with its own, which do the same. tests/window-exports-test.mjs keeps this list equal to the legacy.js wrappers.
 // Delete a name here with its wrapper when its area moves into a module.
 Object.assign(window, {
-  applyIndividualNoShow, applyWholeTeamNoShow, canCloudWrite, closeNavMenus, eliminationFinalDone, generateDivisionState, generatePools,
-  isReadOnlySession, ksmCloseCloudModal, ksmCloseShellDialog, ksmCloudModalOpen, ksmConfirmNoShow, ksmContinueRegenerateDivision,
-  ksmCurrentTournamentEpoch, ksmHasStartupCache, ksmHtmlText, ksmIsStartupLoadFailed, ksmKeepStaffOutbox, ksmLinkParams, ksmLinkUrl,
-  ksmNotifyStateChanged, ksmOpenCloudModal, ksmOpenDiagnostics, ksmOpenFileLoadModal, ksmOpenRegenerateDialog, ksmPersistentSaveStatusText,
-  ksmPoolEditPools, ksmPoolEditToSave, ksmPublishSetup, ksmReadHeaders, ksmRefreshTournamentChip, ksmRenderConnectionStatus,
-  ksmRenderExhibitions, ksmRenderLiveScores, ksmRenderOverview, ksmRenderPoolEditor, ksmRenderPresence, ksmRenderRegistration,
-  ksmRenderResults, ksmRenderResultsBracket, ksmRenderSaveStatus, ksmRenderSetupDivisions, ksmRenderSetupHeader, ksmRenderTeams,
-  ksmRenderTournamentStatus, ksmRenderTv, ksmSetFusenOpen, ksmShowValidationDialog, ksmSignalCourtActions, ksmSignalCourtHeader,
-  ksmUsesAccountAuth, ksmV316StaffSessionKey, matchBelongsToCourt, performCloudSave, promptNewStaffPassword, renderPools, renderProgress,
-  setActiveDivision, spectatorLink, tvAssignedCourt, v316StaffPassword,
+  applyIndividualNoShow, applyWholeTeamNoShow, closeNavMenus, eliminationFinalDone, generateDivisionState, generatePools,
+  ksmCloseCloudModal, ksmCloseShellDialog, ksmCloudModalOpen, ksmConfirmNoShow, ksmContinueRegenerateDivision,
+  ksmDirectorRefreshTimer, ksmEmptySetup, ksmEmptyState, ksmHtmlText, ksmIsExplicitSpectatorUrl, ksmLinkParams, ksmLinkUrl,
+  ksmNotifyStateChanged, ksmOpenCloudModal, ksmOpenDiagnostics, ksmOpenFileLoadModal, ksmOpenRegenerateDialog,
+  ksmOpenTournamentAccess, ksmPersistentSaveStatusText, ksmPoolEditPools, ksmPoolEditToSave, ksmPublishHeader, ksmPublishSetup,
+  ksmRecordScreenPath, ksmRenderConnectionStatus, ksmRenderExhibitions, ksmRenderLibrary, ksmRenderLiveScores, ksmRenderOverview,
+  ksmRenderPoolEditor, ksmRenderPresence, ksmRenderRegistration, ksmRenderResults, ksmRenderResultsBracket, ksmRenderSaveStatus,
+  ksmRenderSessionRole, ksmRenderSetupDivisions, ksmRenderSetupHeader, ksmRenderTeams, ksmRenderTournamentStatus, ksmRenderTv,
+  ksmReplaceUrl, ksmResolvedUrl, ksmResolveSlug, ksmSetFusenOpen, ksmShowRequestedScreen, ksmShowValidationDialog,
+  ksmSignalCourtActions, ksmSignalCourtHeader, matchBelongsToCourt, navigateTo, renderPools, renderProgress, setActiveDivision,
+  setDirectorRefreshTimer, setKsmForgotTournament, tvAssignedCourt,
 });
 {
   // Reassigned later by app/js (wrapped by tests, React or the later files): a live accessor, like 99-window-exports.js.
   const live = (get, set) => ({ get, set, enumerable: true, configurable: true });
   Object.defineProperties(window, {
-    cloudHeaders: live(() => cloudHeaders, v => { cloudHeaders = v; }),
-    connectCloudSocket: live(() => connectCloudSocket, v => { connectCloudSocket = v; }),
     criticalAutoSave: live(() => criticalAutoSave, v => { criticalAutoSave = v; }),
     initialPoolStandings: live(() => initialPoolStandings, v => { initialPoolStandings = v; }),
-    ksmCacheTournament: live(() => ksmCacheTournament, v => { ksmCacheTournament = v; }),
     ksmCanDeleteTournament: live(() => ksmCanDeleteTournament, v => { ksmCanDeleteTournament = v; }),
-    loadTournamentFromCloud: live(() => loadTournamentFromCloud, v => { loadTournamentFromCloud = v; }),
     noteLocalMutation: live(() => noteLocalMutation, v => { noteLocalMutation = v; }),
     pendingTiebreak: live(() => pendingTiebreak, v => { pendingTiebreak = v; }),
     poolPositionsResolved: live(() => poolPositionsResolved, v => { poolPositionsResolved = v; }),
@@ -38,8 +35,6 @@ Object.assign(window, {
     saveAuto: live(() => saveAuto, v => { saveAuto = v; }),
     saveSetup: live(() => saveSetup, v => { saveSetup = v; }),
     scheduleAutoSave: live(() => scheduleAutoSave, v => { scheduleAutoSave = v; }),
-    setSessionRole: live(() => setSessionRole, v => { setSessionRole = v; }),
     show: live(() => show, v => { show = v; }),
-    toggleStaffSession: live(() => toggleStaffSession, v => { toggleStaffSession = v; }),
   });
 }

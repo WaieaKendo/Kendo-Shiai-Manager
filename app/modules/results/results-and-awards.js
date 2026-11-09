@@ -5,8 +5,9 @@ import {championshipLabels} from '../engine/engine-championship.js';
 import {eligibleTeams,isTeamDivision} from '../engine/engine-pools.js';
 import {isTeamRoundRobinDivision,teamRoundRobinPlacements} from '../engine/engine-standings-and-tiebreaks.js';
 import {esc} from '../html-text.js';
-import {isReadOnlySession,matchBelongsToCourt,renderScore} from '../legacy.js';
+import {matchBelongsToCourt,renderScore} from '../legacy.js';
 import {ksmTeamSettings} from '../registration/team-divisions.js';
+import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {cloudSession,ksmSessionRole,updateSaveStatus} from '../sync/cloud-session-and-autosave.js';
 import {isValidMatchObject} from '../sync/sync-state-and-rebase.js';
 export function divisionComplete(div){const matches=(state.allMatches[div]||[]).filter(isValidMatchObject);return matches.some(m=>m.championship&&m.position==='Final'&&m.done) || ((isTeamDivision(div)||isPoolOnlyDivision(div))&&matches.length && matches.every(m=>m.done));}

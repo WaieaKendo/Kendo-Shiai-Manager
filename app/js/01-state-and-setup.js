@@ -1,4 +1,6 @@
 const KSM_EMPTY_STATE=JSON.stringify(state);
+// Read by app/modules/session through legacy.js (a module cannot read a `const` of app/js).
+function ksmEmptyState(){return KSM_EMPTY_STATE}
 
 function show(id){document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));document.getElementById(id).classList.remove('hidden');renderAll();if(id==='print')previewAllDivisionSheets();ksmRecordScreenPath(id);}
 function saveSetup(){

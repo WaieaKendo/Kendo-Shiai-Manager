@@ -29,6 +29,12 @@ interface Window {
   /** Called through window by the grand champion module (its rebase helpers also run outside the page). */
   writeCloudDiagnosticsState?: typeof import('../modules/sync/cloud-diagnostics.js').writeCloudDiagnosticsState;
   showKsmToast?: typeof import('../modules/sync/cloud-realtime-save-and-load.js').showKsmToast;
+  /** Set when 34-bootstrap.js's first load settles (read by app/modules/session). */
+  ksmBootstrapReady?: boolean;
+  /** The account module (app/react/features/account/auth0.tsx) and the bridge app/modules/auth/auth0-access.js gives it. */
+  ksmAuthBridge?: any;
+  ksmResolveAuthReady?: () => void;
+  ksmRefreshAccount?: (id?: string) => Promise<void>;
 }
 /** Live Scores title. */
 declare var publicTitle: HTMLElement;

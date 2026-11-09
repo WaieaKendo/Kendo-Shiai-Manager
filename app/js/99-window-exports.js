@@ -11,7 +11,8 @@
 // First block: by value (the binding is never assigned after its declaration).
 Object.assign(window, {
   // 00-path-urls.js
-  ksmHeaderLogo, ksmLinkParams, ksmLinkUrl, ksmReplaceUrl, ksmTournamentHomeUrl,
+  ksmHeaderLogo, ksmIsExplicitSpectatorUrl, ksmLinkParams, ksmLinkUrl, ksmRecordScreenPath, ksmReplaceUrl, ksmResolvedUrl, ksmResolveSlug,
+  ksmShowRequestedScreen, ksmTournamentHomeUrl,
   // 00-react-bridge.js
   ksmLegacyCloudSession, ksmLegacyState, ksmLegacyStateVersion, ksmNotifyStateChanged,
   // app/modules/registration/grand-champion.js
@@ -20,7 +21,7 @@ Object.assign(window, {
   // app/modules/setup/division-setup.js
   addCustomDivision, renderDivisionSetup, setDivisionFormat, syncSetupHeader, toggleDivision,
   // 01-state-and-setup.js
-  state,
+  ksmEmptyState, state,
   // app/modules/registration/team-divisions.js
   ksmAddTeamDivision, ksmAssignTeamDivision, ksmDivisionName, ksmMoveTeamDivision, ksmNewTeamRows, ksmRemoveTeamDivision,
   ksmRenderTeamDivisions, ksmTeamDivisions, ksmTeamSettings, ksmUpdateTeamDivision,
@@ -117,18 +118,22 @@ Object.assign(window, {
   courtSummaryFor, directorDivisionProgress, directorSingleElimTotal, renderDirector, tournamentSummary,
   // 31-spectator-refinements.js
   poolDisplayComplete,
+  // 30-setup-header-and-director.js
+  ksmDirectorRefreshTimer, setDirectorRefreshTimer,
   // app/modules/court/split-court-templates.js
   contextDivisionForCourt, renderContext, renderQueue, setCourtCompletePresentation, syncIndividualSingleElim,
-  // 33-friendly-links.js
+  // 32-split-court-templates.js
+  ksmEmptySetup,
+  // app/modules/links/friendly-links.js
   ksmEditTournamentSlug, ksmRenameTournamentSlug, ksmSaveShortUrl,
-  // 33-staff-session-and-library.js
+  // app/modules/session/staff-session-and-library.js
   canCloudWrite, createNewTournament, initializeCloudRoleFromUrl, installRoleBanner, isReadOnlySession, KSM_STAFF_TOURNAMENT,
-  KSM_V316_STAFF_SESSION, ksmKeepStaffOutbox, ksmV316StaffSessionKey, openTournamentAccess, openTournamentFromHome, performCloudSave,
+  KSM_V316_STAFF_SESSION, ksmKeepStaffOutbox, openTournamentAccess, openTournamentFromHome, performCloudSave,
   promptNewStaffPassword, rememberTournament, sessionKey, showHomePage, spectatorLink, v316StaffPassword,
-  // 33-stream-overlay-links.js
+  // app/modules/links/stream-overlay-links.js
   copyStreamOverlayLink,
-  // 33-tournament-switcher.js
-  KSM_DETACHED_DRAFT_KEY, ksmCurrentTournamentEpoch, ksmHasStartupCache, ksmIsStartupLoadFailed, ksmRefreshTournamentChip, ksmShowLibrary,
+  // app/modules/session/tournament-switcher.js
+  ksmRefreshTournamentChip, ksmShowLibrary,
   // app/modules/court/match-timer.js
   ksmMatchTimerInput, ksmNormalizeTimerSettings, ksmSaveTimerSettings, ksmSetCourtTimerEnabled, ksmSetCourtTimerSound,
   // 35-react-court.js
@@ -141,7 +146,7 @@ Object.assign(window, {
   ksmRenderResults, ksmRenderResultsBracket, ksmSetResultAward,
   // 40-react-library.js
   ksmAuthorizeLibraryTournament, ksmDeleteLibraryTournament, ksmDiscardLocalDraft, ksmDownloadDeleteBackup, ksmExportLibraryTournament, ksmLibraryAuthorizedIds,
-  ksmOpenLocalDraft, ksmReadLocalDraft, ksmReturnFromLibrary,
+  ksmOpenLocalDraft, ksmReadLocalDraft, ksmRenderLibrary, ksmReturnFromLibrary,
   // 41-react-pools.js
   ksmPoolEditPools, ksmPoolEditToSave, ksmRenderPoolEditor,
   // 42-react-setup.js
@@ -155,17 +160,18 @@ Object.assign(window, {
   // 44-react-shell.js
   ksmCloseCloudModal, ksmCloseShellDialog, ksmCloudModalOpen, ksmConfirmDeleteTournament, ksmConfirmValidation,
   ksmContinueRegenerateDivision, ksmOpenCloudModal, ksmOpenDeleteTournament, ksmOpenDiagnostics, ksmOpenFileLoadModal,
-  ksmOpenRegenerateDialog, ksmPersistentSaveStatusText, ksmRegeneratePoolDivision, ksmRenderConnectionStatus, ksmRenderPresence,
-  ksmRenderSaveStatus, ksmSetActiveNav, ksmSetFusenOpen, ksmSetTestTools, ksmShellDialogsState, ksmShellHeaderState,
-  ksmShowValidationDialog, ksmToggleTestTools,
+  ksmOpenRegenerateDialog, ksmOpenTournamentAccess, ksmPersistentSaveStatusText, ksmPublishHeader, ksmRegeneratePoolDivision,
+  ksmRenderConnectionStatus, ksmRenderPresence, ksmRenderSaveStatus, ksmRenderSessionRole, ksmSetActiveNav, ksmSetFusenOpen,
+  ksmSetTestTools, ksmShellDialogsState, ksmShellHeaderState, ksmShowValidationDialog, ksmToggleTestTools, setKsmForgotTournament,
   // app/modules/sync/undo-regenerate.js
   ksmRefreshRestorePoint, ksmRenderUndoRegenerate, ksmUndoRegenerateOffered,
   // 39-react-overview.js
   ksmRenderOverview,
   // 37-react-tv.js
   ksmRenderTv,
-  // 54-auth0-access.js
-  ksmReadHeaders, ksmUsesAccountAuth,
+  // app/modules/auth/auth0-access.js
+  cloudHeaders, connectCloudSocket, ksmCacheTournament, ksmFetchTournament, ksmReadHeaders, ksmUsesAccountAuth, loadTournamentFileAsNew,
+  loadTournamentFromCloud, renderHomeTournamentLibrary, setSessionRole, toggleStaffSession,
 });
 
 // Second block: live accessors, for names that are assigned after their declaration (a wrapped function,
@@ -174,8 +180,6 @@ Object.assign(window, {
 {
   const live = (get, set) => ({ get, set, enumerable: true, configurable: true });
   Object.defineProperties(window, {
-    // 00-path-urls.js
-    ksmRouteLoading: live(() => ksmRouteLoading, v => { ksmRouteLoading = v; }),
     // 01-state-and-setup.js
     saveSetup: live(() => saveSetup, v => { saveSetup = v; }),
     setDivisionCourt: live(() => setDivisionCourt, v => { setDivisionCourt = v; }),
@@ -220,24 +224,16 @@ Object.assign(window, {
     criticalAutoSave: live(() => criticalAutoSave, v => { criticalAutoSave = v; }),
     saveAuto: live(() => saveAuto, v => { saveAuto = v; }),
     scheduleAutoSave: live(() => scheduleAutoSave, v => { scheduleAutoSave = v; }),
-    // 21-cloud-realtime-save-and-load.js
-    connectCloudSocket: live(() => connectCloudSocket, v => { connectCloudSocket = v; }),
-    loadTournamentFileAsNew: live(() => loadTournamentFileAsNew, v => { loadTournamentFileAsNew = v; }),
     // 22-scorekeeper-screen.js
     renderScore: live(() => renderScore, v => { renderScore = v; }),
-    // 33-friendly-links.js
-    ksmCacheTournament: live(() => ksmCacheTournament, v => { ksmCacheTournament = v; }),
-    ksmFetchTournament: live(() => ksmFetchTournament, v => { ksmFetchTournament = v; }),
-    ksmPendingSlug: live(() => ksmPendingSlug, v => { ksmPendingSlug = v; }),
-    // 33-staff-session-and-library.js
-    cloudHeaders: live(() => cloudHeaders, v => { cloudHeaders = v; }),
-    loadTournamentFromCloud: live(() => loadTournamentFromCloud, v => { loadTournamentFromCloud = v; }),
-    renderHomeTournamentLibrary: live(() => renderHomeTournamentLibrary, v => { renderHomeTournamentLibrary = v; }),
-    setSessionRole: live(() => setSessionRole, v => { setSessionRole = v; }),
-    toggleStaffSession: live(() => toggleStaffSession, v => { toggleStaffSession = v; }),
-    // 33-tournament-switcher.js
-    ksmStartupHasCache: live(() => ksmStartupHasCache, v => { ksmStartupHasCache = v; }),
-    ksmTournamentTransition: live(() => ksmTournamentTransition, v => { ksmTournamentTransition = v; }),
+    // app/modules/links/friendly-links.js
+    ksmPendingSlug: live(() => ksmPendingSlug),
+    // app/modules/session/staff-session-and-library.js
+    ksmRouteLoading: live(() => ksmRouteLoading, v => { setKsmRouteLoading(v); }),
+    // app/modules/session/tournament-switcher.js
+    KSM_DETACHED_DRAFT_KEY: live(() => KSM_DETACHED_DRAFT_KEY),
+    ksmStartupHasCache: live(() => ksmStartupHasCache, v => { setKsmStartupHasCache(v); }),
+    ksmTournamentTransition: live(() => ksmTournamentTransition, v => { setKsmTournamentTransition(v); }),
     // 40-react-library.js
     ksmDecorateLibraryInput: live(() => ksmDecorateLibraryInput, v => { ksmDecorateLibraryInput = v; }),
     // 43-react-registration.js
