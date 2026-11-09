@@ -1,6 +1,7 @@
 // @ts-check
 import {state} from '../app-state.js';
 import {syncIndividualSingleElim} from '../court/split-court-templates.js';
+import {champWinnerObj,seedNameForLabel} from './engine-championship.js';
 import {eligibleIndividuals} from './engine-pools.js';
 import {teamBracketNodesForCount} from './engine-team-bracket.js';
 const BRACKET_SLOT_TEMPLATES={
@@ -88,4 +89,38 @@ export function maybeAdvanceIndividualSingleElim(m){
   if(!m||!m.singleElim)return;
   let div=m.division,arr=state.allMatches[div]||[],comps=(state.singleElimComps&&state.singleElimComps[div])||eligibleIndividuals(div).filter(c=>c.name);
   syncIndividualSingleElim(div,arr,comps);
+}
+function championshipSideLabel(side,div){
+  if(!side)return 'BYE';
+  if(side.seed){
+    const resolved=seedNameForLabel(div,side.seed,true);
+    return resolved?.name||side.seed;
+  }
+  if(side.ref){
+    const source=(state.championshipNodes?.[div]||[]).find(node=>node.id===side.ref);
+    const sourceMatch=(state.allMatches?.[div]||[]).find(m=>m&&m.championship&&m.champNodeId===side.ref);
+    if(sourceMatch?.done){const winner=champWinnerObj(sourceMatch);if(winner)return winner.name;}
+    return `Winner of ${source?.round||'Match'} Match ${Number(source?.slot||0)+1}`;
+  }
+  return 'TBD';
+}
+/**
+ * Name, or where the side comes from ('Winner of …').
+ * @param {Match} match
+ * @param {'white'|'red'} side
+ * @returns {string}
+ */
+export function specificMatchSideLabel(match,side){
+  if(!match)return 'TBD';
+  const actual=side==='white'?(match.white||match.teamWhite):(match.red||match.teamRed);
+  if(actual)return actual;
+  if(match.singleElim){
+    const node=(state.singleElimNodes?.[match.division]||[]).find(n=>n.id===match.elimNodeId);
+    return sideLabelGeneric(side==='white'?node?.right:node?.left,match.division);
+  }
+  if(match.championship){
+    const node=(state.championshipNodes?.[match.division]||[]).find(n=>n.id===match.champNodeId);
+    return championshipSideLabel(side==='white'?node?.right:node?.left,match.division);
+  }
+  return 'TBD';
 }

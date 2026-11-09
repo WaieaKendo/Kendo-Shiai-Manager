@@ -1,7 +1,8 @@
 // @ts-check
 import {state} from '../app-state.js';
 import {renderDivisions} from '../court/court-match-order.js';
-import {getSetupSnapshot,isReadOnlySession,ksmAddDaihyosenForTeamAwards,scheduleAutoSave,tournamentSettings,writeCloudDiagnosticsState} from '../legacy.js';
+import {ksmAddDaihyosenForTeamAwards} from '../engine/engine-standings-and-tiebreaks.js';
+import {getSetupSnapshot,isReadOnlySession,scheduleAutoSave,tournamentSettings,writeCloudDiagnosticsState} from '../legacy.js';
 import {renderTeams} from './registration.js';
 import {renderTournamentStatus} from './validation.js';
 export function ksmNewTeamRows(rows){const division=ksmDefaultTeamDivisionId();return rows.map(t=>({...t,id:ksmNewTeamIdentity(),teamDivisionId:division}))}

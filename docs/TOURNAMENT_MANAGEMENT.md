@@ -247,12 +247,12 @@ fields remain serialized for compatibility; division records now supply each com
 | `app/js/05-engine-team-matches.js` | Supplies division-specific match format to slots, bracket creation and advancement. |
 | `app/js/07-engine-team-bracket.js` | Uses the scored match's division tournament format for winner requirements. |
 | `app/js/08-engine-generation.js` | Runs the pure engine once per enabled team division. |
-| `app/js/09-results-and-awards.js` | Builds representative rosters with the team's division format and division identity. |
+| `app/modules/results/results-and-awards.js` | Builds representative rosters with the team's division format and division identity. |
 | `app/js/13-engine-standings-and-tiebreaks.js` | Division-specific standings, representative playoffs, round-robin daihyosen and award places. |
-| `app/js/17-print.js` | Snapshot-only migration and division settings for independent rosters, standings, brackets and awards. |
+| `app/modules/results/print.js` | Snapshot-only migration and division settings for independent rosters, standings, brackets and awards. |
 | `app/js/18-sync-state-and-rebase.js` | Includes division records in the merge base, merges by ID, and labels assignment conflicts. |
 | `app/js/20-cloud-session-and-autosave.js` | Serializes legacy Setup fields; loads division courts from the migrated records; returns save success. |
-| `app/js/27-results-screen.js` | Uses each division's award mode. |
+| `app/modules/results/results-screen.js` | Uses each division's award mode. |
 | `app/js/30-setup-header-and-director.js` | Uses each division's team format in Overview progress estimates. |
 | `app/js/35-react-court.js` | Uses each division's award mode for completion panels and its scoped representative roster. |
 | `app/js/43-react-registration.js` | Publishes a division selector and per-team format/slots; preserves both filters. |

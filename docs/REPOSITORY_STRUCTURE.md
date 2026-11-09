@@ -25,10 +25,12 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         registration/*.js: registration rows and teams, validation and Generate,
                         team divisions, grand champion; setup/*.js: division setup and the
                         header, the Danger zone, Overview progress (director-progress.js);
+                        results/*.js: result placements and awards, print sheets, Live Scores
+                        and TV helpers, the Results screen;
                         legacy.js: one wrapper per not-yet-moved app/js function the moved code
                         calls, through `window` at call time (app/js/00-legacy-exports.js puts those names on
                         window first; each is deleted when its area moves;
-                        tests/window-exports-test.mjs checks them). Next area: results/print
+                        tests/window-exports-test.mjs checks them). Next area: cloud/sync
                       (00-path-urls.js: path URLs, M.9: an old ?tournament= link becomes its
                       path first, ksmLinkParams()/ksmLinkUrl(); 00-react-bridge.js: the
                       ksm:state-changed event for React islands)

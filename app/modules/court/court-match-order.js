@@ -5,8 +5,9 @@ import {championshipLabels,firstRoundName,roundSequenceFromFirst} from '../engin
 import {isTeamDivision} from '../engine/engine-pools.js';
 import {singleElimOrderMap} from '../engine/engine-single-elim.js';
 import {esc} from '../html-text.js';
-import {applyCourtSides,ksmSignalCourtHeader,localCourtDivision,matchBelongsToCourt,pinCourtLocally,rememberLocalCourtDivision,renderPublic,renderScore,show} from '../legacy.js';
+import {applyCourtSides,ksmSignalCourtHeader,localCourtDivision,matchBelongsToCourt,pinCourtLocally,rememberLocalCourtDivision,renderScore,show} from '../legacy.js';
 import {ksmDivisionName,ksmTeamDivisions} from '../registration/team-divisions.js';
+import {renderPublic} from '../results/live-scores.js';
 export function isTeamMatch(m){return KSMEngine.isTeamMatch(m);// moved to app/engine/match-helpers.ts
   }
 function teamNodeOrderMap(div){let map={};(state.teamBracketNodes?.[div]||[]).forEach((n,i)=>map[n.id]=i);return map}

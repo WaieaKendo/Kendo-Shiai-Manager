@@ -1,5 +1,7 @@
 const cloudSession=loadCloudSession();
 let ksmSessionRole='local';
+// A module reads the role through this (a `let` that tests and later files assign cannot be imported).
+function ksmCurrentSessionRole(){return ksmSessionRole}
 function loadCloudSession(){try{return JSON.parse(localStorage.getItem(KSM_CLOUD_SESSION_KEY)||'{}')}catch(_){return {}}}
 function persistCloudSession(){localStorage.setItem(KSM_CLOUD_SESSION_KEY,JSON.stringify(cloudSession))}
 function setConnectionStatus(text,mode='local'){ksmRenderConnectionStatus(text,mode);}

@@ -1,9 +1,10 @@
 // @ts-check
 import {state} from '../app-state.js';
 import {findNextForCourt} from './court-match-order.js';
-import {buildChampionshipTemplateMatches,championshipTemplateForTotal} from '../engine/engine-championship.js';
+import {buildChampionshipTemplateMatches,championshipTemplateForTotal,syncChampionshipTemplate} from '../engine/engine-championship.js';
 import {assignPoolPlayerSlots,buildPoolMatches} from '../engine/engine-pools.js';
-import {appendApprovedDynamicMatches,ksmPoolEditPools,ksmPoolEditToSave,ksmRenderPoolEditor,renderPools,scheduleAutoSave,setActiveDivision,syncChampionshipTemplate} from '../legacy.js';
+import {appendApprovedDynamicMatches} from '../engine/engine-standings-and-tiebreaks.js';
+import {ksmPoolEditPools,ksmPoolEditToSave,ksmRenderPoolEditor,renderPools,scheduleAutoSave,setActiveDivision} from '../legacy.js';
 export function maybeCreateKachinukiNext(m){
   const plan=KSMEngine.maybeCreateKachinukiNext(m);if(!plan)return;
   let div=m.division,arr=state.allMatches[div]||[];
