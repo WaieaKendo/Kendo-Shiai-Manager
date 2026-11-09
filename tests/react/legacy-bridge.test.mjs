@@ -1,11 +1,13 @@
-// app/js/00-react-bridge.js (classic script): ksmNotifyStateChanged() coalesces a burst of
+// app/modules/react-bridges/state-bridge.js (classic script): ksmNotifyStateChanged() coalesces a burst of
 // changes into one 'ksm:state-changed' event, and does nothing without a window.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-const source = fs.readFileSync(new URL('../../app/js/00-react-bridge.js', import.meta.url), 'utf8');
+// A module now: run as a classic script, without its import lines and `export`s (what the app's classic transform does).
+const source = fs.readFileSync(new URL('../../app/modules/react-bridges/state-bridge.js', import.meta.url), 'utf8')
+  .replace(/^import .*\n/gm, '').replace(/^export (?=function)/gm, '');
 
 function load(withWindow) {
   const events = [];

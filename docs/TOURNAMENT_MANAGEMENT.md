@@ -254,7 +254,7 @@ fields remain serialized for compatibility; division records now supply each com
 | `app/modules/sync/cloud-session-and-autosave.js` | Serializes legacy Setup fields; loads division courts from the migrated records; returns save success. |
 | `app/modules/results/results-screen.js` | Uses each division's award mode. |
 | `app/js/30-setup-header-and-director.js` | Uses each division's team format in Overview progress estimates. |
-| `app/js/35-react-court.js` | Uses each division's award mode for completion panels and its scoped representative roster. |
+| `app/modules/react-bridges/court.js` | Uses each division's award mode for completion panels and its scoped representative roster. |
 | `app/js/43-react-registration.js` | Publishes a division selector and per-team format/slots; preserves both filters. |
 | `app/react/features/registration/RegistrationTeams.tsx` | Draws the selector and each team's own roster slots. |
 | `app/react/features/registration/teams-model.ts` | Typed registration input with per-card division, slots and format. |

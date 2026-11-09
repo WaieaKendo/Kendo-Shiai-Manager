@@ -4,11 +4,11 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { ksmNavLinks, ksmShellDialogsInput, ksmShellHeaderInput, ksmShellNavInput, startShellInput } from '../../app/react/features/shell/publish.ts';
 
-// The classic state and signal stubs (app/js/44-react-shell.js), run as they are against the fake window.
-const classic = readFileSync(new URL('../../app/js/44-react-shell.js', import.meta.url), 'utf8');
+// The classic state and signal stubs (app/modules/react-bridges/shell.js), run as they are against the fake window.
+const classic = readFileSync(new URL('../../app/modules/react-bridges/shell.js', import.meta.url), 'utf8');
 function source(name) {
   const start = classic.indexOf(`function ${name}(`);
-  assert.ok(start >= 0, `${name} is missing from 44-react-shell.js`);
+  assert.ok(start >= 0, `${name} is missing from react-bridges/shell.js`);
   const end = classic.indexOf('\n}\n', start);
   return classic.slice(start, end + 3);
 }

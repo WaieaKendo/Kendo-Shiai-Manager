@@ -5,7 +5,8 @@ import {championshipLabels,firstRoundName,roundSequenceFromFirst} from '../engin
 import {isTeamDivision} from '../engine/engine-pools.js';
 import {singleElimOrderMap} from '../engine/engine-single-elim.js';
 import {esc} from '../html-text.js';
-import {ksmSignalCourtHeader,matchBelongsToCourt,renderScore,show} from '../legacy.js';
+import {matchBelongsToCourt,renderScore,show} from '../legacy.js';
+import {ksmSignalCourtHeader} from '../react-bridges/court.js';
 import {ksmDivisionName,ksmTeamDivisions} from '../registration/team-divisions.js';
 import {renderPublic} from '../results/live-scores.js';
 import {applyCourtSides,localCourtDivision,pinCourtLocally,rememberLocalCourtDivision} from '../sync/sync-state-and-rebase.js';

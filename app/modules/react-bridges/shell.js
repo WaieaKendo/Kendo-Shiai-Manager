@@ -1,3 +1,17 @@
+// @ts-check
+import {state} from '../app-state.js';
+import {cloudHeaders,ksmAccount,readTournamentLibrary,renderHomeTournamentLibrary,setSessionRole,writeTournamentLibrary} from '../auth/auth0-access.js';
+import {closeManagementModal,divisionRegenerationStatus} from '../registration/registration.js';
+import {ksmDivisionName,ksmTeamDivisions} from '../registration/team-divisions.js';
+import {KSM_V316_STAFF_SESSION,isReadOnlySession} from '../session/staff-session-and-library.js';
+import {ksmResetTournament,ksmShowLibrary,ksmStartupHasCache,ksmStartupLoadFailed} from '../session/tournament-switcher.js';
+import {formatDiagnosticTime,formatSnapshotBytes} from '../sync/cloud-diagnostics.js';
+import {closeCloudModal,cloudDiagnostics,disconnectCloudSocket,ksmCancelReplace,ksmCloudSavePending,ksmCloudTimer,ksmDeferredRemoteTimer,ksmFileReplace,ksmLocalMutationVersion,ksmQueuedSaveRetryTimer,ksmSaveStatusMode,ksmSaveTimer,setKsmCloudSavePending,setKsmCloudTimer,setKsmConfirmedMutationVersion,setKsmDeferredRemoteRecord,setKsmFileReplace,setKsmLastSuccessfulSaveAt,setKsmOutboxMutationVersion,setKsmQueuedSaveRetryAttempt,setKsmQueuedSaveRetryTimer,setKsmSaveStatusMode,setKsmSaveTimer,showKsmToast} from '../sync/cloud-realtime-save-and-load.js';
+import {clearOutbox,cloudSession,humanSaveAge,ksmClearAutosave,ksmSessionRole,persistCloudSession,readOutbox,renderPersistentSaveStatus,tournamentSettings} from '../sync/cloud-session-and-autosave.js';
+import {KSM_CLOUD_BASE,KSM_CLOUD_RECOVERY_KEY,ksmClearRestoreRecoveries,ksmDeferredSyncTimer,setKsmDeferredSyncRecord,setKsmDeferredSyncTimer} from '../sync/sync-state-and-rebase.js';
+import {ksmDropOutboxesFor} from '../sync/two-tabs.js';
+import {ksmCanManageLibraryTournament,ksmLibraryStaffTokens,ksmRenderLibrary} from './library.js';
+import {ksmHtmlText} from './registration.js';
 // ==========================================================
 // React shell (app/react/features/shell/, roadmap M.13: the navigation bar and its menus, the
 // header's status row and the pop-up dialogs)
@@ -43,7 +57,7 @@
 // ==========================================================
 // A focused element inside `el` loses the focus, as when the legacy code replaced it.
 function ksmShellBlurIn(el){
-  const active=document.activeElement;
+  const active=/** @type {HTMLElement|null} */ (document.activeElement);
   if(window.ksmShellMounted&&el&&active&&active!==document.body&&el.contains(active))active.blur();
 }
 
@@ -51,27 +65,32 @@ function ksmShellBlurIn(el){
 // The open menu's id, its placement on a phone or tablet ({top,left,right,maxHeight} as CSS texts)
 // and the label of the screen shown. Declared without a value: the app's boot code runs before
 // this part of app.js, and a value here would undo what it set.
-var ksmNavOpenMenu,ksmNavMenuStyle,ksmNavActive;
+/** @type {string|null|undefined} */
+export let ksmNavOpenMenu;
+/** @type {any} */
+export let ksmNavMenuStyle;
+/** @type {string|null|undefined} */
+export let ksmNavActive;
 // Signal: publish.ts computes the input (with the Courts and TV menus' links, ksmNavLinks()).
 function ksmPublishNav(){
   window.ksmShellNavRequested=true;
   window.dispatchEvent(new CustomEvent('ksm:shell-nav'));
 }
 // setNavMenuState(menu,open): a menu shown or hidden; hiding it drops its placement.
-function ksmSetNavMenuState(menu,open){
+export function ksmSetNavMenuState(menu,open){
   if(!menu)return;
   if(open)ksmNavOpenMenu=menu.id;
   else if(ksmNavOpenMenu===menu.id){ksmNavOpenMenu=null;ksmNavMenuStyle=null}
   ksmPublishNav();
 }
 // closeNavMenus(exceptId): every menu but that one hidden.
-function ksmCloseNavMenus(exceptId){
+export function ksmCloseNavMenus(exceptId){
   if(ksmNavOpenMenu&&ksmNavOpenMenu!==exceptId){ksmNavOpenMenu=null;ksmNavMenuStyle=null}
   ksmPublishNav();
 }
 // positionMobileNavMenu(menu,trigger): on a phone or tablet (900 px or less) the open menu is
 // placed under its tile, inside the window, with a height limit.
-function ksmPositionNavMenu(menu,trigger){
+export function ksmPositionNavMenu(menu,trigger){
   if(!menu||!trigger||!window.matchMedia('(max-width:900px)').matches)return;
   const rect=trigger.getBoundingClientRect();
   const margin=12;
@@ -80,13 +99,13 @@ function ksmPositionNavMenu(menu,trigger){
   ksmPublishNav();
 }
 // The resize listener on a wider window: the open menu hangs from its tile again.
-function ksmUnplaceNavMenu(){
+export function ksmUnplaceNavMenu(){
   ksmNavMenuStyle=null;
   ksmPublishNav();
 }
 // setActiveNavForView(viewId): the tile of the screen shown (the first tile whose text starts with
 // the screen's label; the island finds it).
-function ksmSetActiveNav(viewId){
+export function ksmSetActiveNav(viewId){
   const mapping={
     setup:"Setup",
     registration:"Registration",
@@ -102,30 +121,31 @@ function ksmSetActiveNav(viewId){
 }
 
 // ---------------------------------------------------------- the status row
-var ksmShellHeader;
-function ksmShellHeaderState(){
+/** @type {any} */
+let ksmShellHeader;
+export function ksmShellHeaderState(){
   if(!ksmShellHeader)ksmShellHeader={staffLabel:'Staff Login',role:{text:'Spectator',dataRole:null},connection:{text:'Local',mode:null,title:null},presence:'',save:'Not saved yet'};
   return ksmShellHeader;
 }
-function ksmPublishHeader(patch){
+export function ksmPublishHeader(patch){
   Object.assign(ksmShellHeaderState(),patch);
   window.ksmShellHeaderRequested=true;
   window.dispatchEvent(new CustomEvent('ksm:shell-header'));
 }
 // setSessionRole() (33): the role (hidden) and the staff button.
-function ksmRenderSessionRole(){
+export function ksmRenderSessionRole(){
   ksmPublishHeader({role:{text:ksmSessionRole==='staff'?'Staff':'Spectator',dataRole:String(ksmSessionRole)},staffLabel:ksmSessionRole==='staff'?'Logout':'Staff Login'});
   ksmRenderSaveStatus(ksmPersistentSaveStatusText());
   if(window.ksmLibraryInput?.kind==='library')ksmRenderLibrary(readTournamentLibrary());
 }
 // setConnectionStatus(text,mode) (20): the mode's label, the mode and the text as the tooltip.
-function ksmRenderConnectionStatus(text,mode='local'){
+export function ksmRenderConnectionStatus(text,mode='local'){
   const labels={online:'🟢 Online',offline:'🟠 Offline',connecting:'🟡 Connecting',error:'🔴 Attention',local:'Local'};
   const label=String(labels[mode]||text||'Local');
   ksmPublishHeader({connection:{text:label,mode:String(mode),title:String(text||label)}});
 }
 // renderPersistentSaveStatus() (20): the save status's text.
-function ksmPersistentSaveStatusText(){
+export function ksmPersistentSaveStatusText(){
   if(ksmSaveStatusMode==='saving')return 'Saving…';
   if(ksmSaveStatusMode==='syncing')return 'Synchronizing…';
   // A spectator page saves nothing: staff work queued on this device (this tab's after its session
@@ -138,7 +158,7 @@ function ksmPersistentSaveStatusText(){
 // renderPersistentSaveStatus() and updateSaveStatus(text) (20): the save status (textContent).
 const KSM_UNSENT_STAFF_WORK='Unsent staff changes on this device · Staff Login to send';
 function ksmSpectatorHoldsStaffWork(){const q=readOutbox();return q?.role==='staff'&&(!q.tournamentId||q.tournamentId===cloudSession.tournamentId)}
-function ksmRenderSaveStatus(text){
+export function ksmRenderSaveStatus(text){
   const spectator=isReadOnlySession();
   const warning=spectator?ksmSpectatorHoldsStaffWork():!!readOutbox()||['offline','error'].includes(ksmSaveStatusMode);
   const blocked=ksmStartupLoadFailed&&!ksmStartupHasCache;
@@ -150,14 +170,19 @@ function ksmRenderSaveStatus(text){
   ksmPublishHeader({save,warning,retry});
 }
 // renderCloudPresence(clients) (21): the devices online (hidden).
-function ksmRenderPresence(clients){
+export function ksmRenderPresence(clients){
   ksmPublishHeader({presence:clients.length?`${clients.length} online`:''});
   ksmRefreshDeleteDevices();
 }
 
 // ---------------------------------------------------------- the dialogs
-var ksmShellDialogs,ksmShellDialogKey,ksmValidationConfirm;
-function ksmShellDialogsState(){
+/** @type {any} */
+export let ksmShellDialogs;
+/** @type {number|undefined} */
+let ksmShellDialogKey;
+/** @type {any} */
+let ksmValidationConfirm;
+export function ksmShellDialogsState(){
   if(!ksmShellDialogs)ksmShellDialogs={
     fusen:{open:false},
     validation:{open:false,key:0,title:'Tournament Validation',content:null},
@@ -175,10 +200,10 @@ function ksmPublishDialogs(part,value){
 function ksmNextDialogKey(){ksmShellDialogKey=(ksmShellDialogKey||0)+1;return ksmShellDialogKey}
 // openFusenDialog() / closeFusenDialog() (22).
 // #38: the dialog asks who won: it also gets the bout's fighters and the court's Red side.
-function ksmSetFusenOpen(open,info){ksmPublishDialogs('fusen',{open:!!open,...(open&&info?info:{})})}
+export function ksmSetFusenOpen(open,info){ksmPublishDialogs('fusen',{open:!!open,...(open&&info?info:{})})}
 // closeManagementModal(id) (03): the generation check or Regenerate hidden; whether it was one of
 // them.
-function ksmCloseShellDialog(id){
+export function ksmCloseShellDialog(id){
   if(id!=='validationModal'&&id!=='regenerateModal')return false;
   const part=id==='validationModal'?'validation':'regenerate';
   ksmPublishDialogs(part,{...ksmShellDialogsState()[part],open:false});
@@ -187,7 +212,7 @@ function ksmCloseShellDialog(id){
 // showValidationDialog(result,onConfirm) (03): the title, the issues or the question, and the
 // buttons, drawn afresh; Generate closes it and runs onConfirm (what the legacy code assigned to
 // the button's onclick).
-function ksmShowValidationDialog(result,onConfirm){
+export function ksmShowValidationDialog(result,onConfirm){
   ksmShellBlurIn(document.getElementById('validationModalBody'));
   ksmShellBlurIn(document.getElementById('validationModalActions'));
   ksmValidationConfirm=result.valid?onConfirm:null;
@@ -199,7 +224,7 @@ function ksmShowValidationDialog(result,onConfirm){
     }))}});
 }
 // The generation check's Generate.
-function ksmConfirmValidation(){
+export function ksmConfirmValidation(){
   const onConfirm=ksmValidationConfirm;
   closeManagementModal('validationModal');
   if(onConfirm)onConfirm();
@@ -213,7 +238,7 @@ function ksmShowRegenerate(title,content){
 // first ready one chosen.
 // Owner decision 3 (#29): the Pools tab's Regenerate (ksmRegeneratePoolDivision()) opens it with
 // the Pools select's division chosen when it is ready (none chosen when it is not).
-function ksmOpenRegenerateDialog(preferred){
+export function ksmOpenRegenerateDialog(preferred){
   // A division added after generation ('new', not drawn yet) is drawn here too, team divisions included.
   // #86: a grand champion's draw follows its source divisions; it is never regenerated by hand.
   const teamIds=state.generated&&tournamentSettings().teamEnabled!=='Disabled'?ksmTeamDivisions().map(d=>d.id):[];
@@ -226,46 +251,40 @@ function ksmOpenRegenerateDialog(preferred){
 // The Pools tab's Regenerate button (app/index.html): Regenerate Single Division for the division
 // in the Pools select (owner decision 3; it regenerated the whole tournament, which stays with
 // Generate Tournament).
-function ksmRegeneratePoolDivision(){
+export function ksmRegeneratePoolDivision(){
   const div=window.poolDiv?poolDiv.value:'';
   ksmOpenRegenerateDialog(div||undefined);
 }
 // continueRegenerateDivision() (03): the division chosen in the list (read from the page) to
 // confirm.
-function ksmContinueRegenerateDivision(){
-  let selected=document.querySelector('input[name="regenDiv"]:checked')?.value;if(!selected){alert('No division is ready to regenerate.');return}const status=divisionRegenerationStatus(selected);if(!['ready','new'].includes(status)){alert('This division cannot be regenerated.');return}
+export function ksmContinueRegenerateDivision(){
+  let selected=/** @type {HTMLInputElement|null} */ (document.querySelector('input[name="regenDiv"]:checked'))?.value;if(!selected){alert('No division is ready to regenerate.');return}const status=divisionRegenerationStatus(selected);if(!['ready','new'].includes(status)){alert('This division cannot be regenerated.');return}
   ksmShowRegenerate(`${status==='new'?'Draw':'Regenerate'} ${ksmDivisionName(selected)}?`,{view:'confirm',division:selected,isNew:status==='new'});
 }
 // regenerateSingleDivision(div) (08): done.
-function ksmRegenerateDone(div){
+export function ksmRegenerateDone(div){
   ksmShowRegenerate('Division Regenerated',{view:'done',division:ksmHtmlText(div),label:ksmHtmlText(ksmDivisionName(div))});
 }
 // Escape closes the generation check, Regenerate Single Division and the cloud modal (Tournament
 // Access, Developer Tools, the Load Tournament File confirmation) as their Close / Cancel button
 // or the backdrop does, like the open menu, Fusen-gachi and the Results bracket (quirk pass).
-document.addEventListener('keydown',function(e){
-  if(e.key!=='Escape'||!ksmShellDialogs)return;
-  if(ksmShellDialogs.cloud)closeCloudModal();
-  if(ksmShellDialogs.validation.open)closeManagementModal('validationModal');
-  if(ksmShellDialogs.regenerate.open)closeManagementModal('regenerateModal');
-});
 // openCloudModal(title,body) (21): a new cloud modal at the end of <body> (the one open closed
 // first).
-function ksmOpenCloudModal(title,body){
+export function ksmOpenCloudModal(title,body){
   // F37: another dialog never silently replaces the Replace question: that is Cancel first.
   if(ksmFileReplace?.record&&body?.kind!=='replace-conflict')ksmCancelReplace();
   ksmShellBlurIn(document.getElementById('ksmCloudModal'));
   ksmPublishDialogs('cloud',{key:ksmNextDialogKey(),title:ksmHtmlText(title),body});
 }
 // Whether a cloud modal is open (read by app/modules/registration/grand-champion.js through legacy.js).
-function ksmCloudModalOpen(){return !!(typeof ksmShellDialogs==='object'&&ksmShellDialogs?.cloud)}
+export function ksmCloudModalOpen(){return !!(typeof ksmShellDialogs==='object'&&ksmShellDialogs?.cloud)}
 // closeCloudModal() (21).
-function ksmCloseCloudModal(){
+export function ksmCloseCloudModal(){
   ksmShellBlurIn(document.getElementById('ksmCloudModal'));
   ksmPublishDialogs('cloud',null);
 }
 // openTournamentAccess() (33): the spectator link, Copy Link and its QR code.
-function ksmOpenTournamentAccess(link,qr){
+export function ksmOpenTournamentAccess(link,qr){
   ksmOpenCloudModal('Tournament Access',{kind:'access',link:ksmHtmlText(link),copy:String(link),qr:String(qr),canEditSlug:!isReadOnlySession(),slug:cloudSession.slug||''});
 }
 // cloudDiagnostics() (21): Developer Tools with the details, the snapshot analysis
@@ -284,18 +303,16 @@ function ksmHistoryEntryCard(title,item){
 // + Auto Test Team) show only while this device's test tools are on: body.ksm-test-tools (the
 // owner-decisions CSS hides them otherwise), switched in Developer Tools ("Show test tools" /
 // "Hide test tools") and kept in this device's storage (not the tournament: nothing is synced).
-var KSM_TEST_TOOLS_KEY='ksm-test-tools';
+const KSM_TEST_TOOLS_KEY='ksm-test-tools';
 function ksmTestToolsOn(){try{return localStorage.getItem(KSM_TEST_TOOLS_KEY)==='1'}catch(_){return false}}
 function ksmApplyTestTools(){if(document.body)document.body.classList.toggle('ksm-test-tools',ksmTestToolsOn())}
-function ksmSetTestTools(on){
+export function ksmSetTestTools(on){
   try{if(on)localStorage.setItem(KSM_TEST_TOOLS_KEY,'1');else localStorage.removeItem(KSM_TEST_TOOLS_KEY)}catch(_){}
   ksmApplyTestTools();
 }
 // Developer Tools' button: switch them and show Developer Tools again with the new label.
-function ksmToggleTestTools(){ksmSetTestTools(!ksmTestToolsOn());cloudDiagnostics()}
-ksmApplyTestTools();
-document.addEventListener('DOMContentLoaded',ksmApplyTestTools);
-function ksmOpenDiagnostics(details,analysis,historyAnalysis,retry){
+export function ksmToggleTestTools(){ksmSetTestTools(!ksmTestToolsOn());cloudDiagnostics()}
+export function ksmOpenDiagnostics(details,analysis,historyAnalysis,retry){
   ksmOpenCloudModal('Developer Tools',{kind:'diagnostics',
     details:details.map(([a,b])=>({label:ksmHtmlText(a),value:ksmHtmlText(b)})),
     analysis:analysis?{
@@ -316,14 +333,18 @@ function ksmOpenDiagnostics(details,analysis,historyAnalysis,retry){
 // closes the live connections ('Tournament deleted'). Every device that learns of it (the socket,
 // any 410) goes through ksmTournamentGone(): it forgets the tournament (cache, outbox, recovery,
 // session, retry timers) and returns to the Tournament Library with a message; nothing is retried.
-var ksmDeletingTournamentId=null;
+/** @type {string|null} */
+let ksmDeletingTournamentId=null;
 // Staff of the open cloud tournament (a spectator never sees the action).
-function ksmCanDeleteTournament(){return ksmSessionRole==='staff'&&!!cloudSession.tournamentId}
+// The original (no account) and the final function: the account rule app/js/54-auth0-access.js used to add by reassigning it at
+// load (step 3d of #136). No account can be enabled before 54 runs, so until then the final function does what the original did.
+function ksmAccountCanDelete(){return ksmSessionRole==='staff'&&!!cloudSession.tournamentId}
+export function ksmCanDeleteTournament(){return ksmAccount.enabled?ksmAccount.globalRole==='admin'&&!!ksmAccount.token&&!!cloudSession.tournamentId:ksmAccountCanDelete()}
 function ksmDeleteDevices(){return (cloudSession.presence||[]).length}
 function ksmDeleteBody(patch){
   return Object.assign({kind:'delete',name:String((window.tName&&tName.value)||''),devices:ksmDeleteDevices(),busy:false,error:''},patch);
 }
-function ksmOpenDeleteTournament(){
+export function ksmOpenDeleteTournament(){
   if(!ksmCanDeleteTournament())return;
   ksmOpenCloudModal('Delete Tournament',ksmDeleteBody({}));
 }
@@ -338,7 +359,7 @@ function ksmRefreshDeleteDevices(){
   const cloud=ksmShellDialogs&&ksmShellDialogs.cloud;
   if(cloud&&cloud.body.kind==='delete'&&!cloud.body.libraryId&&cloud.body.devices!==ksmDeleteDevices())ksmUpdateDeleteDialog({devices:ksmDeleteDevices()});
 }
-async function ksmConfirmDeleteTournament(){
+export async function ksmConfirmDeleteTournament(){
   const cloud=ksmShellDialogs&&ksmShellDialogs.cloud,id=cloud?.body?.libraryId||cloudSession.tournamentId;
   if(!id||!cloud||cloud.body.kind!=='delete'||cloud.body.busy)return;
   // A save refused with 401 while the dialog was open made this device a spectator (F33): say so
@@ -419,12 +440,9 @@ function ksmLeaveTournamentAddress(){
 }
 // The unload autosave (21) writes the screens' leftover data back as this device's autosave, which
 // the next start offers to restore: not for a tournament deleted here, while the Library is shown.
-var ksmForgotTournament=false;
+let ksmForgotTournament=false;
 // Set by app/modules/session (ksmResetTournament(), ksmShowLibrary()) through legacy.js (a module cannot assign a `var` of app/js).
-function setKsmForgotTournament(value){ksmForgotTournament=value}
-window.addEventListener('beforeunload',function(){
-  if(ksmForgotTournament&&!cloudSession.tournamentId&&document.body.classList.contains('ksm-home'))ksmClearAutosave();
-});
+export function setKsmForgotTournament(value){ksmForgotTournament=value}
 // This device learned that tournament `id` was deleted (the socket closed with 'Tournament deleted',
 // or a request answered 410 tournament-deleted): forget it and return to the Library. Not for the
 // device that is deleting it (its own flow finishes), nor for a tournament it no longer has open
@@ -439,8 +457,6 @@ function ksmTournamentGone(id,fromLoad){
   return true;
 }
 // The cloud code announces them (ksmAnnounceTournamentGone(), ksmAnnounceSocketEnd(), 21).
-window.addEventListener('ksm:tournament-gone',function(event){ksmTournamentGone(event.detail.id,event.detail.fromLoad)});
-window.addEventListener('ksm:tournament-socket-end',function(event){ksmCheckGoneAfterSocketEnd(event.detail.id,event.detail.reason)});
 // A live connection of `id` ended: told so by the server ('Tournament deleted'), or ended without
 // a reason (a refused upgrade shows only as a failed connection): ask whether it is gone.
 function ksmCheckGoneAfterSocketEnd(id,reason){
@@ -451,7 +467,7 @@ function ksmCheckGoneAfterSocketEnd(id,reason){
 
 // confirmTournamentFileLoad() (21, roadmap 0.5): the file's and the open tournament's details,
 // what loading it does, Cancel and Replace open tournament / Load as new tournament.
-function ksmOpenFileLoadModal(title,details,message,same){
+export function ksmOpenFileLoadModal(title,details,message,same){
   ksmOpenCloudModal(title,{kind:'file',same:!!same,details:details.map(([a,b,id])=>({label:ksmHtmlText(a),value:ksmHtmlText(b),testId:id})),message});
 }
 
@@ -469,4 +485,24 @@ function ksmShowShellModuleMissing(){
   notice.innerHTML='<b>Menus and dialogs could not load</b><div class="small">Reload the page. If this device is offline, reconnect once so it can download the current version of the app.</div>';
   nav.before(notice);
 }
-document.addEventListener('DOMContentLoaded',ksmShowShellModuleMissing);
+
+// Load-time side effects (app/js/34-bootstrap.js runs them, in the order the file used to load): the two `var`s with a
+// value, the test-tools class, and the listeners.
+export function initShellBridge(){
+  ksmDeletingTournamentId=null;
+  ksmForgotTournament=false;
+  document.addEventListener('keydown',function(e){
+    if(e.key!=='Escape'||!ksmShellDialogs)return;
+    if(ksmShellDialogs.cloud)closeCloudModal();
+    if(ksmShellDialogs.validation.open)closeManagementModal('validationModal');
+    if(ksmShellDialogs.regenerate.open)closeManagementModal('regenerateModal');
+  });
+  ksmApplyTestTools();
+  document.addEventListener('DOMContentLoaded',ksmApplyTestTools);
+  window.addEventListener('beforeunload',function(){
+    if(ksmForgotTournament&&!cloudSession.tournamentId&&document.body.classList.contains('ksm-home'))ksmClearAutosave();
+  });
+  window.addEventListener('ksm:tournament-gone',function(/** @type {any} */ event){ksmTournamentGone(event.detail.id,event.detail.fromLoad)});
+  window.addEventListener('ksm:tournament-socket-end',function(/** @type {any} */ event){ksmCheckGoneAfterSocketEnd(event.detail.id,event.detail.reason)});
+  document.addEventListener('DOMContentLoaded',ksmShowShellModuleMissing);
+}

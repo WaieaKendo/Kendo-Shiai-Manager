@@ -1,3 +1,5 @@
+// @ts-check
+
 // ==========================================================
 // React Overview (app/react/features/overview/, roadmap M.13, #136 step 2)
 // The Overview screen (#director, nav "Overview") is drawn only by one React island: the contents
@@ -12,7 +14,7 @@
 // startDirectorRefresh()), renderAll() while it is shown, and the 5 s timer.
 // If the React module does not load, the Overview shows a notice (the end of this file).
 // ==========================================================
-function ksmRenderOverview(){
+export function ksmRenderOverview(){
   if(!window.directorCourtGrid)return;
   window.ksmOverviewRequested=true;
   window.dispatchEvent(new CustomEvent('ksm:overview'));
@@ -24,7 +26,7 @@ function ksmRenderOverview(){
 // DOMContentLoaded, so a working page never shows this. Existing styles only (.card, .sub).
 function ksmShowOverviewModuleMissing(){
   if(window.ksmOverviewMounted)return;
-  const dashboard=document.querySelector('#director .director-dashboard');
+  const dashboard=/** @type {HTMLElement|null} */ (document.querySelector('#director .director-dashboard'));
   if(!dashboard||document.getElementById('overviewModuleMissing'))return;
   const notice=document.createElement('div');
   notice.id='overviewModuleMissing';notice.className='card';notice.setAttribute('role','alert');notice.setAttribute('data-testid','overview-module-missing');
@@ -32,4 +34,8 @@ function ksmShowOverviewModuleMissing(){
   dashboard.style.display='none';
   dashboard.before(notice);
 }
-document.addEventListener('DOMContentLoaded',ksmShowOverviewModuleMissing);
+
+// Load-time side effects (app/js/34-bootstrap.js runs them, in the order the files used to load).
+export function initOverviewBridge(){
+  document.addEventListener('DOMContentLoaded',ksmShowOverviewModuleMissing);
+}

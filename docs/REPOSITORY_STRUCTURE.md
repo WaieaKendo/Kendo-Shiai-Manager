@@ -37,13 +37,17 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         stream overlay links; auth/auth0-access.js: Auth0 accounts in the legacy app
                         (the account-aware setSessionRole(), cloudHeaders(), ... around the plain
                         ksmAccount*() functions they call);
+                        boot.js: the start-up (initBootstrap(), run where 34-bootstrap.js loads);
+                        react-bridges/*.js: the classic side of the React islands (the signal stubs, the
+                        builders other code calls, the state the islands read; their load-time side
+                        effects are init*() functions that initReactBridges() runs in the old order);
                         legacy.js: one wrapper per not-yet-moved app/js function the moved code
                         calls, through `window` at call time (app/js/00-legacy-exports.js puts those names on
                         window first; each is deleted when its area moves;
-                        tests/window-exports-test.mjs checks them). Next: boot (34) and the React bridges
+                        tests/window-exports-test.mjs checks them). Next: step 4
                       (00-path-urls.js: path URLs, M.9: an old ?tournament= link becomes its
-                      path first, ksmLinkParams()/ksmLinkUrl(); 00-react-bridge.js: the
-                      ksm:state-changed event for React islands)
+                      path first, ksmLinkParams()/ksmLinkUrl(); the ksm:state-changed event for
+                      React islands is app/modules/react-bridges/state-bridge.js)
   *.html              Extra pages other than index.html (Vite entries, no app.js):
                         privacy.html = /privacy, static privacy notice (no JavaScript)
                         overlay.html = /t/<id>/overlay/a|b (and /overlay), the stream overlay
@@ -60,13 +64,13 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         overlay/ (stream overlay; court-match.ts = the TV's match selection),
                         court/ (the court screen: React islands inside index.html that draw
                         all of it, M.8; publish.ts computes their data when
-                        app/js/35-react-court.js and the court writers signal; the builders
+                        app/modules/react-bridges/court.js and the court writers signal; the builders
                         other classic code calls (ksmBracket(), ksmTeamResults(), the team
                         sheets, ksmDivisionCompleteInput(), ...), the Red side actions
                         and the module-missing notice stay classic there),
                         live-scores/ (the Live Scores screen #public, M.13;
                         publish.ts computes its data when
-                        app/js/36-react-live-scores.js signals; the between-matches
+                        app/modules/react-bridges/live-scores.js signals; the between-matches
                         helpers ksmUpNext() etc. stay classic there until the court
                         file moves),
                         tv/ (the TV display #tvLive, ?view=tv, M.13;
@@ -105,7 +109,7 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         nav.minimal-nav and the header's status row .cloud-status-wrap,
                         the Fusen-gachi, generation check and Regenerate Single Division
                         dialogs, the cloud modal #ksmCloudModal as a portal into <body>;
-                        publish.ts computes their data when app/js/44-react-shell.js
+                        publish.ts computes their data when app/modules/react-bridges/shell.js
                         signals; the state the shell's writers patch and read back
                         stays classic; the brand, the spectator banner and the toast
                         stay legacy)

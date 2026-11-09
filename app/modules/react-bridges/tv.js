@@ -1,3 +1,5 @@
+// @ts-check
+
 // ==========================================================
 // React TV display (app/react/features/tv/, roadmap M.13, #136 step 2)
 // The TV display (?view=tv, body.ksm-tv, #tvLive) is drawn only by React: one island (Tv), mounted
@@ -14,7 +16,7 @@
 // If the React module does not load, the TV shows a notice (below). ksmFitTv() and its resize
 // listener stay here (CSS fallback, harmless off the TV).
 // ==========================================================
-function ksmRenderTv(){
+export function ksmRenderTv(){
   window.ksmTvRequested=true;
   window.dispatchEvent(new CustomEvent('ksm:tv'));
 }
@@ -34,7 +36,6 @@ function ksmShowTvModuleMissing(){
   live.style.setProperty('display','none','important');
   live.before(notice);
 }
-document.addEventListener('DOMContentLoaded',ksmShowTvModuleMissing);
 
 // F14: the TV CSS (13-tv.css, tv-fit) scales the 1920x1080 canvas by --ksm-tv-fit to fit the
 // window, centred. Set here (CSS cannot divide lengths) and on every resize; harmless off the TV.
@@ -43,4 +44,9 @@ function ksmFitTv(){
   if(!root||!root.style||typeof window==='undefined')return;
   root.style.setProperty('--ksm-tv-fit',String(Math.min(window.innerWidth/1920,window.innerHeight/1080)||1));
 }
-if(typeof window!=='undefined'&&window.addEventListener){ksmFitTv();window.addEventListener('resize',ksmFitTv);}
+
+// Load-time side effects (app/js/34-bootstrap.js runs them, in the order the files used to load).
+export function initTvBridge(){
+  document.addEventListener('DOMContentLoaded',ksmShowTvModuleMissing);
+  if(typeof window!=='undefined'&&window.addEventListener){ksmFitTv();window.addEventListener('resize',ksmFitTv);}
+}

@@ -1,3 +1,7 @@
+// @ts-check
+import {state} from '../app-state.js';
+import {renderPools} from '../legacy.js';
+import {cloneJson} from '../sync/sync-state-and-rebase.js';
 // ==========================================================
 // React Pools view (app/react/features/pools/, roadmap M.13, #136 step 2)
 // The Pools view (Registration -> Pools, #poolsReg) draws #poolOutput with one React island,
@@ -23,7 +27,7 @@
 // #poolOutput's class stay legacy too, as does the notice below.
 // If the React module does not load, the Pools view shows a notice (the end of this file).
 // ==========================================================
-function ksmRenderPools(div){
+export function ksmRenderPools(div){
   // The view replaces the editor: an edit not saved is dropped (F12, see below).
   ksmPoolEdit=null;
   window.ksmPoolsRequested={kind:'pools',div};
@@ -35,16 +39,17 @@ function ksmRenderPools(div){
 // editor any other way - Cancel, the division select, a live update or any other redraw of the
 // view (renderPools()) - drops the copy, so the pools are exactly as before. Clicks in the editor
 // (Save, Cancel) do not ask for an autosave (the click listener, 21-): only an applied Save saves.
-var ksmPoolEdit=null;
-function ksmPoolEditPools(div){
+/** @type {{div:string,pools:any[]}|null} */
+let ksmPoolEdit=null;
+export function ksmPoolEditPools(div){
   if(!ksmPoolEdit||ksmPoolEdit.div!==div)ksmPoolEdit={div,pools:cloneJson(state.pools[div]||[])};
   return ksmPoolEdit.pools;
 }
-function ksmPoolEditorClick(target){return !!ksmPoolEdit&&!!target?.closest?.('#poolOutput')}
+export function ksmPoolEditorClick(target){return !!ksmPoolEdit&&!!target?.closest?.('#poolOutput')}
 // Save Pool Changes: the edited pools to apply, or null (nothing to do). Without a move it only
 // closes the editor (nothing is rebuilt). With matches already played it asks first: rebuilding
 // the division's matches deletes their results; Cancel keeps them and the editor (nothing saved).
-function ksmPoolEditToSave(div){
+export function ksmPoolEditToSave(div){
   const pools=ksmPoolEdit&&ksmPoolEdit.div===div?ksmPoolEdit.pools:null;
   if(!pools||JSON.stringify(pools)===JSON.stringify(state.pools[div]||[])){renderPools();return null}
   const played=(state.allMatches?.[div]||[]).filter(m=>m&&m.done).length;
@@ -54,7 +59,7 @@ function ksmPoolEditToSave(div){
 }
 // toggleEditPools() (16): the editor of the division's pools. The edit copy is created here, before
 // the signal, exactly when it was; the module reads it (ksmPoolEditPools() returns the existing one).
-function ksmRenderPoolEditor(div){
+export function ksmRenderPoolEditor(div){
   ksmPoolEditPools(div);
   window.ksmPoolsRequested={kind:'editor',div};
   window.dispatchEvent(new CustomEvent('ksm:pools'));
@@ -75,4 +80,9 @@ function ksmShowPoolsModuleMissing(){
   output.style.display='none';
   output.before(notice);
 }
-document.addEventListener('DOMContentLoaded',ksmShowPoolsModuleMissing);
+
+// Load-time side effects (app/js/34-bootstrap.js runs them, in the order the files used to load).
+export function initPoolsBridge(){
+  ksmPoolEdit=null;
+  document.addEventListener('DOMContentLoaded',ksmShowPoolsModuleMissing);
+}
