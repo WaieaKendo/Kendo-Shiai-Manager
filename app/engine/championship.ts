@@ -40,7 +40,9 @@ export interface SeedResolution { complete: boolean; seeds: Record<number, Stand
 type Pairs = readonly (readonly [string, string])[];
 const P = (...pairs: string[]): Pairs => Object.freeze(pairs.map(p => Object.freeze(p.split('-') as [string, string])));
 const T6 = P('A1-B2', 'B1-A2');
-const T10 = P('A1-B2', 'C1-A3', 'B1-C2', 'A2-B3');
+// 10 (pools of 4, 3, 3): the pool winners and the best runner-up, a four-person bracket.
+const T10 = P('A1-C1', 'B1-A2');
+const T11 = P('A1-B2', 'C1-A3', 'B1-C2', 'A2-B3');
 const T13 = P('A1-B2', 'C1-D2', 'B1-C2', 'D1-A2');
 const T18 = P('A1-C2', 'B1-D2', 'E1-A2', 'D1-C1');
 const T21 = P('A1-B2', 'C1-D1', 'A2-F1', 'E1-B1');
@@ -50,7 +52,7 @@ const T33 = P('A1-D2', 'G1-B2', 'C1-F2', 'E1-D1', 'B1-E2', 'F1-A2', 'I1-C2', 'H1
 const T37 = P('A1-D2', 'E1-I1', 'C1-F2', 'G1-B2', 'B1-E2', 'F1-A2', 'D1-C2', 'H1-J1');
 /** Frozen Championship Template Library v1.0: [first entrant total, pairs] ranges. */
 const TEMPLATES: readonly (readonly [number, number, Pairs])[] = Object.freeze([
-  [6, 8, T6], [9, 9, P('A1-B1', 'C1-A2')], [10, 12, T10], [13, 16, T13], [17, 17, P('A1-D1', 'B1-C2', 'C1-A2', 'B2-E1')],
+  [6, 8, T6], [9, 9, P('A1-B1', 'C1-A2')], [10, 10, T10], [11, 12, T11], [13, 16, T13], [17, 17, P('A1-D1', 'B1-C2', 'C1-A2', 'B2-E1')],
   [18, 20, T18], [21, 22, T21], [23, 28, T23], [29, 32, T29], [33, 36, T33], [37, 40, T37],
 ] as const);
 
@@ -93,6 +95,18 @@ export function championshipCourtFor<M extends string>(mode: M, round: string, s
   if (round === 'Final') return 'A';
   const total = Math.max(1, totalInRound || 1);
   return Number(slot || 0) < Math.ceil(total / 2) ? 'A' : 'B';
+}
+
+/**
+ * The nodes with each court worked out again from the division's current court `mode` (as the
+ * draw would give it). Nodes keep the court of the draw, so a division moved to another court or
+ * split between courts after the draw would otherwise put its bouts back on the old court the
+ * next time the bracket is filled (syncChampionshipTemplate copies node.court onto the bouts).
+ */
+export function championshipNodesForCourtMode<C extends string, M extends string>(nodes: readonly ChampNode<C>[], mode: M): ChampNode<M | 'A' | 'B'>[] {
+  const perRound: Record<string, number> = {};
+  nodes.forEach(n => { perRound[n.round] = (perRound[n.round] || 0) + 1; });
+  return nodes.map(n => ({ ...n, court: championshipCourtFor(mode, n.round, n.slot, perRound[n.round] || 1) }));
 }
 
 // ---- Nodes and Match Objects -------------------------------------------------------------

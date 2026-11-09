@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {
-  championshipTemplateForTotal, championshipLabels, championshipCourtFor, buildChampionshipTemplateMatches,
+  championshipTemplateForTotal, championshipLabels, championshipCourtFor, championshipNodesForCourtMode, buildChampionshipTemplateMatches,
   poolSeedResolution, seedNameForLabel, championshipNodeSource, syncChampionshipTemplate, sourceLabelForRound,
   individualPlacements, firstRoundName, roundMatchCount,
 } from '../../app/engine/championship.ts';
@@ -25,7 +25,11 @@ test('template library: none below 6 or above 40; 2/4/8 first-round pairs; fresh
   assert.deepEqual(championshipTemplateForTotal(9), [['A1', 'B1'], ['C1', 'A2']]);
   assert.deepEqual(championshipTemplateForTotal(17), [['A1', 'D1'], ['B1', 'C2'], ['C1', 'A2'], ['B2', 'E1']]);
   assert.deepEqual(championshipTemplateForTotal(40)[7], ['H1', 'J1']);
-  for (let n = 6; n <= 40; n++) assert.equal(championshipTemplateForTotal(n).length, n <= 9 ? 2 : n <= 22 ? 4 : 8, String(n));
+  // 10 (pools of 4, 3, 3): a four-person bracket of the pool winners and the best runner-up.
+  assert.deepEqual(championshipTemplateForTotal(10), [['A1', 'C1'], ['B1', 'A2']]);
+  assert.deepEqual(championshipTemplateForTotal(11), [['A1', 'B2'], ['C1', 'A3'], ['B1', 'C2'], ['A2', 'B3']]);
+  assert.deepEqual(championshipTemplateForTotal(12), championshipTemplateForTotal(11));
+  for (let n = 6; n <= 40; n++) assert.equal(championshipTemplateForTotal(n).length, n <= 10 ? 2 : n <= 22 ? 4 : 8, String(n));
   const t = championshipTemplateForTotal(6); t[0][0] = 'X'; t.push([]);
   assert.deepEqual(championshipTemplateForTotal(6), [['A1', 'B2'], ['B1', 'A2']]);
   const pools = [pool('A', 'a', 'b', 'c'), pool('B', 'd', 'e', 'f')];
@@ -55,7 +59,7 @@ test('seed resolution: tied first place only seeds once its tiebreak locks it', 
 });
 
 test('nodes and Match Objects: rounds, feeder refs, field order, courts (single and split)', () => {
-  const pairs = championshipTemplateForTotal(10);
+  const pairs = championshipTemplateForTotal(11);
   const single = buildChampionshipTemplateMatches('Open', pairs, (r, s, t) => championshipCourtFor('B', r, s, t), 4);
   assert.deepEqual(single.nodes.map(n => n.id), ['C-Quarterfinal-0', 'C-Quarterfinal-1', 'C-Quarterfinal-2', 'C-Quarterfinal-3',
     'C-Semifinal-0', 'C-Semifinal-1', 'C-Final-0']);
@@ -80,8 +84,36 @@ test('nodes and Match Objects: rounds, feeder refs, field order, courts (single 
   assert.equal(championshipCourtFor('split', 'Final', 5, 1), 'A');
 });
 
+test('node courts follow the division\'s current court setting (split after the draw: top half A, bottom half B, Final A)', () => {
+  const split = (r, s, t) => championshipCourtFor('split', r, s, t);
+  for (const [total, courts] of [
+    [10, ['A', 'B', 'A']],
+    [11, ['A', 'A', 'B', 'B', 'A', 'B', 'A']],
+    [30, ['A', 'A', 'A', 'A', 'B', 'B', 'B', 'B', 'A', 'A', 'B', 'B', 'A', 'B', 'A']],
+  ]) {
+    const pairs = championshipTemplateForTotal(total);
+    const drawnOnB = buildChampionshipTemplateMatches('Open', pairs, (r, s, t) => championshipCourtFor('B', r, s, t), pairs.length).nodes;
+    assert.ok(drawnOnB.every(n => n.court === 'B'), String(total));
+    const moved = championshipNodesForCourtMode(drawnOnB, 'split');
+    assert.deepEqual(moved.map(n => n.court), courts, String(total));
+    // The same courts the draw gives a division that was split from the start.
+    assert.deepEqual(moved, buildChampionshipTemplateMatches('Open', pairs, split, pairs.length).nodes, String(total));
+    assert.ok(drawnOnB.every(n => n.court === 'B'), 'input nodes are not changed');
+    // And back to one court.
+    assert.ok(championshipNodesForCourtMode(moved, 'A').every(n => n.court === 'A'), String(total));
+  }
+  // Filling the bracket after the split puts each bout on its new court.
+  const pools = [pool('A', 'a1', 'a2', 'a3', 'a4'), pool('B', 'b1', 'b2', 'b3'), pool('C', 'c1', 'c2', 'c3')];
+  const built = buildChampionshipTemplateMatches('Open', championshipTemplateForTotal(10), () => 'B', 2);
+  const nodes = championshipNodesForCourtMode(built.nodes, 'split');
+  const seeds = { A1: pools[0].players[0], C1: pools[2].players[0], B1: pools[1].players[0], A2: pools[0].players[1] };
+  const filled = apply([...built.matches], syncChampionshipTemplate('Open', nodes, built.matches, l => seeds[l] || null));
+  assert.deepEqual(filled.map(m => [m.position, m.court, m.red, m.white]), [
+    ['Semifinal', 'A', 'a1', 'c1'], ['Semifinal', 'B', 'b1', 'a2'], ['Final', 'A', '', '']]);
+});
+
 test('advancement QF → SF → Final: seeds, "Winner of …" placeholders, invalid feeders, done bouts untouched', () => {
-  const pairs = championshipTemplateForTotal(10);
+  const pairs = championshipTemplateForTotal(11);
   const { nodes, matches } = buildChampionshipTemplateMatches('Open', pairs, () => 'A', 4);
   const seeds = { A1: 'a1', B2: 'b2', C1: 'c1', A3: 'a3', B1: 'b1', C2: 'c2', A2: 'a2' }; // B3 undecided
   const seedFor = l => (seeds[l] ? { name: seeds[l], dojo: `${seeds[l]}-dojo`, wins: 3 } : null);
@@ -200,6 +232,8 @@ test('championship build, advancement, seeds and placements equal the pre-move l
   const states = statesFromGoldens();
   let brackets = 0, steps = 0;
   for (const [id, div, s, champ] of states) {
+    // 10 entrants: the four-person bracket replaced the old eight-person one on purpose (tested above).
+    if (s.pools[div].reduce((n, p) => n + p.players.length, 0) === 10) continue;
     const run = ctx => {
       ctx.state = structuredClone(s);
       const st = ctx.state, res = [];
