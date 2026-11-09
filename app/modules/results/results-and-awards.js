@@ -5,8 +5,10 @@ import {championshipLabels} from '../engine/engine-championship.js';
 import {eligibleTeams,isTeamDivision} from '../engine/engine-pools.js';
 import {isTeamRoundRobinDivision,teamRoundRobinPlacements} from '../engine/engine-standings-and-tiebreaks.js';
 import {esc} from '../html-text.js';
-import {isReadOnlySession,isValidMatchObject,ksmCurrentSessionRole,ksmLegacyCloudSession,matchBelongsToCourt,renderScore,updateSaveStatus} from '../legacy.js';
+import {isReadOnlySession,matchBelongsToCourt,renderScore} from '../legacy.js';
 import {ksmTeamSettings} from '../registration/team-divisions.js';
+import {cloudSession,ksmSessionRole,updateSaveStatus} from '../sync/cloud-session-and-autosave.js';
+import {isValidMatchObject} from '../sync/sync-state-and-rebase.js';
 export function divisionComplete(div){const matches=(state.allMatches[div]||[]).filter(isValidMatchObject);return matches.some(m=>m.championship&&m.position==='Final'&&m.done) || ((isTeamDivision(div)||isPoolOnlyDivision(div))&&matches.length && matches.every(m=>m.done));}
 // Individual round robins too small for a championship bracket (3–5 entrants: a single pool
 // and no frozen template) have no Final; they are decided by the final pool standings.
@@ -28,9 +30,9 @@ export function exportCSV(){let rows=[['Name','Dojo','Division','Seed','Status']
 export function teamRoster(team,div){let t=(state.teams||[]).find(x=>String(x.team).trim()===String(team).trim()&&(!div||(x.teamDivisionId||'Team Tournament')===div));if(!t)return [];let fmt=ksmTeamSettings(t.teamDivisionId).teamFormat||t.type||'5-Person Team';let keys=(fmt==='3-Person Team'||fmt==='Kachinuki')?['senpo','chuken','taisho']:['senpo','jiho','chuken','fukusho','taisho'];return keys.map(k=>t[k]).filter(n=>n&&String(n).trim());}
 export function canModifyRepresentative(m){
   if(!m||m.type!=='teamPlayoff'||isReadOnlySession())return false;
-  if(['local','admin','director','staff'].includes(ksmCurrentSessionRole()))return true;
-  if(ksmCurrentSessionRole()==='scorekeeper'){
-    const assigned=(ksmLegacyCloudSession().court||state.currentCourt||'').toUpperCase();
+  if(['local','admin','director','staff'].includes(ksmSessionRole))return true;
+  if(ksmSessionRole==='scorekeeper'){
+    const assigned=(cloudSession.court||state.currentCourt||'').toUpperCase();
     return !!assigned&&matchBelongsToCourt(m,assigned);
   }
   return false;

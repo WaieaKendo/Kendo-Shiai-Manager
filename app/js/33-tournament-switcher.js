@@ -2,6 +2,9 @@
 let ksmTournamentTransition=false;
 var ksmStartupLoadFailed=false;
 var ksmStartupHasCache=false;
+// Read by app/modules/sync through legacy.js (a module cannot read a `var`/`const` of app/js).
+function ksmIsStartupLoadFailed(){return ksmStartupLoadFailed}
+function ksmHasStartupCache(){return ksmStartupHasCache}
 function ksmKeepFailedStartup(err){
   const params=ksmLinkParams(),id=params.get('tournament')||params.get('spectator');
   if(!id||(!navigator.onLine&&!ksmStartupLoadFailed)||err?.code==='tournament-deleted'||/\((404|410)\)/.test(err?.message||''))return false;
@@ -34,7 +37,7 @@ function ksmKeepFailedStartup(err){
       if(ksmStartupHasCache&&localChangesPending()){
         const payload=tournamentPayload();writeOutbox(payload,'Startup retry');noteQueuedMutation(payload,ksmLocalMutationVersion);
       }
-      clearTimeout(ksmSaveTimer);ksmSaveTimer=null;clearTimeout(ksmCloudTimer);ksmCloudTimer=null;
+      clearTimeout(ksmSaveTimer);setKsmSaveTimer(null);clearTimeout(ksmCloudTimer);setKsmCloudTimer(null);
       if(!navigator.onLine){setConnectionStatus('Offline · Retry when connected','offline');return}
       retry.disabled=true;
       try{await initializeCloudRoleFromUrl();ksmStartupLoadFailed=false;notice.remove();await flushCloudOutbox()}
@@ -46,6 +49,8 @@ function ksmKeepFailedStartup(err){
   setConnectionStatus(navigator.onLine?'Cloud load failed':'Offline · Retry when connected','offline');return true;
 }
 var ksmTournamentEpoch=0;
+// Read by app/modules/sync through legacy.js (a module cannot read a `var`/`const` of app/js).
+function ksmCurrentTournamentEpoch(){return ksmTournamentEpoch}
 var ksmFirstLibrary=true;
 var ksmLibraryReturnView='setup';
 const KSM_DETACHED_DRAFT_KEY=KSM_SAVE_KEY+':library-draft';
@@ -85,7 +90,7 @@ async function ksmCanLeaveTournament(){
     if(!isReadOnlySession()){
       // The immediate save includes the debounced edits; cancel only those existing timers.
       // A new edit during the request schedules its own timer and still blocks the exit.
-      clearTimeout(ksmSaveTimer);ksmSaveTimer=null;clearTimeout(ksmCloudTimer);ksmCloudTimer=null;
+      clearTimeout(ksmSaveTimer);setKsmSaveTimer(null);clearTimeout(ksmCloudTimer);setKsmCloudTimer(null);
       await saveTournamentToCloudWithReason('Before switching tournament',true);
     }
     if(ksmTabHasUnsavedWork()){
@@ -102,13 +107,13 @@ function ksmResetTournament(){
   }
   ksmStartupLoadFailed=false;ksmStartupHasCache=false;document.getElementById('startupLoadFailure')?.remove();
   ksmTournamentEpoch++;
-  ksmFileReplace=null;  // F37: a Replace of the tournament being closed
+  setKsmFileReplace(null);  // F37: a Replace of the tournament being closed
   const id=cloudSession.tournamentId||'local';
-  disconnectCloudSocket();ksmTvRefreshInFlight=null;ksmTvLastVerifiedAt=0;
-  clearTimeout(ksmSaveTimer);ksmSaveTimer=null;clearTimeout(ksmCloudTimer);ksmCloudTimer=null;
-  clearTimeout(ksmQueuedSaveRetryTimer);ksmQueuedSaveRetryTimer=null;ksmQueuedSaveRetryAttempt=0;
-  clearTimeout(ksmDeferredRemoteTimer);ksmDeferredRemoteRecord=null;
-  clearTimeout(ksmDeferredSyncTimer);ksmDeferredSyncTimer=null;ksmDeferredSyncRecord=null;
+  disconnectCloudSocket();setKsmTvRefreshInFlight(null);setKsmTvLastVerifiedAt(0);
+  clearTimeout(ksmSaveTimer);setKsmSaveTimer(null);clearTimeout(ksmCloudTimer);setKsmCloudTimer(null);
+  clearTimeout(ksmQueuedSaveRetryTimer);setKsmQueuedSaveRetryTimer(null);setKsmQueuedSaveRetryAttempt(0);
+  clearTimeout(ksmDeferredRemoteTimer);setKsmDeferredRemoteRecord(null);
+  clearTimeout(ksmDeferredSyncTimer);setKsmDeferredSyncTimer(null);setKsmDeferredSyncRecord(null);
   clearTimeout(directorRefreshTimer);directorRefreshTimer=null;
   clearLocalCourtDivisions();
   for(const store of [localStorage,sessionStorage]){
@@ -122,8 +127,8 @@ function ksmResetTournament(){
   Object.keys(cloudSession).forEach(key=>{if(!['clientId','clientName'].includes(key))delete cloudSession[key]});
   cloudSession.tournamentId=null;cloudSession.revision=0;cloudSession.court='';cloudSession.presence=[];persistCloudSession();
   KSM_CLOUD_BASE.revision=-1;KSM_CLOUD_BASE.payload=null;
-  ksmLocalMutationVersion=0;ksmConfirmedMutationVersion=0;ksmOutboxMutationVersion=0;
-  ksmLastSuccessfulSaveAt=0;ksmSaveStatusMode='idle';
+  setKsmLocalMutationVersion(0);setKsmConfirmedMutationVersion(0);setKsmOutboxMutationVersion(0);
+  setKsmLastSuccessfulSaveAt(0);setKsmSaveStatusMode('idle');
   Object.keys(state).forEach(key=>delete state[key]);Object.assign(state,JSON.parse(KSM_EMPTY_STATE));
   applySetupSnapshot(KSM_EMPTY_SETUP);
   document.body.classList.remove('ksm-tv');

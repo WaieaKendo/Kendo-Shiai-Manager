@@ -250,8 +250,8 @@ fields remain serialized for compatibility; division records now supply each com
 | `app/modules/results/results-and-awards.js` | Builds representative rosters with the team's division format and division identity. |
 | `app/js/13-engine-standings-and-tiebreaks.js` | Division-specific standings, representative playoffs, round-robin daihyosen and award places. |
 | `app/modules/results/print.js` | Snapshot-only migration and division settings for independent rosters, standings, brackets and awards. |
-| `app/js/18-sync-state-and-rebase.js` | Includes division records in the merge base, merges by ID, and labels assignment conflicts. |
-| `app/js/20-cloud-session-and-autosave.js` | Serializes legacy Setup fields; loads division courts from the migrated records; returns save success. |
+| `app/modules/sync/sync-state-and-rebase.js` | Includes division records in the merge base, merges by ID, and labels assignment conflicts. |
+| `app/modules/sync/cloud-session-and-autosave.js` | Serializes legacy Setup fields; loads division courts from the migrated records; returns save success. |
 | `app/modules/results/results-screen.js` | Uses each division's award mode. |
 | `app/js/30-setup-header-and-director.js` | Uses each division's team format in Overview progress estimates. |
 | `app/js/35-react-court.js` | Uses each division's award mode for completion panels and its scoped representative roster. |

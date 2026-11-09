@@ -27,10 +27,15 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         header, the Danger zone, Overview progress (director-progress.js);
                         results/*.js: result placements and awards, print sheets, Live Scores
                         and TV helpers, the Results screen;
+                        sync/*.js: the sync state and the 409 rebase, two tabs, cloud diagnostics,
+                        the cloud session and autosave, live sync / saves / tournament files, Undo
+                        regenerate (their `let`s are assigned elsewhere only through setNAME(value);
+                        their load-time side effects are init*() calls left in app/js where the files
+                        loaded);
                         legacy.js: one wrapper per not-yet-moved app/js function the moved code
                         calls, through `window` at call time (app/js/00-legacy-exports.js puts those names on
                         window first; each is deleted when its area moves;
-                        tests/window-exports-test.mjs checks them). Next area: cloud/sync
+                        tests/window-exports-test.mjs checks them). Next area: sync part 2 (33-*, 54)
                       (00-path-urls.js: path URLs, M.9: an old ?tournament= link becomes its
                       path first, ksmLinkParams()/ksmLinkUrl(); 00-react-bridge.js: the
                       ksm:state-changed event for React islands)

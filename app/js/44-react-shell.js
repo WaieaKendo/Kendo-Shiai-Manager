@@ -377,15 +377,15 @@ async function ksmConfirmDeleteTournament(){
 // Everything this device keeps for the tournament: its Library entry, queued and recovery copies,
 // the autosave, the session and any timer that would send or retry a save.
 function ksmForgetTournament(id){
-  if(cloudSession.tournamentId===id)ksmFileReplace=null;
+  if(cloudSession.tournamentId===id)setKsmFileReplace(null);
   localStorage.removeItem('ksm.tournament.record:'+id);
   if(cloudSession.tournamentId===id){clearOutbox();ksmResetTournament()}
 
-  clearTimeout(ksmQueuedSaveRetryTimer);ksmQueuedSaveRetryTimer=null;ksmQueuedSaveRetryAttempt=0;ksmOutboxMutationVersion=0;
-  clearTimeout(ksmCloudTimer);ksmCloudTimer=null;clearTimeout(ksmSaveTimer);ksmSaveTimer=null;
-  clearTimeout(ksmDeferredRemoteTimer);ksmDeferredRemoteRecord=null;
-  clearTimeout(ksmDeferredSyncTimer);ksmDeferredSyncTimer=null;ksmDeferredSyncRecord=null;
-  const waiting=ksmCloudSavePending;ksmCloudSavePending=null;
+  clearTimeout(ksmQueuedSaveRetryTimer);setKsmQueuedSaveRetryTimer(null);setKsmQueuedSaveRetryAttempt(0);setKsmOutboxMutationVersion(0);
+  clearTimeout(ksmCloudTimer);setKsmCloudTimer(null);clearTimeout(ksmSaveTimer);setKsmSaveTimer(null);
+  clearTimeout(ksmDeferredRemoteTimer);setKsmDeferredRemoteRecord(null);
+  clearTimeout(ksmDeferredSyncTimer);setKsmDeferredSyncTimer(null);setKsmDeferredSyncRecord(null);
+  const waiting=ksmCloudSavePending;setKsmCloudSavePending(null);
   if(waiting)waiting.resolvers.forEach(resolve=>resolve(false));
   disconnectCloudSocket();
   writeTournamentLibrary(readTournamentLibrary().filter(x=>x.id!==id));
@@ -402,8 +402,8 @@ function ksmForgetTournament(id){
     delete cloudSession.credentials;
     persistCloudSession();
     KSM_CLOUD_BASE.revision=-1;KSM_CLOUD_BASE.payload=null;
-    ksmConfirmedMutationVersion=ksmLocalMutationVersion;
-    ksmSaveStatusMode='saved';ksmLastSuccessfulSaveAt=0;
+    setKsmConfirmedMutationVersion(ksmLocalMutationVersion);
+    setKsmSaveStatusMode('saved');setKsmLastSuccessfulSaveAt(0);
   }
   ksmForgotTournament=true;
   sessionStorage.removeItem(KSM_V316_STAFF_SESSION);

@@ -21,7 +21,7 @@ const health = await (await workerEntry.fetch(new Request('https://ksm.test/api/
 const hardCoded = [
   ['app/index.html', readRepoFile('app/index.html')],
   ['app/service-worker.js', readRepoFile('app/service-worker.js')],
-  ['app/js/19-cloud-diagnostics.js', readRepoFile('app/js/19-cloud-diagnostics.js')],
+  ['app/modules/sync/cloud-diagnostics.js', readRepoFile('app/modules/sync/cloud-diagnostics.js')],
   ['src-worker.js', worker],
 ].filter(([, text]) => text.includes(v) || /version: '\d|appVersion:'\d|ksm-shell-v\d|Kendo Shiai Manager v\d|version-badge">v\d/.test(text)).map(([f]) => f);
 

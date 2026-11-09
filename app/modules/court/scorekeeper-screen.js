@@ -2,7 +2,8 @@
 import {state} from '../app-state.js';
 import {applyCourtState,findNextForCourt,individualMatchReady} from './court-match-order.js';
 import {fusen} from './court-scoring-and-history.js';
-import {ksmSetFusenOpen,ksmSignalCourtHeader,matchBelongsToCourt,redOnLeftForCourt} from '../legacy.js';
+import {ksmSetFusenOpen,ksmSignalCourtHeader,matchBelongsToCourt} from '../legacy.js';
+import {redOnLeftForCourt} from '../sync/sync-state-and-rebase.js';
 // ---------- KSM v3.9.1 Scorekeeper redesign helpers ----------
 export function matchDisplayMeta(m){
   if(!m)return {division:'—', line:'No active match'};

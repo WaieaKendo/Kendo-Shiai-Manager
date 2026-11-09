@@ -1,9 +1,12 @@
 // @ts-check
 import {state} from '../app-state.js';
 import {eligibleIndividuals,eligibleTeams,isTeamDivision} from '../engine/engine-pools.js';
-import {generatePools,ksmRenderTournamentStatus,ksmShowValidationDialog,ksmUndoRegenerateOffered,manualSaveTournament,tournamentSettings} from '../legacy.js';
+import {generatePools,ksmRenderTournamentStatus,ksmShowValidationDialog} from '../legacy.js';
 import {ksmGrandChampionError,ksmGrandChampions} from './grand-champion.js';
 import {ksmDivisionName,ksmTeamDivisions} from './team-divisions.js';
+import {manualSaveTournament} from '../sync/cloud-realtime-save-and-load.js';
+import {tournamentSettings} from '../sync/cloud-session-and-autosave.js';
+import {ksmUndoRegenerateOffered} from '../sync/undo-regenerate.js';
 function validationIssue(severity,code,divisionId,message,suggestedAction=''){return KSMEngine.validationIssue(severity,code,divisionId,message,suggestedAction);// moved to app/engine/registration.ts
   }
 export function validateTournament(options={}){

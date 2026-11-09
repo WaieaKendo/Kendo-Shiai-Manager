@@ -5,12 +5,14 @@ import {enforceUniqueIndividualMatches,maybeAdvanceChampionship,maybeCreateChamp
 import {completedResultSnapshot} from '../engine/engine-result-integrity.js';
 import {maybeAdvanceIndividualSingleElim} from '../engine/engine-single-elim.js';
 import {maybeCreateTiebreaks} from '../engine/engine-standings-and-tiebreaks.js';
-import {generateDivisionState,isReadOnlySession,ksmCloseCloudModal,ksmCloudModalOpen,ksmIsApplyingRemoteSnapshot,ksmOpenCloudModal,ksmPublishSetup,renderAll,scheduleAutoSave,showKsmToast,writeCloudDiagnosticsState} from '../legacy.js';
+import {generateDivisionState,isReadOnlySession,ksmCloseCloudModal,ksmCloudModalOpen,ksmOpenCloudModal,ksmPublishSetup,renderAll,scheduleAutoSave} from '../legacy.js';
 import {ksmDivisionName} from './team-divisions.js';
 import {renderTournamentStatus} from './validation.js';
 import {divisionComplete} from '../results/results-and-awards.js';
 import {resultPlacements} from '../results/results-screen.js';
 import {renderDivisionSetup} from '../setup/division-setup.js';
+import {writeCloudDiagnosticsState} from '../sync/cloud-diagnostics.js';
+import {ksmApplyingRemoteSnapshot,showKsmToast} from '../sync/cloud-realtime-save-and-load.js';
 // ==========================================================
 // Grand champion (#86): the winners of chosen individual divisions meet for a Grand Champion
 // award. Rules and data shape: app/engine/grand-champion.ts.
@@ -190,7 +192,7 @@ export function ksmSyncGrandChampions(source='sync'){
     }
     if(changed){
       writeCloudDiagnosticsState({stage:'Grand champion draw updated',source});
-      if(!ksmIsApplyingRemoteSnapshot())renderAll();
+      if(!ksmApplyingRemoteSnapshot)renderAll();
     }
   }finally{ksmGrandChampionSyncing=false}
   return changed;
