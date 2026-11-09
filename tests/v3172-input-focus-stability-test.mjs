@@ -2,7 +2,7 @@ import { html as appSource } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
 const html=appSource;
 const checks=[
-  ['calm local autosave',html.includes("setTimeout(()=>{ksmSaveTimer=null;autoSaveTournament(reason)},2000)")],
+  ['calm local autosave',html.includes("setTimeout(()=>{setKsmSaveTimer(null);autoSaveTournament(reason)},2000)")],
   ['calm cloud debounce',html.includes("scheduleCloudSave(reason='Autosave',delay=1200)")],
   ['self-originated echo ignored',html.includes('record.updatedBy?.clientId&&record.updatedBy.clientId===ksmWriterId()')],
   ['editing detection present',html.includes('function activeEditorHasFocus()')],

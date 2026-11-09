@@ -127,7 +127,7 @@ node scripts/health-check.mjs <production URL>
 
 `package.json` `"version"` is the only place the version is written. Everything else gets it at build time:
 
-- `app/index.html` (page title / About text, version badge), `app/js/19-cloud-diagnostics.js` (`appVersion` in the diagnostics downloads) and `app/service-worker.js` (`CACHE_NAME`) contain the placeholder `__KSM_VERSION__`; Vite fills it in from `package.json` in the build and in `npm run dev:vite` (`withVersion()` in `scripts/app-sources.mjs`). A new version renames the service worker cache, which makes installed devices drop the old offline copy.
+- `app/index.html` (page title / About text, version badge), `app/modules/sync/cloud-diagnostics.js` (`appVersion` in the diagnostics downloads) and `app/service-worker.js` (`CACHE_NAME`) contain the placeholder `__KSM_VERSION__`; Vite fills it in from `package.json` in the build and in `npm run dev:vite` (`withVersion()` in `scripts/app-sources.mjs`). A new version renames the service worker cache, which makes installed devices drop the old offline copy.
 - `src-worker.js` imports `package.json`; wrangler bundles it in, so `/api/health` reports the deployed version.
 - `tests/version-consistency-test.mjs` checks the built `dist/` and `/api/health` against `package.json`, that no source hard-codes a version, and that `CHANGELOG.md` starts with this version.
 

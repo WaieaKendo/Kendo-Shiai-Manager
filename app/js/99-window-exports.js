@@ -11,7 +11,7 @@
 // First block: by value (the binding is never assigned after its declaration).
 Object.assign(window, {
   // 00-path-urls.js
-  ksmHeaderLogo, ksmLinkUrl, ksmReplaceUrl, ksmTournamentHomeUrl,
+  ksmHeaderLogo, ksmLinkParams, ksmLinkUrl, ksmReplaceUrl, ksmTournamentHomeUrl,
   // 00-react-bridge.js
   ksmLegacyCloudSession, ksmLegacyState, ksmLegacyStateVersion, ksmNotifyStateChanged,
   // app/modules/registration/grand-champion.js
@@ -81,24 +81,24 @@ Object.assign(window, {
   dragPoolPlayer, dropPoolPlayer, insertPoolPlayer, jsArg, saveEditedPools, toggleEditPools,
   // app/modules/results/print.js
   previewAllDivisionSheets, previewFullPrintPacket, previewResultsSheet, previewSelectedDivisionSheet, printDivisionSheet,
-  // 18-sync-state-and-rebase.js
-  applyCourtSides, cloneJson, historyEntryIdentity, isValidMatchObject, KSM_CLOUD_OUTBOX_KEY, KSM_CLOUD_SESSION_KEY,
-  KSM_MERGE_LABELS, KSM_SAVE_KEY, ksmIsApplyingRemoteSnapshot, localChangesPending, localCourtDivision,
-  matchBelongsToCourtInState, matchHasSyncIdentity, matchSyncIdentity, mergeLocalEditsThreeWay, nextReadyIndexInState,
-  normalizeCourt, pinCourtLocally, rebaseLocalPayloadOnRecord, redOnLeftForCourt, rememberLocalCourtDivision, replayCourtMatchOps,
-  // 18-two-tabs.js
-  KSM_TAB_ID, ksmOutboxKey, ksmReleaseReplaceBackups, ksmTabId, ksmWriterId,
-  // 19-cloud-diagnostics.js
+  // app/modules/sync/sync-state-and-rebase.js
+  applyCourtSides, cloneJson, historyEntryIdentity, isValidMatchObject, KSM_AUTOSAVE_CLOUD_ID, KSM_CLOUD_OUTBOX_KEY, KSM_CLOUD_SESSION_KEY,
+  KSM_MERGE_LABELS, KSM_SAVE_KEY, localChangesPending, localCourtDivision, matchBelongsToCourtInState, matchHasSyncIdentity,
+  matchSyncIdentity, mergeLocalEditsThreeWay, nextReadyIndexInState, normalizeCourt, pinCourtLocally, rebaseLocalPayloadOnRecord,
+  redOnLeftForCourt, rememberLocalCourtDivision, replayCourtMatchOps,
+  // app/modules/sync/two-tabs.js
+  KSM_TAB_ID, ksmOutboxKey, ksmReleaseReplaceBackups, ksmWriterId,
+  // app/modules/sync/cloud-diagnostics.js
   downloadActionHistorySample, downloadSnapshotAnalysis, readCloudDiagnosticsState, writeCloudDiagnosticsState,
-  // 20-cloud-session-and-autosave.js
-  applySetupSnapshot, clearOutbox, cloudSession, downloadRecoveryFile, getSetupSnapshot, KSM_AUTOSAVE_CLOUD_ID,
-  ksmCurrentSessionRole, markLocalSave, persistCloudSession, readOutbox, renderPersistentSaveStatus, saveNow, setConnectionStatus,
-  tournamentPayload, tournamentSettings, updateSaveStatus, writeOutbox,
-  // 21-cloud-realtime-save-and-load.js
-  applyRemoteCloudRecord, applyTournamentPayload, closeCloudModal, cloudDiagnostics, confirmTournamentFileLoad, copyTextValue, copyTournamentId,
-  disconnectCloudSocket, flushCloudOutbox, isTvSession, ksmCancelReplace, ksmReplaceAnyway, ksmSendCourtClock, ksmSendTieFlash, ksmTieFlashConnected,
-  loadRecoveryFile, loadTournamentFromFile, manualSaveTournament, reconnectTvRealtime, renderCloudPresence, replaceTournamentFromFile,
-  retryQueuedCloudSave, saveTournamentToCloudWithReason, showKsmToast, tournamentFilePayload, triggerLoadRecoveryFile, triggerLoadTournament, tvLink,
+  // app/modules/sync/cloud-session-and-autosave.js
+  applySetupSnapshot, clearOutbox, downloadRecoveryFile, getSetupSnapshot, markLocalSave, persistCloudSession, readOutbox,
+  renderPersistentSaveStatus, saveNow, setConnectionStatus, tournamentPayload, tournamentSettings, updateSaveStatus, writeOutbox,
+  // app/modules/sync/cloud-realtime-save-and-load.js
+  applyRemoteCloudRecord, applyTournamentPayload, closeCloudModal, cloudDiagnostics, confirmTournamentFileLoad, copyTextValue,
+  copyTournamentId, disconnectCloudSocket, flushCloudOutbox, isTvSession, ksmCancelReplace, ksmReplaceAnyway, ksmSendCourtClock,
+  ksmSendTieFlash, ksmTieFlashConnected, loadRecoveryFile, loadTournamentFromFile, manualSaveTournament, reconnectTvRealtime,
+  renderCloudPresence, replaceTournamentFromFile, retryQueuedCloudSave, saveTournamentToCloudWithReason, showKsmToast,
+  tournamentFilePayload, triggerLoadRecoveryFile, triggerLoadTournament, tvLink,
   // app/modules/court/scorekeeper-screen.js
   closeFusenDialog, confirmFusen, openFusenDialog, updateScoreTournamentName,
   // 23-navigation.js
@@ -122,13 +122,13 @@ Object.assign(window, {
   // 33-friendly-links.js
   ksmEditTournamentSlug, ksmRenameTournamentSlug, ksmSaveShortUrl,
   // 33-staff-session-and-library.js
-  createNewTournament, initializeCloudRoleFromUrl, installRoleBanner, isReadOnlySession, KSM_STAFF_TOURNAMENT, KSM_V316_STAFF_SESSION,
-  ksmKeepStaffOutbox, openTournamentAccess, openTournamentFromHome, rememberTournament, sessionKey, showHomePage,
-  v316StaffPassword,
+  canCloudWrite, createNewTournament, initializeCloudRoleFromUrl, installRoleBanner, isReadOnlySession, KSM_STAFF_TOURNAMENT,
+  KSM_V316_STAFF_SESSION, ksmKeepStaffOutbox, ksmV316StaffSessionKey, openTournamentAccess, openTournamentFromHome, performCloudSave,
+  promptNewStaffPassword, rememberTournament, sessionKey, showHomePage, spectatorLink, v316StaffPassword,
   // 33-stream-overlay-links.js
   copyStreamOverlayLink,
   // 33-tournament-switcher.js
-  KSM_DETACHED_DRAFT_KEY, ksmRefreshTournamentChip, ksmShowLibrary,
+  KSM_DETACHED_DRAFT_KEY, ksmCurrentTournamentEpoch, ksmHasStartupCache, ksmIsStartupLoadFailed, ksmRefreshTournamentChip, ksmShowLibrary,
   // app/modules/court/match-timer.js
   ksmMatchTimerInput, ksmNormalizeTimerSettings, ksmSaveTimerSettings, ksmSetCourtTimerEnabled, ksmSetCourtTimerSound,
   // 35-react-court.js
@@ -154,15 +154,18 @@ Object.assign(window, {
   ksmUpdateCompetitor,
   // 44-react-shell.js
   ksmCloseCloudModal, ksmCloseShellDialog, ksmCloudModalOpen, ksmConfirmDeleteTournament, ksmConfirmValidation,
-  ksmContinueRegenerateDivision, ksmOpenCloudModal, ksmOpenDeleteTournament, ksmOpenRegenerateDialog, ksmPersistentSaveStatusText,
-  ksmRegeneratePoolDivision, ksmSetActiveNav, ksmSetFusenOpen, ksmSetTestTools, ksmShellDialogsState, ksmShellHeaderState,
+  ksmContinueRegenerateDivision, ksmOpenCloudModal, ksmOpenDeleteTournament, ksmOpenDiagnostics, ksmOpenFileLoadModal,
+  ksmOpenRegenerateDialog, ksmPersistentSaveStatusText, ksmRegeneratePoolDivision, ksmRenderConnectionStatus, ksmRenderPresence,
+  ksmRenderSaveStatus, ksmSetActiveNav, ksmSetFusenOpen, ksmSetTestTools, ksmShellDialogsState, ksmShellHeaderState,
   ksmShowValidationDialog, ksmToggleTestTools,
-  // 03-undo-regenerate.js
+  // app/modules/sync/undo-regenerate.js
   ksmRefreshRestorePoint, ksmRenderUndoRegenerate, ksmUndoRegenerateOffered,
   // 39-react-overview.js
   ksmRenderOverview,
   // 37-react-tv.js
   ksmRenderTv,
+  // 54-auth0-access.js
+  ksmReadHeaders, ksmUsesAccountAuth,
 });
 
 // Second block: live accessors, for names that are assigned after their declaration (a wrapped function,
@@ -190,38 +193,45 @@ Object.assign(window, {
     poolStandings: live(() => poolStandings, v => { poolStandings = v; }),
     // 16-court-context-and-pool-editing.js
     renderAll: live(() => renderAll, v => { renderAll = v; }),
+    // app/modules/sync/cloud-realtime-save-and-load.js
+    ksmApplyingRemoteSnapshot: live(() => ksmApplyingRemoteSnapshot, v => { setKsmApplyingRemoteSnapshot(v); }),
+    ksmCloudReconnectTimer: live(() => ksmCloudReconnectTimer, v => { setKsmCloudReconnectTimer(v); }),
+    ksmCloudSaveInFlight: live(() => ksmCloudSaveInFlight, v => { setKsmCloudSaveInFlight(v); }),
+    ksmCloudSavePending: live(() => ksmCloudSavePending, v => { setKsmCloudSavePending(v); }),
+    ksmCloudSocket: live(() => ksmCloudSocket, v => { setKsmCloudSocket(v); }),
+    ksmCloudTimer: live(() => ksmCloudTimer, v => { setKsmCloudTimer(v); }),
+    ksmConfirmedMutationVersion: live(() => ksmConfirmedMutationVersion, v => { setKsmConfirmedMutationVersion(v); }),
+    ksmDeferredRemoteRecord: live(() => ksmDeferredRemoteRecord, v => { setKsmDeferredRemoteRecord(v); }),
+    ksmFileReplace: live(() => ksmFileReplace),
+    ksmLastSuccessfulSaveAt: live(() => ksmLastSuccessfulSaveAt, v => { setKsmLastSuccessfulSaveAt(v); }),
+    ksmLocalMutationVersion: live(() => ksmLocalMutationVersion, v => { setKsmLocalMutationVersion(v); }),
+    ksmPendingTournamentFile: live(() => ksmPendingTournamentFile, v => { setKsmPendingTournamentFile(v); }),
+    ksmQueuedSaveRetryTimer: live(() => ksmQueuedSaveRetryTimer),
+    ksmSaveStatusMode: live(() => ksmSaveStatusMode, v => { setKsmSaveStatusMode(v); }),
+    ksmSaveTimer: live(() => ksmSaveTimer, v => { setKsmSaveTimer(v); }),
+    // app/modules/sync/sync-state-and-rebase.js
+    ksmDeferredSyncRecord: live(() => ksmDeferredSyncRecord, v => { setKsmDeferredSyncRecord(v); }),
     // 18-sync-state-and-rebase.js
-    ksmApplyingRemoteSnapshot: live(() => ksmApplyingRemoteSnapshot, v => { ksmApplyingRemoteSnapshot = v; }),
-    ksmCloudReconnectTimer: live(() => ksmCloudReconnectTimer, v => { ksmCloudReconnectTimer = v; }),
-    ksmCloudSaveInFlight: live(() => ksmCloudSaveInFlight, v => { ksmCloudSaveInFlight = v; }),
-    ksmCloudSavePending: live(() => ksmCloudSavePending, v => { ksmCloudSavePending = v; }),
-    ksmCloudSocket: live(() => ksmCloudSocket, v => { ksmCloudSocket = v; }),
-    ksmCloudTimer: live(() => ksmCloudTimer, v => { ksmCloudTimer = v; }),
-    ksmConfirmedMutationVersion: live(() => ksmConfirmedMutationVersion, v => { ksmConfirmedMutationVersion = v; }),
-    ksmDeferredSyncRecord: live(() => ksmDeferredSyncRecord, v => { ksmDeferredSyncRecord = v; }),
-    ksmLastSuccessfulSaveAt: live(() => ksmLastSuccessfulSaveAt, v => { ksmLastSuccessfulSaveAt = v; }),
-    ksmLocalMutationVersion: live(() => ksmLocalMutationVersion, v => { ksmLocalMutationVersion = v; }),
-    ksmSaveStatusMode: live(() => ksmSaveStatusMode, v => { ksmSaveStatusMode = v; }),
-    ksmSaveTimer: live(() => ksmSaveTimer, v => { ksmSaveTimer = v; }),
     noteLocalMutation: live(() => noteLocalMutation, v => { noteLocalMutation = v; }),
+    // app/modules/sync/cloud-session-and-autosave.js
+    cloudSession: live(() => cloudSession),
+    ksmSessionRole: live(() => ksmSessionRole, v => { setKsmSessionRole(v); }),
     // 20-cloud-session-and-autosave.js
     criticalAutoSave: live(() => criticalAutoSave, v => { criticalAutoSave = v; }),
-    ksmSessionRole: live(() => ksmSessionRole, v => { ksmSessionRole = v; }),
     saveAuto: live(() => saveAuto, v => { saveAuto = v; }),
     scheduleAutoSave: live(() => scheduleAutoSave, v => { scheduleAutoSave = v; }),
     // 21-cloud-realtime-save-and-load.js
     connectCloudSocket: live(() => connectCloudSocket, v => { connectCloudSocket = v; }),
-    ksmDeferredRemoteRecord: live(() => ksmDeferredRemoteRecord, v => { ksmDeferredRemoteRecord = v; }),
-    ksmFileReplace: live(() => ksmFileReplace, v => { ksmFileReplace = v; }),
-    ksmPendingTournamentFile: live(() => ksmPendingTournamentFile, v => { ksmPendingTournamentFile = v; }),
-    ksmQueuedSaveRetryTimer: live(() => ksmQueuedSaveRetryTimer, v => { ksmQueuedSaveRetryTimer = v; }),
     loadTournamentFileAsNew: live(() => loadTournamentFileAsNew, v => { loadTournamentFileAsNew = v; }),
     // 22-scorekeeper-screen.js
     renderScore: live(() => renderScore, v => { renderScore = v; }),
     // 33-friendly-links.js
+    ksmCacheTournament: live(() => ksmCacheTournament, v => { ksmCacheTournament = v; }),
     ksmFetchTournament: live(() => ksmFetchTournament, v => { ksmFetchTournament = v; }),
     ksmPendingSlug: live(() => ksmPendingSlug, v => { ksmPendingSlug = v; }),
     // 33-staff-session-and-library.js
+    cloudHeaders: live(() => cloudHeaders, v => { cloudHeaders = v; }),
+    loadTournamentFromCloud: live(() => loadTournamentFromCloud, v => { loadTournamentFromCloud = v; }),
     renderHomeTournamentLibrary: live(() => renderHomeTournamentLibrary, v => { renderHomeTournamentLibrary = v; }),
     setSessionRole: live(() => setSessionRole, v => { setSessionRole = v; }),
     toggleStaffSession: live(() => toggleStaffSession, v => { toggleStaffSession = v; }),

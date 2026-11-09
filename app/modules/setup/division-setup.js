@@ -2,10 +2,11 @@
 import {DIVISION_PRESETS,state} from '../app-state.js';
 import {findNextForCourt,isTeamMatch,renderDivisions} from '../court/court-match-order.js';
 import {championshipCourtFor,divisionCourtMode,poolCourtFor} from '../engine/engine-pools.js';
-import {ksmRefreshTournamentChip,ksmRenderSetupDivisions,ksmRenderSetupHeader,matchBelongsToCourt,showKsmToast} from '../legacy.js';
+import {ksmRefreshTournamentChip,ksmRenderSetupDivisions,ksmRenderSetupHeader,matchBelongsToCourt} from '../legacy.js';
 import {ksmRenderGrandChampionSetup} from '../registration/grand-champion.js';
 import {renderReg} from '../registration/registration.js';
 import {ksmRenderTeamDivisions} from '../registration/team-divisions.js';
+import {showKsmToast} from '../sync/cloud-realtime-save-and-load.js';
 function addDivision(v){v=v||customDivName?.value?.trim()||window.newDiv?.value?.trim();if(!v)return;if(!state.divisions.includes(v)){state.divisions.push(v);state.divisionTypes[v]=customDivFormat?.value||window.newDivType?.value||'Round Robin';state.divisionCourts[v]=/** @type {any} */(customDivCourt?.value||'A')}if(window.customDivName)customDivName.value='';renderDivisionSetup();renderDivisions();renderReg()}
 export function addCustomDivision(){const name=customDivName.value.trim();const added=name&&!state.divisions.includes(name);addDivision();/** @type {HTMLButtonElement} */(document.querySelector('[data-testid="custom-division-add"]')).disabled=true;if(added)ksmAnnounceAddedDivision(name);}
 export function removeDivision(i){let d=state.divisions[i];state.divisions.splice(i,1);delete state.divisionTypes[d];delete state.divisionCourts[d];renderDivisionSetup();renderDivisions();renderReg()}

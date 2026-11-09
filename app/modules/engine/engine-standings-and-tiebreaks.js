@@ -3,9 +3,10 @@ import {state} from '../app-state.js';
 import {individualMatchReady} from '../court/court-match-order.js';
 import {requiredSeedPlaces} from './engine-championship.js';
 import {eligibleTeams,isTeamDivision,poolCourtFor} from './engine-pools.js';
-import {initialPoolStandings,isReadOnlySession,matchBelongsToCourtInState,matchHasSyncIdentity,matchSyncIdentity,nextReadyIndexInState,pendingTiebreak,poolPositionsResolved} from '../legacy.js';
+import {initialPoolStandings,isReadOnlySession,pendingTiebreak,poolPositionsResolved} from '../legacy.js';
 import {ksmTeamSettings} from '../registration/team-divisions.js';
 import {divisionComplete} from '../results/results-and-awards.js';
+import {matchBelongsToCourtInState,matchHasSyncIdentity,matchSyncIdentity,nextReadyIndexInState} from '../sync/sync-state-and-rebase.js';
 /**
  * @param {string} poolLabel
  * @param {string} div

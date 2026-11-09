@@ -23,6 +23,12 @@ interface Window {
   ksmCourtQueueRequested?: boolean;
   ksmCourtContextRequested?: boolean;
   ksmCourtCompleteRequested?: { div: string; complete: boolean };
+  /** What the React court screen shows (35-react-court.js), read by the tie flash (app/modules/sync). */
+  ksmCourtScoreboardInput?: any;
+  ksmCourtHeaderInput?: any;
+  /** Called through window by the grand champion module (its rebase helpers also run outside the page). */
+  writeCloudDiagnosticsState?: typeof import('../modules/sync/cloud-diagnostics.js').writeCloudDiagnosticsState;
+  showKsmToast?: typeof import('../modules/sync/cloud-realtime-save-and-load.js').showKsmToast;
 }
 /** Live Scores title. */
 declare var publicTitle: HTMLElement;

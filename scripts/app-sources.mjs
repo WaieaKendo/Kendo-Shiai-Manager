@@ -13,7 +13,7 @@
 //                       rolldown bundle of entry + modules (appBundle()), still ONE ES module file.
 // app/modules/          the modules the entry imports, plain `.js` with `// @ts-check` (step 3d of #136,
 //                       area by area: app-state.js, engine/engine-*.js, court/*.js, registration/*.js, setup/*.js,
-//                       results/*.js, html-text.js; next: cloud/sync). A module never imports from the entry; its calls into app/js
+//                       results/*.js, sync/*.js (part 1), html-text.js; next: sync part 2). A module never imports from the entry; its calls into app/js
 //                       code that has not moved go through legacy.js (one wrapper per function, calling
 //                       window.NAME at call time; app/js/00-legacy-exports.js puts those names on window
 //                       first, since the entry's load-time code runs court code before 99-window-exports.js). Tests that read or run the app's code see the
@@ -35,7 +35,7 @@
 //
 // The release version is written ONLY in package.json. The sources carry the placeholder
 // __KSM_VERSION__ instead (index.html title + badge, the two appVersion fields in
-// app/js/19-cloud-diagnostics.js, the service worker CACHE_NAME); the build (and the dev
+// app/modules/sync/cloud-diagnostics.js, the service worker CACHE_NAME); the build (and the dev
 // server) replace it with withVersion(). src-worker.js imports package.json itself.
 import fs from 'node:fs';
 import { printDocuments } from '../app/print-documents.mjs';

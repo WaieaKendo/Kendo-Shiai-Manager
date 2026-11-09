@@ -1,7 +1,10 @@
 // @ts-check
 import {state} from '../app-state.js';
 import {matchRequiresWinner} from './court-scoring-and-history.js';
-import {getSetupSnapshot,isReadOnlySession,isTvSession,ksmLegacyCloudSession,matchBelongsToCourt,matchSyncIdentity,renderAll,saveSetup} from '../legacy.js';
+import {isReadOnlySession,matchBelongsToCourt,renderAll,saveSetup} from '../legacy.js';
+import {isTvSession} from '../sync/cloud-realtime-save-and-load.js';
+import {cloudSession,getSetupSnapshot} from '../sync/cloud-session-and-autosave.js';
+import {matchSyncIdentity} from '../sync/sync-state-and-rebase.js';
 // Only configuration enters SetupSnapshot. Running timers live in the React court island.
 export function ksmNormalizeTimerSettings(data){
   const out={};
@@ -42,7 +45,7 @@ export function ksmMatchTimerInput(){
   const field={Quarterfinal:'timeQuarterfinal',Semifinal:'timeSemifinal',Final:'timeFinal'}[stage];
   const ms=value=>{if(!value)return 0;const [minutes,seconds]=value.split(':').map(Number);return (minutes*60+seconds)*1000};
   // Unassigned local tournaments have one local autosave slot; cloud tournaments use their ID.
-  return {tournamentId:ksmLegacyCloudSession().tournamentId||'local',court,matchKey:matchSyncIdentity(m),
+  return {tournamentId:cloudSession.tournamentId||'local',court,matchKey:matchSyncIdentity(m),
     sound:settings[court==='B'?'court2TimerSound':'court1TimerSound'],enabled:settings[court==='B'?'court2TimerEnabled':'court1TimerEnabled']!=='Off',durationMs:ms(settings[field]||settings.timeRegular),enchoMs:ms(settings.timeEncho),
     tied:(state.score?.W||[]).length===(state.score?.R||[]).length,scored:(state.score?.W||[]).length+(state.score?.R||[]).length>0,requiresWinner:!!matchRequiresWinner(m)};
 }

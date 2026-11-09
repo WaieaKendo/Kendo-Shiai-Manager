@@ -1,5 +1,7 @@
 // ---------- KSM v3.16.2 Spectator / Staff and Tournament Library ----------
 const KSM_V316_STAFF_SESSION='ksm.staff.session.v3_16';
+// Read by app/modules/sync through legacy.js (a module cannot read a `var`/`const` of app/js).
+function ksmV316StaffSessionKey(){return KSM_V316_STAFF_SESSION}
 const KSM_V316_LIBRARY='ksm.tournament.library.v3_16';
 const KSM_STAFF_TOURNAMENT='ksm.staff.tournament.v1';
 function ksmStoreStaffToken(token,id=cloudSession.tournamentId){
@@ -43,7 +45,7 @@ function ksmStaffToken(value){return typeof value==='string'&&value.startsWith('
 // staff work of its own, so it never replaces a queued staff snapshot of this tournament (by one
 // stamped as spectator, which the next live update would discard) before Staff Login sends it.
 function ksmKeepStaffOutbox(){if(!isReadOnlySession()||!cloudSession.tournamentId)return false;const queued=readOutbox();return queued?.role==='staff'&&queued.tournamentId===cloudSession.tournamentId}
-function setSessionRole(role){ksmSessionRole=role==='staff'?'staff':'spectator';document.body.classList.toggle('ksm-spectator',ksmSessionRole==='spectator');document.body.classList.toggle('ksm-staff',ksmSessionRole==='staff');document.body.classList.remove('ksm-scorekeeper','ksm-admin');ksmRenderSessionRole();}
+function setSessionRole(role){setKsmSessionRole(role==='staff'?'staff':'spectator');document.body.classList.toggle('ksm-spectator',ksmSessionRole==='spectator');document.body.classList.toggle('ksm-staff',ksmSessionRole==='staff');document.body.classList.remove('ksm-scorekeeper','ksm-admin');ksmRenderSessionRole();}
 function isReadOnlySession(){return ksmSessionRole!=='staff'}
 function isSpectatorSession(){return isReadOnlySession()}
 function canCloudWrite(){return ksmSessionRole==='staff'||!cloudSession.tournamentId}
@@ -223,8 +225,8 @@ async function performCloudSave(payload=tournamentPayload(),baseRevision=cloudSe
   clearOutbox();
   // #129 part 3: the regenerate reached the server, which now keeps the copy before it (the Danger zone asks).
   if(restoreMark){ksmClearRestoreMark(record.tournamentId,restoreMark.restorePointId);globalThis.dispatchEvent?.(new Event('ksm:regenerate-saved'))}
-  ksmLastSuccessfulSaveAt=Date.parse(record.updatedAt)||Date.now();
-  ksmSaveStatusMode='saved';
+  setKsmLastSuccessfulSaveAt(Date.parse(record.updatedAt)||Date.now());
+  setKsmSaveStatusMode('saved');
   writeCloudDiagnosticsState({
     attemptId,
     stage:rebaseAttempt?'Rebased save completed':'Save completed',
@@ -241,7 +243,7 @@ async function performCloudSave(payload=tournamentPayload(),baseRevision=cloudSe
   if(idChanged||!ksmCloudSocket)connectCloudSocket();
   return record;
 }
-async function loadTournamentFromCloud(tournamentId,options={}){const id=(tournamentId||cloudSession.tournamentId||'').trim();if(!id)throw new Error('Tournament ID required');setConnectionStatus('Loading cloud…','connecting');const epoch=ksmTournamentEpoch;const response=await ksmFetchTournament(id);if(epoch!==ksmTournamentEpoch)throw Object.assign(new Error('Tournament changed'),{code:'transition-cancelled'});if(response.status===410){ksmAnnounceTournamentGone(id,true);throw ksmGoneError()}if(!response.ok)throw new Error(`Cloud load failed (${response.status})`);const record=await response.json();cloudSession.slug=record.slug||null;const requestedCourt=options.court?normalizeCourt(options.court):pinnedCourt();cloudSession.tournamentId=record.tournamentId;if(requestedCourt)pinCourtLocally(requestedCourt);disconnectCloudSocket();ksmApplyingRemoteSnapshot=true;try{applyTournamentPayload(record.payload,false,{pinnedCourt:requestedCourt});ksmStoreAutosave(record.payload)}finally{ksmApplyingRemoteSnapshot=false}cloudSession.tournamentId=record.tournamentId;cloudSession.revision=record.revision;cloudSession.updatedAt=record.updatedAt;cloudSession.court=requestedCourt||'';persistCloudSession();rememberCloudBase(record);rememberTournament(record);ksmLastSuccessfulSaveAt=Date.parse(record.updatedAt)||Date.now();ksmSaveStatusMode='saved';setSessionRole(v316StaffPassword()?'staff':'spectator');if(!isReadOnlySession())mergeQueuedStaffWork();installRoleBanner(ksmSessionRole);if(!options.resumeStaff)connectCloudSocket();setConnectionStatus('Connected','online');renderPersistentSaveStatus();return record}
+async function loadTournamentFromCloud(tournamentId,options={}){const id=(tournamentId||cloudSession.tournamentId||'').trim();if(!id)throw new Error('Tournament ID required');setConnectionStatus('Loading cloud…','connecting');const epoch=ksmTournamentEpoch;const response=await ksmFetchTournament(id);if(epoch!==ksmTournamentEpoch)throw Object.assign(new Error('Tournament changed'),{code:'transition-cancelled'});if(response.status===410){ksmAnnounceTournamentGone(id,true);throw ksmGoneError()}if(!response.ok)throw new Error(`Cloud load failed (${response.status})`);const record=await response.json();cloudSession.slug=record.slug||null;const requestedCourt=options.court?normalizeCourt(options.court):pinnedCourt();cloudSession.tournamentId=record.tournamentId;if(requestedCourt)pinCourtLocally(requestedCourt);disconnectCloudSocket();setKsmApplyingRemoteSnapshot(true);try{applyTournamentPayload(record.payload,false,{pinnedCourt:requestedCourt});ksmStoreAutosave(record.payload)}finally{setKsmApplyingRemoteSnapshot(false)}cloudSession.tournamentId=record.tournamentId;cloudSession.revision=record.revision;cloudSession.updatedAt=record.updatedAt;cloudSession.court=requestedCourt||'';persistCloudSession();rememberCloudBase(record);rememberTournament(record);setKsmLastSuccessfulSaveAt(Date.parse(record.updatedAt)||Date.now());setKsmSaveStatusMode('saved');setSessionRole(v316StaffPassword()?'staff':'spectator');if(!isReadOnlySession())mergeQueuedStaffWork();installRoleBanner(ksmSessionRole);if(!options.resumeStaff)connectCloudSocket();setConnectionStatus('Connected','online');renderPersistentSaveStatus();return record}
 async function initializeCloudRoleFromUrl(){ksmRouteLoading++;try{await ksmResolveSlug();ensureClientIdentity();const params=ksmLinkParams();const id=params.get('tournament')||params.get('spectator')||'';const requestedView=params.get('view')||'';const requestedCourt=params.get('court')?normalizeCourt(params.get('court')):(requestedView!=='tv'&&id&&storedCourtPin(id))||'A';if(id){const staff=ksmStaffToken(sessionStorage.getItem(KSM_V316_STAFF_SESSION))&&sessionStorage.getItem(KSM_STAFF_TOURNAMENT)===id&&!ksmExplicitSpectatorUrl&&requestedView!=='tv'&&params.get('role')!=='spectator'&&!params.has('spectator');if(!staff)sessionStorage.removeItem(KSM_V316_STAFF_SESSION);await loadTournamentFromCloud(id,{spectator:!staff,court:requestedCourt,resumeStaff:staff});ksmStartupLoadFailed=false;if(staff)await ksmResumeStaffSession(id);connectCloudSocket();installRoleBanner(ksmSessionRole);document.body.classList.remove('ksm-home');if(requestedView==='tv'){document.body.classList.add('ksm-tv');cloudSession.court=requestedCourt;persistCloudSession();renderTvDisplay();renderTvRealtimeDiagnostics();show('tv')}else{document.body.classList.remove('ksm-tv');ksmShowRequestedScreen()}return true}
 // The Library URL has no ID. Only this tab's explicitly scoped token may restore its context.
 const savedId=sessionStorage.getItem(KSM_STAFF_TOURNAMENT);

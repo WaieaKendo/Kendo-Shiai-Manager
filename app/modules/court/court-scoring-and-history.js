@@ -7,8 +7,12 @@ import {completedResultSnapshot} from '../engine/engine-result-integrity.js';
 import {maybeAdvanceIndividualSingleElim} from '../engine/engine-single-elim.js';
 import {maybeCreateTeamTiebreak,maybeCreateTiebreaks} from '../engine/engine-standings-and-tiebreaks.js';
 import {maybeAdvanceTeamBracket} from '../engine/engine-team-bracket.js';
-import {cloneJson,criticalAutoSave,historyEntryIdentity,ksmLegacyCloudSession,ksmNotifyStateChanged,ksmSignalCourtActions,ksmTabId,matchHasSyncIdentity,matchSyncIdentity,renderAll,renderPools,renderProgress,renderScore,replayCourtMatchOps,showKsmToast,updateSaveStatus} from '../legacy.js';
+import {criticalAutoSave,ksmNotifyStateChanged,ksmSignalCourtActions,renderAll,renderPools,renderProgress,renderScore} from '../legacy.js';
 import {renderPublic} from '../results/live-scores.js';
+import {showKsmToast} from '../sync/cloud-realtime-save-and-load.js';
+import {cloudSession,updateSaveStatus} from '../sync/cloud-session-and-autosave.js';
+import {cloneJson,historyEntryIdentity,matchHasSyncIdentity,matchSyncIdentity,replayCourtMatchOps} from '../sync/sync-state-and-rebase.js';
+import {KSM_TAB_ID} from '../sync/two-tabs.js';
 export function loadScoreFromMatch(m){
   if(!m || m.done){state.score={W:[],R:[],WT:0,RT:0};return;}
   state.score={W:[...(m.wp||[])],R:[...(m.rp||[])],WT:m.wt||0,RT:m.rt||0};
@@ -61,7 +65,7 @@ function buildHistoryPatches(before,after,path=[],patches=[]){
   patches.push({path:[...path],before:cloneHistoryValue(before),after:cloneHistoryValue(after)});
   return patches;
 }
-function currentHistoryCourt(){const c=String(state.currentCourt||ksmLegacyCloudSession()?.court||'A').toUpperCase();return c==='B'?'B':'A'}
+function currentHistoryCourt(){const c=String(state.currentCourt||cloudSession?.court||'A').toUpperCase();return c==='B'?'B':'A'}
 function stampHistoryPatchMatchIdentity(patch,before,after){return KSMEngine.stampHistoryPatchMatchIdentity(patch,before,after);// moved to app/engine/sync-helpers.ts
   }
 export function performCourtAction(label,fn){
@@ -69,7 +73,7 @@ export function performCourtAction(label,fn){
   const result=fn();const after=historyComparableState(),patches=buildHistoryPatches(before,after).map(patch=>stampHistoryPatchMatchIdentity(patch,before,after));
   if(patches.length){
     const stack=state.courtActionHistory[court];
-    stack.push(withCourtHistoryIdentity({format:'patch-v1',label:label||'Action',court,when:new Date().toISOString(),clientId:ksmLegacyCloudSession()?.clientId||'',tabId:ksmTabId(),revision:ksmLegacyCloudSession()?.revision||0,patches},before,after));
+    stack.push(withCourtHistoryIdentity({format:'patch-v1',label:label||'Action',court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',tabId:KSM_TAB_ID,revision:cloudSession?.revision||0,patches},before,after));
     if(stack.length>KSM_HISTORY_LIMIT)stack.splice(0,stack.length-KSM_HISTORY_LIMIT);
     state.courtRedoHistory[court]=[];
   }
@@ -166,7 +170,7 @@ function withCourtMatchOps(entry,beforeAll,afterAll){
 function recordCourtUndoLog(court,kind,action,matchesBefore){
   state.courtUndoLog=state.courtUndoLog||{A:[],B:[]};
   const log=Array.isArray(state.courtUndoLog[court])?state.courtUndoLog[court]:(state.courtUndoLog[court]=[]);
-  const entry={format:'history-op-v1',kind,court,when:new Date().toISOString(),clientId:ksmLegacyCloudSession()?.clientId||'',tabId:ksmTabId(),revision:ksmLegacyCloudSession()?.revision||0,
+  const entry={format:'history-op-v1',kind,court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',tabId:KSM_TAB_ID,revision:cloudSession?.revision||0,
     target:historyEntryIdentity(action),label:action.label||'Action',patches:cloneJson(action.patches||[])};
   const matchOps=courtUndoMatchOps(matchesBefore);if(matchOps)entry.matchOps=matchOps;
   log.push(entry);

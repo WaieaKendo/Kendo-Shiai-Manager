@@ -208,10 +208,40 @@ for (const f of fs.readdirSync(path.join(ROOT, 'tests')).filter(f => f.endsWith(
 for (const f of reactFiles) for (const m of read(f).matchAll(/\b(?:w|window|\w+Window\(\))\.([A-Za-z_$][\w$]*)\s*=(?![=>])/g)) mustBeLive(m[1], `window.${m[1]} = in ${path.basename(f)}`);
 // A const cannot be assigned: nothing to keep live.
 for (const [n] of accessor) if (topLevel.get(n) === 'const' || topLevel.get(n) === 'class') accessor.delete(n);
+// A module's `let` (the sync state, step 3d of #136) changes inside its module: exported to window, it is a live
+// accessor (a value export would keep the first value). The entry cannot assign an imported binding, so when it is
+// written from outside (a test, React) the accessor's setter calls the module's setter, `export function setNAME(value)`.
+const moduleLets = new Map(); // name -> its setter's name, or null
+for (const f of walkFiles('app/modules', ['.js'])) {
+  const body = parseAst(read(f), { lang: 'js' }).body;
+  const fns = new Set(body.filter(s => s.type === 'ExportNamedDeclaration' && s.declaration?.type === 'FunctionDeclaration').map(s => s.declaration.id.name));
+  for (const s of body) if (s.type === 'ExportNamedDeclaration' && s.declaration?.type === 'VariableDeclaration' && s.declaration.kind === 'let')
+    s.declaration.declarations.forEach(d => patternNames(d.id).forEach(n => { const set = 'set' + n[0].toUpperCase() + n.slice(1); moduleLets.set(n, fns.has(set) ? set : null); }));
+}
+const liveSetter = new Map(); // live accessor name -> the setter's code
+{
+  const walk = n => {
+    if (!n || typeof n !== 'object') return;
+    if (Array.isArray(n)) return n.forEach(walk);
+    if (n.type === 'CallExpression' && n.callee.type === 'MemberExpression' && n.callee.property.name === 'defineProperties' && n.arguments[1]?.type === 'ObjectExpression')
+      n.arguments[1].properties.forEach(p => { const set = p.value?.arguments?.[1]; liveSetter.set(p.key.name ?? p.key.value, set ? read(EXPORTS_FILE).slice(set.start, set.end) : null); });
+    for (const k in n) if (k !== 'type') walk(n[k]);
+  };
+  walk(parseAst(read(EXPORTS_FILE), { lang: 'js' }).body);
+}
+for (const n of exported) if (topLevel.get(n) === 'import' && moduleLets.has(n)) mustBeLive(n, 'a module `let`, assigned inside its module');
 // An imported name cannot be assigned from the entry (or through window): a test or React that replaces it
 // (window.NAME = ..., a KSMTest setter) would never be seen by the module's own calls. Keep such a function
-// declared in app/js, where it can be exported as a live accessor.
-for (const [n, why] of accessor) if (topLevel.get(n) === 'import') { problems.push(`${n} is imported from a module but is replaced from outside (${[...why][0]}); declare it in app/js instead`); accessor.delete(n); }
+// declared in app/js, where it can be exported as a live accessor. A module `let` is written through its setter.
+for (const [n, why] of accessor) {
+  if (topLevel.get(n) !== 'import') continue;
+  if (!moduleLets.has(n)) { problems.push(`${n} is imported from a module but is replaced from outside (${[...why][0]}); declare it in app/js instead`); accessor.delete(n); continue; }
+  const outside = [...why].filter(w => !w.startsWith('a module'));
+  const set = moduleLets.get(n), code = liveSetter.get(n);
+  if (outside.length && !set) problems.push(`${n} (a module \`let\`) is written from outside (${outside[0]}) but its module exports no set${n[0].toUpperCase() + n.slice(1)}(value)`);
+  else if (outside.length && live.has(n) && !(code && new RegExp(`^v => \\{ ${set}\\(v\\); \\}$`).test(code))) problems.push(`${EXPORTS_FILE}: the live accessor of ${n} must write it through ${set}(v)`);
+  else if (!outside.length && code) problems.push(`${EXPORTS_FILE}: ${n} is written only inside its module; its live accessor needs no setter`);
+}
 
 const missing = [...need.keys()].filter(n => !exported.has(n)).sort();
 if (missing.length) problems.push(`not exported but reached from outside app.js (${missing.length}); add to ${EXPORTS_FILE}:\n    ` + missing.map(n => `${n}  <- ${[...need.get(n)][0]}`).join('\n    '));

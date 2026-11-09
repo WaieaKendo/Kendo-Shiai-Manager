@@ -4,7 +4,9 @@ import {isTeamMatch,sortIndividualDivisionMatches,sortTeamMatches} from '../cour
 import {teamSideLabel} from '../court/court-queue-and-views.js';
 import {championshipLabels,firstRoundName,previousRoundName,sourceLabelForRound} from '../engine/engine-championship.js';
 import {sideLabelGeneric} from '../engine/engine-single-elim.js';
-import {closeNavMenus,ksmLegacyCloudSession,ksmRenderLiveScores,matchBelongsToCourt,saveNow,tvLink} from '../legacy.js';
+import {closeNavMenus,ksmRenderLiveScores,matchBelongsToCourt} from '../legacy.js';
+import {tvLink} from '../sync/cloud-realtime-save-and-load.js';
+import {cloudSession,saveNow} from '../sync/cloud-session-and-autosave.js';
 // ==========================================================
 // KSM v3.9.1 — Live Scores render modes
 // ==========================================================
@@ -77,4 +79,4 @@ export function tvUpcomingMatches(court,current,teamMode=false){
   }
   return candidates.slice(0,2);
 }
-export async function launchTvDisplay(court){closeNavMenus();if(!ksmLegacyCloudSession().tournamentId)await saveNow();if(!ksmLegacyCloudSession().tournamentId){alert('Save the tournament to cloud before opening TV Display.');return}window.open(tvLink(court),'_blank','noopener')}
+export async function launchTvDisplay(court){closeNavMenus();if(!cloudSession.tournamentId)await saveNow();if(!cloudSession.tournamentId){alert('Save the tournament to cloud before opening TV Display.');return}window.open(tvLink(court),'_blank','noopener')}
