@@ -1,10 +1,10 @@
 // @ts-check
 import {state} from '../app-state.js';
 import {individualMatchReady,isTeamMatch,sortIndividualDivisionMatches,sortTeamMatches} from '../court/court-match-order.js';
-import {matchBelongsToCourt} from '../legacy.js';
+import {matchBelongsToCourt} from '../engine/engine-generation.js';
+import {ksmNextCourtDivision,ksmText} from './court.js';
 import {ksmDivisionName} from '../registration/team-divisions.js';
 import {isValidMatchObject} from '../sync/sync-state-and-rebase.js';
-import {ksmNextCourtDivision,ksmText} from './court.js';
 // ==========================================================
 // React Live Scores (app/react/features/live-scores/, roadmap M.13, #136 step 2)
 // The Live Scores screen (#public) is drawn only by React: one island (LiveScores), mounted by

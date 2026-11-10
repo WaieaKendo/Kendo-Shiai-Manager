@@ -1,11 +1,12 @@
 // @ts-check
 import {state} from '../app-state.js';
 import {performCourtAction} from '../court/court-scoring-and-history.js';
+import {renderScore} from '../court/scorekeeper-screen.js';
 import {championshipLabels} from '../engine/engine-championship.js';
+import {matchBelongsToCourt} from '../engine/engine-generation.js';
 import {eligibleTeams,isTeamDivision} from '../engine/engine-pools.js';
 import {isTeamRoundRobinDivision,teamRoundRobinPlacements} from '../engine/engine-standings-and-tiebreaks.js';
 import {esc} from '../html-text.js';
-import {matchBelongsToCourt,renderScore} from '../legacy.js';
 import {ksmTeamSettings} from '../registration/team-divisions.js';
 import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {cloudSession,ksmSessionRole,updateSaveStatus} from '../sync/cloud-session-and-autosave.js';

@@ -1,6 +1,6 @@
 // @ts-check
 import {state} from '../app-state.js';
-import {renderPools} from '../legacy.js';
+import {renderPools} from '../engine/engine-generation.js';
 import {cloneJson} from '../sync/sync-state-and-rebase.js';
 // ==========================================================
 // React Pools view (app/react/features/pools/, roadmap M.13, #136 step 2)

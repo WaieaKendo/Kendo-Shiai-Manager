@@ -1,6 +1,6 @@
 // @ts-check
 import {cloudHeaders} from '../auth/auth0-access.js';
-import {ksmReplaceUrl,ksmResolvedUrl} from '../legacy.js';
+import {ksmReplaceUrl,ksmResolvedUrl} from './path-urls.js';
 import {isReadOnlySession,openTournamentAccess,rememberTournament} from '../session/staff-session-and-library.js';
 import {ksmRefreshTournamentChip} from '../session/tournament-switcher.js';
 import {readCloudDiagnosticsState} from '../sync/cloud-diagnostics.js';

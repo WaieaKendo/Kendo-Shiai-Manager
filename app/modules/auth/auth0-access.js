@@ -1,6 +1,6 @@
 // @ts-check
-import {ksmIsExplicitSpectatorUrl,ksmLinkParams} from '../legacy.js';
 import {ksmAccountCacheTournament,ksmAccountFetchTournament} from '../links/friendly-links.js';
+import {ksmIsExplicitSpectatorUrl,ksmLinkParams} from '../links/path-urls.js';
 import {KSM_STAFF_TOURNAMENT,KSM_V316_STAFF_SESSION,initializeCloudRoleFromUrl,installRoleBanner,isReadOnlySession,ksmAccountExpire,ksmAccountHeaders,ksmAccountLoad,ksmAccountReadLibrary,ksmAccountRenderLibrary,ksmAccountSetRole,ksmAccountSocketUrl,ksmAccountToggleStaff,ksmAccountWriteLibrary,paintHomeTournamentLibrary,v316StaffPassword} from '../session/staff-session-and-library.js';
 import {ksmAccountCreate,ksmAccountFailedStartup,ksmShowLibrary,setKsmStartupHasCache,setKsmStartupLoadFailed} from '../session/tournament-switcher.js';
 import {disconnectCloudSocket,ksmAccountConnect,ksmAccountFileAsNew,ksmCloudSocket,mergeQueuedStaffWork,showKsmToast} from '../sync/cloud-realtime-save-and-load.js';

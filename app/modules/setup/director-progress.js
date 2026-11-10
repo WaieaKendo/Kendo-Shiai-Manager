@@ -2,8 +2,8 @@
 import {state} from '../app-state.js';
 import {isTeamMatch,sortTeamMatches} from '../court/court-match-order.js';
 import {championshipLabels,firstRoundName,nextRoundFromName} from '../engine/engine-championship.js';
+import {matchBelongsToCourt} from '../engine/engine-generation.js';
 import {championshipCourtFor,isTeamDivision} from '../engine/engine-pools.js';
-import {matchBelongsToCourt} from '../legacy.js';
 import {ksmRenderOverview} from '../react-bridges/overview.js';
 import {ksmTeamSettings} from '../registration/team-divisions.js';
 function directorMatchLabel(m){return KSMEngine.directorMatchLabel(m);// moved to app/engine/match-helpers.ts
@@ -118,4 +118,16 @@ export function tournamentSummary(){
 }
 export function renderDirector(){
   ksmRenderOverview();
+}
+
+// The Overview's refresh timer (step 4a of #136; was app/js/30-setup-header-and-director.js).
+let directorRefreshTimer=null;
+// Read and cleared by app/modules/session (ksmResetTournament()).
+export function ksmDirectorRefreshTimer(){return directorRefreshTimer}
+export function setDirectorRefreshTimer(value){directorRefreshTimer=value}
+export function startDirectorRefresh(){stopDirectorRefresh();renderDirector();directorRefreshTimer=setInterval(()=>{if(!document.getElementById('director')?.classList.contains('hidden'))renderDirector();},5000)}
+export function stopDirectorRefresh(){if(directorRefreshTimer){clearInterval(directorRefreshTimer);directorRefreshTimer=null}}
+// The visibility listener (app/js, where 30- used to load).
+export function initDirectorRefresh(){
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stopDirectorRefresh();else if(!document.getElementById('director')?.classList.contains('hidden'))startDirectorRefresh()});
 }

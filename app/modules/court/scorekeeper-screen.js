@@ -1,10 +1,13 @@
 // @ts-check
 import {state} from '../app-state.js';
 import {applyCourtState,findNextForCourt,individualMatchReady} from './court-match-order.js';
-import {fusen} from './court-scoring-and-history.js';
-import {matchBelongsToCourt} from '../legacy.js';
-import {ksmSignalCourtHeader} from '../react-bridges/court.js';
+import {fusen,matchRequiresWinner} from './court-scoring-and-history.js';
+import {renderContext,renderQueue,setCourtCompletePresentation} from './split-court-templates.js';
+import {matchBelongsToCourt} from '../engine/engine-generation.js';
+import {ksmSignalCourtHeader,ksmSignalCourtScoreboard} from '../react-bridges/court.js';
 import {ksmSetFusenOpen} from '../react-bridges/shell.js';
+import {renderPublic} from '../results/live-scores.js';
+import {divisionComplete} from '../results/results-and-awards.js';
 import {redOnLeftForCourt} from '../sync/sync-state-and-rebase.js';
 // ---------- KSM v3.9.1 Scorekeeper redesign helpers ----------
 export function matchDisplayMeta(m){
@@ -56,4 +59,27 @@ export function ensureScorableCurrentMatch(){
 export function updateScoreTournamentName(){
   // The React court header (35-react-court.js) shows it.
   ksmSignalCourtHeader({tournamentName:(window.tName&&tName.value)?tName.value:'Kendo Tournament'});
+}
+
+// renderScore() (step 4a of #136; was app/js/22-scorekeeper-screen.js): ONE final function. 32-split-court-templates.js used to
+// reassign it at load (the "division complete" screen, then the original); the original body is renderScoreForMatch().
+// Nothing called renderScore() between the two files' load (no load-time call before 32-).
+function renderScoreForMatch(){
+  // The court screen is React (app/react/court/, 35-react-court.js): the division title, match
+  // line and match display are published to it instead of written (M.8).
+  updateScoreTournamentName();
+  let m=ensureScorableCurrentMatch();
+  if(m && !matchBelongsToCourt(m,state.currentCourt||'A'))m=null;
+  const meta=matchDisplayMeta(m);
+  ksmSignalCourtHeader({matchLine:meta.line,divisionTitle:m?meta.division:(state.currentDivision||'—'),requiresWinner:m?!!matchRequiresWinner(m):null,redLeft:redOnLeftForCourt(state.currentCourt)});
+  ksmSignalCourtScoreboard(m);
+  renderQueue();renderPublic();renderContext();
+}
+export function renderScore(){
+  const div=state.currentDivision;
+  const current=state.matches?.[state.current];
+  if(div&&divisionComplete(div)&&(!current||current.done||!matchBelongsToCourt(current,state.currentCourt||'A'))){
+    updateScoreTournamentName();ksmSignalCourtHeader({divisionTitle:div,matchLine:'Division complete'});setCourtCompletePresentation(div,true);renderQueue();renderPublic();renderContext();return;
+  }
+  setCourtCompletePresentation(div,false);renderScoreForMatch();
 }

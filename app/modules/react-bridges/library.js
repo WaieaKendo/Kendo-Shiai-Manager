@@ -1,14 +1,15 @@
 // @ts-check
 import {connectCloudSocket,ksmAccount,ksmLibraryAuthInvalid,ksmReadHeaders,ksmVisibleLibrary,readTournamentLibrary,setSessionRole} from '../auth/auth0-access.js';
 import {esc} from '../html-text.js';
-import {ksmIsExplicitSpectatorUrl,ksmLinkParams,navigateTo,show} from '../legacy.js';
+import {ksmIsExplicitSpectatorUrl,ksmLinkParams} from '../links/path-urls.js';
+import {navigateTo,show} from '../navigation.js';
+import {ksmOpenCloudModal,ksmOpenDeleteTournament,ksmShellDialogsState} from './shell.js';
 import {ksmPrintRenderer} from '../results/print.js';
 import {installRoleBanner,isReadOnlySession,v316StaffPassword} from '../session/staff-session-and-library.js';
 import {KSM_DETACHED_DRAFT_KEY,ksmCanLeaveTournament,ksmLibraryReturnView,ksmRefreshTournamentChip,ksmResetTournament} from '../session/tournament-switcher.js';
 import {applyTournamentPayload,manualSaveTournament,showKsmToast,tournamentFileProblem} from '../sync/cloud-realtime-save-and-load.js';
 import {cloudSession,downloadJson,ksmClearAutosave,ksmStoreAutosave,updateSaveStatus} from '../sync/cloud-session-and-autosave.js';
 import {KSM_AUTOSAVE_CLOUD_ID,KSM_SAVE_KEY,cloudBaseFor} from '../sync/sync-state-and-rebase.js';
-import {ksmOpenCloudModal,ksmOpenDeleteTournament,ksmShellDialogsState} from './shell.js';
 // ==========================================================
 // React Tournament Library (app/react/features/library/, roadmap M.13)
 // The Tournament Library, the home page the app boots to (#home, body.ksm-home), is drawn by one
@@ -85,11 +86,10 @@ export function ksmRenderLibrary(list,message){
   window.ksmLibraryRequested={list,message};
   ksmSignalLibrary();
 }
-// The hook 54-auth0-access.js reassigns to add the account fields to the input; the module calls it
-// (looked up on every call) on the input it built.
-// The original (no account) and, below it, the final function: the account rules app/js/54-auth0-access.js used to add by
-// reassigning it at load (step 3d of #136). No account can be enabled before 54 runs, so until then the final function
-// does what the original did.
+// The hook that adds the account fields to the input; the module calls it on the input it built.
+// The original (no account) and, below it, the final function: the account rules that 54-auth0-access.js used to add by
+// reassigning it at load (step 3d of #136; app/js no longer reassigns anything). No account can be enabled before
+// initAuth0Access() runs, so until then the final function does what the original did.
 function ksmAccountDecorateLibrary(input){return input}
 export function ksmDecorateLibraryInput(input){
   if(ksmAccount.enabled&&input?.kind==='library'){

@@ -1,5 +1,6 @@
 // @ts-check
-import {closeNavMenus,ksmLinkUrl} from '../legacy.js';
+import {ksmLinkUrl} from './path-urls.js';
+import {closeNavMenus} from '../navigation.js';
 import {copyTextValue} from '../sync/cloud-realtime-save-and-load.js';
 import {cloudSession,saveNow} from '../sync/cloud-session-and-autosave.js';
 import {normalizeCourt} from '../sync/sync-state-and-rebase.js';

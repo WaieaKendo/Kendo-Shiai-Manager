@@ -1,9 +1,9 @@
 // @ts-check
 import {state} from '../app-state.js';
 import {findNextForCourt,isTeamMatch,sortTeamMatches} from './court-match-order.js';
+import {eliminationFinalDone,matchBelongsToCourt} from '../engine/engine-generation.js';
 import {eligibleTeams} from '../engine/engine-pools.js';
 import {esc,jsArg} from '../html-text.js';
-import {eliminationFinalDone,matchBelongsToCourt} from '../legacy.js';
 export function teamSideLabel(side,div){
   if(!side)return 'TBD';
   // Direct team references must resolve to the registered team name everywhere,
@@ -35,3 +35,8 @@ export function courtCurrentMatch(court){
 export function activeScoreArrays(m){let arr=state.allMatches[m.division]||[],idx=arr.indexOf(m);if(m.division===state.currentDivision && idx===state.current && !m.done){return {W:[...state.score.W],R:[...state.score.R]};}return {W:[...(m.wp||[])],R:[...(m.rp||[])]};}
 function renderSearch(){if(!window.searchName||!window.searchDojo)return;let q=searchName.value.toLowerCase(),d=searchDojo.value.toLowerCase();let names=state.competitors.filter(c=>q&&c.name.toLowerCase().includes(q)).slice(0,8);nameResults.classList.toggle('hidden',!names.length);nameResults.innerHTML=names.map((c,i)=>`<div class="search-item" onclick="showCompProfile(${state.competitors.indexOf(c)})">${esc(c.name)}<div class="small">${esc(c.dojo)} • ${esc(c.division)}</div></div>`).join('');let dojos=[...new Set([...state.competitors.map(c=>c.dojo),...state.teams.map(t=>t.dojo)].filter(Boolean))].filter(x=>d&&x.toLowerCase().includes(d)).slice(0,8);dojoResults.classList.toggle('hidden',!dojos.length);dojoResults.innerHTML=dojos.map(x=>`<div class="search-item" onclick="showDojoProfile(${jsArg(x)})">${esc(x)}</div>`).join('')}
 export function showCompProfile(i){let c=state.competitors[i];profile.innerHTML=`<h1>${esc(c.name)}</h1><p>${esc(c.dojo)} • ${esc(c.division)}</p><p>Status: ${esc(c.status)}</p>`}
+
+// showDojoProfile() (step 4a of #136; was app/js/11-court-queue-and-views.js). A `let`: a test replaces window.showDojoProfile
+// (under an inline onclick), so its window accessor writes through setShowDojoProfile().
+export let showDojoProfile=function showDojoProfile(x){let n=state.competitors.filter(c=>c.dojo===x).length,t=state.teams.filter(c=>c.dojo===x).length;profile.innerHTML=`<h1>${esc(x)}</h1><p>${n} individual entries • ${t} teams</p>`};
+export function setShowDojoProfile(value){showDojoProfile=value}

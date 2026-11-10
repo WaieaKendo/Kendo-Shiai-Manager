@@ -1,14 +1,16 @@
 // @ts-check
 import {state} from '../app-state.js';
 import {ksmKeepFailedStartup,ksmUsesAccountAuth,renderHomeTournamentLibrary,setSessionRole} from '../auth/auth0-access.js';
-import {closeNavMenus,ksmDirectorRefreshTimer,ksmEmptySetup,ksmEmptyState,ksmIsExplicitSpectatorUrl,ksmLinkParams,ksmLinkUrl,ksmRecordScreenPath,ksmShowRequestedScreen,navigateTo,setDirectorRefreshTimer,show} from '../legacy.js';
-import {ksmPublishHeader,setKsmForgotTournament} from '../react-bridges/shell.js';
 import {ksmPendingSlug,setKsmPendingSlug} from '../links/friendly-links.js';
+import {ksmIsExplicitSpectatorUrl,ksmLinkParams,ksmLinkUrl,ksmRecordScreenPath,ksmShowRequestedScreen} from '../links/path-urls.js';
+import {closeNavMenus,navigateTo,show} from '../navigation.js';
+import {ksmPublishHeader,setKsmForgotTournament} from '../react-bridges/shell.js';
+import {KSM_STAFF_TOURNAMENT,KSM_V316_STAFF_SESSION,initializeCloudRoleFromUrl,installRoleBanner,isReadOnlySession,ksmStaffToken,performCloudSave,promptNewStaffPassword,showHomePage,v316StaffPassword} from './staff-session-and-library.js';
+import {ksmDirectorRefreshTimer,setDirectorRefreshTimer} from '../setup/director-progress.js';
 import {applyTournamentPayload,closeCloudModal,disconnectCloudSocket,flushCloudOutbox,ksmCloudSaveInFlight,ksmCloudTimer,ksmDeferredRemoteTimer,ksmLocalMutationVersion,ksmQueuedSaveRetryTimer,ksmSaveTimer,mergeQueuedStaffWork,noteQueuedMutation,saveTournamentToCloudWithReason,setKsmCloudTimer,setKsmConfirmedMutationVersion,setKsmDeferredRemoteRecord,setKsmFileReplace,setKsmLastSuccessfulSaveAt,setKsmLocalMutationVersion,setKsmOutboxMutationVersion,setKsmQueuedSaveRetryAttempt,setKsmQueuedSaveRetryTimer,setKsmSaveStatusMode,setKsmSaveTimer,setKsmTvLastVerifiedAt,setKsmTvRefreshInFlight,showKsmToast} from '../sync/cloud-realtime-save-and-load.js';
-import {applySetupSnapshot,clearOutbox,cloudSession,ksmSessionRole,markLocalSave,persistCloudSession,setConnectionStatus,tournamentPayload,writeOutbox} from '../sync/cloud-session-and-autosave.js';
+import {applySetupSnapshot,clearOutbox,cloudSession,getSetupSnapshot,ksmSessionRole,markLocalSave,persistCloudSession,setConnectionStatus,tournamentPayload,writeOutbox} from '../sync/cloud-session-and-autosave.js';
 import {KSM_AUTOSAVE_CLOUD_ID,KSM_CLOUD_BASE,KSM_CLOUD_DIAGNOSTICS_KEY,KSM_CLOUD_RECOVERY_KEY,KSM_PINNED_COURT_PREFIX,KSM_SAVE_KEY,clearLocalCourtDivisions,ksmDeferredSyncTimer,localChangesPending,rememberCloudBase,setKsmDeferredSyncRecord,setKsmDeferredSyncTimer} from '../sync/sync-state-and-rebase.js';
 import {ksmOwnOutbox,ksmTabHasUnsavedWork} from '../sync/two-tabs.js';
-import {KSM_STAFF_TOURNAMENT,KSM_V316_STAFF_SESSION,initializeCloudRoleFromUrl,installRoleBanner,isReadOnlySession,ksmStaffToken,performCloudSave,promptNewStaffPassword,showHomePage,v316StaffPassword} from './staff-session-and-library.js';
 // Switching tournaments: open, create, leave, reset, the startup load failure (step 3d of #136, from
 // app/js/33-tournament-switcher.js). Its load-time side effects (the address and the popstate listener) are
 // initTournamentSwitcher(), which app/js/33-tournament-switcher.js runs where this file used to load.
@@ -236,3 +238,13 @@ window.addEventListener('popstate',async()=>{
   ksmTournamentAddress=location.pathname+location.search+location.hash;
 });
 }
+
+// The empty tournament, kept for ksmResetTournament() (step 4a of #136; were app/js/01-state-and-setup.js and
+// 32-split-court-templates.js). Taken by the init functions where those files used to load: the state at 01-, the
+// setup after the cloud session and the sync modules had loaded, as before.
+let KSM_EMPTY_STATE;
+export function initEmptyState(){KSM_EMPTY_STATE=JSON.stringify(state)}
+export function ksmEmptyState(){return KSM_EMPTY_STATE}
+let KSM_EMPTY_SETUP;
+export function initEmptySetup(){KSM_EMPTY_SETUP=getSetupSnapshot()}
+export function ksmEmptySetup(){return KSM_EMPTY_SETUP}

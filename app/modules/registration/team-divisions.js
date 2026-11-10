@@ -3,9 +3,9 @@ import {state} from '../app-state.js';
 import {renderDivisions} from '../court/court-match-order.js';
 import {ksmAddDaihyosenForTeamAwards} from '../engine/engine-standings-and-tiebreaks.js';
 import {scheduleAutoSave} from '../legacy.js';
-import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {renderTeams} from './registration.js';
 import {renderTournamentStatus} from './validation.js';
+import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {writeCloudDiagnosticsState} from '../sync/cloud-diagnostics.js';
 import {getSetupSnapshot,tournamentSettings} from '../sync/cloud-session-and-autosave.js';
 export function ksmNewTeamRows(rows){const division=ksmDefaultTeamDivisionId();return rows.map(t=>({...t,id:ksmNewTeamIdentity(),teamDivisionId:division}))}

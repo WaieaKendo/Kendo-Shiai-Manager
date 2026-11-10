@@ -1,12 +1,13 @@
 // @ts-check
 import {DIVISION_PRESETS,state} from '../app-state.js';
 import {findNextForCourt,isTeamMatch,renderDivisions} from '../court/court-match-order.js';
+import {matchBelongsToCourt} from '../engine/engine-generation.js';
 import {championshipCourtFor,divisionCourtMode,poolCourtFor} from '../engine/engine-pools.js';
-import {matchBelongsToCourt} from '../legacy.js';
 import {ksmRenderSetupDivisions,ksmRenderSetupHeader} from '../react-bridges/setup.js';
 import {ksmRenderGrandChampionSetup} from '../registration/grand-champion.js';
 import {renderReg} from '../registration/registration.js';
-import {ksmRenderTeamDivisions} from '../registration/team-divisions.js';
+import {ksmRenderTeamDivisions,ksmSyncLegacyTeamDivision} from '../registration/team-divisions.js';
+import {renderTournamentStatus} from '../registration/validation.js';
 import {ksmRefreshTournamentChip} from '../session/tournament-switcher.js';
 import {showKsmToast} from '../sync/cloud-realtime-save-and-load.js';
 function addDivision(v){v=v||customDivName?.value?.trim()||window.newDiv?.value?.trim();if(!v)return;if(!state.divisions.includes(v)){state.divisions.push(v);state.divisionTypes[v]=customDivFormat?.value||window.newDivType?.value||'Round Robin';state.divisionCourts[v]=/** @type {any} */(customDivCourt?.value||'A')}if(window.customDivName)customDivName.value='';renderDivisionSetup();renderDivisions();renderReg()}
@@ -60,3 +61,23 @@ export function syncSetupHeader(){
   // The hero's name is React (app/react/setup/, 42-react-setup.js): the name field's value is
   // published to it instead of written (M.13).
   ksmRenderSetupHeader();ksmRefreshTournamentChip();}
+
+// saveSetup() and setDivisionCourt() (step 4a of #136; were app/js/01-state-and-setup.js). saveSetup() is ONE final function:
+// 30-setup-header-and-director.js used to wrap it at load to end with syncSetupHeader(); that call is the last line below.
+// No load-time call of saveSetup() ran before 30- (renderAll(), its only caller there, is first called after it).
+export function saveSetup(){
+  ksmSyncLegacyTeamDivision();
+  if(window.teamCourt)state.divisionCourts['Team Tournament']=/** @type {any} */(teamCourt).value;
+  if(window.teamAwardMode)state.teamAwardMode=teamAwardMode.value||'top2';
+  renderDivisionSetup();renderDivisions();renderReg();renderTournamentStatus();
+  syncSetupHeader();
+}
+// A `let`: tests replace window.setDivisionCourt (a spy under an inline onclick), so its window accessor writes through setSetDivisionCourt().
+export let setDivisionCourt=function setDivisionCourt(d,v){state.divisionCourts[d]=v;ksmReassignDivisionCourt(d);renderDivisions();renderTournamentStatus()};
+export function setSetDivisionCourt(value){setDivisionCourt=value}
+// The tournament-name listener (app/js, where 30- used to load).
+export function initSetupHeader(){
+if(window.tName){
+  tName.addEventListener('input',syncSetupHeader);
+}
+}
