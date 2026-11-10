@@ -4,6 +4,7 @@ import {syncIndividualSingleElim} from '../court/split-court-templates.js';
 import {champWinnerObj,seedNameForLabel} from './engine-championship.js';
 import {eligibleIndividuals} from './engine-pools.js';
 import {teamBracketNodesForCount} from './engine-team-bracket.js';
+import * as KSMEngine from '../../engine/index.ts';
 const BRACKET_SLOT_TEMPLATES={
   4:[{slot:1,quadrant:0,protectedSeed:1},{slot:2,quadrant:0},{slot:3,quadrant:1,protectedSeed:2},{slot:4,quadrant:1}],
   8:[{slot:1,quadrant:0,protectedSeed:1},{slot:2,quadrant:0},{slot:3,quadrant:1,protectedSeed:4},{slot:4,quadrant:1},{slot:5,quadrant:2,protectedSeed:3},{slot:6,quadrant:2},{slot:7,quadrant:3,protectedSeed:2},{slot:8,quadrant:3}],

@@ -1,4 +1,5 @@
 // Steps 3d and 4a of #136: the modules the entry uses, imported by name (the init calls, the window exports and the few functions still declared in app/js).
+import * as KSMEngine from '../engine/index.ts';
 import {state} from '../modules/app-state.js';
 import {cloudHeaders,connectCloudSocket,initAuth0Access,ksmAuthReady,ksmCacheTournament,ksmFetchTournament,ksmReadHeaders,ksmRevealReadyUi,ksmUsesAccountAuth,loadTournamentFileAsNew,loadTournamentFromCloud,renderHomeTournamentLibrary,setSessionRole,toggleStaffSession} from '../modules/auth/auth0-access.js';
 import {initBootstrap,initFirstRender,ksmBootstrapInitialization} from '../modules/boot.js';

@@ -18,6 +18,7 @@ import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {renderDivisionSetup} from '../setup/division-setup.js';
 import {writeCloudDiagnosticsState} from '../sync/cloud-diagnostics.js';
 import {ksmApplyingRemoteSnapshot,showKsmToast} from '../sync/cloud-realtime-save-and-load.js';
+import * as KSMEngine from '../../engine/index.ts';
 // ==========================================================
 // Grand champion (#86): the winners of chosen individual divisions meet for a Grand Champion
 // award. Rules and data shape: app/engine/grand-champion.ts.

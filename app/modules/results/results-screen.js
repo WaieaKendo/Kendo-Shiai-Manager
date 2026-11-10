@@ -6,6 +6,7 @@ import {ksmRenderResults,ksmRenderResultsBracket} from '../react-bridges/results
 import {ksmGrandChampion} from '../registration/grand-champion.js';
 import {ksmTeamSettings} from '../registration/team-divisions.js';
 import {divisionComplete,isPoolOnlyDivision,teamFinalPlacements} from './results-and-awards.js';
+import * as KSMEngine from '../../engine/index.ts';
 // ==========================================================
 // KSM v3.9.1 — Results presentation
 // ==========================================================

@@ -5,8 +5,8 @@ import path from 'node:path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import {
-  APP_DIR, DIST_DIR, STYLE_TAG, SCRIPT_TAG, STYLE_URL, SCRIPT_URL, ENGINE_URL,
-  appStyles, appBundle, engineScript, serviceWorker, styleFiles, scriptFiles, moduleFiles, engineFiles, extraPages,
+  APP_DIR, DIST_DIR, STYLE_TAG, SCRIPT_TAG, STYLE_URL, SCRIPT_URL,
+  appStyles, appBundle, serviceWorker, styleFiles, scriptFiles, moduleFiles, engineFiles, extraPages,
   ROOT, withVersion,
 } from './scripts/app-sources.mjs';
 import { servesOverlay, servesAppShell } from './app/engine/routes.ts';
@@ -20,10 +20,10 @@ self.addEventListener('activate', event => event.waitUntil(caches.keys().then(ke
 // serves them in dev and emits them as hashed files in the build; Vite handles index.html and copies
 // app/public/. app.js is bundled by rolldown (appBundle(): ONE ESM file, no code splitting, no minify,
 // no tree-shaking), per request in dev and once in buildStart; the stylesheet is emitted verbatim.
-// The engine (app/engine/*.ts) is bundled into a classic script that defines `KSMEngine`; the plugin
-// adds its tag right before app.js (app/index.html is unchanged). Order: engine.js (classic, runs at
-// once) -> app.js (module) -> the screens module below; modules run in document order, after parsing.
-// Only index.html gets the app.js / engine.js tags; extra pages (app/*.html) are ordinary Vite
+// The engine (app/engine/*.ts) is imported by app code and bundled into app.js (step 4b of #136; it was
+// a separate classic engine.js defining the global `KSMEngine`). Order: app.js (module) -> the screens
+// module below; modules run in document order, after parsing.
+// Only index.html gets the app.js tag; extra pages (app/*.html) are ordinary Vite
 // entries with module scripts from app/react/.
 // index.html also gets one module script after app.js: the React screens' islands
 // (SCREENS_MODULE: the court screen, Live Scores, the TV display and Results), which Vite bundles like any page script.
@@ -64,7 +64,6 @@ function ksmClassicBundle() {
         if (url === '/print/theme.css') return send('text/css; charset=utf-8', printTheme(appStyles()));
         if (url === STYLE_URL) return send('text/css; charset=utf-8', appStyles());
         if (url === SCRIPT_URL) return send('text/javascript; charset=utf-8', withVersion(await appBundle()));
-        if (url === ENGINE_URL) return send('text/javascript; charset=utf-8', await engineScript());
         // No offline cache in dev, so edits show on reload: this worker only clears old caches.
         if (url === '/service-worker.js') return send('text/javascript; charset=utf-8', DEV_SERVICE_WORKER);
         // Extra pages at their clean URL (/overlay), as Cloudflare's asset server does.
@@ -79,8 +78,8 @@ function ksmClassicBundle() {
     },
     async buildStart() {
       for (const file of [...styleFiles(), ...scriptFiles(), ...moduleFiles(), ...engineFiles(), path.join(ROOT, 'package.json')]) this.addWatchFile(file);
-      const css = appStyles(), js = withVersion(await appBundle()), engine = await engineScript();
-      built = { css, js, engine, cssFile: hashed('app', '.css', css), jsFile: hashed('app', '.js', js), engineFile: hashed('engine', '.js', engine) };
+      const css = appStyles(), js = withVersion(await appBundle());
+      built = { css, js, cssFile: hashed('app', '.css', css), jsFile: hashed('app', '.js', js) };
     },
     transformIndexHtml: {
       // Before Vite parses the page, so it does not try to bundle the two tags itself.
@@ -89,25 +88,24 @@ function ksmClassicBundle() {
         html = withVersion(html);
         if (ctx.path !== '/index.html') return html;
         if (!html.includes(STYLE_TAG) || !html.includes(SCRIPT_TAG)) throw new Error('app/index.html must contain the app.css and app.js tags');
-        if (ctx.server) return html.replace(SCRIPT_TAG, () => `<script src="${ENGINE_URL}"></script>\n${SCRIPT_TAG}\n${SCREENS_TAG}`);
+        if (ctx.server) return html.replace(SCRIPT_TAG, () => `${SCRIPT_TAG}\n${SCREENS_TAG}`);
         if (!built) return html;
         return html
           .replace(STYLE_TAG, () => `<link rel="stylesheet" href="/${built.cssFile}" vite-ignore>`)
-          .replace(SCRIPT_TAG, () => `<script src="/${built.engineFile}" vite-ignore></script>\n<script type="module" src="/${built.jsFile}" vite-ignore></script>\n${SCREENS_TAG}`);
+          .replace(SCRIPT_TAG, () => `<script type="module" src="/${built.jsFile}" vite-ignore></script>\n${SCREENS_TAG}`);
       },
     },
     generateBundle(_options, bundle) {
       this.emitFile({ type: 'asset', fileName: 'print/theme.css', source: printTheme(built.css) });
       this.emitFile({ type: 'asset', fileName: built.cssFile, source: built.css });
       this.emitFile({ type: 'asset', fileName: built.jsFile, source: built.js });
-      this.emitFile({ type: 'asset', fileName: built.engineFile, source: built.engine });
       const sw = withVersion(serviceWorker());
       if (!sw.includes(`'${STYLE_URL}', '${SCRIPT_URL}'`)) throw new Error('app/service-worker.js APP_SHELL must list /app.css and /app.js');
       const screens = indexModuleFiles(bundle);
       const printAssets = pages.filter(p => p.startsWith('print/')).flatMap(p => indexModuleFiles(bundle, p));
       const printShell = [...new Set([...pages.filter(p => p.startsWith('print/')).map(p => '/' + p.replace(/\.html$/, '')), ...printAssets.map(p => '/' + p), ...Object.keys(bundle).filter(p => /\.(png|webp)$/.test(p)).map(p => '/' + p)])].filter(p => !screens.includes(p.slice(1)));
       if (!screens.length) throw new Error(`index.html must load ${SCREENS_MODULE}`);
-      const shell = [built.cssFile, built.engineFile, built.jsFile, ...screens].map(f => `'/${f}'`).join(', ');
+      const shell = [built.cssFile, built.jsFile, ...screens].map(f => `'/${f}'`).join(', ');
       this.emitFile({ type: 'asset', fileName: 'service-worker.js', source: sw.replace(`'${STYLE_URL}', '${SCRIPT_URL}'`, shell).replace('/* PRINT_SHELL */', printShell.map(p => JSON.stringify(p)).join(', ')) });
     },
   };
@@ -123,10 +121,10 @@ export default defineConfig({
     transformIndexHtml: {
       order: 'post',
       handler(html) {
-        html = html.replace(/(\/assets\/(?:app|engine)-\w+\.(?:css|js)") >/g, '$1>');
+        html = html.replace(/(\/assets\/app-\w+\.(?:css|js)") >/g, '$1>');
         // Vite hoists the screens module into <head>, where it would run BEFORE app.js, which is a module
         // too and sits at the end of <body> (modules run in document order). Put it right after app.js,
-        // as the dev server serves them: engine.js (classic) -> app.js -> the React screens.
+        // as the dev server serves them: app.js -> the React screens.
         const screens = /\n\s*(<script type="module" crossorigin src="\/assets\/index-[\w-]+\.js"><\/script>)/;
         const tag = html.match(screens)?.[1];
         if (!tag) return html;

@@ -23,6 +23,7 @@ import {ksmTournamentAddress,ksmTournamentEpoch,setKsmTournamentAddress} from '.
 import {ksmApplyingRemoteSnapshot} from '../sync/cloud-realtime-save-and-load.js';
 import {cloudSession} from '../sync/cloud-session-and-autosave.js';
 import {normalizeCourt} from '../sync/sync-state-and-rebase.js';
+import * as KSMEngine from '../../engine/index.ts';
 let ksmExplicitSpectatorUrl;
 export function ksmIsExplicitSpectatorUrl(){return ksmExplicitSpectatorUrl}
 export function ksmResolvedUrl(){return KSMEngine.resolveUrl(location.pathname||'/',location.search||'')}

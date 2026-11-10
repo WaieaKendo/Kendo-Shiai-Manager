@@ -3,6 +3,7 @@ import {state} from '../app-state.js';
 import {ensureCourtHistory} from '../court/court-scoring-and-history.js';
 import {cloudSession,downloadJson,tournamentPayload} from './cloud-session-and-autosave.js';
 import {KSM_CLOUD_DIAGNOSTICS_KEY,KSM_CLOUD_OUTBOX_KEY,KSM_CLOUD_RECOVERY_KEY,KSM_CLOUD_SESSION_KEY,KSM_SAVE_KEY} from './sync-state-and-rebase.js';
+import * as KSMEngine from '../../engine/index.ts';
 // Cloud diagnostics and the one-time reset of v3.17.3 (step 3d of #136, from app/js/19-cloud-diagnostics.js).
 // resetLegacyTournamentDataOnce() still runs from app/js/19-cloud-diagnostics.js.
 export function readCloudDiagnosticsState(){try{return JSON.parse(localStorage.getItem(KSM_CLOUD_DIAGNOSTICS_KEY)||'{}')}catch(_){return {}}}

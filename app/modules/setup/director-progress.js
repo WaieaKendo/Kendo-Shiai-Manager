@@ -6,6 +6,7 @@ import {matchBelongsToCourt} from '../engine/engine-generation.js';
 import {championshipCourtFor,isTeamDivision} from '../engine/engine-pools.js';
 import {ksmRenderOverview} from '../react-bridges/overview.js';
 import {ksmTeamSettings} from '../registration/team-divisions.js';
+import * as KSMEngine from '../../engine/index.ts';
 function directorMatchLabel(m){return KSMEngine.directorMatchLabel(m);// moved to app/engine/match-helpers.ts
   }
 // Director progress is a read-only projection of canonical tournament state.

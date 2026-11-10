@@ -4,6 +4,7 @@ import {eligibleTeams} from './engine-pools.js';
 import {teamPairMatches} from './engine-standings-and-tiebreaks.js';
 import {syncTeamBracket} from './engine-team-matches.js';
 import {ksmTeamSettings} from '../registration/team-divisions.js';
+import * as KSMEngine from '../../engine/index.ts';
 /**
  * Bracket side: team number n (1-based registration order).
  * @param {number} n

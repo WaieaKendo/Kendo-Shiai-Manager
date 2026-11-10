@@ -1,6 +1,7 @@
 // @ts-check
 import {state} from '../app-state.js';
 import {ksmTeamDivision} from '../registration/team-divisions.js';
+import * as KSMEngine from '../../engine/index.ts';
 /**
  * Dojo group used to keep dojo-mates apart in pools (Aiea and Waipahu count as one).
  * @param {string} d

@@ -23,6 +23,7 @@ import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {tournamentSettings} from '../sync/cloud-session-and-autosave.js';
 import {rememberLocalCourtDivision} from '../sync/sync-state-and-rebase.js';
 import {ksmMarkRegenerateSave} from '../sync/undo-regenerate.js';
+import * as KSMEngine from '../../engine/index.ts';
 export function generateDivisionState(div){
   const settings=ksmTeamSettings(div);
   const plan=KSMEngine.generateDivision({division:div,teamDivisionId:ksmTeamDivision(div)?.id,competitors:ksmGrandChampion(div)?ksmGrandChampionCompetitors(div):state.competitors,teams:state.teams,exhibitions:state.exhibitions,divisionType:ksmGrandChampion(div)?KSMEngine.grandChampionFormat(ksmGrandChampion(div)):state.divisionTypes[div],courtMode:state.divisionCourts[div],settings,bracketNodesForCount:teamBracketNodesForCount});

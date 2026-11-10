@@ -11,6 +11,7 @@ import {ksmTeamSettings} from '../registration/team-divisions.js';
 import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {cloudSession,ksmSessionRole,updateSaveStatus} from '../sync/cloud-session-and-autosave.js';
 import {isValidMatchObject} from '../sync/sync-state-and-rebase.js';
+import * as KSMEngine from '../../engine/index.ts';
 export function divisionComplete(div){const matches=(state.allMatches[div]||[]).filter(isValidMatchObject);return matches.some(m=>m.championship&&m.position==='Final'&&m.done) || ((isTeamDivision(div)||isPoolOnlyDivision(div))&&matches.length && matches.every(m=>m.done));}
 // Individual round robins too small for a championship bracket (3–5 entrants: a single pool
 // and no frozen template) have no Final; they are decided by the final pool standings.

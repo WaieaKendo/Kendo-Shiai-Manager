@@ -12,6 +12,7 @@ import {ksmSignalCourtHeader} from '../react-bridges/court.js';
 import {ksmDivisionName,ksmTeamDivisions} from '../registration/team-divisions.js';
 import {renderPublic} from '../results/live-scores.js';
 import {applyCourtSides,localCourtDivision,pinCourtLocally,rememberLocalCourtDivision} from '../sync/sync-state-and-rebase.js';
+import * as KSMEngine from '../../engine/index.ts';
 export function isTeamMatch(m){return KSMEngine.isTeamMatch(m);// moved to app/engine/match-helpers.ts
   }
 function teamNodeOrderMap(div){let map={};(state.teamBracketNodes?.[div]||[]).forEach((n,i)=>map[n.id]=i);return map}

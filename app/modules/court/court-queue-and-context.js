@@ -1,6 +1,7 @@
 // @ts-check
 import {state} from '../app-state.js';
 import {divisionCourtMode} from '../engine/engine-pools.js';
+import * as KSMEngine from '../../engine/index.ts';
 // ---------- KSM v3.9.1 Grouped court queue ----------
 export function normalizeQueueGroupLabel(label){return KSMEngine.normalizeQueueGroupLabel(label);// moved to app/engine/labels.ts
   }

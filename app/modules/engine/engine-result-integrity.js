@@ -1,5 +1,6 @@
 // @ts-check
 import {state} from '../app-state.js';
+import * as KSMEngine from '../../engine/index.ts';
 /**
  * @param {Match} m
  * @param {string} winner

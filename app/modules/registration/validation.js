@@ -9,6 +9,7 @@ import {ksmDivisionName,ksmTeamDivisions} from './team-divisions.js';
 import {manualSaveTournament} from '../sync/cloud-realtime-save-and-load.js';
 import {tournamentSettings} from '../sync/cloud-session-and-autosave.js';
 import {ksmUndoRegenerateOffered} from '../sync/undo-regenerate.js';
+import * as KSMEngine from '../../engine/index.ts';
 function validationIssue(severity,code,divisionId,message,suggestedAction=''){return KSMEngine.validationIssue(severity,code,divisionId,message,suggestedAction);// moved to app/engine/registration.ts
   }
 export function validateTournament(options={}){

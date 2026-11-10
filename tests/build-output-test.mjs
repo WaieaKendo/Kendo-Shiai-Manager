@@ -10,7 +10,7 @@ import { printTheme } from '../scripts/print-theme.mjs';
 import { printDocuments } from '../app/print-documents.mjs';
 import vm from 'node:vm';
 import path from 'node:path';
-import { APP_DIR, DIST_DIR, STYLE_TAG, SCRIPT_TAG, VERSION_PLACEHOLDER, withVersion, indexHtml, appStyles, appBundle, engineScript, serviceWorker, extraPages } from '../scripts/app-sources.mjs';
+import { APP_DIR, DIST_DIR, STYLE_TAG, SCRIPT_TAG, VERSION_PLACEHOLDER, withVersion, indexHtml, appStyles, appBundle, serviceWorker, extraPages } from '../scripts/app-sources.mjs';
 
 const checks = [];
 const check = (ok, name) => checks.push([ok, name]);
@@ -19,8 +19,7 @@ const dist = rel => fs.readFileSync(path.join(DIST_DIR, rel), 'utf8');
 const built = dist('index.html');
 const css = built.match(/<link rel="stylesheet" href="\/(assets\/app-\w+\.css)">/)?.[1];
 const js = built.match(/<script type="module" src="\/(assets\/app-\w+\.js)"><\/script>/)?.[1];
-const engine = built.match(/<script src="\/(assets\/engine-\w+\.js)"><\/script>/)?.[1];
-check(css && js && engine, 'dist/index.html links one hashed stylesheet, the classic engine script and the app script as an ES module');
+check(css && js && !/engine-\w+\.js/.test(built) && !/<script src=/.test(built), 'dist/index.html links one hashed stylesheet and the app script as an ES module, no separate engine script (step 4b)');
 const modules = [...built.matchAll(/\n\s*<script type="module" crossorigin src="\/(assets\/index-[\w-]+\.js)"><\/script>/g)];
 const court = modules[0]?.[1];
 // The screens' entry chunk and the chunks it imports (React, mountIsland), as Vite wrote them.
@@ -31,9 +30,9 @@ check(court && dist(court).includes('ksm:court-scoreboard') && dist(court).inclu
 // Vite hoists the screens module into <head>; the build moves it right after app.js, because modules run in
 // document order and the React screens need app.js's globals (window.* exports) first.
 const screensTag = modules[0]?.[0].trim() ?? '';
-check(built.replace(`\n${screensTag}`, '') === withVersion(indexHtml()).replace(STYLE_TAG, `<link rel="stylesheet" href="/${css}">`).replace(SCRIPT_TAG, `<script src="/${engine}"></script>\n<script type="module" src="/${js}"></script>`) && built.indexOf(`</script>\n${screensTag}`) > built.indexOf(`src="/${js}"`),
-  'dist/index.html = app/index.html apart from the bundle URLs, the screens module and the version, with the engine script right before app.js and the screens module right after it');
-check(engine && dist(engine) === await engineScript() && /^var KSMEngine = /.test(dist(engine)), 'engine script = app/engine/index.ts as a classic IIFE defining KSMEngine');
+check(built.replace(`\n${screensTag}`, '') === withVersion(indexHtml()).replace(STYLE_TAG, `<link rel="stylesheet" href="/${css}">`).replace(SCRIPT_TAG, `<script type="module" src="/${js}"></script>`) && built.indexOf(`</script>\n${screensTag}`) > built.indexOf(`src="/${js}"`),
+  'dist/index.html = app/index.html apart from the bundle URLs, the screens module and the version, with the screens module right after it');
+check(!fs.readdirSync(path.join(DIST_DIR, 'assets')).some(f => /^engine-/.test(f)) && js && /^\tKSMEngine: engine_exports,$/m.test(dist(js)), 'no engine.js is built; the engine is bundled into app.js and window.KSMEngine is set from it');
 check(css && dist(css) === appStyles(), 'stylesheet = app/styles/*.css in order, untransformed');
 check(js && dist(js) === withVersion(await appBundle()) && !/^(?:import|export) /m.test(dist(js)), 'script = the rolldown bundle of app/js/*.js and app/modules (one ES module file), apart from the version');
 
@@ -53,8 +52,8 @@ const sw = dist('service-worker.js');
 const printShellText = sw.match(/'\/print\/theme\.css', ([^\n]+),\n/)?.[1];
 const printShell = printShellText ? JSON.parse('[' + printShellText + ']') : [];
 check(Object.values(printDocuments).every(p => printShell.includes('/' + p.replace(/\.html$/, ''))), 'every registered print page is precached');
-check(sw === withVersion(serviceWorker()).replace('/* PRINT_SHELL */', printShellText).replace("'/app.css', '/app.js'", [css, engine, js, ...courtFiles].map(f => `'/${f}'`).join(', ')),
-  'service worker = app/service-worker.js with the version and the bundle URLs (engine and screens module included) in APP_SHELL');
+check(sw === withVersion(serviceWorker()).replace('/* PRINT_SHELL */', printShellText).replace("'/app.css', '/app.js'", [css, js, ...courtFiles].map(f => `'/${f}'`).join(', ')),
+  'service worker = app/service-worker.js with the version and the bundle URLs (screens module included) in APP_SHELL');
 const shell = [...sw.match(/const APP_SHELL = \[([\s\S]*?)\];/)[1].matchAll(/['\"]([^'\"]+)['\"]/g)].map(m => m[1]);
 const missing = shell.filter(url => url !== '/' && !fs.existsSync(path.join(DIST_DIR, url)) && !fs.existsSync(path.join(DIST_DIR, url + '.html')));
 check(!missing.length, `every APP_SHELL file exists in dist/ (${shell.length} entries)${missing.length ? ': missing ' + missing.join(', ') : ''}`);
@@ -69,7 +68,7 @@ for (const page of pages) {
   const modules = scripts.map(tag => tag.match(/type="module"[^>]*src="\/(assets\/[\w.-]+\.js)"/)?.[1]);
   check(html && (page === 'privacy.html' ? scripts.length === 0 : scripts.length > 0) && modules.every(f => f && fs.existsSync(path.join(DIST_DIR, f))),
     `dist/${page}: built, script-free privacy page or only bundled module scripts (${scripts.length})`);
-  check(html && !html.includes('/assets/app-') && !html.includes('/assets/engine-') && modules.every(f => f && !dist(f).includes('function performCourtAction(')), `dist/${page}: does not load the classic app bundle`);
+  check(html && !html.includes('/assets/app-') && modules.every(f => f && !dist(f).includes('function performCourtAction(')), `dist/${page}: does not load the classic app bundle`);
 }
 // Path URLs (M.9): the app shell answers /, /index.html and /t/... (servesAppShell(), checked
 // against app/engine/routes.ts in tests/engine/routes.test.mjs), never an extra page's URL.

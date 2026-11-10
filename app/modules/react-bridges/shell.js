@@ -12,6 +12,7 @@ import {KSM_CLOUD_BASE,KSM_CLOUD_RECOVERY_KEY,ksmClearRestoreRecoveries,ksmDefer
 import {ksmDropOutboxesFor} from '../sync/two-tabs.js';
 import {ksmCanManageLibraryTournament,ksmLibraryStaffTokens,ksmRenderLibrary} from './library.js';
 import {ksmHtmlText} from './registration.js';
+import * as KSMEngine from '../../engine/index.ts';
 // ==========================================================
 // React shell (app/react/features/shell/, roadmap M.13: the navigation bar and its menus, the
 // header's status row and the pop-up dialogs)

@@ -8,6 +8,7 @@
 // app/engine, its entry is replaced by an import and removed here.
 
 import type { TournamentSettings } from '../../engine/settings.ts';
+import { teamSlots } from '../../engine/index.ts';
 import type { ResultPoolInput } from '../features/results/results-model.ts';
 import type { HansokuCounts, UpNextInput } from '../features/live-scores/live-scores-model.ts';
 import type { CourtCompleteInput } from './ui/complete-model.ts';
@@ -254,9 +255,9 @@ export function legacyExhibitionTable(): Element | null {
   return (window as unknown as { exhibitionTable?: Element }).exhibitionTable ?? null;
 }
 
-/** The team positions of a team format (KSMEngine.teamSlots, defined on window before app.js). */
+/** The team positions of a team format (the engine's teamSlots, imported). */
 export function legacyTeamSlots(teamFormat: string | null | undefined): string[] {
-  return (window as unknown as { KSMEngine: { teamSlots: (f: string | null | undefined) => string[] } }).KSMEngine.teamSlots(teamFormat);
+  return teamSlots(teamFormat);
 }
 
 /**

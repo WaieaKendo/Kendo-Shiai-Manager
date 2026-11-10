@@ -1,4 +1,5 @@
 // @ts-check
+import * as KSMEngine from '../engine/index.ts';
 export function esc(s){return KSMEngine.esc(s);// moved to app/engine/html-text.ts
   }
 // A value as a JavaScript string literal inside an inline on*="..." handler. esc() alone is not enough:

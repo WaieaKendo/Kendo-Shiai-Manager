@@ -10,6 +10,7 @@ import {writeCloudDiagnosticsState} from './cloud-diagnostics.js';
 import {applyRemoteCloudRecord,isTvSession,ksmCloudSaveInFlight,ksmCloudSavePending,ksmCloudTimer,ksmConfirmedMutationVersion,ksmLocalMutationVersion,ksmSaveTimer,showKsmToast} from './cloud-realtime-save-and-load.js';
 import {cloudSession,persistCloudSession,readOutbox} from './cloud-session-and-autosave.js';
 import {ksmOtherRebaseCourts,ksmOwnHistoryEntry} from './two-tabs.js';
+import * as KSMEngine from '../../engine/index.ts';
 // Sync state and the 409 rebase (step 3d of #136, from app/js/18-sync-state-and-rebase.js): the storage keys, the
 // pinned court, the merge base and the replay of this device's court actions, Undo/Redo and director edits onto the server copy.
 // ---------- KSM v3.1 Save / Load ----------

@@ -18,6 +18,7 @@ import {showKsmToast} from '../sync/cloud-realtime-save-and-load.js';
 import {cloudSession,updateSaveStatus} from '../sync/cloud-session-and-autosave.js';
 import {cloneJson,historyEntryIdentity,matchHasSyncIdentity,matchSyncIdentity,replayCourtMatchOps} from '../sync/sync-state-and-rebase.js';
 import {KSM_TAB_ID} from '../sync/two-tabs.js';
+import * as KSMEngine from '../../engine/index.ts';
 export function loadScoreFromMatch(m){
   if(!m || m.done){state.score={W:[],R:[],WT:0,RT:0};return;}
   state.score={W:[...(m.wp||[])],R:[...(m.rp||[])],WT:m.wt||0,RT:m.rt||0};

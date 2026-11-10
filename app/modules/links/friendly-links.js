@@ -5,6 +5,7 @@ import {isReadOnlySession,openTournamentAccess,rememberTournament} from '../sess
 import {ksmRefreshTournamentChip} from '../session/tournament-switcher.js';
 import {readCloudDiagnosticsState} from '../sync/cloud-diagnostics.js';
 import {cloudSession,persistCloudSession,saveNow,tournamentPayload} from '../sync/cloud-session-and-autosave.js';
+import * as KSMEngine from '../../engine/index.ts';
 // Friendly links: the tournament short name (slug) and the cached tournament records (step 3d of #136, from
 // app/js/33-friendly-links.js). ksmPendingSlug is read from sessionStorage by initFriendlyLinks(), which
 // app/js/33-friendly-links.js runs where this file used to load.

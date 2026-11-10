@@ -26,6 +26,7 @@ import {applySetupSnapshot,autoSaveTournament,clearOutbox,cloudSession,ksmSessio
 import {KSM_SAVE_KEY,applyDeferredSyncRecord,clearLocalCourtDivisions,cloudBaseFor,deferRemoteRecord,ksmKnownRestoredRevision,localChangesPending,localCourtDivision,normalizeCourt,pinCourtLocally,pinnedCourt,rebaseLocalPayloadOnRecord,rememberCloudBase,rememberLocalCourtDivision,restorePinnedCourt,sanitizeLoadedTournamentState} from './sync-state-and-rebase.js';
 import {KSM_REPLACE_BACKUP_PREFIX,KSM_TAB_ID,ksmDropOutboxesFor,ksmMarkOutboxMerged,ksmOutboxKey,ksmRetagHistory,ksmSendAdoptedOutbox,ksmTakeOrphanNow,ksmWriterId} from './two-tabs.js';
 import {ksmClearRestoreMark,ksmDropQueuedWorkBeforeRestore,ksmDropWorkBeforeRestore,ksmRestoredSince,ksmSetRestoreMark,setKsmRestorePoint} from './undo-regenerate.js';
+import * as KSMEngine from '../../engine/index.ts';
 // Live sync, cloud saves, the offline outbox replay and tournament files (step 3d of #136, from
 // app/js/21-cloud-realtime-save-and-load.js; the save state lets of 18- are declared here, where they are written).
 // Its load-time side effects are initCloudRealtime(), run from app/js/21-. connectCloudSocket() and

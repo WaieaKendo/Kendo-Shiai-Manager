@@ -29,6 +29,7 @@ def _read_all(folder, ext):
 
 LEGACY_MODULE = (APP / 'modules' / 'legacy.js').resolve()
 _IMPORT_LINE = re.compile(r"^import \{([^}]*)\} from '([^']+)';?[ \t]*\r?\n", re.M)
+_ENGINE_IMPORT_LINE = re.compile(r"^import \* as KSMEngine from '[^']*engine/index\.ts';?[ \t]*\r?\n", re.M)
 _EXPORT = re.compile(r'^export (?=(?:async\s+)?function\b|const\b|let\b|class\b)', re.M)
 _UNSUPPORTED = re.compile(r'''^\s*(?:import\s*[\w{*'"]|export\s+(?:\{|\*|default))''', re.M)
 
@@ -39,11 +40,11 @@ def classic_app_script():
     done, out = set(), []
 
     def strip(file, text):
-        if _UNSUPPORTED.search(_IMPORT_LINE.sub('', text)):
+        if _UNSUPPORTED.search(_ENGINE_IMPORT_LINE.sub('', _IMPORT_LINE.sub('', text))):
             raise ValueError(f"{file}: only single-line import {{a,b}} from '...'; and export function|const|let|class are supported")
         for m in _IMPORT_LINE.finditer(text):
             visit((file.parent / m.group(2)).resolve())
-        return _IMPORT_LINE.sub('', text)
+        return _ENGINE_IMPORT_LINE.sub('', _IMPORT_LINE.sub('', text))
 
     def visit(file):
         if file in done:

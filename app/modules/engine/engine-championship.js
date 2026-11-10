@@ -2,6 +2,7 @@
 import {state} from '../app-state.js';
 import {championshipCourtFor} from './engine-pools.js';
 import {isPoolOnlyDivision} from '../results/results-and-awards.js';
+import * as KSMEngine from '../../engine/index.ts';
 const CHAMPIONSHIP_TEMPLATE_VERSION='v1.0';
 /**
  * Frozen first-round seed pairs for `total` pool entrants, e.g. [['A1','B2'],['B1','A2']].
