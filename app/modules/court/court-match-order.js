@@ -1,11 +1,13 @@
 // @ts-check
 import {state} from '../app-state.js';
 import {loadScoreFromMatch} from './court-scoring-and-history.js';
+import {renderScore} from './scorekeeper-screen.js';
 import {championshipLabels,firstRoundName,roundSequenceFromFirst} from '../engine/engine-championship.js';
+import {matchBelongsToCourt} from '../engine/engine-generation.js';
 import {isTeamDivision} from '../engine/engine-pools.js';
 import {singleElimOrderMap} from '../engine/engine-single-elim.js';
 import {esc} from '../html-text.js';
-import {matchBelongsToCourt,renderScore,show} from '../legacy.js';
+import {show} from '../navigation.js';
 import {ksmSignalCourtHeader} from '../react-bridges/court.js';
 import {ksmDivisionName,ksmTeamDivisions} from '../registration/team-divisions.js';
 import {renderPublic} from '../results/live-scores.js';

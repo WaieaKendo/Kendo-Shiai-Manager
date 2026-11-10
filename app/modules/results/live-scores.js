@@ -3,8 +3,10 @@ import {state} from '../app-state.js';
 import {isTeamMatch,sortIndividualDivisionMatches,sortTeamMatches} from '../court/court-match-order.js';
 import {teamSideLabel} from '../court/court-queue-and-views.js';
 import {championshipLabels,firstRoundName,previousRoundName,sourceLabelForRound} from '../engine/engine-championship.js';
+import {matchBelongsToCourt} from '../engine/engine-generation.js';
 import {sideLabelGeneric} from '../engine/engine-single-elim.js';
-import {closeNavMenus,matchBelongsToCourt} from '../legacy.js';
+import {ksmLinkParams} from '../links/path-urls.js';
+import {closeNavMenus} from '../navigation.js';
 import {ksmRenderLiveScores} from '../react-bridges/live-scores.js';
 import {tvLink} from '../sync/cloud-realtime-save-and-load.js';
 import {cloudSession,saveNow} from '../sync/cloud-session-and-autosave.js';
@@ -81,3 +83,17 @@ export function tvUpcomingMatches(court,current,teamMode=false){
   return candidates.slice(0,2);
 }
 export async function launchTvDisplay(court){closeNavMenus();if(!cloudSession.tournamentId)await saveNow();if(!cloudSession.tournamentId){alert('Save the tournament to cloud before opening TV Display.');return}window.open(tvLink(court),'_blank','noopener')}
+
+// The TV's assigned court (step 4a of #136; was app/js/25-live-scores.js). Read from the address by initTvAssignedCourt()
+// (app/js, where 25- used to load): ksmLinkParams() cannot be read while the modules load. Tests read the name.
+let KSM_TV_ASSIGNED_COURT;
+export function initTvAssignedCourt(){KSM_TV_ASSIGNED_COURT=(()=>{const value=(ksmLinkParams().get('court')||'A').toUpperCase();return value==='B'?'B':'A'})()}
+export function tvAssignedCourt(){return KSM_TV_ASSIGNED_COURT}
+
+// ==========================================================
+// KSM v3.10.9 — spectator presentation refinements (was app/js/31-spectator-refinements.js)
+// ==========================================================
+export function poolDisplayComplete(div,label){
+  const matches=(state.allMatches?.[div]||[]).filter(match=>match.pool===label&&!match.championship);
+  return matches.length>0&&matches.every(match=>match.done);
+}

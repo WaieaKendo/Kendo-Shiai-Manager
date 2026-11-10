@@ -62,3 +62,10 @@ export function closeResultsBracket(){
   const modal=document.getElementById('resultsBracketModal');
   if(modal)modal.classList.add('hidden');
 }
+
+// The Escape listener that closes the bracket (app/js, where 27-results-screen.js used to load; its `show` wrapper is in navigation.js).
+export function initResultsScreen(){
+document.addEventListener('keydown',function(event){
+  if(event.key==='Escape')closeResultsBracket();
+});
+}

@@ -1,13 +1,14 @@
 // @ts-check
 import {state} from '../app-state.js';
 import {renderDivisions} from '../court/court-match-order.js';
-import {regTab,scheduleAutoSave} from '../legacy.js';
+import {scheduleAutoSave} from '../legacy.js';
+import {regTab} from '../navigation.js';
+import {ksmText} from './court.js';
 import {renderExhibitions,renderReg,renderTeams,statusCycle,updateComp} from '../registration/registration.js';
 import {ksmAssignTeamDivision,ksmDivisionName,ksmTeamDivisions} from '../registration/team-divisions.js';
 import {renderTournamentStatus} from '../registration/validation.js';
 import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {showKsmToast} from '../sync/cloud-realtime-save-and-load.js';
-import {ksmText} from './court.js';
 // ==========================================================
 // React Registration, parts 1 and 2 (app/react/features/registration/, roadmap M.13, #136 step 2)
 // Registration draws two parts with React islands, mounted by app/react/features/registration/main.tsx:

@@ -1,4 +1,29 @@
-function generateDivisionState(div){
+// Generation, the no-show rebuilds, the court helpers and the Pools view entry (step 4a of #136; was app/js/08-engine-generation.js).
+import {state} from '../app-state.js';
+import {renderAll} from '../court/court-context-and-pool-editing.js';
+import {individualMatchReady,initCourtStates,isTeamMatch,renderDivisions,sortIndividualDivisionMatches,sortTeamMatches} from '../court/court-match-order.js';
+import {loadScoreFromMatch} from '../court/court-scoring-and-history.js';
+import {renderScore} from '../court/scorekeeper-screen.js';
+import {renderContext,syncIndividualSingleElim} from '../court/split-court-templates.js';
+import {syncChampionshipTemplate} from './engine-championship.js';
+import {buildPoolMatches} from './engine-pools.js';
+import {buildIndividualSingleElimMatches} from './engine-single-elim.js';
+import {teamBracketNodesForCount} from './engine-team-bracket.js';
+import {syncTeamBracket} from './engine-team-matches.js';
+import {criticalAutoSave,scheduleAutoSave} from '../legacy.js';
+import {regTab,renderProgress,show} from '../navigation.js';
+import {ksmRenderPools} from '../react-bridges/pools.js';
+import {ksmRegenerateDone} from '../react-bridges/shell.js';
+import {ksmGrandChampion,ksmGrandChampionCompetitors} from '../registration/grand-champion.js';
+import {closeManagementModal,divisionRegenerationStatus,structuralNoShowAllowed} from '../registration/registration.js';
+import {ksmTeamDivision,ksmTeamDivisions,ksmTeamSettings} from '../registration/team-divisions.js';
+import {requestTournamentGeneration,showValidationDialog,validateTournament} from '../registration/validation.js';
+import {renderResultsDashboard} from '../results/results-screen.js';
+import {isReadOnlySession} from '../session/staff-session-and-library.js';
+import {tournamentSettings} from '../sync/cloud-session-and-autosave.js';
+import {rememberLocalCourtDivision} from '../sync/sync-state-and-rebase.js';
+import {ksmMarkRegenerateSave} from '../sync/undo-regenerate.js';
+export function generateDivisionState(div){
   const settings=ksmTeamSettings(div);
   const plan=KSMEngine.generateDivision({division:div,teamDivisionId:ksmTeamDivision(div)?.id,competitors:ksmGrandChampion(div)?ksmGrandChampionCompetitors(div):state.competitors,teams:state.teams,exhibitions:state.exhibitions,divisionType:ksmGrandChampion(div)?KSMEngine.grandChampionFormat(ksmGrandChampion(div)):state.divisionTypes[div],courtMode:state.divisionCourts[div],settings,bracketNodesForCount:teamBracketNodesForCount});
   if(!plan)return false;
@@ -23,7 +48,7 @@ function generateDivisionState(div){
   }
   state.currentByDivision[div]=0;return true;
 }
-function generatePools(options={}){
+export function generatePools(options={}){
   if(!options.validated){requestTournamentGeneration();return}
   const regenerating=Boolean(state.generated);
   state.pools={};state.teamPools={};state.allMatches={};state.teamBracketNodes={};state.singleElimNodes={};state.singleElimComps={};state.teamElimTeams={};state.brackets={};state.championshipNodes={};state.byeWinners={};state.currentByDivision={};let generated=0;
@@ -36,7 +61,7 @@ function generatePools(options={}){
   if(regenerating)ksmMarkRegenerateSave();
   renderAll();show('registration');regTab('pools');scheduleAutoSave();
 }
-function regenerateSingleDivision(div){
+export function regenerateSingleDivision(div){
   if(!['ready','new'].includes(divisionRegenerationStatus(div))){alert('This division cannot be regenerated after matches have started.');return}
   let validation=validateTournament({division:div});if(!validation.valid){closeManagementModal('regenerateModal');showValidationDialog(validation,()=>{});return}
   let snapshot=JSON.parse(JSON.stringify({pools:state.pools[div],teamPools:state.teamPools[div],allMatches:state.allMatches[div],teamBracketNodes:state.teamBracketNodes[div],singleElimNodes:state.singleElimNodes[div],singleElimComps:state.singleElimComps?.[div],teamElimTeams:state.teamElimTeams?.[div],brackets:state.brackets[div],championshipNodes:state.championshipNodes?.[div],byeWinners:state.byeWinners?.[div],currentByDivision:state.currentByDivision[div]}));
@@ -48,7 +73,7 @@ function regenerateSingleDivision(div){
     state.pools[div]=snapshot.pools;state.teamPools[div]=snapshot.teamPools;state.allMatches[div]=snapshot.allMatches;state.teamBracketNodes[div]=snapshot.teamBracketNodes;state.singleElimNodes[div]=snapshot.singleElimNodes;state.singleElimComps=state.singleElimComps||{};state.singleElimComps[div]=snapshot.singleElimComps;state.teamElimTeams=state.teamElimTeams||{};state.teamElimTeams[div]=snapshot.teamElimTeams;state.brackets[div]=snapshot.brackets;state.championshipNodes=state.championshipNodes||{};state.championshipNodes[div]=snapshot.championshipNodes;state.byeWinners=state.byeWinners||{};state.byeWinners[div]=snapshot.byeWinners;state.currentByDivision[div]=snapshot.currentByDivision;alert('Unable to regenerate '+div+': '+err.message);
   }
 }
-function applyIndividualNoShow(div,name){
+export function applyIndividualNoShow(div,name){
   if(!structuralNoShowAllowed(div))return false;
   let fmt=state.divisionTypes[div]||'Round Robin';
   if(fmt==='Single Elimination'){
@@ -66,17 +91,17 @@ function applyIndividualNoShow(div,name){
   }
   initCourtStates();state.managementRevision=(state.managementRevision||0)+1;return true;
 }
-function applyWholeTeamNoShow(div,teamName){
+export function applyWholeTeamNoShow(div,teamName){
   if(!structuralNoShowAllowed(div))return false;
   let nodes=state.teamBracketNodes?.[div]||[];
   if(nodes.length){let teams=state.teamElimTeams?.[div]||[];let idx=teams.findIndex(t=>t&&t.team===teamName);if(idx<0)return false;teams[idx]=null;nodes.forEach(n=>n.winner=null);state.allMatches[div]=[];syncTeamBracket(div,state.allMatches[div],teams);}
   else{state.allMatches[div]=(state.allMatches[div]||[]).filter(m=>m.teamWhite!==teamName&&m.teamRed!==teamName);let pool=state.pools?.[div]?.[0];if(pool)pool.players=pool.players.filter(p=>p.name!==teamName)}
   initCourtStates();state.managementRevision=(state.managementRevision||0)+1;return true;
 }
-function matchBelongsToCourt(m,c){if(!m)return false;if(m.court)return m.court===c;let mode=state.divisionCourts[m.division]||'A';return mode==='split'?c==='A':mode===c}
-function eliminationFinalDone(div){let arr=state.allMatches[div]||[];return arr.some(m=>m&&m.singleElim&&m.position==='Final'&&m.done)}
+export function matchBelongsToCourt(m,c){if(!m)return false;if(m.court)return m.court===c;let mode=state.divisionCourts[m.division]||'A';return mode==='split'?c==='A':mode===c}
+export function eliminationFinalDone(div){let arr=state.allMatches[div]||[];return arr.some(m=>m&&m.singleElim&&m.position==='Final'&&m.done)}
 function nextIndexForCourt(div,c,start=0){let arr=state.allMatches[div]||[];if(eliminationFinalDone(div))return arr.length;if(arr.some(isTeamMatch)){arr=sortTeamMatches(div);start=0;}else{arr=sortIndividualDivisionMatches(div,arr);start=0;}let idx=arr.findIndex((m,i)=>i>=start && individualMatchReady(m) && matchBelongsToCourt(m,c));return idx<0?arr.length:idx}
-function setActiveDivision(div,keepScore=false){
+export function setActiveDivision(div,keepScore=false){
   if(state.currentCourt)rememberLocalCourtDivision(state.currentCourt,div);
   state.currentDivision=div;
   state.matches=state.allMatches[div]||[];
@@ -88,7 +113,7 @@ function setActiveDivision(div,keepScore=false){
   else{state.score={W:[],R:[],WT:0,RT:0};state.history=[]}
   renderDivisions();renderScore();renderPools();renderProgress();renderContext();
 }
-function selectScorekeeperDivision(div){
+export function selectScorekeeperDivision(div){
   // A court's active division is operational shared state: the local scorekeeper
   // owns the selection, while spectator/TV clients must follow it. Publish the
   // change immediately so a TV window does not wait for the next scored point.
@@ -96,7 +121,7 @@ function selectScorekeeperDivision(div){
   if(!isReadOnlySession())criticalAutoSave(`Court ${state.currentCourt||'A'} division changed: ${div}`);
 }
 function makeMatches(div){state.allMatches[div]=buildPoolMatches(div,state.pools[div]||[]);setActiveDivision(div)}
-function renderPools(){
+export function renderPools(){
   // The Pools view is React (app/react/pools/, 41-react-pools.js): #poolOutput's contents are
   // published to it instead of written (M.13).
   let div=poolDiv?.value||state.poolViewDivision||state.currentDivision;state.poolViewDivision=div;

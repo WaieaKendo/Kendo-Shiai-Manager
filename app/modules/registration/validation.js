@@ -1,7 +1,7 @@
 // @ts-check
 import {state} from '../app-state.js';
+import {generatePools} from '../engine/engine-generation.js';
 import {eligibleIndividuals,eligibleTeams,isTeamDivision} from '../engine/engine-pools.js';
-import {generatePools} from '../legacy.js';
 import {ksmRenderTournamentStatus} from '../react-bridges/registration.js';
 import {ksmShowValidationDialog} from '../react-bridges/shell.js';
 import {ksmGrandChampionError,ksmGrandChampions} from './grand-champion.js';

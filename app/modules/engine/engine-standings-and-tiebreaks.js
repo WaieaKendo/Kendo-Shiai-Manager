@@ -1,12 +1,12 @@
 // @ts-check
 import {state} from '../app-state.js';
 import {individualMatchReady} from '../court/court-match-order.js';
-import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {requiredSeedPlaces} from './engine-championship.js';
 import {eligibleTeams,isTeamDivision,poolCourtFor} from './engine-pools.js';
 import {initialPoolStandings,pendingTiebreak,poolPositionsResolved} from '../legacy.js';
 import {ksmTeamSettings} from '../registration/team-divisions.js';
 import {divisionComplete} from '../results/results-and-awards.js';
+import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {matchBelongsToCourtInState,matchHasSyncIdentity,matchSyncIdentity,nextReadyIndexInState} from '../sync/sync-state-and-rebase.js';
 /**
  * @param {string} poolLabel

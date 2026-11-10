@@ -10,7 +10,7 @@
 //
 // First block: by value (the binding is never assigned after its declaration).
 Object.assign(window, {
-  // 00-path-urls.js
+  // app/modules/links/path-urls.js
   ksmHeaderLogo, ksmIsExplicitSpectatorUrl, ksmLinkParams, ksmLinkUrl, ksmRecordScreenPath, ksmReplaceUrl, ksmResolvedUrl, ksmResolveSlug,
   ksmShowRequestedScreen, ksmTournamentHomeUrl,
   // app/modules/react-bridges/state-bridge.js
@@ -19,8 +19,8 @@ Object.assign(window, {
   ksmAddGrandChampion, ksmDecideGrandChampion, ksmGrandChampion, ksmGrandChampionChoose, ksmGrandChampions, ksmMoveGrandChampion,
   ksmOpenGrandChampionWithdraw, ksmRemoveGrandChampion, ksmToggleGrandChampionSource, ksmUpdateGrandChampion,
   // app/modules/setup/division-setup.js
-  addCustomDivision, renderDivisionSetup, setDivisionFormat, syncSetupHeader, toggleDivision,
-  // 01-state-and-setup.js
+  saveSetup, addCustomDivision, renderDivisionSetup, setDivisionFormat, syncSetupHeader, toggleDivision,
+  // app/modules/session/tournament-switcher.js, app/modules/app-state.js
   ksmEmptyState, state,
   // app/modules/registration/team-divisions.js
   ksmAddTeamDivision, ksmAssignTeamDivision, ksmDivisionName, ksmMoveTeamDivision, ksmNewTeamRows, ksmRemoveTeamDivision,
@@ -53,7 +53,7 @@ Object.assign(window, {
   maybeAdvanceTeamBracket,
   // 07-engine-team-bracket.js
   teamBracketNodesForCount,
-  // 08-engine-generation.js
+  // app/modules/engine/engine-generation.js
   applyIndividualNoShow, applyWholeTeamNoShow, eliminationFinalDone, generateDivisionState, generatePools, matchBelongsToCourt,
   regenerateSingleDivision, renderPools, selectScorekeeperDivision, setActiveDivision,
   // app/modules/results/results-and-awards.js
@@ -78,8 +78,8 @@ Object.assign(window, {
   // app/modules/engine/engine-championship.js
   maybeAdvanceChampionship, maybeCreateChampionship, poolSeedResolution, recomputeChampionshipAdvancement, seedNameForLabel,
   syncChampionshipTemplate,
-  // app/modules/court/court-context-and-pool-editing.js
-  dragPoolPlayer, dropPoolPlayer, insertPoolPlayer, jsArg, saveEditedPools, toggleEditPools,
+  // app/modules/court/court-context-and-pool-editing.js (renderAll() is one final function)
+  renderAll, dragPoolPlayer, dropPoolPlayer, insertPoolPlayer, jsArg, saveEditedPools, toggleEditPools,
   // app/modules/results/print.js
   previewAllDivisionSheets, previewFullPrintPacket, previewResultsSheet, previewSelectedDivisionSheet, printDivisionSheet,
   // app/modules/sync/sync-state-and-rebase.js
@@ -100,13 +100,13 @@ Object.assign(window, {
   ksmSendTieFlash, ksmTieFlashConnected, loadRecoveryFile, loadTournamentFromFile, manualSaveTournament, reconnectTvRealtime,
   renderCloudPresence, replaceTournamentFromFile, retryQueuedCloudSave, saveTournamentToCloudWithReason, showKsmToast,
   tournamentFilePayload, triggerLoadRecoveryFile, triggerLoadTournament, tvLink,
-  // app/modules/court/scorekeeper-screen.js
-  closeFusenDialog, confirmFusen, openFusenDialog, updateScoreTournamentName,
-  // 23-navigation.js
-  chooseCourt, closeNavMenus, exportResultsAwards, exportTournamentBrackets, navigateTo, openRegistrationTab, regTab, renderProgress, toggleNavMenu,
+  // app/modules/court/scorekeeper-screen.js (renderScore() is one final function)
+  renderScore, closeFusenDialog, confirmFusen, openFusenDialog, updateScoreTournamentName,
+  // app/modules/navigation.js (show() is one final function; it replaced the live accessor)
+  show, chooseCourt, closeNavMenus, exportResultsAwards, exportTournamentBrackets, navigateTo, openRegistrationTab, regTab, renderProgress, toggleNavMenu,
   // app/modules/court/court-queue-and-context.js
   normalizeQueueGroupLabel, setCourtSupportMode,
-  // 25-live-scores.js
+  // app/modules/results/live-scores.js
   tvAssignedCourt,
   // app/modules/results/live-scores.js
   audienceMeta, launchTvDisplay, renderPublic, tvIndividualSideLabel, tvUpcomingMatches,
@@ -116,13 +116,13 @@ Object.assign(window, {
   addResultAward, closeResultsBracket, openResultsBracket, removeResultAward, renderResultsDashboard, resultPlacements,
   // app/modules/setup/director-progress.js
   courtSummaryFor, directorDivisionProgress, directorSingleElimTotal, renderDirector, tournamentSummary,
-  // 31-spectator-refinements.js
+  // app/modules/results/live-scores.js
   poolDisplayComplete,
-  // 30-setup-header-and-director.js
+  // app/modules/setup/director-progress.js
   ksmDirectorRefreshTimer, setDirectorRefreshTimer,
   // app/modules/court/split-court-templates.js
   contextDivisionForCourt, renderContext, renderQueue, setCourtCompletePresentation, syncIndividualSingleElim,
-  // 32-split-court-templates.js
+  // app/modules/session/tournament-switcher.js
   ksmEmptySetup,
   // app/modules/links/friendly-links.js
   ksmEditTournamentSlug, ksmRenameTournamentSlug, ksmSaveShortUrl,
@@ -180,12 +180,10 @@ Object.assign(window, {
 {
   const live = (get, set) => ({ get, set, enumerable: true, configurable: true });
   Object.defineProperties(window, {
-    // 01-state-and-setup.js
-    saveSetup: live(() => saveSetup, v => { saveSetup = v; }),
-    setDivisionCourt: live(() => setDivisionCourt, v => { setDivisionCourt = v; }),
-    show: live(() => show, v => { show = v; }),
-    // 11-court-queue-and-views.js
-    showDojoProfile: live(() => showDojoProfile, v => { showDojoProfile = v; }),
+    // app/modules/setup/division-setup.js: a test replaces the window name an inline handler calls
+    setDivisionCourt: live(() => setDivisionCourt, v => { setSetDivisionCourt(v); }),
+    // app/modules/court/court-queue-and-views.js
+    showDojoProfile: live(() => showDojoProfile, v => { setShowDojoProfile(v); }),
     // 13-engine-standings-and-tiebreaks.js
     initialPoolStandings: live(() => initialPoolStandings, v => { initialPoolStandings = v; }),
     pendingTiebreak: live(() => pendingTiebreak, v => { pendingTiebreak = v; }),
@@ -195,8 +193,6 @@ Object.assign(window, {
     poolPositionsResolved: live(() => poolPositionsResolved, v => { poolPositionsResolved = v; }),
     // 15-engine-pool-standings.js
     poolStandings: live(() => poolStandings, v => { poolStandings = v; }),
-    // 16-court-context-and-pool-editing.js
-    renderAll: live(() => renderAll, v => { renderAll = v; }),
     // app/modules/sync/cloud-realtime-save-and-load.js
     ksmApplyingRemoteSnapshot: live(() => ksmApplyingRemoteSnapshot, v => { setKsmApplyingRemoteSnapshot(v); }),
     ksmCloudReconnectTimer: live(() => ksmCloudReconnectTimer, v => { setKsmCloudReconnectTimer(v); }),
@@ -224,8 +220,6 @@ Object.assign(window, {
     criticalAutoSave: live(() => criticalAutoSave, v => { criticalAutoSave = v; }),
     saveAuto: live(() => saveAuto, v => { saveAuto = v; }),
     scheduleAutoSave: live(() => scheduleAutoSave, v => { scheduleAutoSave = v; }),
-    // 22-scorekeeper-screen.js
-    renderScore: live(() => renderScore, v => { renderScore = v; }),
     // app/modules/links/friendly-links.js
     ksmPendingSlug: live(() => ksmPendingSlug),
     // app/modules/session/staff-session-and-library.js

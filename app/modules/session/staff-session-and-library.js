@@ -1,18 +1,19 @@
 // @ts-check
 import {cloudHeaders,connectCloudSocket,ksmCacheTournament,ksmCreateTournament,ksmExpireStaffSession,ksmFetchTournament,ksmUsesAccountAuth,loadTournamentFromCloud,readTournamentLibrary,renderHomeTournamentLibrary,setSessionRole,writeTournamentLibrary} from '../auth/auth0-access.js';
-import {closeNavMenus,ksmIsExplicitSpectatorUrl,ksmLinkParams,ksmLinkUrl,ksmResolveSlug,ksmShowRequestedScreen,navigateTo,show} from '../legacy.js';
+import {ksmPendingSlug,setKsmPendingSlug} from '../links/friendly-links.js';
+import {ksmIsExplicitSpectatorUrl,ksmLinkParams,ksmLinkUrl,ksmResolveSlug,ksmShowRequestedScreen} from '../links/path-urls.js';
+import {closeNavMenus,navigateTo,show} from '../navigation.js';
 import {ksmRenderLibrary} from '../react-bridges/library.js';
 import {ksmOpenTournamentAccess,ksmRenderSessionRole} from '../react-bridges/shell.js';
-import {ksmPendingSlug,setKsmPendingSlug} from '../links/friendly-links.js';
 import {KSM_CLIENT_SCHEMA} from '../registration/team-divisions.js';
 import {renderTvDisplay} from '../results/tv-display.js';
+import {ksmOpenTournament,ksmPushTournamentAddress,ksmShowLibrary,ksmTournamentEpoch,setKsmStartupLoadFailed} from './tournament-switcher.js';
 import {analyzeTournamentSnapshot,writeCloudDiagnosticsState} from '../sync/cloud-diagnostics.js';
 import {applyTournamentPayload,cloudSaveTimeoutSignal,disconnectCloudSocket,ksmAnnounceTournamentGone,ksmCloudSocket,ksmGoneError,mergeQueuedStaffWork,renderTvRealtimeDiagnostics,setKsmApplyingRemoteSnapshot,setKsmLastSuccessfulSaveAt,setKsmSaveStatusMode,showKsmToast} from '../sync/cloud-realtime-save-and-load.js';
 import {clearOutbox,cloudEnvelope,cloudSession,ensureClientIdentity,ksmSessionRole,ksmStoreAutosave,markLocalSave,persistCloudSession,preserveRecovery,readOutbox,renderPersistentSaveStatus,saveNow,setConnectionStatus,setKsmSessionRole,tournamentPayload,writeOutbox} from '../sync/cloud-session-and-autosave.js';
 import {KSM_AUTOSAVE_CLOUD_ID,KSM_CLOUD_REBASE_MAX_ATTEMPTS,KSM_SAVE_KEY,cloudBaseFor,normalizeCourt,pendingLocalCourtActionsForRebase,pinCourtLocally,pinnedCourt,rebaseLocalPayloadOnRecord,rememberCloudBase,storedCourtPin} from '../sync/sync-state-and-rebase.js';
 import {ksmWriterId} from '../sync/two-tabs.js';
 import {ksmClearRestoreMark,ksmPendingRestoreMark,ksmRestoredSince} from '../sync/undo-regenerate.js';
-import {ksmOpenTournament,ksmPushTournamentAddress,ksmShowLibrary,ksmTournamentEpoch,setKsmStartupLoadFailed} from './tournament-switcher.js';
 // Staff sessions, the role and the Tournament Library (step 3d of #136, from app/js/33-staff-session-and-library.js).
 // setSessionRole(), toggleStaffSession(), cloudHeaders(), cloudSocketUrl(), loadTournamentFromCloud(),
 // ksmExpireStaffSession() and the library's read/write/render are the account-aware ones of

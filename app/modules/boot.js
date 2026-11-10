@@ -4,10 +4,12 @@
 // bridges' (initReactBridges()) and 54-auth0-access.js. Order inside it is unchanged: the cloud-role start-up and its
 // catch, ksmBootstrapReady, syncSetupHeader(), the file: notice, the service worker registration.
 import {ksmKeepFailedStartup} from './auth/auth0-access.js';
-import {syncSetupHeader} from './setup/division-setup.js';
+import {renderAll} from './court/court-context-and-pool-editing.js';
 import {initializeCloudRoleFromUrl,showHomePage} from './session/staff-session-and-library.js';
 import {ksmShowLibrary} from './session/tournament-switcher.js';
-import {setConnectionStatus} from './sync/cloud-session-and-autosave.js';
+import {syncSetupHeader} from './setup/division-setup.js';
+import {restoreAutoSaveIfWanted} from './sync/cloud-realtime-save-and-load.js';
+import {cloudSession,setConnectionStatus} from './sync/cloud-session-and-autosave.js';
 
 // The start-up promise: app/js/54-auth0-access.js waits for it before revealing the UI (set by initBootstrap()).
 /** @type {Promise<any>} */
@@ -33,4 +35,10 @@ export function initBootstrap(){
       navigator.serviceWorker.register('/service-worker.js').catch(err=>console.warn('KSM service worker registration failed',err));
     });
   }
+}
+
+// The first render of the page (step 4a of #136; was the end of app/js/32-split-court-templates.js), run where that file used to load.
+export function initFirstRender(){
+if(!restoreAutoSaveIfWanted()) renderAll();
+setConnectionStatus(cloudSession.tournamentId?'Sync connecting…':'Local only',cloudSession.tournamentId?'connecting':'local');
 }

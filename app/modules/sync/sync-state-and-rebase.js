@@ -3,7 +3,7 @@ import {DIVISION_PRESETS,state} from '../app-state.js';
 import {KSM_UNDO_LOG_LIMIT} from '../court/court-scoring-and-history.js';
 import {repairCompletedMatchResults} from '../engine/engine-result-integrity.js';
 import {isIndividualPoolTiebreakMatch,normalizeAllIndividualPoolTiebreakOrder,normalizeIndividualPoolTiebreakOrderInState} from '../engine/engine-standings-and-tiebreaks.js';
-import {ksmLinkParams} from '../legacy.js';
+import {ksmLinkParams} from '../links/path-urls.js';
 import {ksmCarryGrandChampionDraws,ksmNoteGrandChampionPatchDropped,ksmSameGrandChampionDraw} from '../registration/grand-champion.js';
 import {ksmTeamDivisionPayload} from '../registration/team-divisions.js';
 import {writeCloudDiagnosticsState} from './cloud-diagnostics.js';
