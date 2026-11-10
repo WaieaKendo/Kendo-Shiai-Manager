@@ -8,6 +8,7 @@ import {renderTournamentStatus} from './validation.js';
 import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {writeCloudDiagnosticsState} from '../sync/cloud-diagnostics.js';
 import {getSetupSnapshot,tournamentSettings} from '../sync/cloud-session-and-autosave.js';
+import * as KSMEngine from '../../engine/index.ts';
 export function ksmNewTeamRows(rows){const division=ksmDefaultTeamDivisionId();return rows.map(t=>({...t,id:ksmNewTeamIdentity(),teamDivisionId:division}))}
 // The saved format this app understands (team divisions = 2, grand champion #86 = 3), sent with every
 // save (cloudHeaders(), 33). The server refuses saves from apps below its MIN_CLIENT_SCHEMA

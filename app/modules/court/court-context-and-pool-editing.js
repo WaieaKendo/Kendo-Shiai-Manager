@@ -19,6 +19,7 @@ import {ksmRefreshTournamentChip} from '../session/tournament-switcher.js';
 import {ksmSyncDangerZone} from '../setup/danger-zone.js';
 import {renderDirector} from '../setup/director-progress.js';
 import {saveSetup} from '../setup/division-setup.js';
+import * as KSMEngine from '../../engine/index.ts';
 export function maybeCreateKachinukiNext(m){
   const plan=KSMEngine.maybeCreateKachinukiNext(m);if(!plan)return;
   let div=m.division,arr=state.allMatches[div]||[];

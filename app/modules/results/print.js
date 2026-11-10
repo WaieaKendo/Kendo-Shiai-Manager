@@ -5,6 +5,7 @@ import {slotLabel} from '../engine/engine-team-matches.js';
 import {esc} from '../html-text.js';
 import {KSM_TEAM_PLACE_TIED} from './results-screen.js';
 import {tournamentPayload} from '../sync/cloud-session-and-autosave.js';
+import * as KSMEngine from '../../engine/index.ts';
 // One renderer for Setup and Library exports. Its input is a snapshot, never the live app.
 // Shadow only the read dependencies of the original print operations; no payload application,
 // session, storage, navigation or socket operations occur in this renderer.

@@ -9,6 +9,7 @@ import {ksmConfirmNoShow,ksmRenderExhibitions,ksmRenderRegistration,ksmRenderTea
 import {ksmCloseShellDialog,ksmContinueRegenerateDivision,ksmOpenRegenerateDialog} from '../react-bridges/shell.js';
 import {ksmDefaultTeamDivisionId,ksmNewTeamIdentity,ksmNewTeamRows,ksmTeamDivision,ksmTeamSettings} from './team-divisions.js';
 import {renderTournamentStatus} from './validation.js';
+import * as KSMEngine from '../../engine/index.ts';
 export function addRow(n=1){for(let i=0;i<n;i++)state.competitors.push({name:'',dojo:'',division:state.divisions[0]||'',seed:'',status:'Registered'});if(window.regFilter)regFilter.value='';renderReg()}
 export function addTeamRow(n=1){for(let i=0;i<n;i++)state.teams.push({team:'',division:'Team Tournament',id:ksmNewTeamIdentity(),teamDivisionId:ksmDefaultTeamDivisionId(),type:ksmTeamSettings().teamFormat,senpo:'',jiho:'',chuken:'',fukusho:'',taisho:'',status:'Registered'});if(window.teamFilter)teamFilter.value='';renderTeams()}
 export function addAutoTeam(){let n=(state.teams||[]).length+1;let team='Auto Team '+n;state.teams.push({team,division:'Team Tournament',id:ksmNewTeamIdentity(),teamDivisionId:ksmDefaultTeamDivisionId(),type:ksmTeamSettings().teamFormat,senpo:team,jiho:team,chuken:team,fukusho:team,taisho:team,status:'Checked'});renderTeams()}

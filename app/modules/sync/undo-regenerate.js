@@ -7,6 +7,7 @@ import {applyRemoteCloudRecord,applyTournamentPayload,flushCloudOutbox,ksmAnnoun
 import {clearOutbox,cloudSession,downloadRecoveryFile,ksmStoreAutosave,persistCloudSession,readOutbox,renderPersistentSaveStatus,tournamentPayload} from './cloud-session-and-autosave.js';
 import {clearLocalCourtDivisions,ksmKeepRestoreRecovery,ksmParkWork,localChangesPending,pinnedCourt,rememberCloudBase,restorePinnedCourt} from './sync-state-and-rebase.js';
 import {ksmOutboxKey} from './two-tabs.js';
+import * as KSMEngine from '../../engine/index.ts';
 // #129 part 3: Undo regenerate (step 3d of #136, from app/js/03-undo-regenerate.js). Its listeners are
 // initUndoRegenerate(), which app/js/03-undo-regenerate.js runs where this file used to load.
 // ---- #129 part 3: Undo regenerate ----

@@ -24,11 +24,11 @@
 //                       ES-module scripts from app/react/ (React + strict TypeScript) and
 //                       served without the .html (/overlay); none of them load app.js
 // app/react/            React/TSX code, ES modules; never part of app.js
-// app/engine/           pure strict-TS engine modules (no DOM, no globals). Bundled by
-//                       engineScript() into ONE classic IIFE script defining `KSMEngine`,
-//                       which index.html loads BEFORE app.js (/engine.js in dev, hashed in
-//                       the build), so `KSMEngine` is a global app.js reads; app/js delegates to it,
-//                       app/react imports the modules.
+// app/engine/           pure strict-TS engine modules (no DOM, no globals). app/modules and app/js import them
+//                       (`import * as KSMEngine from '.../engine/index.ts'`), so appBundle() bundles the engine into
+//                       app.js (step 4b of #136) and 00-legacy-exports.js sets window.KSMEngine from the import
+//                       for tests and anything outside; app/react imports the modules. engineScript() is only
+//                       for tests that run app code in a vm, where it is the global KSMEngine.
 // app/service-worker.js service worker (the build rewrites /app.css and /app.js to the
 //                       hashed bundle names in APP_SHELL)
 // app/public/           static files, copied to the site root unchanged
@@ -95,7 +95,9 @@ export async function appBundle() {
 /** app/modules/legacy.js: wrappers for the calls modules make into app/js (left out of the classic script). */
 export const LEGACY_MODULE = path.join(MODULES_DIR, 'legacy.js');
 const IMPORT_LINE = /^import \{([^}]*)\} from '([^']+)';?[ \t]*\r?\n/gm;
-const hasUnsupportedModuleSyntax = text => /^\s*(?:import\s*[\w{*'"]|export\s+(?:\{|\*|default))/m.test(text.replace(IMPORT_LINE, ''));
+// `import * as KSMEngine from '.../engine/index.ts';` (step 4b): dropped, never visited; in the classic script KSMEngine is the global the tests supply.
+const ENGINE_IMPORT_LINE = /^import \* as KSMEngine from '[^']*engine\/index\.ts';?[ \t]*\r?\n/gm;
+const hasUnsupportedModuleSyntax = text => /^\s*(?:import\s*[\w{*'"]|export\s+(?:\{|\*|default))/m.test(text.replace(IMPORT_LINE, '').replace(ENGINE_IMPORT_LINE, ''));
 /**
  * The entry plus its modules as ONE classic script, for tests that read or run the app's code: each module
  * (in import order, dependencies first, each once) with its `import` lines removed and `export ` dropped
@@ -109,7 +111,7 @@ export function classicAppScript() {
   const strip = (file, text) => {
     if (hasUnsupportedModuleSyntax(text)) throw new Error(`${path.relative(ROOT, file)}: only single-line \`import {a,b} from '...';\` and \`export function|const|let|class\` are supported`);
     for (const m of text.matchAll(IMPORT_LINE)) visit(path.resolve(path.dirname(file), m[2]));
-    return text.replace(IMPORT_LINE, '');
+    return text.replace(IMPORT_LINE, '').replace(ENGINE_IMPORT_LINE, '');
   };
   const visit = file => {
     if (done.has(file)) return;
@@ -123,7 +125,7 @@ export function classicAppScript() {
 }
 export const engineFiles = () => ordered(ENGINE_DIR, '.ts');
 
-/** app/engine/index.ts as a classic script: `var KSMEngine = (function(exports){...})({});`. */
+/** app/engine/index.ts as a classic script (the app no longer loads it; vm-based tests do): `var KSMEngine = (function(exports){...})({});`. */
 export async function engineScript() {
   const bundle = await rolldown({ input: path.join(ENGINE_DIR, 'index.ts'), logLevel: 'silent' });
   try {

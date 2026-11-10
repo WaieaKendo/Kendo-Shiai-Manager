@@ -116,5 +116,6 @@ interface Window {
 /** Registration -> Exhibition Matches enable select (Setup). */
 declare var exhibitionEnabled: HTMLSelectElement;
 
-/** The pure engine modules (app/engine/index.ts), loaded as a classic script before app.js. */
+
+/** The pure engine modules (app/engine/index.ts). The app/js files are type-checked one by one, but run as one module whose `import * as KSMEngine` is in 00-imports.js; this declares it for them (app/modules import it themselves). */
 declare var KSMEngine: typeof import('../engine/index.ts');

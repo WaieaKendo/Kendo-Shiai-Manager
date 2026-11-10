@@ -11,6 +11,7 @@ import {applyTournamentPayload,closeCloudModal,disconnectCloudSocket,flushCloudO
 import {applySetupSnapshot,clearOutbox,cloudSession,getSetupSnapshot,ksmSessionRole,markLocalSave,persistCloudSession,setConnectionStatus,tournamentPayload,writeOutbox} from '../sync/cloud-session-and-autosave.js';
 import {KSM_AUTOSAVE_CLOUD_ID,KSM_CLOUD_BASE,KSM_CLOUD_DIAGNOSTICS_KEY,KSM_CLOUD_RECOVERY_KEY,KSM_PINNED_COURT_PREFIX,KSM_SAVE_KEY,clearLocalCourtDivisions,ksmDeferredSyncTimer,localChangesPending,rememberCloudBase,setKsmDeferredSyncRecord,setKsmDeferredSyncTimer} from '../sync/sync-state-and-rebase.js';
 import {ksmOwnOutbox,ksmTabHasUnsavedWork} from '../sync/two-tabs.js';
+import * as KSMEngine from '../../engine/index.ts';
 // Switching tournaments: open, create, leave, reset, the startup load failure (step 3d of #136, from
 // app/js/33-tournament-switcher.js). Its load-time side effects (the address and the popstate listener) are
 // initTournamentSwitcher(), which app/js/33-tournament-switcher.js runs where this file used to load.

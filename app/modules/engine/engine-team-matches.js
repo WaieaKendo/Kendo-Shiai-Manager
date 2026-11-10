@@ -3,6 +3,7 @@ import {state} from '../app-state.js';
 import {sortTeamMatches} from '../court/court-match-order.js';
 import {teamBracketNodesForCount} from './engine-team-bracket.js';
 import {ksmTeamSettings} from '../registration/team-divisions.js';
+import * as KSMEngine from '../../engine/index.ts';
 /**
  * @param {string} k
  * @returns {string} 'senpo' -> 'Senpo'

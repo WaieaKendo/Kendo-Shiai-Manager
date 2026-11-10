@@ -10,6 +10,8 @@
 //
 // First block: by value (the binding is never assigned after its declaration).
 Object.assign(window, {
+  // The engine namespace imported in 00-imports.js: app code imports it, window.KSMEngine stays for tests and anything outside (step 4b of #136).
+  KSMEngine,
   // app/modules/links/path-urls.js
   ksmHeaderLogo, ksmIsExplicitSpectatorUrl, ksmLinkParams, ksmLinkUrl, ksmRecordScreenPath, ksmReplaceUrl, ksmResolvedUrl, ksmResolveSlug,
   ksmShowRequestedScreen, ksmTournamentHomeUrl,

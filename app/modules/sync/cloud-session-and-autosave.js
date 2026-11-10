@@ -10,6 +10,7 @@ import {ksmApplyingRemoteSnapshot,ksmCloudTimer,ksmFileReplace,ksmLastSuccessful
 import {KSM_AUTOSAVE_CLOUD_ID,KSM_CLOUD_RECOVERY_KEY,KSM_CLOUD_SESSION_KEY,KSM_SAVE_KEY,applyCourtSides,cloudBaseFor,ksmParkedWork,ksmRestoreRecoveries} from './sync-state-and-rebase.js';
 import {KSM_TAB_ID,ksmAdoptOrphanOutbox,ksmOutboxKey,ksmPeekOrphanOutbox,ksmReadOutboxKey,ksmReleaseAdoptedOutbox} from './two-tabs.js';
 import {ksmPendingRestoreMark} from './undo-regenerate.js';
+import * as KSMEngine from '../../engine/index.ts';
 // The cloud session, the outbox and the local autosave (step 3d of #136, from app/js/20-cloud-session-and-autosave.js).
 // cloudSession is read from localStorage by initCloudSession(), which app/js/20- runs where this file used to load.
 // scheduleAutoSave(), saveAuto() and criticalAutoSave() stay in app/js (tests wrap them through window).

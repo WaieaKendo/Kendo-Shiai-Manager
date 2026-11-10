@@ -8,6 +8,7 @@ import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {removeDivision,renderDivisionSetup} from '../setup/division-setup.js';
 import {cloudSession} from '../sync/cloud-session-and-autosave.js';
 import {ksmLocalCourtDivision} from '../sync/sync-state-and-rebase.js';
+import * as KSMEngine from '../../engine/index.ts';
 // ==========================================================
 // React Setup screen (app/react/features/setup/, roadmap M.13, #136 step 2)
 // Setup (#setup) draws two parts with React islands, mounted by app/react/features/setup/main.tsx:

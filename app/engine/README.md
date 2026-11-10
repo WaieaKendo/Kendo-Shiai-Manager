@@ -1,7 +1,7 @@
 # app/engine — the tournament engine
 
-Strict TypeScript, no DOM, no `state`, no globals. The build turns `index.ts` into the classic
-`window.KSMEngine` script that loads before `app.js`. `app/react/` imports the modules directly.
+Strict TypeScript, no DOM, no `state`, no globals. `app/modules` and `app/js` import it (`import * as KSMEngine from '…/engine/index.ts'`), so the build bundles it into
+`app.js` (step 4b of #136); `window.KSMEngine` is set from that import for tests and anything outside. `app/react/` imports the modules directly.
 Import from `index.ts` only: it is the public API.
 
 ## Modules
@@ -33,8 +33,8 @@ The only exception is the pool objects that `generateDivision` creates itself: i
 on them. Each moved legacy function keeps its name. Its body is a
 marked `engine-bridge` delegation that reads `state`, calls `KSMEngine.*`, and writes the result
 back. Settings come from `tournamentSettings()`. Since #136 step 3d most of these adapters live in
-`app/modules/engine/engine-*.js` (ES modules importing `state` from `app/modules/app-state.js`, still
-calling the `KSMEngine` global); the ones that still call an `app/js` function stay in `app/js`.
+`app/modules/engine/engine-*.js` (ES modules importing `state` from `app/modules/app-state.js`, importing
+the engine as `KSMEngine`); the ones that still call an `app/js` function stay in `app/js`.
 
 These parts are still in `app/js`, and why:
 

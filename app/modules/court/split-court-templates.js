@@ -3,6 +3,7 @@ import {state} from '../app-state.js';
 import {enforceUniqueIndividualMatches} from '../engine/engine-championship.js';
 import {winnerOf} from '../engine/engine-result-integrity.js';
 import {sortIndividualSingleElimMatches} from '../engine/engine-single-elim.js';
+import * as KSMEngine from '../../engine/index.ts';
 // ==========================================================
 // KSM v3.12.4 — Split-Court Template Consolidation
 // ==========================================================
