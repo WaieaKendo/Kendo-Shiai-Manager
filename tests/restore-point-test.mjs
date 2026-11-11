@@ -13,11 +13,11 @@
 // - the worker's finished-match count agrees with the app's (KSMEngine.finishedMatchSummary).
 // The app side (warning line, Danger zone button, court devices, offline outbox) is
 // undo-regenerate-test.py.
+// Run it with `node --experimental-strip-types tests/restore-point-test.mjs` (tests/run-all.mjs does): it imports the engine's .ts.
 import assert from 'node:assert/strict';
-import vm from 'node:vm';
 import { createInProcessApi } from './lib/worker-runtime.mjs';
 import { mockAuth0 } from './lib/mock-auth0.mjs';
-import { engineScript } from '../scripts/app-sources.mjs';
+import { finishedMatchSummary } from '../app/engine/finished-matches.ts';
 
 const DAY = 24 * 60 * 60 * 1000;
 const PASSWORD = 'restore-pass';
@@ -287,8 +287,6 @@ const clock = object => { let now = Date.now(); object.now = () => now; return {
   });
 
   await test("the worker's finished-match count agrees with the app's warning (KSMEngine.finishedMatchSummary)", async () => {
-    const scope = vm.createContext({});
-    vm.runInContext(await engineScript(), scope);
     const samples = [
       {},
       { Open: [{ done: false }, { done: false }] },
@@ -299,7 +297,7 @@ const clock = object => { let now = Date.now(); object.now = () => now; return {
       const t = await create();
       assert.equal((await put(t, 1, { setup: { tName: 'Count' }, state: { allMatches } })).status, 200);
       assert.equal((await put(t, 2, redrawn, mark())).status, 200);
-      assert.equal((await status(t)).restorePoint.finishedMatches, scope.KSMEngine.finishedMatchSummary(allMatches).total, JSON.stringify(allMatches));
+      assert.equal((await status(t)).restorePoint.finishedMatches, finishedMatchSummary(allMatches).total, JSON.stringify(allMatches));
     }
   });
 }

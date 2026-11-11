@@ -1,20 +1,33 @@
 // Shared helpers for tests that inspect or execute pieces of the app's source.
 //
-// `html` is the app as ONE text, as public/index.html was before the Vite split:
-// app/index.html with app/styles/*.css and app/js/*.js inlined in file-name order
-// (scripts/app-sources.mjs). The code is the same text, in the same order, so grep
-// checks, extractFunction (last declaration wins) and withDependencies still apply.
+// `html` is the app's source as ONE plain text (appSourceText() in scripts/app-sources.mjs): app/index.html,
+// app/styles/*.css, app/modules/**/*.js and app/js/*.js exactly as they are on disk, no transform. The
+// name is historic (it was index.html with everything inlined). Grep-style checks read it directly;
+// extractFunction cuts one function declaration out of it (names are unique, see
+// tests/no-duplicate-declarations-test.mjs) and withDependencies adds what that code calls, for tests
+// that run the function in a vm with their own stubs (module-internal calls cannot be stubbed on an import).
 //
-// `engine` is the built engine script (app/engine/*.ts as a classic IIFE defining
-// `var KSMEngine`), which the app loads before app.js. It is not part of `html`. Code
-// that references KSMEngine gets it from withDependencies; tests that assemble vm code
-// from extractFunction by hand prepend `engine`.
+// `engine` is app/engine as a classic IIFE, for those vm tests (see engineIife below). It is not part of `html`.
 import fs from 'node:fs';
-import { singleFileSource, serviceWorker, engineScript } from '../../scripts/app-sources.mjs';
+import path from 'node:path';
+import { rolldown } from 'rolldown';
+import { appSourceText, serviceWorker, ENGINE_DIR } from '../../scripts/app-sources.mjs';
 
 export const readRepoFile = rel => fs.readFileSync(new URL(`../../${rel}`, import.meta.url), 'utf8');
-export const html = singleFileSource();
-export const engine = await engineScript();
+export const html = appSourceText();
+
+// The engine as a classic IIFE (`var KSMEngine = ...`) for the few tests that run code in a vm next to the
+// engine (the pre-move parity tests in tests/engine and withDependencies below): a vm context cannot import,
+// and handing it the engine namespace instead would mix realms (arrays/objects of two contexts in deepEqual).
+// Only tests use it; the app imports the engine and the build bundles it.
+async function engineIife() {
+  const bundle = await rolldown({ input: path.join(ENGINE_DIR, 'index.ts'), logLevel: 'silent' });
+  try {
+    const { output } = await bundle.generate({ format: 'iife', name: 'KSMEngine', minify: false });
+    return output[0].code;
+  } finally { await bundle.close(); }
+}
+export const engine = await engineIife();
 export const worker = readRepoFile('src-worker.js');
 export const sw = serviceWorker();
 export const pkg = JSON.parse(readRepoFile('package.json'));
@@ -121,7 +134,7 @@ export function countDefinitions(source, name) { return definitionStarts(source,
 
 function topLevelConstants(source) {
   const map = new Map();
-  for (const m of source.matchAll(/(?:^|[;\n}])\s*(const|let)\s+([A-Z][A-Z0-9_]+)\s*=/g)) {
+  for (const m of source.matchAll(/(?:^|[;\n}])\s*(?:export\s+)?(const|let)\s+([A-Z][A-Z0-9_]+)\s*=/g)) {
     const start = m.index + m[0].indexOf(m[1]);
     let i = start + m[0].length - m[0].indexOf(m[1]), depth = 0;
     for (; i < source.length;) {
