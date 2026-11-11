@@ -176,7 +176,8 @@ export function poolSeedResolution(pool: StandingsPool | null | undefined, poolL
     if (group.length === 1) { if (start <= req) seeds[start] = group[0]!; }
     else if (start <= req) {
       const resolved = resolveTiebreakBaseGroup(matches, poolLabel, { start, end, players: group });
-      if (resolved.unresolved.length) complete = false;
+      // Players still level below the advancing places do not hold the pool up: the check after the loop
+      // marks it incomplete only while an advancing place has no seed.
       const ordered = resolved.ordered || [];
       for (let offset = 0; offset < ordered.length; offset++) {
         const place = start + offset;

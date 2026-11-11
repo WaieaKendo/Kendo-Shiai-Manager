@@ -95,8 +95,8 @@ const KSM_GC_STRUCTURE_KEYS=['pools','teamPools','allMatches','singleElimNodes',
 function ksmForgetGrandChampionHistory(id){
   ['courtActionHistory','courtRedoHistory'].forEach(key=>['A','B'].forEach(c=>{
     const stack=state[key]?.[c];if(!Array.isArray(stack))return;
-    state[key][c]=stack.map(a=>a&&Array.isArray(a.patches)&&a.patches.some(p=>p?.path?.[0]==='allMatches'&&p.path[1]===id)
-      ?{...a,patches:a.patches.filter(p=>!(p?.path?.[0]==='allMatches'&&p.path[1]===id))}:a)
+    state[key][c]=stack.map(a=>a&&Array.isArray(a.patches)&&(a.patches.some(p=>p?.path?.[0]==='allMatches'&&p.path[1]===id)||a.matchOps?.[id])
+      ?{...a,patches:a.patches.filter(p=>!(p?.path?.[0]==='allMatches'&&p.path[1]===id)),...(a.matchOps?.[id]?{matchOps:Object.fromEntries(Object.entries(a.matchOps).filter(([d])=>d!==id))}:{})}:a)
       .filter(a=>!a||!Array.isArray(a.patches)||a.patches.length);
   }));
 }

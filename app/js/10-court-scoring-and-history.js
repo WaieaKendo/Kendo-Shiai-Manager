@@ -119,6 +119,7 @@ const KSM_UNDO_LOG_LIMIT=40;
 function courtUndoMatchesBefore(action){
   const out={};
   (action?.patches||[]).forEach(patch=>{const div=patch?.path?.[0]==='allMatches'?patch.path[1]:null;if(div!=null&&!(div in out)&&Array.isArray(state.allMatches?.[div]))out[div]=cloneJson(state.allMatches[div])});
+  Object.keys(action?.matchOps||{}).forEach(div=>{if(!(div in out)&&Array.isArray(state.allMatches?.[div]))out[div]=cloneJson(state.allMatches[div])});
   return out;
 }
 /**
@@ -192,7 +193,31 @@ function withCourtHistoryIdentity(entry,before,after){
     return refs.before||refs.after?{...patch,indexRefs:refs}:patch;
   });
   entry.identityStamps=1;
-  return withCourtMatchOps(entry,before?.allMatches,after?.allMatches);
+  return compactCourtActionEntry(withCourtMatchOps(entry,before?.allMatches,after?.allMatches),before,after);
+}
+/**
+ * Reported 2026-11-10: a kachinuki Next Match inserts the next bout in the middle of the division, so
+ * its index patches "change" every later bout into its neighbour (twice: allMatches.<div> and
+ * matches): ~145 KB an action, and the courts' history soon made the tournament too big to save
+ * (SQLITE_TOOBIG). A division whose inserts and removes the entry keeps by identity (matchOps) is
+ * replayed from them on the device (applyCourtHistoryEntry(), mode 'ops') and on a rebase
+ * (replayPendingCourtHistory(), 18-), never from its index patches, so those are left out.
+ */
+function compactCourtActionEntry(entry,before,after){
+  const ops=entry.matchOps||{},compact=new Set();
+  Object.entries(ops).forEach(([div,op])=>{
+    if(!op||!((op.insert||[]).length||(op.remove||[]).length))return;
+    const list=entry.patches.filter(patch=>patch?.path?.[0]==='allMatches'&&patch.path[1]===div&&typeof patch.path[2]==='number');
+    if(list.every(patch=>patch.matchIdentity))compact.add(div);
+  });
+  if(!compact.size)return entry;
+  const open=before?.currentDivision===after?.currentDivision&&compact.has(before?.currentDivision);
+  entry.patches=entry.patches.filter(patch=>{
+    const path=patch?.path||[];
+    if(path[0]==='allMatches'&&compact.has(path[1])&&typeof path[2]==='number')return false;
+    return !(open&&path[0]==='matches');
+  });
+  return entry;
 }
 /** The division whose match list a match-index field (courtState.<court>.index, current, currentByDivision.<div>) points into, in `st`. */
 function historyIndexDivision(path,st){
@@ -238,6 +263,8 @@ function applyCourtHistoryEntry(action,direction){
   const all=Array.isArray(action?.patches)?action.patches:[],matchOps=action?.matchOps&&typeof action.matchOps==='object'?action.matchOps:{};
   const divOf=patch=>patch?.path?.[0]==='allMatches'&&typeof patch.path[2]==='number'?patch.path[1]:null;
   const byDivision={};all.forEach(patch=>{const div=divOf(patch);if(div!=null)(byDivision[div]=byDivision[div]||[]).push(patch)});
+  // A division whose index patches were left out (compactCourtActionEntry()) is replayed from its matchOps alone.
+  Object.entries(matchOps).forEach(([div,op])=>{if(op&&((op.insert||[]).length||(op.remove||[]).length))byDivision[div]=byDivision[div]||[]});
   const identityNow=patch=>patch.matchIdentities?patch.matchIdentities[now]:patch.matchIdentity;
   const mode={},ops={};
   Object.entries(byDivision).forEach(([div,list])=>{

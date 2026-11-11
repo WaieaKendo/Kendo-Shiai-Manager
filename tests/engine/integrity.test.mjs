@@ -71,6 +71,15 @@ test('sync identities', () => {
   assert.equal(matchSyncIdentity({ division: 'D', champNodeId: 'SF1' }), 'champ:D:SF1');
   assert.equal(matchSyncIdentity({ division: 'D', type: 'individual', pool: 'A', poolOrder: 2, whitePoolSlot: 'A1', redPoolSlot: 'A2', white: 'x', red: 'y' }), 'pool:D:A:2:A1-A2:x:y');
   assert.equal(matchSyncIdentity({ division: 'D', type: 'teamPosition', teamPair: '0-1', position: 'Senpo' }), 'team-pair:D:0-1:Senpo:teamPosition');
+  // Kachinuki (reported 2026-11-10): every bout of a pairing has position 'Kachinuki'; which member each side
+  // is on tells them apart, so a rebase no longer puts a court's next bout (or its score) on the first one.
+  const kachi = (wIndex, rIndex, extra = {}) => ({ division: 'D', type: 'kachinuki', position: 'Kachinuki', teamPair: 'node-QF1', teamNodeId: 'QF1', wIndex, rIndex, ...extra });
+  assert.equal(matchSyncIdentity(kachi(0, 0)), 'team-node:D:QF1:node-QF1:Kachinuki:0-0');
+  assert.equal(matchSyncIdentity(kachi(1, 0, { teamNodeId: undefined, teamPair: '0-1' })), 'team-pair:D:0-1:Kachinuki:kachinuki:1-0');
+  const bouts = [kachi(0, 0), kachi(1, 0), kachi(1, 1), kachi(2, 1), kachi(2, 2)];
+  assert.equal(new Set(bouts.map(matchSyncIdentity)).size, bouts.length, 'one identity per bout of a pairing');
+  assert.equal(matchHasSyncIdentity(bouts[0], matchSyncIdentity(bouts[1])), false);
+  assert.equal(matchSyncIdentity(kachi(undefined, undefined)), matchSyncIdentity(kachi(0, 0)), 'missing indexes count as the first members');
   const tb = { division: 'D', type: 'individual', tiebreak: true, pool: 'A', tiebreakId: 'T1', white: 'x', red: 'y' };
   assert.equal(matchHasSyncIdentity(tb, legacyTiebreakSyncIdentity(tb)), true);
   assert.equal(matchHasSyncIdentity(tb, ''), false);

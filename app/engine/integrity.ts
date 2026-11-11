@@ -16,7 +16,7 @@ export interface IdentityMatch {
   teamWhite?: unknown; teamRed?: unknown; bracketSlot?: unknown; champNodeId?: unknown; elimNodeId?: unknown;
   teamNodeId?: unknown; teamPair?: unknown; tiebreak?: unknown; tiebreakId?: unknown; tiebreakSeries?: unknown;
   tiebreakIndex?: unknown; championship?: unknown; singleElim?: unknown; poolOrder?: unknown;
-  whitePoolSlot?: unknown; redPoolSlot?: unknown; done?: unknown;
+  whitePoolSlot?: unknown; redPoolSlot?: unknown; done?: unknown; wIndex?: unknown; rIndex?: unknown;
 }
 
 type ScoredMatch = StandingsMatch & { wt?: unknown; rt?: unknown };
@@ -127,14 +127,19 @@ export function legacyTiebreakSyncIdentity(match: unknown): string {
   return `tiebreak:${div}:${s(match.pool)}:${s(match.tiebreakId || match.position)}:${s(match.white)}:${s(match.red)}`;
 }
 
+const kachinukiIndex = (n: unknown): number => (Number.isInteger(n) ? Number(n) : 0);
+
 /** Stable identity of a Match Object across devices (sync rebase addresses matches by it). */
 export function matchSyncIdentity(match: unknown): string {
   if (!isValidMatchObject(match)) return '';
   const div = String(match.division || ''), type = String(match.type || '');
   if (match.champNodeId) return `champ:${div}:${s(match.champNodeId)}`;
   if (match.elimNodeId) return `elim:${div}:${s(match.elimNodeId)}`;
-  if (match.teamNodeId && match.teamPair) return `team-node:${div}:${s(match.teamNodeId)}:${s(match.teamPair)}:${s(match.position)}`;
-  if (match.teamPair) return `team-pair:${div}:${s(match.teamPair)}:${s(match.position)}:${s(match.type)}`;
+  // Every kachinuki bout of a pairing has position 'Kachinuki': which member each side is on (it only moves
+  // forward during a pairing) tells them apart. Without it a rebase put a court's next bout on the first one.
+  const bout = type === 'kachinuki' ? `:${kachinukiIndex(match.wIndex)}-${kachinukiIndex(match.rIndex)}` : '';
+  if (match.teamNodeId && match.teamPair) return `team-node:${div}:${s(match.teamNodeId)}:${s(match.teamPair)}:${s(match.position)}${bout}`;
+  if (match.teamPair) return `team-pair:${div}:${s(match.teamPair)}:${s(match.position)}:${s(match.type)}${bout}`;
   if (match.tiebreak) return `tiebreak:${div}:${s(match.pool)}:${Number(match.tiebreakSeries || 1)}:${Number(match.tiebreakIndex ?? 0)}:${type}:${s(match.white)}:${s(match.red)}`;
   if (type === 'individual' && !match.championship) {
     const order = Number.isInteger(match.poolOrder) ? String(match.poolOrder) : '';

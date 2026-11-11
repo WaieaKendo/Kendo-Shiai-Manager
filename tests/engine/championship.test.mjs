@@ -58,6 +58,27 @@ test('seed resolution: tied first place only seeds once its tiebreak locks it', 
   for (const bad of ['A4', 'a1', 'BYE', '', null]) assert.equal(seedNameForLabel(bad, resFor(locked)), null, String(bad));
 });
 
+test('seed resolution: players still level below the advancing places do not hold the pool up', () => {
+  // Reported 2026-11-10 (ATKT, Yudansha 4 Dan+ pool B): B tied C and D for second, won its tiebreak bout,
+  // and C v D and C v B were draws. B is second; C and D stay level for third, which does not advance.
+  const p = pool('A', 'A', 'B', 'C', 'D');
+  const base = [bout('B', 'C', [], ['M']), bout('A', 'D', ['M', 'M'], []), bout('A', 'B', ['T', 'M'], []),
+    bout('C', 'D', [], ['M']), bout('C', 'A', [], ['M', 'K']), bout('D', 'B', [], ['K'])];
+  const tb = (white, red, wp, extra) => bout(white, red, wp, [], { tiebreak: true, tiebreakSeries: 1, requiresWinner: false, ...extra });
+  const played = [...base, tb('B', 'D', ['K'], { tiebreakIndex: 0 }), tb('C', 'D', [], { tiebreakIndex: 1 }), tb('C', 'B', [], { tiebreakIndex: 2 })];
+  const r = poolSeedResolution(p, 'A', played, 2);
+  assert.equal(r.complete, true);
+  assert.deepEqual([r.seeds[1].name, r.seeds[2].name], ['A', 'B']);
+  assert.equal(seedNameForLabel('A2', () => r).name, 'B');
+  // Still incomplete while the tie decides an advancing place: B did not win, so B, C and D stay level for second.
+  const level = [...base, tb('B', 'D', [], { tiebreakIndex: 0 }), tb('C', 'D', [], { tiebreakIndex: 1 }), tb('C', 'B', [], { tiebreakIndex: 2 })];
+  const open = poolSeedResolution(p, 'A', level, 2);
+  assert.equal(open.complete, false);
+  assert.equal(open.seeds[2], undefined);
+  // Three places advance: third is decided by the C v D tie too, so the pool waits for it.
+  assert.equal(poolSeedResolution(p, 'A', played, 3).complete, false);
+});
+
 test('nodes and Match Objects: rounds, feeder refs, field order, courts (single and split)', () => {
   const pairs = championshipTemplateForTotal(11);
   const single = buildChampionshipTemplateMatches('Open', pairs, (r, s, t) => championshipCourtFor('B', r, s, t), 4);
