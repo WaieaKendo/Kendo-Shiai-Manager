@@ -92,7 +92,8 @@ export async function appBundle() {
     // minified (rolldown neither minifies nor tree-shakes app.js). Their default ESM builds read
     // process.env.NODE_ENV, which rolldown makes 'development': ~150 kB of development-only checks (a deep
     // immutability walk on every dispatch) on TVs and tablets. The Node tests (tests/store) import the package
-    // defaults and keep the checks. Exact files: re-check these paths when the pinned versions change.
+    // defaults and keep the checks. Exact files: tests/store-package-builds-test.mjs fails if one moves. Nothing in
+    // app.js imports the store yet (docs/STORE.md, PR 2 adds the import), so today these aliases resolve nothing.
     resolve: { alias: STORE_PACKAGE_BUILDS },
     transform: { define: { 'process.env.NODE_ENV': '"production"' } },
   });

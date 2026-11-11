@@ -9,7 +9,6 @@
 // modules make them replaceable (app/modules/replaceable.js) and define window.NAME themselves.
 
 import * as KSMEngine from './engine/index.ts';
-import * as KSMStore from './store/index.ts';
 import {state} from './modules/app-state.js';
 import {cloudHeaders,connectCloudSocket,initAuth0Access,ksmAuthReady,ksmCacheTournament,ksmFetchTournament,ksmReadHeaders,ksmRevealReadyUi,ksmUsesAccountAuth,loadTournamentFileAsNew,loadTournamentFromCloud,renderHomeTournamentLibrary,setSessionRole,toggleStaffSession} from './modules/auth/auth0-access.js';
 import {initBootstrap,initFirstRender,ksmBootstrapInitialization} from './modules/boot.js';
@@ -169,9 +168,6 @@ document.addEventListener('DOMContentLoaded',()=>{if(!window.ksmShellMounted)ksm
 Object.assign(window, {
   // The engine namespace imported above: app code imports it, window.KSMEngine stays for tests and anything outside (step 4b of #136).
   KSMEngine,
-  // The Redux Toolkit store (app/store, #15 step 2.8; nothing reads or writes it yet). The React islands are a separate
-  // bundle, so they reach this one instance through window.KSMStore (getState, subscribe, dispatch); see docs/STORE.md.
-  KSMStore,
   // app/modules/links/path-urls.js
   ksmHeaderLogo, ksmIsExplicitSpectatorUrl, ksmLinkParams, ksmLinkUrl, ksmRecordScreenPath, ksmReplaceUrl, ksmResolvedUrl, ksmResolveSlug,
   ksmShowRequestedScreen, ksmTournamentHomeUrl,
