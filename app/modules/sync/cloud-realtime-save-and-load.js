@@ -1,5 +1,5 @@
 // @ts-check
-import {state} from '../app-state.js';
+import {replaceState,state} from '../app-state.js';
 import {cloudSocketUrl,connectCloudSocket,ksmCacheTournament,ksmReadHeaders,ksmUsesAccountAuth,loadTournamentFromCloud,setSessionRole} from '../auth/auth0-access.js';
 import {renderAll} from '../court/court-context-and-pool-editing.js';
 import {applyCourtState,findNextForCourt,individualMatchReady} from '../court/court-match-order.js';
@@ -686,10 +686,11 @@ export function applyTournamentPayload(payload,saveAfter,options={}){
   const localCourt=options.pinnedCourt||pinnedCourt()||cloudSession.court||state.currentCourt||null;
   const localPublicCourt=state.publicCourt||localCourt||'A';
   const loaded=KSMEngine.migrateGrandChampions(KSMEngine.migrateTeamDivisions(JSON.parse(JSON.stringify(payload.state)),payload.setup||{}));ksmNoteTeamsReassigned(payload.state,loaded,options.source);
-  Object.keys(state).forEach(k=>delete state[k]);
-  Object.assign(state, loaded);
-  sanitizeLoadedTournamentState(state,options.source||'tournament load');
-  normalizeAllIndividualPoolTiebreakOrder(state,options.source||'tournament load');
+  // The load repairs run on the loaded copy, before it replaces `state` (docs/STORE.md section 2, point 4): the same
+  // result as running them on `state` after the assign (tests/store/load-order.test.mjs).
+  sanitizeLoadedTournamentState(loaded,options.source||'tournament load');
+  normalizeAllIndividualPoolTiebreakOrder(loaded,options.source||'tournament load');
+  replaceState(loaded);
   state.teamElimTeams=state.teamElimTeams||{};state.managementRevision=state.managementRevision||0;state.divisionCourts=state.divisionCourts||{};Object.keys(state.divisionCourts).forEach(d=>{if(state.divisionCourts[d]==='Both'&&!isTeamDivision(d))state.divisionCourts[d]='split'});
   if(localCourt){pinCourtLocally(localCourt);state.currentCourt=normalizeCourt(localCourt)}
   if(isTvSession())state.publicCourt=normalizeCourt(localCourt||localPublicCourt);else state.publicCourt=normalizeCourt(localPublicCourt);

@@ -13,7 +13,7 @@ function check(ok,name){console.log(`${ok?'PASS':'FAIL'} ${name}`);if(!ok)failed
 
 check(html.includes("normalizeIndividualPoolTiebreakOrderInState(rebasedState,div,'concurrent rebase insertion')"),'rebase path normalizes a newly recovered tiebreak');
 check(html.includes("normalizeAllIndividualPoolTiebreakOrder(rebased.state,'concurrent rebase')"),'completed rebase repairs all pool-local tiebreak ordering');
-check(html.includes("normalizeAllIndividualPoolTiebreakOrder(state,options.source||'tournament load')"),'loaded tournaments self-heal legacy misplaced tiebreaks');
+check(html.includes("normalizeAllIndividualPoolTiebreakOrder(loaded,options.source||'tournament load')"),'loaded tournaments self-heal legacy misplaced tiebreaks');
 
 const context={console};
 context.state={};

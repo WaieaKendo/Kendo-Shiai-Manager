@@ -9,6 +9,9 @@
 // Use it only for what the app has no UI for (bulk setup, engine snapshots,
 // sync status). When index.html is split into modules / React, update this file
 // (and ksm_app.py) instead of the tests.
+// The store runs strict in the browser tests, as in the Node tests: a write to a store field that misses the
+// conversion throws instead of being applied as in production (app/main.js, docs/STORE.md section 2 point 8).
+window.KSM_STRICT_STORE = true;
 window.KSMTest = {
   // Instrument browser capabilities without replacing the timer or its epoch clock.
   installTimerProbes() {

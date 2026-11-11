@@ -9,7 +9,8 @@
 // modules make them replaceable (app/modules/replaceable.js) and define window.NAME themselves.
 
 import * as KSMEngine from './engine/index.ts';
-import {state} from './modules/app-state.js';
+import {setStoreStrict,store as KSMStore} from './store/index.ts';
+import {setStrayStoreWriteReporter,state} from './modules/app-state.js';
 import {cloudHeaders,connectCloudSocket,initAuth0Access,ksmAuthReady,ksmCacheTournament,ksmFetchTournament,ksmReadHeaders,ksmRevealReadyUi,ksmUsesAccountAuth,loadTournamentFileAsNew,loadTournamentFromCloud,renderHomeTournamentLibrary,setSessionRole,toggleStaffSession} from './modules/auth/auth0-access.js';
 import {initBootstrap,initFirstRender,ksmBootstrapInitialization} from './modules/boot.js';
 import {dragPoolPlayer,dropPoolPlayer,initPasteFromExcel,insertPoolPlayer,renderAll,saveEditedPools,toggleEditPools} from './modules/court/court-context-and-pool-editing.js';
@@ -72,6 +73,12 @@ import {scheduleAutoSave,scheduleAutoSaveOriginal} from './modules/sync/cloud-se
 // Path URLs (app/modules/links/path-urls.js, step 4a of #136). This runs first in the entry, after the imports:
 // the address rewrite and the explicit-spectator flag are taken before any other load-time code reads the address.
 initPathUrls();
+
+// The store (app/store, #15; docs/STORE.md section 2, point 8). app.js is the production build: a write the
+// conversion missed is applied and an assignment logged to the cloud diagnostics, never thrown. The browser tests
+// (window.KSM_STRICT_STORE, tests/lib/ksm-test-api.js) run strict, as the Node tests do, so such a write fails there.
+if(window.KSM_STRICT_STORE===true)setStoreStrict(true);
+setStrayStoreWriteReporter(write=>{console.warn('[KSM Store] A store field was assigned outside an action',write);writeCloudDiagnosticsState({storeStrayWrite:{...write,at:new Date().toISOString()}})});
 
 // show() is in app/modules/navigation.js, saveSetup() and setDivisionCourt() in app/modules/setup/division-setup.js
 // (step 4a of #136). The empty state is taken here, where this file used to load.
@@ -168,6 +175,8 @@ document.addEventListener('DOMContentLoaded',()=>{if(!window.ksmShellMounted)ksm
 Object.assign(window, {
   // The engine namespace imported above: app code imports it, window.KSMEngine stays for tests and anything outside (step 4b of #136).
   KSMEngine,
+  // The store (app/store): the React islands are a separate bundle and read this one instance (docs/STORE.md section 4).
+  KSMStore,
   // app/modules/links/path-urls.js
   ksmHeaderLogo, ksmIsExplicitSpectatorUrl, ksmLinkParams, ksmLinkUrl, ksmRecordScreenPath, ksmReplaceUrl, ksmResolvedUrl, ksmResolveSlug,
   ksmShowRequestedScreen, ksmTournamentHomeUrl,

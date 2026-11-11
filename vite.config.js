@@ -6,7 +6,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import {
   APP_DIR, DIST_DIR, STYLE_TAG, SCRIPT_TAG, STYLE_URL, SCRIPT_URL,
-  appStyles, appBundle, serviceWorker, styleFiles, ENTRY_FILE, moduleFiles, engineFiles, extraPages,
+  appStyles, appBundle, serviceWorker, styleFiles, ENTRY_FILE, moduleFiles, engineFiles, storeFiles, extraPages,
   ROOT, withVersion,
 } from './scripts/app-sources.mjs';
 import { servesOverlay, servesAppShell } from './app/engine/routes.ts';
@@ -57,7 +57,7 @@ function ksmClassicBundle() {
   return {
     name: 'ksm-classic-bundle',
     configureServer(server) {
-      server.watcher.add([...styleFiles(), ENTRY_FILE, ...moduleFiles(), ...engineFiles()]);
+      server.watcher.add([...styleFiles(), ENTRY_FILE, ...moduleFiles(), ...engineFiles(), ...storeFiles()]);
       server.middlewares.use(async (req, res, next) => {
         const url = req.url.split('?')[0];
         const send = (type, body) => { res.setHeader('Content-Type', type); res.setHeader('Cache-Control', 'no-store'); res.end(body); };
@@ -77,7 +77,7 @@ function ksmClassicBundle() {
       });
     },
     async buildStart() {
-      for (const file of [...styleFiles(), ENTRY_FILE, ...moduleFiles(), ...engineFiles(), path.join(ROOT, 'package.json')]) this.addWatchFile(file);
+      for (const file of [...styleFiles(), ENTRY_FILE, ...moduleFiles(), ...engineFiles(), ...storeFiles(), path.join(ROOT, 'package.json')]) this.addWatchFile(file);
       const css = appStyles(), js = withVersion(await appBundle());
       built = { css, js, cssFile: hashed('app', '.css', css), jsFile: hashed('app', '.js', js) };
     },

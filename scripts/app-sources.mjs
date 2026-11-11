@@ -71,36 +71,75 @@ export const appStyles = () => concat(styleFiles());
 /** The entry of app.js: app/main.js, as it is on disk. */
 export const appScript = () => fs.readFileSync(ENTRY_FILE, 'utf8');
 
+export const STORE_DIR = path.join(APP_DIR, 'store');
+/** The store's entry: the only file of app/store that app code imports (tests/store-bundle-test.mjs checks). */
+export const STORE_ENTRY = path.join(STORE_DIR, 'index.ts');
+/** Every app/store/**\/*.ts file, sorted by path (for the dev server's and the build's watch lists). */
+export const storeFiles = () => fs.readdirSync(STORE_DIR, { recursive: true }).filter(f => f.endsWith('.ts')).sort().map(f => path.join(STORE_DIR, f));
+const PRODUCTION_DEFINE = { 'process.env.NODE_ENV': '"production"' };
+
+/**
+ * The store for app.js (#15, docs/STORE.md section 5): app/store/index.ts and the packages it imports (Redux Toolkit,
+ * Redux, Immer, Reselect, redux-thunk) bundled on their own, tree-shaken and minified, with process.env.NODE_ENV
+ * "production", so their development-only checks (RTK's immutability walk on every dispatch) and the parts the store
+ * does not use (createAsyncThunk, the listener middleware, the entity adapter) are left out. ONE self-contained
+ * script that defines `var STORE_GLOBAL = {...the exports of app/store/index.ts}` and imports nothing; appBundle()
+ * puts it into app.js as it is. The Node tests import the sources and the packages' default builds, so the checks run
+ * there. tests/store-bundle-test.mjs guards it.
+ */
+export const STORE_GLOBAL = '__ksmStoreModule';
+const STORE_IMPORT_ID = 'ksm:store';
+export async function storeBundle() {
+  const bundle = await rolldown({ input: STORE_ENTRY, logLevel: 'silent', treeshake: true, transform: { define: PRODUCTION_DEFINE } });
+  try {
+    const { output } = await bundle.generate({ format: 'iife', name: STORE_GLOBAL, minify: true, codeSplitting: false });
+    if (output.length !== 1) throw new Error(`the store bundle must be one file, rolldown produced ${output.length}`);
+    if (output[0].imports.length || output[0].dynamicImports.length) throw new Error(`the store bundle must not import anything: ${[...output[0].imports, ...output[0].dynamicImports].join(', ')}`);
+    return output[0].code;
+  } finally { await bundle.close(); }
+}
+// `import {a, b as c} from "ksm:store";` in app.js -> `const {a, b: c} = __ksmStoreModule;` (its exports are consts and
+// functions, so a copy of the binding is the same as the live import).
+function inlineStoreImports(code, storeCode) {
+  let first = true;
+  const out = code.replace(/^import\s*\{([^}]*)\}\s*from\s*"ksm:store";?[ \t]*$/gm, (_, names) => {
+    const fields = names.split(',').map(n => n.trim()).filter(Boolean).map(n => n.replace(/^([\w$]+)\s+as\s+([\w$]+)$/, '$1: $2'));
+    const line = `const { ${fields.join(', ')} } = ${STORE_GLOBAL};`;
+    if (!first) return line;
+    first = false;
+    return `${storeCode.trim()}\n${line}`;
+  });
+  if (out.includes(`"${STORE_IMPORT_ID}"`)) throw new Error(`app.js imports the store in a form inlineStoreImports() does not handle`);
+  return out;
+}
+
 /**
  * /app.js: the entry (app/main.js) and the modules it imports, bundled by rolldown into ONE ES module
  * file: no code splitting, no minify, no tree-shaking (the entry's top-level code is reached through
  * `window`, by inline handlers). rolldown keeps JSDoc and legal comments only; plain // and /* comments
  * are dropped from the output (the sources keep them). Returns the code (version placeholders intact).
  */
-const nodeModule = file => path.join(ROOT, 'node_modules', file);
-/** The production builds app.js bundles for the store's packages (see appBundle()). */
-export const STORE_PACKAGE_BUILDS = {
-  '@reduxjs/toolkit': nodeModule('@reduxjs/toolkit/dist/redux-toolkit.browser.mjs'),
-  redux: nodeModule('redux/dist/redux.browser.mjs'),
-  immer: nodeModule('immer/dist/immer.production.mjs'),
-  reselect: nodeModule('reselect/dist/reselect.browser.mjs'),
-};
 export async function appBundle() {
+  const storeCode = await storeBundle();
   const bundle = await rolldown({
     input: ENTRY_FILE, logLevel: 'silent', treeshake: false,
-    // Redux Toolkit and the packages it imports (app/store, #15): their published production builds, already
-    // minified (rolldown neither minifies nor tree-shakes app.js). Their default ESM builds read
-    // process.env.NODE_ENV, which rolldown makes 'development': ~150 kB of development-only checks (a deep
-    // immutability walk on every dispatch) on TVs and tablets. The Node tests (tests/store) import the package
-    // defaults and keep the checks. Exact files: tests/store-package-builds-test.mjs fails if one moves. Nothing in
-    // app.js imports the store yet (docs/STORE.md, PR 2 adds the import), so today these aliases resolve nothing.
-    resolve: { alias: STORE_PACKAGE_BUILDS },
-    transform: { define: { 'process.env.NODE_ENV': '"production"' } },
+    // The store (app/store, #15): app code imports app/store/index.ts, which stays external here and is replaced
+    // after bundling by storeBundle()'s tree-shaken, minified script, as it is (rolldown neither minifies nor
+    // tree-shakes app.js: its top-level code is reached through `window`; and it would re-print the minified code).
+    // Nothing else of app/store or its packages may be imported by app code (tests/store-bundle-test.mjs).
+    plugins: [{
+      name: 'ksm-store-bundle',
+      resolveId(source, importer) {
+        if (!importer || !source.startsWith('.')) return null;
+        return path.resolve(path.dirname(importer), source) === STORE_ENTRY ? { id: STORE_IMPORT_ID, external: true } : null;
+      },
+    }],
+    transform: { define: PRODUCTION_DEFINE },
   });
   try {
     const { output } = await bundle.generate({ format: 'esm', minify: false, codeSplitting: false, comments: true });
     if (output.length !== 1) throw new Error(`app.js must be one file, rolldown produced ${output.length}`);
-    return output[0].code;
+    return inlineStoreImports(output[0].code, storeCode);
   } finally { await bundle.close(); }
 }
 
