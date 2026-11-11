@@ -16,18 +16,18 @@ declare var poolOutput: HTMLElement;
 /** Court screen division select and the court context panel (their React islands mount into them). */
 declare var scoreDiv: HTMLSelectElement;
 declare var courtContext: HTMLElement;
-/** The requests the court modules make of the React court screen (35-react-court.js). */
+/** The requests the court modules make of the React court screen (app/modules/react-bridges/court.js). */
 interface Window {
   ksmCourtQueueRequested?: boolean;
   ksmCourtContextRequested?: boolean;
   ksmCourtCompleteRequested?: { div: string; complete: boolean };
-  /** What the React court screen shows (35-react-court.js), read by the tie flash (app/modules/sync). */
+  /** What the React court screen shows (app/modules/react-bridges/court.js), read by the tie flash (app/modules/sync). */
   ksmCourtScoreboardInput?: any;
   ksmCourtHeaderInput?: any;
   /** Called through window by the grand champion module (its rebase helpers also run outside the page). */
   writeCloudDiagnosticsState?: typeof import('../modules/sync/cloud-diagnostics.js').writeCloudDiagnosticsState;
   showKsmToast?: typeof import('../modules/sync/cloud-realtime-save-and-load.js').showKsmToast;
-  /** Set when 34-bootstrap.js's first load settles (read by app/modules/session). */
+  /** Set when initBootstrap()'s first load settles (app/modules/boot.js; read by app/modules/session). */
   ksmBootstrapReady?: boolean;
   /** The account module (app/react/features/account/auth0.tsx) and the bridge app/modules/auth/auth0-access.js gives it. */
   ksmAuthBridge?: any;

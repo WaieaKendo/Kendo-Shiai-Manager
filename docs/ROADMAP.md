@@ -570,16 +570,16 @@ When M.13 is done, React draws every screen, but the legacy classic script still
 
 The command layer is a "service" in the sense of a single entry point for every change, not necessarily a separate server: it runs in the browser, and with Phase 3 the same commands can run on the server (the tournament's Durable Object) as the official copy, which makes conflicts and the outbox much simpler (actions are replayed, not whole snapshots merged).
 
-**Store options (decide with the framework question at the meeting).** The pattern is settled: commands become serializable actions, a reducer applies them using the engine, the store holds tournament data separate from device/screen state, React reads it through selectors. KSM is halfway there already (court actions are recorded as `patch-v1` changes with who/when; the engine is pure; the islands use `useSyncExternalStore`). The reducer must be framework-free so the same code can run on the server (the tournament's Durable Object) in Phase 3.
+**Store: Redux Toolkit (decided 2026-10-18, issue #15).** The pattern: commands become serializable actions (with who / when / device / court), a reducer applies them using the engine, the store holds tournament data separate from device/screen state, React reads it through selectors. The reducers are framework-free, so the same code can run on the server (the tournament's Durable Object) in Phase 3. The plan, the field inventory and the PR order are in [STORE.md](STORE.md); the empty foundation is `app/store/`.
 
 | Option | For | Against |
 |---|---|---|
-| **React's own APIs: a plain reducer + store module outside the components, connected with `useSyncExternalStore`** (recommended) | Only React's official, supported mechanism (the one Redux and Zustand use underneath); no new dependency; legacy code can read and update it during the migration; the reducer runs on the server too; fits what the islands already do | We write and maintain the small store; no devtools out of the box |
-| `useReducer` + Context (state inside the React tree) | Also React-only | Legacy code and the server can't reach it; every consumer re-renders on each change (TVs, tablets); not suitable for the shared tournament state |
-| Redux Toolkit | Widely used, good docs and devtools (action log, time travel: "what happened on Court B?") | A separate project, not part of React; more ceremony; Immer-style updates must stay serializable for sync |
+| **Redux Toolkit** (chosen) | Commands as actions applied by reducers is the Redux pattern; the action log / devtools answer "what happened on Court B?" and Immer patches line up with `patch-v1`; legacy code can `getState` / `dispatch` / `subscribe` during the migration; runs in Workers | A dependency (+21 kB gzip in app.js); Immer freezes state, so legacy in-place writes must be converted field group by field group |
+| A plain reducer + store module with `useSyncExternalStore` | No dependency | We write the store, the action log and the patches ourselves |
+| `useReducer` + Context | React-only | Legacy code and the server can't reach it; every consumer re-renders on each change |
 | Zustand | Very small | Little structure for actions; the action log would be ours anyway |
 
-Recommendation: start 2.8 with the React-only option; actions and reducers carry over unchanged if Redux Toolkit's devtools are wanted later.
+No RTK Query or thunks: the sync adapter stays our own code. The React islands stay separate roots (`store.subscribe` + `useSyncExternalStore` + selectors, no shared Provider).
 
 Order (each step keeps the golden snapshot and behaviour tests green):
 1. Finish M.13 (Setup, Registration, shell/dialogs).

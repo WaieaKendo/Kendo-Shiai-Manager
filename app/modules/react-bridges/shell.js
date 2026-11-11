@@ -487,7 +487,7 @@ function ksmShowShellModuleMissing(){
   nav.before(notice);
 }
 
-// Load-time side effects (app/js/34-bootstrap.js runs them, in the order the file used to load): the two `var`s with a
+// Load-time side effects (initReactBridges() in ./index.js runs them from app/main.js, in the order the file used to load): the two `var`s with a
 // value, the test-tools class, and the listeners.
 export function initShellBridge(){
   ksmDeletingTournamentId=null;

@@ -45,7 +45,7 @@ function ksmFitTv(){
   root.style.setProperty('--ksm-tv-fit',String(Math.min(window.innerWidth/1920,window.innerHeight/1080)||1));
 }
 
-// Load-time side effects (app/js/34-bootstrap.js runs them, in the order the files used to load).
+// Load-time side effects (initReactBridges() in ./index.js runs them from app/main.js, in the order the files used to load).
 export function initTvBridge(){
   document.addEventListener('DOMContentLoaded',ksmShowTvModuleMissing);
   if(typeof window!=='undefined'&&window.addEventListener){ksmFitTv();window.addEventListener('resize',ksmFitTv);}

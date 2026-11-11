@@ -26,8 +26,8 @@ import {KSM_AUTOSAVE_CLOUD_ID,KSM_SAVE_KEY,cloudBaseFor} from '../sync/sync-stat
 // ksmDiscardLocalDraft()), the staff tokens (ksmLibraryStaffTokens, which 54- reads through
 // ksmCanManageLibraryTournament(); a top-level const, so ksmLibraryAuthorizedIds() hands the
 // module its IDs), the actions, and the signal:
-// - ksmRenderLibrary(list,message), called by paintHomeTournamentLibrary(list,message) (33) and
-//   by 44-react-shell.js, records the request (window.ksmLibraryRequested) and dispatches ksm:library;
+// - ksmRenderLibrary(list,message), called by paintHomeTournamentLibrary(list,message) (session/staff-session-and-library.js)
+//   and by the shell bridge (shell.js), records the request (window.ksmLibraryRequested) and dispatches ksm:library;
 //   publish.ts computes window.ksmLibraryInput from it (what libraryCardMarkup() read, in the same
 //   order: list.length, then each row's id and name; tests/golden/library/*.json, recorded from the
 //   legacy renderer, pin the result). A listener's exception would be swallowed, and a reply that is not a
@@ -87,8 +87,8 @@ export function ksmRenderLibrary(list,message){
   ksmSignalLibrary();
 }
 // The hook that adds the account fields to the input; the module calls it on the input it built.
-// The original (no account) and, below it, the final function: the account rules that 54-auth0-access.js used to add by
-// reassigning it at load (step 3d of #136; app/js no longer reassigns anything). No account can be enabled before
+// The original (no account) and, below it, the final function: the account rules that the Auth0 module used to add by
+// reassigning it at load (step 3d of #136; nothing reassigns it now). No account can be enabled before
 // initAuth0Access() runs, so until then the final function does what the original did.
 function ksmAccountDecorateLibrary(input){return input}
 export function ksmDecorateLibraryInput(input){
@@ -120,7 +120,7 @@ function ksmShowLibraryModuleMissing(){
 }
 export const ksmLibraryStaffTokens=new Map();
 function ksmAccountManageLibrary(id){return (id===cloudSession.tournamentId&&!isReadOnlySession())||ksmLibraryStaffTokens.has(id)}
-// Final function (the account rules of app/js/54-auth0-access.js, step 3d of #136; same reason as ksmDecorateLibraryInput()).
+// Final function (the account rules of the Auth0 module, app/modules/auth/auth0-access.js, step 3d of #136; same reason as ksmDecorateLibraryInput()).
 export function ksmCanManageLibraryTournament(id){return ksmAccount.enabled?!ksmLibraryAuthInvalid&&!!ksmAccount.token&&!!ksmVisibleLibrary.find(row=>row.id===id)?.canManage:ksmAccountManageLibrary(id)}
 export async function ksmAuthorizeLibraryTournament(id){
   const password=prompt('Enter Staff password');if(!password)return;
@@ -176,7 +176,7 @@ export function ksmDownloadDeleteBackup(){
   manualSaveTournament();
 }
 
-// Load-time side effect (app/js/34-bootstrap.js runs it, in the order the files used to load).
+// Load-time side effect (initReactBridges() in ./index.js runs it from app/main.js, in the order the files used to load).
 export function initLibraryBridge(){
   document.addEventListener('DOMContentLoaded',ksmShowLibraryModuleMissing);
 }

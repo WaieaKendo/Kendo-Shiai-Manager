@@ -91,7 +91,7 @@ export function show(id){
   if(id==='results')renderResultsDashboard();
 }
 
-// Load-time listeners (app/js, where 23-navigation.js used to load).
+// Load-time listeners (initNavigation(), run from app/main.js).
 export function initNavigation(){
 document.addEventListener('click',function(event){
   if(!event.target.closest('.nav-menu'))closeNavMenus();

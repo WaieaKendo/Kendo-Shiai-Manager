@@ -77,9 +77,25 @@ export const appScript = () => fs.readFileSync(ENTRY_FILE, 'utf8');
  * `window`, by inline handlers). rolldown keeps JSDoc and legal comments only; plain // and /* comments
  * are dropped from the output (the sources keep them). Returns the code (version placeholders intact).
  */
+const nodeModule = file => path.join(ROOT, 'node_modules', file);
+/** The production builds app.js bundles for the store's packages (see appBundle()). */
+export const STORE_PACKAGE_BUILDS = {
+  '@reduxjs/toolkit': nodeModule('@reduxjs/toolkit/dist/redux-toolkit.browser.mjs'),
+  redux: nodeModule('redux/dist/redux.browser.mjs'),
+  immer: nodeModule('immer/dist/immer.production.mjs'),
+  reselect: nodeModule('reselect/dist/reselect.browser.mjs'),
+};
 export async function appBundle() {
   const bundle = await rolldown({
     input: ENTRY_FILE, logLevel: 'silent', treeshake: false,
+    // Redux Toolkit and the packages it imports (app/store, #15): their published production builds, already
+    // minified (rolldown neither minifies nor tree-shakes app.js). Their default ESM builds read
+    // process.env.NODE_ENV, which rolldown makes 'development': ~150 kB of development-only checks (a deep
+    // immutability walk on every dispatch) on TVs and tablets. The Node tests (tests/store) import the package
+    // defaults and keep the checks. Exact files: tests/store-package-builds-test.mjs fails if one moves. Nothing in
+    // app.js imports the store yet (docs/STORE.md, PR 2 adds the import), so today these aliases resolve nothing.
+    resolve: { alias: STORE_PACKAGE_BUILDS },
+    transform: { define: { 'process.env.NODE_ENV': '"production"' } },
   });
   try {
     const { output } = await bundle.generate({ format: 'esm', minify: false, codeSplitting: false, comments: true });

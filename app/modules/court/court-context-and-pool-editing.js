@@ -78,12 +78,12 @@ export function saveEditedPools(){
   scheduleAutoSave();
 }
 
-// renderAll() (step 4a of #136; was app/js/16-court-context-and-pool-editing.js): ONE final function. 30-setup-header-and-director.js
-// used to wrap it at load to redraw the Overview when it is shown; that redraw is the last line below. Every load-time caller
-// ran after that wrapper (the first renderAll() is in app/js/23-init-calls.js), and none of the files before it calls renderAll().
+// renderAll() (step 4a of #136): ONE final function. The setup header code used to wrap it at load to redraw the Overview
+// when it is shown; that redraw is the last line below. Every load-time caller ran after that wrapper (the first
+// renderAll() is initFirstRender(), app/modules/boot.js), and nothing that runs before it calls renderAll().
 export function renderAll(){if(typeof ksmRefreshTournamentChip==='function')ksmRefreshTournamentChip();ksmSyncDangerZone();ensureCourtHistory();renderDivisions();renderReg();renderTeams();renderExhibitions();renderPools();renderScore();renderProgress();renderContext();saveSetup();renderTournamentStatus();updateUndoButton();if(typeof ksmNotifyStateChanged==='function')ksmNotifyStateChanged('render');
   if(!document.getElementById('director')?.classList.contains('hidden'))renderDirector();}
-// The paste listener (app/js, where 16- used to load).
+// The paste listener (initPasteFromExcel(), run from app/main.js).
 export function initPasteFromExcel(){
 document.addEventListener('paste',e=>{if(!/** @type {any} */(window).registration.classList.contains('hidden')&&state.regMode==='individual'){let text=e.clipboardData.getData('text');if(text&&text.includes('\t')){e.preventDefault();text.trim().split(/\r\n|\r|\n/).forEach(line=>{let[name,dojo,division,seed,status]=line.split('\t').map(cell=>cell.trim());if(name)ksmPasteRow(name,dojo,division,seed,status)});ksmPasteNotice();renderDivisions();renderReg();scheduleAutoSave('Paste from Excel')}}});
 }

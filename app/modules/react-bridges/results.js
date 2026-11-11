@@ -9,8 +9,8 @@ import {saveAuto} from '../sync/cloud-session-and-autosave.js';
 // The islands' input is computed by the module (publish.ts: the placements from resultPlacements(),
 // the engine's rule, state.awards, and the modal's division detail, as plain data in
 // window.ksmResultsInput / window.ksmResultsBracketInput); legacy only signals.
-// renderResultsDashboard() (27-results-screen.js) calls ksmRenderResults() below, which dispatches
-// ksm:results; openResultsBracket() (27-) calls ksmRenderResultsBracket(div), which stores the
+// renderResultsDashboard() (app/modules/results/results-screen.js) calls ksmRenderResults() below, which dispatches
+// ksm:results; openResultsBracket() (results-screen.js) calls ksmRenderResultsBracket(div), which stores the
 // division and dispatches ksm:results-bracket, then shows the modal. They must not call a function
 // defined in the module: this script runs before it (the module may not exist yet, or at all).
 // ksmResultsRequested / ksmResultsBracketRequested tell the module, when it loads, that a signal
@@ -29,7 +29,7 @@ export function ksmRenderResultsBracket(div){
   window.dispatchEvent(new CustomEvent('ksm:results-bracket'));
 }
 // An award input's change (awardsEditorHtml()'s inline handler: state.awards[i].<field>=this.value;saveAuto();
-// saveAuto() is the scheduled autosave defined for F11 in 20-cloud-session-and-autosave.js).
+// saveAuto() is the scheduled autosave defined for F11 in app/modules/sync/cloud-session-and-autosave.js).
 export function ksmSetResultAward(index,field,value){
   state.awards[index][field]=value;saveAuto();
 }
@@ -49,7 +49,7 @@ function ksmShowResultsModuleMissing(){
   body.before(notice);
 }
 
-// Load-time side effects (app/js/34-bootstrap.js runs them, in the order the files used to load).
+// Load-time side effects (initReactBridges() in ./index.js runs them from app/main.js, in the order the files used to load).
 export function initResultsBridge(){
   document.addEventListener('DOMContentLoaded',ksmShowResultsModuleMissing);
 }

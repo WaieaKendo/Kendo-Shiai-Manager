@@ -1,6 +1,7 @@
 // @ts-check
 // The tournament state object (never reassigned) and the division presets its initial value is built from.
-// Moved from app/js/01-state-and-setup.js (step 3d of #136); app/js imports both through app/js/00-imports.js.
+// Moved out of the classic script in step 3d of #136; app/main.js and app/modules import both from here.
+// #15 step 2.8 moves its fields into the Redux Toolkit store (app/store) one group at a time: see docs/STORE.md.
 /** @type {[string, string, CourtMode][]} */
 export const DIVISION_PRESETS=[['Yonenbu (11 years and under)','Round Robin','A'],['Shonenbu (12–14 years old)','Round Robin','A'],['Seinenbu (15+ years without dan)','Round Robin','A'],['Women’s Open','Round Robin','B'],['Yudansha 1–3 Dan','Round Robin','A'],['Yudansha 4 Dan+','Round Robin','B'],['Masters Open (50+ years old)','Round Robin','B']];
 /** @type {TournamentState} */
