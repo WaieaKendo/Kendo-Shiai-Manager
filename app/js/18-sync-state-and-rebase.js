@@ -131,6 +131,12 @@ function resolveRebasePatch(localState,rebasedState,patch){
   let remoteIndex=remoteArr.findIndex(match=>matchHasSyncIdentity(match,identity));
   /* ksm:post-split-begin grand-champion */if(remoteIndex<0&&KSMEngine.isGrandChampionId(div)&&!ksmSameGrandChampionDraw(localState,rebasedState,div)){ksmNoteGrandChampionPatchDropped(div);return null}/* ksm:post-split-end */
   if(remoteIndex<0){
+    // An identity stamped before the match's identity changed (a kachinuki bout before 2026-11-10 had no
+    // :wIndex-rIndex): find the local match by the identity it has now before taking it for a new one.
+    const now=matchSyncIdentity(localMatch);
+    if(now&&now!==identity)remoteIndex=remoteArr.findIndex(match=>matchHasSyncIdentity(match,now));
+  }
+  if(remoteIndex<0){
     // A local action may have created a new dynamic/tiebreak match after the remote
     // snapshot revision. Add the complete valid object without ever creating a sparse
     // array. Individual pool tiebreaks are then normalized back into their own pool's

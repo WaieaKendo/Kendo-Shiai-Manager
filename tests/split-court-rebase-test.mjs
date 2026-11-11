@@ -114,8 +114,8 @@ const courtBNextBout = device => {
 }
 
 // 3. The server copy has another division open (the adult one, saved by Court A): Court B's kids
-// changes, recorded on `matches` too, must not land on the adult bouts. Before the fix the adult
-// bout got the kids' red player and lineups (the screen showed "Men v Kenshikan B" with kids).
+// changes, recorded on `matches` too, must not land on the adult bouts (a guard: the rebase has always
+// left `matches` out, KSM_LOCAL_VIEW_STATE_KEYS), and the kids' bouts must be Court B's (the identity fix).
 {
   const kids = () => [bout('Kids', 'QF3', 'Kids B', 'Kids A'), bout('Kids', 'QF4', 'Women', 'Lihue')];
   const adult = () => [bout('Adult', 'P5', 'Women', 'Lihue', 0, 0, 'A'), bout('Adult', 'P6', 'Men', 'Kenshikan B', 0, 0, 'A')];
@@ -152,6 +152,19 @@ const courtBNextBout = device => {
   // And a rebase replays it the same (the server copy has the other court's division open).
   const r = rebase(device, tournament({ open: 'Adult', kids: [bout('Kids', 'QF3', 'Kids B', 'Kids A'), ...later], adult: [] }));
   check(names(r.allMatches.Kids) === after, `4: a rebase replays it from matchOps (${names(r.allMatches.Kids).slice(0, 120)})`);
+}
+
+// 5. Review of #169: a point recorded before the upgrade carries the old kachinuki identity (no
+// :wIndex-rIndex). Replayed after the upgrade it must land on its bout, not add a copy at the end.
+{
+  const kids = () => [bout('Kids', 'QF3', 'Kids B', 'Kids A'), bout('Kids', 'QF4', 'Women', 'Lihue')];
+  const device = tournament({ open: 'Kids', kids: kids(), adult: [] });
+  device.allMatches.Kids[0].wp = ['M'];
+  device.courtActionHistory.B.push({ format: 'patch-v1', label: 'White M', court: 'B', when: '2026-11-10T06:00:00.000Z', clientId: 'court-b', revision: 10,
+    patches: [{ path: ['allMatches', 'Kids', 0, 'wp', 0], before: { __ksmMissing: true }, after: 'M', matchIdentity: 'team-node:Kids:QF3:node-QF3:Kachinuki' }] });
+  const r = rebase(device, tournament({ open: 'Adult', kids: kids(), adult: [] }));
+  check(names(r.allMatches.Kids) === 'Kids B:Jack(0) v Kids A:Lucas(0) M- | Women:Nicole(0) v Lihue:Joshua(0)',
+    `5: an old-identity point lands on its bout, no copy added (${names(r.allMatches.Kids)})`);
 }
 
 if (failed) process.exit(1);
