@@ -353,6 +353,11 @@ window.KSMTest = {
   // --- Bulk setup without the Setup/Registration UI ------------------------------
   // entries: [{name, format, court, entrants:[{name,dojo,seed,status}]}, {team:true, format, tournament, teams, court}]
   // Mirrors what Setup + Registration + Generate do; used by the golden engine test.
+  // Court actions recorded as an older version did (index patches kept): compactCourtActionEntry() off, or back on.
+  historyCompaction(on) {
+    if (!on && !KSMTest._compact) { KSMTest._compact = compactCourtActionEntry; compactCourtActionEntry = entry => entry; }
+    if (on && KSMTest._compact) { compactCourtActionEntry = KSMTest._compact; KSMTest._compact = null; }
+  },
   teamDivisions() { return JSON.parse(JSON.stringify(ksmTeamDivisions())); },
   addTeamDivision(name) { return ksmAddTeamDivision(name); },
   updateTeamDivision(id, patch) { return ksmUpdateTeamDivision(id, patch); },
@@ -390,7 +395,15 @@ window.KSMTest = {
         return {team: `Team ${code}`, type: team.format, status: 'Checked', ...Object.fromEntries(slots.map((s, j) => [s, `T${code}${j + 1}`]))};
       });
     }
+    // `teams` may also be the team rows themselves ({team, senpo, chuken, taisho, ...}).
+    if (team && Array.isArray(team.teams)) state.teams = team.teams.map(t => ({type: team.format, status: 'Checked', ...t}));
     delete state.teamDivisions;Object.assign(state,KSMEngine.migrateTeamDivisions(state,getSetupSnapshot()));
+    // More team divisions: each further {team:true, name, format, tournament, court, teams: [rows]} entry.
+    entries.filter(d => d.team).slice(1).forEach(d => {
+      const id = ksmAddTeamDivision(d.name || 'Team division');
+      ksmUpdateTeamDivision(id, {teamFormat: d.format, teamTournamentFormat: d.tournament, court: d.court});
+      state.teams.push(...d.teams.map(t => ({type: d.format, status: 'Checked', ...t, teamDivisionId: id})));
+    });
     generatePools({validated: true});
   },
 

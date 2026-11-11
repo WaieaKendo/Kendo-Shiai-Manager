@@ -393,8 +393,13 @@ def merge_cases(browser, base):
         b.page.evaluate(play_pool, tie)
     b.save_now(); b.wait_idle(); a.wait_revision(fetch_record(base, tid)['revision'])
     def last_bout_on_b():
-        b.page.evaluate(play_pool, tie)
-        # Replayed by its index patches (as an entry without match ops is), the path the guard is on.
+        # Recorded as an older version did (index patches, no match ops: compactCourtActionEntry() leaves
+        # the index patches out when match ops cover them), so the rebase replays it by index, the path the guard is on.
+        b.page.evaluate("KSMTest.historyCompaction(false)")
+        try:
+            b.page.evaluate(play_pool, tie)
+        finally:
+            b.page.evaluate("KSMTest.historyCompaction(true)")
         b.page.evaluate("()=>{const h=KSMTest.app.state.courtActionHistory.B;delete h[h.length-1].matchOps}")
     st = race(last_bout_on_b, lambda: a.page.evaluate("id=>KSMTest.updateGrandChampion(id,{awardMode:'top2'})", tie))
     bouts = st['allMatches'][tie]
