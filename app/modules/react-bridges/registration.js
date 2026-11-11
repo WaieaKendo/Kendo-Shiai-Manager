@@ -1,7 +1,7 @@
 // @ts-check
 import {state} from '../app-state.js';
 import {renderDivisions} from '../court/court-match-order.js';
-import {scheduleAutoSave} from '../legacy.js';
+import {scheduleAutoSave} from '../sync/cloud-session-and-autosave.js';
 import {regTab} from '../navigation.js';
 import {ksmText} from './court.js';
 import {renderExhibitions,renderReg,renderTeams,statusCycle,updateComp} from '../registration/registration.js';

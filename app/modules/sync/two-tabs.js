@@ -1,5 +1,5 @@
 // @ts-check
-import {noteLocalMutation} from '../legacy.js';
+import {noteLocalMutation} from './sync-state-and-rebase.js';
 import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {ksmStartupHasCache,ksmStartupLoadFailed} from '../session/tournament-switcher.js';
 import {ksmCloudSaveInFlight,ksmCloudSavePending,ksmCloudTimer,ksmConfirmedMutationVersion,ksmFileReplace,ksmLocalMutationVersion,ksmSaveTimer,mergeQueuedStaffWork,saveTournamentToCloudWithReason} from './cloud-realtime-save-and-load.js';

@@ -6,14 +6,14 @@
 app/                 Front-end source (built by Vite into dist/, which is not committed)
   index.html          Markup
   styles/NN-*.css     Stylesheet, concatenated in file-name order
-  js/NN-*.js          App code, concatenated in file-name order into the entry of ONE ES module
-                      (<script type="module">; 99-window-exports.js, the last file, puts on
-                      window what inline handlers, app/react and the tests reach: #136 step 3c;
-                      tests/window-exports-test.mjs keeps the list complete).
-                      Since step 3d the entry imports app/modules (00-imports.js lists the
-                      imports) and rolldown bundles both into the single /app.js file
+  main.js             The ONE entry file of the app, an ES module (<script type="module">): the imports of
+                      app/modules, the load-time calls in their old order (the path-URL rewrite first, the
+                      init*() calls, the autosave listeners) and, last, the window exports (what inline
+                      handlers, app/react and the tests reach: #136 steps 3c and 4d;
+                      tests/window-exports-test.mjs keeps the list complete). rolldown bundles it and the
+                      modules into the single /app.js file
   modules/            Real ES modules the entry imports, plain `.js` with `// @ts-check`
-                      (#136 step 3d, area by area; a module never imports from app/js):
+                      (#136 step 3d, area by area; a module never imports from the entry):
                         app-state.js: `state` and DIVISION_PRESETS;
                         engine/engine-*.js: the adapters around the KSMEngine global (pools,
                         team matches, single elimination, team bracket, result integrity,
@@ -30,7 +30,7 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         sync/*.js: the sync state and the 409 rebase, two tabs, cloud diagnostics,
                         the cloud session and autosave, live sync / saves / tournament files, Undo
                         regenerate (their `let`s are assigned elsewhere only through setNAME(value);
-                        their load-time side effects are init*() calls left in app/js where the files
+                        their load-time side effects are init*() calls in app/main.js where the files
                         loaded);
                         session/*.js: staff sessions, the role and the Tournament Library, switching
                         tournaments; links/*.js: the tournament short name and cached records, the
@@ -41,10 +41,10 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         react-bridges/*.js: the classic side of the React islands (the signal stubs, the
                         builders other code calls, the state the islands read; their load-time side
                         effects are init*() functions that initReactBridges() runs in the old order);
-                        legacy.js: one wrapper per not-yet-moved app/js function the moved code
-                        calls, through `window` at call time (app/js/00-legacy-exports.js puts those names on
-                        window first; each is deleted when its area moves;
-                        tests/window-exports-test.mjs checks them). Next: step 4
+                        replaceable.js: replaceable(name, impl), the one way for a function that tests replace after
+                        load (KSMTest.app.NAME = ..., the goldens' window wrappers) to stay replaceable: a stable
+                        exported function callers use, and a live window.NAME accessor (10 functions: the pool
+                        standings and tiebreak ones in engine/, the autosave ones in sync/; #136 step 4d);
                       (00-path-urls.js: path URLs, M.9: an old ?tournament= link becomes its
                       path first, ksmLinkParams()/ksmLinkUrl(); the ksm:state-changed event for
                       React islands is app/modules/react-bridges/state-bridge.js)
@@ -160,6 +160,6 @@ Git history and `CHANGELOG.md` provide the permanent release record. A downloada
 The engine moved out of the app's code one function group at a time (roadmap 2.0–2.7) into
 `app/engine/*.ts`: pure strict-TypeScript ES modules. Since step 4b of #136 `app/modules` import
 `app/engine/index.ts` (`import * as KSMEngine from '.../engine/index.ts'`) and `appBundle()` bundles it
-into `app.js`; there is no separate engine script. `app/js/99-window-exports.js` still puts the
+into `app.js`; there is no separate engine script. `app/main.js` still puts the
 namespace on `window.KSMEngine` for anything outside the bundle. React code imports `../engine/<module>.ts`
 directly. The step-by-step recipe is in docs/TESTING.md, "Moving a function into app/engine".

@@ -8,7 +8,7 @@ import {buildChampionshipTemplateMatches,championshipTemplateForTotal,syncChampi
 import {renderPools,setActiveDivision} from '../engine/engine-generation.js';
 import {assignPoolPlayerSlots,buildPoolMatches} from '../engine/engine-pools.js';
 import {appendApprovedDynamicMatches} from '../engine/engine-standings-and-tiebreaks.js';
-import {scheduleAutoSave} from '../legacy.js';
+import {scheduleAutoSave} from '../sync/cloud-session-and-autosave.js';
 import {renderProgress} from '../navigation.js';
 import {ksmPoolEditPools,ksmPoolEditToSave,ksmRenderPoolEditor} from '../react-bridges/pools.js';
 import {ksmPasteNotice,ksmPasteRow} from '../react-bridges/registration.js';

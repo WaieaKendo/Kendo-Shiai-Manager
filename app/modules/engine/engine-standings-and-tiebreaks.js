@@ -1,14 +1,65 @@
 // @ts-check
 import {state} from '../app-state.js';
 import {individualMatchReady} from '../court/court-match-order.js';
-import {requiredSeedPlaces} from './engine-championship.js';
+import {poolPositionsResolved,requiredSeedPlaces} from './engine-championship.js';
 import {eligibleTeams,isTeamDivision,poolCourtFor} from './engine-pools.js';
-import {initialPoolStandings,pendingTiebreak,poolPositionsResolved} from '../legacy.js';
+import {replaceable} from '../replaceable.js';
 import {ksmTeamSettings} from '../registration/team-divisions.js';
 import {divisionComplete} from '../results/results-and-awards.js';
 import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {matchBelongsToCourtInState,matchHasSyncIdentity,matchSyncIdentity,nextReadyIndexInState} from '../sync/sync-state-and-rebase.js';
 import * as KSMEngine from '../../engine/index.ts';
+// Replaceable by tests (KSMTest.app.NAME = ...): see app/modules/replaceable.js. Callers use the exported const.
+/**
+ * All regular bouts of the pool are done (tiebreaks aside); 0 when the pool has no bouts.
+ * @param {string} poolLabel
+ * @param {string} [div]
+ * @returns {boolean|number}
+ */
+function poolFinishedImpl(poolLabel,div=state.currentDivision){
+  return KSMEngine.poolFinished(state.allMatches[div]||[],poolLabel);
+}
+export const poolFinished=replaceable('poolFinished',poolFinishedImpl);
+/**
+ * @param {string} poolLabel
+ * @param {string} div
+ * @returns {boolean}
+ */
+function pendingTiebreakImpl(poolLabel,div){
+  return KSMEngine.pendingTiebreak(state.allMatches[div]||[],poolLabel);
+}
+export const pendingTiebreak=replaceable('pendingTiebreak',pendingTiebreakImpl);
+/**
+ * Pool record only (wins, then points, then name).
+ * @param {string} poolLabel
+ * @param {string} [div]
+ * @returns {PoolStandingRow[]}
+ */
+function initialPoolStandingsImpl(poolLabel,div=state.currentDivision){
+  return KSMEngine.initialPoolStandings((state.pools[div]||[]).find(p=>p.label===poolLabel),state.allMatches[div]||[]);
+}
+export const initialPoolStandings=replaceable('initialPoolStandings',initialPoolStandingsImpl);
+/**
+ * Orders a tied group by its tiebreak series, one series after another.
+ * @param {string} poolLabel
+ * @param {string} div
+ * @param {TiedGroup} target
+ * @returns {{locked: TiebreakStatsRow[], unresolved: PoolStandingRow[], ordered: (PoolStandingRow|TiebreakStatsRow)[], lastStats: TiebreakStatsRow[]}}
+ */
+function resolveTiebreakBaseGroupImpl(poolLabel,div,target){
+  return KSMEngine.resolveTiebreakBaseGroup(state.allMatches[div]||[],poolLabel,target);
+}
+export const resolveTiebreakBaseGroup=replaceable('resolveTiebreakBaseGroup',resolveTiebreakBaseGroupImpl);
+/**
+ * Pool standings; tied groups are ordered by their tiebreaks (their pool record is kept in wins/pts).
+ * @param {string} poolLabel
+ * @param {string} [div]
+ * @returns {PoolStandingRow[]}
+ */
+function poolStandingsImpl(poolLabel,div=state.currentDivision){
+  const pool=(state.pools[div]||[]).find(p=>p.label===poolLabel);return pool?KSMEngine.poolStandings(pool,state.allMatches[div]||[],requiredSeedPlaces(div)[poolLabel]||2):[];
+}
+export const poolStandings=replaceable('poolStandings',poolStandingsImpl);
 /**
  * @param {string} poolLabel
  * @param {string} div

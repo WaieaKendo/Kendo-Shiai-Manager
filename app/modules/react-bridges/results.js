@@ -1,6 +1,6 @@
 // @ts-check
 import {state} from '../app-state.js';
-import {saveAuto} from '../legacy.js';
+import {saveAuto} from '../sync/cloud-session-and-autosave.js';
 // ==========================================================
 // React Results (app/react/features/results/, roadmap M.13, #136 step 2)
 // The Results screen (#results) is drawn only by React: four islands (the result cards and awards

@@ -1,7 +1,8 @@
 // @ts-check
 import {state} from '../app-state.js';
 import {isTeamDivision} from '../engine/engine-pools.js';
-import {poolStandings,saveAuto} from '../legacy.js';
+import {poolStandings} from '../engine/engine-standings-and-tiebreaks.js';
+import {saveAuto} from '../sync/cloud-session-and-autosave.js';
 import {ksmRenderResults,ksmRenderResultsBracket} from '../react-bridges/results.js';
 import {ksmGrandChampion} from '../registration/grand-champion.js';
 import {ksmTeamSettings} from '../registration/team-divisions.js';

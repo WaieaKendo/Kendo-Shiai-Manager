@@ -1,6 +1,5 @@
 {
-  // Type checking only (Vite builds the app). The app is classic scripts sharing one
-  // global scope (see scripts/app-sources.mjs), so app/js/*.js are checked as scripts.
+  // Type checking only (Vite builds the app): the entry app/main.js and the ES modules in app/modules.
   // checkJs is off: a file opts in with `// @ts-check` once it has type annotations.
   "compilerOptions": {
     "target": "es2022",
@@ -8,11 +7,10 @@
     "allowJs": true,
     "checkJs": false,
     "noEmit": true,
-    // KSMEngine for the app/js files (app/types/globals.d.ts) is typed from app/engine/index.ts.
     "allowImportingTsExtensions": true,
     "strict": false,
     "skipLibCheck": true,
     "types": []
   },
-  "include": ["app/js/*.js", "app/modules/**/*.js", "app/types/*.d.ts"]
+  "include": ["app/main.js", "app/modules/**/*.js", "app/types/*.d.ts"]
 }

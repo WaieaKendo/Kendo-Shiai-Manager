@@ -10,7 +10,7 @@ import {winnerOf} from '../engine/engine-result-integrity.js';
 import {sideLabelGeneric,specificMatchSideLabel} from '../engine/engine-single-elim.js';
 import {isTeamRoundRobinDivision,teamPairIds,teamPairSummary,teamRoundRobinPairResolved,teamRoundRobinProgress,teamStandings} from '../engine/engine-standings-and-tiebreaks.js';
 import {teamWinner} from '../engine/engine-team-bracket.js';
-import {poolStandings} from '../legacy.js';
+import {poolStandings} from '../engine/engine-standings-and-tiebreaks.js';
 import {navigateTo} from '../navigation.js';
 import {ksmGrandChampion} from '../registration/grand-champion.js';
 import {ksmDivisionName,ksmTeamDivisions,ksmTeamSettings} from '../registration/team-divisions.js';
