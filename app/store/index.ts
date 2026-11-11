@@ -6,5 +6,9 @@ export { deviceSlice, DEVICE_SLICE_VERSION } from './slices/device.ts';
 export type { DeviceSliceState } from './slices/device.ts';
 export { tournamentSlice, TOURNAMENT_SLICE_VERSION } from './slices/tournament.ts';
 export type { TournamentSliceState } from './slices/tournament.ts';
+export {
+  PRODUCTION_BUILD, applyStoreWrites, legacyFieldAssigned, legacyStateAssigned, legacyStateReplaced, setStoreStrict, storeIsStrict,
+} from './legacy.ts';
+export type { StoreWrite } from './legacy.ts';
 export { actionMeta, metaCourt, withMeta } from './meta.ts';
 export type { ActionMeta, ActionMetaInput, StoreCourt } from './meta.ts';

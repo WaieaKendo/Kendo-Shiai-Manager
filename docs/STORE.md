@@ -1,9 +1,9 @@
 # The store: plan for moving `state` into Redux Toolkit (#15 step 2.8)
 
-Status (2026-11-11): **foundation only**. `app/store/` holds an empty Redux Toolkit store (slices `tournament` and
-`device`, each with only a `sliceVersion`); nothing reads or writes it yet, and app.js does not import it (the
-Node tests in `tests/store` do). The first PR with a consumer adds the import to `app/main.js` and sets
-`window.KSMStore`, which costs about 21 kB gzip in app.js (section 5). All app data is still the one mutable
+Status (2026-11-11): **prep done (PR 2), no field moved yet**. `app/store/` holds a Redux Toolkit store (slices
+`tournament` and `device`, each with only a `sliceVersion`). app.js imports it as a separate tree-shaken, minified
+bundle (+7.9 kB gzip, section 5) and sets `window.KSMStore`; `app/modules/app-state.js` has the helpers the field
+moves use (`moveToStore()`, `replaceState()`, `assignState()`, section 2). All app data is still the one mutable
 global `state` (`app/modules/app-state.js`). This document is the inventory of that object and the order in which
 its fields move into the store. Decision: Redux Toolkit (issue #15, 2026-10-18); see ROADMAP.md "After the React
 screens: the remaining architecture".
@@ -127,20 +127,32 @@ Redux Toolkit uses Immer, and Immer **freezes** what it produces, deeply, in the
 Today ~50 files write `state.x` in place. The cutover:
 
 1. **A field group moves all at once.** In one PR, the group's data moves into its slice, and `state` keeps the
-   property as an **enumerable, non-configurable getter** over `getState()` (one helper in `app-state.js`, e.g.
-   `moveToStore('regMode', s => s.device.regMode)`). Enumerable, so `JSON.stringify(state)` (the snapshot) and
+   property as an **enumerable, non-configurable getter** over `getState()` (one helper in `app-state.js`:
+   `moveToStore('regMode', ['device', 'regMode'])`; a store path, not a selector, so the stray-write fallback of
+   point 8 knows where to put a value). Enumerable, so `JSON.stringify(state)` (the snapshot) and
    `Object.keys(state)` (`historyComparableState`) still see it and the saved formats do not change. A missed
    write is handled by point 8.
 2. **Every write of that group becomes a dispatched action in the same PR.** The counts in section 1 are the
    checklist (plus the alias writes, found by reading each writer). Reads stay `state.x` until a later cleanup.
-3. **Whole-object writes go through two helpers first** (the preparatory PR): `replaceState(loaded)` (load,
-   remote apply, tournament switch) and `assignState(partial)` (rename, migrations). Each dispatches one action for
-   the store-owned keys and assigns the rest. Without them, `delete state[k]` + `Object.assign` would remove a
-   getter and put a plain copy in its place.
+3. **Whole-object writes go through two helpers** (done in PR 2): `replaceState(loaded)` (load, remote apply,
+   tournament switch: `applyTournamentPayload()`, `ksmResetTournament()` in `tournament-switcher.js`) and
+   `assignState(partial)` (the division rename in `react-bridges/setup.js`, the team-division migration in
+   `ksmTeamDivisions()`). Each dispatches one action for the store-owned keys (`legacy/stateReplaced` /
+   `legacy/stateAssigned`, a list of `{path, value}` the root reducer puts in place; a store key missing from
+   `loaded` is set to `undefined`) and assigns the rest exactly as `delete` + `Object.assign` did (tests:
+   `tests/store/legacy.test.mjs`). Without them, `delete state[k]` + `Object.assign` would remove a getter and put
+   a plain copy in its place. As a group moves, its PR may give these writes a domain action (`tournament/loaded`,
+   point 4) instead. Note for PR 5: a moved key keeps its place in `Object.keys(state)` (the getter is never
+   deleted), while today a load re-adds every key in the payload's order, so the snapshot's key order can differ
+   after a load; check the goldens that compare snapshot text.
 4. **A snapshot apply is one action**: `tournament/loaded` with the migrated payload. Today
-   `sanitizeLoadedTournamentState()` and `normalizeAllIndividualPoolTiebreakOrder()` run on the live `state` after
-   the payload was assigned (section 1); both take the target object as an argument, so the prep PR runs them on
-   the loaded copy *before* the dispatch and checks the result is identical (sync and load tests). Repairs that call
+   `sanitizeLoadedTournamentState()` and `normalizeAllIndividualPoolTiebreakOrder()` ran on the live `state` after
+   the payload was assigned (section 1); both take the target object as an argument and read nothing else (the
+   engine helpers they call are pure), so since PR 2 they run on the loaded copy *before* `replaceState()`.
+   `tests/store/load-order.test.mjs` runs the old and the new order on 307 payloads (the 76 engine goldens, each
+   also with invalid entries, misplaced pool tiebreaks and both; the v3.17.20 four-pool case) while `state` holds
+   another tournament, and gets the same `state` and the same console output. One difference on an error only: if
+   a repair throws, `state` now still holds the previous tournament instead of a half-loaded one. Repairs that call
    the rest of the app (`repairLoadedEliminationAdvancement`, `rehydrateLoadedTournamentState`) follow as their own
    actions. **"`tournament/loaded` never touches `device`" is a behaviour change**: today the payload's
    `currentDivision` / `current` / `courtState` feed this device's court view on a load (the rehydrate fallback).
@@ -158,21 +170,36 @@ Today ~50 files write `state.x` in place. The cutover:
    `ksmNotifyStateChanged`), so save timing and `ksmLocalMutationVersion` are unchanged. With the command layer, a
    store listener takes this over: a local action (not `tournament/loaded`) bumps the mutation version and
    schedules the save.
-8. **A stray write never breaks a tournament in production.** A write the conversion missed throws in the Node
-   tests and in development (no setter on the getter, Immer's deep freeze), so the tests find it. In the
-   production build (app.js) it is logged to the cloud diagnostics (`writeCloudDiagnosticsState`, with the field
-   and a stack) and applied safely instead:
-   - an assignment to a moved field (`state.regMode = x`): the getter's setter dispatches a generic
-     `legacy/fieldAssigned {key, value}` action whose reducer replaces that field, so the value lands in the store
-     and subscribers are notified;
-   - a nested write into store data (`state.awards[i].x = …`): app.js calls Immer's `setAutoFreeze(false)` in the
-     production build, so the write goes into the current store object as it does into `state` today (saved with
-     the next snapshot, but no re-render until the next dispatch). Such a write cannot be seen in production, so it
-     is not logged there; the Node tests and the dev build (auto-freeze on) are what find it. Older store states
-     share the object, so this is a fallback for a missed write, never a way to write.
-   The helper that defines the getters reads one flag (`process.env.NODE_ENV`, defined as `"production"` for
-   app.js) to choose between throwing and this path; a test covers both.
-
+8. **A stray write never breaks a tournament in production.** Decided in PR 2 (review of #172): two modes, one
+   switch (`setStoreStrict()`, `app/store/legacy.ts`).
+   - **Strict: the Node tests and the browser tests.** A write the conversion missed throws: an assignment to a
+     moved field hits the getter's setter, which throws; a nested write into store data (`state.awards[i].x = …`)
+     hits Immer's deep freeze (strict-mode modules throw a `TypeError`). The Node tests run strict because
+     `process.env.NODE_ENV` is not `"production"` there (RTK's immutability check also reports a nested write at
+     the next dispatch); the Python browser tests load the production app.js, so `tests/lib/ksm-test-api.js` sets
+     `window.KSM_STRICT_STORE = true` before the app runs and `app/main.js` calls `setStoreStrict(true)`. So every
+     test, Node or browser, finds such a write.
+   - **Production: app.js for users.** No crash during a tournament, and the write is not lost:
+     - an assignment to a moved field (`state.regMode = x`): the setter logs it to the cloud diagnostics
+       (`writeCloudDiagnosticsState({storeStrayWrite: {field, path, stack, at}})`, wired in `app/main.js`) and
+       dispatches `legacy/fieldAssigned {key, path, value}`, whose reducer puts the value at the field's path, so
+       subscribers are notified. Only `moveToStore()`'s setter dispatches it (`tests/store/legacy.test.mjs` checks
+       the sources): a fallback, never a way to write.
+     - a nested write into store data: Immer's auto-freeze is off in production (`app/store/legacy.ts` calls
+       `setAutoFreeze(false)` at load when `NODE_ENV` is `"production"`), so the write goes into the store's current
+       object as it goes into `state` today. What follows (tested in `tests/store/legacy.test.mjs`, production
+       path): the store state is the same object, so **no subscriber runs**; the **next snapshot carries it** (it is
+       `JSON.stringify(state)` through the getters); the **next dispatch** of any action runs every subscriber, and a
+       direct read sees the new value, but a `createSelector` whose input is that object (or an ancestor Immer
+       kept, by structural sharing) **keeps returning its old result** until an action replaces that object; older
+       store states share the object, so they change too. It is not logged: it cannot be seen without a Proxy
+       (too slow and identity-breaking on old TVs).
+   - **Why this design, not "log + apply" for nested writes too.** Catching a nested write in production needs a
+     Proxy over all store data (a cost on every read on the oldest TVs, and `indexOf(match)` identity breaks) or a
+     deep diff per dispatch (RTK's immutability check, an O(size) walk). Both cost every user to catch a bug the
+     tests already catch: both test suites run strict, so a missed nested write fails a test before it ships. In
+     production the cost of a missed one is a screen that redraws one action late, never a crash or lost data
+     (the snapshot and the next dispatch see it).
 What must never happen (each PR's tests check the ones it touches):
 
 - **A stale read after a dispatch.** `dispatch` is synchronous and `getState()` is new right after, but an object
@@ -202,14 +229,16 @@ What must never happen (each PR's tests check the ones it touches):
 Each line: fields → actions; risk; tests to add. Every PR keeps every golden unchanged.
 
 1. **Foundation** (this PR): empty store, metadata helper, island hook, this plan; not imported by app.js. Risk:
-   none. Tests: `tests/store/*.test.mjs`, `tests/store-package-builds-test.mjs`.
-2. **Prep, no field moves**: app.js imports the store and sets `window.KSMStore` (+~21 kB gzip, or less with
-   section 5's pre-bundle); `replaceState()` / `assignState()` helpers for the whole-object writes in 1.3;
+   none. Tests: `tests/store/*.test.mjs`, `tests/store-package-builds-test.mjs` (replaced in PR 2 by
+   `tests/store-bundle-test.mjs`).
+2. **Prep, no field moves** (**done**): app.js imports the store and sets `window.KSMStore` (+7.9 kB gzip with
+   section 5's tree-shaken pass); `replaceState()` / `assignState()` helpers for the whole-object writes in 1.3;
    `sanitizeLoadedTournamentState` / `normalizeAllIndividualPoolTiebreakOrder` run on the loaded copy before it is
    assigned (identical result); the `moveToStore()` getter helper with its production path (section 2, point 8),
    unused; a test that every `state` key is a plain property or a store getter. Risk: low (the load path). Tests:
    load / remote apply / tournament switch / rename unchanged (existing sync and rename tests), helper unit tests
-   for both the throwing and the production path.
+   for both the throwing and the production path (`tests/store/legacy.test.mjs`), the load-order identity test
+   (`tests/store/load-order.test.mjs`), the bundle guard (`tests/store-bundle-test.mjs`).
 3. **Undo/Redo without device keys**, before any device field moves: `applyHistoryPatch()` skips patches whose
    path starts with a device key (the `KSM_LOCAL_VIEW_STATE_KEYS` set the rebase already skips: `currentCourt`,
    `publicCourt`, `currentDivision`, `matches`, `current`, `score`), and the court view is rebuilt after the entry's
@@ -271,7 +300,7 @@ call commands instead of window functions.
   (`app/store/react.ts`): `useSyncExternalStore` over `store.subscribe`, with the selector's result cached per state
   object and compared with `Object.is` (or a given equality), so a dispatch that does not change the selection does
   not re-render.
-- The store instance is `window.KSMStore`, set by `app/main.js` from PR 2 on (the islands are a separate Vite
+- The store instance is `window.KSMStore`, set by `app/main.js` (since PR 2) (the islands are a separate Vite
   bundle, so this is the only way to share one instance). `app/store/react.ts` imports only React and types.
 - Selectors are module-level functions; derived lists use `createSelector` (Reselect, already in RTK) keyed per
   division / court, so a point on Court A does not rebuild Court B's bracket.
@@ -283,20 +312,24 @@ call commands instead of window functions.
 
 ## 5. Bundle size and re-renders (old TVs and tablets)
 
-- app.js bundles the store's packages from their **published production builds** (`STORE_PACKAGE_BUILDS` in
-  `scripts/app-sources.mjs`): rolldown neither minifies nor tree-shakes app.js, and the default ESM builds would
-  ship ~150 kB of development-only code, including RTK's immutability check (a deep walk of the whole state on
-  every dispatch). `process.env.NODE_ENV` is defined as `"production"` for app.js. The Node tests import the
-  default builds, so the serializable and immutability checks run there. Immer still freezes in production.
-- Size of app.js: unchanged by this PR (620,664 bytes, gzip 157,744), since nothing imports the store yet. Measured
-  with the import in place: **686,660 bytes (+66.0 kB), gzip 178,631 (+20.9 kB)**. That is what PR 2 adds.
-- Unused parts. With today's bundling (no tree-shaking) the whole RTK browser build ships: `createAsyncThunk`, the
-  listener middleware, the entity adapter, RTK Query's helpers that live in the main entry, and redux-thunk. A
-  separate rolldown pass over `app/store/index.ts` with tree-shaking and minify (default ESM builds, `NODE_ENV`
-  production), inlined into app.js, drops the async thunk, the listener middleware and the entity adapter:
-  **20.3 kB raw, 7.6 kB gzip** instead of 65.6 / 20.7 kB. redux-thunk stays (configureStore imports it even with
-  `thunk: false`; under 1 kB). PR 2 decides between the two; tree-shaking all of app.js is not an option (its
-  top-level code is reached through `window`).
+- app.js bundles the store **on its own, tree-shaken and minified** (decided in PR 2): `storeBundle()` in
+  `scripts/app-sources.mjs` bundles `app/store/index.ts` and its packages (their default ESM builds) with
+  tree-shaking, minify and `process.env.NODE_ENV` defined as `"production"`, as one self-contained script
+  (`var __ksmStoreModule = …`, no imports). `appBundle()` keeps `app/store/index.ts` external and, after bundling,
+  puts that script into app.js as it is and turns the imports into `const {…} = __ksmStoreModule` (app.js itself
+  is neither minified nor tree-shaken, its top-level code is reached through `window`, and rolldown would re-print
+  a minified module unminified: +31 kB raw instead of +21 kB). This leaves out the development-only checks (RTK's
+  immutability check, a deep walk of the whole state on every dispatch), `createAsyncThunk`'s and the listener
+  middleware's unused code and the entity adapter. redux-thunk stays (configureStore imports it even with
+  `thunk: false`; under 1 kB). The other option, RTK's published production builds bundled as they are, cost
+  +20.9 kB gzip; nothing in the store needs what tree-shaking drops. The Node tests import the sources and the
+  default builds, so the serializable and immutability checks run there. `tests/store-bundle-test.mjs` guards it:
+  one Immer (RTK has no copy of its own), RTK pinned, no `process.env` or immutability check left, a gzip budget
+  (9,000 bytes), the bundle run in a vm (production mode, every export of `index.ts`), the script in app.js as it
+  is, and app code importing only `app/store/index.ts`.
+- Size of app.js (default gzip level): before PR 2 620,674 bytes, gzip 157,824. After: **646,229 bytes (+25.6 kB),
+  gzip 167,107 (+9.3 kB)**: the store bundle is 21,095 bytes, gzip 7,939; the rest is the helpers in
+  `app-state.js` and their JSDoc (app.js keeps JSDoc comments).
 - Nothing in the React bundle changes (it imports no store code yet; `react.ts` adds only React, which it already
   has).
 - Re-renders: `store.subscribe` listeners run on every dispatch, so selectors must be cheap and return stable

@@ -1,21 +1,34 @@
-// The Redux Toolkit store (#15 step 2.8, decision of 2026-10-18). No consumers yet: docs/STORE.md is the migration plan.
+// The Redux Toolkit store (#15 step 2.8, decision of 2026-10-18). app.js imports it (window.KSMStore); no `state` field
+// is in it yet: docs/STORE.md is the migration plan.
 // No RTK Query, no thunks: the sync adapter stays our own code, and reducers stay thin (they call app/engine).
-import { combineReducers, configureStore } from '@reduxjs/toolkit';
+import { combineReducers, configureStore, type Reducer, type UnknownAction } from '@reduxjs/toolkit';
+import { applyStoreWrites, legacyFieldAssigned, legacyStateAssigned, legacyStateReplaced } from './legacy.ts';
 import { deviceSlice } from './slices/device.ts';
 import { tournamentSlice } from './slices/tournament.ts';
 
-export const rootReducer = combineReducers({
+const slicesReducer = combineReducers({
   tournament: tournamentSlice.reducer,
   device: deviceSlice.reducer,
 });
 
-export type RootState = ReturnType<typeof rootReducer>;
+export type RootState = ReturnType<typeof slicesReducer>;
+
+/**
+ * The slices, plus the legacy writes (app/store/legacy.ts): replaceState() / assignState() of app/modules/app-state.js
+ * and a stray assignment in production put a value at a path, whichever slice it is in.
+ */
+export const rootReducer: Reducer<RootState, UnknownAction, Partial<RootState>> = (state, action) => {
+  const next = slicesReducer(state, action);
+  if (legacyFieldAssigned.match(action)) return applyStoreWrites(next, [{ path: action.payload.path, value: action.payload.value }]);
+  if (legacyStateReplaced.match(action) || legacyStateAssigned.match(action)) return applyStoreWrites(next, action.payload.writes);
+  return next;
+};
 
 /**
  * A new store. The app uses the one `store` below; tests make their own.
  * The default middleware is RTK's development checks only: thunks are off, and the immutability and
- * serializable-action checks run where NODE_ENV is not 'production' (the Node tests; app.js bundles RTK's
- * browser build, which leaves the checks out, see docs/STORE.md).
+ * serializable-action checks run where NODE_ENV is not 'production' (the Node tests; app.js bundles the store built
+ * with NODE_ENV 'production', which leaves the checks out, see docs/STORE.md section 5).
  */
 export function createKsmStore(preloadedState?: Partial<RootState>) {
   return configureStore({

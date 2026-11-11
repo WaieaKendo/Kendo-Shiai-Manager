@@ -1,5 +1,5 @@
 // @ts-check
-import {state} from '../app-state.js';
+import {assignState,state} from '../app-state.js';
 import {renderDivisions} from '../court/court-match-order.js';
 import {ksmAddDaihyosenForTeamAwards} from '../engine/engine-standings-and-tiebreaks.js';
 import {scheduleAutoSave} from '../sync/cloud-session-and-autosave.js';
@@ -26,7 +26,7 @@ export function ksmNoteTeamsReassigned(before,after,source){
   writeCloudDiagnosticsState({stage:'Team division assignment repaired on load',teamsReassigned:moved});
 }
 export function ksmTeamDivisions(){
-  if(!state.teamDivisions)Object.assign(state,KSMEngine.migrateTeamDivisions(/** @type {any} */(state),getSetupSnapshot()));
+  if(!state.teamDivisions)assignState(KSMEngine.migrateTeamDivisions(/** @type {any} */(state),getSetupSnapshot()));
   return [...state.teamDivisions].sort((a,b)=>a.order-b.order||a.id.localeCompare(b.id));
 }
 export function ksmTeamDivision(id){return (state.teamDivisions||[]).find(d=>d.id===id)}

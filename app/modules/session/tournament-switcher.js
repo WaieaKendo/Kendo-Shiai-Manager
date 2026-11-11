@@ -1,5 +1,5 @@
 // @ts-check
-import {state} from '../app-state.js';
+import {replaceState,state} from '../app-state.js';
 import {ksmKeepFailedStartup,ksmUsesAccountAuth,renderHomeTournamentLibrary,setSessionRole} from '../auth/auth0-access.js';
 import {ksmPendingSlug,setKsmPendingSlug} from '../links/friendly-links.js';
 import {ksmIsExplicitSpectatorUrl,ksmLinkParams,ksmLinkUrl,ksmRecordScreenPath,ksmShowRequestedScreen} from '../links/path-urls.js';
@@ -152,7 +152,7 @@ export function ksmResetTournament(){
   KSM_CLOUD_BASE.revision=-1;KSM_CLOUD_BASE.payload=null;
   setKsmLocalMutationVersion(0);setKsmConfirmedMutationVersion(0);setKsmOutboxMutationVersion(0);
   setKsmLastSuccessfulSaveAt(0);setKsmSaveStatusMode('idle');
-  Object.keys(state).forEach(key=>delete state[key]);Object.assign(state,JSON.parse(ksmEmptyState()));
+  replaceState(JSON.parse(ksmEmptyState()));
   applySetupSnapshot(ksmEmptySetup());
   document.body.classList.remove('ksm-tv');
   setSessionRole('spectator');closeNavMenus();closeCloudModal();
