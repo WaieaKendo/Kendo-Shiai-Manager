@@ -2,6 +2,7 @@
 import {state} from '../app-state.js';
 import {championshipCourtFor} from './engine-pools.js';
 import {isPoolOnlyDivision} from '../results/results-and-awards.js';
+import {replaceable} from '../replaceable.js';
 import * as KSMEngine from '../../engine/index.ts';
 const CHAMPIONSHIP_TEMPLATE_VERSION='v1.0';
 /**
@@ -197,3 +198,11 @@ export function maybeAdvanceChampionship(m){if(!m||!m.championship||m.type!=='in
  * @param {Match} m
  */
 export function maybeCreateChampionship(m){if(!m||m.type!=='individual'||m.championship)return;syncChampionshipTemplate(m.division)}
+// Replaceable by tests (KSMTest.app.poolPositionsResolved = ...): see app/modules/replaceable.js.
+/**
+ * @param {string} poolLabel
+ * @param {string} [div]
+ * @returns {boolean}
+ */
+function poolPositionsResolvedImpl(poolLabel,div=state.currentDivision){return poolSeedResolution(poolLabel,div).complete;}
+export const poolPositionsResolved=replaceable('poolPositionsResolved',poolPositionsResolvedImpl);

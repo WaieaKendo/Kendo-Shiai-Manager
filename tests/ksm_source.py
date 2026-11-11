@@ -3,7 +3,7 @@
 The app is written in app/ and built by Vite into dist/ (see scripts/app-sources.mjs):
 
     app_source()  the source as ONE plain text, for checks that read the code: app/index.html,
-                  app/styles/*.css, app/modules/**/*.js (sorted by path) and app/js/*.js, each file
+                  app/styles/*.css, app/modules/**/*.js (sorted by path) and app/main.js, each file
                   as it is on disk, nothing transformed. Same as tests/lib/ksm-source.mjs `html`.
     app_html()    the built dist/index.html, for load_app(page, html).
     court_react_source() the React court screen (app/react/features/court/*.ts, *.tsx) as one text, for
@@ -24,7 +24,7 @@ def _read_all(folder, ext):
 
 def app_source():
     modules = ''.join(f.read_text(encoding='utf-8') for f in sorted((APP / 'modules').rglob('*.js'), key=lambda f: f.relative_to(APP / 'modules').as_posix()))
-    return '\n'.join([(APP / 'index.html').read_text(encoding='utf-8'), _read_all('styles', '.css'), modules, _read_all('js', '.js')])
+    return '\n'.join([(APP / 'index.html').read_text(encoding='utf-8'), _read_all('styles', '.css'), modules, (APP / 'main.js').read_text(encoding='utf-8')])
 
 
 def court_react_source():

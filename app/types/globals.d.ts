@@ -1,8 +1,6 @@
 // Globals the type-checked app files use that no app file declares.
 //
-// App functions and `state` are declared in app/js/*.js; all of those files share one
-// global scope (one classic script), so a checked file sees them with the types from
-// their JSDoc. Only elements the app reaches through their id (the browser's named
+// The app is ES modules (app/main.js, app/modules/**). Only elements the app reaches through their id (the browser's named
 // element globals, e.g. `teamFormat.value`) need declaring here.
 
 /** Setup → team event format select. */
@@ -117,5 +115,3 @@ interface Window {
 declare var exhibitionEnabled: HTMLSelectElement;
 
 
-/** The pure engine modules (app/engine/index.ts). The app/js files are type-checked one by one, but run as one module whose `import * as KSMEngine` is in 00-imports.js; this declares it for them (app/modules import it themselves). */
-declare var KSMEngine: typeof import('../engine/index.ts');

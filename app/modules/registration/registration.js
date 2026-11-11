@@ -4,7 +4,7 @@ import {renderAll} from '../court/court-context-and-pool-editing.js';
 import {renderDivisions} from '../court/court-match-order.js';
 import {applyIndividualNoShow,applyWholeTeamNoShow} from '../engine/engine-generation.js';
 import {eligibleIndividuals,eligibleTeams} from '../engine/engine-pools.js';
-import {scheduleAutoSave} from '../legacy.js';
+import {scheduleAutoSave} from '../sync/cloud-session-and-autosave.js';
 import {ksmConfirmNoShow,ksmRenderExhibitions,ksmRenderRegistration,ksmRenderTeams} from '../react-bridges/registration.js';
 import {ksmCloseShellDialog,ksmContinueRegenerateDivision,ksmOpenRegenerateDialog} from '../react-bridges/shell.js';
 import {ksmDefaultTeamDivisionId,ksmNewTeamIdentity,ksmNewTeamRows,ksmTeamDivision,ksmTeamSettings} from './team-divisions.js';

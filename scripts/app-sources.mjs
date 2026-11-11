@@ -2,30 +2,29 @@
 //
 // app/index.html        markup; references /app.css and /app.js
 // app/styles/NN-*.css   concatenated in file-name order into /app.css
-// app/js/NN-*.js        concatenated in file-name order into the ENTRY of /app.js, loaded as ONE ES module
-//                       (<script type="module">; step 3c of #136). After step 4a the entry is what is left
-//                       outside the modules: the `import` lines (00-imports.js, one single-line
-//                       `import {a,b} from '...';` per module), init calls, and a few functions step 4d moves.
-//                       Its top-level names are module scoped, so whatever inline on*="..." handlers,
-//                       app/react, the tests and window.NAME reach is exported to window by the last file,
-//                       app/js/99-window-exports.js (tests/window-exports-test.mjs keeps it complete);
-//                       no name may be declared twice (tests/no-duplicate-declarations-test.mjs).
-//                       /app.js is the rolldown bundle of entry + modules (appBundle()), ONE ES module file.
+// app/main.js           the ENTRY of /app.js, ONE ES module (<script type="module">; steps 3c and 4d of #136): the
+//                       `import` lines (one single-line `import {a,b} from '...';` per module), the load-time
+//                       calls (the path-URL rewrite first, the init...() calls in their old order, the autosave
+//                       listeners) and, last, the window exports. Its top-level names are module scoped, so
+//                       whatever inline on*="..." handlers, app/react, the tests and window.NAME reach is exported
+//                       to window by the last section (tests/window-exports-test.mjs keeps it complete); no name
+//                       may be declared twice (tests/no-duplicate-declarations-test.mjs).
+//                       /app.js is the rolldown bundle of the entry + modules (appBundle()), ONE ES module file.
 // app/modules/          the modules the entry imports, plain `.js` with `// @ts-check` (step 3d of #136,
 //                       area by area: app-state.js, engine/engine-*.js, court/*.js, registration/*.js, setup/*.js,
 //                       results/*.js, sync/*.js, session/*.js, links/*.js, auth/*.js, html-text.js, boot.js, react-bridges/*.js).
-//                       A module never imports from the entry; its calls into app/js code that has not moved
-//                       go through legacy.js (one wrapper per function, calling window.NAME at call time;
-//                       app/js/00-legacy-exports.js puts those names on window first, since the entry's
-//                       load-time code runs court code before 99-window-exports.js). Tests that read the
-//                       app's code as text use appSourceText() below: the real files, no transform.
+//                       A module never imports from the entry. The few functions tests replace after
+//                       load (KSMTest.app.NAME = ..., the goldens' window wrappers) are made with
+//                       replaceable() (app/modules/replaceable.js): a stable function callers use, and a live
+//                       window.NAME accessor that swaps the implementation. Tests that read the app's code as
+//                       text use appSourceText() below: the real files, no transform.
 // app/*.html           other pages (e.g. overlay.html): extra Vite entries, built with
 //                       ES-module scripts from app/react/ (React + strict TypeScript) and
 //                       served without the .html (/overlay); none of them load app.js
 // app/react/            React/TSX code, ES modules; never part of app.js
 // app/engine/           pure strict-TS engine modules (no DOM, no globals). app/modules import them
 //                       (`import * as KSMEngine from '.../engine/index.ts'`), so appBundle() bundles the engine into
-//                       app.js (step 4b of #136) and app/js/99-window-exports.js sets window.KSMEngine from the import
+//                       app.js (step 4b of #136) and app/main.js sets window.KSMEngine from the import
 //                       for anything outside the bundle; app/react imports the modules. Node tests import
 //                       the .ts files directly.
 // app/service-worker.js service worker (the build rewrites /app.css and /app.js to the
@@ -59,7 +58,7 @@ export const withVersion = text => text.replaceAll(VERSION_PLACEHOLDER, appVersi
 
 const ordered = (dir, ext) => fs.readdirSync(dir).filter(f => f.endsWith(ext)).sort().map(f => path.join(dir, f));
 export const styleFiles = () => ordered(path.join(APP_DIR, 'styles'), '.css');
-export const scriptFiles = () => ordered(path.join(APP_DIR, 'js'), '.js');
+export const ENTRY_FILE = path.join(APP_DIR, 'main.js');
 export const MODULES_DIR = path.join(APP_DIR, 'modules');
 /** Every app/modules/**\/*.js file, sorted by path. */
 export const moduleFiles = () => fs.readdirSync(MODULES_DIR, { recursive: true }).filter(f => f.endsWith('.js')).sort().map(f => path.join(MODULES_DIR, f));
@@ -69,20 +68,18 @@ const concat = files => files.map(f => fs.readFileSync(f, 'utf8')).join('');
 export const extraPages = () => fs.readdirSync(APP_DIR).filter(f => f.endsWith('.html') && f !== 'index.html').sort().concat(Object.values(printDocuments));
 
 export const appStyles = () => concat(styleFiles());
-/** The entry of app.js: app/js/*.js concatenated (its `import` lines resolve against app/js). */
-export const appScript = () => concat(scriptFiles());
+/** The entry of app.js: app/main.js, as it is on disk. */
+export const appScript = () => fs.readFileSync(ENTRY_FILE, 'utf8');
 
-const ENTRY_ID = path.join(APP_DIR, 'js', '__app-entry__.js');
 /**
- * /app.js: the entry (appScript()) and the modules it imports, bundled by rolldown into ONE ES module
+ * /app.js: the entry (app/main.js) and the modules it imports, bundled by rolldown into ONE ES module
  * file: no code splitting, no minify, no tree-shaking (the entry's top-level code is reached through
  * `window`, by inline handlers). rolldown keeps JSDoc and legal comments only; plain // and /* comments
  * are dropped from the output (the sources keep them). Returns the code (version placeholders intact).
  */
 export async function appBundle() {
   const bundle = await rolldown({
-    input: ENTRY_ID, logLevel: 'silent', treeshake: false,
-    plugins: [{ name: 'ksm-app-entry', resolveId: id => (id === ENTRY_ID ? id : null), load: id => (id === ENTRY_ID ? appScript() : null) }],
+    input: ENTRY_FILE, logLevel: 'silent', treeshake: false,
   });
   try {
     const { output } = await bundle.generate({ format: 'esm', minify: false, codeSplitting: false, comments: true });
@@ -98,7 +95,7 @@ export const serviceWorker = () => fs.readFileSync(path.join(APP_DIR, 'service-w
 
 /**
  * The app's source as ONE plain text, for tests that read the code (grep-style checks, extractFunction):
- * app/index.html, app/styles/*.css, app/modules/**\/*.js (sorted by path) and app/js/*.js, each file as it is
+ * app/index.html, app/styles/*.css, app/modules/**\/*.js (sorted by path) and app/main.js, each file as it is
  * on disk, nothing transformed (no inlining of imports, `export` kept). Names are unique across the files
  * (tests/no-duplicate-declarations-test.mjs), so a function is found once.
  */

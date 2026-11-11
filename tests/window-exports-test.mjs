@@ -1,33 +1,37 @@
-// Guard for app/js/99-window-exports.js (issue #136, step 3c).
+// Guard for the window exports at the end of app/main.js (issue #136, steps 3c and 4d).
 //
-// /app.js is ONE ES module, so a top-level name of app/js is no longer on `window`. Whatever is
+// /app.js is ONE ES module, so a top-level name of app/main.js is no longer on `window`. Whatever is
 // reached from OUTSIDE the module must be exported there, or it is silently `undefined`:
-//   - inline on*="..." handlers in app/index.html and in HTML strings built by app/js and app/react
-//   - window.NAME in app/js
+//   - inline on*="..." handlers in app/index.html and in HTML strings built by app/modules and app/react
+//   - window.NAME in app/main.js and app/modules
 //   - what app/react reads off `window`: LegacyGlobals and the other *Window interfaces, `w.NAME`,
 //     and the names passed as strings ('chooseCourt', legacy('ksmText'), ...)
 //   - every name tests/lib/ksm-test-api.js (KSMTest) uses
 // A name that is assigned after its declaration (a `let`/`var`, or a function wrapped later), or that
 // a test or React writes through `window.NAME =` / a setter, must be exported as a live accessor
 // (Object.defineProperties), or window.NAME would keep the first value.
-// Every exported name must be a top-level declaration of app/js. Fails with the names missing/wrong.
+// Every exported name must be an import or top-level declaration of app/main.js. Functions that tests replace
+// (replaceable(), app/modules/replaceable.js) define their own live accessor on window: each must be a module
+// `export const NAME = replaceable('NAME', ...)`, and everything a test replaces or wraps must be one of those or
+// exported live. Fails with the names missing/wrong.
 import fs from 'node:fs';
 import path from 'node:path';
 import { parseAst } from 'rolldown/parseAst';
-import { ROOT, scriptFiles, appScript, indexHtml } from '../scripts/app-sources.mjs';
+import { ROOT, ENTRY_FILE, appScript, indexHtml } from '../scripts/app-sources.mjs';
 
 const rel = f => path.relative(ROOT, f);
 const read = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
 const walkFiles = (d, exts) => fs.readdirSync(path.join(ROOT, d), { withFileTypes: true }).flatMap(e =>
   e.isDirectory() ? walkFiles(path.join(d, e.name), exts) : exts.some(x => e.name.endsWith(x)) ? [path.join(d, e.name)] : []);
-const EXPORTS_FILE = 'app/js/99-window-exports.js';
+const ENTRY = path.relative(ROOT, ENTRY_FILE); // app/main.js: its last section is the export list
+const EXPORTS_FILE = ENTRY;
 const problems = [];
 
-// --- app/js as a module: strict-mode syntax errors (what `node --check` finds in a .mjs) ---
+// --- app/main.js as a module: strict-mode syntax errors (what `node --check` finds in a .mjs) ---
 try { parseAst(appScript(), { sourceType: 'module', lang: 'js' }); }
 catch (e) { problems.push(`app.js does not parse as an ES module: ${e.message}`); }
 
-// --- top-level declarations of app/js (name -> kind) ---
+// --- top-level declarations of app/main.js (name -> kind) ---
 const patternNames = (p, out = []) => {
   if (!p) return out;
   if (p.type === 'Identifier') out.push(p.name);
@@ -38,8 +42,7 @@ const patternNames = (p, out = []) => {
   return out;
 };
 const topLevel = new Map();
-for (const file of scriptFiles()) {
-  if (rel(file) === EXPORTS_FILE) continue;
+for (const file of [ENTRY_FILE]) {
   for (const s of parseAst(fs.readFileSync(file, 'utf8'), { lang: 'js' }).body) {
     if (s.type === 'FunctionDeclaration' || s.type === 'ClassDeclaration') topLevel.set(s.id.name, s.type === 'FunctionDeclaration' ? 'function' : 'class');
     else if (s.type === 'VariableDeclaration') s.declarations.forEach(d => patternNames(d.id).forEach(n => topLevel.set(n, s.kind)));
@@ -69,58 +72,32 @@ else {
 }
 const exported = new Set([...plain, ...live]);
 for (const n of plain) if (live.has(n)) problems.push(`${n} is exported twice (Object.assign and defineProperties)`);
-for (const n of exported) if (!topLevel.has(n)) problems.push(`${EXPORTS_FILE} exports ${n}, which is not a top-level declaration or import in app/js`);
+for (const n of exported) if (!topLevel.has(n)) problems.push(`${EXPORTS_FILE} exports ${n}, which is not a top-level declaration or import in app/main.js`);
 
-// --- app/modules/legacy.js: the wrappers modules use to call app/js functions that have not moved yet ---
-// Each one is `export const NAME = ... ((...args) => w.NAME(...args));`, calling window.NAME at call time, so it must
-// name a function app/js still declares and exports to window (a moved function is imported instead, and its
-// wrapper deleted; a stale wrapper would call something that is gone).
-const LEGACY_FILE = 'app/modules/legacy.js';
-let legacyWrappers = 0;
-for (const line of read(LEGACY_FILE).split('\n')) {
-  if (!line.startsWith('export ')) continue;
-  const m = /^export const (\w+) = (?:\/\*\*[^*]*\*\/ )?\(\(\.\.\.args\) => w\.(\w+)\(\.\.\.args\)\);$/.exec(line);
-  if (!m) { problems.push(`${LEGACY_FILE}: not a wrapper of the form \`export const NAME = ((...args) => w.NAME(...args));\`: ${line.slice(0, 80)}`); continue; }
-  legacyWrappers++;
-  const [, name, target] = m;
-  if (name !== target) problems.push(`${LEGACY_FILE}: ${name} calls w.${target}`);
-  else if (topLevel.get(name) !== 'function') problems.push(`${LEGACY_FILE}: ${name} is not a function declared in app/js any more (${topLevel.get(name) || 'undeclared'}); import it from its module and delete the wrapper`);
-  else if (!exported.has(name)) problems.push(`${LEGACY_FILE}: ${name} is wrapped but not exported to window by ${EXPORTS_FILE}`);
-}
-
-// The same names are put on window at the START of the entry (app/js/00-legacy-exports.js), because the entry's load-time
-// code (the first renderAll(), the bootstrap files) calls court code before 99-window-exports.js has run. The two lists
-// must be equal, and a name that 99-window-exports.js exports live is live there too.
-{
-  const EARLY_FILE = 'app/js/00-legacy-exports.js';
-  const early = new Set(), earlyLive = new Set();
-  const walkEarly = n => {
-    if (!n || typeof n !== 'object') return;
-    if (Array.isArray(n)) return n.forEach(walkEarly);
-    if (n.type === 'CallExpression' && n.callee.type === 'MemberExpression' && n.callee.object.name === 'Object' && n.arguments[0]?.name === 'window' && n.arguments[1]?.type === 'ObjectExpression') {
-      const into = n.callee.property.name === 'assign' ? early : n.callee.property.name === 'defineProperties' ? earlyLive : null;
-      if (into) n.arguments[1].properties.forEach(p => into.add(p.key.name ?? p.key.value));
-    }
-    for (const k in n) if (k !== 'type') walkEarly(n[k]);
-  };
-  walkEarly(parseAst(read(EARLY_FILE), { lang: 'js' }).body);
-  const wrappedNames = new Set([...read(LEGACY_FILE).matchAll(/^export const (\w+) =/gm)].map(m => m[1]));
-  for (const n of wrappedNames) {
-    if (!early.has(n) && !earlyLive.has(n)) problems.push(`${EARLY_FILE} does not export ${n}, which ${LEGACY_FILE} wraps (the entry's load-time code would find window.${n} undefined)`);
-    else if (live.has(n) && !earlyLive.has(n)) problems.push(`${EARLY_FILE}: ${n} is a live accessor in ${EXPORTS_FILE}, make it one here too`);
-    else if (!live.has(n) && earlyLive.has(n)) problems.push(`${EARLY_FILE}: ${n} is exported live here but by value in ${EXPORTS_FILE}`);
+// --- replaceable(): `export const NAME = replaceable('NAME', ...)` in a module (app/modules/replaceable.js) ---
+// It defines window.NAME itself (a live accessor), so it is exported without being listed above.
+const replaceableNames = new Map(); // name -> file
+for (const f of walkFiles('app/modules', ['.js'])) {
+  if (f === 'app/modules/replaceable.js') continue;
+  for (const st of parseAst(read(f), { lang: 'js' }).body) {
+    const d = st.type === 'ExportNamedDeclaration' && st.declaration?.type === 'VariableDeclaration' ? st.declaration.declarations[0] : null;
+    if (!d || d.init?.type !== 'CallExpression' || d.init.callee.name !== 'replaceable') continue;
+    const [arg] = d.init.arguments;
+    if (d.id.name !== arg?.value) problems.push(`${f}: \`${d.id.name} = replaceable(${JSON.stringify(arg?.value)}, ...)\`: the window name must equal the const's name`);
+    if (replaceableNames.has(d.id.name)) problems.push(`${d.id.name} is made replaceable twice: ${replaceableNames.get(d.id.name)}, ${f}`);
+    replaceableNames.set(d.id.name, f);
   }
-  for (const n of [...early, ...earlyLive]) if (!wrappedNames.has(n)) problems.push(`${EARLY_FILE} exports ${n}, which ${LEGACY_FILE} does not wrap; delete it`);
 }
+for (const n of replaceableNames.keys()) if (exported.has(n)) problems.push(`${EXPORTS_FILE} exports ${n}, which is replaceable() and defines window.${n} itself; delete it from the list`);
 
 // --- what must be exported, and why ---
 const need = new Map();
-const needed = (name, why) => { if (topLevel.has(name)) (need.get(name) || need.set(name, new Set()).get(name)).add(why); };
+const needed = (name, why) => { if (topLevel.has(name) && !replaceableNames.has(name)) (need.get(name) || need.set(name, new Set()).get(name)).add(why); };
 
 // inline handlers in index.html
 for (const m of indexHtml().matchAll(/\bon[a-z]+\s*=\s*(?:"([^"]*)"|'([^']*)')/g)) handlerTokens(m[1] ?? m[2]).forEach(t => needed(t, 'index.html handler'));
 
-// strings (HTML built by app/js and app/react) holding on*="..." handlers; string literals in app/react
+// strings (HTML built by app/modules and app/react) holding on*="..." handlers; string literals in app/react
 const stringsOf = (file, lang) => {
   const out = [];
   const walk = n => {
@@ -135,15 +112,15 @@ const stringsOf = (file, lang) => {
 };
 const handlerRe = /\bon[a-z]+\s*=\s*(["'])([\s\S]*?)(?:\1|$)/g;
 const reactFiles = walkFiles('app/react', ['.ts', '.tsx']);
-for (const f of [...walkFiles('app/js', ['.js']).filter(f => f !== EXPORTS_FILE), ...walkFiles('app/modules', ['.js']), ...reactFiles]) {
+for (const f of [...[ENTRY], ...walkFiles('app/modules', ['.js']), ...reactFiles]) {
   const lang = f.endsWith('.tsx') ? 'tsx' : f.endsWith('.ts') ? 'ts' : 'js';
   const strings = stringsOf(f, lang);
   for (const s of strings) for (const m of s.matchAll(handlerRe)) handlerTokens(m[2]).forEach(t => needed(t, `handler in a string, ${path.basename(f)}`));
   if (f.startsWith('app/react')) for (const s of strings) if (s.length > 1 && topLevel.has(s)) needed(s, `named in app/react, ${path.basename(f)}`);
 }
 
-// window.NAME in app/js
-for (const f of [...walkFiles('app/js', ['.js']).filter(f => f !== EXPORTS_FILE), ...walkFiles('app/modules', ['.js'])])
+// window.NAME in app/main.js and app/modules
+for (const f of [...[ENTRY], ...walkFiles('app/modules', ['.js'])])
   for (const m of read(f).matchAll(/\b(?:window|globalThis)\.([A-Za-z_$][\w$]*)/g)) needed(m[1], `window.${m[1]} in ${path.basename(f)}`);
 
 // what app/react types or reads off window: *Window / *Globals interfaces, `window as unknown as {...}`, w.NAME
@@ -173,7 +150,7 @@ const testApi = read('tests/lib/ksm-test-api.js');
 
 // Tests that wrap app functions by a name held in a string: window[f] = wrapped(window[f])
 // (scheduleAutoSave, criticalAutoSave: tests/lib/ksm-test-api.js, the golden tests). The wrapper must
-// reach the module's own calls, so these are exported live too.
+// reach the module's own calls, so these must be replaceable() or exported live.
 const wrapped = new Set();
 for (const f of ['tests/lib/ksm-test-api.js', ...fs.readdirSync(path.join(ROOT, 'tests')).filter(f => f.endsWith('.py')).map(f => `tests/${f}`)]) {
   const text = read(f);
@@ -186,7 +163,7 @@ needed('ksmQueuedSaveRetryTimer', 'clearTimeout(...) in tests/auth0-browser-test
 
 // --- which of them must be live accessors ---
 const accessor = new Map();
-const mustBeLive = (name, why) => { if (topLevel.has(name)) (accessor.get(name) || accessor.set(name, new Set()).get(name)).add(why); };
+const mustBeLive = (name, why) => { if (topLevel.has(name) && !replaceableNames.has(name)) (accessor.get(name) || accessor.set(name, new Set()).get(name)).add(why); };
 // assigned after its declaration (shadowing local variables of the same name are over-counted, harmlessly)
 {
   const walk = n => {
@@ -195,13 +172,16 @@ const mustBeLive = (name, why) => { if (topLevel.has(name)) (accessor.get(name) 
     if (n.type === 'AssignmentExpression') {
       const targets = [];
       const collect = p => { if (!p) return; if (p.type === 'Identifier') targets.push(p.name); else if (p.type === 'ObjectPattern') p.properties.forEach(q => collect(q.type === 'RestElement' ? q.argument : q.value)); else if (p.type === 'ArrayPattern') p.elements.forEach(collect); else if (p.type === 'AssignmentPattern') collect(p.left); else if (p.type === 'RestElement') collect(p.argument); };
-      collect(n.left); targets.forEach(t => mustBeLive(t, 'assigned in app/js'));
-    } else if (n.type === 'UpdateExpression' && n.argument.type === 'Identifier') mustBeLive(n.argument.name, 'assigned in app/js');
+      collect(n.left); targets.forEach(t => mustBeLive(t, 'assigned in app/main.js'));
+    } else if (n.type === 'UpdateExpression' && n.argument.type === 'Identifier') mustBeLive(n.argument.name, 'assigned in app/main.js');
     for (const k in n) if (k !== 'type') walk(n[k]);
   };
-  for (const file of scriptFiles()) if (rel(file) !== EXPORTS_FILE) walk(parseAst(fs.readFileSync(file, 'utf8'), { lang: 'js' }).body);
+  walk(parseAst(read(ENTRY), { lang: 'js' }).body.filter(st => !(st.type === 'ExpressionStatement' && st.expression.type === 'CallExpression' && st.expression.callee.object?.name === 'Object')));
 }
 for (const n of wrapped) mustBeLive(n, 'wrapped through window[...] in tests');
+// Whatever a test wraps or replaces must be reachable AND swappable: replaceable(), or exported live.
+for (const n of [...wrapped, ...[...testApi.matchAll(/\bset\s+([A-Za-z_$][\w$]*)\s*\(/g)].map(m => m[1])])
+  if (!replaceableNames.has(n) && !live.has(n)) problems.push(`${n} is replaced or wrapped by a test but is neither replaceable() nor a live window export`);
 for (const m of testApi.matchAll(/\bset\s+([A-Za-z_$][\w$]*)\s*\(/g)) mustBeLive(m[1], 'KSMTest setter');
 for (const f of fs.readdirSync(path.join(ROOT, 'tests')).filter(f => f.endsWith('.py') || f.endsWith('.js') || f.endsWith('.mjs')))
   for (const m of read(path.join('tests', f)).matchAll(/\bwindow\.([A-Za-z_$][\w$]*)\s*=(?!=)/g)) mustBeLive(m[1], `window.${m[1]} = in tests/${f}`);
@@ -234,10 +214,10 @@ const liveSetter = new Map(); // live accessor name -> the setter's code
 for (const n of exported) if (topLevel.get(n) === 'import' && moduleLets.has(n)) mustBeLive(n, 'a module `let`, assigned inside its module');
 // An imported name cannot be assigned from the entry (or through window): a test or React that replaces it
 // (window.NAME = ..., a KSMTest setter) would never be seen by the module's own calls. Keep such a function
-// declared in app/js, where it can be exported as a live accessor. A module `let` is written through its setter.
+// made replaceable() (app/modules/replaceable.js) or exported live. A module `let` is written through its setter.
 for (const [n, why] of accessor) {
   if (topLevel.get(n) !== 'import') continue;
-  if (!moduleLets.has(n)) { problems.push(`${n} is imported from a module but is replaced from outside (${[...why][0]}); declare it in app/js instead`); accessor.delete(n); continue; }
+  if (!moduleLets.has(n)) { problems.push(`${n} is imported from a module but is replaced from outside (${[...why][0]}); make it replaceable() (app/modules/replaceable.js) instead`); accessor.delete(n); continue; }
   const outside = [...why].filter(w => !w.startsWith('a module'));
   const set = moduleLets.get(n), code = liveSetter.get(n);
   if (outside.length && !set) problems.push(`${n} (a module \`let\`) is written from outside (${outside[0]}) but its module exports no set${n[0].toUpperCase() + n.slice(1)}(value)`);
@@ -254,4 +234,4 @@ if (needlessLive.length) problems.push(`live accessor for a name that is never a
 // Unused exports are allowed (step 3d shrinks the list) but each must be a real declaration (checked above).
 
 if (problems.length) { console.log(problems.join('\n')); process.exitCode = 1; }
-else console.log(`window-exports: ${exported.size} names exported (${live.size} live), ${need.size} reached from outside the module, ${legacyWrappers} legacy.js wrappers all exported`);
+else console.log(`window-exports: ${exported.size} names exported (${live.size} live), ${need.size} reached from outside the module, ${replaceableNames.size} replaceable() functions`);

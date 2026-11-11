@@ -1,17 +1,8 @@
-import { html as appSource, engine } from './lib/ksm-source.mjs';
+import { html as appSource, engine, extractFunction } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
 import vm from 'node:vm';
 const html=appSource;
-function extract(name){
-  const start=html.indexOf(`function ${name}(`);
-  if(start<0)throw new Error(`Missing ${name}`);
-  const brace=html.indexOf('{',start);let depth=0;
-  for(let i=brace;i<html.length;i++){
-    if(html[i]==='{')depth++;
-    else if(html[i]==='}'&&--depth===0)return html.slice(start,i+1);
-  }
-  throw new Error(`Unclosed ${name}`);
-}
+const extract=name=>extractFunction(html,name);
 let passed=0;
 function ok(cond,msg){if(!cond)throw new Error(msg);passed++;}
 

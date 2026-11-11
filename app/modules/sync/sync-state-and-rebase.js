@@ -7,9 +7,10 @@ import {ksmLinkParams} from '../links/path-urls.js';
 import {ksmCarryGrandChampionDraws,ksmNoteGrandChampionPatchDropped,ksmSameGrandChampionDraw} from '../registration/grand-champion.js';
 import {ksmTeamDivisionPayload} from '../registration/team-divisions.js';
 import {writeCloudDiagnosticsState} from './cloud-diagnostics.js';
-import {applyRemoteCloudRecord,isTvSession,ksmCloudSaveInFlight,ksmCloudSavePending,ksmCloudTimer,ksmConfirmedMutationVersion,ksmLocalMutationVersion,ksmSaveTimer,showKsmToast} from './cloud-realtime-save-and-load.js';
+import {applyRemoteCloudRecord,isTvSession,ksmCloudSaveInFlight,ksmCloudSavePending,ksmCloudTimer,ksmConfirmedMutationVersion,ksmLocalMutationVersion,ksmSaveTimer,setKsmLocalMutationVersion,showKsmToast} from './cloud-realtime-save-and-load.js';
 import {cloudSession,persistCloudSession,readOutbox} from './cloud-session-and-autosave.js';
 import {ksmOtherRebaseCourts,ksmOwnHistoryEntry} from './two-tabs.js';
+import {replaceable} from '../replaceable.js';
 import * as KSMEngine from '../../engine/index.ts';
 // Sync state and the 409 rebase (step 3d of #136, from app/js/18-sync-state-and-rebase.js): the storage keys, the
 // pinned court, the merge base and the replay of this device's court actions, Undo/Redo and director edits onto the server copy.
@@ -610,3 +611,6 @@ export function rebaseLocalPayloadOnRecord(localPayload,serverRecord,originalBas
   rebased.savedAt=new Date().toISOString();
   return rebased;
 }
+// Replaceable by tests (golden *_SAVES_INIT_JS wrap it through window): see app/modules/replaceable.js.
+function noteLocalMutationImpl(){setKsmLocalMutationVersion(ksmLocalMutationVersion+1)}
+export const noteLocalMutation=replaceable('noteLocalMutation',noteLocalMutationImpl);

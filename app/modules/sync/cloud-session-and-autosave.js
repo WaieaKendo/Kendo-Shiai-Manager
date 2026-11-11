@@ -5,15 +5,18 @@ import {ksmNormalizeTimerSettings} from '../court/match-timer.js';
 import {ksmPersistentSaveStatusText,ksmRenderConnectionStatus,ksmRenderSaveStatus} from '../react-bridges/shell.js';
 import {ksmSyncLegacyTeamDivision} from '../registration/team-divisions.js';
 import {isReadOnlySession,ksmKeepStaffOutbox,v316StaffPassword} from '../session/staff-session-and-library.js';
+import {ksmSyncGrandChampions} from '../registration/grand-champion.js';
+import {replaceable} from '../replaceable.js';
 import {ksmStartupHasCache,ksmStartupLoadFailed} from '../session/tournament-switcher.js';
 import {ksmApplyingRemoteSnapshot,ksmCloudTimer,ksmFileReplace,ksmLastSuccessfulSaveAt,ksmQueuedSaveRetryTimer,ksmSaveTimer,mergeQueuedStaffWork,saveTournamentToCloudWithReason,scheduleCloudSave,setKsmCloudTimer,setKsmQueuedSaveRetryTimer,setKsmSaveStatusMode,setKsmSaveTimer,showKsmToast} from './cloud-realtime-save-and-load.js';
-import {KSM_AUTOSAVE_CLOUD_ID,KSM_CLOUD_RECOVERY_KEY,KSM_CLOUD_SESSION_KEY,KSM_SAVE_KEY,applyCourtSides,cloudBaseFor,ksmParkedWork,ksmRestoreRecoveries} from './sync-state-and-rebase.js';
+import {KSM_AUTOSAVE_CLOUD_ID,KSM_CLOUD_RECOVERY_KEY,KSM_CLOUD_SESSION_KEY,KSM_SAVE_KEY,applyCourtSides,cloudBaseFor,ksmParkedWork,ksmRestoreRecoveries,noteLocalMutation} from './sync-state-and-rebase.js';
 import {KSM_TAB_ID,ksmAdoptOrphanOutbox,ksmOutboxKey,ksmPeekOrphanOutbox,ksmReadOutboxKey,ksmReleaseAdoptedOutbox} from './two-tabs.js';
 import {ksmPendingRestoreMark} from './undo-regenerate.js';
 import * as KSMEngine from '../../engine/index.ts';
 // The cloud session, the outbox and the local autosave (step 3d of #136, from app/js/20-cloud-session-and-autosave.js).
 // cloudSession is read from localStorage by initCloudSession(), which app/js/20- runs where this file used to load.
-// scheduleAutoSave(), saveAuto() and criticalAutoSave() stay in app/js (tests wrap them through window).
+// scheduleAutoSave(), saveAuto() and criticalAutoSave() are at the end of this file; tests wrap them through window
+// (golden *_SAVES_INIT_JS, KSMTest.watchSaves()), so they are replaceable (app/modules/replaceable.js).
 export let cloudSession;
 export let ksmSessionRole='local';
 // A module's `let` is read-only to importers: app/js, the window accessors and the other sync modules assign it here.
@@ -118,3 +121,24 @@ if(localStorage.getItem(KSM_SAVE_KEY)&&localStorage.getItem(KSM_AUTOSAVE_CLOUD_I
   localStorage.setItem(KSM_AUTOSAVE_CLOUD_ID,cloudSession.tournamentId);
 }
 }
+// Remote snapshots never echo into cloud: if(!ksmApplyingRemoteSnapshot)scheduleCloudSave()
+/**
+ * The document input/change listeners in app/main.js register this original (scheduleAutoSaveOriginal, an Event as
+ * `reason`), as they held the function itself before step 4d: a test's replacement of window.scheduleAutoSave never saw them (the goldens'
+ * saves lists are approved that way), only calls made through the exported scheduleAutoSave.
+ * @param {any} [reason]  a string, or the Event of a listener
+ */
+function scheduleAutoSaveImpl(reason='Edit'){
+  // Read-only controls must not create mutations or rewrite the autosave/outbox.
+  if(reason instanceof Event&&/** @type {any} */(reason.target)?.closest?.('#home, .cloud-status-wrap, #ksmCloudModal, .setup-tournament-actions, .setup-short-url, input[type="file"]'))return;
+if(ksmStartupLoadFailed&&!ksmStartupHasCache)return;ksmSyncGrandChampions(typeof reason==='string'?reason:'edit');noteLocalMutation();clearTimeout(ksmSaveTimer);setKsmSaveTimer(setTimeout(()=>{setKsmSaveTimer(null);autoSaveTournament(reason)},2000))}
+export const scheduleAutoSave=replaceable('scheduleAutoSave',scheduleAutoSaveImpl);
+export const scheduleAutoSaveOriginal=scheduleAutoSaveImpl;
+// F11: the Results awards editor calls saveAuto() (add, remove, edit), which was never defined, so
+// every award action threw: award edits were never autosaved and add/remove did not redraw.
+// It is an ordinary edit, saved like the others.
+function saveAutoImpl(){scheduleAutoSave('Awards')}
+export const saveAuto=replaceable('saveAuto',saveAutoImpl);
+/** @param {string} reason */
+function criticalAutoSaveImpl(reason){if(ksmStartupLoadFailed&&!ksmStartupHasCache)return;ksmSyncGrandChampions(reason);noteLocalMutation();markLocalSave(reason);if(!isReadOnlySession())saveTournamentToCloudWithReason(reason,true)}
+export const criticalAutoSave=replaceable('criticalAutoSave',criticalAutoSaveImpl);

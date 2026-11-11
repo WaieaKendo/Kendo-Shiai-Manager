@@ -1,7 +1,7 @@
 // Shared helpers for tests that inspect or execute pieces of the app's source.
 //
 // `html` is the app's source as ONE plain text (appSourceText() in scripts/app-sources.mjs): app/index.html,
-// app/styles/*.css, app/modules/**/*.js and app/js/*.js exactly as they are on disk, no transform. The
+// app/styles/*.css, app/modules/**/*.js and app/main.js exactly as they are on disk, no transform. The
 // name is historic (it was index.html with everything inlined). Grep-style checks read it directly;
 // extractFunction cuts one function declaration out of it (names are unique, see
 // tests/no-duplicate-declarations-test.mjs) and withDependencies adds what that code calls, for tests
@@ -100,8 +100,13 @@ function definitionStarts(source, name) {
 // Extracts a named function declaration's source. The app redefines many
 // functions later in the file to override earlier versions; the browser runs the
 // LAST definition, so that is the default. Pass { occurrence: 'first' } for the original.
+// A replaceable function (step 4d of #136, app/modules/replaceable.js) keeps its code in `function NAMEImpl(...)`
+// and exports `const NAME = replaceable('NAME', NAMEImpl)`: when `function NAME(` is not found, the Impl is cut out
+// and renamed to NAME, so a test runs the real code under the name it always used.
 export function extractFunction(source, name, { occurrence = 'last' } = {}) {
-  const starts = definitionStarts(source, name);
+  let starts = definitionStarts(source, name);
+  if (!starts.length && definitionStarts(source, `${name}Impl`).length)
+    return extractFunction(source, `${name}Impl`, { occurrence }).replace(`function ${name}Impl(`, `function ${name}(`);
   if (!starts.length) throw new Error(`Missing function ${name}`);
   const start = occurrence === 'first' ? starts[0] : starts[starts.length - 1];
   // Skip the parameter list (it may contain default values with braces/strings).

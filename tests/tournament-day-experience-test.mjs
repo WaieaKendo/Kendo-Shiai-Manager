@@ -1,6 +1,8 @@
 import { html as appSource, readRepoFile } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
 const html=appSource;
+// Declared (function/const/let/var NAME), not just mentioned: an import line of app/main.js names it too.
+const declared=n=>new RegExp(`(?:function\\s+|(?:const|let|var)\\s+)${n}\\b`).test(html);
 // M.13: the shell (navigation, header, dialogs) is React: app/react/features/shell/ draws it, app/js/44-react-shell.js
 // publishes what the legacy code decided (tests/golden/shell pins the result).
 const shellReact = ['nav-model.ts', 'dialogs-model.ts', 'Dialogs.tsx', 'Shell.tsx'].map(f => readRepoFile(`app/react/features/shell/${f}`)).join('\n');
@@ -11,7 +13,7 @@ const checks=[
  ['completed match critical autosave',html.includes('criticalAutoSave(`Completed match:')],
  ['next match remains manual',html.includes('function nextMatch()')&&html.includes('Next Match')],
  ['ten-minute safety autosave',html.includes('600000')&&html.includes('10-minute safety autosave')],
- ['recovery download/load',html.includes('downloadRecoveryFile')&&html.includes('loadRecoveryFile')&&html.includes('KSM_RECOVERY')],
+ ['recovery download/load',declared('downloadRecoveryFile')&&declared('loadRecoveryFile')&&html.includes('KSM_RECOVERY')],
  // Tournament Access: the spectator link (spectatorLink()) with Copy Link and its QR code (React since
  // M.13). ('Spectator View' was a row of the first openTournamentAccess() in 21-, which never ran.)
  ['tournament access links',html.includes('openTournamentAccess')&&html.includes('ksmOpenTournamentAccess(link,qr)')&&html.includes('function spectatorLink()')&&shellReact.includes('Scan to open the tournament in Spectator mode.')&&html.includes('Court A')&&html.includes('Court B')],

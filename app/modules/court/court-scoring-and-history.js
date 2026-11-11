@@ -9,7 +9,7 @@ import {completedResultSnapshot} from '../engine/engine-result-integrity.js';
 import {maybeAdvanceIndividualSingleElim} from '../engine/engine-single-elim.js';
 import {maybeCreateTeamTiebreak,maybeCreateTiebreaks} from '../engine/engine-standings-and-tiebreaks.js';
 import {maybeAdvanceTeamBracket} from '../engine/engine-team-bracket.js';
-import {criticalAutoSave} from '../legacy.js';
+import {criticalAutoSave} from '../sync/cloud-session-and-autosave.js';
 import {renderProgress} from '../navigation.js';
 import {ksmSignalCourtActions} from '../react-bridges/court.js';
 import {ksmNotifyStateChanged} from '../react-bridges/state-bridge.js';

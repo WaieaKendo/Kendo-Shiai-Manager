@@ -1,7 +1,7 @@
 // @ts-check
 import {DIVISION_PRESETS,state} from '../app-state.js';
 import {renderDivisions} from '../court/court-match-order.js';
-import {scheduleAutoSave} from '../legacy.js';
+import {scheduleAutoSave} from '../sync/cloud-session-and-autosave.js';
 import {renderReg} from '../registration/registration.js';
 import {renderTournamentStatus} from '../registration/validation.js';
 import {isReadOnlySession} from '../session/staff-session-and-library.js';

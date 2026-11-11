@@ -277,7 +277,7 @@ export function ksmOpenCloudModal(title,body){
   ksmShellBlurIn(document.getElementById('ksmCloudModal'));
   ksmPublishDialogs('cloud',{key:ksmNextDialogKey(),title:ksmHtmlText(title),body});
 }
-// Whether a cloud modal is open (read by app/modules/registration/grand-champion.js through legacy.js).
+// Whether a cloud modal is open (read by app/modules/registration/grand-champion.js).
 export function ksmCloudModalOpen(){return !!(typeof ksmShellDialogs==='object'&&ksmShellDialogs?.cloud)}
 // closeCloudModal() (21).
 export function ksmCloseCloudModal(){
@@ -442,7 +442,7 @@ function ksmLeaveTournamentAddress(){
 // The unload autosave (21) writes the screens' leftover data back as this device's autosave, which
 // the next start offers to restore: not for a tournament deleted here, while the Library is shown.
 let ksmForgotTournament=false;
-// Set by app/modules/session (ksmResetTournament(), ksmShowLibrary()) through legacy.js (a module cannot assign a `var` of app/js).
+// Set by app/modules/session (ksmResetTournament(), ksmShowLibrary()) (through a setter: a module cannot assign another module's `let`).
 export function setKsmForgotTournament(value){ksmForgotTournament=value}
 // This device learned that tournament `id` was deleted (the socket closed with 'Tournament deleted',
 // or a request answered 410 tournament-deleted): forget it and return to the Library. Not for the

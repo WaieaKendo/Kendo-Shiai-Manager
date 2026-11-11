@@ -6,7 +6,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import {
   APP_DIR, DIST_DIR, STYLE_TAG, SCRIPT_TAG, STYLE_URL, SCRIPT_URL,
-  appStyles, appBundle, serviceWorker, styleFiles, scriptFiles, moduleFiles, engineFiles, extraPages,
+  appStyles, appBundle, serviceWorker, styleFiles, ENTRY_FILE, moduleFiles, engineFiles, extraPages,
   ROOT, withVersion,
 } from './scripts/app-sources.mjs';
 import { servesOverlay, servesAppShell } from './app/engine/routes.ts';
@@ -15,7 +15,7 @@ const DEV_SERVICE_WORKER = `self.addEventListener('install', () => self.skipWait
 self.addEventListener('activate', event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k)))).then(() => self.clients.claim())));
 `;
 
-// The app is one script (app/js/*.js concatenated into the entry, plus the app/modules it imports, loaded
+// The app is one script (the entry app/main.js, plus the app/modules it imports, loaded
 // as an ES module; steps 3c and 3d of #136) plus one stylesheet (see scripts/app-sources.mjs). This plugin
 // serves them in dev and emits them as hashed files in the build; Vite handles index.html and copies
 // app/public/. app.js is bundled by rolldown (appBundle(): ONE ESM file, no code splitting, no minify,
@@ -57,7 +57,7 @@ function ksmClassicBundle() {
   return {
     name: 'ksm-classic-bundle',
     configureServer(server) {
-      server.watcher.add([...styleFiles(), ...scriptFiles(), ...moduleFiles(), ...engineFiles()]);
+      server.watcher.add([...styleFiles(), ENTRY_FILE, ...moduleFiles(), ...engineFiles()]);
       server.middlewares.use(async (req, res, next) => {
         const url = req.url.split('?')[0];
         const send = (type, body) => { res.setHeader('Content-Type', type); res.setHeader('Cache-Control', 'no-store'); res.end(body); };
@@ -77,7 +77,7 @@ function ksmClassicBundle() {
       });
     },
     async buildStart() {
-      for (const file of [...styleFiles(), ...scriptFiles(), ...moduleFiles(), ...engineFiles(), path.join(ROOT, 'package.json')]) this.addWatchFile(file);
+      for (const file of [...styleFiles(), ENTRY_FILE, ...moduleFiles(), ...engineFiles(), path.join(ROOT, 'package.json')]) this.addWatchFile(file);
       const css = appStyles(), js = withVersion(await appBundle());
       built = { css, js, cssFile: hashed('app', '.css', css), jsFile: hashed('app', '.js', js) };
     },

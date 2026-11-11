@@ -34,7 +34,7 @@ check(built.replace(`\n${screensTag}`, '') === withVersion(indexHtml()).replace(
   'dist/index.html = app/index.html apart from the bundle URLs, the screens module and the version, with the screens module right after it');
 check(!fs.readdirSync(path.join(DIST_DIR, 'assets')).some(f => /^engine-/.test(f)) && js && /^\tKSMEngine: engine_exports,$/m.test(dist(js)), 'no engine.js is built; the engine is bundled into app.js and window.KSMEngine is set from it');
 check(css && dist(css) === appStyles(), 'stylesheet = app/styles/*.css in order, untransformed');
-check(js && dist(js) === withVersion(await appBundle()) && !/^(?:import|export) /m.test(dist(js)), 'script = the rolldown bundle of app/js/*.js and app/modules (one ES module file), apart from the version');
+check(js && dist(js) === withVersion(await appBundle()) && !/^(?:import|export) /m.test(dist(js)), 'script = the rolldown bundle of app/main.js and app/modules (one ES module file), apart from the version');
 
 const theme = dist('print/theme.css');
 const printCss = fs.readFileSync(path.join(APP_DIR, 'print/print.css'), 'utf8');

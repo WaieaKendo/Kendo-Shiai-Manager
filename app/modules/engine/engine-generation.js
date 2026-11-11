@@ -10,7 +10,7 @@ import {buildPoolMatches} from './engine-pools.js';
 import {buildIndividualSingleElimMatches} from './engine-single-elim.js';
 import {teamBracketNodesForCount} from './engine-team-bracket.js';
 import {syncTeamBracket} from './engine-team-matches.js';
-import {criticalAutoSave,scheduleAutoSave} from '../legacy.js';
+import {criticalAutoSave,scheduleAutoSave} from '../sync/cloud-session-and-autosave.js';
 import {regTab,renderProgress,show} from '../navigation.js';
 import {ksmRenderPools} from '../react-bridges/pools.js';
 import {ksmRegenerateDone} from '../react-bridges/shell.js';

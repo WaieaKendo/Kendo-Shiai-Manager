@@ -7,7 +7,7 @@ import {generateDivisionState} from '../engine/engine-generation.js';
 import {completedResultSnapshot} from '../engine/engine-result-integrity.js';
 import {maybeAdvanceIndividualSingleElim} from '../engine/engine-single-elim.js';
 import {maybeCreateTiebreaks} from '../engine/engine-standings-and-tiebreaks.js';
-import {scheduleAutoSave} from '../legacy.js';
+import {scheduleAutoSave} from '../sync/cloud-session-and-autosave.js';
 import {ksmPublishSetup} from '../react-bridges/setup.js';
 import {ksmCloseCloudModal,ksmCloudModalOpen,ksmOpenCloudModal} from '../react-bridges/shell.js';
 import {ksmDivisionName} from './team-divisions.js';
