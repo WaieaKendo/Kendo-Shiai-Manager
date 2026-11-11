@@ -17,9 +17,9 @@ import {showKsmToast} from '../sync/cloud-realtime-save-and-load.js';
 // second half of this file. The islands' input is computed by the module (publish.ts: the rows
 // the filter lets through, the status card's counts, the team cards, the exhibition rows and the
 // tab, as plain data in window.ksmRegistrationPlayersInput, ...StatusInput, ...TeamsInput,
-// ...ExhibitionsInput and ...TabInput); legacy only signals. renderReg() and
-// renderTournamentStatus() (03-registration-and-validation.js), renderTeams(), renderExhibitions()
-// and regTab() (23-navigation.js) call the stubs below, which record the request on window
+// ...ExhibitionsInput and ...TabInput); legacy only signals. renderReg(),
+// renderTeams(), renderExhibitions() (app/modules/registration/registration.js), renderTournamentStatus()
+// (registration/validation.js) and regTab() (app/modules/navigation.js) call the stubs below, which record the request on window
 // (ksmRegistrationPlayersRequested = true, ...StatusRequested = {valid,competitors,divisions,errors},
 // ...TeamsRequested = true, ...ExhibitionsRequested = true, ...TabRequested = {mode}) and dispatch
 // ksm:registration-players, -status, -teams, -exhibitions or -tab. They must not call a function
@@ -352,7 +352,7 @@ function ksmShowRegistrationTeamsModuleMissing(){
   });
 }
 
-// Load-time side effects (app/js/34-bootstrap.js runs them, in the order the files used to load). The three `var`s with a
+// Load-time side effects (initReactBridges() in ./index.js runs them from app/main.js, in the order the files used to load). The three `var`s with a
 // value are set here, where the file used to set them.
 export function initRegistrationBridge(){
   ksmRegistrationRowCompetitors=null;ksmRegistrationRowsStale=false;

@@ -1,8 +1,8 @@
 // @ts-check
-// Boot (step 3d of #136, from app/js/34-bootstrap.js). Its load-time work is initBootstrap(), which
-// app/js/34-bootstrap.js runs where this file used to load: after the load-time code of 33-* and before the React
-// bridges' (initReactBridges()) and 54-auth0-access.js. Order inside it is unchanged: the cloud-role start-up and its
-// catch, ksmBootstrapReady, syncSetupHeader(), the file: notice, the service worker registration.
+// Boot (step 3d of #136). Its load-time work is initBootstrap(), which app/main.js runs after the other modules'
+// load-time code and before the React bridges' (initReactBridges()) and the Auth0 module's (initAuth0Access(),
+// app/modules/auth/auth0-access.js). Order inside it is unchanged: the cloud-role start-up and its catch,
+// ksmBootstrapReady, syncSetupHeader(), the file: notice, the service worker registration.
 import {ksmKeepFailedStartup} from './auth/auth0-access.js';
 import {renderAll} from './court/court-context-and-pool-editing.js';
 import {initializeCloudRoleFromUrl,showHomePage} from './session/staff-session-and-library.js';
@@ -11,7 +11,7 @@ import {syncSetupHeader} from './setup/division-setup.js';
 import {restoreAutoSaveIfWanted} from './sync/cloud-realtime-save-and-load.js';
 import {cloudSession,setConnectionStatus} from './sync/cloud-session-and-autosave.js';
 
-// The start-up promise: app/js/54-auth0-access.js waits for it before revealing the UI (set by initBootstrap()).
+// The start-up promise: app/main.js waits for it (with ksmAuthReady) before revealing the UI (set by initBootstrap()).
 /** @type {Promise<any>} */
 export let ksmBootstrapInitialization;
 

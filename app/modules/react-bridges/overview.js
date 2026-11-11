@@ -35,7 +35,7 @@ function ksmShowOverviewModuleMissing(){
   dashboard.before(notice);
 }
 
-// Load-time side effects (app/js/34-bootstrap.js runs them, in the order the files used to load).
+// Load-time side effects (initReactBridges() in ./index.js runs them from app/main.js, in the order the files used to load).
 export function initOverviewBridge(){
   document.addEventListener('DOMContentLoaded',ksmShowOverviewModuleMissing);
 }

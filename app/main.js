@@ -9,6 +9,7 @@
 // modules make them replaceable (app/modules/replaceable.js) and define window.NAME themselves.
 
 import * as KSMEngine from './engine/index.ts';
+import * as KSMStore from './store/index.ts';
 import {state} from './modules/app-state.js';
 import {cloudHeaders,connectCloudSocket,initAuth0Access,ksmAuthReady,ksmCacheTournament,ksmFetchTournament,ksmReadHeaders,ksmRevealReadyUi,ksmUsesAccountAuth,loadTournamentFileAsNew,loadTournamentFromCloud,renderHomeTournamentLibrary,setSessionRole,toggleStaffSession} from './modules/auth/auth0-access.js';
 import {initBootstrap,initFirstRender,ksmBootstrapInitialization} from './modules/boot.js';
@@ -115,19 +116,20 @@ document.addEventListener('click', function(e){ if(e.target.closest('button,.sta
 setInterval(()=>autoSaveTournament('10-minute safety autosave'),600000);
 setInterval(renderPersistentSaveStatus,60000);
 
-// The load-time side effects of the modules that used to be classic files 23- to 34-, in their old order (step 4a of #136).
-// Each runs here, where its file used to load, so every listener, timer and read keeps its place among the app's others.
+// The modules' load-time side effects, in the order they ran when each module was its own file (step 4a of #136), so every
+// listener, timer and read keeps its place among the app's others.
 
-// Navigation (app/modules/navigation.js; was 23-navigation.js).
+// Navigation (app/modules/navigation.js).
 initNavigation();
-// The TV's assigned court, read from the address (app/modules/results/live-scores.js; was 25-live-scores.js).
+// The TV's assigned court, read from the address (app/modules/results/live-scores.js).
 initTvAssignedCourt();
-// The Results screen's Escape key (app/modules/results/results-screen.js; was 27-results-screen.js).
+// The Results screen's Escape key (app/modules/results/results-screen.js).
 initResultsScreen();
-// The setup name listener and the Overview timer's visibility listener (was 30-setup-header-and-director.js).
+// The setup name listener and the Overview timer's visibility listener (app/modules/setup/division-setup.js,
+// app/modules/setup/director-progress.js).
 initSetupHeader();
 initDirectorRefresh();
-// The empty setup, then the first render of the page (was the end of 32-split-court-templates.js).
+// The empty setup, then the first render of the page (app/modules/session/tournament-switcher.js, app/modules/boot.js).
 initEmptySetup();
 initFirstRender();
 // Friendly links (the tournament short name, the cached records) live in app/modules/links/friendly-links.js and
@@ -165,8 +167,11 @@ document.addEventListener('DOMContentLoaded',()=>{if(!window.ksmShellMounted)ksm
 //
 // First block: by value (the binding is never assigned after its declaration).
 Object.assign(window, {
-  // The engine namespace imported in 00-imports.js: app code imports it, window.KSMEngine stays for tests and anything outside (step 4b of #136).
+  // The engine namespace imported above: app code imports it, window.KSMEngine stays for tests and anything outside (step 4b of #136).
   KSMEngine,
+  // The Redux Toolkit store (app/store, #15 step 2.8; nothing reads or writes it yet). The React islands are a separate
+  // bundle, so they reach this one instance through window.KSMStore (getState, subscribe, dispatch); see docs/STORE.md.
+  KSMStore,
   // app/modules/links/path-urls.js
   ksmHeaderLogo, ksmIsExplicitSpectatorUrl, ksmLinkParams, ksmLinkUrl, ksmRecordScreenPath, ksmReplaceUrl, ksmResolvedUrl, ksmResolveSlug,
   ksmShowRequestedScreen, ksmTournamentHomeUrl,
@@ -195,20 +200,20 @@ Object.assign(window, {
   renderTournamentStatus, requestTournamentGeneration, validateTournament,
   // app/modules/engine/engine-pools.js
   isTeamDivision,
-  // 04-engine-pools.js
+  // app/modules/engine/engine-pools.js
   buildPoolMatches, championshipCourtFor, divisionCourtMode, eligibleIndividuals, eligibleTeams, poolMatchPairs, poolPlayerSlot,
   poolPlayerSlotLetter,
   // app/modules/engine/engine-team-matches.js
   teamSlots,
-  // 05-engine-team-matches.js
+  // app/modules/engine/engine-team-matches.js
   nodePairId,
-  // 06-engine-single-elim.js
+  // app/modules/engine/engine-single-elim.js
   dedupeSingleElimMatches, maybeAdvanceIndividualSingleElim, sideLabelGeneric,
   // app/modules/engine/engine-single-elim.js
   specificMatchSideLabel,
   // app/modules/engine/engine-team-bracket.js
   maybeAdvanceTeamBracket,
-  // 07-engine-team-bracket.js
+  // app/modules/engine/engine-team-bracket.js
   teamBracketNodesForCount,
   // app/modules/engine/engine-generation.js
   applyIndividualNoShow, applyWholeTeamNoShow, eliminationFinalDone, generateDivisionState, generatePools, matchBelongsToCourt,
@@ -220,15 +225,15 @@ Object.assign(window, {
   updateUndoButton,
   // app/modules/court/court-queue-and-views.js
   activeScoreArrays, courtCurrentMatch, showCompProfile, teamSideLabel,
-  // 12-engine-result-integrity.js
+  // app/modules/engine/engine-result-integrity.js
   winnerOf,
   // app/modules/engine/engine-standings-and-tiebreaks.js
   appendApprovedDynamicMatches, isTeamRoundRobinDivision, ksmAddDaihyosenForTeamAwards, maybeCreateTeamTiebreak,
   maybeCreateTiebreaks, teamStandings,
-  // 13-engine-standings-and-tiebreaks.js
+  // app/modules/engine/engine-standings-and-tiebreaks.js
   APPROVED_DYNAMIC_MATCH_TYPES, makeTiebreakMatch, teamPairSummary, teamRoundRobinProgress, tiebreakMatchesForGroup,
   unresolvedRequiredTiebreakGroup,
-  // 14-engine-championship.js
+  // app/modules/engine/engine-championship.js
   buildChampionshipTemplateMatches, championshipLabels, championshipTemplateForTotal, champMatchBySlot,
   enforceUniqueIndividualMatches, expectedRoundCount, firstRoundName, individualLogicalMatchKey, previousRoundName,
   roundSequenceFromFirst, sourceLabelForRound,

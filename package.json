@@ -8,7 +8,7 @@
     "build": "vite build",
     "dev": "vite build && wrangler dev",
     "dev:vite": "vite",
-    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p app/react && tsc --noEmit -p app/engine",
+    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p app/react && tsc --noEmit -p app/engine && tsc --noEmit -p app/store",
     "test": "node tests/run-all.mjs",
     "test:node": "node tests/run-all.mjs --node",
     "test:browser": "node tests/run-all.mjs --py",
@@ -73,6 +73,7 @@
   },
   "dependencies": {
     "@auth0/auth0-spa-js": "^2.28.4",
+    "@reduxjs/toolkit": "2.13.0",
     "jose": "^6.2.13",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"

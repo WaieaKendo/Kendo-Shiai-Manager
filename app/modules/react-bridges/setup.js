@@ -16,8 +16,8 @@ import * as KSMEngine from '../../engine/index.ts';
 // (#setupTournamentName). The islands' input is computed by the module (publish.ts: the rows from
 // the divisions in state, the name from the Setup field, as plain data in
 // window.ksmSetupDivisionsInput / window.ksmSetupHeaderInput); legacy only signals.
-// renderDivisionSetup() (01-state-and-setup.js) calls ksmRenderSetupDivisions() below and
-// syncSetupHeader() (30-setup-header-and-director.js) ksmRenderSetupHeader(); each sets a
+// renderDivisionSetup() (app/modules/setup/division-setup.js) calls ksmRenderSetupDivisions() below and
+// syncSetupHeader() (division-setup.js) ksmRenderSetupHeader(); each sets a
 // ksmSetup...Requested flag and dispatches ksm:setup-divisions / ksm:setup-header. They must not
 // call a function defined in the module: this script runs before it (the module may not exist yet,
 // or at all). The flags tell the module, when it loads, that a signal came earlier.
@@ -26,17 +26,17 @@ import * as KSMEngine from '../../engine/index.ts';
 // ksmRenameSetupDivision, ksmRemoveSetupDivision, ksmRestoreStandardDivisions, ksmDivisionRenameError
 // and ksmDivisionRenameBlocked; the helpers classic code also calls or the module reads through
 // shared/legacy.ts: ksmDivisionPresetNames, ksmDivisionRemoveBlocked (ksmRemoveSetupDivision uses
-// both); and ksmPublishSetup, which 01-grand-champion.js still calls to publish the grand-champion
+// both); and ksmPublishSetup, which app/modules/registration/grand-champion.js still calls to publish the grand-champion
 // setup (not part of this step). The rows' controls call toggleDivision(),
-// setDivisionFormat(), setDivisionCourt() (01) on their change event and x calls
+// setDivisionFormat(), setDivisionCourt() (division-setup.js) on their change event and x calls
 // ksmRemoveSetupDivision().
 // Every other part of Setup stays legacy markup (app/index.html): the fields are read and
-// written synchronously by id (getSetupSnapshot()/applySetupSnapshot() in 20-, tournamentSettings(),
-// saveSetup(), the test API's configure(), print and the header) and 30- adds the name's input
+// written synchronously by id (getSetupSnapshot()/applySetupSnapshot() in sync/cloud-session-and-autosave.js, tournamentSettings(),
+// saveSetup(), the test API's configure(), print and the header) and initSetupHeader() adds the name's input
 // listener while app.js runs, before the React module. If the React module does not load, Setup
 // shows a notice in place of the divisions table (the end of this file).
 // ==========================================================
-// Still used by 01-grand-champion.js (ksmRenderGrandChampionSetup).
+// Still used by app/modules/registration/grand-champion.js (ksmRenderGrandChampionSetup).
 export function ksmPublishSetup(event,key,input){
   window[key]=input;
   window.dispatchEvent(new CustomEvent(event));
@@ -122,7 +122,7 @@ function ksmShowSetupModuleMissing(){
   table.before(notice);
 }
 
-// Load-time side effects (app/js/34-bootstrap.js runs them, in the order the files used to load).
+// Load-time side effects (initReactBridges() in ./index.js runs them from app/main.js, in the order the files used to load).
 export function initSetupBridge(){
   document.addEventListener('DOMContentLoaded',ksmShowSetupModuleMissing);
 }
