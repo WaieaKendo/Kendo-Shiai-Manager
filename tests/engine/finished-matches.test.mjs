@@ -1,10 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import vm from 'node:vm';
-import { engineScript } from '../../scripts/app-sources.mjs';
-const scope = vm.createContext({});
-vm.runInContext(await engineScript(), scope);
-const finishedMatchSummary = (...args) => JSON.parse(JSON.stringify(scope.KSMEngine.finishedMatchSummary(...args)));
+import { finishedMatchSummary as engineFinishedMatchSummary } from '../../app/engine/finished-matches.ts';
+const finishedMatchSummary = (...args) => JSON.parse(JSON.stringify(engineFinishedMatchSummary(...args)));
 test('no matches or unfinished matches', () => {
   assert.deepEqual(finishedMatchSummary(), { total: 0, divisions: [] });
   assert.deepEqual(finishedMatchSummary({ Open: [null, { done: false }] }), { total: 0, divisions: [] });

@@ -1,6 +1,6 @@
-// The engine's public surface. The build turns this into the classic script that
-// defines `window.KSMEngine` (loaded before app.js); app/react/ imports the modules
-// directly. Add each moved module's exports here.
+// The engine's public surface. app/modules import it as `import * as KSMEngine from '.../engine/index.ts'`
+// (the build bundles it into app.js; app/js/99-window-exports.js also sets window.KSMEngine from it);
+// app/react/ imports the modules directly. Add each moved module's exports here.
 export {
   poolSizes, clubGroup, shuffleDeterministic, poolPlayerSlotLetter, poolPlayerSlot,
   assignPoolPlayerSlots, buildPools, poolMatchPairs, buildPoolMatches, poolNoShowPlan,

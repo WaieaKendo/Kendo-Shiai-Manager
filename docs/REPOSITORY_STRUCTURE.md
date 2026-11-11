@@ -114,9 +114,9 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         stays classic; the brand, the spectator banner and the toast
                         stay legacy)
   engine/             Pure tournament-engine modules, strict TypeScript (own tsconfig.json):
-                        no DOM, no globals, explicit inputs/outputs. index.ts is bundled
-                        into a classic script defining `KSMEngine`, loaded before app.js (a module);
-                        app/js functions delegate to it, app/react imports the .ts files.
+                        no DOM, no globals, explicit inputs/outputs. app/modules import
+                        index.ts (`import * as KSMEngine`) and the build bundles it into app.js;
+                        app/react imports the .ts files; Node tests import them directly.
                         pools.ts: poolSizes; routes.ts: the path URL scheme (M.9), shared
                         by the classic app, the overlay page and the tests; divisions.ts: division renames (#25);
                         registration.ts: registration helpers moved from app/js (#136);
@@ -157,12 +157,9 @@ Git history and `CHANGELOG.md` provide the permanent release record. A downloada
 
 ## app/engine: the typed tournament engine
 
-The engine moves out of `app/js/` one function group at a time (roadmap 2.0–2.7) into
-`app/engine/*.ts`: pure strict-TypeScript ES modules. `scripts/app-sources.mjs`
-`engineScript()` bundles `app/engine/index.ts` with rolldown into an IIFE
-(`var KSMEngine = …`). The Vite plugin serves it at `/engine.js` in dev and, in the build,
-emits `assets/engine-<hash>.js`, adds its `<script>` right before `app.js` in
-`dist/index.html` and lists it in the service worker's `APP_SHELL`; `app/index.html`
-itself is unchanged. Legacy code calls `KSMEngine.<name>(...)` (typed via
-`app/types/globals.d.ts`); React code imports `../engine/<module>.ts` directly. The
-step-by-step recipe is in docs/TESTING.md, "Moving a function into app/engine".
+The engine moved out of the app's code one function group at a time (roadmap 2.0–2.7) into
+`app/engine/*.ts`: pure strict-TypeScript ES modules. Since step 4b of #136 `app/modules` import
+`app/engine/index.ts` (`import * as KSMEngine from '.../engine/index.ts'`) and `appBundle()` bundles it
+into `app.js`; there is no separate engine script. `app/js/99-window-exports.js` still puts the
+namespace on `window.KSMEngine` for anything outside the bundle. React code imports `../engine/<module>.ts`
+directly. The step-by-step recipe is in docs/TESTING.md, "Moving a function into app/engine".
