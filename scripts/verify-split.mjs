@@ -194,7 +194,8 @@ const KNOWN_POST_SPLIT_EDITS = {
   // initializeCloudRoleFromUrl()).
   'court-pin': 5,
   // fix/split-court-sync (2026-11-13, ATKT): a rebase replays this device's court actions back to the
-  // oldest unconfirmed change's revision (ksmRebaseCutoff(), 18-), not only from the save's base.
+  // oldest unconfirmed change's revision (ksmRebaseCutoff(), 18-), not only from the save's base; the list
+  // of unconfirmed changes is cleared when the tournament is reset (33-tournament-switcher).
   'rebase-cutoff': 3,
   // fix/f36-two-tabs (F36, #81): one writer per tab. app/js/18-two-tabs.js (tab id, heartbeat, an
   // outbox slot per tab, a closed tab's slot taken over), the per-tab ownership of history entries and
