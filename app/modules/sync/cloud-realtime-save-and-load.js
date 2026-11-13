@@ -649,14 +649,23 @@ function repairLoadedEliminationAdvancement(source='tournament load'){
     }
   });
 }
+// #15 PR 4 (docs/STORE.md section 2 point 4): a load builds this device's court view from this device's own state,
+// never from the payload's currentDivision / current / matches / score (the saving device's view): the court
+// (state.currentCourt, set from this device's pin before this runs), the division this court device chose
+// (ksmLocalCourtDivision, kept on a writable court device) and the court's shared courtState entry (tournament data).
+// With no shared entry the court's first scorable match is used. options.deviceView is this device's view from before
+// the load (applyTournamentPayload); its division is kept when the court has nothing to show.
 function rehydrateLoadedTournamentState(options){
   options=options||{};
   const court=state.currentCourt||'A';
+  const own=options.deviceView||{};
+  const hasMatches=d=>Boolean(d)&&Array.isArray(state.allMatches?.[d]);
   const preserveLocalDivision=options.preserveLocalDivision===true;
   const preferred=preserveLocalDivision?localCourtDivision(court):null;
-  let cs=preferred&&Array.isArray(state.allMatches?.[preferred])?{division:preferred,index:0}:state.courtState?.[court];
-  if((!cs||!cs.division) && state.currentDivision){
-    cs={division:state.currentDivision,index:state.current||0};
+  let cs=hasMatches(preferred)?{division:preferred,index:0}:state.courtState?.[court];
+  if(!cs||!cs.division){
+    const next=findNextForCourt(court,null,0);
+    cs=hasMatches(next.division)&&next.index<state.allMatches[next.division].length?next:null;
   }
   if(cs&&cs.division){
     const arr=state.allMatches?.[cs.division]||[];
@@ -676,6 +685,8 @@ function rehydrateLoadedTournamentState(options){
     applyCourtState(court,normalized,true);
     if(normalized.division)rememberLocalCourtDivision(court,normalized.division);
   }else{
+    const known=d=>Boolean(d)&&(hasMatches(d)||(state.divisions||[]).includes(d));
+    state.currentDivision=known(own.division)?own.division:((state.divisions||[])[0]||null);
     state.matches=[];
     state.current=0;
     state.score={W:[],R:[],WT:0,RT:0};
@@ -685,6 +696,8 @@ export function applyTournamentPayload(payload,saveAfter,options={}){
   if(!payload || !payload.state) throw new Error('Invalid KSM file');
   const localCourt=options.pinnedCourt||pinnedCourt()||cloudSession.court||state.currentCourt||null;
   const localPublicCourt=state.publicCourt||localCourt||'A';
+  // This device's view before the load: the payload's own currentDivision / current / score are not this device's.
+  const deviceView={division:state.currentDivision};
   const loaded=KSMEngine.migrateGrandChampions(KSMEngine.migrateTeamDivisions(JSON.parse(JSON.stringify(payload.state)),payload.setup||{}));ksmNoteTeamsReassigned(payload.state,loaded,options.source);
   // The load repairs run on the loaded copy, before it replaces `state` (docs/STORE.md section 2, point 4): the same
   // result as running them on `state` after the assign (tests/store/load-order.test.mjs).
@@ -692,12 +705,12 @@ export function applyTournamentPayload(payload,saveAfter,options={}){
   normalizeAllIndividualPoolTiebreakOrder(loaded,options.source||'tournament load');
   replaceState(loaded);
   state.teamElimTeams=state.teamElimTeams||{};state.managementRevision=state.managementRevision||0;state.divisionCourts=state.divisionCourts||{};Object.keys(state.divisionCourts).forEach(d=>{if(state.divisionCourts[d]==='Both'&&!isTeamDivision(d))state.divisionCourts[d]='split'});
-  if(localCourt){pinCourtLocally(localCourt);state.currentCourt=normalizeCourt(localCourt)}
+  if(localCourt){pinCourtLocally(localCourt);state.currentCourt=normalizeCourt(localCourt)}else state.currentCourt='A';
   if(isTvSession())state.publicCourt=normalizeCourt(localCourt||localPublicCourt);else state.publicCourt=normalizeCourt(localPublicCourt);
   applySetupSnapshot(payload.setup);
   ensureCourtHistory();
   repairLoadedEliminationAdvancement(options.source||'tournament load');
-  rehydrateLoadedTournamentState(options);
+  rehydrateLoadedTournamentState({...options,deviceView});
   restorePinnedCourt();
   if(ksmAddDaihyosenForTeamAwards().length&&!saveAfter)setTimeout(()=>scheduleAutoSave('Daihyosen for the team awards'),0);
   if(ksmSyncGrandChampions(options.source||'tournament load')&&!saveAfter)setTimeout(()=>scheduleAutoSave('Grand champion draw'),0);

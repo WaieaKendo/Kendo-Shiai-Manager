@@ -1,6 +1,6 @@
 # The store: plan for moving `state` into Redux Toolkit (#15 step 2.8)
 
-Status (2026-11-13): **prep done (PR 2), Undo/Redo without device keys (PR 3), no field moved yet**. `app/store/` holds a Redux Toolkit store (slices
+Status (2026-11-13): **prep done (PR 2), Undo/Redo without device keys (PR 3), loads keep the device view (PR 4), no field moved yet**. `app/store/` holds a Redux Toolkit store (slices
 `tournament` and `device`, each with only a `sliceVersion`). app.js imports it as a separate tree-shaken, minified
 bundle (+7.9 kB gzip, section 5) and sets `window.KSMStore`; `app/modules/app-state.js` has the helpers the field
 moves use (`moveToStore()`, `replaceState()`, `assignState()`, section 2). All app data is still the one mutable
@@ -24,9 +24,9 @@ whole payload into the live `state` (`Object.keys(state).forEach(k=>delete state
 including the payload's `currentDivision`, `current`, `score`, `matches` and `courtState`. Then, on the live `state`:
 `sanitizeLoadedTournamentState()` and `normalizeAllIndividualPoolTiebreakOrder()` run, this device's
 `currentCourt` / `publicCourt` are restored from the pin, and `rehydrateLoadedTournamentState()` rebuilds the court
-view from `courtState[court]`, or from the payload's `currentDivision` / `current` when that is empty
-(`cloud-realtime-save-and-load.js`, ~650–695). So another device's view fields *do* reach this device on a load
-today, as a fallback.
+view from `courtState[court]`; until PR 4 it fell back to the payload's `currentDivision` / `current` when that
+was empty, so another device's view fields reached this device on a load. Since PR 4 they never do (section 2,
+point 4).
 
 Counts are over `app/main.js` and `app/modules` (`git grep -P '\bstate\.FIELD\b'`): **refs** = all occurrences,
 **writes** = assignments (`state.f… =`, `++`, `+=`) plus mutating calls (`push`, `splice`, `sort`, …) on that path,
@@ -156,8 +156,15 @@ Today ~50 files write `state.x` in place. The cutover:
    the rest of the app (`repairLoadedEliminationAdvancement`, `rehydrateLoadedTournamentState`) follow as their own
    actions. **"`tournament/loaded` never touches `device`" is a behaviour change**: today the payload's
    `currentDivision` / `current` / `courtState` feed this device's court view on a load (the rehydrate fallback).
-   It gets its own PR (PR 4) with tests: a remote apply on Court A keeps Court A's division; a reload and a first
-   load on a fresh device still open the court's current division and match; a file load; a TV following a court.
+   Done in PR 4: `rehydrateLoadedTournamentState()` builds this device's view only from this device's own state: the
+   court (`currentCourt`, set from the pin first; `A` when the device knows no court, never the payload's), the division
+   a writable court device chose (`ksmLocalCourtDivision`), the court's shared `courtState` entry, else the court's first
+   scorable match (`findNextForCourt`); with nothing to show it keeps this device's division (or the tournament's first)
+   and empties the pad. The payload's `currentDivision` / `current` / `matches` / `score` / `currentCourt` are still in
+   the payload (and saved by every device, for 4.0) but are always overwritten on a load. `tests/load-keeps-device-view-test.mjs`
+   runs every load path with the code before and after: the same `state` where the view came from the shared entry
+   (remote apply, rebase result, reload, first load, file load, tournament switch, TV), and the three cases that took
+   another device's view (no shared entry for the court, no draw yet, no court known).
 5. **The rebase is unchanged.** `rebaseLocalPayloadOnRecord()` and the three-way merges work on payload copies
    (JSON), not the live object; their result is applied with the same `tournament/loaded`.
 6. **Court actions, undo and redo.** `patch-v1` stays the saved format (old histories, the rebase, the outbox
@@ -264,9 +271,10 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
    Match, after a reload with and without the rehydrate, after a remote apply, Redo after Undo). Two cases differ, both
    4.0 bugs: an Undo after the court was switched to another division wrote the entry's `matches` patches by index into
    that division's matches; an entry that changed the court's division swapped the two match lists on Undo/Redo.
-4. **Loads keep the device view** (behaviour change, section 2 point 4): `rehydrateLoadedTournamentState()` takes
+4. **Loads keep the device view** (**done**; behaviour change, section 2 point 4): `rehydrateLoadedTournamentState()` takes
    this device's view from its own state (pin, `ksmLocalCourtDivision`, the court's shared entry), not from the
    payload's `currentDivision` / `current`. Risk: medium. Tests: the cases in point 4; v31711, v31719.
+   Done: see section 2 point 4; the snapshot JSON and the save path are unchanged.
 5. **Device, first fields**: `regMode`, `poolViewDivision` → `device/registrationTabChanged`,
    `device/poolViewDivisionChanged`. Risk: low (few writers, ignored by the rebase). Tests: getter throws on write
    (tests) and dispatches (production path); snapshot JSON byte-identical; Registration tab / Pools goldens.
