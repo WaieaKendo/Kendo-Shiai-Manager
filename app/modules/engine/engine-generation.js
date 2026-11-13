@@ -110,8 +110,11 @@ export function setActiveDivision(div,keepScore=false){
   state.current=idx;
   state.currentByDivision[div]=idx;
   if(state.currentCourt){state.courtState[state.currentCourt]={division:div,index:idx};state.courtActiveDivision[state.currentCourt]=div;}
-  if(keepScore){loadScoreFromMatch(state.matches[state.current]);}
-  else{state.score={W:[],R:[],WT:0,RT:0};state.history=[]}
+  // Show the points the landed match already has (an empty pad for a fresh or finished match), so the
+  // next tapped point is added to them instead of overwriting them via syncActiveScoreToMatch().
+  // state.history is only this pad's local tap list (court Undo/Redo is separate), so a switch starts it empty.
+  loadScoreFromMatch(state.matches[state.current]);
+  if(!keepScore)state.history=[];
   renderDivisions();renderScore();renderPools();renderProgress();renderContext();
 }
 export function selectScorekeeperDivision(div){
