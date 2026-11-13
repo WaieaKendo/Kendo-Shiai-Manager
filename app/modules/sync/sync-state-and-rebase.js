@@ -96,7 +96,9 @@ export const KSM_PINNED_COURT_PREFIX='ksm.pinned.court.v3_17_11';
 // move Court A back to whichever division Court B last rendered. Keep one local
 // preference per pinned court outside the serialized tournament state.
 export const ksmLocalCourtDivision={A:null,B:null};
-const KSM_LOCAL_VIEW_STATE_KEYS=new Set(['currentCourt','publicCourt','currentDivision','matches','current','score']);
+// This device's court view (and its alias `matches` and working `score`): a court-action replay in the rebase and an
+// Undo/Redo (applyHistoryPatch(), court-scoring-and-history.js) never write these keys (docs/STORE.md section 2 point 6).
+export const KSM_LOCAL_VIEW_STATE_KEYS=new Set(['currentCourt','publicCourt','currentDivision','matches','current','score']);
 export function normalizeCourt(value){return KSMEngine.normalizeCourt(value);// moved to app/engine/sync-helpers.ts
   }
 // Red/White sides are mirrored per court to match the scoring table's view (Setup → Referees).

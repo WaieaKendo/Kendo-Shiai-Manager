@@ -24,19 +24,29 @@ export const rootReducer: Reducer<RootState, UnknownAction, Partial<RootState>> 
   return next;
 };
 
+/** Options of createKsmStore(). */
+export interface KsmStoreOptions {
+  /**
+   * RTK's development checks (the immutability and serializable-action checks). Default: on. They exist only where
+   * NODE_ENV is not 'production' (the Node tests); app.js bundles the store built with NODE_ENV 'production', which
+   * leaves them out whatever this says (docs/STORE.md section 5). `false` gives a Node test the store app.js has.
+   */
+  developmentChecks?: boolean;
+}
+
 /**
  * A new store. The app uses the one `store` below; tests make their own.
  * The default middleware is RTK's development checks only: thunks are off, and the immutability and
  * serializable-action checks run where NODE_ENV is not 'production' (the Node tests; app.js bundles the store built
  * with NODE_ENV 'production', which leaves the checks out, see docs/STORE.md section 5).
  */
-export function createKsmStore(preloadedState?: Partial<RootState>) {
+export function createKsmStore(preloadedState?: Partial<RootState>, { developmentChecks = true }: KsmStoreOptions = {}) {
   return configureStore({
     reducer: rootReducer,
     middleware: getDefaultMiddleware => getDefaultMiddleware({
       thunk: false,
-      serializableCheck: true,
-      immutableCheck: true,
+      serializableCheck: developmentChecks,
+      immutableCheck: developmentChecks,
     }),
     devTools: false,
     ...(preloadedState ? { preloadedState } : {}),

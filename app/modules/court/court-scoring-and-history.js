@@ -1,5 +1,5 @@
 // @ts-check
-import {state} from '../app-state.js';
+import {assignState,state,storeFieldPath} from '../app-state.js';
 import {maybeCreateKachinukiNext,renderAll} from './court-context-and-pool-editing.js';
 import {applyCourtState,findNextForCourt} from './court-match-order.js';
 import {renderScore} from './scorekeeper-screen.js';
@@ -16,7 +16,7 @@ import {ksmNotifyStateChanged} from '../react-bridges/state-bridge.js';
 import {renderPublic} from '../results/live-scores.js';
 import {showKsmToast} from '../sync/cloud-realtime-save-and-load.js';
 import {cloudSession,updateSaveStatus} from '../sync/cloud-session-and-autosave.js';
-import {cloneJson,historyEntryIdentity,matchHasSyncIdentity,matchSyncIdentity,replayCourtMatchOps} from '../sync/sync-state-and-rebase.js';
+import {KSM_LOCAL_VIEW_STATE_KEYS,cloneJson,historyEntryIdentity,matchHasSyncIdentity,matchSyncIdentity,replayCourtMatchOps} from '../sync/sync-state-and-rebase.js';
 import {KSM_TAB_ID} from '../sync/two-tabs.js';
 import * as KSMEngine from '../../engine/index.ts';
 export function loadScoreFromMatch(m){
@@ -89,15 +89,33 @@ function historyPathParent(path){
   let target=state;
   for(let i=0;i<path.length-1;i++){
     const key=path[i],next=path[i+1];
-    if(target[key]===undefined||target[key]===null)target[key]=typeof next==='number'?[]:{};
+    if(target[key]===undefined||target[key]===null){
+      const empty=typeof next==='number'?[]:{};
+      // A store-owned top-level key is a getter: never assign it directly (docs/STORE.md section 2 point 8).
+      if(i===0&&storeFieldPath(String(key),state))assignState({[key]:empty},state);else target[key]=empty;
+    }
     target=target[key];
   }
   return {target,key:path[path.length-1]};
 }
+/**
+ * Writes one patch-v1 patch's `direction` value ('before' for an Undo, 'after' for a Redo) into `state`.
+ * #15 PR 3 (docs/STORE.md section 2 point 6): Undo/Redo write tournament data only.
+ *   - A patch on a device key (KSM_LOCAL_VIEW_STATE_KEYS, the set the rebase skips: currentCourt, publicCourt,
+ *     currentDivision, matches, current, score) is skipped. New entries and entries saved by 4.0 still carry them
+ *     (historyComparableState() records every key, so the saved format is unchanged). Nothing is lost:
+ *     applyHistoryValues() rebuilds the court view after the entry with applyCourtState(), which sets currentDivision,
+ *     matches and current from courtState and reloads score from the match (as it already overwrote them before);
+ *     `matches` is the alias of allMatches.<currentDivision>, so its patches repeat the same entry's allMatches patches.
+ *   - A top-level patch on a key moveToStore() owns goes through the store (assignState(), undefined for a missing
+ *     value) instead of `delete state[key]` / an assignment, which throw on its non-configurable getter.
+ */
 function applyHistoryPatch(patch,direction){
   const value=patch?.[direction],path=patch?.path||[];
-  if(!path.length)return;
-  const {target,key}=historyPathParent(path),missing=value&&value.__ksmMissing===true;
+  if(!path.length||KSM_LOCAL_VIEW_STATE_KEYS.has(path[0]))return;
+  const missing=value&&value.__ksmMissing===true;
+  if(path.length===1&&storeFieldPath(String(path[0]),state)){assignState({[path[0]]:missing?undefined:JSON.parse(JSON.stringify(value))},state);return}
+  const {target,key}=historyPathParent(path);
   if(Array.isArray(target)&&typeof key==='number'){
     if(missing){if(key>=0&&key<target.length)target.splice(key,1)}
     else if(key>=target.length)target.splice(key,0,JSON.parse(JSON.stringify(value)));
@@ -268,6 +286,8 @@ function applyCourtHistoryEntry(action,direction){
     skipped+=result.skipped;
     result.applied.forEach(patch=>applied.push(undoing?{...patch,before:patch.after,after:patch.before}:patch));
   });
+  // `matches` (a device key) is never written (applyHistoryPatch()); which of its patches count as applied is kept as
+  // before, so the Undo log entry (recordCourtUndoLog()) is the same as 4.0 writes.
   const aliased=Object.keys(byDivision).find(div=>state.matches&&state.matches===state.allMatches?.[div]);
   const ordered=undoing?[...all].reverse():all,indexFields=[];
   ordered.forEach(patch=>{

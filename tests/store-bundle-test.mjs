@@ -42,6 +42,21 @@ if (!problems.length) {
   s.dispatch(mod.legacyStateAssigned({ writes: [{ path: ['device', 'probe'], value: { n: 1 } }] }));
   check(s.getState().device.probe?.n === 1, 'a legacy write does not reach the store in the bundle');
   check(!Object.isFrozen(s.getState().device), 'production must not freeze store state (docs/STORE.md point 8)');
+  // A stray nested write into store data on the real bundle (docs/STORE.md point 8, production; the Node source test is
+  // tests/store/legacy.test.mjs): applied in place without throwing, no subscriber runs, the next snapshot carries it,
+  // the next dispatch keeps it.
+  const p = mod.createKsmStore();
+  p.dispatch(mod.legacyStateAssigned({ writes: [{ path: ['tournament', 'awards'], value: [{ place: 1, name: 'A' }] }] }));
+  let heard = 0;
+  p.subscribe(() => { heard++; });
+  const older = p.getState();
+  let threw = null;
+  try { older.tournament.awards[0].name = 'B'; } catch (e) { threw = e; }
+  check(!threw, `production: a nested write into store data threw in the bundle (${threw})`);
+  check(heard === 0 && p.getState() === older, 'production: a nested write must not dispatch or replace the store state');
+  check(/"name":"B"/.test(JSON.stringify(p.getState())), 'production: the next snapshot does not carry a nested write');
+  p.dispatch(mod.legacyStateAssigned({ writes: [{ path: ['device', 'probe'], value: 3 }] }));
+  check(heard === 1 && p.getState().tournament.awards[0].name === 'B', 'production: the next dispatch lost a nested write or did not notify');
   mod.setStoreStrict(true);
   s.dispatch(mod.legacyStateAssigned({ writes: [{ path: ['device', 'probe'], value: { n: 2 } }] }));
   check(Object.isFrozen(s.getState().device), 'setStoreStrict(true) does not turn the freeze on in the bundle');
@@ -60,6 +75,15 @@ for (const file of appFiles) {
     if (/^(@reduxjs|redux|immer|reselect)\b/.test(m[1])) problems.push(`${rel(file)} imports ${m[1]}: only app/store may`);
   }
 }
+
+// --- every browser test runs strict: Chromium is started only by launch_chromium() (tests/ksm_browser.py), which sets
+// window.KSM_STRICT_STORE on every context and page (docs/STORE.md section 2 point 8) ---
+const testsDir = path.join(ROOT, 'tests');
+for (const f of fs.readdirSync(testsDir).filter(f => f.endsWith('.py') && f !== 'ksm_browser.py')) {
+  if (/\b(?:chromium|firefox|webkit)\.(?:launch|launch_persistent_context|connect)\s*\(/.test(fs.readFileSync(path.join(testsDir, f), 'utf8')))
+    problems.push(`tests/${f} starts a browser itself: use launch_chromium() (tests/ksm_browser.py) so the store runs strict`);
+}
+check(/STRICT_STORE_JS/.test(fs.readFileSync(path.join(testsDir, 'ksm_browser.py'), 'utf8')), 'launch_chromium() no longer makes every browser page strict');
 
 if (problems.length) { console.log(`FAIL store bundle:\n  ${problems.join('\n  ')}`); process.exit(1); }
 console.log(`PASS store bundle: ${store.length} bytes, ${gzip} gzip, inlined in app.js (${app.length} bytes)`);

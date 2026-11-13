@@ -28,11 +28,32 @@ def watch_mode():
     return os.environ.get('KSM_HEADED') == '1'
 
 
+# The store runs strict in every browser test, as in the Node tests (docs/STORE.md section 2 point 8): a write to a store
+# field that misses the conversion throws instead of being applied as in production. launch_chromium() (the only place
+# the browser tests start Chromium; tests/store-bundle-test.mjs checks) adds this to every context and page it opens, so
+# a test that never calls install_test_api() is strict too.
+STRICT_STORE_JS = 'window.KSM_STRICT_STORE = true;'
+
+
 def launch_chromium(p):
     path = os.environ.get('KSM_CHROMIUM_PATH') or None
     headed = watch_mode()
     slow_mo = float(os.environ.get('KSM_SLOWMO') or (250 if headed else 0))
-    return p.chromium.launch(headless=not headed, slow_mo=slow_mo, executable_path=path, args=['--no-sandbox'])
+    browser = p.chromium.launch(headless=not headed, slow_mo=slow_mo, executable_path=path, args=['--no-sandbox'])
+    new_context, new_page = browser.new_context, browser.new_page
+
+    def strict_context(*args, **kwargs):
+        context = new_context(*args, **kwargs)
+        context.add_init_script(STRICT_STORE_JS)
+        return context
+
+    def strict_page(*args, **kwargs):
+        page = new_page(*args, **kwargs)
+        page.context.add_init_script(STRICT_STORE_JS)
+        return page
+
+    browser.new_context, browser.new_page = strict_context, strict_page
+    return browser
 
 
 # React draws its islands a moment after the page's scripts run (createRoot renders in a later

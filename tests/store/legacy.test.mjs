@@ -6,9 +6,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { configureStore, createSelector } from '@reduxjs/toolkit';
+import { createSelector } from '@reduxjs/toolkit';
 import {
-  createKsmStore, getState, legacyFieldAssigned, legacyStateAssigned, rootReducer, setStoreStrict, storeIsStrict, subscribe, PRODUCTION_BUILD,
+  createKsmStore, getState, legacyFieldAssigned, legacyStateAssigned, setStoreStrict, storeIsStrict, subscribe, PRODUCTION_BUILD,
 } from '../../app/store/index.ts';
 import { assignState, moveToStore, replaceState, setStrayStoreWriteReporter, state, storeFieldPath } from '../../app/modules/app-state.js';
 
@@ -19,8 +19,9 @@ function inProduction(fn) {
   setStoreStrict(false);
   try { return fn(); } finally { setStoreStrict(true); }
 }
-/** A store as app.js has it: no development checks (the Node default store would report the mutation itself). */
-const productionStore = () => configureStore({ reducer: rootReducer, middleware: g => g({ thunk: false, immutableCheck: false, serializableCheck: false }), devTools: false });
+/** A store as app.js has it: the app's own factory without RTK's development checks (app.js's build leaves them out; here
+ * the immutability check would report the mutation itself). tests/store-bundle-test.mjs runs the same case on the real bundle. */
+const productionStore = () => createKsmStore(undefined, { developmentChecks: false });
 /** The keys of `target` that are neither a plain data property nor a getter moveToStore() made. */
 function stateKeyProblems(target) {
   const problems = [];

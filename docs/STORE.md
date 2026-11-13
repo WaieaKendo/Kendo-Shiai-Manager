@@ -1,6 +1,6 @@
 # The store: plan for moving `state` into Redux Toolkit (#15 step 2.8)
 
-Status (2026-11-11): **prep done (PR 2), no field moved yet**. `app/store/` holds a Redux Toolkit store (slices
+Status (2026-11-13): **prep done (PR 2), Undo/Redo without device keys (PR 3), no field moved yet**. `app/store/` holds a Redux Toolkit store (slices
 `tournament` and `device`, each with only a `sliceVersion`). app.js imports it as a separate tree-shaken, minified
 bundle (+7.9 kB gzip, section 5) and sets `window.KSMStore`; `app/modules/app-state.js` has the helpers the field
 moves use (`moveToStore()`, `replaceState()`, `assignState()`, section 2). All app data is still the one mutable
@@ -172,12 +172,19 @@ Today ~50 files write `state.x` in place. The cutover:
    schedules the save.
 8. **A stray write never breaks a tournament in production.** Decided in PR 2 (review of #172): two modes, one
    switch (`setStoreStrict()`, `app/store/legacy.ts`).
+   - **Undo/Redo and store-owned keys** (PR 3). `applyHistoryPatch()` never deletes or assigns a store-owned top-level
+     key directly: a patch whose path is `[key]` for a key `moveToStore()` owns goes through `assignState({[key]: value})`
+     (`undefined` for a missing value, where it did `delete state[key]`, which throws on the non-configurable getter in
+     strict mode, in production too), and a missing parent at `[key, …]` is created the same way. Patches on device keys
+     are skipped (point 6). Deeper paths into a moved key are nested writes like any other (strict: throws) until
+     `court/undo` applies them on the draft (PR 13). Tested with a key made a getter (`tests/undo-device-keys-test.mjs`).
    - **Strict: the Node tests and the browser tests.** A write the conversion missed throws: an assignment to a
      moved field hits the getter's setter, which throws; a nested write into store data (`state.awards[i].x = …`)
      hits Immer's deep freeze (strict-mode modules throw a `TypeError`). The Node tests run strict because
      `process.env.NODE_ENV` is not `"production"` there (RTK's immutability check also reports a nested write at
-     the next dispatch); the Python browser tests load the production app.js, so `tests/lib/ksm-test-api.js` sets
-     `window.KSM_STRICT_STORE = true` before the app runs and `app/main.js` calls `setStoreStrict(true)`. So every
+     the next dispatch); the Python browser tests load the production app.js, so `launch_chromium()` (`tests/ksm_browser.py`, the only place they
+     start Chromium; `tests/store-bundle-test.mjs` checks) sets `window.KSM_STRICT_STORE = true` on every context and page
+     before the app runs (as `tests/lib/ksm-test-api.js` also does), and `app/main.js` calls `setStoreStrict(true)`. So every
      test, Node or browser, finds such a write.
    - **Production: app.js for users.** No crash during a tournament, and the write is not lost:
      - an assignment to a moved field (`state.regMode = x`): the setter logs it to the cloud diagnostics
@@ -218,9 +225,11 @@ What must never happen (each PR's tests check the ones it touches):
   entries of the other court come only from the server.
 - **Undo/Redo writing device fields.** `performCourtAction()` diffs every key of `state` except the history keys
   (`historyComparableState()`, `court-scoring-and-history.js`), so `patch-v1` entries, old synced ones included,
-  carry patches on `score`, `matches`, `current` and `currentDivision`, and `applyHistoryPatch()` writes those paths
-  straight into `state`. Once a device field is a getter or frozen, that Undo would throw. PR 3 fixes this before
-  any device field moves.
+  carry patches on `score`, `matches`, `current` and `currentDivision`. Since PR 3 `applyHistoryPatch()` skips them
+  (`KSM_LOCAL_VIEW_STATE_KEYS`) and the court view is rebuilt from `courtState` after the entry, so such an Undo never
+  writes a device getter.
+- **Undo/Redo deleting or assigning a store getter.** A top-level patch (`[key]`) on a store-owned key goes through
+  `assignState()`, never `delete state[key]` or `state[key] = …` (both throw on the non-configurable getter; point 8).
 - **Two stores.** The React bundle is separate from app.js, so it must use `window.KSMStore`, never import
   `app/store/store.ts` (that would make a second, empty store).
 
@@ -239,7 +248,7 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
    load / remote apply / tournament switch / rename unchanged (existing sync and rename tests), helper unit tests
    for both the throwing and the production path (`tests/store/legacy.test.mjs`), the load-order identity test
    (`tests/store/load-order.test.mjs`), the bundle guard (`tests/store-bundle-test.mjs`).
-3. **Undo/Redo without device keys**, before any device field moves: `applyHistoryPatch()` skips patches whose
+3. **Undo/Redo without device keys** (**done**), before any device field moves: `applyHistoryPatch()` skips patches whose
    path starts with a device key (the `KSM_LOCAL_VIEW_STATE_KEYS` set the rebase already skips: `currentCourt`,
    `publicCourt`, `currentDivision`, `matches`, `current`, `score`), and the court view is rebuilt after the entry's
    tournament patches as `applyHistoryValues()` already does (`applyCourtState` reloads `score` from the match).
@@ -248,6 +257,13 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
    being recorded and only skipped on apply. Risk: medium (undo semantics). Tests: Undo/Redo of old recorded
    entries (fixtures with `score` / `matches` / `current` / `currentDivision` patches, as saved by 4.0) give the same
    result as today; court-actions tests; undo after a reload and after a remote apply.
+   Done: `historyComparableState()` **keeps recording** the device keys (dropping them would change every saved
+   `courtActionHistory` entry, so the snapshot JSON, and 4.0 devices read these entries); they are only skipped on
+   apply. A top-level patch on a store-owned key goes through `assignState()` (point 8). `tests/undo-device-keys-test.mjs`
+   runs Undo/Redo of recorded entries with the code before and after and gets the same `state` (point, hansoku, Next
+   Match, after a reload with and without the rehydrate, after a remote apply, Redo after Undo). Two cases differ, both
+   4.0 bugs: an Undo after the court was switched to another division wrote the entry's `matches` patches by index into
+   that division's matches; an entry that changed the court's division swapped the two match lists on Undo/Redo.
 4. **Loads keep the device view** (behaviour change, section 2 point 4): `rehydrateLoadedTournamentState()` takes
    this device's view from its own state (pin, `ksmLocalCourtDivision`, the court's shared entry), not from the
    payload's `currentDivision` / `current`. Risk: medium. Tests: the cases in point 4; v31711, v31719.
