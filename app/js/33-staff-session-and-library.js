@@ -185,7 +185,7 @@ async function performCloudSave(payload=tournamentPayload(),baseRevision=cloudSe
       return savedRecord;
     }
     if(serverRecord){
-      cloudSession.revision=Number(serverRecord.revision||cloudSession.revision||0);
+      /* ksm:post-split-begin conflict-base was:cloudSession.revision=Number(serverRecord.revision||cloudSession.revision||0); */cloudSession.revision=Number(originalBaseRevision||cloudSession.revision||0);/* ksm:post-split-end */
       cloudSession.updatedAt=serverRecord.updatedAt;
       persistCloudSession();
     }
@@ -242,6 +242,24 @@ async function performCloudSave(payload=tournamentPayload(),baseRevision=cloudSe
   if(idChanged||!ksmCloudSocket)connectCloudSocket();
   return record;
 }
+/* ksm:post-split-begin conflict-base */
+// Each 409 rebase attempt moves cloudSession.revision to the server's before sending the rebased copy.
+// When the save does not go through (attempts used up, network error, timeout), this device's copy is
+// still the one it was on originalBaseRevision, without the server changes that rebase merged. Keeping
+// the server's revision made the next save (or the outbox flush) look current, so it was accepted over
+// the other court's newer results (ATKT, split courts, 2026-11-13). Back on its own base, that save
+// meets a 409 and rebases.
+const ksmPerformCloudSaveOnce=performCloudSave;
+performCloudSave=async function(payload,baseRevision,rebaseAttempt=0,originalBaseRevision){
+  if(rebaseAttempt)return ksmPerformCloudSaveOnce.apply(this,arguments);
+  const tournamentId=cloudSession.tournamentId,base=Number(originalBaseRevision??baseRevision??cloudSession.revision??0);
+  try{return await ksmPerformCloudSaveOnce.apply(this,arguments)}
+  catch(err){
+    if(tournamentId&&cloudSession.tournamentId===tournamentId&&Number(cloudSession.revision||0)>base){cloudSession.revision=base;persistCloudSession()}
+    throw err;
+  }
+};
+/* ksm:post-split-end */
 async function loadTournamentFromCloud(tournamentId,options={}){const id=(tournamentId||cloudSession.tournamentId||'').trim();if(!id)throw new Error('Tournament ID required');setConnectionStatus('Loading cloud…','connecting');/* ksm:post-split-begin friendly-links was:const response=await fetch(`/api/tournaments/${encodeURIComponent(id)}`); */const epoch=ksmTournamentEpoch;const response=await ksmFetchTournament(id);if(epoch!==ksmTournamentEpoch)throw Object.assign(new Error('Tournament changed'),{code:'transition-cancelled'});/* ksm:post-split-end *//* ksm:post-split-begin delete-tournament */if(response.status===410){ksmAnnounceTournamentGone(id,true);throw ksmGoneError()}/* ksm:post-split-end */if(!response.ok)throw new Error(`Cloud load failed (${response.status})`);const record=await response.json();/* ksm:post-split-begin friendly-links */cloudSession.slug=record.slug||null;/* ksm:post-split-end */const requestedCourt=options.court?normalizeCourt(options.court):pinnedCourt();cloudSession.tournamentId=record.tournamentId;if(requestedCourt)pinCourtLocally(requestedCourt);disconnectCloudSocket();ksmApplyingRemoteSnapshot=true;try{applyTournamentPayload(record.payload,false,{pinnedCourt:requestedCourt});/* ksm:post-split-begin autosave-origin was:localStorage.setItem(KSM_SAVE_KEY,JSON.stringify(record.payload)) */ksmStoreAutosave(record.payload)/* ksm:post-split-end */}finally{ksmApplyingRemoteSnapshot=false}cloudSession.tournamentId=record.tournamentId;cloudSession.revision=record.revision;cloudSession.updatedAt=record.updatedAt;cloudSession.court=requestedCourt||'';persistCloudSession();/* ksm:post-split-begin edit-merge */rememberCloudBase(record);/* ksm:post-split-end */rememberTournament(record);ksmLastSuccessfulSaveAt=Date.parse(record.updatedAt)||Date.now();ksmSaveStatusMode='saved';/* ksm:post-split-begin refresh-keeps-staff was:setSessionRole(v316StaffPassword()?'staff':'spectator');installRoleBanner(ksmSessionRole);connectCloudSocket(); */setSessionRole(v316StaffPassword()?'staff':'spectator');if(!isReadOnlySession())mergeQueuedStaffWork();installRoleBanner(ksmSessionRole);if(!options.resumeStaff)connectCloudSocket();/* ksm:post-split-end */setConnectionStatus('Connected','online');renderPersistentSaveStatus();return record}
 async function initializeCloudRoleFromUrl(){/* ksm:post-split-begin path-urls */ksmRouteLoading++;try{/* ksm:post-split-end *//* ksm:post-split-begin friendly-links */await ksmResolveSlug();/* ksm:post-split-end */ensureClientIdentity();const params=/* ksm:post-split-begin path-urls was:new URLSearchParams(location.search) */ksmLinkParams()/* ksm:post-split-end */;const id=params.get('tournament')||params.get('spectator')||'';const requestedView=params.get('view')||'';const requestedCourt=/* ksm:post-split-begin court-pin was:(params.get('court')||'A').toUpperCase()==='B'?'B':'A' */params.get('court')?normalizeCourt(params.get('court')):(requestedView!=='tv'&&id&&storedCourtPin(id))||'A'/* ksm:post-split-end */;if(id){/* ksm:post-split-begin refresh-keeps-staff was:sessionStorage.removeItem(KSM_V316_STAFF_SESSION);await loadTournamentFromCloud(id,{spectator:true,court:requestedCourt});setSessionRole('spectator');installRoleBanner('spectator'); */const staff=ksmStaffToken(sessionStorage.getItem(KSM_V316_STAFF_SESSION))&&sessionStorage.getItem(KSM_STAFF_TOURNAMENT)===id&&!ksmExplicitSpectatorUrl&&requestedView!=='tv'&&params.get('role')!=='spectator'&&!params.has('spectator');if(!staff)sessionStorage.removeItem(KSM_V316_STAFF_SESSION);await loadTournamentFromCloud(id,{spectator:!staff,court:requestedCourt,resumeStaff:staff});ksmStartupLoadFailed=false;if(staff)await ksmResumeStaffSession(id);connectCloudSocket();installRoleBanner(ksmSessionRole);/* ksm:post-split-end */document.body.classList.remove('ksm-home');if(requestedView==='tv'){document.body.classList.add('ksm-tv');cloudSession.court=requestedCourt;persistCloudSession();renderTvDisplay();renderTvRealtimeDiagnostics();show('tv')}else{document.body.classList.remove('ksm-tv');/* ksm:post-split-begin path-urls was:navigateTo('public') */ksmShowRequestedScreen()/* ksm:post-split-end */}return true}/* ksm:post-split-begin refresh-keeps-staff */
 // The Library URL has no ID. Only this tab's explicitly scoped token may restore its context.

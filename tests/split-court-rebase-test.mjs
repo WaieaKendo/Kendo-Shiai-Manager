@@ -24,7 +24,7 @@ const constant = name => html.match(new RegExp(`const ${name}=[^\\n]*`))[0];
 const code = [engine, constant('KSM_LOCAL_VIEW_STATE_KEYS'), constant('KSM_UNDO_LOG_LIMIT'), constant('KSM_TAB_ID'),
   ...['normalizeCourt', 'cloneJson', 'isValidMatchObject', 'matchSyncIdentity', 'legacyTiebreakSyncIdentity', 'matchHasSyncIdentity',
     'individualMatchReady', 'matchBelongsToCourtInState', 'nextReadyIndexInState', 'preserveOwnedCourtRuntimeState', 'applyPatchToStateObject',
-    'resolveRebasePatch', 'mergeHistoryEntries', 'historyEntryIdentity', 'pendingLocalCourtActionsForRebase', 'undoLogEntryIdentity',
+    'resolveRebasePatch', 'mergeHistoryEntries', 'historyEntryIdentity', 'pendingLocalCourtActionsForRebase', 'ksmRebaseCutoff', 'ksmPendingMutationRevisions', 'undoLogEntryIdentity',
     'pendingLocalUndoLogForRebase', 'replayPendingCourtHistory', 'replayCourtMatchOps', 'mergeCourtHistoryStacks', 'ksmTeamDivisionPayload',
     'rebaseLocalPayloadOnRecord', 'ksmCarryGrandChampionDraws', 'ksmOwnHistoryEntry', 'ksmOtherRebaseCourts',
     'isIndividualPoolTiebreakMatch', 'reindexPointersAfterMatchReorder', 'normalizeIndividualPoolTiebreakOrderInState', 'normalizeAllIndividualPoolTiebreakOrder',
@@ -33,7 +33,7 @@ const code = [engine, constant('KSM_LOCAL_VIEW_STATE_KEYS'), constant('KSM_UNDO_
     'historyIndexDivision', 'historyIndexRef', 'withCourtMatchOps', 'courtUndoMatchesBefore', 'courtUndoMatchOps', 'compactCourtActionEntry',
     'applyHistoryValues', 'recordCourtUndoLog', 'undo', 'redo', 'resolveHistoryIndexRef', 'invertCourtMatchOps', 'applyCourtHistoryEntry',
     'courtHistoryAppliedEntry', 'courtHistorySkippedNote'].map(n => extractFunction(html, n))].join('\n')
-  + ['KSM_HISTORY_LIMIT', 'KSM_HISTORY_KEYS', 'KSM_HISTORY_MISSING', 'KSM_GC_STRUCTURE_KEYS'].map(constant).join('\n');
+  + ['KSM_HISTORY_LIMIT', 'KSM_HISTORY_KEYS', 'KSM_HISTORY_MISSING', 'KSM_GC_STRUCTURE_KEYS', 'KSM_UNCONFIRMED_MUTATIONS'].map(constant).join('\n');
 const context = {
   console,
   cloudSession: { clientId: 'court-b', court: 'B', revision: 10 },
