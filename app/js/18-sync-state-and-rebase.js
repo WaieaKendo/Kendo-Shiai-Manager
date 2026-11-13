@@ -44,7 +44,19 @@ function courtPinStorageKey(/* ksm:post-split-begin court-pin was: */tournamentI
 function pinnedCourt(){/* ksm:post-split-begin court-pin was:const session=sessionStorage.getItem(courtPinStorageKey());if(session)return normalizeCourt(session);const stored=localStorage.getItem(courtPinStorageKey());if(stored)return normalizeCourt(stored);const fromUrl=new URLSearchParams(location.search).get('court');if(fromUrl)return normalizeCourt(fromUrl);return cloudSession?.court?normalizeCourt(cloudSession.court):null */const stored=storedCourtPin();if(stored)return stored;const fromUrl=ksmLinkParams().get('court');if(fromUrl)return normalizeCourt(fromUrl);return cloudSession?.court?normalizeCourt(cloudSession.court):null/* ksm:post-split-end */}
 function pinCourtLocally(court){const normalized=normalizeCourt(court),key=courtPinStorageKey();sessionStorage.setItem(key,normalized);localStorage.setItem(key,normalized);cloudSession.court=normalized;persistCloudSession();return normalized}
 function restorePinnedCourt(){const court=pinnedCourt();if(!court)return null;cloudSession.court=court;state.currentCourt=court;if(isTvSession())state.publicCourt=court;return court}
-function noteLocalMutation(){ksmLocalMutationVersion+=1}
+/* ksm:post-split-begin rebase-cutoff */
+// The cloud revision this device was on when each still-unconfirmed change was made ([version, revision]).
+// A court action is stamped with that revision, but the save that carries it can go out on a newer base:
+// pressed while the previous save was in flight, it is queued and sent once that save's revision is known.
+// The rebase after a conflict replayed only actions stamped at or after the save's base, so such an action
+// (a point, a Next Match) was dropped and the other court's copy won (ATKT, split courts, 2026-11-13).
+// The cutoff is the oldest unconfirmed change's revision instead; the server-history check still keeps
+// anything already saved from being applied twice.
+const KSM_UNCONFIRMED_MUTATIONS=[];
+function ksmPendingMutationRevisions(){if(!KSM_UNCONFIRMED_MUTATIONS.length)return KSM_UNCONFIRMED_MUTATIONS;const keep=KSM_UNCONFIRMED_MUTATIONS.filter(([v])=>v>ksmConfirmedMutationVersion&&v<=ksmLocalMutationVersion);KSM_UNCONFIRMED_MUTATIONS.splice(0,KSM_UNCONFIRMED_MUTATIONS.length,...keep);return KSM_UNCONFIRMED_MUTATIONS}
+function ksmRebaseCutoff(originalBaseRevision){const base=Number(originalBaseRevision||0);return ksmPendingMutationRevisions().reduce((low,[,rev])=>Math.min(low,rev),base)}
+/* ksm:post-split-end */
+function noteLocalMutation(){ksmLocalMutationVersion+=1;/* ksm:post-split-begin rebase-cutoff */ksmPendingMutationRevisions().push([ksmLocalMutationVersion,Number(cloudSession?.revision||0)]);/* ksm:post-split-end */}
 function localChangesPending(){return ksmLocalMutationVersion>ksmConfirmedMutationVersion||Boolean(ksmSaveTimer||ksmCloudTimer||ksmCloudSaveInFlight||ksmCloudSavePending||readOutbox())}
 function deferRemoteRecord(record,reason='Local changes pending'){if(!record)return false;if(!ksmDeferredSyncRecord||Number(record.revision||0)>Number(ksmDeferredSyncRecord.revision||0))ksmDeferredSyncRecord=record;clearTimeout(ksmDeferredSyncTimer);ksmDeferredSyncTimer=setTimeout(applyDeferredSyncRecord,1800);writeCloudDiagnosticsState({stage:'Remote snapshot deferred',deferredRevision:Number(record.revision||0),deferredReason:reason,pinnedCourt:pinnedCourt()||''});return false}
 function applyDeferredSyncRecord(){if(!ksmDeferredSyncRecord||localChangesPending())return false;const record=ksmDeferredSyncRecord;ksmDeferredSyncRecord=null;clearTimeout(ksmDeferredSyncTimer);ksmDeferredSyncTimer=null;return applyRemoteCloudRecord(record,true,false)}
@@ -185,7 +197,7 @@ function pendingLocalCourtActionsForRebase(localPayload,serverRecord,originalBas
   const localEntries=localPayload?.state?.courtActionHistory?.[court]||[];
   const remoteEntries=serverRecord?.payload?.state?.courtActionHistory?.[court]||[];
   const remoteKeys=new Set(remoteEntries.map(historyEntryIdentity));
-  return localEntries.filter(action=>action?.format==='patch-v1'&&/* ksm:post-split-begin two-tabs was:action.clientId===cloudSession.clientId */ksmOwnHistoryEntry(action)/* ksm:post-split-end */&&Number(action.revision||0)>=Number(originalBaseRevision||0)&&!remoteKeys.has(historyEntryIdentity(action)));
+  return localEntries.filter(action=>action?.format==='patch-v1'&&/* ksm:post-split-begin two-tabs was:action.clientId===cloudSession.clientId */ksmOwnHistoryEntry(action)/* ksm:post-split-end */&&Number(action.revision||0)>=/* ksm:post-split-begin rebase-cutoff was:Number(originalBaseRevision||0) */ksmRebaseCutoff(originalBaseRevision)/* ksm:post-split-end */&&!remoteKeys.has(historyEntryIdentity(action)));
 }
 /* ksm:post-split-begin history-replay */
 // F30: this device's Undo/Redo since the save's base revision (10-, recordCourtUndoLog()) that the
@@ -194,7 +206,7 @@ function undoLogEntryIdentity(entry){return [entry?.clientId||'',entry?.when||''
 function pendingLocalUndoLogForRebase(localPayload,serverRecord,originalBaseRevision,court){
   const local=localPayload?.state?.courtUndoLog?.[court]||[],remote=serverRecord?.payload?.state?.courtUndoLog?.[court]||[];
   const remoteKeys=new Set(remote.map(undoLogEntryIdentity));
-  return local.filter(entry=>entry?.format==='history-op-v1'&&ksmOwnHistoryEntry(entry)&&Number(entry.revision||0)>=Number(originalBaseRevision||0)&&!remoteKeys.has(undoLogEntryIdentity(entry)));
+  return local.filter(entry=>entry?.format==='history-op-v1'&&ksmOwnHistoryEntry(entry)&&Number(entry.revision||0)>=ksmRebaseCutoff(originalBaseRevision)&&!remoteKeys.has(undoLogEntryIdentity(entry)));
 }
 /**
  * Replays this device's pending court actions and Undo/Redo onto `rebasedState` (the server copy) in

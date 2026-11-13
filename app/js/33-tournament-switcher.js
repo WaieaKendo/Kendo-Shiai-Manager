@@ -124,6 +124,7 @@ function ksmResetTournament(){
   cloudSession.tournamentId=null;cloudSession.revision=0;cloudSession.court='';cloudSession.presence=[];persistCloudSession();
   KSM_CLOUD_BASE.revision=-1;KSM_CLOUD_BASE.payload=null;
   ksmLocalMutationVersion=0;ksmConfirmedMutationVersion=0;ksmOutboxMutationVersion=0;
+  KSM_UNCONFIRMED_MUTATIONS.length=0;
   ksmLastSuccessfulSaveAt=0;ksmSaveStatusMode='idle';
   Object.keys(state).forEach(key=>delete state[key]);Object.assign(state,JSON.parse(KSM_EMPTY_STATE));
   applySetupSnapshot(KSM_EMPTY_SETUP);
