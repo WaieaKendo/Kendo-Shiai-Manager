@@ -48,7 +48,7 @@ import {ksmLegacyCloudSession,ksmLegacyState,ksmLegacyStateVersion,ksmNotifyStat
 import {ksmRenderTv} from './modules/react-bridges/tv.js';
 import {ksmAddGrandChampion,ksmDecideGrandChampion,ksmGrandChampion,ksmGrandChampionChoose,ksmGrandChampions,ksmMoveGrandChampion,ksmOpenGrandChampionWithdraw,ksmRemoveGrandChampion,ksmSyncGrandChampions,ksmToggleGrandChampionSource,ksmUpdateGrandChampion} from './modules/registration/grand-champion.js';
 import {addAutoTeam,addExhibitionRow,addRow,addTeamRow,clearCompetitors,clearExhibitions,clearTeams,closeManagementModal,continueRegenerateDivision,cycleCompetitorStatus,cycleTeamStatus,loadFullTournament,loadSamples,loadTeamSamples,openRegenerateDivisionDialog,renderExhibitions,renderReg,renderTeams} from './modules/registration/registration.js';
-import {ksmAddTeamDivision,ksmAssignTeamDivision,ksmDivisionName,ksmMoveTeamDivision,ksmNewTeamRows,ksmRemoveTeamDivision,ksmRenderTeamDivisions,ksmTeamDivisions,ksmTeamSettings,ksmUpdateTeamDivision} from './modules/registration/team-divisions.js';
+import {ksmAddTeamDivision,ksmAssignTeamDivision,ksmDivisionName,ksmMoveTeamDivision,ksmNewTeamRows,ksmRemoveTeamDivision,ksmRenderTeamDivisions,ksmSetTeamCourt,ksmTeamDivisions,ksmTeamSettings,ksmUpdateTeamDivision} from './modules/registration/team-divisions.js';
 import {renderTournamentStatus,requestTournamentGeneration,validateTournament} from './modules/registration/validation.js';
 import {audienceMeta,initTvAssignedCourt,launchTvDisplay,poolDisplayComplete,renderPublic,tvAssignedCourt,tvIndividualSideLabel,tvUpcomingMatches} from './modules/results/live-scores.js';
 import {previewAllDivisionSheets,previewFullPrintPacket,previewResultsSheet,previewSelectedDivisionSheet,printDivisionSheet} from './modules/results/print.js';
@@ -93,8 +93,8 @@ initEmptyState();
 // added here, where this file used to load, so they keep their place among the app's other listeners.
 initUndoRegenerate();
 
-// The Setup field: its inline handler has set state.teamAwardMode; the document's change listener
-// has scheduled the autosave, which then carries the new bouts with the new mode.
+// The Setup field: the document's capture listener has dispatched the new value (state.teamAwardMode is a getter over it,
+// #15 PR 8b) and its inline handler has run saveSetup(); the document's change listener has scheduled the autosave, which then carries the new bouts with the new mode.
 document.getElementById('teamAwardMode')?.addEventListener('change',()=>{if(ksmAddDaihyosenForTeamAwards().length)renderAll()});
 
 // renderAll() is in app/modules/court/court-context-and-pool-editing.js (step 4a of #136). The paste listener is added here, where this file used to load.
@@ -198,7 +198,7 @@ Object.assign(window, {
   ksmEmptyState, state,
   // app/modules/registration/team-divisions.js
   ksmAddTeamDivision, ksmAssignTeamDivision, ksmDivisionName, ksmMoveTeamDivision, ksmNewTeamRows, ksmRemoveTeamDivision,
-  ksmRenderTeamDivisions, ksmTeamDivisions, ksmTeamSettings, ksmUpdateTeamDivision,
+  ksmRenderTeamDivisions, ksmSetTeamCourt, ksmTeamDivisions, ksmTeamSettings, ksmUpdateTeamDivision,
   // app/modules/court/court-match-order.js
   applyCourtState, findNextForCourt, individualMatchReady, initCourtStates, isTeamMatch, renderDivisions,
   sortIndividualDivisionMatches, sortTeamMatches,

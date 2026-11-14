@@ -6,7 +6,7 @@ import {championshipCourtFor,divisionCourtMode,poolCourtFor} from '../engine/eng
 import {ksmRenderSetupDivisions,ksmRenderSetupHeader} from '../react-bridges/setup.js';
 import {ksmRenderGrandChampionSetup} from '../registration/grand-champion.js';
 import {renderReg} from '../registration/registration.js';
-import {ksmRenderTeamDivisions,ksmSyncLegacyTeamDivision} from '../registration/team-divisions.js';
+import {ksmRenderTeamDivisions,ksmSetTeamCourt,ksmSyncLegacyTeamDivision} from '../registration/team-divisions.js';
 import {renderTournamentStatus} from '../registration/validation.js';
 import {ksmRefreshTournamentChip} from '../session/tournament-switcher.js';
 import {showKsmToast} from '../sync/cloud-realtime-save-and-load.js';
@@ -41,7 +41,7 @@ export function setDivisionFormat(d,v){state.divisionTypes[d]=v;renderReg()}
 export function renderDivisionSetup(){
   // The divisions table's rows are React (app/react/setup/, 42-react-setup.js): they are published
   // to it instead of written (M.13). The team court and awards fields stay legacy markup.
-  if(!window.divisionSetupRows)return;ksmRenderSetupDivisions();ksmRenderTeamDivisions();ksmRenderGrandChampionSetup();ksmSetSetting('teamCourt',state.divisionCourts['Team Tournament']||'Both');ksmSetSetting('teamAwardMode',state.teamAwardMode||'top2')}
+  if(!window.divisionSetupRows)return;ksmRenderSetupDivisions();ksmRenderTeamDivisions();ksmRenderGrandChampionSetup()}
 function courtEligibleDivisions(court){
   let all=[...new Set([...Object.keys(state.allMatches||{}),...state.divisions])];
   return all.filter(d=>{
@@ -68,8 +68,10 @@ export function syncSetupHeader(){
 // No load-time call of saveSetup() ran before 30- (renderAll(), its only caller there, is first called after it).
 export function saveSetup(){
   ksmSyncLegacyTeamDivision();
-  state.divisionCourts['Team Tournament']=/** @type {any} */(ksmSetting('teamCourt'));
-  state.teamAwardMode=ksmSetting('teamAwardMode')||'top2';
+  // The team court's entry in divisionCourts follows the Setup field; state.teamAwardMode is the field itself (#15 PR 8b).
+  // An empty value is the default, where renderDivisionSetup() put it back into the field (the entry followed a render later).
+  ksmSetTeamCourt(ksmSetting('teamCourt')||'Both');
+  if(!ksmSetting('teamAwardMode'))ksmSetSetting('teamAwardMode','top2');
   renderDivisionSetup();renderDivisions();renderReg();renderTournamentStatus();
   syncSetupHeader();
 }

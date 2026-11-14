@@ -3,7 +3,7 @@ import {state} from '../app-state.js';
 import {toggleStaffSession} from '../auth/auth0-access.js';
 import {ksmNormalizeTimerSettings} from '../court/match-timer.js';
 import {ksmPersistentSaveStatusText,ksmRenderConnectionStatus,ksmRenderSaveStatus} from '../react-bridges/shell.js';
-import {ksmSyncLegacyTeamDivision} from '../registration/team-divisions.js';
+import {ksmSetTeamCourt,ksmSyncLegacyTeamDivision} from '../registration/team-divisions.js';
 import {isReadOnlySession,ksmKeepStaffOutbox,v316StaffPassword} from '../session/staff-session-and-library.js';
 import {ksmSyncGrandChampions} from '../registration/grand-champion.js';
 import {replaceable} from '../replaceable.js';
@@ -105,6 +105,16 @@ export function getSetupSnapshot(){
 // Engine code reads tournament settings only through this accessor (app/engine/settings.ts);
 // the source is the same `setup` snapshot that tournamentPayload() persists.
 export function tournamentSettings(setup=getSetupSnapshot()){return KSMEngine.readSettings(setup)}
+/**
+ * A loaded Setup (a load, a remote apply, a rebase result, a file, the tournament switch, the reset). The team award mode
+ * and the team court are the Setup's (#15 PR 8b): `state.teamAwardMode` is a getter over the Setup field and
+ * `divisionCourts['Team Tournament']` follows `settings.teamCourt` (ksmSetTeamCourt()), with the 'Team Tournament' team
+ * division's own values winning (ksmSyncLegacyTeamDivision()). This is where the old code ended up after the load's
+ * renderAll(), whose saveSetup() copied the Setup fields over both top-level copies; a payload's top-level copies count
+ * only where the team-division migration builds that division from them (KSMEngine.migrateTeamDivisions(): no team
+ * divisions saved and no Setup value).
+ * @param {any} data
+ */
 export function applySetupSnapshot(data){
   if(!data) return;
   data={...data,...ksmNormalizeTimerSettings(data)};
@@ -114,9 +124,13 @@ export function applySetupSnapshot(data){
   dispatch(tournamentSlice.actions.settingsLoaded(KSMEngine.normalizeSetup(data),settingsMeta()));
   renderSetupInputs();
   applyCourtSides();
-  if(!state.teamDivisions&&data.teamCourt)state.divisionCourts['Team Tournament']=data.teamCourt;
-  (state.teamDivisions||[]).forEach(d=>state.divisionCourts[d.id]=/** @type {any} */(d.court));
-  if(data.teamAwardMode) state.teamAwardMode=data.teamAwardMode;
+  // The load's own rule for a state without team divisions (the reset's empty state), kept; the next line gives the same
+  // value now that the entry follows the field.
+  if(!state.teamDivisions&&data.teamCourt)ksmSetTeamCourt(data.teamCourt);
+  // An empty Setup value is shown as the default, as saveSetup() / renderDivisionSetup() did on the load's render.
+  ksmSetTeamCourt(ksmSetting('teamCourt')||'Both');
+  if(!ksmSetting('teamAwardMode'))ksmSetSetting('teamAwardMode','top2');
+  (state.teamDivisions||[]).forEach(d=>{if(d.id!==KSMEngine.LEGACY_TEAM_DIVISION_ID)state.divisionCourts[d.id]=/** @type {any} */(d.court)});
   ksmSyncLegacyTeamDivision();
 }
 export function tournamentPayload(){

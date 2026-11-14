@@ -414,8 +414,8 @@ window.KSMTest = {
     ksmSetSetting('teamEnabled', team ? 'Enabled' : 'Disabled');
     if (team) {
       ksmSetSetting('teamFormat', team.format); ksmSetSetting('teamTournamentFormat', team.tournament);
-      // The Setup field too: saveSetup() and the setup snapshot read the team court from the store.
-      ksmSetSetting('teamCourt', team.court); state.divisionCourts['Team Tournament'] = team.court;
+      // The Setup field and its divisionCourts entry together, as the app's own writers do (#15 PR 8b).
+      ksmSetTeamCourt(team.court);
       const slots = team.format === '5-Person Team' ? ['senpo','jiho','chuken','fukusho','taisho'] : ['senpo','chuken','taisho'];
       state.teams = Array.from({length: team.teams}, (_, i) => {
         const code = String.fromCharCode(65 + i);

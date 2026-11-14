@@ -16,7 +16,7 @@ import {ksmRenderPools} from '../react-bridges/pools.js';
 import {ksmRegenerateDone} from '../react-bridges/shell.js';
 import {ksmGrandChampion,ksmGrandChampionCompetitors} from '../registration/grand-champion.js';
 import {closeManagementModal,divisionRegenerationStatus,structuralNoShowAllowed} from '../registration/registration.js';
-import {ksmTeamDivision,ksmTeamDivisions,ksmTeamSettings} from '../registration/team-divisions.js';
+import {ksmSetTeamCourt,ksmTeamDivision,ksmTeamDivisions,ksmTeamSettings} from '../registration/team-divisions.js';
 import {requestTournamentGeneration,showValidationDialog,validateTournament} from '../registration/validation.js';
 import {renderResultsDashboard} from '../results/results-screen.js';
 import {isReadOnlySession} from '../session/staff-session-and-library.js';
@@ -33,7 +33,9 @@ export function generateDivisionState(div){
     state.teamElimTeams=state.teamElimTeams||{};state.teamElimTeams[div]=plan.teamElimTeams;
     const m=/** @type {Match[]} */(plan.matches);
     if(plan.teamBracketNodes){state.teamBracketNodes=state.teamBracketNodes||{};state.teamBracketNodes[div]=plan.teamBracketNodes;syncTeamBracket(div,m,state.teamElimTeams[div]);}
-    state.allMatches[div]=m;state.currentByDivision[div]=0;state.divisionCourts[div]=plan.divisionCourt;return true;
+    state.allMatches[div]=m;state.currentByDivision[div]=0;
+    // The legacy team division's court is the Setup's team court too (#15 PR 8b).
+    if(div===KSMEngine.LEGACY_TEAM_DIVISION_ID)ksmSetTeamCourt(plan.divisionCourt);else state.divisionCourts[div]=plan.divisionCourt;return true;
   }
   if(plan.kind==='exhibition'){
     state.pools[div]=plan.pools;state.allMatches[div]=/** @type {Match[]} */(plan.matches);state.currentByDivision[div]=0;state.divisionCourts[div]=plan.divisionCourt;return plan.generated;
