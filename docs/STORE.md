@@ -1,6 +1,6 @@
 # The store: plan for moving `state` into Redux Toolkit (#15 step 2.8)
 
-Status (2026-11-13): **prep done (PR 2), Undo/Redo without device keys (PR 3), loads keep the device view (PR 4), no field moved yet**. `app/store/` holds a Redux Toolkit store (slices
+Status (2026-11-13): **prep done (PR 2), Undo/Redo without device keys (PR 3), loads keep the device view (PR 4), device fields moved: `regMode`, `poolViewDivision` (PR 5), the court view (PR 6)**. `app/store/` holds a Redux Toolkit store (slices
 `tournament` and `device`, each with only a `sliceVersion`). app.js imports it as a separate tree-shaken, minified
 bundle (+7.9 kB gzip, section 5) and sets `window.KSMStore`; `app/modules/app-state.js` has the helpers the field
 moves use (`moveToStore()`, `replaceState()`, `assignState()`, section 2). All app data is still the one mutable
@@ -71,9 +71,9 @@ Class: **T** tournament data (shared, synced), **D** device/screen state (this d
 
 | Field | Class | Refs / writes / files | Who writes it | Target and why |
 |---|---|---|---|---|
-| `currentCourt` | M | 39 / 3 / 12 | court choice, `applyCourtState`, load (pinned court), `restorePinnedCourt` | **device**: the court this device scores or shows. Saved today but ignored on apply (pin wins) |
-| `publicCourt` | M | 6 / 4 / 3 | court order, sync load (TV pin) | **device**: the court Live Scores / the TV follows |
-| `currentDivision` | M | 38 / 3 / 15 | `applyCourtState`, load | **device**: the division this device's court screen shows. The rebase still reads it as a fallback (`localState.currentDivision`), from the payload copy, which keeps it |
+| `currentCourt` | M | 39 / 3 / 12 | court choice, `applyCourtState`, load (pinned court), `restorePinnedCourt` | **device** (moved, PR 6: `device/courtChosen`): the court this device scores or shows. Saved but ignored on apply (pin wins) |
+| `publicCourt` | M | 6 / 4 / 3 | court order, sync load (TV pin) | **device** (moved, PR 6: `device/publicCourtChanged`): the court Live Scores / the TV follows |
+| `currentDivision` | M | 38 / 3 / 15 | `applyCourtState`, load | **device** (moved, PR 6: `device/divisionShown`): the division this device's court screen shows. The rebase still reads it as a fallback (`localState.currentDivision`), from the payload copy, which keeps it (the getter is enumerable, so `tournamentPayload()` still writes it) |
 | `poolViewDivision` | D | 6 / 2 / 2 | court order, generation | **device** |
 | `regMode` | D | 5 / 1 / 4 | navigation (`regTab`) | **device** (open Registration tab) |
 | `matches` | M | 23 / 7 / 11 | `applyCourtState` (`= state.allMatches[div]`), load | **neither: a selector.** It is an *alias* of `allMatches[currentDivision]` (writes through either name change both). Saved, so every snapshot carries one division's match list twice |
@@ -100,8 +100,24 @@ director's Court B view, a load's rehydrate). The split:
   device shows. A view choice on a device that is not that court's scorekeeper writes only this.
 - `currentByDivision`: the shared part becomes a selector (next ready index per division and court); the "come
   back to where I was" position, if still wanted, is `device.view` state.
-Whether a non-scorekeeper's view choice should still move the court's shared pointer (it does today) is decided in
-PR 6 with tests; the default is to keep today's behaviour for a pinned scorekeeper only.
+**Decided in PR 6: only Court *c*'s scorekeeper moves Court *c*'s shared pointer.** Before PR 6 every view choice
+moved it, on any device. A device is Court *c*'s scorekeeper (`isCourtScorekeeper(c)`, `court-match-order.js`) when
+it may write the tournament (`canCloudWrite()`: staff, or a local tournament with no cloud) and its court
+(`state.currentCourt`, from the pin) is *c*. A cloud TV link is never staff (`initializeCloudRoleFromUrl()`), so a TV
+never moves a pointer; an offline TV is the same app as its court (no other device; the TV goldens score on it). Opening a court from the court menu pins the device to that court,
+so a staff device (the director's included) that opens Court B is Court B's device, as before. On every other device a
+view choice changes only that device's view (`currentCourt`, `currentDivision`, `matches`, `current`, `score`,
+`device.localCourtDivision`): a spectator or a TV picking a division on Court B, a load's rehydrate on a spectator or
+TV, and the self-heal when Live Scores, the TV or the director's dashboard draws Court B on a device pinned to Court A
+(`courtCurrentMatch()` computes the next bout for that render only). Why: the pointer is what Court B's scorekeeper,
+the TV and Live Scores show as "on Court B now"; a device that cannot save (a spectator, a TV) moved it only in its own
+copy, so its own Live Scores showed its choice as Court B's bout until the next remote apply put the real one back, and
+a writable device drawing another court's screen should not save a pointer for a court it does not run.
+Structural edits keep re-resolving the pointers on any writable device, as before: generation (`initCourtStates`),
+pool edits, division setup, grand champion draws, tiebreak index fixes and the rebase / load reconciliation (a load
+heals this court's pointer only on its scorekeeper). In this PR `courtState`, `courtActiveDivision` and
+`currentByDivision` stay plain tournament fields (they move in PR 13, where `court/divisionSelected` becomes an action
+with `meta.court`); only who writes them changed (`setCourtPointer()`).
 
 ### 1.3 Other mutable state
 
@@ -112,7 +128,8 @@ PR 6 with tests; the default is to keep today's behaviour for a pinned scorekeep
   path from `state` and writes in place; `historyComparableState()`, which deep-clones every key before and after a
   court action; grand champion removal (`state[key][c]`, `delete state[k][id]`).
 - **Device state outside `state`** → `device` slice when a screen needs it reactive: `ksmLocalCourtDivision`
-  (sync-state-and-rebase.js, the division per pinned court), the court pin (`sessionStorage`/`localStorage`),
+  (sync-state-and-rebase.js, the division per pinned court; moved in PR 6 to `device.localCourtDivision`,
+  `device/localCourtDivisionChosen` / `…Cleared`, not in `state` or the snapshot), the court pin (`sessionStorage`/`localStorage`),
   `KSM_TV_ASSIGNED_COURT`, the shell's open menu / dialogs, the pool editor draft, Registration row caches. Many of
   these are UI-only and can become React state instead.
 - **Session and sync adapter state stays out of the store**: `cloudSession`, timers, the socket, the outbox, the
@@ -295,11 +312,27 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
    after a load a moved key stays where it was while plain keys follow in payload order, so the order of snapshot
    keys (and of tied rows in Developer Tools' state breakdown, `golden-shell` nav-staff) differs from before the
    move; the values and the JSON content are the same.
-6. **Device, court view**: `currentCourt`, `publicCourt`, `currentDivision`, plus `ksmLocalCourtDivision` →
+6. **Device, court view** (**done**): `currentCourt`, `publicCourt`, `currentDivision`, plus `ksmLocalCourtDivision` →
    `device/courtChosen`, `device/publicCourtChanged`, `device/divisionShown`, and the `courtState` /
    `currentByDivision` split of section 1.2 (`court/divisionSelected` for a pinned scorekeeper). Risk: medium
    (pinned court, TV follow, the rebase fallback reads the payload copy). Tests: v31711 pinned court, v31719 TV
    follow, court and TV goldens.
+   Done (**PR 6**): `currentCourt`, `publicCourt`, `currentDivision` are store getters (`moveToStore()` in
+   `app-state.js`), written only through `ksmSetCurrentCourt()` / `ksmSetPublicCourt()` / `ksmShowDivision()` (one
+   action each; an unchanged value dispatches nothing). `ksmLocalCourtDivision` is a read-only view of
+   `device.localCourtDivision`, written by `rememberLocalCourtDivision()` / `setLocalCourtDivision()` /
+   `clearLocalCourtDivisions()`. A load keeps all four (`replaceState()` skips device paths); the tournament reset
+   (`ksmResetTournament()`) sets the three `state` fields to the empty state's values, as its `replaceState()` did
+   before. The snapshot still carries the three `state` fields with their values. The court pointer writers and the
+   decision: section 1.2. Four #177 review fixes: with no shared entry the load opens the court's active division
+   before the first ready one; `findNextForCourt(court, null)` scans (and so sorts) only divisions with a match on
+   that court, so the other court's lists are not re-sorted or replaced; a file import that throws after
+   `replaceState()` restores with this device's division and court choices from before the file; and
+   `tests/load-keeps-device-view-test.mjs` prints a loud SKIP on a shallow clone (and fails on CI). Tests:
+   `tests/store/device-court-view.test.mjs`, `tests/court-pointer-writers-test.mjs`, the load test's new cases.
+   **Left for PR 7 / 13**: `matches`, `current`, `score` (PR 7); `court/divisionSelected` as a store action and
+   `courtState` / `courtActiveDivision` / `currentByDivision` into the store as tournament data with selectors (PR 13).
+
 7. **Derive `matches` and `current`**: getters over `allMatches[courtState[currentCourt].division]` and
    `courtState[…].index`; drop their assignments. `score` → `device.activeScore[court]` with
    `device/scoreChanged`. Risk: medium-high (scoring path, the alias). Tests: court-actions, timer, scoreboard

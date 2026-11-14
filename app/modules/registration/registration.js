@@ -1,5 +1,5 @@
 // @ts-check
-import {DIVISION_PRESETS,state} from '../app-state.js';
+import {DIVISION_PRESETS,ksmShowDivision,state} from '../app-state.js';
 import {renderAll} from '../court/court-context-and-pool-editing.js';
 import {renderDivisions} from '../court/court-match-order.js';
 import {applyIndividualNoShow,applyWholeTeamNoShow} from '../engine/engine-generation.js';
@@ -73,7 +73,7 @@ export function loadFullTournament(){
     {team:'University of Hawaii',senpo:'Arai',jiho:'Ono',chuken:'Kondo',fukusho:'Shima',taisho:'Ueda',status:'Registered'}
   ];
   state.teams=ksmNewTeamRows(state.teams);
-  state.currentDivision='Women’s Open';
+  ksmShowDivision('Women’s Open');
   renderAll();
   alert('Loaded 50 individual competitors across 6 divisions plus sample team entries.');
 }

@@ -1,5 +1,6 @@
 // @ts-check
-import {DIVISION_PRESETS,state} from '../app-state.js';
+import {DIVISION_PRESETS,ksmSetCurrentCourt,ksmSetPublicCourt,state} from '../app-state.js';
+import {deviceSlice,dispatch,getState} from '../../store/index.ts';
 import {KSM_UNDO_LOG_LIMIT} from '../court/court-scoring-and-history.js';
 import {repairCompletedMatchResults} from '../engine/engine-result-integrity.js';
 import {isIndividualPoolTiebreakMatch,normalizeAllIndividualPoolTiebreakOrder,normalizeIndividualPoolTiebreakOrderInState} from '../engine/engine-standings-and-tiebreaks.js';
@@ -94,8 +95,10 @@ export function setKsmDeferredSyncTimer(value){ksmDeferredSyncTimer=value}
 export const KSM_PINNED_COURT_PREFIX='ksm.pinned.court.v3_17_11';
 // Scorekeeper division selection is device-local. A remote Court B snapshot must not
 // move Court A back to whichever division Court B last rendered. Keep one local
-// preference per pinned court outside the serialized tournament state.
-export const ksmLocalCourtDivision={A:null,B:null};
+// preference per pinned court outside the serialized tournament state: the store's device.localCourtDivision (#15 PR 6),
+// written only through rememberLocalCourtDivision() / setLocalCourtDivision() / clearLocalCourtDivisions().
+/** This device's division per court (read-only: the store's device.localCourtDivision). */
+export const ksmLocalCourtDivision=Object.freeze({get A(){return getState().device.localCourtDivision.A},get B(){return getState().device.localCourtDivision.B}});
 // This device's court view (and its alias `matches` and working `score`): a court-action replay in the rebase and an
 // Undo/Redo (applyHistoryPatch(), court-scoring-and-history.js) never write these keys (docs/STORE.md section 2 point 6).
 export const KSM_LOCAL_VIEW_STATE_KEYS=new Set(['currentCourt','publicCourt','currentDivision','matches','current','score']);
@@ -104,16 +107,18 @@ export function normalizeCourt(value){return KSMEngine.normalizeCourt(value);// 
 // Red/White sides are mirrored per court to match the scoring table's view (Setup → Referees).
 export function redOnLeftForCourt(court){return /** @type {HTMLSelectElement|null} */(document.getElementById(normalizeCourt(court)==='B'?'court2RedSide':'court1RedSide'))?.value==='left'}
 export function applyCourtSides(){document.body.classList.toggle('ksm-red-left',redOnLeftForCourt(state.currentCourt))}
-export function rememberLocalCourtDivision(court,division){const c=normalizeCourt(court);if(division&&typeof division==='string')ksmLocalCourtDivision[c]=division;return ksmLocalCourtDivision[c]}
+/** Sets this device's division for a court (null clears it). */
+export function setLocalCourtDivision(court,division){const c=normalizeCourt(court);if(ksmLocalCourtDivision[c]!==division)dispatch(deviceSlice.actions.localCourtDivisionChosen({court:c,division}))}
+export function rememberLocalCourtDivision(court,division){const c=normalizeCourt(court);if(division&&typeof division==='string')setLocalCourtDivision(c,division);return ksmLocalCourtDivision[c]}
 export function localCourtDivision(court){return ksmLocalCourtDivision[normalizeCourt(court)]||null}
-export function clearLocalCourtDivisions(){ksmLocalCourtDivision.A=null;ksmLocalCourtDivision.B=null}
+export function clearLocalCourtDivisions(){if(ksmLocalCourtDivision.A!==null||ksmLocalCourtDivision.B!==null)dispatch(deviceSlice.actions.localCourtDivisionsCleared())}
 // F3: the pin belongs to the device, not the session role: a scorekeeper reloads as a spectator
 // until Staff Login and must come back on the same court. TV displays keep their own key.
 export function storedCourtPin(tournamentId){const key=courtPinStorageKey(tournamentId),value=sessionStorage.getItem(key)||localStorage.getItem(key);return value?normalizeCourt(value):null}
 function courtPinStorageKey(tournamentId){const id=tournamentId||cloudSession?.tournamentId||ksmLinkParams().get('tournament')||'unassigned';const view=isTvSession()?'tv':'court';return `${KSM_PINNED_COURT_PREFIX}:${id}:${view}`}
 export function pinnedCourt(){const stored=storedCourtPin();if(stored)return stored;const fromUrl=ksmLinkParams().get('court');if(fromUrl)return normalizeCourt(fromUrl);return cloudSession?.court?normalizeCourt(cloudSession.court):null}
 export function pinCourtLocally(court){const normalized=normalizeCourt(court),key=courtPinStorageKey();sessionStorage.setItem(key,normalized);localStorage.setItem(key,normalized);cloudSession.court=normalized;persistCloudSession();return normalized}
-export function restorePinnedCourt(){const court=pinnedCourt();if(!court)return null;cloudSession.court=court;state.currentCourt=court;if(isTvSession())state.publicCourt=court;return court}
+export function restorePinnedCourt(){const court=pinnedCourt();if(!court)return null;cloudSession.court=court;ksmSetCurrentCourt(court);if(isTvSession())ksmSetPublicCourt(court);return court}
 export function localChangesPending(){return ksmLocalMutationVersion>ksmConfirmedMutationVersion||Boolean(ksmSaveTimer||ksmCloudTimer||ksmCloudSaveInFlight||ksmCloudSavePending||readOutbox())}
 export function deferRemoteRecord(record,reason='Local changes pending'){if(!record)return false;if(!ksmDeferredSyncRecord||Number(record.revision||0)>Number(ksmDeferredSyncRecord.revision||0))ksmDeferredSyncRecord=record;clearTimeout(ksmDeferredSyncTimer);ksmDeferredSyncTimer=setTimeout(applyDeferredSyncRecord,1800);writeCloudDiagnosticsState({stage:'Remote snapshot deferred',deferredRevision:Number(record.revision||0),deferredReason:reason,pinnedCourt:pinnedCourt()||''});return false}
 export function applyDeferredSyncRecord(){if(!ksmDeferredSyncRecord||localChangesPending())return false;const record=ksmDeferredSyncRecord;ksmDeferredSyncRecord=null;clearTimeout(ksmDeferredSyncTimer);ksmDeferredSyncTimer=null;return applyRemoteCloudRecord(record,true,false)}

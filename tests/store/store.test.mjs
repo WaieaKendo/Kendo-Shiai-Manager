@@ -7,11 +7,11 @@ import {
   DEVICE_SLICE_VERSION, TOURNAMENT_SLICE_VERSION, actionMeta, metaCourt, withMeta,
 } from '../../app/store/index.ts';
 
-test('two slices, tournament (its version only) and device (its version and the first device fields)', () => {
+test('two slices, tournament (its version only) and device (its version and the device fields)', () => {
   const s = createKsmStore();
   assert.deepEqual(s.getState(), {
     tournament: { sliceVersion: TOURNAMENT_SLICE_VERSION },
-    device: { sliceVersion: DEVICE_SLICE_VERSION, regMode: 'individual', poolViewDivision: 'Women’s Open' },
+    device: { sliceVersion: DEVICE_SLICE_VERSION, regMode: 'individual', poolViewDivision: 'Women’s Open', currentCourt: 'A', publicCourt: 'A', currentDivision: 'Women’s Open', localCourtDivision: { A: null, B: null } },
   });
   assert.deepEqual(Object.keys(rootReducer(undefined, { type: '@@init' })), ['tournament', 'device']);
 });

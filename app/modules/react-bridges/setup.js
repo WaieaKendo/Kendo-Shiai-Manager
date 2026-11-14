@@ -1,5 +1,5 @@
 // @ts-check
-import {DIVISION_PRESETS,assignState,state} from '../app-state.js';
+import {DIVISION_PRESETS,assignState,ksmShowDivision,state} from '../app-state.js';
 import {deviceSlice,dispatch} from '../../store/index.ts';
 import {renderDivisions} from '../court/court-match-order.js';
 import {scheduleAutoSave} from '../sync/cloud-session-and-autosave.js';
@@ -8,7 +8,7 @@ import {renderTournamentStatus} from '../registration/validation.js';
 import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {removeDivision,renderDivisionSetup} from '../setup/division-setup.js';
 import {cloudSession} from '../sync/cloud-session-and-autosave.js';
-import {ksmLocalCourtDivision} from '../sync/sync-state-and-rebase.js';
+import {ksmLocalCourtDivision,setLocalCourtDivision} from '../sync/sync-state-and-rebase.js';
 import * as KSMEngine from '../../engine/index.ts';
 // ==========================================================
 // React Setup screen (app/react/features/setup/, roadmap M.13, #136 step 2)
@@ -74,8 +74,9 @@ export function ksmRenameSetupDivision(from,to){
   const renamed=KSMEngine.renamedDivisionState(/** @type {any} */ (state),from,name,record);
   // The Pools tab's division is a device field: it follows the rename through its action, not assignState().
   if(renamed.poolViewDivision!==undefined){dispatch(deviceSlice.actions.poolViewDivisionChanged(renamed.poolViewDivision));delete renamed.poolViewDivision}
+  if(renamed.currentDivision!==undefined){ksmShowDivision(renamed.currentDivision??null);delete renamed.currentDivision}
   assignState(renamed);
-  ['A','B'].forEach(c=>{if(ksmLocalCourtDivision[c]===from)ksmLocalCourtDivision[c]=name});
+  ['A','B'].forEach(c=>{if(ksmLocalCourtDivision[c]===from)setLocalCourtDivision(c,name)});
   renderDivisionSetup();renderDivisions();renderReg();renderTournamentStatus();
   scheduleAutoSave('Division renamed');
   return null;

@@ -67,7 +67,7 @@ def reset_individual(page, n: int, fmt: str, court: str, division: str = "Test")
           KSMTest.app.state.teams=[];KSMTest.app.state.pools={};KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={};
           KSMTest.app.state.singleElimComps={};KSMTest.app.state.teamBracketNodes={};KSMTest.app.state.teamPools={};
           KSMTest.app.state.brackets={};KSMTest.app.state.championshipNodes={};KSMTest.app.state.byeWinners={};KSMTest.app.state.currentByDivision={};KSMTest.app.state.courtState={};
-          KSMTest.app.state.courtActiveDivision={};KSMTest.app.state.currentDivision=division;KSMTest.app.state.currentCourt='A';
+          KSMTest.app.state.courtActiveDivision={};KSMTest.app.showDivision(division);KSMTest.app.setCurrentCourt('A');
           KSMTest.app.generateDivisionState(division);KSMTest.app.state.generated=true;KSMTest.app.initCourtStates();
         }""",
         {"n": n, "fmt": fmt, "court": court, "division": division},
@@ -215,7 +215,7 @@ def scenario_tiebreak_seed_contract(page) -> int:
           const A={name:'A',dojo:'X',wins:2,pts:3},B={name:'B',dojo:'Y',wins:2,pts:3},C={name:'C',dojo:'Z',wins:0,pts:0};
           const oldInitial=KSMTest.app.initialPoolStandings,oldResolve=KSMTest.app.resolveTiebreakBaseGroup,oldFinished=KSMTest.app.poolFinished,oldPending=KSMTest.app.pendingTiebreak;
           try{
-            KSMTest.app.state.currentDivision='TB';KSMTest.app.state.brackets={TB:[['A1','A2']]};KSMTest.app.state.pools={TB:[{label:'A',players:[A,B,C]}]};KSMTest.app.state.allMatches={TB:[]};
+            KSMTest.app.showDivision('TB');KSMTest.app.state.brackets={TB:[['A1','A2']]};KSMTest.app.state.pools={TB:[{label:'A',players:[A,B,C]}]};KSMTest.app.state.allMatches={TB:[]};
             KSMTest.app.poolFinished=()=>true;KSMTest.app.pendingTiebreak=()=>false;KSMTest.app.initialPoolStandings=()=>[A,B,C];
             KSMTest.app.resolveTiebreakBaseGroup=()=>({locked:[A,B],unresolved:[],ordered:[A,B]});
             let r=KSMTest.app.poolSeedResolution('A','TB');

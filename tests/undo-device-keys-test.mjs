@@ -29,7 +29,9 @@ const check = (ok, name) => { count++; if (!ok) { console.log(`FAIL ${name}`); f
 const json = v => JSON.stringify(v);
 
 const STUBS = ['applyCourtSides', 'renderAll', 'updateUndoButton', 'updateSaveStatus', 'criticalAutoSave', 'showKsmToast', 'ksmNotifyStateChanged',
-  'ksmSignalCourtActions', 'storeFieldPath', 'assignState', 'renderScore', 'renderPools', 'renderProgress', 'renderPublic', 'writeCloudDiagnosticsState', 'KSM_TAB_ID'];
+  'ksmSignalCourtActions', 'storeFieldPath', 'assignState', 'renderScore', 'renderPools', 'renderProgress', 'renderPublic', 'writeCloudDiagnosticsState', 'KSM_TAB_ID',
+  // The court view's store helpers (#15 PR 6): here they write the context's plain `state`; this device is Court A's scorekeeper.
+  'ksmSetCurrentCourt', 'ksmSetPublicCourt', 'ksmShowDivision', 'canCloudWrite', 'isTvSession'];
 const entry = ['undo', 'redo', 'performCourtAction', 'applyCourtState', 'loadScoreFromMatch'].map(n => extractFunction(html, n)).join('\n');
 const newCode = '"use strict";\n' + withDependencies(html, entry, { exclude: STUBS }) + '\nlet ksmLastHistoryOutcome=null,ksmLastHistorySkipped=0;';
 const oldSource = gitShow(BASE, FILE);
@@ -56,6 +58,8 @@ function makeContext(code) {
     applyCourtSides() {}, renderAll() {}, updateUndoButton() {}, updateSaveStatus() {}, criticalAutoSave() {}, showKsmToast() {}, ksmNotifyStateChanged() {},
     ksmSignalCourtActions() {}, renderScore() {}, renderPools() {}, renderProgress() {}, renderPublic() {}, writeCloudDiagnosticsState() {},
     storeFieldPath: () => null, assignState() { throw new Error('no store-owned key in this case'); },
+    canCloudWrite: () => true, isTvSession: () => false,
+    ksmSetCurrentCourt(c) { context.state.currentCourt = c; }, ksmSetPublicCourt(c) { context.state.publicCourt = c; }, ksmShowDivision(d) { context.state.currentDivision = d; },
   };
   vm.createContext(context);
   vm.runInContext(code, context);

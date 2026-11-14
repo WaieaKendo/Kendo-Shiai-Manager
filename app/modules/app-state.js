@@ -51,6 +51,19 @@ moveToStore('regMode',['device','regMode']);
 moveToStore('poolViewDivision',['device','poolViewDivision']);
 /** The Pools tab's division, as this device shows it (a device field: device/poolViewDivisionChanged). */
 export function ksmSetPoolViewDivision(/** @type {string} */ division){dispatch(deviceSlice.actions.poolViewDivisionChanged(division))}
+// The court view (PR 6): the court this device shows, the court Live Scores / the TV follows, and the division its court
+// screen shows. Written only through these three helpers (device/courtChosen, device/publicCourtChanged,
+// device/divisionShown); the court's shared pointer (courtState[c], courtActiveDivision[c]) is tournament data, written
+// only by that court's own actions (isCourtScorekeeper() in court-match-order.js, docs/STORE.md section 1.2).
+moveToStore('currentCourt',['device','currentCourt']);
+moveToStore('publicCourt',['device','publicCourt']);
+moveToStore('currentDivision',['device','currentDivision']);
+/** The court this device shows (state.currentCourt). */
+export function ksmSetCurrentCourt(/** @type {string} */ court){if(state.currentCourt!==court)dispatch(deviceSlice.actions.courtChosen(court))}
+/** The court Live Scores / the TV follows (state.publicCourt). */
+export function ksmSetPublicCourt(/** @type {string} */ court){if(state.publicCourt!==court)dispatch(deviceSlice.actions.publicCourtChanged(court))}
+/** The division this device's court screen shows (state.currentDivision). */
+export function ksmShowDivision(/** @type {string|null} */ division){if(state.currentDivision!==division)dispatch(deviceSlice.actions.divisionShown(division))}
 /**
  * Replaces all of `state` with `loaded`'s keys (a load, a remote apply, the tournament switch): plain keys are deleted
  * and assigned in `loaded`'s order, as `Object.keys(state).forEach(k=>delete state[k]);Object.assign(state,loaded)` did;

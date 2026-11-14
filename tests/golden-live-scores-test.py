@@ -64,7 +64,7 @@ NEXT_JS = "() => KSMTest.app.nextMatch()"
 SHOW_LIVE_JS = "() => KSMTest.show('public')"
 # A Court B device keeps its court as the Live Scores court after a live update
 # (applyRemoteCloudRecord() in 21-: state.publicCourt from the local court).
-PUBLIC_COURT_B_JS = "() => { KSMTest.app.state.publicCourt = 'B'; KSMTest.show('public'); }"
+PUBLIC_COURT_B_JS = "() => { KSMTest.app.setPublicCourt('B'); KSMTest.show('public'); }"
 VIEW_JS = f"() => !document.querySelector('{ROOT}').classList.contains('hidden')"
 LIVE = '#public #publicLive'
 # Which kinds of Live Scores content the React island was given.

@@ -1,5 +1,5 @@
 // @ts-check
-import {replaceState,state} from '../app-state.js';
+import {ksmSetCurrentCourt,ksmSetPublicCourt,ksmShowDivision,replaceState,state} from '../app-state.js';
 import {cloudSocketUrl,connectCloudSocket,ksmCacheTournament,ksmReadHeaders,ksmUsesAccountAuth,loadTournamentFromCloud,setSessionRole} from '../auth/auth0-access.js';
 import {renderAll} from '../court/court-context-and-pool-editing.js';
 import {applyCourtState,findNextForCourt,individualMatchReady} from '../court/court-match-order.js';
@@ -24,7 +24,7 @@ import {KSM_V316_STAFF_SESSION,canCloudWrite,installRoleBanner,isReadOnlySession
 import {ksmStartupHasCache,ksmStartupLoadFailed,ksmTournamentEpoch} from '../session/tournament-switcher.js';
 import {analyzeCourtActionHistory,analyzeTournamentSnapshot,formatDiagnosticTime,formatSnapshotBytes,payloadByteSize,readCloudDiagnosticsState,writeCloudDiagnosticsState} from './cloud-diagnostics.js';
 import {applySetupSnapshot,autoSaveTournament,clearOutbox,cloudSession,ksmSessionRole,ksmStoreAutosave,markLocalSave,persistCloudSession,preserveRecovery,readOutbox,renderPersistentSaveStatus,setConnectionStatus,tournamentPayload,updateSaveStatus,writeOutbox} from './cloud-session-and-autosave.js';
-import {KSM_SAVE_KEY,applyDeferredSyncRecord,clearLocalCourtDivisions,cloudBaseFor,deferRemoteRecord,ksmKnownRestoredRevision,localChangesPending,localCourtDivision,normalizeCourt,pinCourtLocally,pinnedCourt,rebaseLocalPayloadOnRecord,rememberCloudBase,rememberLocalCourtDivision,restorePinnedCourt,sanitizeLoadedTournamentState} from './sync-state-and-rebase.js';
+import {KSM_SAVE_KEY,applyDeferredSyncRecord,clearLocalCourtDivisions,cloudBaseFor,deferRemoteRecord,ksmKnownRestoredRevision,localChangesPending,localCourtDivision,normalizeCourt,pinCourtLocally,pinnedCourt,rebaseLocalPayloadOnRecord,rememberCloudBase,rememberLocalCourtDivision,restorePinnedCourt,setLocalCourtDivision,sanitizeLoadedTournamentState} from './sync-state-and-rebase.js';
 import {KSM_REPLACE_BACKUP_PREFIX,KSM_TAB_ID,ksmDropOutboxesFor,ksmMarkOutboxMerged,ksmOutboxKey,ksmRetagHistory,ksmSendAdoptedOutbox,ksmTakeOrphanNow,ksmWriterId} from './two-tabs.js';
 import {ksmClearRestoreMark,ksmDropQueuedWorkBeforeRestore,ksmDropWorkBeforeRestore,ksmRestoredSince,ksmSetRestoreMark,setKsmRestorePoint} from './undo-regenerate.js';
 import * as KSMEngine from '../../engine/index.ts';
@@ -492,8 +492,11 @@ export function confirmTournamentFileLoad(payload,fileName){
 }
 export function applyTournamentFilePayload(payload,saveAfter){
   const before=tournamentPayload();
+  // This device's view before the file (#177 review): a load that throws after replaceState() may already have moved
+  // it to the file's court entry, so the restore is given this view, not the one the failed load left.
+  const view={division:state.currentDivision,local:{A:localCourtDivision('A'),B:localCourtDivision('B')}};
   try{applyTournamentPayload(payload,saveAfter);return true}
-  catch(err){console.error(err);try{applyTournamentPayload(before,false)}catch(_){}alert('Unable to load this tournament file. Nothing was changed.');return false}
+  catch(err){console.error(err);try{setLocalCourtDivision('A',view.local.A);setLocalCourtDivision('B',view.local.B);ksmShowDivision(view.division);applyTournamentPayload(before,false,{deviceView:{division:view.division}})}catch(_){}alert('Unable to load this tournament file. Nothing was changed.');return false}
 }
 export function replaceTournamentFromFile(){
   if(isReadOnlySession()){showKsmToast('Staff Login required to replace this tournament',3500,true);return}
@@ -664,8 +667,10 @@ function rehydrateLoadedTournamentState(options){
   const preferred=preserveLocalDivision?localCourtDivision(court):null;
   let cs=hasMatches(preferred)?{division:preferred,index:0}:state.courtState?.[court];
   if(!cs||!cs.division){
-    const next=findNextForCourt(court,null,0);
-    cs=hasMatches(next.division)&&next.index<state.allMatches[next.division].length?next:null;
+    // No shared entry: the court's active division first (#177 review), else the first division with a ready match.
+    const ready=next=>hasMatches(next.division)&&next.index<state.allMatches[next.division].length?next:null;
+    const active=state.courtActiveDivision?.[court];
+    cs=(hasMatches(active)?ready(findNextForCourt(court,active,0)):null)||ready(findNextForCourt(court,null,0));
   }
   if(cs&&cs.division){
     const arr=state.allMatches?.[cs.division]||[];
@@ -680,13 +685,13 @@ function rehydrateLoadedTournamentState(options){
     if(!individualMatchReady(active)||!matchBelongsToCourt(active,court)){
       normalized=findNextForCourt(court,cs.division,0);
     }
-    state.courtState=state.courtState||/** @type {any} */({});
-    state.courtState[court]=normalized;
+    // The load's reconciliation of the court's shared pointer runs only on that court's scorekeeper; any other device
+    // (a spectator, a TV, a device pinned to the other court) builds only its own view (docs/STORE.md section 1.2).
     applyCourtState(court,normalized,true);
     if(normalized.division)rememberLocalCourtDivision(court,normalized.division);
   }else{
     const known=d=>Boolean(d)&&(hasMatches(d)||(state.divisions||[]).includes(d));
-    state.currentDivision=known(own.division)?own.division:((state.divisions||[])[0]||null);
+    ksmShowDivision(known(own.division)?own.division:((state.divisions||[])[0]||null));
     state.matches=[];
     state.current=0;
     state.score={W:[],R:[],WT:0,RT:0};
@@ -697,7 +702,8 @@ export function applyTournamentPayload(payload,saveAfter,options={}){
   const localCourt=options.pinnedCourt||pinnedCourt()||cloudSession.court||state.currentCourt||null;
   const localPublicCourt=state.publicCourt||localCourt||'A';
   // This device's view before the load: the payload's own currentDivision / current / score are not this device's.
-  const deviceView={division:state.currentDivision};
+  // A restore after a failed load passes the view from before that load (applyTournamentFilePayload()).
+  const deviceView=options.deviceView||{division:state.currentDivision};
   const loaded=KSMEngine.migrateGrandChampions(KSMEngine.migrateTeamDivisions(JSON.parse(JSON.stringify(payload.state)),payload.setup||{}));ksmNoteTeamsReassigned(payload.state,loaded,options.source);
   // The load repairs run on the loaded copy, before it replaces `state` (docs/STORE.md section 2, point 4): the same
   // result as running them on `state` after the assign (tests/store/load-order.test.mjs).
@@ -705,8 +711,8 @@ export function applyTournamentPayload(payload,saveAfter,options={}){
   normalizeAllIndividualPoolTiebreakOrder(loaded,options.source||'tournament load');
   replaceState(loaded);
   state.teamElimTeams=state.teamElimTeams||{};state.managementRevision=state.managementRevision||0;state.divisionCourts=state.divisionCourts||{};Object.keys(state.divisionCourts).forEach(d=>{if(state.divisionCourts[d]==='Both'&&!isTeamDivision(d))state.divisionCourts[d]='split'});
-  if(localCourt){pinCourtLocally(localCourt);state.currentCourt=normalizeCourt(localCourt)}else state.currentCourt='A';
-  if(isTvSession())state.publicCourt=normalizeCourt(localCourt||localPublicCourt);else state.publicCourt=normalizeCourt(localPublicCourt);
+  if(localCourt){pinCourtLocally(localCourt);ksmSetCurrentCourt(normalizeCourt(localCourt))}else ksmSetCurrentCourt('A');
+  if(isTvSession())ksmSetPublicCourt(normalizeCourt(localCourt||localPublicCourt));else ksmSetPublicCourt(normalizeCourt(localPublicCourt));
   applySetupSnapshot(payload.setup);
   ensureCourtHistory();
   repairLoadedEliminationAdvancement(options.source||'tournament load');

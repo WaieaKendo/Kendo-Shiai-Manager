@@ -1,6 +1,6 @@
 // @ts-check
 import {state} from '../app-state.js';
-import {findNextForCourt,isTeamMatch,sortTeamMatches} from './court-match-order.js';
+import {findNextForCourt,isCourtScorekeeper,isTeamMatch,setCourtPointer,sortTeamMatches} from './court-match-order.js';
 import {eliminationFinalDone,matchBelongsToCourt} from '../engine/engine-generation.js';
 import {eligibleTeams} from '../engine/engine-pools.js';
 import {esc,jsArg} from '../html-text.js';
@@ -24,7 +24,9 @@ export function courtCurrentMatch(court){
   if(cs&&cs.division&&eliminationFinalDone(cs.division))return null;
   if(!cs || !cs.division || !(state.allMatches[cs.division]||[])[cs.index] || (state.allMatches[cs.division]||[])[cs.index]?.done){
     cs=findNextForCourt(court,cs?.division||state.courtActiveDivision?.[court]||null,cs?.index||0);
-    state.courtState[court]=cs;state.courtActiveDivision[court]=cs.division;
+    // Saved as the court's pointer only on that court's scorekeeper; Live Scores, the TV and the director's
+    // dashboard on any other device use it for this render only (isCourtScorekeeper(), docs/STORE.md 1.2).
+    if(isCourtScorekeeper(court))setCourtPointer(court,cs);
   }
   let arr=state.allMatches[cs.division]||[];if(arr.some(isTeamMatch))arr=sortTeamMatches(cs.division);
   let m=arr[cs.index];

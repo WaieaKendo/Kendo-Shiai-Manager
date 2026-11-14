@@ -98,7 +98,7 @@ def local_cases(browser):
     app.nav('overview')
     page.wait_for_function("document.getElementById('directorCourtGrid').textContent.includes('Adults')")
     assert 'Kids' in page.locator('#directorCourtGrid').inner_text()
-    page.evaluate("()=>{KSMTest.app.state.publicCourt='B';KSMTest.renderTv();}")
+    page.evaluate("()=>{KSMTest.app.setPublicCourt('B');KSMTest.renderTv();}")
     page.wait_for_function("document.querySelector('[data-testid=tv-division]').textContent==='Adults'")
     app.nav('setup');app.click('setup-export-brackets')
     assert 'Kids' in page.locator('#printBody').inner_text() and 'Adults' in page.locator('#printBody').inner_text()

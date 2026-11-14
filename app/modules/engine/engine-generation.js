@@ -1,7 +1,7 @@
 // Generation, the no-show rebuilds, the court helpers and the Pools view entry (step 4a of #136; was app/js/08-engine-generation.js).
-import {ksmSetPoolViewDivision,state} from '../app-state.js';
+import {ksmSetPoolViewDivision,ksmShowDivision,state} from '../app-state.js';
 import {renderAll} from '../court/court-context-and-pool-editing.js';
-import {individualMatchReady,initCourtStates,isTeamMatch,renderDivisions,sortIndividualDivisionMatches,sortTeamMatches} from '../court/court-match-order.js';
+import {individualMatchReady,initCourtStates,isCourtScorekeeper,isTeamMatch,renderDivisions,sortIndividualDivisionMatches,setCourtPointer,sortTeamMatches} from '../court/court-match-order.js';
 import {loadScoreFromMatch} from '../court/court-scoring-and-history.js';
 import {renderScore} from '../court/scorekeeper-screen.js';
 import {renderContext,syncIndividualSingleElim} from '../court/split-court-templates.js';
@@ -104,12 +104,13 @@ export function eliminationFinalDone(div){let arr=state.allMatches[div]||[];retu
 function nextIndexForCourt(div,c,start=0){let arr=state.allMatches[div]||[];if(eliminationFinalDone(div))return arr.length;if(arr.some(isTeamMatch)){arr=sortTeamMatches(div);start=0;}else{arr=sortIndividualDivisionMatches(div,arr);start=0;}let idx=arr.findIndex((m,i)=>i>=start && individualMatchReady(m) && matchBelongsToCourt(m,c));return idx<0?arr.length:idx}
 export function setActiveDivision(div,keepScore=false){
   if(state.currentCourt)rememberLocalCourtDivision(state.currentCourt,div);
-  state.currentDivision=div;
+  ksmShowDivision(div);
   state.matches=state.allMatches[div]||[];
   let idx=nextIndexForCourt(div,state.currentCourt||'A',state.currentByDivision[div]||0);
   state.current=idx;
-  state.currentByDivision[div]=idx;
-  if(state.currentCourt){state.courtState[state.currentCourt]={division:div,index:idx};state.courtActiveDivision[state.currentCourt]=div;}
+  // The court's shared pointer moves only on the court's own scorekeeper (isCourtScorekeeper(), docs/STORE.md 1.2):
+  // a spectator or TV picking a division changes only what this device shows.
+  if(state.currentCourt&&isCourtScorekeeper(state.currentCourt)){state.currentByDivision[div]=idx;setCourtPointer(state.currentCourt,{division:div,index:idx})}
   // Show the points the landed match already has (an empty pad for a fresh or finished match), so the
   // next tapped point is added to them instead of overwriting them via syncActiveScoreToMatch().
   // state.history is only this pad's local tap list (court Undo/Redo is separate), so a switch starts it empty.
