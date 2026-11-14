@@ -28,7 +28,7 @@ with sync_playwright() as p:
 
     # Selecting Kachinuki globally must not suppress unrelated individual totals.
     page.evaluate("""
-      if(window.teamFormat)teamFormat.value='Kachinuki';
+      KSMTest.app.ksmSetSetting('teamFormat','Kachinuki');
       KSMTest.app.state.divisionTypes.Individual='Single Elimination';
       KSMTest.app.state.divisionCourts.Individual='B';
       KSMTest.app.state.singleElimComps.Individual=Array.from({length:4},(_,i)=>({name:'I'+(i+1)}));

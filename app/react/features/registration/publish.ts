@@ -9,7 +9,7 @@
 // they read synchronously (ksmBindRegistrationRow(), ksmBindRegistrationEntry(), the stale flags,
 // ksmBlurRedrawn()) and ksmHtmlText() (21- and 44- call it). The rows are still bound through
 // legacy, so the classic actions find their competitor, team or match.
-import { legacy, legacyExhibitionTable, legacyInput, legacyRegTable, legacyStale, legacyTeamSlots } from '../../shared/legacy.ts';
+import { legacy, legacyExhibitionTable, legacyInput, legacyRegTable, legacyStale, legacyTeamSlots, setupSetting } from '../../shared/legacy.ts';
 import {
   PLAYERS_EVENT, STATUS_EVENT, type PlayersInput, type StatusInput,
 } from './registration-model.ts';
@@ -91,7 +91,7 @@ export function ksmTeamsData(): TeamsInput {
   const slots = fmt === '3-Person Team' || fmt === 'Kachinuki' ? ['senpo', 'chuken', 'taisho'] : ['senpo', 'jiho', 'chuken', 'fukusho', 'taisho'];
   return {
     divisions: teamDivisions().map(d => ({ id: d.id, name: d.name })),
-    format: htmlText(fmt), tournamentFormat: htmlText(legacyInput('teamTournamentFormat')?.value || 'Single Elimination'), slots,
+    format: htmlText(fmt), tournamentFormat: htmlText(setupSetting('teamTournamentFormat') || 'Single Elimination'), slots,
     cards: rows.map(c => bind(state.teams[c.i]!, {
       index: c.i, team: htmlText(c.team), teamDivisionId: c.teamDivisionId || teamDivisions()[0]?.id || '',
       slots: legacyTeamSlots(teamSettings(c.teamDivisionId).teamFormat), format: teamSettings(c.teamDivisionId).teamFormat,
@@ -121,7 +121,7 @@ export function ksmExhibitionsData(): ExhibitionsInput {
 export function ksmStatusInput(request: StatusRequest): StatusInput {
   return {
     valid: !!request.valid, competitors: request.competitors, divisions: request.divisions,
-    courts: legacy('ksmHtmlText')(legacyInput('tCourts')?.value || '2'), errors: request.errors,
+    courts: legacy('ksmHtmlText')(setupSetting('tCourts') || '2'), errors: request.errors,
   };
 }
 

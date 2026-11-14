@@ -17,6 +17,7 @@ import {ksmDivisionName,ksmTeamDivisions,ksmTeamSettings} from '../registration/
 import {divisionComplete,isPoolOnlyDivision,teamFinalPlacements} from '../results/results-and-awards.js';
 import {KSM_TEAM_PLACE_TIED,resultPlacements} from '../results/results-screen.js';
 import {isValidMatchObject,normalizeCourt} from '../sync/sync-state-and-rebase.js';
+import {ksmSetSetting,ksmSetting} from '../sync/cloud-session-and-autosave.js';
 // ==========================================================
 // React court screen (app/react/features/court/, roadmap M.8, #136 step 2)
 // The court (scorekeeper) screen is drawn only by React: app/react/features/court/main.tsx mounts
@@ -86,16 +87,16 @@ export function ksmHansokuCounts(m){
 // it saves and syncs exactly like a Setup edit (the field's own onchange, and the document's change
 // listener that schedules the autosave).
 export function ksmSetCourtRedSide(side){
-  const el=/** @type {HTMLSelectElement|null} */ (document.getElementById(normalizeCourt(state.currentCourt)==='B'?'court2RedSide':'court1RedSide'));
-  if(!el||el.value===side||(side!=='left'&&side!=='right'))return;
-  el.value=side;
+  const key=normalizeCourt(state.currentCourt)==='B'?'court2RedSide':'court1RedSide',el=document.getElementById(key);
+  if(!el||ksmSetting(key)===side||(side!=='left'&&side!=='right'))return;
+  ksmSetSetting(key,side);
   el.dispatchEvent(new Event('change',{bubbles:true}));
 }
 // #40: the audience setting uses the same Setup change path, independently of the table.
 export function ksmSetCourtTvRedSide(side){
-  const el=/** @type {HTMLSelectElement|null} */ (document.getElementById(normalizeCourt(state.currentCourt)==='B'?'court2TvRedSide':'court1TvRedSide'));
-  if(!el||el.value===side||(side!=='left'&&side!=='right'))return;
-  el.value=side;
+  const key=normalizeCourt(state.currentCourt)==='B'?'court2TvRedSide':'court1TvRedSide',el=document.getElementById(key);
+  if(!el||ksmSetting(key)===side||(side!=='left'&&side!=='right'))return;
+  ksmSetSetting(key,side);
   el.dispatchEvent(new Event('change',{bubbles:true}));
 }
 // "More court settings in Setup": Setup, scrolled to this court's Red side field.

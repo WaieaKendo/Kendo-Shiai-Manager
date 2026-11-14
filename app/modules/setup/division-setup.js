@@ -10,6 +10,7 @@ import {ksmRenderTeamDivisions,ksmSyncLegacyTeamDivision} from '../registration/
 import {renderTournamentStatus} from '../registration/validation.js';
 import {ksmRefreshTournamentChip} from '../session/tournament-switcher.js';
 import {showKsmToast} from '../sync/cloud-realtime-save-and-load.js';
+import {ksmSetSetting,ksmSetting} from '../sync/cloud-session-and-autosave.js';
 function addDivision(v){v=v||customDivName?.value?.trim()||window.newDiv?.value?.trim();if(!v)return;if(!state.divisions.includes(v)){state.divisions.push(v);state.divisionTypes[v]=customDivFormat?.value||window.newDivType?.value||'Round Robin';state.divisionCourts[v]=/** @type {any} */(customDivCourt?.value||'A')}if(window.customDivName)customDivName.value='';renderDivisionSetup();renderDivisions();renderReg()}
 export function addCustomDivision(){const name=customDivName.value.trim();const added=name&&!state.divisions.includes(name);addDivision();/** @type {HTMLButtonElement} */(document.querySelector('[data-testid="custom-division-add"]')).disabled=true;if(added)ksmAnnounceAddedDivision(name);}
 export function removeDivision(i){let d=state.divisions[i];state.divisions.splice(i,1);delete state.divisionTypes[d];delete state.divisionCourts[d];renderDivisionSetup();renderDivisions();renderReg()}
@@ -40,7 +41,7 @@ export function setDivisionFormat(d,v){state.divisionTypes[d]=v;renderReg()}
 export function renderDivisionSetup(){
   // The divisions table's rows are React (app/react/setup/, 42-react-setup.js): they are published
   // to it instead of written (M.13). The team court and awards fields stay legacy markup.
-  if(!window.divisionSetupRows)return;ksmRenderSetupDivisions();ksmRenderTeamDivisions();ksmRenderGrandChampionSetup();if(window.teamCourt)teamCourt.value=state.divisionCourts['Team Tournament']||'Both';if(window.teamAwardMode)teamAwardMode.value=state.teamAwardMode||'top2'}
+  if(!window.divisionSetupRows)return;ksmRenderSetupDivisions();ksmRenderTeamDivisions();ksmRenderGrandChampionSetup();ksmSetSetting('teamCourt',state.divisionCourts['Team Tournament']||'Both');ksmSetSetting('teamAwardMode',state.teamAwardMode||'top2')}
 function courtEligibleDivisions(court){
   let all=[...new Set([...Object.keys(state.allMatches||{}),...state.divisions])];
   return all.filter(d=>{
@@ -67,8 +68,8 @@ export function syncSetupHeader(){
 // No load-time call of saveSetup() ran before 30- (renderAll(), its only caller there, is first called after it).
 export function saveSetup(){
   ksmSyncLegacyTeamDivision();
-  if(window.teamCourt)state.divisionCourts['Team Tournament']=/** @type {any} */(teamCourt).value;
-  if(window.teamAwardMode)state.teamAwardMode=teamAwardMode.value||'top2';
+  state.divisionCourts['Team Tournament']=/** @type {any} */(ksmSetting('teamCourt'));
+  state.teamAwardMode=ksmSetting('teamAwardMode')||'top2';
   renderDivisionSetup();renderDivisions();renderReg();renderTournamentStatus();
   syncSetupHeader();
 }

@@ -7,7 +7,7 @@ import {renderTeams} from './registration.js';
 import {renderTournamentStatus} from './validation.js';
 import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {writeCloudDiagnosticsState} from '../sync/cloud-diagnostics.js';
-import {getSetupSnapshot,tournamentSettings} from '../sync/cloud-session-and-autosave.js';
+import {getSetupSnapshot,ksmSetSetting,tournamentSettings} from '../sync/cloud-session-and-autosave.js';
 import * as KSMEngine from '../../engine/index.ts';
 export function ksmNewTeamRows(rows){const division=ksmDefaultTeamDivisionId();return rows.map(t=>({...t,id:ksmNewTeamIdentity(),teamDivisionId:division}))}
 // The saved format this app understands (team divisions = 2, grand champion #86 = 3), sent with every
@@ -37,7 +37,7 @@ export function ksmSyncLegacyTeamDivision(){
   const d=ksmTeamDivision('Team Tournament');if(!d)return;
   state.teamAwardMode=d.awardMode;state.divisionCourts[d.id]=/** @type {any} */(d.court);
   for(const [key,value] of Object.entries({teamFormat:d.teamFormat,teamTournamentFormat:d.teamTournamentFormat,teamCourt:d.court,teamAwardMode:d.awardMode})){
-    const el=/** @type {HTMLInputElement|null} */(document.getElementById(key));if(el)el.value=value;
+    ksmSetSetting(key,value);
   }
 }
 export function ksmTeamSettings(id){

@@ -12,7 +12,7 @@ from ksm_server import local_worker
 
 def draft_device(browser, base, problems):
     a=KsmApp.open_device(browser,base,'Draft device',problems,tournament_name='New beside draft')
-    a.page.evaluate("tName.value='Keep this draft';KSMTest.app.markLocalSave('Draft fixture')")
+    a.page.evaluate("KSMTest.app.ksmSetSetting('tName','Keep this draft');KSMTest.app.markLocalSave('Draft fixture')")
     a.reload()
     assert 'Keep this draft' in a.page.get_by_test_id('local-draft').inner_text()
     return a

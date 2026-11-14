@@ -9,6 +9,7 @@ import {ksmSetFusenOpen} from '../react-bridges/shell.js';
 import {renderPublic} from '../results/live-scores.js';
 import {divisionComplete} from '../results/results-and-awards.js';
 import {redOnLeftForCourt} from '../sync/sync-state-and-rebase.js';
+import {ksmSetting} from '../sync/cloud-session-and-autosave.js';
 // ---------- KSM v3.9.1 Scorekeeper redesign helpers ----------
 export function matchDisplayMeta(m){
   if(!m)return {division:'—', line:'No active match'};
@@ -56,7 +57,7 @@ export function ensureScorableCurrentMatch(){
 // ---------- KSM v3.9.1 Header helpers ----------
 export function updateScoreTournamentName(){
   // The React court header (35-react-court.js) shows it.
-  ksmSignalCourtHeader({tournamentName:(window.tName&&tName.value)?tName.value:'Kendo Tournament'});
+  ksmSignalCourtHeader({tournamentName:ksmSetting('tName')||'Kendo Tournament'});
 }
 
 // renderScore() (step 4a of #136; was app/js/22-scorekeeper-screen.js): ONE final function. 32-split-court-templates.js used to

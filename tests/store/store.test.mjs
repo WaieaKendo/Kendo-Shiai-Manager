@@ -4,13 +4,13 @@ import assert from 'node:assert/strict';
 import { createSlice } from '@reduxjs/toolkit';
 import {
   createKsmStore, dispatch, getState, store, subscribe, rootReducer,
-  DEVICE_SLICE_VERSION, TOURNAMENT_SLICE_VERSION, actionMeta, metaCourt, withMeta,
+  DEVICE_SLICE_VERSION, TOURNAMENT_SLICE_VERSION, actionMeta, initialSettings, metaCourt, withMeta,
 } from '../../app/store/index.ts';
 
-test('two slices, tournament (its version only) and device (its version and the device fields)', () => {
+test('two slices, tournament (its version and the Setup settings) and device (its version and the device fields)', () => {
   const s = createKsmStore();
   assert.deepEqual(s.getState(), {
-    tournament: { sliceVersion: TOURNAMENT_SLICE_VERSION },
+    tournament: { sliceVersion: TOURNAMENT_SLICE_VERSION, settings: initialSettings },
     device: { sliceVersion: DEVICE_SLICE_VERSION, regMode: 'individual', poolViewDivision: 'Women’s Open', currentCourt: 'A', publicCourt: 'A', currentDivision: 'Women’s Open', localCourtDivision: { A: null, B: null },
       currentMatchIndex: 0, activeScore: { A: { W: [], R: [], WT: 0, RT: 0 }, B: { W: [], R: [], WT: 0, RT: 0 } } },
   });

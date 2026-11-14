@@ -13,6 +13,7 @@ import {KSM_AUTOSAVE_CLOUD_ID,KSM_CLOUD_RECOVERY_KEY,KSM_CLOUD_SESSION_KEY,KSM_S
 import {KSM_TAB_ID,ksmAdoptOrphanOutbox,ksmOutboxKey,ksmPeekOrphanOutbox,ksmReadOutboxKey,ksmReleaseAdoptedOutbox} from './two-tabs.js';
 import {ksmPendingRestoreMark} from './undo-regenerate.js';
 import * as KSMEngine from '../../engine/index.ts';
+import {dispatch,getState,tournamentSlice} from '../../store/index.ts';
 // The cloud session, the outbox and the local autosave (step 3d of #136, from app/js/20-cloud-session-and-autosave.js).
 // cloudSession is read from localStorage by initCloudSession(), which app/js/20- runs where this file used to load.
 // scheduleAutoSave(), saveAuto() and criticalAutoSave() are at the end of this file; tests wrap them through window
@@ -52,11 +53,54 @@ export function downloadJson(value,name){const blob=new Blob([JSON.stringify(val
 function recoveryPackage(){const outbox=readOutbox();let stored=null;try{stored=JSON.parse(localStorage.getItem(KSM_CLOUD_RECOVERY_KEY)||'null')}catch(_){}return {fileType:'KSM_RECOVERY',schemaVersion:'1.0',appVersion:'3.17.3-test',engineVersion:'3.12.9',createdAt:new Date().toISOString(),tournamentId:cloudSession.tournamentId||outbox?.tournamentId||null,assignedCourt:cloudSession.court||state.currentCourt||'',role:ksmSessionRole,lastConfirmedCloudRevision:cloudSession.revision||0,latestLocalSnapshot:tournamentPayload(),queuedActions:outbox?.actions||[],outbox:outbox||null,conflictRecovery:stored||null,restoreRecovery:ksmRestoreRecoveries(cloudSession.tournamentId||outbox?.tournamentId||''),parkedBeforeRestore:ksmParkedWork(cloudSession.tournamentId||outbox?.tournamentId||'')}}
 export function downloadRecoveryFile(){try{const pack=recoveryPackage();const court=pack.assignedCourt?`_Court-${pack.assignedCourt}`:'';const stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);downloadJson(pack,`KSM_Recovery${court}_${stamp}.ksm`);updateSaveStatus('Recovery file downloaded')}catch(err){console.error(err);alert('Unable to create recovery file.')}}
 function downloadCloudRecovery(){downloadRecoveryFile()}
+// The Setup form is tournament data in the store (tournament.settings, #15 PR 8); the Setup inputs show it. Readers
+// read the store (getSetupSnapshot(), tournamentSettings(), ksmSetting()), never an input. Writers: a user's edit of an
+// input (the document's input/change listener of initSetupSettings(), which runs before the field's own handler),
+// ksmSetSetting() for the app's own writes, applySetupSnapshot() for a loaded Setup.
+/** One Setup value (tournament.settings[key]). */
+export function ksmSetting(key){return getState().tournament.settings[key]}
+function settingsMeta(){const id=cloudSession?.clientId;return {device:id?`${id}/${KSM_TAB_ID}`:''}}
+/**
+ * Puts the store's Setup values into the inputs (only where an input shows something else: a caret is not moved for nothing).
+ * @param {readonly string[]} [keys]
+ */
+export function renderSetupInputs(keys=KSMEngine.SETUP_KEYS){
+  const settings=getState().tournament.settings;
+  keys.forEach(id=>{const el=/** @type {HTMLInputElement|null} */(document.getElementById(id));if(el&&el.value!==settings[id])el.value=settings[id]});
+}
+/**
+ * The app sets one Setup field (an input's value written by code before PR 8): one tournament/settingChanged, none
+ * for an unchanged value, then the input shows it. Like the old `el.value = value`, it schedules no save and fires no
+ * event: a caller that did so still does.
+ */
+export function ksmSetSetting(key,value){
+  if(!KSMEngine.isSetupKey(key))return;
+  value=KSMEngine.normalizeSetupValue(key,value);
+  if(value!==ksmSetting(key))dispatch(tournamentSlice.actions.settingChanged({key,value},settingsMeta()));
+  renderSetupInputs([key]);
+}
+function onSetupInput(event){
+  const el=/** @type {any} */(event.target);
+  if(!el||!KSMEngine.isSetupKey(el.id)||document.getElementById(el.id)!==el)return;
+  const value=KSMEngine.normalizeSetupValue(el.id,el.value);
+  if(value!==ksmSetting(el.id))dispatch(tournamentSlice.actions.settingChanged({key:el.id,value},settingsMeta()));
+}
+/**
+ * Load time (app/main.js, before any other input/change listener): the store takes the Setup the page opened with,
+ * the one read of the inputs (their defaults, or what the browser restored into them on a reload, as the first
+ * getSetupSnapshot() read them before PR 8); then every edit of a Setup input dispatches tournament/settingChanged,
+ * in the capture phase, so the field's own handler (saveSetup(), ksmSaveTimerSettings()) already reads the new value.
+ */
+export function initSetupSettings(){
+  const opened={};
+  KSMEngine.SETUP_KEYS.forEach(id=>{const el=/** @type {HTMLInputElement|null} */(document.getElementById(id));if(el)opened[id]=el.value});
+  dispatch(tournamentSlice.actions.settingsLoaded(KSMEngine.normalizeSetup(opened),settingsMeta()));
+  document.addEventListener('input',onSetupInput,true);
+  document.addEventListener('change',onSetupInput,true);
+}
+/** The Setup as `payload.setup` has it: every field, in the order of KSMEngine.SETUP_KEYS. */
 export function getSetupSnapshot(){
-  const ids=['tName','tHost','tDate','tLocation','tCourts','teamEnabled','teamFormat','teamTournamentFormat','teamCourt','teamAwardMode','exhibitionEnabled','court1Refs','court2Refs','court1RedSide','court2RedSide','timeRegular','timeQuarterfinal','timeSemifinal','timeFinal','timeEncho','court1TimerSound','court2TimerSound','court1TimerEnabled','court2TimerEnabled', 'court1TvRedSide','court2TvRedSide'];
-  const data={};
-  ids.forEach(id=>{const el=/** @type {HTMLInputElement|null} */(document.getElementById(id)); if(el) data[id]=el.value;});
-  return data;
+  return {...getState().tournament.settings};
 }
 // Engine code reads tournament settings only through this accessor (app/engine/settings.ts);
 // the source is the same `setup` snapshot that tournamentPayload() persists.
@@ -66,7 +110,9 @@ export function applySetupSnapshot(data){
   data={...data,...ksmNormalizeTimerSettings(data)};
   // Old tournaments and unrecognized values retain the original audience orientation.
   data={...data,court1TvRedSide:data.court1TvRedSide==='left'?'left':'right',court2TvRedSide:data.court2TvRedSide==='left'?'left':'right'};
-  Object.keys(data).forEach(id=>{const el=/** @type {HTMLInputElement|null} */(document.getElementById(id)); if(el) el.value=data[id];});
+  // One action for the whole Setup (a field the data does not name keeps its value, as its input did), then the inputs.
+  dispatch(tournamentSlice.actions.settingsLoaded(KSMEngine.normalizeSetup(data),settingsMeta()));
+  renderSetupInputs();
   applyCourtSides();
   if(!state.teamDivisions&&data.teamCourt)state.divisionCourts['Team Tournament']=data.teamCourt;
   (state.teamDivisions||[]).forEach(d=>state.divisionCourts[d.id]=/** @type {any} */(d.court));

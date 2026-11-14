@@ -1,7 +1,7 @@
 # The store: plan for moving `state` into Redux Toolkit (#15 step 2.8)
 
-Status (2026-11-14): **prep done (PR 2), Undo/Redo without device keys (PR 3), loads keep the device view (PR 4), device fields moved: `regMode`, `poolViewDivision` (PR 5), the court view (PR 6), `matches` derived and `current` / `score` moved (PR 7)**. `app/store/` holds a Redux Toolkit store (slices
-`tournament` and `device`, each with only a `sliceVersion`). app.js imports it as a separate tree-shaken, minified
+Status (2026-11-14): **prep done (PR 2), Undo/Redo without device keys (PR 3), loads keep the device view (PR 4), device fields moved: `regMode`, `poolViewDivision` (PR 5), the court view (PR 6), `matches` derived and `current` / `score` moved (PR 7), the Setup form in `tournament.settings` (PR 8; PR 8b left)**. `app/store/` holds a Redux Toolkit store (slices
+`tournament` and `device`). app.js imports it as a separate tree-shaken, minified
 bundle (+7.9 kB gzip, section 5) and sets `window.KSMStore`; `app/modules/app-state.js` has the helpers the field
 moves use (`moveToStore()`, `replaceState()`, `assignState()`, section 2). All app data is still the one mutable
 global `state` (`app/modules/app-state.js`). This document is the inventory of that object and the order in which
@@ -45,8 +45,8 @@ Class: **T** tournament data (shared, synced), **D** device/screen state (this d
 | `hiddenPresets` | 5 / 2 / 1 | setup (react-bridges/setup) | |
 | `divisionRenames` | 0 in app/modules (5 in 2 files by name) / via `Object.assign` / 2 | division rename (react-bridges/setup, through `renamedDivisionState`), the rebase (`rebaseDivisionRenames`) | The rename log `{id, from, to}` the save-conflict replay uses (#25, #36); not in `TournamentState`'s type yet. Moves with the divisions (PR 9) |
 | `divisionTypes` | 18 / 7 / 9 | setup, registration | |
-| `divisionCourts` | 57 / 26 / 18 | setup, registration, team divisions, grand champion, court order, generation, **sync** (load normalizes `'Both'`→`'split'`), `applySetupSnapshot` (`teamCourt`) | Most-written settings field; partly derived from the Setup form |
-| `teamAwardMode` | 5 / 3 / 4 | setup, team divisions, `applySetupSnapshot` | Duplicates the Setup form field of the same name |
+| `divisionCourts` | 57 / 26 / 18 | setup, registration, team divisions, grand champion, court order, generation, **sync** (load normalizes `'Both'`→`'split'`), `applySetupSnapshot` (`teamCourt`) | Most-written settings field; partly derived from the Setup form (its `'Team Tournament'` entry from `settings.teamCourt` since PR 8: `saveSetup()` reads the store; still its own copy, PR 8b) |
+| `teamAwardMode` | 5 / 3 / 4 | setup, team divisions, `applySetupSnapshot` | Duplicates the Setup form field of the same name (`saveSetup()` copies `settings.teamAwardMode` since PR 8; a getter is PR 8b, see section 3 item 8) |
 | `competitors` | 30 / 8 / 9 | registration (+ its React bridge, rows edited in place) | Three-way merged on save conflicts (`KSM_MERGED_STATE_KEYS`) |
 | `teams` | 31 / 9 / 10 | registration | Merged by team id (#95) |
 | `teamDivisions` | 12 / 2 / 6 | team divisions (load-time migration `migrateTeamDivisions`) | |
@@ -65,7 +65,7 @@ Class: **T** tournament data (shared, synced), **D** device/screen state (this d
 | `teamBracketNodes` | 32 / 7 / 12 | generation, team matches | Structural |
 | `teamElimTeams` | 19 / 8 / 4 | generation, team matches, sync (load default) | Structural |
 | `allMatches` | 162 / 22 / 31 | court actions (scoring, Next Match, tiebreaks, playoffs), generation, every advancement sync, pool editing, sync apply/rebase, undo/redo | The core. Plus the alias writes on Match Objects. Legacy code relies on **Match Object identity** (the engine README's "identity has to be preserved") |
-| Setup form (`payload.setup`, not in `state`) | — | `applySetupSnapshot()` writes DOM inputs; everything reads them back by element id (`getSetupSnapshot()`, `tournamentSettings()`) | Tournament data stored in the DOM. Moves into `tournament.settings` |
+| Setup form (`payload.setup`, not in `state`) | — | `applySetupSnapshot()` (`tournament/settingsLoaded`), an edit of a Setup input (`tournament/settingChanged`), `ksmSetSetting()` | **Moved (PR 8)** to `tournament.settings`: every reader reads the store (`getSetupSnapshot()`, `tournamentSettings()`, `ksmSetting()`, the islands' `setupSetting()`); the inputs show it |
 
 ### 1.2 Device / screen state, mixed fields and dead fields
 
@@ -401,6 +401,47 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
    `tournament/settingsLoaded`, field edits `tournament/settingChanged`; inputs render from the store;
    `teamAwardMode` and the `teamCourt` part of `divisionCourts` read settings. Risk: medium (DOM reads by id in many
    places, `tournamentSettings()`). Tests: setup goldens, edit-conflicts (Setup fields merge), print.
+   Done (**PR 8**), split: `teamAwardMode` / `teamCourt` are left for **PR 8b** (below).
+   - `tournament.settings` holds the 26 Setup fields (`TournamentSetup`, `app/store/slices/tournament.ts`), each the
+     text its input holds, in the order `payload.setup` has always had (`KSMEngine.SETUP_KEYS`, `app/engine/settings.ts`).
+     Defaults are the page's (`initialSettings`; `tests/store/settings.test.mjs` checks them and the select options
+     against `app/index.html`). Actions carry `meta` (`court: null`, the device).
+   - `tournament/settingsLoaded` (one action, the whole object): `applySetupSnapshot()` (a load, remote apply, rebase
+     result, file, tournament switch, reset). As the inputs did, a field the object names is set and one it does not
+     name keeps its value (a tournament switch first applies the empty Setup, so a missing field is the page's default
+     there, as before). The page opening is one too (`initSetupSettings()`, `app/main.js`): the store takes what the
+     inputs opened with, which is the one read of the inputs' values left besides the edit listener and the render.
+   - `tournament/settingChanged {key, value}`: an edit of a Setup input (a document `input` / `change` listener in the
+     capture phase, registered before every other listener, so the autosave's listener and the field's inline
+     handler, `saveSetup()` or `ksmSaveTimerSettings()`, read the new value from the store), and `ksmSetSetting()`
+     for the app's own writes (`ksmSyncLegacyTeamDivision()`, `renderDivisionSetup()`, `ksmSaveTimerSettings()`, the
+     court screen's red side / audience side / timer, the new tournament's name). An unchanged value dispatches nothing.
+     Like the old `el.value = …`, `ksmSetSetting()` schedules no save and fires no event.
+   - Values are normalized before the dispatch (`KSMEngine.normalizeSetup()` / `normalizeSetupValue()`) to what the
+     field's input holds once set: text inputs drop line breaks, the referee textareas turn CR LF into LF, the date and
+     number inputs hold `''` for what they reject, a select holds one of its options or `''`.
+     `tests/setup-settings-store-test.py` checks this against Chromium's own inputs, so the snapshot's `setup` is the
+     same text the old `getSetupSnapshot()` read from the inputs (also checked there, for a 4.0 save, an old save
+     without the timer / audience fields and odd values).
+   - Inputs render from the store: `renderSetupInputs()` after every `settingsLoaded`, and `ksmSetSetting()` renders
+     its field; a field is written only when it shows something else, so an equal value never moves a caret. A Setup
+     applied while a field has focus still replaces its text, as before (a remote save is still deferred while
+     someone types, `ksmLastEditorInputAt`, unchanged).
+   - Save conflicts: unchanged. The rebase merges `payload.setup` per field (`mergeValueThreeWay`), on payload copies
+     whose `setup` now comes from the store; its result is applied with `settingsLoaded`. Undo/Redo never recorded
+     Setup (it is not in `state`), and the undo-regenerate restore point is a payload: both unchanged.
+   - Readers (`state`'s DOM reads by id): see the PR description's table. React islands read `setupSetting(key)`
+     (`app/react/shared/legacy.ts`: `window.KSMStore`); `legacyTournamentNameInput()` and the Setup entries of
+     `legacyInput()` are gone. The print renderer still reads the snapshot it is given. A source check
+     (`tests/store/settings.test.mjs`) fails on any read of a Setup input's value in `app/`.
+   - **Left for PR 8b**: `state.teamAwardMode` as a getter over `settings.teamAwardMode`, and the `'Team Tournament'`
+     entry of `divisionCourts` from `settings.teamCourt`. Not a getter yet because the two are not always the same
+     value today: the empty `state` (`app-state.js`, and the copy `ksmResetTournament()` loads) has no `teamAwardMode`
+     key until the start-up render sets it, a payload's `state` may lack it or differ from its `setup.teamAwardMode`,
+     and between `replaceState()` and `applySetupSnapshot()` / `ksmSyncLegacyTeamDivision()` a load holds the
+     payload's own. A getter would always write the key with the Setup's value (a snapshot change for those saves) and
+     needs the owner's OK or a "missing" marker; the `teamCourt` part moves with `divisionCourts` (PR 9). Here both are
+     only read from the store instead of the inputs.
 9. **Divisions**: `divisions`, `divisionTypes`, `divisionCourts`, `hiddenPresets`, `divisionRenames` → `tournament/divisionAdded`,
    `…Removed`, `…Renamed` (calls `renamedDivisionState`), `…FormatChanged`, `…CourtChanged`, `presetsRestored`.
    The rename (with its `divisionRenames` record) is one action. Risk: medium (`divisionCourts` has 26 writes).
@@ -441,8 +482,8 @@ call commands instead of window functions.
 - The `ksm:*` publishers go away screen by screen: today legacy code computes `window.ksmXInput` and dispatches
   `ksm:x` (`app/react/features/*/publish.ts`). Once the data a screen reads is in the store, its `*-model.ts` view
   functions (already pure) become selectors, and that screen's publisher, its event and its `ksmXRequested` flag
-  are deleted. `useLegacyState` / `ksm:state-changed` go when `state` does. Screens that read the DOM Setup form
-  wait for PR 8.
+  are deleted. `useLegacyState` / `ksm:state-changed` go when `state` does. Since PR 8 the islands read the Setup form from the
+  store (`setupSetting()`), not the DOM.
 
 ## 5. Bundle size and re-renders (old TVs and tablets)
 
@@ -466,6 +507,9 @@ call commands instead of window functions.
   `app-state.js` and their JSDoc (app.js keeps JSDoc comments).
 - Nothing in the React bundle changes (it imports no store code yet; `react.ts` adds only React, which it already
   has).
+- PR 8 (the Setup form): the store bundle 8,270 → 8,611 bytes gzip (the slice's defaults and two reducers; the
+  normalization rules are in `app/engine/settings.ts`, in app.js); app.js 658,603 → 664,764 bytes, gzip 170,765 →
+  172,883; the React bundle 626,197 → 625,991 bytes.
 - Re-renders: `store.subscribe` listeners run on every dispatch, so selectors must be cheap and return stable
   references. A remote snapshot is one action, one notification (today `ksmNotifyStateChanged` coalesces per
   microtask). Immer copies only the changed path (structural sharing); the deep freeze of a loaded snapshot is one

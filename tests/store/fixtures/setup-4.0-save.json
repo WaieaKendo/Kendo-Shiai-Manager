@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "1.1",
+  "engineVersion": "3.12.9",
+  "templateVersion": "2026.1",
+  "savedAt": "2026-11-01T19:30:00.000Z",
+  "setup": {"tName":"Hawaii Kendo Federation Taikai","tHost":"Aiea Taiheiji Kendo Club","tDate":"2026-11-21","tLocation":"Halawa District Park","tCourts":"2","teamEnabled":"Enabled","teamFormat":"5-Person Team","teamTournamentFormat":"Round Robin","teamCourt":"B","teamAwardMode":"dual3","exhibitionEnabled":"Enabled","court1Refs":"Sensei A\nSensei B\nSensei C","court2Refs":"Sensei D\nSensei E","court1RedSide":"left","court2RedSide":"right","timeRegular":"4:00","timeQuarterfinal":"","timeSemifinal":"5:00","timeFinal":"5:00","timeEncho":"","court1TimerSound":"whistle02","court2TimerSound":"whistle01","court1TimerEnabled":"Off","court2TimerEnabled":"On","court1TvRedSide":"left","court2TvRedSide":"right"},
+  "state": {"divisions": [], "teamAwardMode": "dual3"}
+}

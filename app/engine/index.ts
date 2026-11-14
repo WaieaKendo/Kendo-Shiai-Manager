@@ -6,7 +6,7 @@ export {
   assignPoolPlayerSlots, buildPools, poolMatchPairs, buildPoolMatches, poolNoShowPlan,
 } from './pools.ts';
 export type { PoolEntrant, SlottedPlayer, BuiltPool, PoolMatch, PoolNoShowMatch } from './pools.ts';
-export { readSettings, DEFAULT_SETTINGS } from './settings.ts';
+export { readSettings, DEFAULT_SETTINGS, SETUP_KEYS, SETUP_SELECT_OPTIONS, isSetupKey, normalizeSetup, normalizeSetupValue } from './settings.ts';
 export { statusCycle, validationIssue } from './registration.ts';
 export {
   isTeamMatch, teamPositionOrder, individualMatchReady, isIndividualPoolTiebreakMatch, directorMatchLabel,
@@ -23,7 +23,7 @@ export {
   bracketPairsFromSeeds, poolRowsStillTied, indivNodeHasMatch, canonicalSingleElimMatch, pointsFor,
 } from './bracket-helpers.ts';
 export type { EntryStatus } from './registration.ts';
-export type { TournamentSettings } from './settings.ts';
+export type { SetupKey, TournamentSettings } from './settings.ts';
 export {
   matchRequiresWinner, completedResultWinnerValid, completedResultSnapshotValid, scoreWinnerOf, winnerOf,
   pendingTiebreak, initialPoolStandings, tiebreakStatsForPlayers, tiebreakSeriesStats, resolveTiebreakBaseGroup,

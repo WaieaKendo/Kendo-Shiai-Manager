@@ -105,7 +105,7 @@ export const KSM_LOCAL_VIEW_STATE_KEYS=new Set(['currentCourt','publicCourt','cu
 export function normalizeCourt(value){return KSMEngine.normalizeCourt(value);// moved to app/engine/sync-helpers.ts
   }
 // Red/White sides are mirrored per court to match the scoring table's view (Setup → Referees).
-export function redOnLeftForCourt(court){return /** @type {HTMLSelectElement|null} */(document.getElementById(normalizeCourt(court)==='B'?'court2RedSide':'court1RedSide'))?.value==='left'}
+export function redOnLeftForCourt(court){return getState().tournament.settings[normalizeCourt(court)==='B'?'court2RedSide':'court1RedSide']==='left'}
 export function applyCourtSides(){document.body.classList.toggle('ksm-red-left',redOnLeftForCourt(state.currentCourt))}
 /** Sets this device's division for a court (null clears it). */
 export function setLocalCourtDivision(court,division){const c=normalizeCourt(court);if(ksmLocalCourtDivision[c]!==division)dispatch(deviceSlice.actions.localCourtDivisionChosen({court:c,division}))}

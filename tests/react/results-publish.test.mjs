@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ksmResultDetail, ksmResultsBracketInputData, ksmResultsDashboardInput, startResultsInput } from '../../app/react/features/results/publish.ts';
+import { fakeSettingsStore } from './settings-store-fake.mjs';
 
 // A fake `window` with the legacy functions publish.ts reads through shared/legacy.ts.
 // `placements` maps a division to resultPlacements(); `complete` lists finished divisions.
@@ -33,7 +34,9 @@ function fakeWindow({
     dispatch: type => listeners.get(type)?.(),
   };
   s.pools = pools;
+  // The Setup name (the store's tournament.settings.tName); `win.tName.value` stands for the field.
   if (name !== undefined) win.tName = { value: name };
+  win.KSMStore = fakeSettingsStore(key => (key === 'tName' ? win.tName?.value : undefined));
   globalThis.window = win;
   return win;
 }

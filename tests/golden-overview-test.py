@@ -204,7 +204,7 @@ def overview_rr_4(browser, errors):
     g.do('no tournament yet', lambda a: a.nav('overview'))
     g.do('5 s later (no tournament)', lambda a: a.page.evaluate(TICK_JS))
     phone_views(g, 'no tournament')
-    g.do('tournament name', lambda a: a.page.evaluate("() => { tName.value = 'Aiea <Taikai> & Co'; KSMTest.show('director'); }"))
+    g.do('tournament name', lambda a: a.page.evaluate("() => { KSMTest.app.ksmSetSetting('tName', 'Aiea <Taikai> & Co'); KSMTest.show('director'); }"))
     g.app.configure([{'name': 'Open', 'format': 'Round Robin', 'court': 'A', 'entrants': people('P', 4)}])
     g.do('generated (Overview hidden by Generate)', lambda a: None)
     g.do('generated: Overview opened', lambda a: a.nav('overview'))

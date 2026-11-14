@@ -222,9 +222,14 @@ export function legacy<K extends keyof LegacyGlobals>(name: K): LegacyGlobals[K]
   return fn as LegacyGlobals[K];
 }
 
-/** The Setup tournament name input (#tName, reached as window.tName by element id), if any. */
-export function legacyTournamentNameInput(): { value: string } | null {
-  return (window as unknown as { tName?: { value: string } }).tName ?? null;
+/**
+ * One Setup value (the Setup form's field `key`, e.g. 'tName'): the store's tournament.settings (#15 PR 8), read
+ * through window.KSMStore (set by app.js; never an import of the store, docs/STORE.md section 4). undefined without a
+ * store.
+ */
+export function setupSetting(key: string): string | undefined {
+  const store = (window as unknown as { KSMStore?: { getState(): { tournament: { settings: Record<string, string> } } } }).KSMStore;
+  return store?.getState().tournament.settings[key];
 }
 
 /** The Live Scores element (#publicLive, reached as window.publicLive by element id), if any. */
@@ -237,10 +242,10 @@ export function legacyTvLive(): Element | null {
   return (window as unknown as { tvLive?: Element }).tvLive ?? null;
 }
 
-/** An input element reached by its id as a window property (the Registration filters and Setup fields). */
-export type LegacyInputName = 'regFilter' | 'teamFilter' | 'teamDivisionFilter' | 'teamTournamentFormat' | 'tCourts';
+/** An input element reached by its id as a window property (the Registration filters). */
+export type LegacyInputName = 'regFilter' | 'teamFilter' | 'teamDivisionFilter';
 
-/** One of the Registration inputs (#regFilter, #teamFilter, #teamDivisionFilter, #teamTournamentFormat, #tCourts), if any. */
+/** One of the Registration filter inputs (#regFilter, #teamFilter, #teamDivisionFilter), if any. */
 export function legacyInput(name: LegacyInputName): { value: string } | null {
   return (window as unknown as Partial<Record<LegacyInputName, { value: string }>>)[name] ?? null;
 }

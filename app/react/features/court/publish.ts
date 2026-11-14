@@ -20,7 +20,7 @@
 // next division) with the row and card builders they use, ksmSingleElimContext() and
 // ksmFinalResults() (they read top-level `const`s the module cannot reach), the Red side and
 // Setup actions, and the module-missing notice.
-import { legacy } from '../../shared/legacy.ts';
+import { legacy, setupSetting } from '../../shared/legacy.ts';
 import { ACTIONS_EVENT, type CourtActionsInput } from './actions-model.ts';
 import { HEADER_EVENT, type CourtHeaderInput } from './header-model.ts';
 import {
@@ -104,7 +104,7 @@ export function ksmCourtHeaderInput(request: HeaderRequest): CourtHeaderInput {
   const state = legacy('ksmLegacyState')();
   const courtB = legacy('normalizeCourt')(state.currentCourt) === 'B';
   const timer = legacy('ksmNormalizeTimerSettings')(legacy('getSetupSnapshot')());
-  const tvRedSide = (window.document.getElementById(courtB ? 'court2TvRedSide' : 'court1TvRedSide') as { value?: string } | null)?.value;
+  const tvRedSide = setupSetting(courtB ? 'court2TvRedSide' : 'court1TvRedSide');
   return {
     ...fields,
     timerSound: timer[courtB ? 'court2TimerSound' : 'court1TimerSound'],

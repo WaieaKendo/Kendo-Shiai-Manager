@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   ksmExhibitionsData, ksmRegistrationData, ksmStatusInput, ksmTabInput, ksmTeamsData, startRegistrationInput,
 } from '../../app/react/features/registration/publish.ts';
+import { fakeSettingsStore } from './settings-store-fake.mjs';
 
 // A fake `window` with the legacy functions and elements publish.ts reads through shared/legacy.ts.
 function fakeWindow({
@@ -25,7 +26,9 @@ function fakeWindow({
     ksmTeamDivisions: () => teamDivisions,
     ksmTeamSettings: id => ({ teamFormat: formats[id ?? ''] ?? '5-Person Team', teamTournamentFormat: 'Single Elimination' }),
     KSMEngine: { teamSlots: f => (f === '3-Person Team' || f === 'Kachinuki' ? ['senpo', 'chuken', 'taisho'] : ['senpo', 'jiho', 'chuken', 'fukusho', 'taisho']) },
-    regFilter, teamFilter, teamDivisionFilter, teamTournamentFormat, tCourts,
+    regFilter, teamFilter, teamDivisionFilter,
+    // The Setup fields come from the store (tournament.settings, #15 PR 8).
+    KSMStore: fakeSettingsStore(key => ({ teamTournamentFormat, tCourts })[key]?.value),
     regTable: { contains: el => el === active },
     exhibitionTable: { id: 'exhibitionTable' },
     ksmRegistrationMounted: true,

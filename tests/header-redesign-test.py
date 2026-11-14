@@ -12,7 +12,7 @@ def main():
         app=KsmApp.local(browser.new_page())
         page=app.page
         page.evaluate("window.headerMutations=0;const headerNote=KSMTest.app.noteLocalMutation;KSMTest.app.noteLocalMutation=(...args)=>{headerMutations++;return headerNote(...args)}")
-        page.evaluate("KSMTest.app.cloudSession.tournamentId='header-fixture';tName.value='ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890ABCD';KSMTest.app.syncSetupHeader()")
+        page.evaluate("KSMTest.app.cloudSession.tournamentId='header-fixture';KSMTest.app.ksmSetSetting('tName','ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890ABCD');KSMTest.app.syncSetupHeader()")
         for width,height in [(375,812),(812,375),(1280,900)]:
             page.evaluate("KSMTest.app.setSessionRole('spectator');KSMTest.app.installRoleBanner('spectator')")
             page.set_viewport_size({'width':width,'height':height})

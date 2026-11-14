@@ -246,6 +246,8 @@ window.KSMTest = {
     applyIndividualNoShow: (...a) => applyIndividualNoShow(...a),
     applyRemoteCloudRecord: (...a) => applyRemoteCloudRecord(...a),
     applySetupSnapshot: (...a) => applySetupSnapshot(...a),
+    ksmSetSetting: (...a) => ksmSetSetting(...a),
+    ksmSetting: (...a) => ksmSetting(...a),
     applyTournamentPayload: (...a) => applyTournamentPayload(...a),
     buildChampionshipTemplateMatches: (...a) => buildChampionshipTemplateMatches(...a),
     buildTV3ViewModel: (...a) => buildTV3ViewModel(...a),
@@ -406,11 +408,12 @@ window.KSMTest = {
     state.divisionCourts = Object.fromEntries(divs.map(d => [d.name, d.court]));
     state.competitors = divs.flatMap(d => d.entrants.map(e => ({...e, division: d.name})));
     state.teams = []; state.exhibitions = [];
-    teamEnabled.value = team ? 'Enabled' : 'Disabled';
+    // The Setup fields are the store's (tournament.settings, #15 PR 8): set through the app, as its own code does.
+    ksmSetSetting('teamEnabled', team ? 'Enabled' : 'Disabled');
     if (team) {
-      teamFormat.value = team.format; teamTournamentFormat.value = team.tournament;
-      // The Setup select too: saveSetup() and synced setup snapshots read the team court from it.
-      teamCourt.value = team.court; state.divisionCourts['Team Tournament'] = team.court;
+      ksmSetSetting('teamFormat', team.format); ksmSetSetting('teamTournamentFormat', team.tournament);
+      // The Setup field too: saveSetup() and the setup snapshot read the team court from the store.
+      ksmSetSetting('teamCourt', team.court); state.divisionCourts['Team Tournament'] = team.court;
       const slots = team.format === '5-Person Team' ? ['senpo','jiho','chuken','fukusho','taisho'] : ['senpo','chuken','taisho'];
       state.teams = Array.from({length: team.teams}, (_, i) => {
         const code = String.fromCharCode(65 + i);

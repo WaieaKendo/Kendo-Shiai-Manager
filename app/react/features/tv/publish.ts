@@ -7,7 +7,7 @@
 // same order, which tests/golden/tv/*.json (recorded from it) pin; text is what esc() showed
 // (ksmText(), String(x||'')); the placements are the court screen's division-complete data
 // (ksmDivisionCompleteInput(), 35-react-court.js). Legacy is read only through shared/legacy.ts.
-import { legacy, legacyTvLive, type LegacyTvViewModel } from '../../shared/legacy.ts';
+import { legacy, legacyTvLive, setupSetting, type LegacyTvViewModel } from '../../shared/legacy.ts';
 import { TV_EVENT, type TvBodyInput, type TvInput, type TvPoints, type TvUpcomingInput } from './tv-model.ts';
 
 interface TvWindow {
@@ -80,7 +80,7 @@ export function ksmTvKachinuki(vm: LegacyTvViewModel): Extract<TvBodyInput, { ki
  * (or, for Final Results, the court's next division).
  */
 export function ksmTvDisplayInput(court: Court): TvContent {
-  document.body.classList.toggle('ksm-tv-red-left', (document.getElementById(court === 'B' ? 'court2TvRedSide' : 'court1TvRedSide') as HTMLSelectElement | null)?.value === 'left');
+  document.body.classList.toggle('ksm-tv-red-left', setupSetting(court === 'B' ? 'court2TvRedSide' : 'court1TvRedSide') === 'left');
   const s = state();
   const text = legacy('ksmText');
   const divisionName = legacy('ksmDivisionName');

@@ -2,7 +2,7 @@
 // the header data in app/js/42-react-setup.js). Same output as the legacy builders gave, which
 // tests/golden/setup/*.json (recorded from the legacy renderer) pin; text is what esc() showed
 // (ksmText(), String(x||'')). Legacy is read only through shared/legacy.ts.
-import { legacy, legacyTournamentNameInput } from '../../shared/legacy.ts';
+import { legacy, setupSetting } from '../../shared/legacy.ts';
 import {
   SETUP_DIVISIONS_EVENT, SETUP_HEADER_EVENT,
   type SetupDivisionRowInput, type SetupDivisionsInput, type SetupHeaderInput,
@@ -60,12 +60,10 @@ export function ksmSetupDivisionsData(): SetupDivisionsInput {
 
 /**
  * syncSetupHeader() (30) as data: the name field's value (the island shows 'Kendo Tournament'
- * when it is empty). window.tName is the Setup name input (a DOM element reached by its id), read
- * through legacyTournamentNameInput().
+ * when it is empty), from the store (tournament.settings.tName, #15 PR 8).
  */
 export function ksmSetupHeaderData(): SetupHeaderInput {
-  const nameInput = legacyTournamentNameInput();
-  return { name: nameInput ? String(nameInput.value) : '' };
+  return { name: String(setupSetting('tName') ?? '') };
 }
 
 function refreshDivisions(): void {

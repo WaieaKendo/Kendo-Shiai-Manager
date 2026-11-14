@@ -249,7 +249,7 @@ def open_app(browser, name, entries, errors, court='A', tournament_name=None):
     assert app.page.evaluate('window.ksmCourtScreenMounted === true'), f'{name}: the court module did not mount'
     assert app.page.locator('#courtModuleMissing').count() == 0, f'{name}: "court screen could not load" shown on a working page'
     if tournament_name:
-        app.page.evaluate('name => { tName.value = name; }', tournament_name)
+        app.page.evaluate('name => { KSMTest.app.ksmSetSetting("tName", name); }', tournament_name)
     app.configure(entries)
     app.open_court(court)
     return golden
