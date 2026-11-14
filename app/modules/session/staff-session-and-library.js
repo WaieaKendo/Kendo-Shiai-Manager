@@ -1,4 +1,6 @@
 // @ts-check
+import {state} from '../app-state.js';
+import {syncOwnCourtPointer} from '../court/court-match-order.js';
 import {cloudHeaders,connectCloudSocket,ksmCacheTournament,ksmCreateTournament,ksmExpireStaffSession,ksmFetchTournament,ksmUsesAccountAuth,loadTournamentFromCloud,readTournamentLibrary,renderHomeTournamentLibrary,setSessionRole,writeTournamentLibrary} from '../auth/auth0-access.js';
 import {ksmPendingSlug,setKsmPendingSlug} from '../links/friendly-links.js';
 import {ksmIsExplicitSpectatorUrl,ksmLinkParams,ksmLinkUrl,ksmResolveSlug,ksmShowRequestedScreen} from '../links/path-urls.js';
@@ -10,7 +12,7 @@ import {renderTvDisplay} from '../results/tv-display.js';
 import {ksmOpenTournament,ksmPushTournamentAddress,ksmShowLibrary,ksmTournamentEpoch,setKsmStartupLoadFailed} from './tournament-switcher.js';
 import {analyzeTournamentSnapshot,writeCloudDiagnosticsState} from '../sync/cloud-diagnostics.js';
 import {applyTournamentPayload,cloudSaveTimeoutSignal,disconnectCloudSocket,ksmAnnounceTournamentGone,ksmCloudSocket,ksmGoneError,mergeQueuedStaffWork,renderTvRealtimeDiagnostics,setKsmApplyingRemoteSnapshot,setKsmLastSuccessfulSaveAt,setKsmSaveStatusMode,showKsmToast} from '../sync/cloud-realtime-save-and-load.js';
-import {clearOutbox,cloudEnvelope,cloudSession,ensureClientIdentity,ksmSessionRole,ksmStoreAutosave,markLocalSave,persistCloudSession,preserveRecovery,readOutbox,renderPersistentSaveStatus,saveNow,setConnectionStatus,setKsmSessionRole,tournamentPayload,writeOutbox} from '../sync/cloud-session-and-autosave.js';
+import {clearOutbox,cloudEnvelope,cloudSession,ensureClientIdentity,ksmSessionRole,ksmStoreAutosave,markLocalSave,scheduleAutoSave,persistCloudSession,preserveRecovery,readOutbox,renderPersistentSaveStatus,saveNow,setConnectionStatus,setKsmSessionRole,tournamentPayload,writeOutbox} from '../sync/cloud-session-and-autosave.js';
 import {KSM_AUTOSAVE_CLOUD_ID,KSM_CLOUD_REBASE_MAX_ATTEMPTS,KSM_SAVE_KEY,cloudBaseFor,normalizeCourt,pendingLocalCourtActionsForRebase,pinCourtLocally,pinnedCourt,rebaseLocalPayloadOnRecord,rememberCloudBase,storedCourtPin} from '../sync/sync-state-and-rebase.js';
 import {ksmWriterId} from '../sync/two-tabs.js';
 import {ksmClearRestoreMark,ksmPendingRestoreMark,ksmRestoredSince} from '../sync/undo-regenerate.js';
@@ -64,7 +66,9 @@ export function ksmStaffToken(value){return typeof value==='string'&&value.start
 // staff work of its own, so it never replaces a queued staff snapshot of this tournament (by one
 // stamped as spectator, which the next live update would discard) before Staff Login sends it.
 export function ksmKeepStaffOutbox(){if(!isReadOnlySession()||!cloudSession.tournamentId)return false;const queued=readOutbox();return queued?.role==='staff'&&queued.tournamentId===cloudSession.tournamentId}
-export function ksmAccountSetRole(role){setKsmSessionRole(role==='staff'?'staff':'spectator');document.body.classList.toggle('ksm-spectator',ksmSessionRole==='spectator');document.body.classList.toggle('ksm-staff',ksmSessionRole==='staff');document.body.classList.remove('ksm-scorekeeper','ksm-admin');ksmRenderSessionRole();}
+export function ksmAccountSetRole(role){setKsmSessionRole(role==='staff'?'staff':'spectator');document.body.classList.toggle('ksm-spectator',ksmSessionRole==='spectator');document.body.classList.toggle('ksm-staff',ksmSessionRole==='staff');document.body.classList.remove('ksm-scorekeeper','ksm-admin');ksmRenderSessionRole();
+  // This device may now run its court: a division it picked before Staff Login becomes the court's (#15 PR 6), saved once.
+  if(ksmSessionRole==='staff'&&syncOwnCourtPointer())scheduleAutoSave(`Court ${state.currentCourt} division: ${state.currentDivision}`);}
 export function isReadOnlySession(){return ksmSessionRole!=='staff'}
 export function isSpectatorSession(){return isReadOnlySession()}
 export function canCloudWrite(){return ksmSessionRole==='staff'||!cloudSession.tournamentId}

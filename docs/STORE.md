@@ -104,7 +104,17 @@ director's Court B view, a load's rehydrate). The split:
 moved it, on any device. A device is Court *c*'s scorekeeper (`isCourtScorekeeper(c)`, `court-match-order.js`) when
 it may write the tournament (`canCloudWrite()`: staff, or a local tournament with no cloud) and its court
 (`state.currentCourt`, from the pin) is *c*. A cloud TV link is never staff (`initializeCloudRoleFromUrl()`), so a TV
-never moves a pointer; an offline TV is the same app as its court (no other device; the TV goldens score on it). Opening a court from the court menu pins the device to that court,
+never moves a pointer; an offline TV is the same app as its court (no other device; the TV goldens score on it).
+"Only Court *c*'s scorekeeper" covers more devices than it sounds: a device whose link names no court is given Court A
+(`initializeCloudRoleFromUrl()`: the link's court, else the stored pin, else `A`), so the director's desk device, once
+logged in, counts as Court A's scorekeeper; its division picks, generation and dashboard self-heal still move Court A's
+pointer, as before PR 6.
+**Catching up after Staff Login** (#180 review): a tablet that opens the Court B link before logging in (the F3 reload
+flow) is a spectator until Staff Login, so a division it picks then moves only its view. When it becomes Court *c*'s
+scorekeeper, or takes a court action on *c* (a point, Next Match, Undo, Redo), `syncOwnCourtPointer()` brings
+`courtState[c]` / `courtActiveDivision[c]` / `currentByDivision` to its view if they differ, once, as that court's own
+write: on Staff Login (`ksmAccountSetRole()`) with a save of its own, before a court action in that action's save (not
+in its Undo entry). Before PR 6 the pre-login pick had already moved the local pointer, so the first save carried it. Opening a court from the court menu pins the device to that court,
 so a staff device (the director's included) that opens Court B is Court B's device, as before. On every other device a
 view choice changes only that device's view (`currentCourt`, `currentDivision`, `matches`, `current`, `score`,
 `device.localCourtDivision`): a spectator or a TV picking a division on Court B, a load's rehydrate on a spectator or

@@ -91,9 +91,26 @@ export function setCourtPointer(court,cs){
   state.courtState[court]=cs;
   state.courtActiveDivision[court]=cs.division;
 }
+/**
+ * Brings this court's shared pointer to this device's view, when this device is the court's scorekeeper and they
+ * differ: a division picked before Staff Login (a spectator's pick moves only its own view) is the court's division
+ * once the device can write, as it was before #15 PR 6. Called when the device becomes staff (ksmAccountSetRole()) and
+ * before each court action (performCourtAction(), undo(), redo()), so that action's save carries it. Not recorded in the
+ * action's Undo entry. Returns whether it wrote.
+ */
+export function syncOwnCourtPointer(){
+  const court=state.currentCourt,div=state.currentDivision;
+  if(!court||!div||!Array.isArray(state.allMatches?.[div])||!isCourtScorekeeper(court))return false;
+  const index=state.current||0,cs=state.courtState?.[court];
+  if(cs&&cs.division===div&&cs.index===index&&state.courtActiveDivision?.[court]===div)return false;
+  setCourtPointer(court,{division:div,index});
+  state.currentByDivision[div]=index;
+  return true;
+}
 export function applyCourtState(court,cs,keepScore=true){
-  ksmSetCurrentCourt(court);
+  // Every caller passes this device's court (openCourt() sets it first), so this checks write access for that court.
   const runsCourt=isCourtScorekeeper(court);
+  ksmSetCurrentCourt(court);
   if(runsCourt)setCourtPointer(court,cs);
   ksmShowDivision(cs.division);
   state.matches=state.allMatches[cs.division]||[];
@@ -119,6 +136,7 @@ export function renderDivisions(){
 }
 export function openCourt(c){
   c=pinCourtLocally(c);
+  ksmSetCurrentCourt(c);
   const preferred=localCourtDivision(c);
   let cs=preferred&&state.allMatches?.[preferred]?findNextForCourt(c,preferred,0):state.courtState?.[c];
   const active=cs?.division?(state.allMatches?.[cs.division]||[])[cs.index]:null;

@@ -15,7 +15,7 @@ const json = v => JSON.stringify(v);
 const STUBS = ['renderDivisions', 'renderScore', 'renderPools', 'renderProgress', 'renderContext', 'renderPublic', 'applyCourtSides', 'criticalAutoSave',
   'isReadOnlySession', 'canCloudWrite', 'isTvSession', 'ksmSetCurrentCourt', 'ksmSetPublicCourt', 'ksmShowDivision', 'setLocalCourtDivision',
   'ksmLocalCourtDivision', 'pinCourtLocally', 'show', 'ksmNotifyStateChanged'];
-const entry = ['applyCourtState', 'setActiveDivision', 'selectScorekeeperDivision', 'courtCurrentMatch', 'isCourtScorekeeper'].map(n => extractFunction(html, n)).join('\n');
+const entry = ['applyCourtState', 'setActiveDivision', 'selectScorekeeperDivision', 'courtCurrentMatch', 'isCourtScorekeeper', 'syncOwnCourtPointer'].map(n => extractFunction(html, n)).join('\n');
 const code = '"use strict";\n' + withDependencies(html, entry, { exclude: STUBS });
 
 const bout = (division, n, court, extra = {}) => ({ division, pool: 'A', white: `${division} ${n}`, red: `${division} ${n + 1}`, wdojo: '', rdojo: '', done: false, wp: [], rp: [], wt: 0, rt: 0, type: 'individual', court, ...extra });
@@ -87,11 +87,33 @@ for (const [label, opts] of [['spectator on Court B', { staff: false, court: 'B'
   keeper.courtCurrentMatch('B');
   check(keeper.state.courtState.B.index === 2 && keeper.state.courtActiveDivision.B === 'Kids', `Court B's scorekeeper: the render heals Court B's pointer (got ${json(keeper.state.courtState.B)})`);
 }
-// 4. A staff device opening Court B (the court menu pins the device to B) is Court B's scorekeeper: as before.
+// 4. A staff device opening Court B (openCourt() pins it and sets its court first) is Court B's scorekeeper: as before.
+//    applyCourtState() checks the court it is given against this device's court, before it shows that court.
 {
   const d = device({ court: 'A' });
+  d.ksmSetCurrentCourt('B');
   d.applyCourtState('B', { division: 'Juniors', index: 1 }, true);
   check(d.state.currentCourt === 'B' && d.state.courtState.B.division === 'Juniors' && d.state.courtState.B.index === 1, 'a staff device that opens Court B moves Court B\'s pointer (it is now B\'s device)');
+  const other = device({ court: 'A' });
+  other.applyCourtState('B', { division: 'Juniors', index: 1 }, true);
+  check(other.state.courtState.B.division === 'Kids', 'applyCourtState for a court that is not this device\'s court does not move that court\'s pointer');
+}
+// 6. #180 review: a division picked before Staff Login follows once the device may write (syncOwnCourtPointer(), called
+//    on login and before each court action); never on a spectator or TV; a no-op when the pointer already matches.
+{
+  let staff = false;
+  const d = device({ staff: true, court: 'B' });
+  d.canCloudWrite = () => staff;
+  vm.runInContext('canCloudWrite=globalThis.canCloudWrite', d);
+  d.applyCourtState('B', d.state.courtState.B, true);
+  d.setActiveDivision('Juniors');
+  check(shared(d.state) === before && d.syncOwnCourtPointer() === false, 'before login: the pick moves only the view, and the catch-up does nothing');
+  staff = true;
+  check(d.syncOwnCourtPointer() === true, 'after login: the catch-up writes');
+  check(d.state.courtState.B.division === 'Juniors' && d.state.courtState.B.index === 0 && d.state.courtActiveDivision.B === 'Juniors' && d.state.currentByDivision.Juniors === 0,
+    `after login: Court B's pointer is the device's view, Juniors bout 1 (got ${json(d.state.courtState.B)})`);
+  check(d.syncOwnCourtPointer() === false, 'once: a second catch-up does nothing');
+  check(json(d.state.courtState.A) === json(tournament().courtState.A), 'Court A untouched');
 }
 // 5. #177 review: finding Court A's first match (no division given) does not re-sort or replace Court B's match lists.
 {
