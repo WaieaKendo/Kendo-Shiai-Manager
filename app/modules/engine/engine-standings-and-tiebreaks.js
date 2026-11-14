@@ -1,5 +1,5 @@
 // @ts-check
-import {state} from '../app-state.js';
+import {ksmShowMatch,state} from '../app-state.js';
 import {individualMatchReady} from '../court/court-match-order.js';
 import {poolPositionsResolved,requiredSeedPlaces} from './engine-championship.js';
 import {eligibleTeams,isTeamDivision,poolCourtFor} from './engine-pools.js';
@@ -243,7 +243,8 @@ function reindexPointersAfterMatchReorder(targetState,div,beforeArr,afterArr){
   if(targetState.currentDivision===div){
     const court=String(targetState.currentCourt||'A').toUpperCase()==='B'?'B':'A';
     const currentIndex=findMovedIndex(targetState.current,court);
-    targetState.current=currentIndex;
+    // On the live `state`, current is a store getter (#15 PR 7): its helper; a payload copy is a plain object.
+    if(targetState===state)ksmShowMatch(currentIndex);else targetState.current=currentIndex;
     targetState.currentByDivision=targetState.currentByDivision||{};
     targetState.currentByDivision[div]=currentIndex;
   }

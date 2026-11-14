@@ -86,8 +86,7 @@ export function individualLogicalMatchKey(m){
  */
 export function enforceUniqueIndividualMatches(div){
   const out=KSMEngine.uniqueIndividualMatches(state.allMatches?.[div]||[]);
-  state.allMatches[div]=out;
-  if(state.currentDivision===div)state.matches=out;
+  state.allMatches[div]=out; // state.matches follows (it is allMatches[currentDivision], #15 PR 7)
   return out;
 }
 /**

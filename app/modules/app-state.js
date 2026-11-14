@@ -5,6 +5,7 @@
 // Each key of `state` is either a plain property or, once its group has moved, a store getter (moveToStore()); every
 // write that replaces or assigns several keys at once goes through replaceState() / assignState() (STORE.md section 2).
 import {deviceSlice,dispatch,getState,legacyFieldAssigned,legacyStateAssigned,legacyStateReplaced,storeIsStrict} from '../store/index.ts';
+/** @typedef {string[]|(()=>string[])} StorePath a store path, or (for state.score) one that depends on this device's court */
 /** @type {[string, string, CourtMode][]} */
 export const DIVISION_PRESETS=[['Yonenbu (11 years and under)','Round Robin','A'],['Shonenbu (12–14 years old)','Round Robin','A'],['Seinenbu (15+ years without dan)','Round Robin','A'],['Women’s Open','Round Robin','B'],['Yudansha 1–3 Dan','Round Robin','A'],['Yudansha 4 Dan+','Round Robin','B'],['Masters Open (50+ years old)','Round Robin','B']];
 /** @type {TournamentState} */
@@ -13,36 +14,67 @@ DIVISION_PRESETS.forEach(([d,f,c])=>{state.divisionTypes[d]=f;state.divisionCour
 
 /** @typedef {{field:string,path:string,stack:string}} StrayStoreWrite */
 // For each object (the app's `state`, or a test's own), the keys moveToStore() made store getters -> their store path.
-/** @type {WeakMap<object,Map<string,string[]>>} */
+/** @type {WeakMap<object,Map<string,StorePath>>} */
 const storeFieldsByTarget=new WeakMap();
 /** @param {object} target */
 function storeFieldsOf(target){let fields=storeFieldsByTarget.get(target);if(!fields){fields=new Map();storeFieldsByTarget.set(target,fields)}return fields}
-/** The store path of a key moveToStore() moved (e.g. ['device','regMode']), or null for a plain property. */
-export function storeFieldPath(key,target=state){const path=storeFieldsOf(target).get(key);return path?[...path]:null}
+// For each object, the keys deriveInState() made read-only getters computed from other fields (state.matches).
+/** @type {WeakMap<object,Set<string>>} */
+const derivedFieldsByTarget=new WeakMap();
+/** @param {object} target */
+function derivedFieldsOf(target){let keys=derivedFieldsByTarget.get(target);if(!keys){keys=new Set();derivedFieldsByTarget.set(target,keys)}return keys}
+/** @param {StorePath} path @returns {string[]} the path as it is now (a court-dependent path is resolved) */
+function resolvePath(path){return typeof path==='function'?[...path()]:[...path]}
+/** The store path of a key moveToStore() moved (e.g. ['device','regMode']), or null for a plain property or a derived one. */
+export function storeFieldPath(key,target=state){const path=storeFieldsOf(target).get(key);return path?resolvePath(path):null}
+/** Whether `state[key]` is a read-only getter derived from other fields (deriveInState(): state.matches). */
+export function stateFieldIsDerived(key,target=state){return derivedFieldsOf(target).has(key)}
 /** @type {(write:StrayStoreWrite)=>void} */
 let reportStrayStoreWrite=write=>console.warn('[KSM Store] A store field was assigned outside an action',write);
 /** Where production logs a stray assignment (app/main.js: the cloud diagnostics). */
 export function setStrayStoreWriteReporter(/** @type {(write:StrayStoreWrite)=>void} */ report){reportStrayStoreWrite=report}
+const strayStack=()=>String(new Error().stack||'').split('\n').slice(2,8).join('\n');
 /**
  * Makes `state[key]` an enumerable, non-configurable getter over the store at `path` (docs/STORE.md section 2, point 1),
  * so JSON.stringify(state) and Object.keys(state) still see it. The slice's initial state holds the value from then on.
  * An assignment the conversion missed (point 8): strict (tests) throws; production logs it (setStrayStoreWriteReporter)
- * and dispatches legacy/fieldAssigned, which puts the value at `path`. Unused until the first field group moves (PR 5).
+ * and dispatches legacy/fieldAssigned, which puts the value at `path`. `path` may be a function (state.score: the pad of
+ * this device's court), resolved on every read and write.
  * @param {string} key
- * @param {string[]} path
+ * @param {StorePath} path
  * @param {object} [target] the app's `state`; tests pass their own object
  */
 export function moveToStore(key,path,target=state){
-  if(!Array.isArray(path)||!path.length||!path.every(p=>typeof p==='string'&&p))throw new Error(`moveToStore(${key}): the store path must be a list of keys`);
-  if(storeFieldsOf(target).has(key))throw new Error(`state.${key} is already in the store`);
-  const at=[...path];
-  const read=()=>{/** @type {any} */ let value=getState();for(const p of at)value=value==null?undefined:value[p];return value};
+  const valid=/** @param {unknown} p */ p=>Array.isArray(p)&&p.length>0&&p.every(k=>typeof k==='string'&&k);
+  if(typeof path!=='function'&&!valid(path))throw new Error(`moveToStore(${key}): the store path must be a list of keys`);
+  if(storeFieldsOf(target).has(key)||derivedFieldsOf(target).has(key))throw new Error(`state.${key} is already in the store`);
+  const at=typeof path==='function'?path:[...path];
+  const now=()=>{const p=resolvePath(at);if(!valid(p))throw new Error(`moveToStore(${key}): the store path must be a list of keys`);return p};
+  const read=()=>{/** @type {any} */ let value=getState();for(const p of now())value=value==null?undefined:value[p];return value};
   Object.defineProperty(target,key,{enumerable:true,configurable:false,get:read,set(value){
-    if(storeIsStrict())throw new TypeError(`state.${key} is in the store (${at.join('.')}): dispatch an action instead of assigning it`);
-    reportStrayStoreWrite({field:key,path:at.join('.'),stack:String(new Error().stack||'').split('\n').slice(1,7).join('\n')});
-    dispatch(legacyFieldAssigned({key,path:[...at],value}));
+    const p=now();
+    if(storeIsStrict())throw new TypeError(`state.${key} is in the store (${p.join('.')}): dispatch an action instead of assigning it`);
+    reportStrayStoreWrite({field:key,path:p.join('.'),stack:strayStack()});
+    dispatch(legacyFieldAssigned({key,path:p,value}));
   }});
   storeFieldsOf(target).set(key,at);
+}
+/**
+ * Makes `state[key]` an enumerable, non-configurable, read-only getter computed by `derive` (docs/STORE.md section 3,
+ * PR 7: state.matches). Enumerable, so the snapshot still carries its value. It has no store path of its own: a load,
+ * a remote apply and assignState() ignore a value for it, and so does an assignment the conversion missed (strict:
+ * throws; production: logged, then ignored, since the fields it is derived from already say what it is).
+ * @param {string} key
+ * @param {()=>unknown} derive
+ * @param {object} [target]
+ */
+export function deriveInState(key,derive,target=state){
+  if(storeFieldsOf(target).has(key)||derivedFieldsOf(target).has(key))throw new Error(`state.${key} is already in the store`);
+  Object.defineProperty(target,key,{enumerable:true,configurable:false,get:derive,set(){
+    if(storeIsStrict())throw new TypeError(`state.${key} is derived from other fields: write those instead of assigning it`);
+    reportStrayStoreWrite({field:key,path:'(derived; ignored)',stack:strayStack()});
+  }});
+  derivedFieldsOf(target).add(key);
 }
 // Device fields (PR 5 of docs/STORE.md section 3): the store holds them from here on, `state` reads them through getters,
 // and they are written only through device/registrationTabChanged and device/poolViewDivisionChanged. Done once here,
@@ -64,32 +96,62 @@ export function ksmSetCurrentCourt(/** @type {string} */ court){if(state.current
 export function ksmSetPublicCourt(/** @type {string} */ court){if(state.publicCourt!==court)dispatch(deviceSlice.actions.publicCourtChanged(court))}
 /** The division this device's court screen shows (state.currentDivision). */
 export function ksmShowDivision(/** @type {string|null} */ division){if(state.currentDivision!==division)dispatch(deviceSlice.actions.divisionShown(division))}
+// The match the court screen shows and its score pad (PR 7, docs/STORE.md section 3 item 7). `matches` is derived: the
+// live match list of the division this device shows (the same array object as allMatches[currentDivision], never a
+// copy, so a write through state.matches[i] lands in allMatches; [] while that division has none). `current` is this
+// device's shown index (device/matchShown); it is not the court's shared pointer (courtState[c].index), which only the
+// court's scorekeeper moves (section 1.2). `score` is the pad of this device's court (device/scoreChanged).
+deriveInState('matches',()=>{const div=state.currentDivision,list=div!=null?state.allMatches?.[div]:undefined;return Array.isArray(list)?list:[]});
+moveToStore('current',['device','currentMatchIndex']);
+moveToStore('score',()=>['device','activeScore',state.currentCourt||'A']);
+/** A tournament closed (ksmResetTournament()): the shown match is the first and every court's pad is empty. */
+export function ksmResetCourtPads(){ksmShowMatch(0);dispatch(deviceSlice.actions.scoresCleared())}
+/** The match this device's court screen shows: its index in state.matches (state.current). */
+export function ksmShowMatch(/** @type {number} */ index){if(state.current!==index)dispatch(deviceSlice.actions.matchShown(index))}
+/** @typedef {{W:string[],R:string[],WT:number,RT:number}} ScorePad */
+/** An empty score pad. */
+export const ksmEmptyScore=()=>/** @type {ScorePad} */ ({W:[],R:[],WT:0,RT:0});
+/**
+ * The score pad of this device's court (state.score): one device/scoreChanged, none when `score` equals the pad. The
+ * pad is frozen store data: build a new value (`{...state.score, W:[...state.score.W, 'M']}`), never write into it.
+ */
+export function ksmSetScore(/** @type {ScorePad} */ score){
+  const next={W:[...(score?.W||[])],R:[...(score?.R||[])],WT:score?.WT||0,RT:score?.RT||0},now=state.score;
+  const same=(/** @type {string[]} */ a,/** @type {string[]} */ b)=>Array.isArray(a)&&a.length===b.length&&a.every((x,i)=>x===b[i]);
+  if(now&&same(now.W,next.W)&&same(now.R,next.R)&&now.WT===next.WT&&now.RT===next.RT)return;
+  dispatch(deviceSlice.actions.scoreChanged({court:state.currentCourt||'A',score:next}));
+}
 /**
  * Replaces all of `state` with `loaded`'s keys (a load, a remote apply, the tournament switch): plain keys are deleted
  * and assigned in `loaded`'s order, as `Object.keys(state).forEach(k=>delete state[k]);Object.assign(state,loaded)` did;
  * store-owned keys (absent ones as undefined) go to the store in one legacy/stateReplaced action, except the device
- * fields, which this device keeps (a payload's value is ignored).
+ * fields, which this device keeps (a payload's value is ignored), and the derived keys (state.matches), whose payload
+ * value is ignored.
  * @param {object} loaded
  * @param {object} [target]
  */
 export function replaceState(loaded,target=state){
-  const fields=storeFieldsOf(target),writes=[];
+  const fields=storeFieldsOf(target),derived=derivedFieldsOf(target),writes=[];
   const t=/** @type {Record<string,unknown>} */ (target);
-  for(const key of Object.keys(t))if(!fields.has(key))delete t[key];
+  for(const key of Object.keys(t))if(!fields.has(key)&&!derived.has(key))delete t[key];
   // A device field (path in the `device` slice) is this device's: a payload never overwrites it (docs/STORE.md point 4).
-  for(const [key,value] of Object.entries(loaded)){const path=fields.get(key);if(path){if(path[0]!=='device')writes.push({path:[...path],value})}else t[key]=value}
-  for(const [key,path] of fields)if(path[0]!=='device'&&!Object.hasOwn(loaded,key))writes.push({path:[...path],value:undefined});
+  for(const [key,value] of Object.entries(loaded)){
+    if(derived.has(key))continue;
+    const path=fields.get(key);
+    if(path){const p=resolvePath(path);if(p[0]!=='device')writes.push({path:p,value})}else t[key]=value;
+  }
+  for(const [key,path] of fields){const p=resolvePath(path);if(p[0]!=='device'&&!Object.hasOwn(loaded,key))writes.push({path:p,value:undefined})}
   if(writes.length)dispatch(legacyStateReplaced({writes}));
 }
 /**
  * Assigns `partial`'s keys to `state` (a division rename, the team-division migration), as Object.assign(state,partial)
- * did; store-owned keys go to the store in one legacy/stateAssigned action.
+ * did; store-owned keys go to the store in one legacy/stateAssigned action; a derived key (state.matches) is ignored.
  * @param {object} partial
  * @param {object} [target]
  */
 export function assignState(partial,target=state){
-  const fields=storeFieldsOf(target),writes=[];
+  const fields=storeFieldsOf(target),derived=derivedFieldsOf(target),writes=[];
   const t=/** @type {Record<string,unknown>} */ (target);
-  for(const [key,value] of Object.entries(partial)){const path=fields.get(key);if(path)writes.push({path:[...path],value});else t[key]=value}
+  for(const [key,value] of Object.entries(partial)){if(derived.has(key))continue;const path=fields.get(key);if(path)writes.push({path:resolvePath(path),value});else t[key]=value}
   if(writes.length)dispatch(legacyStateAssigned({writes}));
 }

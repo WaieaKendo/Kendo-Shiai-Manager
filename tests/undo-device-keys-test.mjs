@@ -19,6 +19,7 @@
 import vm from 'node:vm';
 import { extractFunction, html, withDependencies } from './lib/ksm-source.mjs';
 import { gitShow } from './lib/git-show.mjs';
+import { deriveMatches, viewHelpers } from './lib/derived-matches.mjs';
 import { assignState, moveToStore, storeFieldPath } from '../app/modules/app-state.js';
 import { getState } from '../app/store/index.ts';
 
@@ -31,7 +32,9 @@ const json = v => JSON.stringify(v);
 const STUBS = ['applyCourtSides', 'renderAll', 'updateUndoButton', 'updateSaveStatus', 'criticalAutoSave', 'showKsmToast', 'ksmNotifyStateChanged',
   'ksmSignalCourtActions', 'storeFieldPath', 'assignState', 'renderScore', 'renderPools', 'renderProgress', 'renderPublic', 'writeCloudDiagnosticsState', 'KSM_TAB_ID',
   // The court view's store helpers (#15 PR 6): here they write the context's plain `state`; this device is Court A's scorekeeper.
-  'ksmSetCurrentCourt', 'ksmSetPublicCourt', 'ksmShowDivision', 'canCloudWrite', 'isTvSession'];
+  'ksmSetCurrentCourt', 'ksmSetPublicCourt', 'ksmShowDivision', 'canCloudWrite', 'isTvSession',
+  // PR 7: state.matches is derived (deriveMatches()), current and score are written through these.
+  'ksmShowMatch', 'ksmSetScore', 'ksmEmptyScore', 'ksmResetCourtPads'];
 const entry = ['undo', 'redo', 'performCourtAction', 'applyCourtState', 'loadScoreFromMatch'].map(n => extractFunction(html, n)).join('\n');
 const newCode = '"use strict";\n' + withDependencies(html, entry, { exclude: STUBS }) + '\nlet ksmLastHistoryOutcome=null,ksmLastHistorySkipped=0;';
 const oldSource = gitShow(BASE, FILE);
@@ -44,6 +47,14 @@ if (oldSource) {
     oldCode = oldCode.replace(now, () => extractFunction(oldSource, name));
   }
   check(oldCode !== newCode && !/KSM_LOCAL_VIEW_STATE_KEYS\.has/.test(extractFunction(oldSource, 'applyHistoryPatch')), 'the 4.0 applyHistoryPatch is the old one');
+  // #15 PR 7: the court view's writers no longer assign state.matches (it is derived). The 4.0 side keeps the alias it
+  // assigned: applyCourtState() / loadScoreFromMatch() as #180 merged them (before PR 7), on a plain `state`.
+  const PR6 = '37b48d0';
+  for (const [file, name] of [['app/modules/court/court-match-order.js', 'applyCourtState'], ['app/modules/court/court-scoring-and-history.js', 'loadScoreFromMatch']]) {
+    const src = gitShow(PR6, file);
+    if (!src) { oldCode = null; break; }
+    oldCode = oldCode.replace(extractFunction(html, name), () => extractFunction(src, name));
+  }
 }
 check(/KSM_LOCAL_VIEW_STATE_KEYS\.has\(path\[0\]\)/.test(extractFunction(html, 'applyHistoryPatch')), 'applyHistoryPatch skips the rebase\'s device keys (one set, not a copy)');
 check((html.match(/new Set\(\['currentCourt','publicCourt','currentDivision','matches','current','score'\]\)/g) || []).length === 1, 'the device keys are defined once');
@@ -61,6 +72,7 @@ function makeContext(code) {
     canCloudWrite: () => true, isTvSession: () => false,
     ksmSetCurrentCourt(c) { context.state.currentCourt = c; }, ksmSetPublicCourt(c) { context.state.publicCourt = c; }, ksmShowDivision(d) { context.state.currentDivision = d; },
   };
+  Object.assign(context, viewHelpers(context));
   vm.createContext(context);
   vm.runInContext(code, context);
   return context;
@@ -91,7 +103,9 @@ const ACTIONS = {
 /** Runs `steps` (names of ACTIONS, 'undo', 'redo', or functions of the context) on a fresh tournament in `code`'s context. */
 function run(code, steps) {
   const c = makeContext(code);
-  c.state = tournament();
+  // The new code's `matches` is derived (PR 7); the 4.0 code ran with the plain alias it assigned.
+  c.state = code === NEW ? deriveMatches(tournament()) : tournament();
+  c.derived = code === NEW;
   const errors = [];
   for (const step of steps) {
     try {
@@ -107,11 +121,13 @@ const NEW = newCode, OLD = oldCode;
 
 /** The device-key paths an entry's patches touch. */
 const deviceKeysOf = e => [...new Set(e.patches.map(p => p.path[0]).filter(k => ['score', 'matches', 'current', 'currentDivision', 'currentCourt', 'publicCourt'].includes(k)))].sort();
-// A reload: the state from its JSON (matches is a copy, no longer the alias), then the rehydrate (applyCourtState) or not.
+// A reload: the state from its JSON, then the rehydrate (applyCourtState) or not. Before #15 PR 7 `matches` was then a
+// copy, no longer the alias; since PR 7 it is derived again at once (replaceState() ignores the payload's copy).
 const reload = rehydrate => c => {
   const loaded = JSON.parse(JSON.stringify(c.state));
   for (const k of Object.keys(c.state)) delete c.state[k];
   Object.assign(c.state, loaded);
+  if (c.derived) deriveMatches(c.state);
   if (rehydrate) c.applyCourtState(c.state.currentCourt, c.state.courtState[c.state.currentCourt], true);
 };
 // A remote apply: the other court's point on Kids arrives in the payload (this court's histories come with it).
@@ -120,6 +136,7 @@ const remoteApply = c => {
   loaded.allMatches.Kids[0].wp.push('D');
   for (const k of Object.keys(c.state)) delete c.state[k];
   Object.assign(c.state, loaded);
+  if (c.derived) deriveMatches(c.state);
   c.applyCourtState('A', c.state.courtState.A, true);
 };
 
@@ -143,7 +160,7 @@ const CASES = {
   'Next Match: undo, redo': ['point', 'next', 'undo', 'redo'],
   'Next Match: undo, undo (the point too), redo, redo': ['point', 'next', 'undo', 'undo', 'redo', 'redo'],
   'undo after a reload (rehydrated)': ['point', 'next', 'point2', reload(true), 'undo', 'undo', 'redo'],
-  'undo after a reload (not rehydrated: matches is a copy)': ['point', 'next', reload(false), 'undo', 'redo'],
+  'undo after a reload (not rehydrated)': ['point', 'next', reload(false), 'undo', 'redo'],
   'undo after a remote apply': ['point', 'point2', remoteApply, 'undo', 'redo', 'undo', 'undo'],
   'redo after undo after a remote apply': ['point', 'next', 'undo', remoteApply, 'redo'],
 };
@@ -194,7 +211,7 @@ if (OLD) {
 {
   const storeContext = code => {
     const c = makeContext(code);
-    c.state = tournament();
+    c.state = deriveMatches(tournament());
     c.storeFieldPath = storeFieldPath;
     c.assignState = assignState;
     return c;

@@ -1,5 +1,5 @@
 // @ts-check
-import {ksmSetCurrentCourt,ksmSetPoolViewDivision,ksmSetPublicCourt,ksmShowDivision,state} from '../app-state.js';
+import {ksmEmptyScore,ksmSetCurrentCourt,ksmSetPoolViewDivision,ksmSetPublicCourt,ksmSetScore,ksmShowDivision,ksmShowMatch,state} from '../app-state.js';
 import {loadScoreFromMatch} from './court-scoring-and-history.js';
 import {renderScore} from './scorekeeper-screen.js';
 import {championshipLabels,firstRoundName,roundSequenceFromFirst} from '../engine/engine-championship.js';
@@ -103,6 +103,14 @@ export function syncOwnCourtPointer(){
   if(!court||!div||!Array.isArray(state.allMatches?.[div])||!isCourtScorekeeper(court))return false;
   const index=state.current||0,cs=state.courtState?.[court];
   if(cs&&cs.division===div&&cs.index===index&&state.courtActiveDivision?.[court]===div)return false;
+  // Never back onto a finished bout (#180 review, Low): when a render's self-heal (courtCurrentMatch()) has moved the
+  // court past the bout this screen still shows, the court's pointer is ahead, not behind; this screen catches up on
+  // its next render (ensureScorableCurrentMatch()). The court's division still syncs (#181 review): its index is kept.
+  if(cs&&cs.division===div&&cs.index!==index&&state.allMatches[div][index]?.done){
+    if(state.courtActiveDivision?.[court]===div)return false;
+    setCourtPointer(court,cs);
+    return true;
+  }
   setCourtPointer(court,{division:div,index});
   state.currentByDivision[div]=index;
   return true;
@@ -112,12 +120,12 @@ export function applyCourtState(court,cs,keepScore=true){
   const runsCourt=isCourtScorekeeper(court);
   ksmSetCurrentCourt(court);
   if(runsCourt)setCourtPointer(court,cs);
+  // state.matches follows the shown division (it is allMatches[currentDivision], #15 PR 7); state.current is its index.
   ksmShowDivision(cs.division);
-  state.matches=state.allMatches[cs.division]||[];
-  state.current=cs.index||0;
+  ksmShowMatch(cs.index||0);
   if(runsCourt)state.currentByDivision[cs.division]=state.current;
   if(keepScore){loadScoreFromMatch(state.matches[state.current]);}
-  else{state.score={W:[],R:[],WT:0,RT:0};state.history=[]}
+  else{ksmSetScore(ksmEmptyScore());state.history=[]}
   applyCourtSides();
 }
 export function initCourtStates(){

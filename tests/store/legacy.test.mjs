@@ -10,7 +10,7 @@ import { createSelector } from '@reduxjs/toolkit';
 import {
   createKsmStore, getState, legacyFieldAssigned, legacyStateAssigned, setStoreStrict, storeIsStrict, subscribe, PRODUCTION_BUILD,
 } from '../../app/store/index.ts';
-import { assignState, moveToStore, replaceState, setStrayStoreWriteReporter, state, storeFieldPath } from '../../app/modules/app-state.js';
+import { assignState, moveToStore, replaceState, setStrayStoreWriteReporter, state, stateFieldIsDerived, storeFieldPath } from '../../app/modules/app-state.js';
 
 const ROOT = path.resolve(import.meta.dirname, '../..');
 
@@ -22,7 +22,7 @@ function inProduction(fn) {
 /** A store as app.js has it: the app's own factory without RTK's development checks (app.js's build leaves them out; here
  * the immutability check would report the mutation itself). tests/store-bundle-test.mjs runs the same case on the real bundle. */
 const productionStore = () => createKsmStore(undefined, { developmentChecks: false });
-/** The keys of `target` that are neither a plain data property nor a getter moveToStore() made. */
+/** The keys of `target` that are neither a plain data property nor a getter moveToStore() or deriveInState() (PR 7) made. */
 function stateKeyProblems(target) {
   const problems = [];
   for (const key of Reflect.ownKeys(target)) {
@@ -30,7 +30,7 @@ function stateKeyProblems(target) {
     const name = String(key);
     if (typeof key === 'symbol') problems.push(`${name}: a symbol key`);
     else if ('value' in d) { if (!d.writable || !d.enumerable || !d.configurable) problems.push(`${name}: a data property that is not writable, enumerable and configurable`); }
-    else if (!storeFieldPath(key, target)) problems.push(`${name}: an accessor moveToStore() did not make`);
+    else if (!storeFieldPath(key, target) && !stateFieldIsDerived(key, target)) problems.push(`${name}: an accessor moveToStore() did not make`);
     else if (!d.enumerable || d.configurable || !d.get || !d.set) problems.push(`${name}: a store getter that is not enumerable, non-configurable, with get and set`);
   }
   return problems;

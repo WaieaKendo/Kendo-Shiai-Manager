@@ -11,7 +11,8 @@ test('two slices, tournament (its version only) and device (its version and the 
   const s = createKsmStore();
   assert.deepEqual(s.getState(), {
     tournament: { sliceVersion: TOURNAMENT_SLICE_VERSION },
-    device: { sliceVersion: DEVICE_SLICE_VERSION, regMode: 'individual', poolViewDivision: 'Women’s Open', currentCourt: 'A', publicCourt: 'A', currentDivision: 'Women’s Open', localCourtDivision: { A: null, B: null } },
+    device: { sliceVersion: DEVICE_SLICE_VERSION, regMode: 'individual', poolViewDivision: 'Women’s Open', currentCourt: 'A', publicCourt: 'A', currentDivision: 'Women’s Open', localCourtDivision: { A: null, B: null },
+      currentMatchIndex: 0, activeScore: { A: { W: [], R: [], WT: 0, RT: 0 }, B: { W: [], R: [], WT: 0, RT: 0 } } },
   });
   assert.deepEqual(Object.keys(rootReducer(undefined, { type: '@@init' })), ['tournament', 'device']);
 });

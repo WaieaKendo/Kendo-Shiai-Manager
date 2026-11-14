@@ -1,5 +1,5 @@
 // @ts-check
-import {ksmSetCurrentCourt,ksmSetPublicCourt,ksmShowDivision,replaceState,state} from '../app-state.js';
+import {ksmResetCourtPads,ksmSetCurrentCourt,ksmSetPublicCourt,ksmShowDivision,replaceState,state} from '../app-state.js';
 import {ksmKeepFailedStartup,ksmUsesAccountAuth,renderHomeTournamentLibrary,setSessionRole} from '../auth/auth0-access.js';
 import {ksmPendingSlug,setKsmPendingSlug} from '../links/friendly-links.js';
 import {ksmIsExplicitSpectatorUrl,ksmLinkParams,ksmLinkUrl,ksmRecordScreenPath,ksmShowRequestedScreen} from '../links/path-urls.js';
@@ -157,6 +157,8 @@ export function ksmResetTournament(){
   // replaceState() keeps device fields; closing the tournament also closes its court view (its pins were removed above),
   // so the court view starts from the empty state's values, as before #15 PR 6.
   ksmSetCurrentCourt(empty.currentCourt);ksmSetPublicCourt(empty.publicCourt);ksmShowDivision(empty.currentDivision);
+  // The shown match and the score pads too (#15 PR 7): the empty state's current is 0 and its pad empty.
+  ksmResetCourtPads();
   applySetupSnapshot(ksmEmptySetup());
   document.body.classList.remove('ksm-tv');
   setSessionRole('spectator');closeNavMenus();closeCloudModal();

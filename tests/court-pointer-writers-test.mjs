@@ -7,6 +7,8 @@
 // context per device, with the court view's store helpers writing the context's plain `state`.
 import vm from 'node:vm';
 import { extractFunction, html, withDependencies } from './lib/ksm-source.mjs';
+import { deriveMatches, viewHelpers } from './lib/derived-matches.mjs';
+import { gitShow } from './lib/git-show.mjs';
 
 let failed = false, count = 0;
 const check = (ok, name) => { count++; if (!ok) { console.log(`FAIL ${name}`); failed = true; } };
@@ -14,7 +16,7 @@ const json = v => JSON.stringify(v);
 
 const STUBS = ['renderDivisions', 'renderScore', 'renderPools', 'renderProgress', 'renderContext', 'renderPublic', 'applyCourtSides', 'criticalAutoSave',
   'isReadOnlySession', 'canCloudWrite', 'isTvSession', 'ksmSetCurrentCourt', 'ksmSetPublicCourt', 'ksmShowDivision', 'setLocalCourtDivision',
-  'ksmLocalCourtDivision', 'pinCourtLocally', 'show', 'ksmNotifyStateChanged'];
+  'ksmLocalCourtDivision', 'pinCourtLocally', 'show', 'ksmNotifyStateChanged', 'ksmShowMatch', 'ksmSetScore', 'ksmEmptyScore', 'ksmResetCourtPads'];
 const entry = ['applyCourtState', 'setActiveDivision', 'selectScorekeeperDivision', 'courtCurrentMatch', 'isCourtScorekeeper', 'syncOwnCourtPointer'].map(n => extractFunction(html, n)).join('\n');
 const code = '"use strict";\n' + withDependencies(html, entry, { exclude: STUBS });
 
@@ -33,8 +35,11 @@ function tournament() {
     currentDivision: 'Open', currentCourt: 'A', publicCourt: 'A',
   };
 }
+// syncOwnCourtPointer() as #180 merged it (before #15 PR 7's fix of its review Low), for case 7.
+const PR6 = '37b48d0', pr6Source = gitShow(PR6, 'app/modules/court/court-match-order.js');
+const pr6Code = pr6Source && code.replace(extractFunction(html, 'syncOwnCourtPointer'), () => extractFunction(pr6Source, 'syncOwnCourtPointer'));
 /** A device: `staff` (may write the tournament), `tv`, and the court it shows. */
-function device({ staff = true, tv = false, court = 'A' }) {
+function device({ staff = true, tv = false, court = 'A', source = code }) {
   const local = { A: null, B: null };
   const context = {
     console, window: {}, ksmLocalCourtDivision: local, saves: [],
@@ -43,9 +48,10 @@ function device({ staff = true, tv = false, court = 'A' }) {
     ksmSetCurrentCourt(c) { context.state.currentCourt = c; }, ksmSetPublicCourt(c) { context.state.publicCourt = c; }, ksmShowDivision(d) { context.state.currentDivision = d; },
     setLocalCourtDivision(c, d) { local[c] = d; },
   };
+  Object.assign(context, viewHelpers(context));
   vm.createContext(context);
-  vm.runInContext(code, context);
-  context.state = tournament();
+  vm.runInContext(source, context);
+  context.state = deriveMatches(tournament());
   context.state.currentCourt = court;
   return context;
 }
@@ -114,6 +120,30 @@ for (const [label, opts] of [['spectator on Court B', { staff: false, court: 'B'
     `after login: Court B's pointer is the device's view, Juniors bout 1 (got ${json(d.state.courtState.B)})`);
   check(d.syncOwnCourtPointer() === false, 'once: a second catch-up does nothing');
   check(json(d.state.courtState.A) === json(tournament().courtState.A), 'Court A untouched');
+}
+// 7. #180 review, Low (fixed in #15 PR 7): Court B's scorekeeper shows Kids bout 2; it is finished elsewhere (another
+//    device's save, a director's result edit) and a render's self-heal (courtCurrentMatch()) moves Court B's pointer on
+//    to bout 3 before this screen re-renders. An auth-token refresh (ksmAccountSetRole() -> syncOwnCourtPointer()) then
+//    must not put the pointer back on the finished bout 2. A pick of another division still catches up (case 6).
+{
+  const heal = d => { d.applyCourtState('B', d.state.courtState.B, true); d.state.allMatches.Kids[1].done = true; d.courtCurrentMatch('B'); return d; };
+  const d = heal(device({ court: 'B' }));
+  check(d.state.courtState.B.index === 2 && d.state.current === 1, `the self-heal moved Court B on to bout 3 while the screen still shows bout 2 (got ${json(d.state.courtState.B)}, current ${d.state.current})`);
+  check(d.syncOwnCourtPointer() === false && d.state.courtState.B.index === 2 && d.state.currentByDivision.Kids === 1, `the catch-up does not rewind Court B onto the finished bout (got ${json(d.state.courtState.B)})`);
+  // #181 review: with the pointer ahead, a wrong courtActiveDivision still syncs; the index is kept.
+  d.state.courtActiveDivision.B = 'Juniors';
+  check(d.syncOwnCourtPointer() === true && d.state.courtActiveDivision.B === 'Kids' && json(d.state.courtState.B) === json({ division: 'Kids', index: 2 }),
+    `the catch-up still fixes Court B's active division and keeps its index (got ${d.state.courtActiveDivision.B} ${json(d.state.courtState.B)})`);
+  check(d.syncOwnCourtPointer() === false, 'then nothing to do');
+  // The same index, the shown bout finished: only the active division was wrong, and it syncs (the guard is for a rewind).
+  const same = device({ court: 'B' });
+  same.applyCourtState('B', same.state.courtState.B, true);
+  same.state.allMatches.Kids[1].done = true; same.state.courtActiveDivision.B = 'Juniors';
+  check(same.syncOwnCourtPointer() === true && same.state.courtActiveDivision.B === 'Kids' && same.state.courtState.B.index === 1, 'same index: the active division syncs');
+  if (pr6Code) {
+    const was = heal(device({ court: 'B', source: pr6Code }));
+    check(was.syncOwnCourtPointer() === true && was.state.courtState.B.index === 1, `#180 as merged rewound it (got ${json(was.state.courtState.B)}); PR 7 fixes that`);
+  }
 }
 // 5. #177 review: finding Court A's first match (no division given) does not re-sort or replace Court B's match lists.
 {
