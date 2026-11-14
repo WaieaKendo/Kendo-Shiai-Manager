@@ -249,13 +249,17 @@ async function performCloudSave(payload=tournamentPayload(),baseRevision=cloudSe
 // the server's revision made the next save (or the outbox flush) look current, so it was accepted over
 // the other court's newer results (ATKT, split courts, 2026-11-13). Back on its own base, that save
 // meets a 409 and rebases.
+// It goes back to the revision the device was on when the save started, not to the save's base: an
+// outbox flush sends an older snapshot on that snapshot's older base, and while the server kept
+// failing (ATKT, 2026-11-13: HTTP 500s) every retry pulled the device back to that old base
+// (797 -> 747 -> 803 -> 747), so each later save needed a rebase first and collided again.
 const ksmPerformCloudSaveOnce=performCloudSave;
 performCloudSave=async function(payload,baseRevision,rebaseAttempt=0,originalBaseRevision){
   if(rebaseAttempt)return ksmPerformCloudSaveOnce.apply(this,arguments);
-  const tournamentId=cloudSession.tournamentId,base=Number(originalBaseRevision??baseRevision??cloudSession.revision??0);
+  const tournamentId=cloudSession.tournamentId,startRevision=Number(cloudSession.revision||0);
   try{return await ksmPerformCloudSaveOnce.apply(this,arguments)}
   catch(err){
-    if(tournamentId&&cloudSession.tournamentId===tournamentId&&Number(cloudSession.revision||0)>base){cloudSession.revision=base;persistCloudSession()}
+    if(tournamentId&&cloudSession.tournamentId===tournamentId&&Number(cloudSession.revision||0)!==startRevision){cloudSession.revision=startRevision;persistCloudSession()}
     throw err;
   }
 };

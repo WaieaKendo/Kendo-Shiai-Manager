@@ -8,7 +8,7 @@ const worker=fs.readFileSync('src-worker.js','utf8');
 const libraryReact = readRepoFile('app/react/library/Library.tsx') + readRepoFile('app/react/library/library-model.ts');
 const checks=[
  ['cloud library list endpoint', worker.includes("url.pathname === '/api/tournaments'") && worker.includes("url.pathname === '/library'")],
- ['cloud metadata updated after saves', worker.includes('await updateLibrary(await response.clone().json())')],
+ ['cloud metadata updated after saves', worker.includes('if (response.ok) await updateLibrary(response);') && worker.includes("'x-ksm-library-entry'")],  // from the DO's header, not a parsed record (Free plan CPU)
  ['local discovery migration', worker.includes("'/api/tournaments/discover'") && html.includes("'/api/tournaments/discover'")],
  ['new tournament immediately cloud-created', html.includes("showKsmToast('Creating tournament in cloud") && html.includes('await performCloudSave(tournamentPayload(),0)')],
  ['name below card', html.includes('home-card-name-below') && html.includes('home-tournament-item') && /<div className="home-tournament-item"[^]*?<button className="home-tournament-card"[^]*?<button className="home-card-name-below"/.test(libraryReact)],

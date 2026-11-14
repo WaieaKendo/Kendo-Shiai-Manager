@@ -141,6 +141,17 @@ function validateTournamentPayload(payload) {
 function tournamentGone(deletedAt, extra = {}) {
   return json({ error: 'Tournament deleted', code: 'tournament-deleted', deletedAt, ...extra }, 410);
 }
+// The Worker in front of the Durable Object runs on the Workers Free plan's 10 ms CPU budget, and
+// a big tournament record (ATKT Final, about 490 KB) takes most of that to parse once: during the
+// ATKT run on 2026-11-13, 38% of requests were stopped (exceededResources) and the courts showed
+// "Cloud save failed (500)". So the Worker never parses a record: it streams request and response
+// bodies through, tells the DO the route's tournament (x-ksm-route-tournament) and reads the
+// library row from this header.
+function libraryEntryHeader(record) {
+  if (!record?.tournamentId) return {};
+  const entry = { id: record.tournamentId, name: record.payload?.setup?.tName || 'Kendo Tournament', updatedAt: record.updatedAt };
+  return { 'x-ksm-library-entry': encodeURIComponent(JSON.stringify(entry)) };
+}
 function publicRecord(record) {
   if (!record) return null;
   const { credentials, ...safe } = record;
@@ -296,7 +307,7 @@ export class TournamentState {
 
     if (request.method === 'GET' && url.pathname === '/snapshot') {
       const record = publicRecord(await this.state.storage.get('record'));
-      return record ? json(record) : json({ error: 'Tournament not found' }, 404);
+      return record ? json(record, 200, libraryEntryHeader(record)) : json({ error: 'Tournament not found' }, 404);
     }
 
     if (request.method === 'GET' && url.pathname === '/status') {
@@ -306,6 +317,9 @@ export class TournamentState {
 
     if (request.method === 'PUT' && url.pathname === '/snapshot') {
       const incoming = await request.json();
+      const routeTournament = request.headers.get('x-ksm-route-tournament') || '';
+      if (routeTournament && incoming.tournamentId && incoming.tournamentId !== routeTournament) return json({ error: 'Tournament ID mismatch' }, 409);
+      if (routeTournament) incoming.tournamentId = routeTournament;
       const existing = await this.state.storage.get('record');
       const role = safeRole(request.headers.get('x-ksm-role') || 'director');
       const suppliedKey = request.headers.get('x-ksm-session-key') || request.headers.get('x-ksm-director-key') || '';
@@ -330,7 +344,7 @@ export class TournamentState {
       await this.state.storage.put('record', record);
       const safe = publicRecord(record);
       this.broadcast({ type: 'snapshot', record: safe });
-      return json(safe);
+      return json(safe, 200, libraryEntryHeader(record));
     }
 
     if (request.method === 'POST' && url.pathname === '/slug') {
@@ -345,6 +359,7 @@ export class TournamentState {
     if (request.method === 'POST' && url.pathname === '/bootstrap') {
       if (await this.state.storage.get('record')) return json({ error: 'Tournament already exists' }, 409);
       const incoming = await request.json();
+      if (request.headers.get('x-ksm-route-tournament')) incoming.tournamentId = request.headers.get('x-ksm-route-tournament');
       if (!incoming.staffPassword || String(incoming.staffPassword).length < 4) return json({ error: 'Staff password required' }, 400);
       const integrityError = validateTournamentPayload(incoming.payload);
       if (integrityError) return json({ error: 'Invalid tournament state', integrityError }, 422);
@@ -369,7 +384,7 @@ export class TournamentState {
         throw error;
       }
       // The creator token is sent only in a header, never in the record.
-      return json(publicRecord(record), 200, { 'x-ksm-session-token': session.token, 'x-ksm-session-expires': session.expiresAt });
+      return json(publicRecord(record), 200, { 'x-ksm-session-token': session.token, 'x-ksm-session-expires': session.expiresAt, ...libraryEntryHeader(record) });
     }
 
     if (request.method === 'POST' && url.pathname === '/auth') {
@@ -517,25 +532,37 @@ export default {
     if (url.pathname === '/api/health') return json({ ok: true, service: 'ksm-cloud', version: APP_VERSION, realtime: true, roles: ['spectator', 'staff'], offlineOutbox: true });
 
     const libraryStub = () => env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName('__ksm_library__'));
-    const withSlug = async response => {
-      if (!response.ok) return response;
-      const record = await response.clone().json();
-      if (!record?.tournamentId) return response;
+    // Adds the friendly-link slug to a record response by splicing it into the JSON text: parsing
+    // and re-serializing a big record costs more CPU than the Free plan allows (libraryEntryHeader()).
+    const withSlug = async (response, tournamentId) => {
+      if (!response.ok || !tournamentId) return response;
+      let slug;
       try {
-        const identity = await libraryStub().fetch(`https://durable-object/library/identity/${encodeURIComponent(record.tournamentId)}`);
+        const identity = await libraryStub().fetch(`https://durable-object/library/identity/${encodeURIComponent(tournamentId)}`);
         if (!identity.ok) return identity.status === 410 ? identity : response;
-        const {slug} = await identity.json();
-        const headers = new Headers(response.headers);
-        headers.delete('content-length');
-        headers.delete('content-encoding');
-        return json({...record,slug},response.status,Object.fromEntries(headers));
+        ({slug} = await identity.json());
       } catch (_) { return response; }
+      const text = await response.text();
+      const end = text.lastIndexOf('}');
+      const headers = new Headers(response.headers);
+      headers.delete('content-length');
+      headers.delete('content-encoding');
+      const before = text.slice(0, end);
+      const body = end > 0 ? `${before}${/\{\s*$/.test(before) ? '' : ','}"slug":${JSON.stringify(slug ?? null)}${text.slice(end)}` : text;
+      return new Response(body, { status: response.status, headers });
     };
-    const updateLibrary = async (record) => {
-      if (!record?.tournamentId) return;
-      const setup = record.payload?.setup || {};
+    const routedHeaders = (headers, tournamentId) => {
+      const routed = new Headers(headers);
+      routed.set('x-ksm-route-tournament', tournamentId);
+      return routed;
+    };
+    // From the DO's x-ksm-library-entry header, so the record itself is never parsed here.
+    const updateLibrary = async (recordResponse) => {
+      let entry = null;
+      try { entry = JSON.parse(decodeURIComponent(recordResponse.headers.get('x-ksm-library-entry') || '')); } catch (_) { return; }
+      if (!entry?.id) return;
       try {
-        const response = await libraryStub().fetch(new Request('https://durable-object/library', { method:'PUT', headers:{'content-type':'application/json'}, body:JSON.stringify({ id:record.tournamentId, name:setup.tName||'Kendo Tournament', updatedAt:record.updatedAt }) }));
+        const response = await libraryStub().fetch(new Request('https://durable-object/library', { method:'PUT', headers:{'content-type':'application/json'}, body:JSON.stringify(entry) }));
         if (!response.ok) console.error('Tournament library update rejected', response.status, await response.text());
       } catch (error) {
         console.error('Tournament library update failed', error);
@@ -573,7 +600,7 @@ export default {
       for (const id of ids) {
         const stub = env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName(id));
         const response = await stub.fetch('https://durable-object/snapshot');
-        if (response.ok) await updateLibrary(await response.json());
+        if (response.ok) await updateLibrary(response);
       }
       return libraryStub().fetch('https://durable-object/library');
     }
@@ -582,10 +609,9 @@ export default {
       if (outdated) return outdated;
       const id = crypto.randomUUID();
       const stub = env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName(id));
-      const body = await request.json();
-      const response = await stub.fetch(new Request('https://durable-object/bootstrap', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...body, tournamentId: id, revision: 0 }) }));
-      if (response.ok) await updateLibrary(await response.clone().json());
-      return withSlug(response);
+      const response = await stub.fetch(new Request('https://durable-object/bootstrap', { method: 'POST', headers: routedHeaders({ 'content-type': 'application/json' }, id), body: request.body }));
+      if (response.ok) await updateLibrary(response);
+      return withSlug(response, id);
     }
 
     const route = url.pathname.match(/^\/api\/tournaments\/([0-9a-f-]+)(?:\/(live|status|auth|slug))?$/i);
@@ -599,21 +625,20 @@ export default {
       if (action === 'status' && request.method === 'GET') return stub.fetch('https://durable-object/status');
       if (action === 'slug' && request.method === 'POST') return stub.fetch(new Request('https://durable-object/slug', {method:'POST',headers:request.headers,body:request.body}));
       if (action === 'auth' && request.method === 'POST') return stub.fetch(new Request('https://durable-object/auth', { method: 'POST', headers: request.headers, body: request.body }));
-      if (!action && request.method === 'GET') return withSlug(await stub.fetch('https://durable-object/snapshot'));
+      if (!action && request.method === 'GET') return withSlug(await stub.fetch('https://durable-object/snapshot'), id);
       if (!action && request.method === 'PUT') {
         const outdated = outdatedClient(request);
         if (outdated) return outdated;
-        const body = await request.json();
-        if (body.tournamentId && body.tournamentId !== id) return json({ error: 'Tournament ID mismatch' }, 409);
-        const response = await stub.fetch(new Request('https://durable-object/snapshot', { method: 'PUT', headers: request.headers, body: JSON.stringify({ ...body, tournamentId: id }) }));
-        if (response.ok) await updateLibrary(await response.clone().json());
-        return withSlug(response);
+        // The DO checks the body's tournamentId against the route (x-ksm-route-tournament).
+        const response = await stub.fetch(new Request('https://durable-object/snapshot', { method: 'PUT', headers: routedHeaders(request.headers, id), body: request.body }));
+        if (response.ok) await updateLibrary(response);
+        return withSlug(response, id);
       }
       if (!action && request.method === 'DELETE') {
         const response = await stub.fetch(new Request('https://durable-object/snapshot', { method: 'DELETE', headers: request.headers }));
         // A 410 (already deleted) also clears the library entry, in case an earlier delete was cut short.
         if (response.ok || response.status === 410) await libraryStub().fetch(new Request(`https://durable-object/library/${encodeURIComponent(id)}`, { method:'DELETE' }));
-        return withSlug(response);
+        return response;
       }
       return json({ error: 'Method not allowed' }, 405);
     }
