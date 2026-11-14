@@ -117,5 +117,21 @@ const conflict = record => ({ status: 409, ok: false, text: async () => JSON.str
   check(error instanceof Error && context.cloudSession.revision === 48, `a failed rebased save leaves revision 48 (now ${context.cloudSession.revision})`);
 }
 
+// 4. An outbox flush sends an older snapshot on its older base (747) while the device is on 797. When
+//    the server keeps failing (ATKT: HTTP 500s), each retry must leave the device on 797, not pull it
+//    back to 747 (it went 797 -> 747 -> 803 -> 747, and every later save then needed a rebase).
+for (const [label, respond] of [
+  ['a 500', async () => ({ status: 500, ok: false, text: async () => '<!DOCTYPE html><title>Worker threw exception</title>' })],
+  ['a 409 then a 500', (() => { let call = 0; return async () => (++call === 1
+    ? conflict({ tournamentId: 't1', revision: 800, updatedAt: 'x', payload: { schemaVersion: '1.1', state: stateWith(1) } })
+    : { status: 500, ok: false, text: async () => 'Worker threw exception' }); })()]
+]) {
+  const { context } = makeContext(respond, 797);
+  const queued = { schemaVersion: '1.1', state: stateWith(0, [action('White M', 747, '2026-11-13T10:00:03.000Z')]) };
+  let error = null;
+  try { await context.performCloudSave(queued, 747, 0, 747); } catch (err) { error = err; }
+  check(error != null && context.cloudSession.revision === 797, `an outbox flush failing with ${label} leaves the device on 797 (now ${context.cloudSession.revision})`);
+}
+
 if (failed) process.exit(1);
 console.log('PASS split-court sync regressions');
