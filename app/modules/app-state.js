@@ -4,7 +4,7 @@
 // #15 step 2.8 moves its fields into the Redux Toolkit store (app/store) one group at a time: see docs/STORE.md.
 // Each key of `state` is either a plain property or, once its group has moved, a store getter (moveToStore()); every
 // write that replaces or assigns several keys at once goes through replaceState() / assignState() (STORE.md section 2).
-import {dispatch,getState,legacyFieldAssigned,legacyStateAssigned,legacyStateReplaced,storeIsStrict} from '../store/index.ts';
+import {deviceSlice,dispatch,getState,legacyFieldAssigned,legacyStateAssigned,legacyStateReplaced,storeIsStrict} from '../store/index.ts';
 /** @type {[string, string, CourtMode][]} */
 export const DIVISION_PRESETS=[['Yonenbu (11 years and under)','Round Robin','A'],['Shonenbu (12–14 years old)','Round Robin','A'],['Seinenbu (15+ years without dan)','Round Robin','A'],['Women’s Open','Round Robin','B'],['Yudansha 1–3 Dan','Round Robin','A'],['Yudansha 4 Dan+','Round Robin','B'],['Masters Open (50+ years old)','Round Robin','B']];
 /** @type {TournamentState} */
@@ -44,10 +44,18 @@ export function moveToStore(key,path,target=state){
   }});
   storeFieldsOf(target).set(key,at);
 }
+// Device fields (PR 5 of docs/STORE.md section 3): the store holds them from here on, `state` reads them through getters,
+// and they are written only through device/registrationTabChanged and device/poolViewDivisionChanged. Done once here,
+// before any code reads them; the literal above only fixes their place in Object.keys(state).
+moveToStore('regMode',['device','regMode']);
+moveToStore('poolViewDivision',['device','poolViewDivision']);
+/** The Pools tab's division, as this device shows it (a device field: device/poolViewDivisionChanged). */
+export function ksmSetPoolViewDivision(/** @type {string} */ division){dispatch(deviceSlice.actions.poolViewDivisionChanged(division))}
 /**
  * Replaces all of `state` with `loaded`'s keys (a load, a remote apply, the tournament switch): plain keys are deleted
  * and assigned in `loaded`'s order, as `Object.keys(state).forEach(k=>delete state[k]);Object.assign(state,loaded)` did;
- * store-owned keys (absent ones as undefined) go to the store in one legacy/stateReplaced action.
+ * store-owned keys (absent ones as undefined) go to the store in one legacy/stateReplaced action, except the device
+ * fields, which this device keeps (a payload's value is ignored).
  * @param {object} loaded
  * @param {object} [target]
  */
@@ -55,8 +63,9 @@ export function replaceState(loaded,target=state){
   const fields=storeFieldsOf(target),writes=[];
   const t=/** @type {Record<string,unknown>} */ (target);
   for(const key of Object.keys(t))if(!fields.has(key))delete t[key];
-  for(const [key,value] of Object.entries(loaded)){const path=fields.get(key);if(path)writes.push({path:[...path],value});else t[key]=value}
-  for(const [key,path] of fields)if(!Object.hasOwn(loaded,key))writes.push({path:[...path],value:undefined});
+  // A device field (path in the `device` slice) is this device's: a payload never overwrites it (docs/STORE.md point 4).
+  for(const [key,value] of Object.entries(loaded)){const path=fields.get(key);if(path){if(path[0]!=='device')writes.push({path:[...path],value})}else t[key]=value}
+  for(const [key,path] of fields)if(path[0]!=='device'&&!Object.hasOwn(loaded,key))writes.push({path:[...path],value:undefined});
   if(writes.length)dispatch(legacyStateReplaced({writes}));
 }
 /**

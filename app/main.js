@@ -10,7 +10,7 @@
 
 import * as KSMEngine from './engine/index.ts';
 import {setStoreStrict,store as KSMStore} from './store/index.ts';
-import {setStrayStoreWriteReporter,state} from './modules/app-state.js';
+import {ksmSetPoolViewDivision,setStrayStoreWriteReporter,state} from './modules/app-state.js';
 import {cloudHeaders,connectCloudSocket,initAuth0Access,ksmAuthReady,ksmCacheTournament,ksmFetchTournament,ksmReadHeaders,ksmRevealReadyUi,ksmUsesAccountAuth,loadTournamentFileAsNew,loadTournamentFromCloud,renderHomeTournamentLibrary,setSessionRole,toggleStaffSession} from './modules/auth/auth0-access.js';
 import {initBootstrap,initFirstRender,ksmBootstrapInitialization} from './modules/boot.js';
 import {dragPoolPlayer,dropPoolPlayer,initPasteFromExcel,insertPoolPlayer,renderAll,saveEditedPools,toggleEditPools} from './modules/court/court-context-and-pool-editing.js';
@@ -177,6 +177,8 @@ Object.assign(window, {
   KSMEngine,
   // The store (app/store): the React islands are a separate bundle and read this one instance (docs/STORE.md section 4).
   KSMStore,
+  // app/modules/app-state.js: the Pools division select's inline handler
+  ksmSetPoolViewDivision,
   // app/modules/links/path-urls.js
   ksmHeaderLogo, ksmIsExplicitSpectatorUrl, ksmLinkParams, ksmLinkUrl, ksmRecordScreenPath, ksmReplaceUrl, ksmResolvedUrl, ksmResolveSlug,
   ksmShowRequestedScreen, ksmTournamentHomeUrl,

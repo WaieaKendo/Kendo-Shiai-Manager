@@ -2,6 +2,7 @@
 // before, app/js declared it (01-state-and-setup.js) and 24- and 27- reassigned it at load to add the active nav item
 // and the Results redraw, in that order; the order of the calls below is the same.
 import {state} from './app-state.js';
+import {deviceSlice,dispatch} from '../store/index.ts';
 import {renderAll} from './court/court-context-and-pool-editing.js';
 import {openCourt,openPublicCourt} from './court/court-match-order.js';
 import {renderPools} from './engine/engine-generation.js';
@@ -67,7 +68,7 @@ export function exportResultsAwards(){
   previewResultsSheet();
 }
 export function regTab(mode){
-  state.regMode=mode;
+  dispatch(deviceSlice.actions.registrationTabChanged(mode));
   if(window.indReg)indReg.classList.toggle('hidden',mode!=='individual');
   if(window.teamReg)teamReg.classList.toggle('hidden',mode!=='team');
   if(window.exhibitionReg)exhibitionReg.classList.toggle('hidden',mode!=='exhibition');

@@ -1,5 +1,6 @@
 // @ts-check
 import {DIVISION_PRESETS,assignState,state} from '../app-state.js';
+import {deviceSlice,dispatch} from '../../store/index.ts';
 import {renderDivisions} from '../court/court-match-order.js';
 import {scheduleAutoSave} from '../sync/cloud-session-and-autosave.js';
 import {renderReg} from '../registration/registration.js';
@@ -70,7 +71,10 @@ export function ksmRenameSetupDivision(from,to){
   if(name===from)return null;
   const client=(typeof cloudSession==='object'&&cloudSession?.clientId)||'local';
   const record={id:`${client}:${Date.now().toString(36)}:${Math.random().toString(36).slice(2,8)}`,from,to:name};
-  assignState(KSMEngine.renamedDivisionState(/** @type {any} */ (state),from,name,record));
+  const renamed=KSMEngine.renamedDivisionState(/** @type {any} */ (state),from,name,record);
+  // The Pools tab's division is a device field: it follows the rename through its action, not assignState().
+  if(renamed.poolViewDivision!==undefined){dispatch(deviceSlice.actions.poolViewDivisionChanged(renamed.poolViewDivision));delete renamed.poolViewDivision}
+  assignState(renamed);
   ['A','B'].forEach(c=>{if(ksmLocalCourtDivision[c]===from)ksmLocalCourtDivision[c]=name});
   renderDivisionSetup();renderDivisions();renderReg();renderTournamentStatus();
   scheduleAutoSave('Division renamed');

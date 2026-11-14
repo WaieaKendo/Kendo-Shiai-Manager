@@ -1,5 +1,5 @@
 // @ts-check
-import {state} from '../app-state.js';
+import {ksmSetPoolViewDivision,state} from '../app-state.js';
 import {loadScoreFromMatch} from './court-scoring-and-history.js';
 import {renderScore} from './scorekeeper-screen.js';
 import {championshipLabels,firstRoundName,roundSequenceFromFirst} from '../engine/engine-championship.js';
@@ -88,7 +88,7 @@ export function initCourtStates(){
 }
 export function renderDivisions(){
   state.divisions.forEach(d=>state.divisionCourts[d]=state.divisionCourts[d]||'A');
-  if(window.poolDiv){let all=[...new Set([...state.divisions,...ksmTeamDivisions().filter(d=>state.allMatches?.[d.id]).map(d=>d.id),...Object.keys(state.allMatches||{})])];let selected=(poolDiv.value&&all.includes(poolDiv.value))?poolDiv.value:((state.poolViewDivision&&all.includes(state.poolViewDivision))?state.poolViewDivision:state.currentDivision);state.poolViewDivision=selected;poolDiv.innerHTML=all.map(d=>`<option ${d===selected?'selected':''}${ksmDivisionName(d)!==d?` value="${esc(d)}"`:''}>${esc(ksmDivisionName(d))}</option>`).join('');if(selected)poolDiv.value=selected;}
+  if(window.poolDiv){let all=[...new Set([...state.divisions,...ksmTeamDivisions().filter(d=>state.allMatches?.[d.id]).map(d=>d.id),...Object.keys(state.allMatches||{})])];let selected=(poolDiv.value&&all.includes(poolDiv.value))?poolDiv.value:((state.poolViewDivision&&all.includes(state.poolViewDivision))?state.poolViewDivision:state.currentDivision);ksmSetPoolViewDivision(selected);poolDiv.innerHTML=all.map(d=>`<option ${d===selected?'selected':''}${ksmDivisionName(d)!==d?` value="${esc(d)}"`:''}>${esc(ksmDivisionName(d))}</option>`).join('');if(selected)poolDiv.value=selected;}
   if(window.scoreDiv){
     let court=state.currentCourt||'A';
     let all=[...new Set([...state.divisions,...Object.keys(state.allMatches||{})])];

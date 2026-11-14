@@ -1,5 +1,5 @@
 // Generation, the no-show rebuilds, the court helpers and the Pools view entry (step 4a of #136; was app/js/08-engine-generation.js).
-import {state} from '../app-state.js';
+import {ksmSetPoolViewDivision,state} from '../app-state.js';
 import {renderAll} from '../court/court-context-and-pool-editing.js';
 import {individualMatchReady,initCourtStates,isTeamMatch,renderDivisions,sortIndividualDivisionMatches,sortTeamMatches} from '../court/court-match-order.js';
 import {loadScoreFromMatch} from '../court/court-scoring-and-history.js';
@@ -128,7 +128,7 @@ function makeMatches(div){state.allMatches[div]=buildPoolMatches(div,state.pools
 export function renderPools(){
   // The Pools view is React (app/react/pools/, 41-react-pools.js): #poolOutput's contents are
   // published to it instead of written (M.13).
-  let div=poolDiv?.value||state.poolViewDivision||state.currentDivision;state.poolViewDivision=div;
+  let div=poolDiv?.value||state.poolViewDivision||state.currentDivision;ksmSetPoolViewDivision(div);
   poolOutput.className='pools-layout';
   ksmRenderPools(div);
   renderResultsDashboard();

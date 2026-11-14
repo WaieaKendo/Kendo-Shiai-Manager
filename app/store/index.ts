@@ -3,7 +3,7 @@
 export { createKsmStore, dispatch, getState, rootReducer, store, subscribe } from './store.ts';
 export type { AppDispatch, KsmStore, KsmStoreOptions, RootState } from './store.ts';
 export { deviceSlice, DEVICE_SLICE_VERSION } from './slices/device.ts';
-export type { DeviceSliceState } from './slices/device.ts';
+export type { DeviceSliceState, RegistrationTab } from './slices/device.ts';
 export { tournamentSlice, TOURNAMENT_SLICE_VERSION } from './slices/tournament.ts';
 export type { TournamentSliceState } from './slices/tournament.ts';
 export {
