@@ -245,7 +245,7 @@
           </div>
           <div class="field">
             <label>Court Assignment</label>
-            <select id="teamCourt" onchange="state.divisionCourts['Team Tournament']=this.value;saveSetup()" data-testid="team-court">
+            <select id="teamCourt" onchange="saveSetup()" data-testid="team-court">
               <option>A</option>
               <option>B</option>
               <option selected>Both</option>
@@ -253,7 +253,7 @@
           </div>
           <div class="field">
             <label>Team Awards to Display</label>
-            <select id="teamAwardMode" onchange="state.teamAwardMode=this.value;saveSetup()" data-testid="team-award-mode">
+            <select id="teamAwardMode" onchange="saveSetup()" data-testid="team-award-mode">
               <option value="top1">Champion only</option>
               <option value="top2" selected>Champion + Runner-up</option>
               <option value="dual3">Champion + Runner-up + 3rd place(s)</option>

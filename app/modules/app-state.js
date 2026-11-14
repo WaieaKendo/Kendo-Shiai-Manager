@@ -10,7 +10,7 @@ import {deviceSlice,dispatch,getState,legacyFieldAssigned,legacyStateAssigned,le
 export const DIVISION_PRESETS=[['Yonenbu (11 years and under)','Round Robin','A'],['Shonenbu (12–14 years old)','Round Robin','A'],['Seinenbu (15+ years without dan)','Round Robin','A'],['Women’s Open','Round Robin','B'],['Yudansha 1–3 Dan','Round Robin','A'],['Yudansha 4 Dan+','Round Robin','B'],['Masters Open (50+ years old)','Round Robin','B']];
 /** @type {TournamentState} */
 export const state={brackets:{},championshipNodes:{},teamBracketState:{},teamBracketNodes:{},singleElimNodes:{},divisions:DIVISION_PRESETS.map(x=>x[0]),divisionTypes:{},divisionCourts:{},competitors:[],teams:[],exhibitions:[],awards:[],pools:{},teamPools:{},allMatches:{},currentByDivision:{},courtState:{A:{division:null,index:0},B:{division:null,index:0}},matches:[],current:0,score:{W:[],R:[],WT:0,RT:0},history:[],currentDivision:'Women’s Open',poolViewDivision:'Women’s Open',currentCourt:'A',publicCourt:'A',courtActiveDivision:{A:null,B:null},regMode:'individual',contextMode:'pool',teamAwardMode:'top2',generated:false,teamElimTeams:{},managementRevision:0,courtActionHistory:{A:[],B:[]},courtRedoHistory:{A:[],B:[]}};
-DIVISION_PRESETS.forEach(([d,f,c])=>{state.divisionTypes[d]=f;state.divisionCourts[d]=c});state.divisionCourts['Team Tournament']='Both';
+DIVISION_PRESETS.forEach(([d,f,c])=>{state.divisionTypes[d]=f;state.divisionCourts[d]=c});state.divisionCourts['Team Tournament']='Both';// = settings.teamCourt's default; from here on ksmSetTeamCourt() writes it
 
 /** @typedef {{field:string,path:string,stack:string}} StrayStoreWrite */
 // For each object (the app's `state`, or a test's own), the keys moveToStore() made store getters -> their store path.
@@ -104,6 +104,12 @@ export function ksmShowDivision(/** @type {string|null} */ division){if(state.cu
 deriveInState('matches',()=>{const div=state.currentDivision,list=div!=null?state.allMatches?.[div]:undefined;return Array.isArray(list)?list:[]});
 moveToStore('current',['device','currentMatchIndex']);
 moveToStore('score',()=>['device','activeScore',state.currentCourt||'A']);
+// The team award mode (PR 8b): the Setup field settings.teamAwardMode is the one value; state.teamAwardMode is a getter over
+// it, so the snapshot still carries the top-level copy 4.0 devices read (same value). Written through ksmSetSetting()
+// (tournament/settingChanged) or the Setup input; a load sets it in applySetupSnapshot() (replaceState() skips it, below).
+moveToStore('teamAwardMode',['tournament','settings','teamAwardMode']);
+/** Whether a store path is a Setup field: a load applies those through applySetupSnapshot(), with the Setup's precedence. */
+const isSettingsPath=(/** @type {string[]} */ p)=>p[0]==='tournament'&&p[1]==='settings';
 /** A tournament closed (ksmResetTournament()): the shown match is the first and every court's pad is empty. */
 export function ksmResetCourtPads(){ksmShowMatch(0);dispatch(deviceSlice.actions.scoresCleared())}
 /** The match this device's court screen shows: its index in state.matches (state.current). */
@@ -125,7 +131,8 @@ export function ksmSetScore(/** @type {ScorePad} */ score){
  * Replaces all of `state` with `loaded`'s keys (a load, a remote apply, the tournament switch): plain keys are deleted
  * and assigned in `loaded`'s order, as `Object.keys(state).forEach(k=>delete state[k]);Object.assign(state,loaded)` did;
  * store-owned keys (absent ones as undefined) go to the store in one legacy/stateReplaced action, except the device
- * fields, which this device keeps (a payload's value is ignored), and the derived keys (state.matches), whose payload
+ * fields, which this device keeps (a payload's value is ignored), the Setup fields (state.teamAwardMode), which the
+ * caller's applySetupSnapshot() sets with the Setup's precedence, and the derived keys (state.matches), whose payload
  * value is ignored.
  * @param {object} loaded
  * @param {object} [target]
@@ -138,9 +145,9 @@ export function replaceState(loaded,target=state){
   for(const [key,value] of Object.entries(loaded)){
     if(derived.has(key))continue;
     const path=fields.get(key);
-    if(path){const p=resolvePath(path);if(p[0]!=='device')writes.push({path:p,value})}else t[key]=value;
+    if(path){const p=resolvePath(path);if(p[0]!=='device'&&!isSettingsPath(p))writes.push({path:p,value})}else t[key]=value;
   }
-  for(const [key,path] of fields){const p=resolvePath(path);if(p[0]!=='device'&&!Object.hasOwn(loaded,key))writes.push({path:p,value:undefined})}
+  for(const [key,path] of fields){const p=resolvePath(path);if(p[0]!=='device'&&!isSettingsPath(p)&&!Object.hasOwn(loaded,key))writes.push({path:p,value:undefined})}
   if(writes.length)dispatch(legacyStateReplaced({writes}));
 }
 /**
@@ -152,6 +159,10 @@ export function replaceState(loaded,target=state){
 export function assignState(partial,target=state){
   const fields=storeFieldsOf(target),derived=derivedFieldsOf(target),writes=[];
   const t=/** @type {Record<string,unknown>} */ (target);
-  for(const [key,value] of Object.entries(partial)){if(derived.has(key))continue;const path=fields.get(key);if(path)writes.push({path:resolvePath(path),value});else t[key]=value}
+  for(const [key,value] of Object.entries(partial)){
+    if(derived.has(key))continue;const path=fields.get(key);
+    // A Setup field holds a text (tournament.settings): a missing or non-text value (an Undo of a patch that removed it) is not written.
+    if(path){const p=resolvePath(path);if(!isSettingsPath(p)||typeof value==='string')writes.push({path:p,value})}else t[key]=value;
+  }
   if(writes.length)dispatch(legacyStateAssigned({writes}));
 }

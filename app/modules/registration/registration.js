@@ -4,10 +4,10 @@ import {renderAll} from '../court/court-context-and-pool-editing.js';
 import {renderDivisions} from '../court/court-match-order.js';
 import {applyIndividualNoShow,applyWholeTeamNoShow} from '../engine/engine-generation.js';
 import {eligibleIndividuals,eligibleTeams} from '../engine/engine-pools.js';
-import {scheduleAutoSave} from '../sync/cloud-session-and-autosave.js';
+import {ksmSetting,scheduleAutoSave} from '../sync/cloud-session-and-autosave.js';
 import {ksmConfirmNoShow,ksmRenderExhibitions,ksmRenderRegistration,ksmRenderTeams} from '../react-bridges/registration.js';
 import {ksmCloseShellDialog,ksmContinueRegenerateDivision,ksmOpenRegenerateDialog} from '../react-bridges/shell.js';
-import {ksmDefaultTeamDivisionId,ksmNewTeamIdentity,ksmNewTeamRows,ksmTeamDivision,ksmTeamSettings} from './team-divisions.js';
+import {ksmDefaultTeamDivisionId,ksmNewTeamIdentity,ksmNewTeamRows,ksmSetTeamCourt,ksmTeamDivision,ksmTeamSettings} from './team-divisions.js';
 import {renderTournamentStatus} from './validation.js';
 import * as KSMEngine from '../../engine/index.ts';
 export function addRow(n=1){for(let i=0;i<n;i++)state.competitors.push({name:'',dojo:'',division:state.divisions[0]||'',seed:'',status:'Registered'});if(window.regFilter)regFilter.value='';renderReg()}
@@ -51,7 +51,7 @@ export function loadSamples(){if(state.competitors.length&&!confirm('Replace all
 export function loadTeamSamples(){if(state.teams.length&&!confirm('Replace all teams with the sample teams?'))return;state.teams=[{team:'Aiea Team A',senpo:'Tanaka',jiho:'Ito',chuken:'Suzuki',fukusho:'Nakamura',taisho:'Kato',status:'Checked'},{team:'Waipahu Team A',senpo:'Sato',jiho:'Kimura',chuken:'Yamamoto',fukusho:'Lee',taisho:'Chen',status:'Checked'},{team:'Maui Team A',senpo:'Mori',jiho:'Miura',chuken:'Maeda',fukusho:'Goto',taisho:'Higa',status:'Checked'},{team:'University of Hawaii',senpo:'Arai',jiho:'Ono',chuken:'Kondo',fukusho:'Shima',taisho:'Ueda',status:'Checked'}];state.teams=ksmNewTeamRows(state.teams);renderTeams()}
 export function loadFullTournament(){
   if((state.competitors.length||state.teams.length)&&!confirm('Replace the divisions, competitors and teams with the sample tournament?'))return;
-  state.divisions=DIVISION_PRESETS.map(x=>x[0]);state.divisionCourts={};DIVISION_PRESETS.forEach(([d,f,c])=>{state.divisionTypes[d]=f;state.divisionCourts[d]=c});state.divisionCourts['Team Tournament']='Both';
+  state.divisions=DIVISION_PRESETS.map(x=>x[0]);state.divisionCourts={};DIVISION_PRESETS.forEach(([d,f,c])=>{state.divisionTypes[d]=f;state.divisionCourts[d]=c});ksmSetTeamCourt(ksmSetting('teamCourt'));
   state.divisionTypes={};DIVISION_PRESETS.forEach(([d,f,c])=>state.divisionTypes[d]=f);
   const dojos=['Aiea Taiheiji','Waipahu Seibukan','Honolulu Myohoji','Mililani','Maui','Kailua','Hilo','Kauai','Manoa','Palolo'];
   const first=['Riku','Hana','Mika','Emi','Yui','Aiko','Mai','Sora','Ken','Daichi','Ren','Haruto','Kaito','Yuna','Mei','Akira','Naoki','Takumi','Satoshi','Kei','Nori','Yoshi','Taro','Hiro','Aya','Mina','Noa','Kai','Leo','Ema','Mao','Rena','Kota','Sena','Rei','Shun','Yuto','Nana','Mio','Asa','Ryo','Koki','Sho','Kazu','Miki','Sara','Toma','Haru','Yuki','Kenta'];

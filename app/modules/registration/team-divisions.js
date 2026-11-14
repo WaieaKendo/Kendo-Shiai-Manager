@@ -7,7 +7,7 @@ import {renderTeams} from './registration.js';
 import {renderTournamentStatus} from './validation.js';
 import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {writeCloudDiagnosticsState} from '../sync/cloud-diagnostics.js';
-import {getSetupSnapshot,ksmSetSetting,tournamentSettings} from '../sync/cloud-session-and-autosave.js';
+import {getSetupSnapshot,ksmSetSetting,ksmSetting,tournamentSettings} from '../sync/cloud-session-and-autosave.js';
 import * as KSMEngine from '../../engine/index.ts';
 export function ksmNewTeamRows(rows){const division=ksmDefaultTeamDivisionId();return rows.map(t=>({...t,id:ksmNewTeamIdentity(),teamDivisionId:division}))}
 // The saved format this app understands (team divisions = 2, grand champion #86 = 3), sent with every
@@ -33,12 +33,25 @@ export function ksmTeamDivision(id){return (state.teamDivisions||[]).find(d=>d.i
 // #86: a grand champion's division shows its row's name.
 export function ksmDivisionName(id){return KSMEngine.grandChampionName(state.grandChampions,id)??KSMEngine.teamDivisionName(state.teamDivisions,id)}
 // Legacy controls serialize old files, but cannot override authoritative division records.
+// state.teamAwardMode is a getter over the Setup field (#15 PR 8b), and the team court goes through ksmSetTeamCourt().
 export function ksmSyncLegacyTeamDivision(){
-  const d=ksmTeamDivision('Team Tournament');if(!d)return;
-  state.teamAwardMode=d.awardMode;state.divisionCourts[d.id]=/** @type {any} */(d.court);
-  for(const [key,value] of Object.entries({teamFormat:d.teamFormat,teamTournamentFormat:d.teamTournamentFormat,teamCourt:d.court,teamAwardMode:d.awardMode})){
+  const d=ksmTeamDivision(KSMEngine.LEGACY_TEAM_DIVISION_ID);if(!d)return;
+  for(const [key,value] of Object.entries({teamFormat:d.teamFormat,teamTournamentFormat:d.teamTournamentFormat,teamAwardMode:d.awardMode})){
     ksmSetSetting(key,value);
   }
+  ksmSetTeamCourt(d.court);
+}
+/**
+ * The team court (#15 PR 8b): the Setup field settings.teamCourt is the value, and the legacy team division's entry
+ * state.divisionCourts['Team Tournament'] (the copy 4.0 devices, the court lists and the generation read) follows it.
+ * Every write of either goes through here, so the two never differ; the entry gets the field's value as its select holds
+ * it. divisionCourts moves into the store in PR 9 (docs/STORE.md section 3 item 9); until then the entry is a plain write.
+ * @param {string} court
+ */
+export function ksmSetTeamCourt(court){
+  ksmSetSetting('teamCourt',court);
+  state.divisionCourts=state.divisionCourts||{};
+  state.divisionCourts[KSMEngine.LEGACY_TEAM_DIVISION_ID]=/** @type {any} */(ksmSetting('teamCourt'));
 }
 export function ksmTeamSettings(id){
   const d=ksmTeamDivision(id)||(!id?ksmTeamDivisions()[0]:null),settings=tournamentSettings();
@@ -63,7 +76,7 @@ export function ksmUpdateTeamDivision(id,patch){
   if(patch.name!==undefined&&!String(patch.name).trim())return 'Enter a division name';
   if(ksmTeamDivisionDrawn(id)&&Object.keys(patch).some(k=>!['name','order','awardMode'].includes(k)))return 'Match format and court cannot change once this division is drawn';
   Object.assign(d,patch,{id:d.id,name:String(patch.name??d.name).trim()});
-  if(patch.court)state.divisionCourts[id]=/** @type {any} */(d.court);
+  if(patch.court){if(id===KSMEngine.LEGACY_TEAM_DIVISION_ID)ksmSetTeamCourt(d.court);else state.divisionCourts[id]=/** @type {any} */(d.court)}
   if(patch.teamFormat)state.teams.filter(t=>t.teamDivisionId===id).forEach(t=>t.type=d.teamFormat);
   if(id==='Team Tournament')ksmSyncLegacyTeamDivision();
   if(patch.awardMode)ksmAddDaihyosenForTeamAwards();
@@ -82,7 +95,9 @@ export function ksmRemoveTeamDivision(id){
   if(teams.length&&!fallback){alert(state.generated?'Its teams need a team division without a draw: add one, or move them first.':'Add another team division before removing one with teams.');return false}
   if(teams.length&&!confirm(`Remove ${d.name}? Its ${teams.length} ${teams.length===1?'team':'teams'} will move to ${fallback.name}.`))return false;
   state.teamDivisions=rows.filter(d=>d.id!==id);teams.forEach(t=>t.teamDivisionId=fallback.id);
-  delete state.divisionCourts[id];ksmTeamDivisionChanged();return true;
+  // The 'Team Tournament' entry stays: it is the Setup's team court (ksmSetTeamCourt()), which saveSetup() wrote back on the next render.
+  if(id===KSMEngine.LEGACY_TEAM_DIVISION_ID)ksmSetTeamCourt(ksmSetting('teamCourt'));else delete state.divisionCourts[id];
+  ksmTeamDivisionChanged();return true;
 }
 export function ksmAssignTeamDivision(team,id){
   const d=ksmTeamDivision(id);if(!d)return false;

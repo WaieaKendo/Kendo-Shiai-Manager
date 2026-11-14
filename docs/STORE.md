@@ -1,6 +1,6 @@
 # The store: plan for moving `state` into Redux Toolkit (#15 step 2.8)
 
-Status (2026-11-14): **prep done (PR 2), Undo/Redo without device keys (PR 3), loads keep the device view (PR 4), device fields moved: `regMode`, `poolViewDivision` (PR 5), the court view (PR 6), `matches` derived and `current` / `score` moved (PR 7), the Setup form in `tournament.settings` (PR 8; PR 8b left)**. `app/store/` holds a Redux Toolkit store (slices
+Status (2026-11-14): **prep done (PR 2), Undo/Redo without device keys (PR 3), loads keep the device view (PR 4), device fields moved: `regMode`, `poolViewDivision` (PR 5), the court view (PR 6), `matches` derived and `current` / `score` moved (PR 7), the Setup form in `tournament.settings` (PR 8), `teamAwardMode` and the team court read it (PR 8b)**. `app/store/` holds a Redux Toolkit store (slices
 `tournament` and `device`). app.js imports it as a separate tree-shaken, minified
 bundle (+7.9 kB gzip, section 5) and sets `window.KSMStore`; `app/modules/app-state.js` has the helpers the field
 moves use (`moveToStore()`, `replaceState()`, `assignState()`, section 2). All app data is still the one mutable
@@ -45,8 +45,8 @@ Class: **T** tournament data (shared, synced), **D** device/screen state (this d
 | `hiddenPresets` | 5 / 2 / 1 | setup (react-bridges/setup) | |
 | `divisionRenames` | 0 in app/modules (5 in 2 files by name) / via `Object.assign` / 2 | division rename (react-bridges/setup, through `renamedDivisionState`), the rebase (`rebaseDivisionRenames`) | The rename log `{id, from, to}` the save-conflict replay uses (#25, #36); not in `TournamentState`'s type yet. Moves with the divisions (PR 9) |
 | `divisionTypes` | 18 / 7 / 9 | setup, registration | |
-| `divisionCourts` | 57 / 26 / 18 | setup, registration, team divisions, grand champion, court order, generation, **sync** (load normalizes `'Both'`→`'split'`), `applySetupSnapshot` (`teamCourt`) | Most-written settings field; partly derived from the Setup form (its `'Team Tournament'` entry from `settings.teamCourt` since PR 8: `saveSetup()` reads the store; still its own copy, PR 8b) |
-| `teamAwardMode` | 5 / 3 / 4 | setup, team divisions, `applySetupSnapshot` | Duplicates the Setup form field of the same name (`saveSetup()` copies `settings.teamAwardMode` since PR 8; a getter is PR 8b, see section 3 item 8) |
+| `divisionCourts` | 57 / 26 / 18 | setup, registration, team divisions, grand champion, court order, generation, **sync** (load normalizes `'Both'`→`'split'`), `applySetupSnapshot` (`teamCourt`) | Most-written settings field; its `'Team Tournament'` entry follows the Setup field `settings.teamCourt`, written only through `ksmSetTeamCourt()` (PR 8b) |
+| `teamAwardMode` | 0 (getter) | Setup field `teamAwardMode` (`tournament/settingChanged`) | Since PR 8b a store getter over `settings.teamAwardMode` (section 3 item 8); the snapshot still carries it |
 | `competitors` | 30 / 8 / 9 | registration (+ its React bridge, rows edited in place) | Three-way merged on save conflicts (`KSM_MERGED_STATE_KEYS`) |
 | `teams` | 31 / 9 / 10 | registration | Merged by team id (#95) |
 | `teamDivisions` | 12 / 2 / 6 | team divisions (load-time migration `migrateTeamDivisions`) | |
@@ -401,7 +401,8 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
    `tournament/settingsLoaded`, field edits `tournament/settingChanged`; inputs render from the store;
    `teamAwardMode` and the `teamCourt` part of `divisionCourts` read settings. Risk: medium (DOM reads by id in many
    places, `tournamentSettings()`). Tests: setup goldens, edit-conflicts (Setup fields merge), print.
-   Done (**PR 8**), split: `teamAwardMode` / `teamCourt` are left for **PR 8b** (below).
+   Done (**PR 8** and **PR 8b**): PR 8 moved the Setup form; PR 8b made `teamAwardMode` and the `teamCourt` entry of
+   `divisionCourts` follow it (below).
    - `tournament.settings` holds the 26 Setup fields (`TournamentSetup`, `app/store/slices/tournament.ts`), each the
      text its input holds, in the order `payload.setup` has always had (`KSMEngine.SETUP_KEYS`, `app/engine/settings.ts`).
      Defaults are the page's (`initialSettings`; `tests/store/settings.test.mjs` checks them and the select options
@@ -434,18 +435,37 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
      (`app/react/shared/legacy.ts`: `window.KSMStore`); `legacyTournamentNameInput()` and the Setup entries of
      `legacyInput()` are gone. The print renderer still reads the snapshot it is given. A source check
      (`tests/store/settings.test.mjs`) fails on any read of a Setup input's value in `app/`.
-   - **Left for PR 8b**: `state.teamAwardMode` as a getter over `settings.teamAwardMode`, and the `'Team Tournament'`
-     entry of `divisionCourts` from `settings.teamCourt`. Not a getter yet because the two are not always the same
-     value today: the empty `state` (`app-state.js`, and the copy `ksmResetTournament()` loads) has no `teamAwardMode`
-     key until the start-up render sets it, a payload's `state` may lack it or differ from its `setup.teamAwardMode`,
-     and between `replaceState()` and `applySetupSnapshot()` / `ksmSyncLegacyTeamDivision()` a load holds the
-     payload's own. A getter would always write the key with the Setup's value (a snapshot change for those saves) and
-     needs the owner's OK or a "missing" marker; the `teamCourt` part moves with `divisionCourts` (PR 9). Here both are
-     only read from the store instead of the inputs.
+   - **PR 8b** (done): one value each.
+     - `state.teamAwardMode` is a store getter over `settings.teamAwardMode` (`moveToStore()`, `app-state.js`), so the
+       snapshot still carries the top-level copy 4.0 devices read, with the same value. Writers dispatch
+       `tournament/settingChanged`: the Setup select (the capture listener; its inline `onchange` no longer assigns
+       `state`), `ksmSyncLegacyTeamDivision()` (the 'Team Tournament' team division's value), `saveSetup()` ('top2' for an
+       empty value). `replaceState()` skips a key whose store path is a Setup field (as it skips device keys) and
+       `assignState()` writes only a text there; `applySetupSnapshot()` sets it. A stray assignment: strict throws,
+       production logs it and applies it to the Setup field.
+     - `divisionCourts['Team Tournament']` follows `settings.teamCourt` through one helper, `ksmSetTeamCourt()`
+       (`registration/team-divisions.js`), which sets the Setup field and then the entry to the field's value; every
+       writer calls it (the legacy select's `saveSetup()`, the team division sync and court edit, the load, the team
+       generation, the sample tournament, the removal of the 'Team Tournament' division, which now keeps the entry).
+       `renderDivisionSetup()` no longer copies the entry back into the Setup.
+     - **Why the Setup field is the value**: the old load already ended there. The load's `renderAll()` ran `saveSetup()`,
+       which copied the Setup fields over both top-level copies (after the 'Team Tournament' division's own values); a
+       payload's top-level copies count only where `KSMEngine.migrateTeamDivisions()` builds that division from them (no
+       team divisions saved, no Setup value). `applySetupSnapshot()` now gives that result at once
+       (`tests/team-settings-store-test.py` compares seven loads, the 4.0 fixture among them, and six save conflicts with
+       values recorded from the PR 8 code: all the same, one difference below).
+     - One difference: a load whose Setup team court is empty and that has no 'Team Tournament' division saved `''` in
+       the `divisionCourts` entry while the field showed `'Both'`, until the next render; now both are `'Both'`.
 9. **Divisions**: `divisions`, `divisionTypes`, `divisionCourts`, `hiddenPresets`, `divisionRenames` → `tournament/divisionAdded`,
    `…Removed`, `…Renamed` (calls `renamedDivisionState`), `…FormatChanged`, `…CourtChanged`, `presetsRestored`.
    The rename (with its `divisionRenames` record) is one action. Risk: medium (`divisionCourts` has 26 writes).
    Tests: divisions engine tests, rename conflict tests (#25, #36), setup goldens.
+   **The team court (from PR 8b)**: `divisionCourts['Team Tournament']` is a copy of `settings.teamCourt`, written only by
+   `ksmSetTeamCourt()`. When `divisionCourts` moves, that entry becomes derived (a selector or the getter's value from
+   `settings.teamCourt`, so the snapshot keeps the key), `ksmSetTeamCourt()` becomes `tournament/settingChanged` alone,
+   and the division actions must not write that key (`…CourtChanged` for 'Team Tournament' = the Setup field). The
+   rebase still merges `setup.teamCourt` and the `divisionCourts` entry separately (both copies agree on each device's
+   save, so the merge picks the same winner for both; `tests/team-settings-store-test.py`).
 10. **People**: `competitors`, `teams`, `exhibitions`, `teamDivisions` → `tournament/competitorAdded`, `…Updated`,
    `…Removed`, `…StatusCycled`, team and exhibition equivalents, `teamDivision…`. Risk: medium (rows edited in
    place by the Registration bridge). Tests: registration goldens, the #95 merge tests.
