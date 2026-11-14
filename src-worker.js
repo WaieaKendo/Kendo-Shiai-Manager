@@ -544,14 +544,18 @@ export default {
         if (!identity.ok) return identity.status === 410 ? identity : response;
         ({slug} = await identity.json());
       } catch (_) { return response; }
-      const text = await response.text();
-      const end = text.lastIndexOf('}');
+      // Bytes, not text: decoding and re-encoding 500 KB is itself a noticeable share of the budget.
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      let end = bytes.length - 1;
+      while (end >= 0 && bytes[end] !== 0x7d) end--;  // the record's closing '}'
+      let last = end - 1;
+      while (last >= 0 && (bytes[last] === 0x20 || bytes[last] === 0x0a || bytes[last] === 0x0d || bytes[last] === 0x09)) last--;
       const headers = new Headers(response.headers);
       headers.delete('content-length');
       headers.delete('content-encoding');
-      const before = text.slice(0, end);
-      const body = end > 0 ? `${before}${/\{\s*$/.test(before) ? '' : ','}"slug":${JSON.stringify(slug ?? null)}${text.slice(end)}` : text;
-      return new Response(body, { status: response.status, headers });
+      if (end <= 0) return new Response(bytes, { status: response.status, headers });
+      const insert = new TextEncoder().encode(`${bytes[last] === 0x7b ? '' : ','}"slug":${JSON.stringify(slug ?? null)}`);
+      return new Response(new Blob([bytes.subarray(0, end), insert, bytes.subarray(end)]), { status: response.status, headers });
     };
     const routedHeaders = (headers, tournamentId) => {
       const routed = new Headers(headers);
