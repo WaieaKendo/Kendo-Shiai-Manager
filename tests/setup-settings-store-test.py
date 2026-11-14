@@ -52,10 +52,10 @@ OLD_SETUP = r"""data => {
   const copies = {};
   for (const key of KSMEngine.SETUP_KEYS) { const el = document.getElementById(key); const c = el.cloneNode(true); c.removeAttribute('id'); c.value = el.value; copies[key] = c; }
   if (data) {
-    data = {...data, ...window.ksmNormalizeTimerSettings(data)};
+    data = {...data, ...KSMTest.app.ksmNormalizeTimerSettings(data)};
     data = {...data, court1TvRedSide: data.court1TvRedSide === 'left' ? 'left' : 'right', court2TvRedSide: data.court2TvRedSide === 'left' ? 'left' : 'right'};
     Object.keys(data).forEach(id => { if (copies[id]) copies[id].value = data[id]; });
-    // ksmSyncLegacyTeamDivision(): the Team Tournament division's own values win over the legacy team fields.
+    // The legacy team division sync: the Team Tournament division's own values win over the legacy team fields.
     const d = (KSMTest.app.state.teamDivisions || []).find(x => x.id === 'Team Tournament');
     if (d) Object.entries({teamFormat: d.teamFormat, teamTournamentFormat: d.teamTournamentFormat, teamCourt: d.court, teamAwardMode: d.awardMode})
       .forEach(([k, v]) => { copies[k].value = v; });
@@ -120,7 +120,7 @@ def single_page(browser):
     assert page.evaluate("document.body.classList.contains('ksm-red-left')"), 'the field\'s handler read the new side'; checks += 1
     page.evaluate("KSMTest.show('setup')")
     page.select_option(sel('exhibition-enabled'), 'Enabled')
-    assert page.evaluate("[KSMTest.app.ksmSetting('exhibitionEnabled'), window.ksmExhibitionsEnabled()]") == ['Enabled', True]; checks += 1
+    assert page.evaluate("[KSMTest.app.ksmSetting('exhibitionEnabled'), KSMTest.app.ksmExhibitionsEnabled()]") == ['Enabled', True]; checks += 1
     page.fill(sel('setup-host'), 'Typed Host')
     assert page.evaluate("KSMTest.app.getSetupSnapshot().tHost") == 'Typed Host'; checks += 1
     assert page.evaluate('KSMTest.app.ksmLocalMutationVersion') > version, 'the edits are local mutations, as before'; checks += 1
