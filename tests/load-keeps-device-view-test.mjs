@@ -27,10 +27,17 @@ const json = v => JSON.stringify(v);
 const STUBS = ['renderAll', 'updateUndoButton', 'autoSaveTournament', 'scheduleAutoSave', 'applySetupSnapshot', 'ksmNoteTeamsReassigned',
   'ksmAddDaihyosenForTeamAwards', 'ksmSyncGrandChampions', 'repairLoadedEliminationAdvancement', 'sanitizeLoadedTournamentState',
   'normalizeAllIndividualPoolTiebreakOrder', 'replaceState', 'pinCourtLocally', 'pinnedCourt', 'restorePinnedCourt', 'isTvSession',
-  'cloudSession', 'applyCourtSides', 'ensureCourtHistory', 'ksmLocalCourtDivision', 'point', 'renderScore', 'ksmNotifyStateChanged', 'renderPublic'];
-const newCode = '"use strict";\n' + withDependencies(html, CHANGED.map(n => extractFunction(html, n)).join('\n'), { exclude: STUBS });
+  'cloudSession', 'applyCourtSides', 'ensureCourtHistory', 'ksmLocalCourtDivision', 'point', 'renderScore', 'ksmNotifyStateChanged', 'renderPublic',
+  // The device fields' store helpers (#15 PR 6): here they write the context's plain `state`, as the old code did.
+  'ksmSetCurrentCourt', 'ksmSetPublicCourt', 'ksmShowDivision', 'setLocalCourtDivision', 'canCloudWrite'];
+const newCode = '"use strict";\n' + withDependencies(html, [...CHANGED, 'applyTournamentFilePayload'].map(n => extractFunction(html, n)).join('\n'), { exclude: [...STUBS, 'tournamentPayload', 'alert'] });
 const oldSource = gitShow(BASE, FILE);
 let oldCode = null;
+if (!oldSource) {
+  // #177 review: on a shallow clone the old-code comparisons cannot run. Say so loudly, and fail on CI (full depth).
+  console.error(`\n*** SKIP: ${BASE} is not in this clone (shallow?): the before/after comparisons of this test are NOT run. ***\n`);
+  if (process.env.CI) { console.log('FAIL the base commit is missing on CI (checkout needs fetch-depth: 0)'); process.exit(1); }
+}
 if (oldSource) {
   oldCode = newCode;
   for (const name of CHANGED) {
@@ -44,7 +51,7 @@ check(!/state\.current\b(?!Court|Division|ByDivision)/.test(extractFunction(html
   'the rehydrate no longer reads the payload\'s current');
 
 /** A context for `code`: the device's pin, TV flag, remembered court divisions and its state before the load. */
-function makeContext(code, { pin = null, tv = false, local = {}, before }) {
+function makeContext(code, { pin = null, tv = false, staff = true, local = {}, before }) {
   const context = {
     console, setTimeout: () => 0,
     cloudSession: { court: pin || '', tournamentId: 't1' },
@@ -53,7 +60,10 @@ function makeContext(code, { pin = null, tv = false, local = {}, before }) {
     ksmAddDaihyosenForTeamAwards: () => [], ksmSyncGrandChampions: () => false, repairLoadedEliminationAdvancement() {},
     sanitizeLoadedTournamentState() {}, normalizeAllIndividualPoolTiebreakOrder() {}, applyCourtSides() {}, renderScore() {}, ksmNotifyStateChanged() {}, renderPublic() {},
     ensureCourtHistory() { const s = context.state; s.courtActionHistory = s.courtActionHistory || { A: [], B: [] }; s.courtRedoHistory = s.courtRedoHistory || { A: [], B: [] }; },
-    isTvSession: () => tv,
+    isTvSession: () => tv, canCloudWrite: () => staff, alert() {},
+    tournamentPayload: () => ({ state: JSON.parse(JSON.stringify(context.state)), setup: {} }),
+    ksmSetCurrentCourt(c) { context.state.currentCourt = c; }, ksmSetPublicCourt(c) { context.state.publicCourt = c; },
+    ksmShowDivision(d) { context.state.currentDivision = d; }, setLocalCourtDivision(c, d) { context.ksmLocalCourtDivision[c] = d; },
   };
   let pinned = pin;
   context.pinnedCourt = () => pinned;
@@ -201,5 +211,44 @@ for (const [name, [device, payload, options]] of Object.entries(SAME)) {
   check(['currentCourt', 'publicCourt', 'currentDivision', 'current', 'matches', 'score'].every(k => k in state), 'the device fields stay in state, so tournamentPayload() keeps saving them');
 }
 
+// 5. #15 PR 6: a load on a device that is not the court's scorekeeper (a spectator on Court A) builds its own view from
+//    a stale shared entry (Open bout 1, finished) but does not write Court A's shared pointer; Court A's scorekeeper does.
+{
+  const stale = () => { const t = tournament({ courtState: { A: { division: 'Open', index: 0 }, B: { division: 'Kids', index: 1 } } }); return payloadOf(t); };
+  const spectator = load(NEW, { pin: 'A', staff: false, before: fresh() }, stale(), { pinnedCourt: 'A' });
+  check(spectator.view.division === 'Open' && spectator.view.current === 1, `spectator: shows Court A's next bout, Open bout 2 (got ${spectator.view.division} ${spectator.view.current})`);
+  check(json(spectator.state.courtState.A) === json({ division: 'Open', index: 0 }), `spectator: Court A's shared pointer is the payload's (got ${json(spectator.state.courtState.A)})`);
+  const keeper = load(NEW, { pin: 'A', before: fresh() }, stale(), { pinnedCourt: 'A' });
+  check(json(keeper.state.courtState.A) === json({ division: 'Open', index: 1 }), `Court A's scorekeeper: the load heals Court A's pointer (got ${json(keeper.state.courtState.A)})`);
+}
+// 6. #177 review: no shared entry for the court: its active division (courtActiveDivision) first, not the first ready division.
+{
+  const t = tournament({ courtState: { A: { division: null, index: 0 }, B: { division: null, index: 0 } }, courtActiveDivision: { A: null, B: 'Juniors' } });
+  const now = load(NEW, { pin: 'B', before: fresh() }, payloadOf(t), { pinnedCourt: 'B' });
+  check(now.view.division === 'Juniors' && now.view.current === 0, `no shared entry: Court B opens its active division, Juniors (got ${now.view.division} ${now.view.current})`);
+  const none = load(NEW, { pin: 'B', before: fresh() }, payloadOf(tournament({ courtState: { A: { division: null, index: 0 }, B: { division: null, index: 0 } }, courtActiveDivision: { A: null, B: null } })), { pinnedCourt: 'B' });
+  check(none.view.division === 'Kids', `no shared entry, no active division: the first division with a ready match (got ${none.view.division})`);
+}
+// 7. #177 review: a file import that throws after replaceState() restores the tournament with this device's own view.
+//    The open tournament has no draw yet, so the restore's view is the device's own division (Kids), not the one the
+//    failed load had moved it to (the file's Court A division, Juniors); its Court A choice is restored too.
+{
+  const own = { ...fresh(), divisions: ['Open', 'Kids', 'Juniors'], currentDivision: 'Kids' };
+  const c = makeContext(NEW, { pin: 'A', before: own });
+  let calls = 0;
+  const realRestore = c.restorePinnedCourt;
+  c.restorePinnedCourt = () => { if (calls++ === 0) throw new Error('boom'); return realRestore(); };
+  vm.runInContext('restorePinnedCourt=globalThis.restorePinnedCourt', c);
+  const file = tournament({ courtState: { A: { division: 'Juniors', index: 0 }, B: { division: 'Kids', index: 1 } }, courtActiveDivision: { A: 'Juniors', B: 'Kids' },
+    divisionCourts: { Open: 'A', Kids: 'B', Juniors: 'A' } });
+  file.allMatches.Juniors = [bout('Juniors', 1, 'A'), bout('Juniors', 3, 'A')];
+  const errorLog = console.error; console.error = () => {};
+  let ok; try { ok = c.applyTournamentFilePayload(payloadOf(file), false); } finally { console.error = errorLog; }
+  check(ok === false && calls === 2, 'the failed file import reports failure and restores');
+  check(c.state.currentDivision === 'Kids', `the restore keeps this device's division (got ${c.state.currentDivision})`);
+  check(c.ksmLocalCourtDivision.A === null, `the restore keeps this device's Court A choice (got ${c.ksmLocalCourtDivision.A})`);
+  check(json(c.state.allMatches) === '{}', 'the restore is the tournament from before');
+}
+
 if (failed) process.exit(1);
-console.log(`PASS loads keep the device view: ${count} checks`);
+console.log(`PASS loads keep the device view: ${count} checks${OLD ? '' : ' (SKIPPED: the before/after comparisons, no base commit)'}`);

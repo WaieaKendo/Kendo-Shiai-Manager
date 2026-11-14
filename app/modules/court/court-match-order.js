@@ -1,5 +1,5 @@
 // @ts-check
-import {ksmSetPoolViewDivision,state} from '../app-state.js';
+import {ksmSetCurrentCourt,ksmSetPoolViewDivision,ksmSetPublicCourt,ksmShowDivision,state} from '../app-state.js';
 import {loadScoreFromMatch} from './court-scoring-and-history.js';
 import {renderScore} from './scorekeeper-screen.js';
 import {championshipLabels,firstRoundName,roundSequenceFromFirst} from '../engine/engine-championship.js';
@@ -11,6 +11,7 @@ import {show} from '../navigation.js';
 import {ksmSignalCourtHeader} from '../react-bridges/court.js';
 import {ksmDivisionName,ksmTeamDivisions} from '../registration/team-divisions.js';
 import {renderPublic} from '../results/live-scores.js';
+import {canCloudWrite} from '../session/staff-session-and-library.js';
 import {applyCourtSides,localCourtDivision,pinCourtLocally,rememberLocalCourtDivision} from '../sync/sync-state-and-rebase.js';
 import * as KSMEngine from '../../engine/index.ts';
 export function isTeamMatch(m){return KSMEngine.isTeamMatch(m);// moved to app/engine/match-helpers.ts
@@ -67,18 +68,54 @@ export function findNextForCourt(court,preferredDiv=null,startIndex=0){
     return {division:d,index:idx>=0?idx:arr.length};
   }
   if(preferredDiv) return firstForDivision(preferredDiv);
-  let divs=Object.keys(state.allMatches||{}).filter(Boolean);
+  // Only divisions with a match on this court are scanned (and so sorted): the other court's divisions are left as they
+  // are, so their match lists are not re-sorted or replaced (#177 review). They could not be found here anyway.
+  let divs=Object.keys(state.allMatches||{}).filter(d=>d&&(state.allMatches[d]||[]).some(m=>matchBelongsToCourt(m,court)));
   for(let d of divs){let found=firstForDivision(d);if(found.index < (state.allMatches[d]||[]).length)return found;}
   return {division:state.currentDivision,index:(state.allMatches[state.currentDivision]||[]).length};
 }
-export function applyCourtState(court,cs,keepScore=true){
-  state.currentCourt=court;
+/**
+ * Whether this device runs Court `court`: it may write the tournament (staff, or a local tournament with no cloud) and its
+ * court (state.currentCourt, from the pin) is that court. A cloud TV link is never staff (initializeCloudRoleFromUrl()),
+ * so a TV never runs a court; an offline TV is the same app as its court (no other device), so it does. Only then does a
+ * view choice on the court (a court opened, a division picked, a load's rehydrate, a render's self-heal) move the
+ * court's shared pointer (courtState[c], courtActiveDivision[c], currentByDivision); on any other device it changes only
+ * this device's view (docs/STORE.md section 1.2, decided in #15 PR 6). Structural edits (generation, pool edits, division setup, grand champion, the
+ * rebase) re-resolve the pointers on any writable device, as before.
+ * @param {string} court
+ */
+export function isCourtScorekeeper(court){return canCloudWrite()&&state.currentCourt===court}
+/** Moves Court `court`'s shared pointer to `cs` (only from that court's own actions: see isCourtScorekeeper()). */
+export function setCourtPointer(court,cs){
+  state.courtState=state.courtState||/** @type {any} */({});state.courtActiveDivision=state.courtActiveDivision||/** @type {any} */({});
   state.courtState[court]=cs;
   state.courtActiveDivision[court]=cs.division;
-  state.currentDivision=cs.division;
+}
+/**
+ * Brings this court's shared pointer to this device's view, when this device is the court's scorekeeper and they
+ * differ: a division picked before Staff Login (a spectator's pick moves only its own view) is the court's division
+ * once the device can write, as it was before #15 PR 6. Called when the device becomes staff (ksmAccountSetRole()) and
+ * before each court action (performCourtAction(), undo(), redo()), so that action's save carries it. Not recorded in the
+ * action's Undo entry. Returns whether it wrote.
+ */
+export function syncOwnCourtPointer(){
+  const court=state.currentCourt,div=state.currentDivision;
+  if(!court||!div||!Array.isArray(state.allMatches?.[div])||!isCourtScorekeeper(court))return false;
+  const index=state.current||0,cs=state.courtState?.[court];
+  if(cs&&cs.division===div&&cs.index===index&&state.courtActiveDivision?.[court]===div)return false;
+  setCourtPointer(court,{division:div,index});
+  state.currentByDivision[div]=index;
+  return true;
+}
+export function applyCourtState(court,cs,keepScore=true){
+  // Every caller passes this device's court (openCourt() sets it first), so this checks write access for that court.
+  const runsCourt=isCourtScorekeeper(court);
+  ksmSetCurrentCourt(court);
+  if(runsCourt)setCourtPointer(court,cs);
+  ksmShowDivision(cs.division);
   state.matches=state.allMatches[cs.division]||[];
   state.current=cs.index||0;
-  state.currentByDivision[cs.division]=state.current;
+  if(runsCourt)state.currentByDivision[cs.division]=state.current;
   if(keepScore){loadScoreFromMatch(state.matches[state.current]);}
   else{state.score={W:[],R:[],WT:0,RT:0};state.history=[]}
   applyCourtSides();
@@ -99,6 +136,7 @@ export function renderDivisions(){
 }
 export function openCourt(c){
   c=pinCourtLocally(c);
+  ksmSetCurrentCourt(c);
   const preferred=localCourtDivision(c);
   let cs=preferred&&state.allMatches?.[preferred]?findNextForCourt(c,preferred,0):state.courtState?.[c];
   const active=cs?.division?(state.allMatches?.[cs.division]||[])[cs.index]:null;
@@ -109,4 +147,4 @@ export function openCourt(c){
   if(cs?.division)rememberLocalCourtDivision(c,cs.division);
   renderDivisions();renderScore();show('score');
 }
-export function openPublicCourt(c){state.publicCourt=c;if(window.publicTitle)publicTitle.textContent='Live Scores • Court '+c;renderPublic();show('public')}
+export function openPublicCourt(c){ksmSetPublicCourt(c);if(window.publicTitle)publicTitle.textContent='Live Scores • Court '+c;renderPublic();show('public')}

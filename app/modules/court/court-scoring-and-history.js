@@ -1,7 +1,7 @@
 // @ts-check
 import {assignState,state,storeFieldPath} from '../app-state.js';
 import {maybeCreateKachinukiNext,renderAll} from './court-context-and-pool-editing.js';
-import {applyCourtState,findNextForCourt} from './court-match-order.js';
+import {applyCourtState,findNextForCourt,syncOwnCourtPointer} from './court-match-order.js';
 import {renderScore} from './scorekeeper-screen.js';
 import {enforceUniqueIndividualMatches,maybeAdvanceChampionship,maybeCreateChampionship} from '../engine/engine-championship.js';
 import {renderPools} from '../engine/engine-generation.js';
@@ -75,6 +75,8 @@ function currentHistoryCourt(){const c=String(state.currentCourt||cloudSession?.
 function stampHistoryPatchMatchIdentity(patch,before,after){return KSMEngine.stampHistoryPatchMatchIdentity(patch,before,after);// moved to app/engine/sync-helpers.ts
   }
 export function performCourtAction(label,fn){
+  // A division picked before Staff Login reaches the court's pointer with this action's save (not its Undo entry).
+  syncOwnCourtPointer();
   ensureCourtHistory();const court=currentHistoryCourt(),before=historyComparableState();
   const result=fn();const after=historyComparableState(),patches=buildHistoryPatches(before,after).map(patch=>stampHistoryPatchMatchIdentity(patch,before,after));
   if(patches.length){
@@ -324,12 +326,14 @@ function courtHistorySkippedNote(kind){
   return ' (part of it was not applied: a match it changed no longer exists)';
 }
 export function undo(){
+  syncOwnCourtPointer();
   ensureCourtHistory();const court=currentHistoryCourt(),stack=state.courtActionHistory[court];const action=stack.pop();
   if(!action){updateSaveStatus('Nothing to undo');updateUndoButton();return}
   const matchesBefore=courtUndoMatchesBefore(action);applyHistoryValues(action,'before');recordCourtUndoLog(court,'UNDO',courtHistoryAppliedEntry(action),matchesBefore);state.courtRedoHistory[court].push(action);if(state.courtRedoHistory[court].length>KSM_HISTORY_LIMIT)state.courtRedoHistory[court].shift();
   updateUndoButton();updateSaveStatus('Undid '+action.label+courtHistorySkippedNote('Undo'));criticalAutoSave('Undo: '+action.label);
 }
 export function redo(){
+  syncOwnCourtPointer();
   ensureCourtHistory();const court=currentHistoryCourt(),stack=state.courtRedoHistory[court];const action=stack.pop();
   if(!action){updateSaveStatus('Nothing to redo');updateUndoButton();return}
   const matchesBefore=courtUndoMatchesBefore(action);applyHistoryValues(action,'after');recordCourtUndoLog(court,'REDO',courtHistoryAppliedEntry(action),matchesBefore);state.courtActionHistory[court].push(action);if(state.courtActionHistory[court].length>KSM_HISTORY_LIMIT)state.courtActionHistory[court].shift();

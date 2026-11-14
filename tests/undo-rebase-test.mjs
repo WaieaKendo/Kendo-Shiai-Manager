@@ -58,7 +58,7 @@ const context = {
   // the screen side of undo()/redo() (10-)
   // no store-owned keys here (applyHistoryPatch() routes those through the store: tests/undo-device-keys-test.mjs)
   storeFieldPath: () => null, assignState() { throw new Error('no store-owned key in this test'); },
-  applyCourtState() {}, renderAll() {}, updateUndoButton() {}, updateSaveStatus(message) { context.lastStatus = message; }, criticalAutoSave() {},
+  applyCourtState() {}, syncOwnCourtPointer: () => false, renderAll() {}, updateUndoButton() {}, updateSaveStatus(message) { context.lastStatus = message; }, criticalAutoSave() {},
   writeCloudDiagnosticsState() {}, showKsmToast() {}, noteMergeConflicts() {}, replayStructuralEdit: () => false, mergeLocalEditsThreeWay: () => [],
   // Issue #25's rename replay (not under test here: no renames).
   rebaseDivisionRenamesForMerge: (rebased, local, base, server) => ({ local, base, server, refused: [], blocked: [] }), noteDivisionRenamesRefused() {},

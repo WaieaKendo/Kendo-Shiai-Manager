@@ -11,7 +11,7 @@ const worker=fs.readFileSync(new URL('../src-worker.js',import.meta.url),'utf8')
 let failed=false;
 function check(ok,name){console.log(`${ok?'PASS':'FAIL'} ${name}`);if(!ok)failed=true}
 
-check(html.includes('const ksmLocalCourtDivision={A:null,B:null};'),'device-local division preference exists');
+check(html.includes('localCourtDivisionChosen(state, action')||/ksmLocalCourtDivision=Object\.freeze\(\{get A\(\)\{return getState\(\)\.device\.localCourtDivision\.A\}/.test(html),'device-local division preference exists (the store\'s device.localCourtDivision)');
 check(html.includes('if(state.currentCourt)rememberLocalCourtDivision(state.currentCourt,div);'),'manual division selection becomes local court preference');
 check(html.includes("preserveOwnedCourtRuntimeState(rebased.state,localState,court);"),'concurrent rebase preserves owner court navigation');
 check(html.includes("preserveLocalDivision:preserveLocalDivisionForRemoteSync(),source:'live sync'"),'live remote snapshots preserve local scorekeeper division');

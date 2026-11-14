@@ -194,7 +194,7 @@ def local_cases(browser):
     assert placements == [{'place': 'Grand Champion', 'name': champion}, {'place': 'Runner-up', 'name': runner_up}], placements
     assert app.placements()['Grand Champion 2026'] == [('Grand Champion', champion), ('Runner-up', runner_up)]
     assert 'Grand Champion: ' + champion in status(app)
-    page.evaluate("()=>{KSMTest.app.state.publicCourt='B';KSMTest.renderTv();}")
+    page.evaluate("()=>{KSMTest.app.setPublicCourt('B');KSMTest.renderTv();}")
     page.wait_for_function("document.querySelector('[data-testid=tv-division]')?.textContent==='Grand Champion 2026'")
     tv = app.tv_screen()
     assert tv['complete'] and tv['division'] == 'Grand Champion 2026', tv
