@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ksmRenderTv, ksmTvDisplayInput, startTvInput } from '../../app/react/features/tv/publish.ts';
+import { fakeSettingsStore } from './settings-store-fake.mjs';
 
 // A fake `window` and `document` with the legacy functions publish.ts reads through shared/legacy.ts.
 // `vm` is buildTV3ViewModel()'s answer; `nextDivision` is ksmNextCourtDivision()'s.
@@ -13,6 +14,8 @@ function fake({
   const s = { allMatches: {}, ...state };
   const selects = { court1TvRedSide: redSide, court2TvRedSide: redSide };
   const win = {
+    // The audience sides come from the store (tournament.settings, #15 PR 8), no longer from the selects.
+    KSMStore: fakeSettingsStore(key => selects[key] ?? undefined),
     ksmLegacyState: () => s,
     ksmText: x => String(x || ''),
     ksmDivisionName: id => (id === 'open' ? 'Open Division' : id),

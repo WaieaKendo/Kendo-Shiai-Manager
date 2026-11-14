@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ksmOverviewInputData, ksmOverviewMatch, startOverviewInput } from '../../app/react/features/overview/publish.ts';
+import { fakeSettingsStore } from './settings-store-fake.mjs';
 
 // A fake `window` with the legacy functions publish.ts reads through shared/legacy.ts.
 function fakeWindow({ courts = {}, summary, name } = {}) {
@@ -13,7 +14,9 @@ function fakeWindow({ courts = {}, summary, name } = {}) {
     addEventListener: (type, fn) => { listeners.set(type, fn); },
     dispatch: type => listeners.get(type)?.(),
   };
+  // The Setup name (the store's tournament.settings.tName); `win.tName.value` stands for the field.
   if (name !== undefined) win.tName = { value: name };
+  win.KSMStore = fakeSettingsStore(key => (key === 'tName' ? win.tName?.value : undefined));
   globalThis.window = win;
   return win;
 }

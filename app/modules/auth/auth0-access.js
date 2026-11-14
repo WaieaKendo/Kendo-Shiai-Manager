@@ -4,7 +4,7 @@ import {ksmIsExplicitSpectatorUrl,ksmLinkParams} from '../links/path-urls.js';
 import {KSM_STAFF_TOURNAMENT,KSM_V316_STAFF_SESSION,initializeCloudRoleFromUrl,installRoleBanner,isReadOnlySession,ksmAccountExpire,ksmAccountHeaders,ksmAccountLoad,ksmAccountReadLibrary,ksmAccountRenderLibrary,ksmAccountSetRole,ksmAccountSocketUrl,ksmAccountToggleStaff,ksmAccountWriteLibrary,paintHomeTournamentLibrary,v316StaffPassword} from '../session/staff-session-and-library.js';
 import {ksmAccountCreate,ksmAccountFailedStartup,ksmShowLibrary,setKsmStartupHasCache,setKsmStartupLoadFailed} from '../session/tournament-switcher.js';
 import {disconnectCloudSocket,ksmAccountConnect,ksmAccountFileAsNew,ksmCloudSocket,mergeQueuedStaffWork,showKsmToast} from '../sync/cloud-realtime-save-and-load.js';
-import {cloudSession,ksmSessionRole,writeOutbox} from '../sync/cloud-session-and-autosave.js';
+import {cloudSession,ksmSessionRole,ksmSetting,writeOutbox} from '../sync/cloud-session-and-autosave.js';
 // Auth0 accounts in the legacy app (step 3d of #136, from app/js/54-auth0-access.js). Its load-time side effects
 // (the auth-ready promise, window.ksmAuthBridge) are initAuth0Access(), which app/js/54-auth0-access.js runs where
 // this file used to load; that file also keeps the account rules of the app/js functions that have not moved
@@ -136,7 +136,7 @@ ksmAuthReady=new Promise(resolve=>{window.ksmResolveAuthReady=resolve});
 window.ksmAuthBridge={
   state:()=>ksmAccount,
   tournament:()=>cloudSession.tournamentId||'',
-  name:()=>/** @type {HTMLInputElement|null} */(document.getElementById('tName'))?.value||'Tournament',
+  name:()=>ksmSetting('tName')||'Tournament',
   update:patch=>{const previous=ksmAccount.token,wasEnabled=ksmAccount.enabled;Object.assign(ksmAccount,patch);ksmAccountChanged();if(previous!==ksmAccount.token||wasEnabled!==ksmAccount.enabled){ksmVisibleLibrary=[];if(document.body.classList.contains('ksm-home'))renderHomeTournamentLibrary()}},
   library:()=>renderHomeTournamentLibrary(),
   restore:()=>initializeCloudRoleFromUrl(),

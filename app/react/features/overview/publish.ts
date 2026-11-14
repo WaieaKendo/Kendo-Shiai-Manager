@@ -1,7 +1,7 @@
 // The Overview's input, computed here from the legacy app (was app/js/39-react-overview.js).
 // Same output as the legacy builders gave, which tests/golden/overview/*.json pin; text goes
 // through ksmText()/ksmDivisionName() as before. Legacy is read only through shared/legacy.ts.
-import { legacy, legacyTournamentNameInput } from '../../shared/legacy.ts';
+import { legacy, setupSetting } from '../../shared/legacy.ts';
 import type { OverviewCourtInput, OverviewInput, OverviewMatchInput, OverviewProgressInput } from './overview-model.ts';
 
 export const OVERVIEW_EVENT = 'ksm:overview';
@@ -44,7 +44,7 @@ export function ksmOverviewCourt(c: string): OverviewCourtInput {
 /** renderDirector() as data: the overall numbers, the tournament name, then Court A and Court B. */
 export function ksmOverviewInputData(): OverviewInput {
   const t = legacy('tournamentSummary')();
-  const tournamentName = legacyTournamentNameInput()?.value || 'Kendo Tournament';
+  const tournamentName = setupSetting('tName') || 'Kendo Tournament';
   return { kind: 'overview', tournamentName: String(tournamentName), overall: ksmOverviewProgress(t), courts: ['A', 'B'].map(ksmOverviewCourt) };
 }
 

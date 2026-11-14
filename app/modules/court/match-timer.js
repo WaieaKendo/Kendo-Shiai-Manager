@@ -6,7 +6,7 @@ import {matchBelongsToCourt} from '../engine/engine-generation.js';
 import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {saveSetup} from '../setup/division-setup.js';
 import {isTvSession} from '../sync/cloud-realtime-save-and-load.js';
-import {cloudSession,getSetupSnapshot} from '../sync/cloud-session-and-autosave.js';
+import {cloudSession,getSetupSnapshot,ksmSetSetting} from '../sync/cloud-session-and-autosave.js';
 import {matchSyncIdentity} from '../sync/sync-state-and-rebase.js';
 // Only configuration enters SetupSnapshot. Running timers live in the React court island.
 export function ksmNormalizeTimerSettings(data){
@@ -27,17 +27,18 @@ export function ksmNormalizeTimerSettings(data){
 }
 export function ksmSaveTimerSettings(){
   const settings=ksmNormalizeTimerSettings(getSetupSnapshot());
-  Object.keys(settings).forEach(id=>{/** @type {HTMLInputElement} */(document.getElementById(id)).value=settings[id]});
+  Object.keys(settings).forEach(id=>ksmSetSetting(id,settings[id]));
   saveSetup();renderAll();
 }
 export function ksmSetCourtTimerSound(sound){
   if(sound!=='whistle01'&&sound!=='whistle02')return;
-  const el=/** @type {HTMLInputElement|null} */(document.getElementById(state.currentCourt==='B'?'court2TimerSound':'court1TimerSound'));
-  if(el){el.value=sound;el.dispatchEvent(new Event('change',{bubbles:true}))}
+  const key=state.currentCourt==='B'?'court2TimerSound':'court1TimerSound',el=document.getElementById(key);
+  // The field's own change path (ksmSaveTimerSettings(), the autosave), as a Setup edit.
+  if(el){ksmSetSetting(key,sound);el.dispatchEvent(new Event('change',{bubbles:true}))}
 }
 export function ksmSetCourtTimerEnabled(enabled){
-  const el=/** @type {HTMLInputElement|null} */(document.getElementById(state.currentCourt==='B'?'court2TimerEnabled':'court1TimerEnabled'));
-  if(el){el.value=enabled?'On':'Off';el.dispatchEvent(new Event('change',{bubbles:true}))}
+  const key=state.currentCourt==='B'?'court2TimerEnabled':'court1TimerEnabled',el=document.getElementById(key);
+  if(el){ksmSetSetting(key,enabled?'On':'Off');el.dispatchEvent(new Event('change',{bubbles:true}))}
 }
 export function ksmMatchTimerInput(){
   const m=state.matches?.[state.current],court=state.currentCourt||'A';

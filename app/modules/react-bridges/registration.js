@@ -1,7 +1,7 @@
 // @ts-check
 import {state} from '../app-state.js';
 import {renderDivisions} from '../court/court-match-order.js';
-import {scheduleAutoSave} from '../sync/cloud-session-and-autosave.js';
+import {ksmSetting,scheduleAutoSave} from '../sync/cloud-session-and-autosave.js';
 import {regTab} from '../navigation.js';
 import {ksmText} from './court.js';
 import {renderExhibitions,renderReg,renderTeams,statusCycle,updateComp} from '../registration/registration.js';
@@ -247,7 +247,7 @@ function ksmImportCSVText(text,fileName){
 }
 // regTab() (23): the tab marked active. Owner decision 19 (#29): and whether the Exhibition tab
 // shows (only while Setup's Exhibition Matches is Enabled).
-export function ksmExhibitionsEnabled(){return window.exhibitionEnabled?exhibitionEnabled.value==='Enabled':false}
+export function ksmExhibitionsEnabled(){return ksmSetting('exhibitionEnabled')==='Enabled'}
 // #129: the tournament is drawn: the tab bar drops Generate Tournament (Regenerate Tournament lives in Setup's Danger zone).
 export function ksmTournamentGenerated(){return !!state.generated}
 export function ksmRenderRegistrationTab(mode){

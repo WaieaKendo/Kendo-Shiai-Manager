@@ -7,7 +7,7 @@ import {ksmShowValidationDialog} from '../react-bridges/shell.js';
 import {ksmGrandChampionError,ksmGrandChampions} from './grand-champion.js';
 import {ksmDivisionName,ksmTeamDivisions} from './team-divisions.js';
 import {manualSaveTournament} from '../sync/cloud-realtime-save-and-load.js';
-import {tournamentSettings} from '../sync/cloud-session-and-autosave.js';
+import {ksmSetting,tournamentSettings} from '../sync/cloud-session-and-autosave.js';
 import {ksmUndoRegenerateOffered} from '../sync/undo-regenerate.js';
 import * as KSMEngine from '../../engine/index.ts';
 function validationIssue(severity,code,divisionId,message,suggestedAction=''){return KSMEngine.validationIssue(severity,code,divisionId,message,suggestedAction);// moved to app/engine/registration.ts
@@ -32,7 +32,7 @@ export function validateTournament(options={}){
     if(nums.some(x=>!Number.isInteger(x)||x<1))issues.push(validationIssue('error','INVALID_SEED',div,`${div} contains an invalid seed.`,'Use positive whole numbers.'));
     if(new Set(seeds).size!==seeds.length)issues.push(validationIssue('error','DUPLICATE_SEED',div,`${div} contains duplicate seed numbers.`,'Use each seed once.'));
   });
-  if((teamEnabled?.value||'Enabled')==='Enabled')ksmTeamDivisions().filter(d=>!target||d.id===target).forEach(d=>{
+  if((ksmSetting('teamEnabled')||'Enabled')==='Enabled')ksmTeamDivisions().filter(d=>!target||d.id===target).forEach(d=>{
     const teams=eligibleTeams(d.id);
     if(teams.length===1)issues.push(validationIssue('error','TEAM_COUNT',d.id,d.name+': at least two teams are required.','Add another team or disable the team tournament.'));
     if(d.teamTournamentFormat==='Single Elimination'&&teams.length>32)issues.push(validationIssue('error','TEAM_TEMPLATE',d.id,d.name+': single elimination supports no more than 32 teams.','Reduce the number of teams.'));
@@ -51,7 +51,7 @@ export function validateTournament(options={}){
   return {valid:!issues.some(x=>x.severity==='error'),issues};
 }
 export function renderTournamentStatus(){
-  let el=window.tournamentStatusCard;if(!el)return;let v=validateTournament();let competitors=state.competitors.filter(c=>c.name&&c.status!=='NoShow').length;let divs=state.divisions.filter(d=>eligibleIndividuals(d).length).length+((teamEnabled?.value||'Enabled')==='Enabled'?ksmTeamDivisions().filter(d=>eligibleTeams(d.id).length).length:0);
+  let el=window.tournamentStatusCard;if(!el)return;let v=validateTournament();let competitors=state.competitors.filter(c=>c.name&&c.status!=='NoShow').length;let divs=state.divisions.filter(d=>eligibleIndividuals(d).length).length+((ksmSetting('teamEnabled')||'Enabled')==='Enabled'?ksmTeamDivisions().filter(d=>eligibleTeams(d.id).length).length:0);
   el.className='tournament-status-card '+(v.valid?'ready':'attention');
   ksmRenderTournamentStatus(v.valid,competitors,divs,v.issues.filter(x=>x.severity==='error').length);
 }

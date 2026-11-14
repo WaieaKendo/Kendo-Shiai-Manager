@@ -7,7 +7,7 @@ import {KSM_V316_STAFF_SESSION,isReadOnlySession} from '../session/staff-session
 import {ksmResetTournament,ksmShowLibrary,ksmStartupHasCache,ksmStartupLoadFailed} from '../session/tournament-switcher.js';
 import {formatDiagnosticTime,formatSnapshotBytes} from '../sync/cloud-diagnostics.js';
 import {closeCloudModal,cloudDiagnostics,disconnectCloudSocket,ksmCancelReplace,ksmCloudSavePending,ksmCloudTimer,ksmDeferredRemoteTimer,ksmFileReplace,ksmLocalMutationVersion,ksmQueuedSaveRetryTimer,ksmSaveStatusMode,ksmSaveTimer,setKsmCloudSavePending,setKsmCloudTimer,setKsmConfirmedMutationVersion,setKsmDeferredRemoteRecord,setKsmFileReplace,setKsmLastSuccessfulSaveAt,setKsmOutboxMutationVersion,setKsmQueuedSaveRetryAttempt,setKsmQueuedSaveRetryTimer,setKsmSaveStatusMode,setKsmSaveTimer,showKsmToast} from '../sync/cloud-realtime-save-and-load.js';
-import {clearOutbox,cloudSession,humanSaveAge,ksmClearAutosave,ksmSessionRole,persistCloudSession,readOutbox,renderPersistentSaveStatus,tournamentSettings} from '../sync/cloud-session-and-autosave.js';
+import {clearOutbox,cloudSession,humanSaveAge,ksmClearAutosave,ksmSessionRole,ksmSetting,persistCloudSession,readOutbox,renderPersistentSaveStatus,tournamentSettings} from '../sync/cloud-session-and-autosave.js';
 import {KSM_CLOUD_BASE,KSM_CLOUD_RECOVERY_KEY,ksmClearRestoreRecoveries,ksmDeferredSyncTimer,setKsmDeferredSyncRecord,setKsmDeferredSyncTimer} from '../sync/sync-state-and-rebase.js';
 import {ksmDropOutboxesFor} from '../sync/two-tabs.js';
 import {ksmCanManageLibraryTournament,ksmLibraryStaffTokens,ksmRenderLibrary} from './library.js';
@@ -343,7 +343,7 @@ function ksmAccountCanDelete(){return ksmSessionRole==='staff'&&!!cloudSession.t
 export function ksmCanDeleteTournament(){return ksmAccount.enabled?ksmAccount.globalRole==='admin'&&!!ksmAccount.token&&!!cloudSession.tournamentId:ksmAccountCanDelete()}
 function ksmDeleteDevices(){return (cloudSession.presence||[]).length}
 function ksmDeleteBody(patch){
-  return Object.assign({kind:'delete',name:String((window.tName&&tName.value)||''),devices:ksmDeleteDevices(),busy:false,error:''},patch);
+  return Object.assign({kind:'delete',name:String(ksmSetting('tName')||''),devices:ksmDeleteDevices(),busy:false,error:''},patch);
 }
 export function ksmOpenDeleteTournament(){
   if(!ksmCanDeleteTournament())return;

@@ -62,7 +62,7 @@ import {courtSummaryFor,directorDivisionProgress,directorSingleElimTotal,initDir
 import {addCustomDivision,initSetupHeader,renderDivisionSetup,saveSetup,setDivisionCourt,setDivisionFormat,setSetDivisionCourt,syncSetupHeader,toggleDivision} from './modules/setup/division-setup.js';
 import {downloadActionHistorySample,downloadSnapshotAnalysis,readCloudDiagnosticsState,resetLegacyTournamentDataOnce,writeCloudDiagnosticsState} from './modules/sync/cloud-diagnostics.js';
 import {applyRemoteCloudRecord,applyTournamentPayload,closeCloudModal,cloudDiagnostics,confirmTournamentFileLoad,copyTextValue,copyTournamentId,disconnectCloudSocket,flushCloudOutbox,initCloudRealtime,isTvSession,ksmApplyingRemoteSnapshot,ksmCancelReplace,ksmCloudReconnectTimer,ksmCloudSaveInFlight,ksmCloudSavePending,ksmCloudSocket,ksmCloudTimer,ksmConfirmedMutationVersion,ksmDeferredRemoteRecord,ksmFileReplace,ksmLastSuccessfulSaveAt,ksmLocalMutationVersion,ksmPendingTournamentFile,ksmQueuedSaveRetryTimer,ksmReplaceAnyway,ksmSaveStatusMode,ksmSaveTimer,ksmSendCourtClock,ksmSendTieFlash,ksmTieFlashConnected,loadRecoveryFile,loadTournamentFromFile,manualSaveTournament,queueUnsyncedStaffWorkBeforeUnload,reconnectTvRealtime,renderCloudPresence,replaceTournamentFromFile,retryQueuedCloudSave,saveTournamentToCloudWithReason,setKsmApplyingRemoteSnapshot,setKsmCloudReconnectTimer,setKsmCloudSaveInFlight,setKsmCloudSavePending,setKsmCloudSocket,setKsmCloudTimer,setKsmConfirmedMutationVersion,setKsmDeferredRemoteRecord,setKsmLastSuccessfulSaveAt,setKsmLocalMutationVersion,setKsmPendingTournamentFile,setKsmSaveStatusMode,setKsmSaveTimer,showKsmToast,tournamentFilePayload,triggerLoadRecoveryFile,triggerLoadTournament,tvLink} from './modules/sync/cloud-realtime-save-and-load.js';
-import {applySetupSnapshot,autoSaveTournament,clearOutbox,cloudSession,downloadRecoveryFile,getSetupSnapshot,initCloudSession,ksmSessionRole,markLocalSave,persistCloudSession,readOutbox,renderPersistentSaveStatus,saveNow,setConnectionStatus,setKsmSessionRole,tournamentPayload,tournamentSettings,updateSaveStatus,writeOutbox} from './modules/sync/cloud-session-and-autosave.js';
+import {applySetupSnapshot,autoSaveTournament,clearOutbox,cloudSession,downloadRecoveryFile,getSetupSnapshot,initCloudSession,initSetupSettings,ksmSetSetting,ksmSetting,ksmSessionRole,markLocalSave,persistCloudSession,readOutbox,renderPersistentSaveStatus,saveNow,setConnectionStatus,setKsmSessionRole,tournamentPayload,tournamentSettings,updateSaveStatus,writeOutbox} from './modules/sync/cloud-session-and-autosave.js';
 import {KSM_AUTOSAVE_CLOUD_ID,KSM_CLOUD_OUTBOX_KEY,KSM_CLOUD_SESSION_KEY,KSM_MERGE_LABELS,KSM_SAVE_KEY,applyCourtSides,cloneJson,historyEntryIdentity,isValidMatchObject,ksmDeferredSyncRecord,ksmKeepRestoreRecovery,ksmRestoreRecoveries,localChangesPending,localCourtDivision,matchBelongsToCourtInState,matchHasSyncIdentity,matchSyncIdentity,mergeLocalEditsThreeWay,nextReadyIndexInState,normalizeCourt,pinCourtLocally,rebaseLocalPayloadOnRecord,redOnLeftForCourt,rememberLocalCourtDivision,replayCourtMatchOps,setKsmDeferredSyncRecord} from './modules/sync/sync-state-and-rebase.js';
 import {KSM_TAB_ID,initTwoTabs,ksmOutboxKey,ksmReleaseReplaceBackups,ksmWriterId} from './modules/sync/two-tabs.js';
 import {initUndoRegenerate,ksmRefreshRestorePoint,ksmRenderUndoRegenerate,ksmUndoRegenerateOffered} from './modules/sync/undo-regenerate.js';
@@ -79,6 +79,11 @@ initPathUrls();
 // (window.KSM_STRICT_STORE, tests/lib/ksm-test-api.js) run strict, as the Node tests do, so such a write fails there.
 if(window.KSM_STRICT_STORE===true)setStoreStrict(true);
 setStrayStoreWriteReporter(write=>{console.warn('[KSM Store] A store field was assigned outside an action',write);writeCloudDiagnosticsState({storeStrayWrite:{...write,at:new Date().toISOString()}})});
+
+// The Setup form (tournament.settings, #15 PR 8): the store takes the values the inputs opened with, and the edit
+// listener goes first among the document's listeners, so the autosave's listener and each field's own handler read the
+// edited value from the store.
+initSetupSettings();
 
 // show() is in app/modules/navigation.js, saveSetup() and setDivisionCourt() in app/modules/setup/division-setup.js
 // (step 4a of #136). The empty state is taken here, where this file used to load.
@@ -261,8 +266,8 @@ Object.assign(window, {
   // app/modules/sync/cloud-diagnostics.js
   downloadActionHistorySample, downloadSnapshotAnalysis, readCloudDiagnosticsState, writeCloudDiagnosticsState,
   // app/modules/sync/cloud-session-and-autosave.js
-  applySetupSnapshot, clearOutbox, downloadRecoveryFile, getSetupSnapshot, markLocalSave, persistCloudSession, readOutbox,
-  renderPersistentSaveStatus, saveNow, setConnectionStatus, tournamentPayload, tournamentSettings, updateSaveStatus, writeOutbox,
+  applySetupSnapshot, clearOutbox, downloadRecoveryFile, getSetupSnapshot, ksmSetSetting, ksmSetting, markLocalSave, persistCloudSession,
+  readOutbox, renderPersistentSaveStatus, saveNow, setConnectionStatus, tournamentPayload, tournamentSettings, updateSaveStatus, writeOutbox,
   // app/modules/sync/cloud-realtime-save-and-load.js
   applyRemoteCloudRecord, applyTournamentPayload, closeCloudModal, cloudDiagnostics, confirmTournamentFileLoad, copyTextValue,
   copyTournamentId, disconnectCloudSocket, flushCloudOutbox, isTvSession, ksmCancelReplace, ksmReplaceAnyway, ksmSendCourtClock,

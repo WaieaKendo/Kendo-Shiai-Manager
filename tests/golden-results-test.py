@@ -222,7 +222,7 @@ def awards_rr_4(browser, errors):
     g = open_app('awards-rr-4', browser, errors)
     page = g.app.page
     g.do('no tournament yet', lambda a: a.nav('results'))
-    g.do('tournament name', lambda a: a.page.evaluate("() => { tName.value = 'Aiea Taikai'; KSMTest.show('results'); }"))
+    g.do('tournament name', lambda a: a.page.evaluate("() => { KSMTest.app.ksmSetSetting('tName', 'Aiea Taikai'); KSMTest.show('results'); }"))
     g.app.configure([{'name': 'Open', 'format': 'Round Robin', 'court': 'A', 'entrants': people('P', 4)}])
     g.do('generated', lambda a: a.nav('results'))
     # The awards editor.

@@ -8,7 +8,7 @@ import {ksmPublishHeader,setKsmForgotTournament} from '../react-bridges/shell.js
 import {KSM_STAFF_TOURNAMENT,KSM_V316_STAFF_SESSION,initializeCloudRoleFromUrl,installRoleBanner,isReadOnlySession,ksmStaffToken,performCloudSave,promptNewStaffPassword,showHomePage,v316StaffPassword} from './staff-session-and-library.js';
 import {ksmDirectorRefreshTimer,setDirectorRefreshTimer} from '../setup/director-progress.js';
 import {applyTournamentPayload,closeCloudModal,disconnectCloudSocket,flushCloudOutbox,ksmCloudSaveInFlight,ksmCloudTimer,ksmDeferredRemoteTimer,ksmLocalMutationVersion,ksmQueuedSaveRetryTimer,ksmSaveTimer,mergeQueuedStaffWork,noteQueuedMutation,saveTournamentToCloudWithReason,setKsmCloudTimer,setKsmConfirmedMutationVersion,setKsmDeferredRemoteRecord,setKsmFileReplace,setKsmLastSuccessfulSaveAt,setKsmLocalMutationVersion,setKsmOutboxMutationVersion,setKsmQueuedSaveRetryAttempt,setKsmQueuedSaveRetryTimer,setKsmSaveStatusMode,setKsmSaveTimer,setKsmTvLastVerifiedAt,setKsmTvRefreshInFlight,showKsmToast} from '../sync/cloud-realtime-save-and-load.js';
-import {applySetupSnapshot,clearOutbox,cloudSession,getSetupSnapshot,ksmSessionRole,markLocalSave,persistCloudSession,setConnectionStatus,tournamentPayload,writeOutbox} from '../sync/cloud-session-and-autosave.js';
+import {applySetupSnapshot,clearOutbox,cloudSession,getSetupSnapshot,ksmSessionRole,ksmSetSetting,ksmSetting,markLocalSave,persistCloudSession,setConnectionStatus,tournamentPayload,writeOutbox} from '../sync/cloud-session-and-autosave.js';
 import {KSM_AUTOSAVE_CLOUD_ID,KSM_CLOUD_BASE,KSM_CLOUD_DIAGNOSTICS_KEY,KSM_CLOUD_RECOVERY_KEY,KSM_PINNED_COURT_PREFIX,KSM_SAVE_KEY,clearLocalCourtDivisions,ksmDeferredSyncTimer,localChangesPending,rememberCloudBase,setKsmDeferredSyncRecord,setKsmDeferredSyncTimer} from '../sync/sync-state-and-rebase.js';
 import {ksmOwnOutbox,ksmTabHasUnsavedWork} from '../sync/two-tabs.js';
 import * as KSMEngine from '../../engine/index.ts';
@@ -88,7 +88,7 @@ export function ksmRefreshTournamentChip(){
       document.getElementById('setupShortUrlStatus').textContent='Old links keep working after a rename.';
     }
   }
-  ksmPublishHeader({tournamentName:document.body.classList.contains('ksm-home')?'':String(/** @type {HTMLInputElement|null} */(document.getElementById('tName'))?.value||'Untitled tournament')});
+  ksmPublishHeader({tournamentName:document.body.classList.contains('ksm-home')?'':String(ksmSetting('tName')||'Untitled tournament')});
 }
 export function ksmPushTournamentAddress(id){
   if(!id)return;
@@ -207,7 +207,7 @@ export async function ksmAccountCreate(){
     if(location.pathname!=='/')history.pushState(null,'','/');
     ksmTournamentAddress=location.pathname+location.search+location.hash;
     document.body.classList.remove('ksm-home');
-    if(password)sessionStorage.setItem(KSM_V316_STAFF_SESSION,password);tName.value=name;
+    if(password)sessionStorage.setItem(KSM_V316_STAFF_SESSION,password);ksmSetSetting('tName',name);
     setSessionRole('staff');installRoleBanner('staff');navigateTo('setup');
     markLocalSave('New tournament');showKsmToast('Creating tournament in cloud…',0);
     try{await performCloudSave(tournamentPayload(),0);ksmRecordScreenPath('setup');showKsmToast('✓ Tournament created',2200)}

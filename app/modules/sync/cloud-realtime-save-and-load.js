@@ -23,7 +23,7 @@ import {renderTvDisplay} from '../results/tv-display.js';
 import {KSM_V316_STAFF_SESSION,canCloudWrite,installRoleBanner,isReadOnlySession,performCloudSave,promptNewStaffPassword,spectatorLink,v316StaffPassword} from '../session/staff-session-and-library.js';
 import {ksmStartupHasCache,ksmStartupLoadFailed,ksmTournamentEpoch} from '../session/tournament-switcher.js';
 import {analyzeCourtActionHistory,analyzeTournamentSnapshot,formatDiagnosticTime,formatSnapshotBytes,payloadByteSize,readCloudDiagnosticsState,writeCloudDiagnosticsState} from './cloud-diagnostics.js';
-import {applySetupSnapshot,autoSaveTournament,clearOutbox,cloudSession,ksmSessionRole,ksmStoreAutosave,markLocalSave,persistCloudSession,preserveRecovery,readOutbox,renderPersistentSaveStatus,setConnectionStatus,tournamentPayload,updateSaveStatus,writeOutbox} from './cloud-session-and-autosave.js';
+import {applySetupSnapshot,autoSaveTournament,clearOutbox,cloudSession,ksmSessionRole,ksmSetting,ksmStoreAutosave,markLocalSave,persistCloudSession,preserveRecovery,readOutbox,renderPersistentSaveStatus,setConnectionStatus,tournamentPayload,updateSaveStatus,writeOutbox} from './cloud-session-and-autosave.js';
 import {KSM_SAVE_KEY,applyDeferredSyncRecord,clearLocalCourtDivisions,cloudBaseFor,deferRemoteRecord,ksmKnownRestoredRevision,localChangesPending,localCourtDivision,normalizeCourt,pinCourtLocally,pinnedCourt,rebaseLocalPayloadOnRecord,rememberCloudBase,rememberLocalCourtDivision,restorePinnedCourt,setLocalCourtDivision,sanitizeLoadedTournamentState} from './sync-state-and-rebase.js';
 import {KSM_REPLACE_BACKUP_PREFIX,KSM_TAB_ID,ksmDropOutboxesFor,ksmMarkOutboxMerged,ksmOutboxKey,ksmRetagHistory,ksmSendAdoptedOutbox,ksmTakeOrphanNow,ksmWriterId} from './two-tabs.js';
 import {ksmClearRestoreMark,ksmDropQueuedWorkBeforeRestore,ksmDropWorkBeforeRestore,ksmRestoredSince,ksmSetRestoreMark,setKsmRestorePoint} from './undo-regenerate.js';
@@ -411,7 +411,7 @@ async function confirmRecoveryFileLoad(pack){
   const name=pack.latestLocalSnapshot?.setup?.tName||'Unnamed tournament';
   const when=pack.createdAt&&!isNaN(/** @type {any} */(new Date(pack.createdAt)))?new Date(pack.createdAt).toLocaleString():'unknown date';
   if(cloudSession.tournamentId){
-    const open=(window.tName&&tName.value)||'The open tournament';
+    const open=ksmSetting('tName')||'The open tournament';
     if(!confirm(`Load this recovery file as a new tournament? File: ${name}, saved ${when}. ${open} stays unchanged.`))return false;
   }
   // Only when there is something to save: a save with nothing new would still add a revision.
@@ -467,7 +467,7 @@ export function tournamentFileProblem(payload){
 // app/js/44-react-shell.js).
 function tournamentFileDetails(payload){
   const saved=payload.savedAt&&!isNaN(/** @type {any} */(new Date(payload.savedAt)))?new Date(payload.savedAt).toLocaleString():'Unknown';
-  return [['File',payload.setup?.tName||'Unnamed tournament','file-load-name'],['Saved',saved,'file-load-saved'],['Revision',payload.revision==null?'Unknown':String(payload.revision),'file-load-revision'],['Tournament ID',payload.tournamentId||'None (older file)','file-load-id'],['Open tournament',`${(window.tName&&tName.value)||'Kendo Tournament'} · revision ${Number(cloudSession.revision)||0}`,'file-load-open']];
+  return [['File',payload.setup?.tName||'Unnamed tournament','file-load-name'],['Saved',saved,'file-load-saved'],['Revision',payload.revision==null?'Unknown':String(payload.revision),'file-load-revision'],['Tournament ID',payload.tournamentId||'None (older file)','file-load-id'],['Open tournament',`${ksmSetting('tName')||'Kendo Tournament'} · revision ${Number(cloudSession.revision)||0}`,'file-load-open']];
 }
 // #129: what Replace trades, in finished matches: the open tournament's and the file's.
 function ksmReplaceCounts(payload){

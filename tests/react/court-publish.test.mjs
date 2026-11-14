@@ -6,6 +6,7 @@ import {
   ksmCompleteInput, ksmContextPanelInput, ksmCourtHeaderInput, ksmOwnQueuePanelInput, ksmQueuePanelInput, ksmScoreboardInput,
   ksmStaticCourtHeader, startCourtInput,
 } from '../../app/react/features/court/publish.ts';
+import { fakeSettingsStore } from './settings-store-fake.mjs';
 
 // The classic signal stubs (app/modules/react-bridges/court.js), run as they are against the fake window.
 const classic = readFileSync(new URL('../../app/modules/react-bridges/court.js', import.meta.url), 'utf8');
@@ -27,6 +28,8 @@ function fake({ state = {}, legacy = {}, elements = {}, names = {} } = {}) {
     divisionCourts: {}, score: { W: [], R: [], WT: 0, RT: 0 }, ...state,
   };
   const win = {
+    // The audience sides come from the store (tournament.settings, #15 PR 8); oldPublish() read the same values from the selects.
+    KSMStore: fakeSettingsStore(key => elements[key]?.value),
     ksmLegacyState: () => s,
     ksmText: x => String(x || ''),
     ksmDivisionName: id => names[id] ?? id,

@@ -3,7 +3,7 @@
 // legacy renderer) pin; text is what esc() showed (ksmText(), String(x||'')); the brackets are
 // the court screen's data (ksmBracket(), ksmTeamResults(), app/js/35-react-court.js). Legacy is
 // read only through shared/legacy.ts.
-import { legacy, legacyTournamentNameInput } from '../../shared/legacy.ts';
+import { legacy, setupSetting } from '../../shared/legacy.ts';
 import {
   RESULTS_BRACKET_EVENT, RESULTS_EVENT,
   type ResultCardInput, type ResultDetailInput, type ResultsBracketInput, type ResultsInput,
@@ -83,12 +83,11 @@ export function ksmResultsDashboardInput(): ResultsInput {
   ].filter(div => drawn(div) || event.includes(div));
   const completed = divisions.filter(div => drawn(div) && divisionComplete(div));
   const pending = divisions.filter(div => !drawn(div) || !divisionComplete(div));
-  // window.tName is the Setup name input (a DOM element reached by its id), read through
-  // legacyTournamentNameInput(): the same value as the legacy `window.tName&&tName.value`.
-  const nameInput = legacyTournamentNameInput();
+  // The Setup name (the store's tournament.settings.tName; was the #tName input's value).
+  const tournamentName = setupSetting('tName');
   return {
     kind: 'results',
-    tournamentName: nameInput && nameInput.value ? nameInput.value : 'Kendo Tournament',
+    tournamentName: tournamentName || 'Kendo Tournament',
     completed: completed.map(ksmResultCard),
     pending: pending.map(div => (drawn(div) ? ksmResultCard(div) : ksmResultPlaceholder(div))),
     noDivisions: !divisions.some(drawn),
