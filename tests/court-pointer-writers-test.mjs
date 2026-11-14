@@ -130,6 +130,16 @@ for (const [label, opts] of [['spectator on Court B', { staff: false, court: 'B'
   const d = heal(device({ court: 'B' }));
   check(d.state.courtState.B.index === 2 && d.state.current === 1, `the self-heal moved Court B on to bout 3 while the screen still shows bout 2 (got ${json(d.state.courtState.B)}, current ${d.state.current})`);
   check(d.syncOwnCourtPointer() === false && d.state.courtState.B.index === 2 && d.state.currentByDivision.Kids === 1, `the catch-up does not rewind Court B onto the finished bout (got ${json(d.state.courtState.B)})`);
+  // #181 review: with the pointer ahead, a wrong courtActiveDivision still syncs; the index is kept.
+  d.state.courtActiveDivision.B = 'Juniors';
+  check(d.syncOwnCourtPointer() === true && d.state.courtActiveDivision.B === 'Kids' && json(d.state.courtState.B) === json({ division: 'Kids', index: 2 }),
+    `the catch-up still fixes Court B's active division and keeps its index (got ${d.state.courtActiveDivision.B} ${json(d.state.courtState.B)})`);
+  check(d.syncOwnCourtPointer() === false, 'then nothing to do');
+  // The same index, the shown bout finished: only the active division was wrong, and it syncs (the guard is for a rewind).
+  const same = device({ court: 'B' });
+  same.applyCourtState('B', same.state.courtState.B, true);
+  same.state.allMatches.Kids[1].done = true; same.state.courtActiveDivision.B = 'Juniors';
+  check(same.syncOwnCourtPointer() === true && same.state.courtActiveDivision.B === 'Kids' && same.state.courtState.B.index === 1, 'same index: the active division syncs');
   if (pr6Code) {
     const was = heal(device({ court: 'B', source: pr6Code }));
     check(was.syncOwnCourtPointer() === true && was.state.courtState.B.index === 1, `#180 as merged rewound it (got ${json(was.state.courtState.B)}); PR 7 fixes that`);

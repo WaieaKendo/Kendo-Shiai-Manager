@@ -373,6 +373,19 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
      a division picked), a director pinned to Court A picking and drawing Court B, a TV following Court B, a
      spectator pinned to Court B show the same division, `current`, `score` and match list as before, step by step
      (`tests/derived-court-view-test.mjs` runs the #180 code and the new code side by side).
+   - **Known differences** (#181 review), none visible on a screen:
+     - The load's empty view (`rehydrateLoadedTournamentState()` with no pointer for the court and nothing ready on it)
+       shows no match, as before, but now as `current` = the shown division's list length with `matches` = that list,
+       where it was `current` 0 and `matches` `[]` (index 0 of the derived list would be a real bout: the other court's,
+       or one not ready, which a point would have written). So this device's snapshot carries that list and index
+       there, and if its scorekeeper then takes a court action, `syncOwnCourtPointer()` saves the court's pointer as
+       that division past its end instead of its bout 1 (both show nothing on the court).
+       `tests/load-keeps-device-view-test.mjs` case 8 and `tests/derived-court-view-test.mjs` compare it with the #180 code.
+     - Undo/Redo's F30 log (`recordCourtUndoLog()`, replayed by 4.0's rebase): `applyCourtHistoryEntry()` leaves an
+       entry's `matches` patches out of the logged entry when `state.matches` is the alias of a patched division. The
+       old alias went stale after a list was replaced (a sort, the tiebreak repair) until the next `applyCourtState()`,
+       and in that window the logged entry kept its `matches` patches; the derived getter is never stale, so it now
+       always leaves them out. 4.0 skips `matches` patches on replay (`KSM_LOCAL_VIEW_STATE_KEYS`), so nothing changes.
    - Loads: `replaceState()` ignores a payload's `matches` (derived), `current` and `score` (device paths), as it does
      `currentDivision`; the rehydrate sets this device's own, as since PR 4. `assignState()` ignores `matches`.
      Undo/Redo still records the three (4.0 devices read them) and skips them on apply (`KSM_LOCAL_VIEW_STATE_KEYS`).
@@ -380,7 +393,8 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
      (`legacy/fieldAssigned` at the resolved path) and ignores it for `matches` (its sources already say what it is).
    - #180 review Low fixed: `syncOwnCourtPointer()` never moves the court's pointer back onto a finished bout of the
      same division (the screen catches up on its next render), so an auth-token refresh after the self-heal no longer
-     rewinds it (`tests/court-pointer-writers-test.mjs` case 7).
+     rewinds it; a wrong `courtActiveDivision` still syncs there, keeping the court's index
+     (`tests/court-pointer-writers-test.mjs` case 7).
    Tests: `tests/store/match-view.test.mjs`, `tests/derived-court-view-test.mjs`, the vm tests' plain `state` gets the
    same derived `matches` (`tests/lib/derived-matches.mjs`).
 8. **Settings**: the Setup form (`payload.setup`) → `tournament.settings`; `applySetupSnapshot` becomes

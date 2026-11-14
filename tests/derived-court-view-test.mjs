@@ -133,6 +133,33 @@ for (const [role, [opts, steps]] of Object.entries(ROLES)) {
       `${label}: the Undo/Redo entries are recorded as before (matches, current and score patches included)\n  before: ${json(before.state.courtActionHistory)}\n  after:  ${json(s.courtActionHistory)}`);
   });
 }
+// #181 review, Medium: after a load that found no pointer and nothing ready on Court B (rehydrateLoadedTournamentState()'s
+// empty view), Court B's scorekeeper shows Open (Court A's division) with no match. A tapped point (the buttons are
+// always enabled) must not write Court A's open bout, as before PR 7 (#180: matches=[] and current=0; now the shown
+// index is past the end of Open's list). The one difference: the catch-up before the action (syncOwnCourtPointer())
+// saves Court B's pointer as Open past its end, where #180 saved Open bout 1 (Court A's bout); both show nothing on B.
+{
+  const emptyView = (d, derived) => {
+    d.state.allMatches.Kids.forEach(m => { m.done = true; }); d.state.allMatches.Juniors.forEach(m => { m.done = true; });
+    delete d.state.courtState.B; delete d.state.courtActiveDivision.B;
+    d.state.currentDivision = 'Open';
+    if (derived) d.ksmShowMatch(d.state.matches.length); else { d.state.matches = []; d.state.current = 0; }
+  };
+  const after = device(newCode, true, { court: 'B' });
+  emptyView(after, true);
+  after.point('W', 'M');
+  check(after.state.matches[after.state.current] === undefined && after.state.allMatches.Open.every(m => !m.wp.length || m.white === 'Open 3'),
+    `empty view: a point writes no match (got ${json(after.state.allMatches.Open.map(m => m.wp))})`);
+  check(json(after.state.courtState.B) === json({ division: 'Open', index: 3 }) && after.courtCurrentMatch('B') === null, 'empty view: Court B\'s pointer is Open past its end, nothing on Court B');
+  if (oldCode) {
+    const before = device(oldCode, false, { court: 'B' });
+    emptyView(before, false);
+    before.point('W', 'M');
+    check(json(after.state.allMatches) === json(before.state.allMatches) && json(after.state.score) === json(before.state.score),
+      'empty view: the same matches and pad as the #180 code after the point');
+    check(json(before.state.courtState.B) === json({ division: 'Open', index: 0 }) && before.courtCurrentMatch('B') === null, '#180 saved Court B\'s pointer on Open bout 1 (Court A\'s), also nothing on Court B');
+  }
+}
 // In-place writes through state.matches land in allMatches (the same array object, never a copy).
 {
   const d = device(newCode, true, { court: 'A' });

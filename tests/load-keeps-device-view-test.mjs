@@ -54,7 +54,7 @@ check(!/state\.current\b(?!Court|Division|ByDivision)/.test(extractFunction(html
   'the rehydrate no longer reads the payload\'s current');
 
 /** A context for `code`: the device's pin, TV flag, remembered court divisions and its state before the load. */
-function makeContext(code, { pin = null, tv = false, staff = true, local = {}, before }) {
+function makeContext(code, { pin = null, tv = false, staff = true, local = {}, before, plain = false }) {
   const context = {
     console, setTimeout: () => 0,
     cloudSession: { court: pin || '', tournamentId: 't1' },
@@ -71,12 +71,13 @@ function makeContext(code, { pin = null, tv = false, staff = true, local = {}, b
   let pinned = pin;
   context.pinnedCourt = () => pinned;
   context.pinCourtLocally = c => { pinned = c; };
-  context.replaceState = loaded => { for (const k of Object.keys(context.state)) delete context.state[k]; Object.assign(context.state, loaded); deriveMatches(context.state); };
+  context.replaceState = loaded => { for (const k of Object.keys(context.state)) delete context.state[k]; Object.assign(context.state, loaded); if (!plain) deriveMatches(context.state); };
   Object.assign(context, viewHelpers(context));
   context.restorePinnedCourt = () => { if (!pinned) return null; context.cloudSession.court = pinned; context.state.currentCourt = pinned; if (tv) context.state.publicCourt = pinned; return pinned; };
   vm.createContext(context);
   vm.runInContext(code, context);
-  context.state = deriveMatches(before);
+  // `plain`: the #180 code (before #15 PR 7), which assigned state.matches itself.
+  context.state = plain ? before : deriveMatches(before);
   return context;
 }
 
@@ -252,6 +253,39 @@ for (const [name, [device, payload, options]] of Object.entries(SAME)) {
   check(c.state.currentDivision === 'Kids', `the restore keeps this device's division (got ${c.state.currentDivision})`);
   check(c.ksmLocalCourtDivision.A === null, `the restore keeps this device's Court A choice (got ${c.ksmLocalCourtDivision.A})`);
   check(json(c.state.allMatches) === '{}', 'the restore is the tournament from before');
+}
+
+// 8. #15 PR 7 (#181 review, Medium): the court has no shared pointer and nothing on it is ready, so the load shows no
+//    match. Court B's scorekeeper loads an older file with no courtState while it shows Open (Court A's division, whose
+//    bout 1 is open). Before PR 7 the branch set matches=[] and current=0; now matches is Open's list (derived) and the
+//    shown index is past its end, so the shown match is still none (not Court A's bout 1, which a point would write).
+{
+  const PR6 = '37b48d0', pr6 = gitShow(PR6, FILE), pr6Order = gitShow(PR6, 'app/modules/court/court-match-order.js'),
+    pr6Scoring = gitShow(PR6, 'app/modules/court/court-scoring-and-history.js');
+  const file = () => {
+    const t = tournament({ courtState: {}, courtActiveDivision: {}, currentDivision: 'Kids', current: 1 });
+    t.allMatches.Kids.forEach(m => { m.done = true; }); t.allMatches.Juniors.forEach(m => { m.done = true; });
+    return payloadOf(t);
+  };
+  const device = () => ({ pin: 'B', before: { ...fresh(), divisions: ['Open', 'Kids', 'Juniors'], currentDivision: 'Open', currentCourt: 'B' } });
+  const shown = s => s.matches[s.current];
+  const now = load(NEW, device(), file(), undefined);
+  check(now.view.division === 'Open' && shown(now.state) === undefined && json(now.view.score) === json({ W: [], R: [], WT: 0, RT: 0 }),
+    `no pointer, nothing ready on Court B: no match shown (got ${now.view.division} ${now.view.current} ${json(shown(now.state))})`);
+  check(now.state.matches === now.state.allMatches.Open && now.view.current === now.state.allMatches.Open.length, 'the shown index is past the end of the shown division\'s list');
+  if (pr6 && pr6Order && pr6Scoring) {
+    let pr6Code = NEW;
+    for (const [src, name] of [[pr6, 'rehydrateLoadedTournamentState'], [pr6Order, 'applyCourtState'], [pr6Scoring, 'loadScoreFromMatch']])
+      pr6Code = pr6Code.replace(extractFunction(html, name), () => extractFunction(src, name));
+    const was = load(pr6Code, { ...device(), plain: true }, file(), undefined);
+    check(shown(was.state) === undefined && was.view.division === now.view.division && json(was.view.score) === json(now.view.score)
+      && json(was.local) === json(now.local), `the same view as the #180 code: no match, the same division and pad (before: ${was.view.division} ${was.view.current})`);
+    const shared = s => json({ allMatches: s.allMatches, courtState: s.courtState, courtActiveDivision: s.courtActiveDivision, currentByDivision: s.currentByDivision });
+    check(shared(was.state) === shared(now.state), 'the same tournament data as the #180 code');
+    // What differs, only in this branch: the snapshot's current (0 then, the list's length now) and matches ([] then,
+    // the shown division's list now). Both are device keys every load ignores (docs/STORE.md section 3 item 7).
+    check(was.state.current === 0 && was.state.matches.length === 0, 'the #180 code left current 0 and an empty matches');
+  }
 }
 
 if (failed) process.exit(1);

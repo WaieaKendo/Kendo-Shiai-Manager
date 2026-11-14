@@ -105,8 +105,12 @@ export function syncOwnCourtPointer(){
   if(cs&&cs.division===div&&cs.index===index&&state.courtActiveDivision?.[court]===div)return false;
   // Never back onto a finished bout (#180 review, Low): when a render's self-heal (courtCurrentMatch()) has moved the
   // court past the bout this screen still shows, the court's pointer is ahead, not behind; this screen catches up on
-  // its next render (ensureScorableCurrentMatch()).
-  if(cs&&cs.division===div&&state.allMatches[div][index]?.done)return false;
+  // its next render (ensureScorableCurrentMatch()). The court's division still syncs (#181 review): its index is kept.
+  if(cs&&cs.division===div&&cs.index!==index&&state.allMatches[div][index]?.done){
+    if(state.courtActiveDivision?.[court]===div)return false;
+    setCourtPointer(court,cs);
+    return true;
+  }
   setCourtPointer(court,{division:div,index});
   state.currentByDivision[div]=index;
   return true;

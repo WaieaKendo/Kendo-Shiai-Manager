@@ -692,8 +692,10 @@ function rehydrateLoadedTournamentState(options){
   }else{
     const known=d=>Boolean(d)&&(hasMatches(d)||(state.divisions||[]).includes(d));
     ksmShowDivision(known(own.division)?own.division:((state.divisions||[])[0]||null));
-    // state.matches is that division's list (derived, #15 PR 7): [] when it has none, as this branch set before.
-    ksmShowMatch(0);
+    // Nothing to show: state.matches is that division's list (derived, #15 PR 7), so the shown index is past its end and
+    // the shown match is undefined, as when this branch set matches=[] and current=0 (#181 review). Index 0
+    // would be a real bout: possibly the other court's, or one that is not ready.
+    ksmShowMatch(state.matches.length);
     ksmSetScore(ksmEmptyScore());
   }
 }
