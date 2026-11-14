@@ -275,9 +275,26 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
    this device's view from its own state (pin, `ksmLocalCourtDivision`, the court's shared entry), not from the
    payload's `currentDivision` / `current`. Risk: medium. Tests: the cases in point 4; v31711, v31719.
    Done: see section 2 point 4; the snapshot JSON and the save path are unchanged.
-5. **Device, first fields**: `regMode`, `poolViewDivision` → `device/registrationTabChanged`,
+5. **Device, first fields** (**done**): `regMode`, `poolViewDivision` → `device/registrationTabChanged`,
    `device/poolViewDivisionChanged`. Risk: low (few writers, ignored by the rebase). Tests: getter throws on write
    (tests) and dispatches (production path); snapshot JSON byte-identical; Registration tab / Pools goldens.
+   Done: the `device` slice holds both (defaults as in `app-state.js`); `moveToStore()` runs once in `app-state.js`
+   right after `state` is built. Writers: `regTab()` (`navigation.js`) dispatches `registrationTabChanged`; the Pools
+   division select, `renderDivisions()` (`court-match-order.js`), `renderPools()` / generation (`engine-generation.js`)
+   call `ksmSetPoolViewDivision()` (one helper, also on `window` for the inline `onchange`); a division rename
+   (`react-bridges/setup.js`) takes `poolViewDivision` out of the `assignState()` patch and dispatches the action.
+   Readers are unchanged (`state.x`). **A load keeps this device's value**: `replaceState()` skips every key whose
+   store path is in `device` (ignores the payload's value, and does not clear one the payload lacks), so a payload's
+   `regMode` / `poolViewDivision` no longer reach this device (before: a load, remote apply, file load or tournament
+   switch overwrote both; the tab shown is unchanged until `regTab()` runs, as before). The snapshot JSON still
+   carries both. Undo/Redo: these two are not in `KSM_LOCAL_VIEW_STATE_KEYS`, so a recorded patch on them still applies,
+   through `assignState()` into the store, as before. **For later moves:** (1) a test's own `Object.assign(state, …)`
+   or `state.x = …` on a moved key throws in the browser tests: use the app's helper (`ksmTeamDivisions()`) or an
+   action (`tests/lib/ksm-test-api.js` did the first); (2) source-text tests that grep an inline handler
+   (`v3162-*`) need the new text; (3) one visible effect of getters keeping their place in `Object.keys(state)`:
+   after a load a moved key stays where it was while plain keys follow in payload order, so the order of snapshot
+   keys (and of tied rows in Developer Tools' state breakdown, `golden-shell` nav-staff) differs from before the
+   move; the values and the JSON content are the same.
 6. **Device, court view**: `currentCourt`, `publicCourt`, `currentDivision`, plus `ksmLocalCourtDivision` →
    `device/courtChosen`, `device/publicCourtChanged`, `device/divisionShown`, and the `courtState` /
    `currentByDivision` split of section 1.2 (`court/divisionSelected` for a pinned scorekeeper). Risk: medium

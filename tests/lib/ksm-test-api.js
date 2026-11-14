@@ -410,7 +410,7 @@ window.KSMTest = {
         return {team: `Team ${code}`, type: team.format, status: 'Checked', ...Object.fromEntries(slots.map((s, j) => [s, `T${code}${j + 1}`]))};
       });
     }
-    delete state.teamDivisions;Object.assign(state,KSMEngine.migrateTeamDivisions(state,getSetupSnapshot()));
+    delete state.teamDivisions;ksmTeamDivisions(); // the app's own migration: through assignState(), which a store field needs
     generatePools({validated: true});
   },
 

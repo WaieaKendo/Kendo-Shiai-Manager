@@ -124,10 +124,10 @@ test('assignState with no store field: exactly Object.assign', () => {
 
 test('replaceState / assignState with store fields: one action for the store keys, the rest assigned', () => {
   const t = { plain: 1 };
-  moveToStore('a', ['device', 'helperA'], t);
+  moveToStore('a', ['tournament', 'helperA'], t);
   moveToStore('b', ['tournament', 'helperB'], t);
   const types = [];
-  const off = subscribe(() => types.push(getState().device.helperA));
+  const off = subscribe(() => types.push(getState().tournament.helperA));
   replaceState({ a: 'A1', plain: 2, other: 3 }, t);
   assert.deepEqual(types, ['A1'], 'one dispatch');
   assert.equal(t.a, 'A1');
@@ -140,6 +140,21 @@ test('replaceState / assignState with store fields: one action for the store key
   assert.equal(t.plain, 9);
   assert.ok(Object.isFrozen(getState().tournament.helperB), 'strict: what the store holds is frozen');
   assert.throws(() => { t.b.n = 2; }, TypeError, 'strict: a nested write into store data throws');
+});
+
+test('replaceState keeps a device field: a payload never overwrites it, a missing one is not cleared', () => {
+  const t = { plain: 1 };
+  moveToStore('view', ['device', 'helperView'], t);
+  moveToStore('data', ['tournament', 'helperData'], t);
+  assignState({ view: 'court' }, t); // a local write still reaches the device slice
+  assert.equal(getState().device.helperView, 'court');
+  replaceState({ view: 'tv', data: 'D', plain: 2 }, t);
+  assert.equal(t.view, 'court', 'the payload value of a device field is ignored');
+  assert.equal(t.data, 'D');
+  replaceState({ plain: 3 }, t);
+  assert.equal(t.view, 'court', 'a device field absent from the payload is not cleared');
+  assert.equal(t.data, undefined, 'a tournament field absent from the payload still is');
+  assert.deepEqual(Object.keys(t), ['view', 'data', 'plain']);
 });
 
 test('production, a nested write into store data (Immer auto-freeze off): applied, seen by the next snapshot, no notification', () => {
