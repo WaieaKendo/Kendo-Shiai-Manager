@@ -314,6 +314,29 @@ await test('two simultaneous saves from the same revision: exactly one wins', as
 await test('a body tournamentId that does not match the URL is rejected', async () => {
   const res = await api.call('PUT', `/api/tournaments/${T}`, { headers: staffHeaders(), body: { tournamentId: '11111111-1111-1111-1111-111111111111', revision: 3, payload: payload() } });
   assert.equal(res.status, 409);
+  // The Durable Object checks this since the Worker stopped parsing records (Free plan CPU): same answer, nothing stored.
+  assert.equal((await json(res)).error, 'Tournament ID mismatch');
+  assert.equal((await json(await api.call('GET', `/api/tournaments/${T}`))).revision, 3);
+});
+
+await test('unusual tournament names save, load and reach the library', async () => {
+  // The library row comes from the DO's x-ksm-library-entry header (URI-encoded JSON). Accents,
+  // Japanese, emoji and even a lone surrogate (JSON.stringify escapes it) must save, load and list.
+  for (const name of ['剣道大会 – Été 🥋', 'Broken \ud800 name']) {
+    const { res: made, body: createdRecord } = await create({ payload: payload({ name }) });
+    assert.equal(made.status, 200, name);
+    const id = createdRecord.tournamentId;
+    const loaded = await api.call('GET', `/api/tournaments/${id}`);
+    assert.equal(loaded.status, 200, name);
+    const record = await json(loaded);
+    const saved = await put(id, record.revision, payload({ name }));
+    assert.equal(saved.status, 200, name);
+    assert.equal((await json(saved)).slug !== undefined, true, `${name}: slug added`);
+    const rows = await json(await api.call('GET', '/api/tournaments'));
+    const row = rows.find(r => r.id === id);
+    assert.ok(row, `${name}: in the library`);
+    if (!name.includes('Broken')) assert.equal(row.name, name);
+  }
 });
 
 await test('integrity: a completed winner-required match cannot be Hikiwake', async () => {

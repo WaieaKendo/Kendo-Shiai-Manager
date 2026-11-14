@@ -147,10 +147,12 @@ function tournamentGone(deletedAt, extra = {}) {
 // "Cloud save failed (500)". So the Worker never parses a record: it streams request and response
 // bodies through, tells the DO the route's tournament (x-ksm-route-tournament) and reads the
 // library row from this header.
+// JSON.stringify escapes lone surrogates, so encodeURIComponent gets plain ASCII here; the name is
+// capped like the library's (160) to keep the header small, and a failure only skips the library update.
 function libraryEntryHeader(record) {
   if (!record?.tournamentId) return {};
-  const entry = { id: record.tournamentId, name: record.payload?.setup?.tName || 'Kendo Tournament', updatedAt: record.updatedAt };
-  return { 'x-ksm-library-entry': encodeURIComponent(JSON.stringify(entry)) };
+  const entry = { id: record.tournamentId, name: String(record.payload?.setup?.tName || 'Kendo Tournament').slice(0, 160), updatedAt: record.updatedAt };
+  try { return { 'x-ksm-library-entry': encodeURIComponent(JSON.stringify(entry)) }; } catch (_) { return {}; }
 }
 function publicRecord(record) {
   if (!record) return null;
