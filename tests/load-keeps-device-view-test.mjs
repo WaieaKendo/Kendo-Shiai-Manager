@@ -15,6 +15,7 @@
 import vm from 'node:vm';
 import { extractFunction, html, withDependencies } from './lib/ksm-source.mjs';
 import { gitShow } from './lib/git-show.mjs';
+import { deriveMatches, viewHelpers } from './lib/derived-matches.mjs';
 
 const BASE = '477eca9020beda42e71d90ee7fe8ac5dd29d08d9'; // next/4.1 before this PR (#176 merged)
 const FILE = 'app/modules/sync/cloud-realtime-save-and-load.js';
@@ -29,7 +30,9 @@ const STUBS = ['renderAll', 'updateUndoButton', 'autoSaveTournament', 'scheduleA
   'normalizeAllIndividualPoolTiebreakOrder', 'replaceState', 'pinCourtLocally', 'pinnedCourt', 'restorePinnedCourt', 'isTvSession',
   'cloudSession', 'applyCourtSides', 'ensureCourtHistory', 'ksmLocalCourtDivision', 'point', 'renderScore', 'ksmNotifyStateChanged', 'renderPublic',
   // The device fields' store helpers (#15 PR 6): here they write the context's plain `state`, as the old code did.
-  'ksmSetCurrentCourt', 'ksmSetPublicCourt', 'ksmShowDivision', 'setLocalCourtDivision', 'canCloudWrite'];
+  'ksmSetCurrentCourt', 'ksmSetPublicCourt', 'ksmShowDivision', 'setLocalCourtDivision', 'canCloudWrite',
+  // PR 7: state.matches is derived (deriveMatches()), current and score are written through these.
+  'ksmShowMatch', 'ksmSetScore', 'ksmEmptyScore', 'ksmResetCourtPads'];
 const newCode = '"use strict";\n' + withDependencies(html, [...CHANGED, 'applyTournamentFilePayload'].map(n => extractFunction(html, n)).join('\n'), { exclude: [...STUBS, 'tournamentPayload', 'alert'] });
 const oldSource = gitShow(BASE, FILE);
 let oldCode = null;
@@ -68,11 +71,12 @@ function makeContext(code, { pin = null, tv = false, staff = true, local = {}, b
   let pinned = pin;
   context.pinnedCourt = () => pinned;
   context.pinCourtLocally = c => { pinned = c; };
-  context.replaceState = loaded => { for (const k of Object.keys(context.state)) delete context.state[k]; Object.assign(context.state, loaded); };
+  context.replaceState = loaded => { for (const k of Object.keys(context.state)) delete context.state[k]; Object.assign(context.state, loaded); deriveMatches(context.state); };
+  Object.assign(context, viewHelpers(context));
   context.restorePinnedCourt = () => { if (!pinned) return null; context.cloudSession.court = pinned; context.state.currentCourt = pinned; if (tv) context.state.publicCourt = pinned; return pinned; };
   vm.createContext(context);
   vm.runInContext(code, context);
-  context.state = before;
+  context.state = deriveMatches(before);
   return context;
 }
 

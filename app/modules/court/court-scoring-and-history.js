@@ -1,5 +1,5 @@
 // @ts-check
-import {assignState,state,storeFieldPath} from '../app-state.js';
+import {assignState,ksmEmptyScore,ksmSetScore,state,storeFieldPath} from '../app-state.js';
 import {maybeCreateKachinukiNext,renderAll} from './court-context-and-pool-editing.js';
 import {applyCourtState,findNextForCourt,syncOwnCourtPointer} from './court-match-order.js';
 import {renderScore} from './scorekeeper-screen.js';
@@ -20,8 +20,8 @@ import {KSM_LOCAL_VIEW_STATE_KEYS,cloneJson,historyEntryIdentity,matchHasSyncIde
 import {KSM_TAB_ID} from '../sync/two-tabs.js';
 import * as KSMEngine from '../../engine/index.ts';
 export function loadScoreFromMatch(m){
-  if(!m || m.done){state.score={W:[],R:[],WT:0,RT:0};return;}
-  state.score={W:[...(m.wp||[])],R:[...(m.rp||[])],WT:m.wt||0,RT:m.rt||0};
+  if(!m || m.done){ksmSetScore(ksmEmptyScore());return;}
+  ksmSetScore({W:[...(m.wp||[])],R:[...(m.rp||[])],WT:m.wt||0,RT:m.rt||0});
 }
 function syncActiveScoreToMatch(){
   let m=state.matches?.[state.current];
@@ -339,9 +339,10 @@ export function redo(){
   const matchesBefore=courtUndoMatchesBefore(action);applyHistoryValues(action,'after');recordCourtUndoLog(court,'REDO',courtHistoryAppliedEntry(action),matchesBefore);state.courtActionHistory[court].push(action);if(state.courtActionHistory[court].length>KSM_HISTORY_LIMIT)state.courtActionHistory[court].shift();
   updateUndoButton();updateSaveStatus('Redid '+action.label+courtHistorySkippedNote('Redo'));criticalAutoSave('Redo: '+action.label);
 }
-export function point(side,letter){performCourtAction(`${side==='W'?'White':'Red'} ${letter}`,()=>{state.score[side].push(letter);window.dispatchEvent(new Event('ksm:timer-point'));syncActiveScoreToMatch();renderScore()})}
-export function hansoku(side){performCourtAction(`${side==='W'?'White':'Red'} Hansoku`,()=>{window.dispatchEvent(new Event('ksm:timer-point'));if(side==='W'){state.score.WT++;if(state.score.WT%2===0)state.score.R.push('H')}else{state.score.RT++;if(state.score.RT%2===0)state.score.W.push('H')}syncActiveScoreToMatch();renderScore()})}
-export function fusen(side){performCourtAction(`${side==='W'?'White':'Red'} Fusen-gachi`,()=>{if(side==='W'){state.score.W=[];state.score.R=['F','F']}else{state.score.R=[];state.score.W=['F','F']}syncActiveScoreToMatch();renderScore()})}
+// The score pad is store data (state.score, device/scoreChanged, #15 PR 7): each change builds a new pad.
+export function point(side,letter){performCourtAction(`${side==='W'?'White':'Red'} ${letter}`,()=>{const s=state.score;ksmSetScore({...s,[side]:[...s[side],letter]});window.dispatchEvent(new Event('ksm:timer-point'));syncActiveScoreToMatch();renderScore()})}
+export function hansoku(side){performCourtAction(`${side==='W'?'White':'Red'} Hansoku`,()=>{window.dispatchEvent(new Event('ksm:timer-point'));const s=state.score;if(side==='W'){const WT=s.WT+1;ksmSetScore({...s,WT,R:WT%2===0?[...s.R,'H']:s.R})}else{const RT=s.RT+1;ksmSetScore({...s,RT,W:RT%2===0?[...s.W,'H']:s.W})}syncActiveScoreToMatch();renderScore()})}
+export function fusen(side){performCourtAction(`${side==='W'?'White':'Red'} Fusen-gachi`,()=>{const s=state.score;ksmSetScore(side==='W'?{...s,W:[],R:['F','F']}:{...s,R:[],W:['F','F']});syncActiveScoreToMatch();renderScore()})}
 export function matchRequiresWinner(m){
   return KSMEngine.matchRequiresWinner(m);
 }

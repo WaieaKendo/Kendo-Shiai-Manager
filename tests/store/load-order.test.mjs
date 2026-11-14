@@ -27,11 +27,12 @@ test('applyTournamentPayload repairs the loaded copy, then replaces state', () =
 
 const logs = [];
 const record = kind => (...args) => logs.push([kind, JSON.stringify(args)]);
-const context = vm.createContext({ console: { log: record('log'), info: record('info'), warn: record('warn'), error: record('error') } });
+// #15 PR 7: a repair on the live `state` sets current through ksmShowMatch() (here the context's plain state).
+const context = vm.createContext({ console: { log: record('log'), info: record('info'), warn: record('warn'), error: record('error') }, ksmShowMatch(i) { context.state.current = i; } });
 vm.runInContext(withDependencies(html, [
   extractFunction(html, 'sanitizeLoadedTournamentState'),
   extractFunction(html, 'normalizeAllIndividualPoolTiebreakOrder'),
-].join('\n'), { exclude: ['state', 'console'] }), context);
+].join('\n'), { exclude: ['state', 'console', 'ksmShowMatch'] }), context);
 const clone = value => JSON.parse(JSON.stringify(value));
 
 // Old order: the live object is emptied and gets the loaded keys, then the repairs run on it.

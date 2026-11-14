@@ -1,5 +1,5 @@
 // @ts-check
-import {state} from '../app-state.js';
+import {ksmEmptyScore,ksmSetScore,ksmShowMatch,state} from '../app-state.js';
 import {renderAll} from '../court/court-context-and-pool-editing.js';
 import {findNextForCourt,renderDivisions} from '../court/court-match-order.js';
 import {enforceUniqueIndividualMatches,maybeAdvanceChampionship,maybeCreateChampionship} from '../engine/engine-championship.js';
@@ -128,8 +128,9 @@ function ksmClearGrandChampionStructure(id,keepCourts=false){
     if(state.courtState?.[c]?.division!==id)return;
     state.courtState[c]=findNextForCourt(c,null,0);state.courtActiveDivision[c]=state.courtState[c].division;
   });
-  if(state.currentDivision===id&&had){state.score={W:[],R:[],WT:0,RT:0};state.history=[]}
-  if(state.currentDivision===id&&!state.allMatches?.[id]){state.matches=[];state.current=0}
+  if(state.currentDivision===id&&had){ksmSetScore(ksmEmptyScore());state.history=[]}
+  // state.matches follows allMatches[currentDivision] (derived, #15 PR 7): [] once the draw is gone.
+  if(state.currentDivision===id&&!state.allMatches?.[id])ksmShowMatch(0);
   return had;
 }
 function ksmDrawGrandChampion(gc){
@@ -140,7 +141,7 @@ function ksmDrawGrandChampion(gc){
   if(drawn)state.currentByDivision[gc.id]=0;
   // A court that was on the grand champion stays on it (its new first match); none moves elsewhere.
   courts.forEach(c=>{state.courtState[c]=findNextForCourt(c,drawn?gc.id:null,0);state.courtActiveDivision[c]=state.courtState[c].division});
-  if(state.currentDivision===gc.id){state.matches=state.allMatches[gc.id]||[];state.current=0}
+  if(state.currentDivision===gc.id)ksmShowMatch(0);
   return drawn;
 }
 // A runner-up standing in for a winner who has played nothing yet, in a draw already under way:

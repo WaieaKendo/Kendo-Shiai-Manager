@@ -343,6 +343,9 @@ window.KSMTest = {
     setCurrentCourt: (...a) => ksmSetCurrentCourt(...a),
     setPublicCourt: (...a) => ksmSetPublicCourt(...a),
     showDivision: (...a) => ksmShowDivision(...a),
+    // PR 7: state.matches is derived from the shown division; the shown match and the score pad have their helpers.
+    showMatch: (...a) => ksmShowMatch(...a),
+    setScore: (...a) => ksmSetScore(...a),
     setConnectionStatus: (...a) => setConnectionStatus(...a),
     setCourtSupportMode: (...a) => setCourtSupportMode(...a),
     setSessionRole: (...a) => setSessionRole(...a),

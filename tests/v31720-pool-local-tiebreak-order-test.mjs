@@ -17,6 +17,8 @@ check(html.includes("normalizeAllIndividualPoolTiebreakOrder(loaded,options.sour
 
 const context={console};
 context.state={};
+// #15 PR 7: on the live state, current goes through ksmShowMatch() (here the context's plain state).
+context.ksmShowMatch=i=>{context.state.current=i};
 context.cloneJson=value=>JSON.parse(JSON.stringify(value));
 context.isValidMatchObject=match=>Boolean(match&&typeof match==='object'&&!Array.isArray(match));
 context.individualMatchReady=m=>!!(m&&!m.done&&(!m.templateNode||m.ready)&&(m.white&&m.red));

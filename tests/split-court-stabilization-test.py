@@ -37,10 +37,10 @@ with sync_playwright() as p:
 
     # A required head-to-head tiebreak cannot be completed as a draw or duplicated.
     page.evaluate("""
-      KSMTest.app.showDivision('Test');KSMTest.app.setCurrentCourt('B');KSMTest.app.state.matches=KSMTest.app.state.allMatches.Test;
-      KSMTest.app.state.current=KSMTest.app.state.matches.findIndex(m=>m.pool==='B'&&m.tiebreak);
+      KSMTest.app.showDivision('Test');KSMTest.app.setCurrentCourt('B');
+      KSMTest.app.showMatch(KSMTest.app.state.matches.findIndex(m=>m.pool==='B'&&m.tiebreak));
       KSMTest.app.state.courtState={A:{division:'Test',index:0},B:{division:'Test',index:KSMTest.app.state.current}};
-      KSMTest.app.state.courtActiveDivision={A:'Test',B:'Test'};KSMTest.app.state.score={W:[],R:[],WT:0,RT:0};
+      KSMTest.app.state.courtActiveDivision={A:'Test',B:'Test'};KSMTest.app.setScore({W:[],R:[],WT:0,RT:0});
       KSMTest.app.nextMatch();
     """)
     assert dialogs and 'Ties are not allowed' in dialogs[-1],dialogs
@@ -52,8 +52,8 @@ with sync_playwright() as p:
       KSMTest.app.state.divisionTypes.Test='Single Elimination';KSMTest.app.state.divisionCourts.Test='split';
       KSMTest.app.state.competitors=Array.from({length:8},(_,i)=>({name:'E'+(i+1),dojo:'D',division:'Test',seed:'',status:'Checked'}));
       KSMTest.app.state.pools={};KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={};KSMTest.app.state.singleElimComps={};KSMTest.app.state.currentByDivision={};
-      KSMTest.app.generateDivisionState('Test');KSMTest.app.showDivision('Test');KSMTest.app.setCurrentCourt('A');KSMTest.app.state.matches=KSMTest.app.state.allMatches.Test;
-      const firstA=KSMTest.app.state.matches.findIndex(m=>m.court==='A'&&!m.done);KSMTest.app.state.current=firstA;
+      KSMTest.app.generateDivisionState('Test');KSMTest.app.showDivision('Test');KSMTest.app.setCurrentCourt('A');
+      const firstA=KSMTest.app.state.matches.findIndex(m=>m.court==='A'&&!m.done);KSMTest.app.showMatch(firstA);
       KSMTest.app.setCourtSupportMode('singleElim');KSMTest.app.renderQueue();
     """)
     assert page.locator('#score .sk-queue-card').evaluate("el=>!el.classList.contains('hidden')")
@@ -62,7 +62,7 @@ with sync_playwright() as p:
     assert all(name not in queue_a for name in court_b_names), (queue_a,court_b_names)
 
     page.evaluate("""
-      KSMTest.app.setCurrentCourt('B');const firstB=KSMTest.app.state.matches.findIndex(m=>m.court==='B'&&!m.done);KSMTest.app.state.current=firstB;KSMTest.app.renderQueue();
+      KSMTest.app.setCurrentCourt('B');const firstB=KSMTest.app.state.matches.findIndex(m=>m.court==='B'&&!m.done);KSMTest.app.showMatch(firstB);KSMTest.app.renderQueue();
     """)
     queue_b=page.locator('#queue').inner_text()
     court_a_names=page.evaluate("KSMTest.app.state.allMatches.Test.filter(m=>m.court==='A'&&!m.done).flatMap(m=>[m.white,m.red]).filter(Boolean)")
@@ -85,7 +85,7 @@ with sync_playwright() as p:
     # publish.ts (#136 step 2), in place of the legacy poolChampionshipQueueGroups() removed in M.8
     # step 5. The module is not reachable from the page scripts, so the queue is asked for, as the
     # court screen does: renderQueue() signals and the module's input has these groups last.)
-    queue_groups="""court=>{const s=KSMTest.app.state,nodes=s.singleElimNodes;KSMTest.app.setCurrentCourt(court);KSMTest.app.showDivision('Test');s.matches=s.allMatches.Test;s.current=-1;s.singleElimNodes={};
+    queue_groups="""court=>{const s=KSMTest.app.state,nodes=s.singleElimNodes;KSMTest.app.setCurrentCourt(court);KSMTest.app.showDivision('Test');KSMTest.app.showMatch(-1);s.singleElimNodes={};
       KSMTest.app.renderQueue();s.singleElimNodes=nodes;return window.ksmCourtQueueInput.groups.map(g=>[g.label,g.rows.length])}"""
     groups_a=page.evaluate(queue_groups,'A')
     groups_b=page.evaluate(queue_groups,'B')

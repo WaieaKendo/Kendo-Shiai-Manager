@@ -111,7 +111,9 @@ test('integrity helpers equal the pre-move legacy code on golden final matches',
       for (const [div, arr] of Object.entries(st)) {
         out.push(arr.map(m => [ctx.individualLogicalMatchKey(m), ctx.matchSyncIdentity(m), ctx.matchHasSyncIdentity(m, ctx.matchSyncIdentity(arr[0])), ctx.completedResultSnapshot(m)]));
         ctx.state = { allMatches: { [div]: [...arr, ...arr.map(m => ({ ...m, done: !m.done }))] }, currentDivision: div };
-        out.push(ctx.enforceUniqueIndividualMatches(div), ctx.state.matches);
+        // The legacy code re-aliased state.matches; since #15 PR 7 the app's state.matches is derived (allMatches of the
+        // shown division), which this plain object does not have: compare that list.
+        out.push(ctx.enforceUniqueIndividualMatches(div), ctx.state.matches ?? ctx.state.allMatches[ctx.state.currentDivision]);
       }
       return noTime(JSON.stringify(out));
     };

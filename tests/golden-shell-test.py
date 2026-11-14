@@ -466,7 +466,7 @@ def dialogs(browser, react_check):
     g.do('Fusen-gachi opened (Red forfeits)', lambda a: click(a.page, tid('fusen-gachi')))
     g.do('Fusen-gachi: White won (Red forfeits)', lambda a: click(a.page, tid('fusen-white')))
     g.do('Fusen-gachi opened from the code with no match (nothing)', lambda a: a.page.evaluate(
-        "() => { const c = KSMTest.app.state.current; KSMTest.app.state.current = 999; KSMTest.app.openFusenDialog(); KSMTest.app.state.current = c; }"))
+        "() => { const c = KSMTest.app.state.current; KSMTest.app.showMatch(999); KSMTest.app.openFusenDialog(); KSMTest.app.showMatch(c); }"))
     nav(g, 'registration')
     g.do('Regenerate Single Division opened', lambda a: click(a.page, tid('regenerate-division-button')))
     g.do('Regenerate: x', lambda a: click(a.page, tid('regenerate-modal-close')))

@@ -1,5 +1,5 @@
 // @ts-check
-import {ksmSetCurrentCourt,ksmSetPublicCourt,ksmShowDivision,replaceState,state} from '../app-state.js';
+import {ksmEmptyScore,ksmSetCurrentCourt,ksmSetPublicCourt,ksmSetScore,ksmShowDivision,ksmShowMatch,replaceState,state} from '../app-state.js';
 import {cloudSocketUrl,connectCloudSocket,ksmCacheTournament,ksmReadHeaders,ksmUsesAccountAuth,loadTournamentFromCloud,setSessionRole} from '../auth/auth0-access.js';
 import {renderAll} from '../court/court-context-and-pool-editing.js';
 import {applyCourtState,findNextForCourt,individualMatchReady} from '../court/court-match-order.js';
@@ -692,9 +692,9 @@ function rehydrateLoadedTournamentState(options){
   }else{
     const known=d=>Boolean(d)&&(hasMatches(d)||(state.divisions||[]).includes(d));
     ksmShowDivision(known(own.division)?own.division:((state.divisions||[])[0]||null));
-    state.matches=[];
-    state.current=0;
-    state.score={W:[],R:[],WT:0,RT:0};
+    // state.matches is that division's list (derived, #15 PR 7): [] when it has none, as this branch set before.
+    ksmShowMatch(0);
+    ksmSetScore(ksmEmptyScore());
   }
 }
 export function applyTournamentPayload(payload,saveAfter,options={}){

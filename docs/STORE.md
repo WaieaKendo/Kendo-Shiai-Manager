@@ -1,6 +1,6 @@
 # The store: plan for moving `state` into Redux Toolkit (#15 step 2.8)
 
-Status (2026-11-13): **prep done (PR 2), Undo/Redo without device keys (PR 3), loads keep the device view (PR 4), device fields moved: `regMode`, `poolViewDivision` (PR 5), the court view (PR 6)**. `app/store/` holds a Redux Toolkit store (slices
+Status (2026-11-14): **prep done (PR 2), Undo/Redo without device keys (PR 3), loads keep the device view (PR 4), device fields moved: `regMode`, `poolViewDivision` (PR 5), the court view (PR 6), `matches` derived and `current` / `score` moved (PR 7)**. `app/store/` holds a Redux Toolkit store (slices
 `tournament` and `device`, each with only a `sliceVersion`). app.js imports it as a separate tree-shaken, minified
 bundle (+7.9 kB gzip, section 5) and sets `window.KSMStore`; `app/modules/app-state.js` has the helpers the field
 moves use (`moveToStore()`, `replaceState()`, `assignState()`, section 2). All app data is still the one mutable
@@ -76,9 +76,9 @@ Class: **T** tournament data (shared, synced), **D** device/screen state (this d
 | `currentDivision` | M | 38 / 3 / 15 | `applyCourtState`, load | **device** (moved, PR 6: `device/divisionShown`): the division this device's court screen shows. The rebase still reads it as a fallback (`localState.currentDivision`), from the payload copy, which keeps it (the getter is enumerable, so `tournamentPayload()` still writes it) |
 | `poolViewDivision` | D | 6 / 2 / 2 | court order, generation | **device** |
 | `regMode` | D | 5 / 1 / 4 | navigation (`regTab`) | **device** (open Registration tab) |
-| `matches` | M | 23 / 7 / 11 | `applyCourtState` (`= state.allMatches[div]`), load | **neither: a selector.** It is an *alias* of `allMatches[currentDivision]` (writes through either name change both). Saved, so every snapshot carries one division's match list twice |
-| `current` | M | 25 / 5 / 10 | `applyCourtState`, generation, load | **selector**: duplicates `courtState[currentCourt].index` |
-| `score` | M | 45 / 15 (on 8 lines: `point()` has several) / 8 | scoring (`point`, `hansoku`), `loadScoreFromMatch`, match timer | **device** working copy of the current match's points, copied into the match by `syncActiveScoreToMatch()`; ends as a selector over the match once court actions are actions |
+| `matches` | M | 23 / 7 / 11 | `applyCourtState` (`= state.allMatches[div]`), load | **neither: a selector** (derived, PR 7: a read-only getter returning the live `allMatches[currentDivision]`, `[]` when there is none; no writer left). It was an *alias* of `allMatches[currentDivision]` (writes through either name change both; still true). Saved, so every snapshot carries one division's match list twice |
+| `current` | M | 25 / 5 / 10 | `applyCourtState`, generation, load | **device** (moved, PR 7: `device.currentMatchIndex`, `device/matchShown`): the index of the match this device's court screen shows. Not a selector over `courtState[currentCourt].index`: since PR 6 a device that is not the court's scorekeeper shows its own match, and the scorekeeper's pointer can be ahead of its screen until the next render (section 3 item 7) |
+| `score` | M | 45 / 15 (on 8 lines: `point()` has several) / 8 | scoring (`point`, `hansoku`, `fusen`), `loadScoreFromMatch`, the court view resets | **device** (moved, PR 7: `device.activeScore[court]`, `device/scoreChanged`; `state.score` is this device's court's pad) working copy of the current match's points, copied into the match by `syncActiveScoreToMatch()`; ends as a selector over the match once court actions are actions |
 | `courtState` | M | 33 / 12 / 12 | `applyCourtState` (any local view choice: a division picked, a court chosen), Next Match, generation, setup, grand champion, sync load (`rehydrateLoadedTournamentState`, the payload's value or the self-heal) and rebase (`nextReadyIndexInState`) | **split** (see below): "what is on Court B now" (TV, Live Scores, the other court) is tournament data; a device *viewing* a court or division is device state |
 | `courtActiveDivision` | M | 19 / 10 / 11 | same writers as `courtState` | **tournament**, and then a selector: it is `courtState[c].division` kept twice |
 | `currentByDivision` | M | 13 / 9 / 5 | `applyCourtState` (every local view choice), generation, grand champion, sync load | **split**, then a selector: where each division's queue stands is derivable from the matches (`nextReadyIndexInState`); the remembered position is device state |
@@ -245,8 +245,9 @@ What must never happen (each PR's tests check the ones it touches):
 
 - **A stale read after a dispatch.** `dispatch` is synchronous and `getState()` is new right after, but an object
   read *before* the dispatch is the old frozen copy. No code keeps a store object across a dispatch (e.g.
-  `const cs = state.courtState[c]; dispatch(…); cs.index`); read again. `state.matches` is exactly this today (an
-  alias), so it becomes a getter over `allMatches` / `courtState` before `allMatches` moves.
+  `const cs = state.courtState[c]; dispatch(…); cs.index`); read again. `state.matches` was exactly this (an alias),
+  so since PR 7 it is a getter that returns `allMatches[currentDivision]` on every read (the live list, never a copy),
+  before `allMatches` moves.
 - **Legacy code mutating a frozen object in production.** In tests it throws (good: loud), so every write is found
   first; in production it is applied (and logged, for an assignment; point 8), never a crash during a tournament. Match
   Object identity (`indexOf(match)`, objects kept across calls) must switch to `matchSyncIdentity()` / ids where it
@@ -340,13 +341,48 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
    `replaceState()` restores with this device's division and court choices from before the file; and
    `tests/load-keeps-device-view-test.mjs` prints a loud SKIP on a shallow clone (and fails on CI). Tests:
    `tests/store/device-court-view.test.mjs`, `tests/court-pointer-writers-test.mjs`, the load test's new cases.
-   **Left for PR 7 / 13**: `matches`, `current`, `score` (PR 7); `court/divisionSelected` as a store action and
+   **Left for PR 7 / 13**: `matches`, `current`, `score` (PR 7, done); `court/divisionSelected` as a store action and
    `courtState` / `courtActiveDivision` / `currentByDivision` into the store as tournament data with selectors (PR 13).
 
 7. **Derive `matches` and `current`**: getters over `allMatches[courtState[currentCourt].division]` and
    `courtState[…].index`; drop their assignments. `score` → `device.activeScore[court]` with
    `device/scoreChanged`. Risk: medium-high (scoring path, the alias). Tests: court-actions, timer, scoreboard
    goldens; snapshot still carries `matches`/`current` (from the getters) until the owner decides (open question 1).
+   Done (**PR 7**), with one change to the plan: the formula follows **this device's shown division and match**, not
+   the court's shared pointer, because since PR 6 the two differ on every device that is not the court's scorekeeper
+   (a spectator, a TV, a director drawing another court) and, for one render, on the scorekeeper itself (a render's
+   self-heal moves the pointer past a bout finished elsewhere before the screen moves).
+   - `state.matches` is a read-only getter (`deriveInState()` in `app-state.js`): `allMatches[currentDivision]`, the
+     same array object (so `state.matches[i].x = …` and a push land in `allMatches`, as with the alias), `[]` when that
+     division has no list. A replaced list (`sortIndividualDivisionMatches()`, the tiebreak order repair,
+     `enforceUniqueIndividualMatches()`) is followed at once, where the alias went stale until the next
+     `applyCourtState()`; no test flow (Node or browser, goldens included) shows a difference.
+   - `state.current` is `device.currentMatchIndex`, written only by `ksmShowMatch()` (`device/matchShown`; an unchanged
+     value dispatches nothing): `applyCourtState()`, `setActiveDivision()`, the grand champion draw and clear, the
+     load's empty view, the tiebreak repair on the live state (`reindexPointersAfterMatchReorder()`), the tournament
+     reset (`ksmResetCourtPads()`).
+   - `state.score` is `device.activeScore[currentCourt]` (a store path that depends on the court), written only by
+     `ksmSetScore()` (`device/scoreChanged`, none for an equal pad): `loadScoreFromMatch()`, `point()`, `hansoku()`,
+     `fusen()`, `applyCourtState()` without a score, the grand champion clear, the load's empty view, the reset. The
+     pad is frozen store data: each point builds a new pad. The match timer only reads it. A device switching courts
+     reloads the pad from the match (`applyCourtState()`), as before.
+   - Writers that set `state.matches` and now write nothing: `applyCourtState()`, `setActiveDivision()`,
+     `ensureScorableCurrentMatch()`, `enforceUniqueIndividualMatches()`, the grand champion draw and clear, the load's
+     empty view.
+   - **Per role, no difference**: Court A's and Court B's scorekeeper (points, hansoku, fusen, Next Match, Undo, Redo,
+     a division picked), a director pinned to Court A picking and drawing Court B, a TV following Court B, a
+     spectator pinned to Court B show the same division, `current`, `score` and match list as before, step by step
+     (`tests/derived-court-view-test.mjs` runs the #180 code and the new code side by side).
+   - Loads: `replaceState()` ignores a payload's `matches` (derived), `current` and `score` (device paths), as it does
+     `currentDivision`; the rehydrate sets this device's own, as since PR 4. `assignState()` ignores `matches`.
+     Undo/Redo still records the three (4.0 devices read them) and skips them on apply (`KSM_LOCAL_VIEW_STATE_KEYS`).
+   - A stray assignment: strict throws (all three); production logs it and applies it for `current` / `score`
+     (`legacy/fieldAssigned` at the resolved path) and ignores it for `matches` (its sources already say what it is).
+   - #180 review Low fixed: `syncOwnCourtPointer()` never moves the court's pointer back onto a finished bout of the
+     same division (the screen catches up on its next render), so an auth-token refresh after the self-heal no longer
+     rewinds it (`tests/court-pointer-writers-test.mjs` case 7).
+   Tests: `tests/store/match-view.test.mjs`, `tests/derived-court-view-test.mjs`, the vm tests' plain `state` gets the
+   same derived `matches` (`tests/lib/derived-matches.mjs`).
 8. **Settings**: the Setup form (`payload.setup`) → `tournament.settings`; `applySetupSnapshot` becomes
    `tournament/settingsLoaded`, field edits `tournament/settingChanged`; inputs render from the store;
    `teamAwardMode` and the `teamCourt` part of `divisionCourts` read settings. Risk: medium (DOM reads by id in many

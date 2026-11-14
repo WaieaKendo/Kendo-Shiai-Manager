@@ -45,10 +45,8 @@ export function ensureScorableCurrentMatch(){
   if(!div)return null;
   const arr=state.allMatches?.[div]||[];
   const active=arr[state.current];
-  if(individualMatchReady(active)&&matchBelongsToCourt(active,court)){
-    if(state.matches!==arr)state.matches=arr;
-    return active;
-  }
+  // state.matches is allMatches[currentDivision] (derived, #15 PR 7), so it is already `arr`.
+  if(individualMatchReady(active)&&matchBelongsToCourt(active,court))return active;
   const next=findNextForCourt(court,div,0);
   if(next.division===div&&next.index<arr.length){applyCourtState(court,next,true);return state.matches[state.current]||null;}
   return null;
