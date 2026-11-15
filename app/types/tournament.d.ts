@@ -236,6 +236,8 @@ interface TournamentState {
   hiddenPresets?: string[];
   divisionTypes: ByDivision<DivisionFormat>;
   divisionCourts: ByDivision<CourtMode>;
+  /** #25: the division rename log ({id, from, to}) the save-conflict replay uses; absent until a rename (#15 PR 9 types it). */
+  divisionRenames?: import('../engine/division-lists.ts').DivisionRename[];
   competitors: Competitor[];
   teams: Team[];
   exhibitions: Exhibition[];

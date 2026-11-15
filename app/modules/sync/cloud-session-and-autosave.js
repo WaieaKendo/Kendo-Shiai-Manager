@@ -14,6 +14,7 @@ import {KSM_TAB_ID,ksmAdoptOrphanOutbox,ksmOutboxKey,ksmPeekOrphanOutbox,ksmRead
 import {ksmPendingRestoreMark} from './undo-regenerate.js';
 import * as KSMEngine from '../../engine/index.ts';
 import {dispatch,getState,tournamentSlice} from '../../store/index.ts';
+import {ksmSetDivisionCourts} from '../setup/divisions-store.js';
 // The cloud session, the outbox and the local autosave (step 3d of #136, from app/js/20-cloud-session-and-autosave.js).
 // cloudSession is read from localStorage by initCloudSession(), which app/js/20- runs where this file used to load.
 // scheduleAutoSave(), saveAuto() and criticalAutoSave() are at the end of this file; tests wrap them through window
@@ -59,7 +60,8 @@ function downloadCloudRecovery(){downloadRecoveryFile()}
 // ksmSetSetting() for the app's own writes, applySetupSnapshot() for a loaded Setup.
 /** One Setup value (tournament.settings[key]). */
 export function ksmSetting(key){return getState().tournament.settings[key]}
-function settingsMeta(){const id=cloudSession?.clientId;return {device:id?`${id}/${KSM_TAB_ID}`:''}}
+/** The meta of a tournament action from this device (#15: who / when / device; court null). */
+export function settingsMeta(){const id=cloudSession?.clientId;return {device:id?`${id}/${KSM_TAB_ID}`:''}}
 /**
  * Puts the store's Setup values into the inputs (only where an input shows something else: a caret is not moved for nothing).
  * @param {readonly string[]} [keys]
@@ -130,7 +132,8 @@ export function applySetupSnapshot(data){
   // An empty Setup value is shown as the default, as saveSetup() / renderDivisionSetup() did on the load's render.
   ksmSetTeamCourt(ksmSetting('teamCourt')||'Both');
   if(!ksmSetting('teamAwardMode'))ksmSetSetting('teamAwardMode','top2');
-  (state.teamDivisions||[]).forEach(d=>{if(d.id!==KSMEngine.LEGACY_TEAM_DIVISION_ID)state.divisionCourts[d.id]=/** @type {any} */(d.court)});
+  // Each team division's own court is its divisionCourts entry (one action; the legacy one's is the Setup's, set just above).
+  ksmSetDivisionCourts(Object.fromEntries((state.teamDivisions||[]).filter(d=>d.id!==KSMEngine.LEGACY_TEAM_DIVISION_ID).map(d=>[d.id,/** @type {string} */ (d.court)])));
   ksmSyncLegacyTeamDivision();
 }
 export function tournamentPayload(){

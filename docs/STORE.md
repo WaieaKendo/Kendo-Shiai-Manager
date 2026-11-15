@@ -1,6 +1,6 @@
 # The store: plan for moving `state` into Redux Toolkit (#15 step 2.8)
 
-Status (2026-11-14): **prep done (PR 2), Undo/Redo without device keys (PR 3), loads keep the device view (PR 4), device fields moved: `regMode`, `poolViewDivision` (PR 5), the court view (PR 6), `matches` derived and `current` / `score` moved (PR 7), the Setup form in `tournament.settings` (PR 8), `teamAwardMode` and the team court read it (PR 8b)**. `app/store/` holds a Redux Toolkit store (slices
+Status (2026-11-14): **prep done (PR 2), Undo/Redo without device keys (PR 3), loads keep the device view (PR 4), device fields moved: `regMode`, `poolViewDivision` (PR 5), the court view (PR 6), `matches` derived and `current` / `score` moved (PR 7), the Setup form in `tournament.settings` (PR 8), `teamAwardMode` and the team court read it (PR 8b), the divisions (PR 9)**. `app/store/` holds a Redux Toolkit store (slices
 `tournament` and `device`). app.js imports it as a separate tree-shaken, minified
 bundle (+7.9 kB gzip, section 5) and sets `window.KSMStore`; `app/modules/app-state.js` has the helpers the field
 moves use (`moveToStore()`, `replaceState()`, `assignState()`, section 2). All app data is still the one mutable
@@ -41,11 +41,11 @@ Class: **T** tournament data (shared, synced), **D** device/screen state (this d
 
 | Field | Refs / writes / files | Who writes it | Notes |
 |---|---|---|---|
-| `divisions` | 46 / 8 / 11 | setup (division-setup), registration | Renames: one engine call (`renamedDivisionState`) rewrites `divisions`, `divisionTypes`, `divisionCourts`, `competitors` together: one action |
-| `hiddenPresets` | 5 / 2 / 1 | setup (react-bridges/setup) | |
-| `divisionRenames` | 0 in app/modules (5 in 2 files by name) / via `Object.assign` / 2 | division rename (react-bridges/setup, through `renamedDivisionState`), the rebase (`rebaseDivisionRenames`) | The rename log `{id, from, to}` the save-conflict replay uses (#25, #36); not in `TournamentState`'s type yet. Moves with the divisions (PR 9) |
-| `divisionTypes` | 18 / 7 / 9 | setup, registration | |
-| `divisionCourts` | 57 / 26 / 18 | setup, registration, team divisions, grand champion, court order, generation, **sync** (load normalizes `'Both'`→`'split'`), `applySetupSnapshot` (`teamCourt`) | Most-written settings field; its `'Team Tournament'` entry follows the Setup field `settings.teamCourt`, written only through `ksmSetTeamCourt()` (PR 8b) |
+| `divisions` | 46 / 8 / 11 | setup (division-setup), registration | **Moved (PR 9)** with the next four (section 3 item 9). Renames: one engine call (`renamedDivisionState`) rewrites `divisions`, `divisionTypes`, `divisionCourts`, `competitors` together: one action (`tournament/divisionRenamed`; `competitors` assigned just before it) |
+| `hiddenPresets` | 5 / 2 / 1 | setup (react-bridges/setup) | **Moved (PR 9)**: `presetHidden` / `presetsRestored` |
+| `divisionRenames` | 0 in app/modules (5 in 2 files by name) / via `Object.assign` / 2 | division rename (react-bridges/setup, through `renamedDivisionState`), the rebase (`rebaseDivisionRenames`) | The rename log `{id, from, to}` the save-conflict replay uses (#25, #36). **Moved (PR 9)**: appended by `tournament/divisionRenamed`; typed in `TournamentState` |
+| `divisionTypes` | 18 / 7 / 9 | setup, registration | **Moved (PR 9)**: `divisionFormatChanged` (and added / removed / renamed with the division) |
+| `divisionCourts` | 57 / 26 / 18 | setup, registration, team divisions, grand champion, court order, generation, **sync** (load normalizes `'Both'`→`'split'`), `applySetupSnapshot` (`teamCourt`) | **Moved (PR 9)**: `divisionCourtChanged`; its `'Team Tournament'` entry is derived from `settings.teamCourt` in the store (`withTeamCourt()`), so `ksmSetTeamCourt()` is `tournament/settingChanged` alone |
 | `teamAwardMode` | 0 (getter) | Setup field `teamAwardMode` (`tournament/settingChanged`) | Since PR 8b a store getter over `settings.teamAwardMode` (section 3 item 8); the snapshot still carries it |
 | `competitors` | 30 / 8 / 9 | registration (+ its React bridge, rows edited in place) | Three-way merged on save conflicts (`KSM_MERGED_STATE_KEYS`) |
 | `teams` | 31 / 9 / 10 | registration | Merged by team id (#95) |
@@ -133,7 +133,8 @@ with `meta.court`); only who writes them changed (`setCourtPointer()`).
 
 - **Whole-object writes to `state`** (the mechanism below must handle each): `applyTournamentPayload()` and the
   tournament switcher (`Object.keys(state).forEach(k=>delete state[k]); Object.assign(state, loaded)`); division
-  rename (`Object.assign(state, renamedDivisionState(...))`, react-bridges/setup); the team-division migration
+  rename (`Object.assign(state, renamedDivisionState(...))`, react-bridges/setup; since PR 9 `assignState()` of the plain
+  fields it rewrites, then `tournament/divisionRenamed`); the team-division migration
   (`Object.assign(state, migrateTeamDivisions(...))`); undo/redo `applyHistoryPatch()`, which walks a `patch-v1`
   path from `state` and writes in place; `historyComparableState()`, which deep-clones every key before and after a
   court action; grand champion removal (`state[key][c]`, `delete state[k][id]`).
@@ -210,8 +211,10 @@ Today ~50 files write `state.x` in place. The cutover:
      key directly: a patch whose path is `[key]` for a key `moveToStore()` owns goes through `assignState({[key]: value})`
      (`undefined` for a missing value, where it did `delete state[key]`, which throws on the non-configurable getter in
      strict mode, in production too), and a missing parent at `[key, …]` is created the same way. Patches on device keys
-     are skipped (point 6). Deeper paths into a moved key are nested writes like any other (strict: throws) until
-     `court/undo` applies them on the draft (PR 13). Tested with a key made a getter (`tests/undo-device-keys-test.mjs`).
+     are skipped (point 6). A deeper path into a moved key (since PR 9; e.g. `['divisionCourts', d]`, recorded when a
+     court action's render gave a division its default court) is written into a copy of that key, which goes through
+     `assignState()` as a whole, until `court/undo` applies patches on the draft (PR 13). Tested with a key made a getter
+     (`tests/undo-device-keys-test.mjs`).
    - **Strict: the Node tests and the browser tests.** A write the conversion missed throws: an assignment to a
      moved field hits the getter's setter, which throws; a nested write into store data (`state.awards[i].x = …`)
      hits Immer's deep freeze (strict-mode modules throw a `TypeError`). The Node tests run strict because
@@ -466,6 +469,42 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
    and the division actions must not write that key (`…CourtChanged` for 'Team Tournament' = the Setup field). The
    rebase still merges `setup.teamCourt` and the `divisionCourts` entry separately (both copies agree on each device's
    save, so the merge picks the same winner for both; `tests/team-settings-store-test.py`).
+   Done (**PR 9**):
+   - The five fields are `tournament` slice fields and `state` getters (`moveToStore()`, `app-state.js`); the slice's
+     initial lists are the standard divisions (`DIVISION_PRESETS`, now `app/engine/division-lists.ts`). `hiddenPresets`
+     and `divisionRenames` stay undefined (not in the snapshot) until set, as before. The snapshot keeps every key, value
+     and type (`tests/divisions-store-test.py` compares every key of the saved `state` with the PR 8b code's, value for
+     value, after 26 steps: Setup edits, renames, removals, the sample tournament, five kinds of load).
+   - Actions: `divisionAdded`, `divisionRemoved`, `divisionMoved`, `divisionRenamed`, `divisionFormatChanged`,
+     `divisionCourtChanged`, `divisionsReplaced` (the sample tournament), `presetHidden`, `presetsRestored`. They share one
+     reducer that sets the lists the payload names: what each edit does is pure engine code (`addedDivision()`,
+     `removedDivision()`, `movedDivision()`, `defaultedDivisionCourts()`, `withDivisionCourts()`,
+     `renamedDivisionState()`), run by the app's helpers (`app/modules/setup/divisions-store.js`, one per edit) on the
+     current lists right before the dispatch. Why not in the reducers: the store bundle's gzip budget (section 5); ten
+     reducers repeating the engine's rules cost +640 bytes gzip, over it. A load still lands through `replaceState()`.
+   - The rename is one `divisionRenamed` with the lists `renamedDivisionState()` rewrote and the record appended to
+     `divisionRenames`. What else it rewrites is still plain `state` (`competitors`, `grandChampions`, `courtState`,
+     `courtActiveDivision`): `ksmRenameSetupDivision()` assigns those first (`assignState()`, no dispatch), then
+     dispatches, in one synchronous step, so the store's subscribers (notified only by the dispatch) never see the two
+     halves disagree; the device fields (`poolViewDivision`, `currentDivision`) follow.
+   - The team court: `withTeamCourt()` (the root reducer, after every action, the legacy writes included) keeps
+     `divisionCourts['Team Tournament']` equal to `settings.teamCourt` (created when missing, at the payload's place when
+     it names it). `ksmSetTeamCourt()` is `tournament/settingChanged` alone; `ksmSetDivisionCourt('Team Tournament', c)`
+     is `ksmSetTeamCourt(c)`; no division action writes the key. Team divisions' own courts and their precedence are
+     unchanged (`applySetupSnapshot()`: the 'Team Tournament' team division's court wins through
+     `ksmSyncLegacyTeamDivision()`, the others' entries are set from their records, now one `divisionCourtChanged`).
+   - #185 review L1: an individual division can no longer be named 'Team Tournament' (or 'Exhibition Matches', the
+     rename's other reserved name): `KSMEngine.divisionAddError()` on Add division (a toast; nothing added) and on a
+     Registration row choosing a division that is no longer offered. A 4.0 save that has such a division loads as it is
+     (no data is dropped); its court is the team court (the one key), as it already was in 4.0.
+   - The load's `'Both'` → `'split'` normalisation runs on the loaded copy before `replaceState()`
+     (`KSMEngine.loadedDivisionCourts()`; it read only what the copy holds). Save conflicts are unchanged (payload copies;
+     the result is applied with the same load). Undo/Redo: a deeper patch path into a moved key goes through
+     `assignState()` (section 2 point 8). The undo-regenerate restore point is a payload: unchanged.
+   - Tests: `tests/store/divisions.test.mjs` (a unit test per action, the rename as one dispatch, the team court, L1, the
+     load normalisation, strict / production stray writes, `replaceState()` / `assignState()`),
+     `tests/divisions-store-test.py`. Test code that wrote these fields directly sets them through
+     `KSMTest.app.setDivisionLists()` (`ksmReplaceDivisions()`).
 10. **People**: `competitors`, `teams`, `exhibitions`, `teamDivisions` → `tournament/competitorAdded`, `…Updated`,
    `…Removed`, `…StatusCycled`, team and exhibition equivalents, `teamDivision…`. Risk: medium (rows edited in
    place by the Registration bridge). Tests: registration goldens, the #95 merge tests.
@@ -530,6 +569,9 @@ call commands instead of window functions.
 - PR 8 (the Setup form): the store bundle 8,270 → 8,611 bytes gzip (the slice's defaults and two reducers; the
   normalization rules are in `app/engine/settings.ts`, in app.js); app.js 658,603 → 664,764 bytes, gzip 170,765 →
   172,883; the React bundle 626,197 → 625,991 bytes.
+- PR 9 (the divisions): the store bundle 8,611 → 8,964 bytes gzip (22,814 → 23,789 raw; the slice's initial lists, one
+  shared reducer, `withTeamCourt()`); app.js 666,859 → 678,855 bytes (gzip 173,785 → 177,230: the helpers module, the engine edits and their JSDoc); the
+  React bundle unchanged (625,991).
 - Re-renders: `store.subscribe` listeners run on every dispatch, so selectors must be cheap and return stable
   references. A remote snapshot is one action, one notification (today `ksmNotifyStateChanged` coalesces per
   microtask). Immer copies only the changed path (structural sharing); the deep freeze of a loaded snapshot is one

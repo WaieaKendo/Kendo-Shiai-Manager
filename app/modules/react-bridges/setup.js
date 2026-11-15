@@ -9,6 +9,7 @@ import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {removeDivision,renderDivisionSetup} from '../setup/division-setup.js';
 import {cloudSession} from '../sync/cloud-session-and-autosave.js';
 import {ksmLocalCourtDivision,setLocalCourtDivision} from '../sync/sync-state-and-rebase.js';
+import {KSM_DIVISION_STATE_KEYS,ksmHidePreset,ksmMoveDivision,ksmRemoveDivision,ksmRenameDivisionLists,ksmRestorePresets} from '../setup/divisions-store.js';
 import * as KSMEngine from '../../engine/index.ts';
 // ==========================================================
 // React Setup screen (app/react/features/setup/, roadmap M.13, #136 step 2)
@@ -48,7 +49,7 @@ export function ksmPublishSetup(event,key,input){
 export function ksmMoveSetupDivision(d,direction){
   const i=state.divisions.indexOf(d),j=i+(direction==='up'?-1:1);
   if(i<0||j<0||j>=state.divisions.length)return;
-  [state.divisions[i],state.divisions[j]]=[state.divisions[j],state.divisions[i]];
+  ksmMoveDivision(d,direction);
   renderDivisionSetup();renderDivisions();renderReg();
 }
 // Issue #25: rename a division (a row's Rename, app/react/setup/Setup.tsx), preset or custom,
@@ -72,10 +73,16 @@ export function ksmRenameSetupDivision(from,to){
   const client=(typeof cloudSession==='object'&&cloudSession?.clientId)||'local';
   const record={id:`${client}:${Date.now().toString(36)}:${Math.random().toString(36).slice(2,8)}`,from,to:name};
   const renamed=KSMEngine.renamedDivisionState(/** @type {any} */ (state),from,name,record);
-  // The Pools tab's division is a device field: it follows the rename through its action, not assignState().
-  if(renamed.poolViewDivision!==undefined){dispatch(deviceSlice.actions.poolViewDivisionChanged(renamed.poolViewDivision));delete renamed.poolViewDivision}
-  if(renamed.currentDivision!==undefined){ksmShowDivision(renamed.currentDivision??null);delete renamed.currentDivision}
-  assignState(renamed);
+  // #15 PR 9: one rename, one store action for the division lists (tournament/divisionRenamed, with its divisionRenames
+  // record). What else the engine rewrote is still plain `state` (competitors, grand champions, the courts' divisions):
+  // it is assigned first, in the same synchronous step and with no dispatch, so when the action notifies the store's
+  // subscribers both halves already agree. The device fields (the Pools tab's division, the shown division) follow after.
+  const {poolViewDivision,currentDivision,...rest}=renamed;
+  const plain=Object.fromEntries(Object.entries(rest).filter(([k])=>!KSM_DIVISION_STATE_KEYS.includes(k)));
+  assignState(plain);
+  ksmRenameDivisionLists(rest);
+  if(poolViewDivision!==undefined)dispatch(deviceSlice.actions.poolViewDivisionChanged(poolViewDivision));
+  if(currentDivision!==undefined)ksmShowDivision(currentDivision??null);
   ['A','B'].forEach(c=>{if(ksmLocalCourtDivision[c]===from)setLocalCourtDivision(c,name)});
   renderDivisionSetup();renderDivisions();renderReg();renderTournamentStatus();
   scheduleAutoSave('Division renamed');
@@ -101,14 +108,14 @@ export function ksmRemoveSetupDivision(d){
   const blocked=ksmDivisionRemoveBlocked(d);if(blocked){alert(blocked);return}
   const players=(state.competitors||[]).filter(c=>c.division===d&&c.name).length;
   if(players&&!confirm(`Remove ${d}? Its ${players} registered ${players===1?'player stays':'players stay'} in Registration without a division.`))return;
-  if(ksmDivisionPresetNames().includes(d)&&!(state.hiddenPresets||[]).includes(d))state.hiddenPresets=[...(state.hiddenPresets||[]),d];
+  if(ksmDivisionPresetNames().includes(d))ksmHidePreset(d);
   const i=state.divisions.indexOf(d);
   if(i>=0){removeDivision(i);scheduleAutoSave('Division removed');return}
-  delete state.divisionTypes[d];delete state.divisionCourts[d];renderDivisionSetup();renderDivisions();renderReg();scheduleAutoSave('Division removed');
+  ksmRemoveDivision(d);renderDivisionSetup();renderDivisions();renderReg();scheduleAutoSave('Division removed');
 }
 export function ksmRestoreStandardDivisions(){
   if(isReadOnlySession())return;
-  state.hiddenPresets=[];renderDivisionSetup();scheduleAutoSave('Standard divisions restored');
+  ksmRestorePresets();renderDivisionSetup();scheduleAutoSave('Standard divisions restored');
 }
 
 // If the React module (app/react/main.tsx, a module script after app.js) did not run, say so in

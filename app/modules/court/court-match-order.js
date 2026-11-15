@@ -1,5 +1,6 @@
 // @ts-check
 import {ksmEmptyScore,ksmSetCurrentCourt,ksmSetPoolViewDivision,ksmSetPublicCourt,ksmSetScore,ksmShowDivision,ksmShowMatch,state} from '../app-state.js';
+import {ksmDefaultDivisionCourts} from '../setup/divisions-store.js';
 import {loadScoreFromMatch} from './court-scoring-and-history.js';
 import {renderScore} from './scorekeeper-screen.js';
 import {championshipLabels,firstRoundName,roundSequenceFromFirst} from '../engine/engine-championship.js';
@@ -132,7 +133,7 @@ export function initCourtStates(){
   ['A','B'].forEach(c=>{state.courtState[c]=findNextForCourt(c,null,0);state.courtActiveDivision[c]=state.courtState[c].division;});
 }
 export function renderDivisions(){
-  state.divisions.forEach(d=>state.divisionCourts[d]=state.divisionCourts[d]||'A');
+  ksmDefaultDivisionCourts(state.divisions);// each division without a court gets 'A' (one action, none when all have one)
   if(window.poolDiv){let all=[...new Set([...state.divisions,...ksmTeamDivisions().filter(d=>state.allMatches?.[d.id]).map(d=>d.id),...Object.keys(state.allMatches||{})])];let selected=(poolDiv.value&&all.includes(poolDiv.value))?poolDiv.value:((state.poolViewDivision&&all.includes(state.poolViewDivision))?state.poolViewDivision:state.currentDivision);ksmSetPoolViewDivision(selected);poolDiv.innerHTML=all.map(d=>`<option ${d===selected?'selected':''}${ksmDivisionName(d)!==d?` value="${esc(d)}"`:''}>${esc(ksmDivisionName(d))}</option>`).join('');if(selected)poolDiv.value=selected;}
   if(window.scoreDiv){
     let court=state.currentCourt||'A';

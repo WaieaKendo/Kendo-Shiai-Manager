@@ -47,7 +47,9 @@ test('the Setup fields: the snapshot order, the page\'s defaults and select opti
   const before = fs.readFileSync(path.join(ROOT, 'tests/store/fixtures/setup-snapshot-ids-before.json'), 'utf8');
   assert.deepEqual(JSON.parse(before), [...SETUP_KEYS]);
   const s = createKsmStore();
-  assert.deepEqual(s.getState().tournament, { sliceVersion: TOURNAMENT_SLICE_VERSION, settings: initialSettings });
+  // Since PR 9 the slice also holds the division lists (tests/store/divisions.test.mjs).
+  const { divisions, divisionTypes, divisionCourts, ...rest } = s.getState().tournament;
+  assert.deepEqual(rest, { sliceVersion: TOURNAMENT_SLICE_VERSION, settings: initialSettings });
 });
 
 test('settingsLoaded: a full object sets every field, a partial one only the fields it names, an empty one none', () => {

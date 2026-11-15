@@ -7,7 +7,7 @@ import {ensureCourtHistory,updateUndoButton} from '../court/court-scoring-and-hi
 import {syncIndividualSingleElim} from '../court/split-court-templates.js';
 import {syncChampionshipTemplate} from '../engine/engine-championship.js';
 import {matchBelongsToCourt} from '../engine/engine-generation.js';
-import {eligibleIndividuals,isTeamDivision} from '../engine/engine-pools.js';
+import {eligibleIndividuals} from '../engine/engine-pools.js';
 import {repairCompletedMatchResults} from '../engine/engine-result-integrity.js';
 import {ksmAddDaihyosenForTeamAwards,normalizeAllIndividualPoolTiebreakOrder} from '../engine/engine-standings-and-tiebreaks.js';
 import {esc} from '../html-text.js';
@@ -711,8 +711,12 @@ export function applyTournamentPayload(payload,saveAfter,options={}){
   // result as running them on `state` after the assign (tests/store/load-order.test.mjs).
   sanitizeLoadedTournamentState(loaded,options.source||'tournament load');
   normalizeAllIndividualPoolTiebreakOrder(loaded,options.source||'tournament load');
+  // divisionCourts as the load keeps it ({} when missing; an individual division's 4.0 'Both' is 'split'): on the loaded
+  // copy, before replaceState(), now that the courts are the store's (#15 PR 9; was a loop on the live state after it,
+  // reading only what the copy holds: KSMEngine.loadedDivisionCourts()).
+  loaded.divisionCourts=KSMEngine.loadedDivisionCourts(loaded);
   replaceState(loaded);
-  state.teamElimTeams=state.teamElimTeams||{};state.managementRevision=state.managementRevision||0;state.divisionCourts=state.divisionCourts||{};Object.keys(state.divisionCourts).forEach(d=>{if(state.divisionCourts[d]==='Both'&&!isTeamDivision(d))state.divisionCourts[d]='split'});
+  state.teamElimTeams=state.teamElimTeams||{};state.managementRevision=state.managementRevision||0;
   if(localCourt){pinCourtLocally(localCourt);ksmSetCurrentCourt(normalizeCourt(localCourt))}else ksmSetCurrentCourt('A');
   if(isTvSession())ksmSetPublicCourt(normalizeCourt(localCourt||localPublicCourt));else ksmSetPublicCourt(normalizeCourt(localPublicCourt));
   applySetupSnapshot(payload.setup);

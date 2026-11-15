@@ -4,7 +4,7 @@
 import { combineReducers, configureStore, type Reducer, type UnknownAction } from '@reduxjs/toolkit';
 import { applyStoreWrites, legacyFieldAssigned, legacyStateAssigned, legacyStateReplaced } from './legacy.ts';
 import { deviceSlice } from './slices/device.ts';
-import { tournamentSlice } from './slices/tournament.ts';
+import { tournamentSlice, withTeamCourt } from './slices/tournament.ts';
 
 const slicesReducer = combineReducers({
   tournament: tournamentSlice.reducer,
@@ -15,13 +15,15 @@ export type RootState = ReturnType<typeof slicesReducer>;
 
 /**
  * The slices, plus the legacy writes (app/store/legacy.ts): replaceState() / assignState() of app/modules/app-state.js
- * and a stray assignment in production put a value at a path, whichever slice it is in.
+ * and a stray assignment in production put a value at a path, whichever slice it is in. Last, the one derived value
+ * the tournament slice keeps in place: `divisionCourts['Team Tournament']` is `settings.teamCourt` (withTeamCourt()).
  */
 export const rootReducer: Reducer<RootState, UnknownAction, Partial<RootState>> = (state, action) => {
-  const next = slicesReducer(state, action);
-  if (legacyFieldAssigned.match(action)) return applyStoreWrites(next, [{ path: action.payload.path, value: action.payload.value }]);
-  if (legacyStateReplaced.match(action) || legacyStateAssigned.match(action)) return applyStoreWrites(next, action.payload.writes);
-  return next;
+  let next = slicesReducer(state, action);
+  if (legacyFieldAssigned.match(action)) next = applyStoreWrites(next, [{ path: action.payload.path, value: action.payload.value }]);
+  else if (legacyStateReplaced.match(action) || legacyStateAssigned.match(action)) next = applyStoreWrites(next, action.payload.writes);
+  const tournament = withTeamCourt(next.tournament);
+  return tournament === next.tournament ? next : { ...next, tournament };
 };
 
 /** Options of createKsmStore(). */

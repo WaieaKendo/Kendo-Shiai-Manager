@@ -206,6 +206,9 @@ window.KSMTest = {
 
     // Tournament data and settings (objects: read, and change their fields)
     get state() { return state; },
+    // The division lists (divisions, divisionTypes, divisionCourts) are store data (#15 PR 9): a test sets them here,
+    // one action; a list it leaves out keeps its value. The team court's entry stays the Setup's (setSetting / teamCourt).
+    setDivisionLists: lists => ksmReplaceDivisions(lists.divisions ?? state.divisions, lists.divisionTypes ?? state.divisionTypes, lists.divisionCourts ?? state.divisionCourts),
     get cloudSession() { return cloudSession; },
     get APPROVED_DYNAMIC_MATCH_TYPES() { return APPROVED_DYNAMIC_MATCH_TYPES; },
     get KSM_MERGE_LABELS() { return KSM_MERGE_LABELS; },
@@ -242,6 +245,14 @@ window.KSMTest = {
     championshipTemplateForTotal: (...a) => championshipTemplateForTotal(...a),
     matchRequiresWinner: (...a) => matchRequiresWinner(...a),
     addCustomDivision: (...a) => addCustomDivision(...a),
+    // Setup's divisions table: what its rows' controls call (#15 PR 9, tests/divisions-store-test.py).
+    ksmRenameSetupDivision: (...a) => ksmRenameSetupDivision(...a),
+    ksmMoveSetupDivision: (...a) => ksmMoveSetupDivision(...a),
+    ksmRemoveSetupDivision: (...a) => ksmRemoveSetupDivision(...a),
+    ksmRestoreStandardDivisions: (...a) => ksmRestoreStandardDivisions(...a),
+    setDivisionFormat: (...a) => setDivisionFormat(...a),
+    setDivisionCourtNow: (...a) => setDivisionCourt(...a),
+    loadFullTournament: (...a) => loadFullTournament(...a),
     appendApprovedDynamicMatches: (...a) => appendApprovedDynamicMatches(...a),
     applyIndividualNoShow: (...a) => applyIndividualNoShow(...a),
     applyRemoteCloudRecord: (...a) => applyRemoteCloudRecord(...a),
@@ -393,7 +404,8 @@ window.KSMTest = {
   // New registrations (after generation they go to a team division without a draw) and the Regenerate dialog.
   addTeams(rows) { state.teams.push(...ksmNewTeamRows(rows)); renderTeams(); return state.teams.slice(-rows.length).map(t => t.teamDivisionId); },
   addIndividualDivision(name, format, court, entrants) {
-    state.divisions.push(name); state.divisionTypes[name] = format; state.divisionCourts[name] = court;
+    // The division lists are the store's (#15 PR 9): set through the app's action, as its own code does.
+    ksmReplaceDivisions([...state.divisions, name], {...state.divisionTypes, [name]: format}, {...state.divisionCourts, [name]: court});
     state.competitors.push(...entrants.map(e => ({...e, division: name}))); renderDivisionSetup(); renderDivisions();
   },
   openRegenerate() { openRegenerateDivisionDialog(); },
@@ -405,9 +417,7 @@ window.KSMTest = {
   grandChampionQuestion() { const c = ksmShellDialogs?.cloud; return c?.body?.kind === 'grand-champion' ? {title: c.title, message: c.body.message, choices: c.body.choices.map(x => x.id)} : null; },
   configure(entries) {
     const divs = entries.filter(d => !d.team), team = entries.find(d => d.team);
-    state.divisions = divs.map(d => d.name);
-    state.divisionTypes = Object.fromEntries(divs.map(d => [d.name, d.format]));
-    state.divisionCourts = Object.fromEntries(divs.map(d => [d.name, d.court]));
+    ksmReplaceDivisions(divs.map(d => d.name), Object.fromEntries(divs.map(d => [d.name, d.format])), Object.fromEntries(divs.map(d => [d.name, d.court])));
     state.competitors = divs.flatMap(d => d.entrants.map(e => ({...e, division: d.name})));
     state.teams = []; state.exhibitions = [];
     // The Setup fields are the store's (tournament.settings, #15 PR 8): set through the app, as its own code does.

@@ -17,7 +17,7 @@ with sync_playwright() as p:
       for n in range(4,33):
         result=page.evaluate("""({n,split})=>{
           const div='Sim';
-          KSMTest.app.state.divisions=[div];KSMTest.app.state.divisionTypes={[div]:'Single Elimination'};KSMTest.app.state.divisionCourts={[div]:split?'split':'A'};
+          KSMTest.app.setDivisionLists({divisions:[div],divisionTypes:{[div]:'Single Elimination'},divisionCourts:{[div]:split?'split':'A'}});
           KSMTest.app.state.competitors=Array.from({length:n},(_,i)=>({name:'P'+(i+1),dojo:'D'+i,division:div,seed:i<4?String(i+1):'',status:'Checked'}));
           KSMTest.app.state.pools={};KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={};KSMTest.app.state.singleElimComps={};KSMTest.app.state.teamBracketNodes={};KSMTest.app.state.teamPools={};KSMTest.app.state.brackets={};KSMTest.app.state.byeWinners={};KSMTest.app.state.currentByDivision={};
           KSMTest.app.generateDivisionState(div);
@@ -59,7 +59,7 @@ with sync_playwright() as p:
     # A fully tied three-person series creates another complete three-person series.
     tb=page.evaluate("""()=>{
       const div='Tie';
-      KSMTest.app.state.divisionCourts={[div]:'A'};
+      KSMTest.app.setDivisionLists({divisionCourts:{[div]:'A'}});
       KSMTest.app.state.pools={[div]:[{label:'A',players:[{name:'A',dojo:'D'},{name:'B',dojo:'D'},{name:'C',dojo:'D'}]}]};
       KSMTest.app.state.brackets={[div]:[['A1','B2'],['B1','A2']]};
       KSMTest.app.state.allMatches={[div]:[
@@ -82,7 +82,7 @@ with sync_playwright() as p:
     # Four-person series allows ties and can repeat when all required seeds remain unresolved.
     four=page.evaluate("""()=>{
       const div='Four';
-      KSMTest.app.state.divisionCourts={[div]:'A'};KSMTest.app.state.allMatches={[div]:[]};
+      KSMTest.app.setDivisionLists({divisionCourts:{[div]:'A'}});KSMTest.app.state.allMatches={[div]:[]};
       const players=['A','B','C','D'].map(name=>({name,dojo:'D',wins:0,pts:0}));
       const one=KSMTest.app.tiebreakMatchesForGroup(div,'A',players);KSMTest.app.state.allMatches[div].push(...one);
       one.forEach(m=>{m.done=true;m.wp=[];m.rp=[];});

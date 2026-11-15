@@ -17,12 +17,15 @@
 // Pure: every function returns new values and never changes its inputs.
 import { TEAM_DIVISION, EXHIBITION_DIVISION } from './generation.ts';
 import { renameGrandChampionSources, type GrandChampion } from './grand-champion.ts';
+import { renamedDivisionRecords, type DivisionRename } from './division-lists.ts';
+
+export {
+  DIVISION_PRESETS, TEAM_COURT_KEY, addedDivision, defaultedDivisionCourts, movedDivision, removedDivision, renamedDivisionRecords, withDivisionCourts,
+} from './division-lists.ts';
+export type { DivisionListsState, DivisionRecords, DivisionRename } from './division-lists.ts';
 
 export const RENAME_AFTER_DRAW_MESSAGE = "Divisions can't be renamed after the draw; rename-anytime comes with stable IDs.";
 export const RENAME_EMPTY_MESSAGE = "A division name can't be empty.";
-
-/** One rename, as recorded in state.divisionRenames. */
-export interface DivisionRename { id: string; from: string; to: string }
 
 /** The parts of the tournament state a rename reads and rewrites (the rest is passed through). */
 export interface RenameState {
@@ -52,6 +55,40 @@ function hasValue(v: unknown): boolean {
   if (Array.isArray(v)) return v.length > 0;
   if (typeof v === 'object') return Object.keys(v).length > 0;
   return true;
+}
+
+/**
+ * Why `name` (trimmed) cannot be added as an individual division, or null (#15 PR 9, the #185 review's L1). The team
+ * event's and the exhibition matches' names are refused, as a rename to them is: 'Team Tournament' is also the legacy
+ * team division's key, whose `divisionCourts` entry is the Setup's team court, so a division of that name would write
+ * the team court; 'Exhibition Matches' is the exhibitions' draw. A name already in use is not an error here (adding it
+ * again changes nothing, as before).
+ */
+export function divisionAddError(name: string): string | null {
+  const n = String(name ?? '').trim();
+  if (!n) return RENAME_EMPTY_MESSAGE;
+  if (fold(n) === fold(TEAM_DIVISION)) return `"${n}" is the team event's name; choose another name.`;
+  if (fold(n) === fold(EXHIBITION_DIVISION)) return `"${n}" is the exhibition matches' name; choose another name.`;
+  return null;
+}
+
+/** The parts of a loaded state the load's court normalisation reads. */
+export interface DivisionCourtsState {
+  divisionCourts?: Record<string, string> | null | undefined;
+  divisionTypes?: Record<string, string> | null | undefined;
+  teamDivisions?: readonly { id: string }[] | null | undefined;
+}
+
+/**
+ * A loaded state's `divisionCourts` as the load keeps it: `{}` when missing, and an individual division's 'Both' (a 4.0
+ * value) as 'split'. A team division (a `teamDivisions` id, the team event, a team / kachinuki format) keeps 'Both'.
+ * The same object when nothing changes. (Was a loop on the live state after the load; it reads only the loaded copy.)
+ */
+export function loadedDivisionCourts(st: DivisionCourtsState): Record<string, string> {
+  const courts = st.divisionCourts && typeof st.divisionCourts === 'object' ? st.divisionCourts : {};
+  const team = (d: string) => (st.teamDivisions || []).some(t => t?.id === d) || d === TEAM_DIVISION || /team|kachinuki/i.test(st.divisionTypes?.[d] || '');
+  if (!Object.keys(courts).some(d => courts[d] === 'Both' && !team(d))) return courts;
+  return Object.fromEntries(Object.entries(courts).map(([d, c]) => [d, c === 'Both' && !team(d) ? 'split' : c]));
 }
 
 /** True when the draw was made: the tournament generated, or `division` (if given) has pools/matches. */
@@ -109,17 +146,6 @@ export function divisionRenameError(st: RenameState, presets: readonly string[],
   return null;
 }
 
-function renameKey<T>(record: Record<string, T> | undefined, from: string, to: string): Record<string, T> | undefined {
-  if (!record || !Object.hasOwn(record, from)) return record;
-  // Rebuilt in key order, so the renamed key keeps its place (a stable JSON for the three-way merge).
-  const out: Record<string, T> = {};
-  for (const [k, v] of Object.entries(record)) {
-    if (k === from) { if (!Object.hasOwn(out, to) && !Object.hasOwn(record, to)) out[to] = v; }
-    else out[k] = v;
-  }
-  return out;
-}
-
 /**
  * The state parts a rename rewrites, renamed (assign them over the state): `from` becomes `to`
  * everywhere it is used, in place. When `to` already exists (two devices' divisions meeting in a
@@ -127,14 +153,8 @@ function renameKey<T>(record: Record<string, T> | undefined, from: string, to: s
  * `record` adds the rename to divisionRenames.
  */
 export function renamedDivisionState(st: RenameState, from: string, to: string, record?: DivisionRename): Partial<RenameState> {
-  const out: Partial<RenameState> = {};
-  if (from === to) return record ? { divisionRenames: [...(st.divisionRenames || []), record] } : out;
-  if (st.divisions) {
-    const seen = new Set<string>();
-    out.divisions = st.divisions.map(d => (d === from ? to : d)).filter(d => (seen.has(d) ? false : (seen.add(d), true)));
-  }
-  if (st.divisionTypes) out.divisionTypes = renameKey(st.divisionTypes, from, to);
-  if (st.divisionCourts) out.divisionCourts = renameKey(st.divisionCourts, from, to);
+  if (from === to) return record ? { divisionRenames: [...(st.divisionRenames || []), record] } : {};
+  const out: Partial<RenameState> = { ...renamedDivisionRecords(st, from, to) };
   if (st.competitors) out.competitors = st.competitors.map(c => (c && c.division === from ? { ...c, division: to } : c));
   if (st.grandChampions) out.grandChampions = renameGrandChampionSources(st.grandChampions, from, to);
   if (st.currentDivision === from) out.currentDivision = to;
