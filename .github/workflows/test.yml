@@ -39,6 +39,7 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
         run: |
           git fetch -q --depth=1 origin "refs/heads/$BASE_REF"
+          if ! git cat-file -e FETCH_HEAD:package.json 2>/dev/null; then echo "$BASE_REF has no package.json: no version rule to check"; exit 0; fi
           base_version=$(git show FETCH_HEAD:package.json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).version||""))')
           head_version=$(node -p 'require("./package.json").version')
           node scripts/version-rules.mjs "$BASE_REF" "$base_version" "$head_version"

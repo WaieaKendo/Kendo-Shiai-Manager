@@ -148,7 +148,7 @@ Shortcuts, so nobody types a version by hand (rules in `scripts/version-rules.mj
 - `npm run release -- rc` (X.Y.Z-rc.N → X.Y.Z-rc.(N+1)): every PR into `develop` during its rc phase, one bump per PR.
 - `npm run release -- final` (X.Y.Z-rc.N → X.Y.Z): the approved release, in a PR into `develop`, before `develop` → `main`.
 
-`main` is production and never carries a pre-release version: the required `test` check includes a `version rules` job that fails a PR into `main` whose version has a suffix or is not newer than `main`'s, and a PR into an rc-phase `develop` that does not take the next rc number (or the final version). Docs-only PRs skip the test workflow, so they are not checked. `engineVersion` (`3.12.9`) is separate and frozen: it marks the saved data format.
+`main` is production and never carries a pre-release version: the required `test` check includes a `version rules` job that fails a PR into `main` whose version has a suffix or is not newer than `main`'s, and a PR into an rc-phase `develop` that does not take the next rc number (or the final version). PRs that change only `docs/` or `.md` files skip the test workflow, so CI does not check their version; `AGENTS.md` still asks for the bump. `engineVersion` (`3.12.9`) is separate and frozen: it marks the saved data format.
 
 ## Renaming production
 

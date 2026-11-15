@@ -37,4 +37,5 @@ The version is written only in `package.json` (and `package-lock.json`). Change 
 CI enforces this: the `version rules` job in `.github/workflows/test.yml`
 (`scripts/version-rules.mjs`) fails a PR into `main` that has a pre-release version or is not
 newer than `main`, and a PR into `develop` in its rc phase that does not move rc.N to rc.N+1 (or to
-the final version). It is part of the required `test` check.
+the final version). It is part of the required `test` check. PRs that change only `docs/` or `.md`
+files skip that workflow, so CI cannot catch a missing bump there: bump anyway.
