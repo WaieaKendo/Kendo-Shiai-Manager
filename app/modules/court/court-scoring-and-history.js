@@ -87,14 +87,14 @@ export function performCourtAction(label,fn){
   }
   updateUndoButton();if(typeof ksmNotifyStateChanged==='function')ksmNotifyStateChanged('court action');return result;
 }
-function historyPathParent(path){
-  let target=state;
+function historyPathParent(path,root=state){
+  let target=root;
   for(let i=0;i<path.length-1;i++){
     const key=path[i],next=path[i+1];
     if(target[key]===undefined||target[key]===null){
       const empty=typeof next==='number'?[]:{};
       // A store-owned top-level key is a getter: never assign it directly (docs/STORE.md section 2 point 8).
-      if(i===0&&storeFieldPath(String(key),state))assignState({[key]:empty},state);else target[key]=empty;
+      if(i===0&&root===state&&storeFieldPath(String(key),state))assignState({[key]:empty},state);else target[key]=empty;
     }
     target=target[key];
   }
@@ -110,20 +110,26 @@ function historyPathParent(path){
  *     matches and current from courtState and reloads score from the match (as it already overwrote them before);
  *     `matches` is the alias of allMatches.<currentDivision>, so its patches repeat the same entry's allMatches patches.
  *   - A top-level patch on a key moveToStore() owns goes through the store (assignState(), undefined for a missing
- *     value) instead of `delete state[key]` / an assignment, which throw on its non-configurable getter.
+ *     value) instead of `delete state[key]` / an assignment, which throw on its non-configurable getter; a deeper one
+ *     is written into a copy of the key, which goes through assignState() too (#15 PR 9).
  */
 function applyHistoryPatch(patch,direction){
   const value=patch?.[direction],path=patch?.path||[];
   if(!path.length||KSM_LOCAL_VIEW_STATE_KEYS.has(path[0]))return;
   const missing=value&&value.__ksmMissing===true;
   if(path.length===1&&storeFieldPath(String(path[0]),state)){assignState({[path[0]]:missing?undefined:JSON.parse(JSON.stringify(value))},state);return}
-  const {target,key}=historyPathParent(path);
+  // A deeper path into a store-owned key (#15 PR 9: e.g. ['divisionCourts', d], recorded when a court action's render gave
+  // a division its default court) is written into a copy of that key, which goes back through assignState(): the store's
+  // value is frozen data. Same result as the old in-place write.
+  const owned=storeFieldPath(String(path[0]),state)?{[path[0]]:JSON.parse(JSON.stringify(state[path[0]]??null))}:null;
+  const {target,key}=historyPathParent(path,owned?/** @type {any} */ (owned):state);
   if(Array.isArray(target)&&typeof key==='number'){
     if(missing){if(key>=0&&key<target.length)target.splice(key,1)}
     else if(key>=target.length)target.splice(key,0,JSON.parse(JSON.stringify(value)));
     else target[key]=JSON.parse(JSON.stringify(value));
   }else if(missing)delete target[key];
   else target[key]=JSON.parse(JSON.stringify(value));
+  if(owned)assignState(owned,state);
 }
 function applyHistoryValues(action,direction){
   if(action?.format==='patch-v1'&&Array.isArray(action.patches)){

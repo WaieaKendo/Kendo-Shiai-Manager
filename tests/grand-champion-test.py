@@ -365,8 +365,8 @@ def merge_cases(browser, base):
     assert b.conflicts() >= 3, b.conflicts()
 
     # PR review: two devices withdraw different winners at once: both stand-ins are kept.
-    a.page.evaluate('''entries=>{const st=KSMTest.app.state;st.generated=false;st.divisions.push('Masters');st.divisionTypes.Masters='Single Elimination';
-      st.divisionCourts.Masters='A';st.competitors.push(...entries.map(e=>({...e,division:'Masters'})));}''', DIVISIONS[2]['entrants'])
+    a.page.evaluate('''entries=>{const st=KSMTest.app.state;st.generated=false;KSMTest.app.setDivisionLists({divisions:[...st.divisions,'Masters'],divisionTypes:{...st.divisionTypes,Masters:'Single Elimination'},
+      divisionCourts:{...st.divisionCourts,Masters:'A'}});st.competitors.push(...entries.map(e=>({...e,division:'Masters'})));}''', DIVISIONS[2]['entrants'])
     both = a.page.evaluate("KSMTest.addGrandChampion(['Open','Women'],{court:'B',name:'Both out'})")
     tie = a.page.evaluate("KSMTest.addGrandChampion(['Open','Women','Masters'],{court:'B',name:'Tie Pool',format:'Round Robin'})")
     a.page.evaluate('KSMTest.app.generatePools({validated:true})')

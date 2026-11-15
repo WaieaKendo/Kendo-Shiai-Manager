@@ -16,7 +16,7 @@ with sync_playwright() as p:
 
     # Split pools must use the existing tiebreak algorithm; routing only adds the pool court.
     page.evaluate("""
-      KSMTest.app.state.divisions=['Test'];KSMTest.app.state.divisionTypes={Test:'Round Robin'};KSMTest.app.state.divisionCourts={Test:'split'};
+      KSMTest.app.setDivisionLists({divisions:['Test'],divisionTypes:{Test:'Round Robin'},divisionCourts:{Test:'split'}});
       KSMTest.app.state.pools={Test:[
         {label:'A',size:3,players:[{name:'A1',dojo:'D'},{name:'A2',dojo:'D'},{name:'A3',dojo:'D'}]},
         {label:'B',size:3,players:[{name:'B1',dojo:'D'},{name:'B2',dojo:'D'},{name:'B3',dojo:'D'}]},
@@ -49,7 +49,7 @@ with sync_playwright() as p:
 
     # Split direct elimination restores Court Queue and filters it to the active court.
     page.evaluate("""
-      KSMTest.app.state.divisionTypes.Test='Single Elimination';KSMTest.app.state.divisionCourts.Test='split';
+      KSMTest.app.setDivisionLists({divisionTypes:{...KSMTest.app.state.divisionTypes,Test:'Single Elimination'}});KSMTest.app.setDivisionLists({divisionCourts:{...KSMTest.app.state.divisionCourts,Test:'split'}});
       KSMTest.app.state.competitors=Array.from({length:8},(_,i)=>({name:'E'+(i+1),dojo:'D',division:'Test',seed:'',status:'Checked'}));
       KSMTest.app.state.pools={};KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={};KSMTest.app.state.singleElimComps={};KSMTest.app.state.currentByDivision={};
       KSMTest.app.generateDivisionState('Test');KSMTest.app.showDivision('Test');KSMTest.app.setCurrentCourt('A');
@@ -69,12 +69,12 @@ with sync_playwright() as p:
     assert all(name not in queue_b for name in court_a_names), (queue_b,court_a_names)
 
     # Single-court direct elimination retains its existing no-queue presentation.
-    page.evaluate("KSMTest.app.state.divisionCourts.Test='A';KSMTest.app.setCurrentCourt('A');KSMTest.app.setCourtSupportMode('singleElim')")
+    page.evaluate("KSMTest.app.setDivisionLists({divisionCourts:{...KSMTest.app.state.divisionCourts,Test:'A'}});KSMTest.app.setCurrentCourt('A');KSMTest.app.setCourtSupportMode('singleElim')")
     assert page.locator('#score .sk-queue-card').evaluate("el=>el.classList.contains('hidden')")
 
     # Pool championship placeholder queues are court-specific before Match Objects resolve.
     page.evaluate("""
-      KSMTest.app.state.divisionTypes.Test='Round Robin';KSMTest.app.state.divisionCourts.Test='split';
+      KSMTest.app.setDivisionLists({divisionTypes:{...KSMTest.app.state.divisionTypes,Test:'Round Robin'}});KSMTest.app.setDivisionLists({divisionCourts:{...KSMTest.app.state.divisionCourts,Test:'split'}});
       KSMTest.app.state.pools={Test:[
         {label:'A',size:4,players:[{name:'A1',dojo:'D'},{name:'A2',dojo:'D'},{name:'A3',dojo:'D'},{name:'A4',dojo:'D'}]},
         {label:'B',size:4,players:[{name:'B1',dojo:'D'},{name:'B2',dojo:'D'},{name:'B3',dojo:'D'},{name:'B4',dojo:'D'}]}
@@ -94,7 +94,7 @@ with sync_playwright() as p:
 
     # Repeated advancement resolution creates exactly one logical Final.
     page.evaluate("""
-      KSMTest.app.state.divisionCourts.Test='split';KSMTest.app.state.brackets={Test:[['A1','B2'],['B1','A2']]};KSMTest.app.state.championshipNodes={};KSMTest.app.state.byeWinners={Test:[]};
+      KSMTest.app.setDivisionLists({divisionCourts:{...KSMTest.app.state.divisionCourts,Test:'split'}});KSMTest.app.state.brackets={Test:[['A1','B2'],['B1','A2']]};KSMTest.app.state.championshipNodes={};KSMTest.app.state.byeWinners={Test:[]};
       KSMTest.app.state.allMatches={Test:KSMTest.app.buildChampionshipTemplateMatches('Test',KSMTest.app.state.brackets.Test)};
       const semis=KSMTest.app.state.allMatches.Test.filter(m=>m.position==='Semifinal');
       semis[0].white='W1';semis[0].red='R1';semis[0].wdojo='D';semis[0].rdojo='D';semis[0].done=true;semis[0].wp=['M'];semis[0].rp=[];

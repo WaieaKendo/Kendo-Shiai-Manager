@@ -17,7 +17,7 @@ def main():
         a.wait_for(lambda: 'Switch A' in page.locator(sel('tournament-chip')).inner_text(), message='A chip')
         page.locator(sel('setup-tournament-name')).fill('Switch A Renamed')
         a.wait_for(lambda: 'Switch A Renamed' in page.locator(sel('tournament-chip')).inner_text(), message='chip follows name editing')
-        page.evaluate("KSMTest.app.state.divisions=['Only A'];KSMTest.app.state.competitors=[{name:'A only'}];KSMTest.app.pinCourtLocally('B');KSMTest.app.criticalAutoSave('A fixture')")
+        page.evaluate("KSMTest.app.setDivisionLists({divisions:['Only A']});KSMTest.app.state.competitors=[{name:'A only'}];KSMTest.app.pinCourtLocally('B');KSMTest.app.criticalAutoSave('A fixture')")
         a.wait_idle()
         page.evaluate("(id)=>localStorage.setItem('ksm:match-timer:'+JSON.stringify([id,'B','fixture']),JSON.stringify({runningSince:Date.now()}))",aid)
         page.locator('.nav-brand').click()
@@ -66,7 +66,7 @@ def main():
         a.wait_for(lambda: a.visible_view() == ['home'], message='saved exit')
         a.answers['Tournament Name'] = 'Deleted Cup'
         deleted = a.create_tournament();a.wait_idle()
-        page.evaluate("KSMTest.app.state.divisions=['Deleted division'];KSMTest.app.criticalAutoSave('Deleted fixture')")
+        page.evaluate("KSMTest.app.setDivisionLists({divisions:['Deleted division']});KSMTest.app.criticalAutoSave('Deleted fixture')")
         a.wait_idle()
         a.delete_tournament('Deleted Cup')
         assert page.evaluate("!KSMTest.app.state.divisions.includes('Deleted division') && !KSMTest.app.state.competitors.length && !KSMTest.app.v316StaffPassword()")

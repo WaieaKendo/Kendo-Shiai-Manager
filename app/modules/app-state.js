@@ -5,12 +5,12 @@
 // Each key of `state` is either a plain property or, once its group has moved, a store getter (moveToStore()); every
 // write that replaces or assigns several keys at once goes through replaceState() / assignState() (STORE.md section 2).
 import {deviceSlice,dispatch,getState,legacyFieldAssigned,legacyStateAssigned,legacyStateReplaced,storeIsStrict} from '../store/index.ts';
+import * as KSMEngine from '../engine/index.ts';
 /** @typedef {string[]|(()=>string[])} StorePath a store path, or (for state.score) one that depends on this device's court */
-/** @type {[string, string, CourtMode][]} */
-export const DIVISION_PRESETS=[['Yonenbu (11 years and under)','Round Robin','A'],['Shonenbu (12–14 years old)','Round Robin','A'],['Seinenbu (15+ years without dan)','Round Robin','A'],['Women’s Open','Round Robin','B'],['Yudansha 1–3 Dan','Round Robin','A'],['Yudansha 4 Dan+','Round Robin','B'],['Masters Open (50+ years old)','Round Robin','B']];
+/** The standard divisions (name, format, court): app/engine/division-lists.ts, which the store's initial lists use too. */
+export const DIVISION_PRESETS=/** @type {[string, string, CourtMode][]} */ (/** @type {unknown} */ (KSMEngine.DIVISION_PRESETS));
 /** @type {TournamentState} */
 export const state={brackets:{},championshipNodes:{},teamBracketState:{},teamBracketNodes:{},singleElimNodes:{},divisions:DIVISION_PRESETS.map(x=>x[0]),divisionTypes:{},divisionCourts:{},competitors:[],teams:[],exhibitions:[],awards:[],pools:{},teamPools:{},allMatches:{},currentByDivision:{},courtState:{A:{division:null,index:0},B:{division:null,index:0}},matches:[],current:0,score:{W:[],R:[],WT:0,RT:0},history:[],currentDivision:'Women’s Open',poolViewDivision:'Women’s Open',currentCourt:'A',publicCourt:'A',courtActiveDivision:{A:null,B:null},regMode:'individual',contextMode:'pool',teamAwardMode:'top2',generated:false,teamElimTeams:{},managementRevision:0,courtActionHistory:{A:[],B:[]},courtRedoHistory:{A:[],B:[]}};
-DIVISION_PRESETS.forEach(([d,f,c])=>{state.divisionTypes[d]=f;state.divisionCourts[d]=c});state.divisionCourts['Team Tournament']='Both';// = settings.teamCourt's default; from here on ksmSetTeamCourt() writes it
 
 /** @typedef {{field:string,path:string,stack:string}} StrayStoreWrite */
 // For each object (the app's `state`, or a test's own), the keys moveToStore() made store getters -> their store path.
@@ -108,6 +108,16 @@ moveToStore('score',()=>['device','activeScore',state.currentCourt||'A']);
 // it, so the snapshot still carries the top-level copy 4.0 devices read (same value). Written through ksmSetSetting()
 // (tournament/settingChanged) or the Setup input; a load sets it in applySetupSnapshot() (replaceState() skips it, below).
 moveToStore('teamAwardMode',['tournament','settings','teamAwardMode']);
+// The divisions (PR 9, docs/STORE.md section 3 item 9): the `tournament` slice holds the five lists (its initial value
+// is the standard divisions, as the literal above had them), written only through app/modules/setup/divisions-store.js
+// (one tournament/division… action each) or a load's replaceState(). `divisionCourts['Team Tournament']` is the Setup's
+// team court (the store keeps it equal to settings.teamCourt). `hiddenPresets` and `divisionRenames` are absent (undefined,
+// so not in the snapshot) until set, as before.
+moveToStore('divisions',['tournament','divisions']);
+moveToStore('divisionTypes',['tournament','divisionTypes']);
+moveToStore('divisionCourts',['tournament','divisionCourts']);
+moveToStore('hiddenPresets',['tournament','hiddenPresets']);
+moveToStore('divisionRenames',['tournament','divisionRenames']);
 /** Whether a store path is a Setup field: a load applies those through applySetupSnapshot(), with the Setup's precedence. */
 const isSettingsPath=(/** @type {string[]} */ p)=>p[0]==='tournament'&&p[1]==='settings';
 /** A tournament closed (ksmResetTournament()): the shown match is the first and every court's pad is empty. */

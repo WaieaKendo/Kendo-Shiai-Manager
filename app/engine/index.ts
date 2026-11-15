@@ -79,8 +79,10 @@ export type { Route, RouteCourt, ResolvedUrl } from './routes.ts';
 export {
   RENAME_AFTER_DRAW_MESSAGE, RENAME_EMPTY_MESSAGE, DIVISION_STRUCTURE_KEYS, drawMade, presetNames, divisionNamesInUse, isDivision,
   divisionRenameError, renamedDivisionState, rebaseDivisionRenames, orphanedDivisionStructure, withoutDivisionStructure,
+  DIVISION_PRESETS, divisionAddError, loadedDivisionCourts, TEAM_COURT_KEY, addedDivision, defaultedDivisionCourts, movedDivision,
+  removedDivision, withDivisionCourts,
 } from './divisions.ts';
-export type { DivisionRename, RenameState, RefusedRename, RenameRebase } from './divisions.ts';
+export type { DivisionRename, DivisionCourtsState, DivisionListsState, RenameState, RefusedRename, RenameRebase } from './divisions.ts';
 
 export { isValidSlug, suggestSlug, RESERVED_SLUGS } from './routes.ts';
 

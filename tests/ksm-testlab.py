@@ -58,9 +58,9 @@ def reset_individual(page, n: int, fmt: str, court: str, division: str = "Test")
     page.evaluate(
         """({n,fmt,court,division})=>{
           KSMTest.app.state.generated=false;
-          KSMTest.app.state.divisions=[division];
-          KSMTest.app.state.divisionTypes={[division]:fmt};
-          KSMTest.app.state.divisionCourts={[division]:court};
+          KSMTest.app.setDivisionLists({divisions:[division]});
+          KSMTest.app.setDivisionLists({divisionTypes:{[division]:fmt}});
+          KSMTest.app.setDivisionLists({divisionCourts:{[division]:court}});
           KSMTest.app.state.competitors=Array.from({length:n},(_,i)=>({
             name:`P${i+1}`,dojo:`D${i+1}`,division,seed:i<4?String(i+1):'',status:'Checked'
           }));

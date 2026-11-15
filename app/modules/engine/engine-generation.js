@@ -1,5 +1,6 @@
 // Generation, the no-show rebuilds, the court helpers and the Pools view entry (step 4a of #136; was app/js/08-engine-generation.js).
 import {ksmSetPoolViewDivision,ksmShowDivision,ksmShowMatch,state} from '../app-state.js';
+import {ksmSetDivisionCourt} from '../setup/divisions-store.js';
 import {renderAll} from '../court/court-context-and-pool-editing.js';
 import {individualMatchReady,initCourtStates,isCourtScorekeeper,isTeamMatch,renderDivisions,sortIndividualDivisionMatches,setCourtPointer,sortTeamMatches} from '../court/court-match-order.js';
 import {loadScoreFromMatch} from '../court/court-scoring-and-history.js';
@@ -16,7 +17,7 @@ import {ksmRenderPools} from '../react-bridges/pools.js';
 import {ksmRegenerateDone} from '../react-bridges/shell.js';
 import {ksmGrandChampion,ksmGrandChampionCompetitors} from '../registration/grand-champion.js';
 import {closeManagementModal,divisionRegenerationStatus,structuralNoShowAllowed} from '../registration/registration.js';
-import {ksmSetTeamCourt,ksmTeamDivision,ksmTeamDivisions,ksmTeamSettings} from '../registration/team-divisions.js';
+import {ksmTeamDivision,ksmTeamDivisions,ksmTeamSettings} from '../registration/team-divisions.js';
 import {requestTournamentGeneration,showValidationDialog,validateTournament} from '../registration/validation.js';
 import {renderResultsDashboard} from '../results/results-screen.js';
 import {isReadOnlySession} from '../session/staff-session-and-library.js';
@@ -35,10 +36,10 @@ export function generateDivisionState(div){
     if(plan.teamBracketNodes){state.teamBracketNodes=state.teamBracketNodes||{};state.teamBracketNodes[div]=plan.teamBracketNodes;syncTeamBracket(div,m,state.teamElimTeams[div]);}
     state.allMatches[div]=m;state.currentByDivision[div]=0;
     // The legacy team division's court is the Setup's team court too (#15 PR 8b).
-    if(div===KSMEngine.LEGACY_TEAM_DIVISION_ID)ksmSetTeamCourt(plan.divisionCourt);else state.divisionCourts[div]=plan.divisionCourt;return true;
+    ksmSetDivisionCourt(div,plan.divisionCourt);return true;// the legacy team division's is the Setup's team court (ksmSetTeamCourt())
   }
   if(plan.kind==='exhibition'){
-    state.pools[div]=plan.pools;state.allMatches[div]=/** @type {Match[]} */(plan.matches);state.currentByDivision[div]=0;state.divisionCourts[div]=plan.divisionCourt;return plan.generated;
+    state.pools[div]=plan.pools;state.allMatches[div]=/** @type {Match[]} */(plan.matches);state.currentByDivision[div]=0;ksmSetDivisionCourt(div,plan.divisionCourt);return plan.generated;
   }
   if(plan.kind==='singleElim'){
     state.pools[div]=[];state.singleElimComps[div]=plan.singleElimComps;

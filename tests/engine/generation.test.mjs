@@ -63,14 +63,16 @@ test('F21: the Setup team court A or B puts every team bout on that court; Both 
 });
 
 test('F21: generateDivisionState keeps later team bracket bouts on the Setup team court', () => {
-  // ksmSetTeamCourt() (#15 PR 8b) also sets the Setup field in the store: here only its divisionCourts entry.
-  const exclude = ['state', 'alert', 'console', 'tournamentSettings', 'ksmSetTeamCourt'];
+  // ksmSetTeamCourt() (#15 PR 8b) also sets the Setup field in the store: here only its divisionCourts entry. Since PR 9
+  // the division courts are store data too, written by ksmSetDivisionCourt() (the legacy team division's: the team court).
+  const exclude = ['state', 'alert', 'console', 'tournamentSettings', 'ksmSetTeamCourt', 'ksmSetDivisionCourt'];
   const code = withDependencies(html, extractFunction(html, 'generateDivisionState'), { exclude });
   for (const court of ['A', 'B']) {
     const ctx = vm.createContext({ alert() {}, console: { warn() {}, error() {}, info() {}, log() {} } });
     vm.runInContext(code, ctx);
     ctx.tournamentSettings = () => settings({ teamTournamentFormat: 'Single Elimination', teamFormat: '3-Person Team' });
     ctx.ksmSetTeamCourt = c => { ctx.state.divisionCourts['Team Tournament'] = c; };
+    ctx.ksmSetDivisionCourt = (d, c) => { if (d === 'Team Tournament') ctx.ksmSetTeamCourt(c); else if (c === null) delete ctx.state.divisionCourts[d]; else ctx.state.divisionCourts[d] = c; };
     ctx.state = { competitors: [], teams: makeTeams(5), exhibitions: [], divisions: [], divisionTypes: {}, divisionCourts: { 'Team Tournament': court },
       pools: {}, teamPools: {}, allMatches: {}, teamBracketNodes: {}, singleElimNodes: {}, singleElimComps: {}, teamElimTeams: {}, brackets: {}, championshipNodes: {}, byeWinners: {}, currentByDivision: {} };
     assert.equal(ctx.generateDivisionState('Team Tournament'), true);
@@ -90,8 +92,9 @@ test('generateDivisionState equals the pre-move legacy code on every golden scen
   const oldSrc = oldFiles.join('\n');
   assert.ok(!/KSMEngine/.test(extractFunction(oldSrc, 'generateDivisionState')), 'old code is pre-move');
   assert.ok(/KSMEngine\.generateDivision\(/.test(extractFunction(html, 'generateDivisionState')), 'current code delegates');
-  // ksmSetTeamCourt() (#15 PR 8b) also sets the Setup field in the store: here only its divisionCourts entry.
-  const exclude = ['state', 'alert', 'console', 'tournamentSettings', 'ksmSetTeamCourt'];
+  // ksmSetTeamCourt() (#15 PR 8b) also sets the Setup field in the store: here only its divisionCourts entry. Since PR 9
+  // the division courts are store data too, written by ksmSetDivisionCourt() (the legacy team division's: the team court).
+  const exclude = ['state', 'alert', 'console', 'tournamentSettings', 'ksmSetTeamCourt', 'ksmSetDivisionCourt'];
   const code = src => withDependencies(src, extractFunction(src, 'generateDivisionState'), { exclude });
   const legacyCode = code(oldSrc), currentCode = code(html);
   const run = (src, setup, over) => {
@@ -100,6 +103,7 @@ test('generateDivisionState equals the pre-move legacy code on every golden scen
     vm.runInContext(src, ctx);
     ctx.tournamentSettings = () => settings(over);
     ctx.ksmSetTeamCourt = c => { ctx.state.divisionCourts['Team Tournament'] = c; };
+    ctx.ksmSetDivisionCourt = (d, c) => { if (d === 'Team Tournament') ctx.ksmSetTeamCourt(c); else if (c === null) delete ctx.state.divisionCourts[d]; else ctx.state.divisionCourts[d] = c; };
     ctx.state = {
       competitors: [], teams: [], exhibitions: [], divisions: [], divisionTypes: {}, divisionCourts: {}, currentDivision: null,
       pools: {}, teamPools: {}, allMatches: {}, teamBracketNodes: {}, singleElimNodes: {}, singleElimComps: {}, teamElimTeams: {},

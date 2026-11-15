@@ -1,5 +1,6 @@
 // @ts-check
 import {ksmEmptyScore,ksmSetScore,ksmShowMatch,state} from '../app-state.js';
+import {ksmSetDivisionCourt} from '../setup/divisions-store.js';
 import {renderAll} from '../court/court-context-and-pool-editing.js';
 import {findNextForCourt,renderDivisions} from '../court/court-match-order.js';
 import {enforceUniqueIndividualMatches,maybeAdvanceChampionship,maybeCreateChampionship} from '../engine/engine-championship.js';
@@ -49,7 +50,7 @@ function ksmGrandChampionDrawn(id){return (state.allMatches?.[id]||[]).length>0}
 export function ksmAddGrandChampion(){
   if(isReadOnlySession())return null;
   const rows=ksmGrandChampions(),gc=KSMEngine.newGrandChampion(ksmNewGrandChampionId(),Math.max(-1,...rows.map(r=>r.order))+1);
-  state.grandChampions=[...rows,gc];state.divisionCourts[gc.id]=gc.court;
+  state.grandChampions=[...rows,gc];ksmSetDivisionCourt(gc.id,gc.court);
   ksmGrandChampionChanged();return gc.id;
 }
 const KSM_GC_EDITABLE_AFTER_DRAW=['name','awardMode'];
@@ -60,7 +61,7 @@ export function ksmUpdateGrandChampion(id,patch){
   if(patch.name!==undefined&&!String(patch.name).trim())return 'Enter a name for the grand champion match.';
   if(ksmGrandChampionDrawn(id)&&Object.keys(patch).some(k=>!KSM_GC_EDITABLE_AFTER_DRAW.includes(k)))return 'Divisions, format and court cannot change once this match is drawn.';
   Object.assign(gc,patch,{id:gc.id},patch.name!==undefined?{name:String(patch.name).trim()}:{});
-  if(patch.court)state.divisionCourts[id]=gc.court;
+  if(patch.court)ksmSetDivisionCourt(id,gc.court);
   ksmGrandChampionChanged();return null;
 }
 export function ksmToggleGrandChampionSource(id,div,on){
@@ -76,7 +77,7 @@ export function ksmMoveGrandChampion(id,direction){
 }
 export function ksmRemoveGrandChampion(id){
   if(ksmGrandChampionDrawn(id)||isReadOnlySession()||!ksmGrandChampion(id))return false;
-  state.grandChampions=ksmGrandChampions().filter(r=>r.id!==id);delete state.divisionCourts[id];
+  state.grandChampions=ksmGrandChampions().filter(r=>r.id!==id);ksmSetDivisionCourt(id,null);
   ksmClearGrandChampionStructure(id);ksmGrandChampionChanged();return true;
 }
 // ---------------------------------------------------------- the sources
@@ -136,7 +137,7 @@ function ksmClearGrandChampionStructure(id,keepCourts=false){
 function ksmDrawGrandChampion(gc){
   const courts=['A','B'].filter(c=>state.courtState?.[c]?.division===gc.id);
   ksmClearGrandChampionStructure(gc.id,true);
-  state.divisionCourts[gc.id]=gc.court;
+  ksmSetDivisionCourt(gc.id,gc.court);
   const drawn=generateDivisionState(gc.id);
   if(drawn)state.currentByDivision[gc.id]=0;
   // A court that was on the grand champion stays on it (its new first match); none moves elsewhere.

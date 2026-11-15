@@ -22,7 +22,7 @@ with sync_playwright() as p:
 
     # Championship structure is complete at generation and never grows during sync.
     page.evaluate("""
-      KSMTest.app.state.divisions=['Test'];KSMTest.app.state.divisionTypes={Test:'Round Robin'};KSMTest.app.state.divisionCourts={Test:'split'};
+      KSMTest.app.setDivisionLists({divisions:['Test'],divisionTypes:{Test:'Round Robin'},divisionCourts:{Test:'split'}});
       KSMTest.app.state.competitors=Array.from({length:8},(_,i)=>({name:'P'+(i+1),dojo:'D',division:'Test',seed:'',status:'Checked'}));
       KSMTest.app.state.pools={};KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={};KSMTest.app.state.singleElimComps={};KSMTest.app.state.brackets={};KSMTest.app.state.championshipNodes={};KSMTest.app.state.byeWinners={};KSMTest.app.state.currentByDivision={};
       KSMTest.app.generateDivisionState('Test');

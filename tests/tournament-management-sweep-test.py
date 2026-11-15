@@ -15,7 +15,7 @@ with sync_playwright() as p:
     # Direct-elimination split sweep 4-32.
     for n in range(4,33):
         page.evaluate("""n=>{
-          KSMTest.app.state.divisions=['Sweep'];KSMTest.app.state.divisionTypes={Sweep:'Single Elimination'};KSMTest.app.state.divisionCourts={Sweep:'split'};
+          KSMTest.app.setDivisionLists({divisions:['Sweep'],divisionTypes:{Sweep:'Single Elimination'},divisionCourts:{Sweep:'split'}});
           KSMTest.app.state.competitors=Array.from({length:n},(_,i)=>({name:'P'+(i+1),dojo:'D'+i,division:'Sweep',seed:i<4?String(i+1):'',status:'Checked'}));
           KSMTest.app.state.pools={};KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={};KSMTest.app.state.singleElimComps={};KSMTest.app.state.teamBracketNodes={};KSMTest.app.state.teamPools={};KSMTest.app.state.brackets={};KSMTest.app.state.byeWinners={};KSMTest.app.state.currentByDivision={};
           KSMTest.app.generateDivisionState('Sweep');
@@ -33,7 +33,7 @@ with sync_playwright() as p:
     # Pool split sweep 6-32; pools intact and B receives odd extra.
     for n in range(6,33):
         page.evaluate("""n=>{
-          KSMTest.app.state.divisions=['Sweep'];KSMTest.app.state.divisionTypes={Sweep:'Round Robin'};KSMTest.app.state.divisionCourts={Sweep:'split'};
+          KSMTest.app.setDivisionLists({divisions:['Sweep'],divisionTypes:{Sweep:'Round Robin'},divisionCourts:{Sweep:'split'}});
           KSMTest.app.state.competitors=Array.from({length:n},(_,i)=>({name:'P'+(i+1),dojo:'D'+i,division:'Sweep',seed:i<4?String(i+1):'',status:'Checked'}));
           KSMTest.app.state.pools={};KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={};KSMTest.app.state.singleElimComps={};KSMTest.app.state.teamBracketNodes={};KSMTest.app.state.teamPools={};KSMTest.app.state.brackets={};KSMTest.app.state.byeWinners={};KSMTest.app.state.currentByDivision={};
           KSMTest.app.generateDivisionState('Sweep');
