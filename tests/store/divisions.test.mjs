@@ -139,17 +139,18 @@ test('the team court: divisionCourts[\'Team Tournament\'] is settings.teamCourt 
 
 test('L1 (#185 review): "Team Tournament" (and "Exhibition Matches") cannot be added as an individual division', () => {
   for (const name of ['Team Tournament', ' team tournament ', 'TEAM TOURNAMENT', 'Exhibition Matches', 'exhibition matches']) {
-    assert.match(KSMEngine.divisionAddError(name), /choose another name/, name);
+    assert.match(KSMEngine.divisionAddError(name), /is reserved for .*; choose another name\.$/, name);
   }
   assert.equal(KSMEngine.divisionAddError('Kids'), null);
   assert.equal(KSMEngine.divisionAddError('Team Kids'), null);
   assert.equal(KSMEngine.divisionAddError('  '), KSMEngine.RENAME_EMPTY_MESSAGE);
   // The rename already refused both (unchanged).
   const st = { divisions: ['Kids'], divisionTypes: { Kids: 'Round Robin' }, divisionCourts: { Kids: 'A', [TT]: 'B' } };
-  assert.match(KSMEngine.divisionRenameError(st, [], 'Kids', 'team tournament'), /team event's name/);
+  assert.match(KSMEngine.divisionRenameError(st, [], 'Kids', 'team tournament'), /reserved for the team event/);
   // The app's add paths ask the engine first: Add division (a toast, nothing added) and a Registration row's division.
   const setup = fs.readFileSync(new URL('../../app/modules/setup/division-setup.js', import.meta.url), 'utf8');
   assert.match(setup, /const refused=KSMEngine\.divisionAddError\(v\);if\(refused\)\{showKsmToast\(refused\);return false\}/);
+  assert.match(setup, /function toggleDivision\(d,on\)\{if\(on&&!state\.divisions\.includes\(d\)\)\{const refused=KSMEngine\.divisionAddError\(d\);if\(refused\)\{showKsmToast\(refused\);renderDivisionSetup\(\);return\}/, 'toggleDivision(d, true) asks too');
   const reg = fs.readFileSync(new URL('../../app/modules/registration/registration.js', import.meta.url), 'utf8');
   assert.match(reg, /!KSMEngine\.divisionAddError\(v\)\)\{ksmOfferDivision\(v\)/);
 });

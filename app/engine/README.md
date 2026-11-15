@@ -2,7 +2,7 @@
 
 Strict TypeScript, no DOM, no `state`, no globals. `app/modules` and `app/js` import it (`import * as KSMEngine from '…/engine/index.ts'`), so the build bundles it into
 `app.js` (step 4b of #136); `window.KSMEngine` is set from that import for tests and anything outside. `app/react/` imports the modules directly.
-Import from `index.ts` only: it is the public API.
+Import from `index.ts` only: it is the public API. (One exception: the store imports `division-lists.ts` directly, so its bundle does not pull in the rest of the engine; the gzip budget, docs/STORE.md section 5.)
 
 ## Modules
 

@@ -13,7 +13,8 @@
 // division has a draw of its own, no division can be renamed (the name also lives in pools,
 // matches, court history, results and other devices' court selections).
 // The team event ('Team Tournament') and 'Exhibition Matches' are not renamable: they are fixed
-// keys the engine and the screens look up by name, and they are not rows of the divisions table.
+// keys the engine and the screens look up by name, and they are not rows of the divisions table. (A 4.0 save can hold an
+// individual division of either name, a row of state.divisions; that one can be renamed away.)
 // Pure: every function returns new values and never changes its inputs.
 import { TEAM_DIVISION, EXHIBITION_DIVISION } from './generation.ts';
 import { renameGrandChampionSources, type GrandChampion } from './grand-champion.ts';
@@ -67,8 +68,13 @@ function hasValue(v: unknown): boolean {
 export function divisionAddError(name: string): string | null {
   const n = String(name ?? '').trim();
   if (!n) return RENAME_EMPTY_MESSAGE;
-  if (fold(n) === fold(TEAM_DIVISION)) return `"${n}" is the team event's name; choose another name.`;
-  if (fold(n) === fold(EXHIBITION_DIVISION)) return `"${n}" is the exhibition matches' name; choose another name.`;
+  return reservedNameError(n);
+}
+
+/** Why `n` (trimmed) is a reserved name, or null: the team event's and the exhibitions' names, each with its reason. */
+function reservedNameError(n: string): string | null {
+  if (fold(n) === fold(TEAM_DIVISION)) return `"${n}" is reserved for the team event; choose another name.`;
+  if (fold(n) === fold(EXHIBITION_DIVISION)) return `"${n}" is reserved for exhibition matches; choose another name.`;
   return null;
 }
 
@@ -120,9 +126,12 @@ export function divisionNamesInUse(st: RenameState, presets: readonly string[]):
   return [...names];
 }
 
-/** True when `name` is a division of `st` (a row of the divisions table). */
+/**
+ * True when `name` is a division of `st` (a row of the divisions table). The reserved names count only as a row of
+ * `state.divisions` (an individual division a 4.0 save holds): the real team event and exhibitions are never in it.
+ */
 export function isDivision(st: RenameState, presets: readonly string[], name: string): boolean {
-  if (name === TEAM_DIVISION || name === EXHIBITION_DIVISION) return false;
+  if (name === TEAM_DIVISION || name === EXHIBITION_DIVISION) return (st.divisions || []).includes(name);
   return (st.divisions || []).includes(name) || Object.hasOwn(st.divisionTypes || {}, name)
     || presetNames(presets, st.divisionRenames).includes(name);
 }
@@ -133,14 +142,16 @@ export function isDivision(st: RenameState, presets: readonly string[], name: st
  */
 export function divisionRenameError(st: RenameState, presets: readonly string[], from: string, to: string): string | null {
   const name = String(to ?? '').trim();
-  if (from === TEAM_DIVISION) return "The team event's name can't be changed.";
-  if (from === EXHIBITION_DIVISION) return "Exhibition Matches can't be renamed.";
+  // The real team event and exhibitions are never rows of state.divisions; an individual division of the same name (a 4.0
+  // save) is, and is renamed like any other (isDivision()).
+  if (from === TEAM_DIVISION && !isDivision(st, presets, from)) return "The team event's name is fixed.";
+  if (from === EXHIBITION_DIVISION && !isDivision(st, presets, from)) return "Exhibition Matches' name is fixed.";
   if (drawMade(st, from)) return RENAME_AFTER_DRAW_MESSAGE;
   if (!name) return RENAME_EMPTY_MESSAGE;
   if (!isDivision(st, presets, from)) return `"${from}" is no longer a division.`;
   if (name === from) return null;
-  if (fold(name) === fold(TEAM_DIVISION)) return `"${name}" is the team event's name; choose another name.`;
-  if (fold(name) === fold(EXHIBITION_DIVISION)) return `"${name}" is the exhibition matches' name; choose another name.`;
+  const reserved = reservedNameError(name);
+  if (reserved) return reserved;
   const clash = divisionNamesInUse(st, presets).find(d => d !== from && fold(d) === fold(name));
   if (clash !== undefined) return `There is already a division named "${clash}".`;
   return null;
