@@ -45,9 +45,10 @@ export function renamedDivisionRecords(st: DivisionRecords, from: string, to: st
   }
   if (st.divisionTypes) out.divisionTypes = renameKey(st.divisionTypes, from, to);
   if (st.divisionCourts) {
-    // The team court's entry stays (an individual division of that name, from a 4.0 save, gets its own key: the court it had).
+    // The team court's entry stays (an individual division of that name, from a 4.0 save, gets its own key: the court it had; the team court's 'Both' is
+    // not an individual court, so it becomes 'split', as loadedDivisionCourts() does on load).
     out.divisionCourts = from === TEAM_COURT_KEY && Object.hasOwn(st.divisionCourts, from) && !Object.hasOwn(st.divisionCourts, to)
-      ? { ...st.divisionCourts, [to]: st.divisionCourts[from] as string }
+      ? { ...st.divisionCourts, [to]: st.divisionCourts[from] === 'Both' ? 'split' : st.divisionCourts[from] as string }
       : renameKey(st.divisionCourts, from, to);
   }
   return out;

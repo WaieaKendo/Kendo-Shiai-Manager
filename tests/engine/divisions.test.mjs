@@ -91,6 +91,15 @@ test('L2: an individual division with a reserved name (a 4.0 save) can be rename
   assert.equal(out.divisionCourts.Open, 'B', 'the individual division keeps the court it had under its own key');
   assert.equal(out.divisionCourts['Team Tournament'], 'B', "the team court's entry stays (the store restores it from settings.teamCourt)");
   assert.equal(out.competitors[0].division, 'Open');
+  // The team court is 'Both' by default: not an individual court, so the renamed division gets 'split'.
+  const both = { ...s, divisionCourts: { Kids: 'A', 'Team Tournament': 'Both' } };
+  const outBoth = renamedDivisionState(both, 'Team Tournament', 'Open');
+  assert.deepEqual(outBoth.divisionCourts, { Kids: 'A', 'Team Tournament': 'Both', Open: 'split' });
+  // The save-conflict replay does the same (it applies the rename through renamedDivisionState()).
+  const rec = { id: 'r1', from: 'Team Tournament', to: 'Open' };
+  const rb = rebaseDivisionRenames(both, { ...both, ...renamedDivisionState(both, rec.from, rec.to, rec) }, both, PRESETS);
+  assert.equal(rb.accepted.length, 1);
+  assert.equal(rb.server.divisionCourts.Open, 'split');
 });
 
 test('nothing is renamed after the draw: the whole tournament generated, or a division with pools or matches', () => {
