@@ -262,6 +262,8 @@ const KNOWN_POST_SPLIT_EDITS = {
   'load-file-guard': 4,
   // feat/court-clarity (issue #38): confirmFusen() (22) takes the winning side now.
   'court-clarity': 1,
+  // fix/spectator-brackets: exportResultsAwards() (23) does nothing for a spectator (the button is hidden).
+  'spectator-export': 1,
   // feat/react-live-scores (M.13): the Live Scores screen's React island. With the legacy
   // renderer removed (REMOVED_LIVE_SCORES_RENDERER) renderPublic()'s body (25) is a marked call
   // of ksmRenderLiveScores(), and app/js/36-react-live-scores.js publishes the screen as plain
@@ -346,6 +348,10 @@ const KNOWN_POST_SPLIT_CSS_EDITS = {
   'tv-next-division': 1,
   // feat/results-placeholders: app/styles/24-results-placeholders.css, Results' placeholder cards (theme tokens).
   'results-placeholders': 1,
+  // fix/spectator-brackets: app/styles/25-spectator-export.css, Export Results hidden for spectators.
+  'spectator-export': 1,
+  // fix/spectator-brackets: app/styles/26-modal-above-header.css, an open pop-up in <main> above the sticky header.
+  'modal-above-header': 1,
 };
 // Old functions whose body now lives in app/engine/*.ts (parameter lists without braces).
 const MOVED_TO_ENGINE = [

@@ -46,6 +46,7 @@ function exportTournamentBrackets(){
   previewAllDivisionSheets();
 }
 function exportResultsAwards(){
+  /* ksm:post-split-begin spectator-export */if(document.body.classList.contains('ksm-spectator'))return;/* ksm:post-split-end */
   closeNavMenus();
   show('print');
   previewResultsSheet();

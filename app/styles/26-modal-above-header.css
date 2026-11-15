@@ -1,0 +1,9 @@
+/* ksm:post-split-begin modal-above-header */
+/* A pop-up inside <main> (the Results bracket, the court's Fusen-gachi dialog) is stuck in main's
+   stacking layer (z-index 1), under the sticky header (10000), which hid its top and × button.
+   While one is open, lift <main> above the header; the pop-up's backdrop covers the page anyway. */
+body:has(main .ksm-modal:not(.hidden)) main{z-index:10050 !important}
+/* The bracket pop-up's title took the navy h2 colour on its navy band (unseen while the header
+   covered it): it uses the band's own light text colour. */
+.results-modal-head h2{color:inherit}
+/* ksm:post-split-end */

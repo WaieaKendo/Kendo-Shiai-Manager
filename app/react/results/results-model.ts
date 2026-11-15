@@ -110,7 +110,9 @@ export type ResultCardView = {name?: string} & (
     message: string;
     /** A placeholder (not drawn yet / waiting for sources): quieter, no bracket to open. */
     placeholder?: true;
-    /** 'View Standings →' for a team round robin, else no button. */
+    /** 'View Standings →' for a team round robin, 'View Bracket →' for a drawn division in
+     *  progress (so participants can find their matches once the tournament is live), none for a
+     *  placeholder. */
     button: string | null;
   }
   | { kind: 'award'; division: string; rows: PlacementRowView[]; button: string });
@@ -141,7 +143,7 @@ export function resultCardView(card: ResultCardInput): ResultCardView {
       division: card.division,
       ...(card.name ? {name:card.name} : {}),
       message: card.roundRobin ? `Round robin in progress • ${p?.complete}/${p?.total} pairings complete` : 'Tournament in progress',
-      button: card.roundRobin ? 'View Standings →' : null,
+      button: card.roundRobin ? 'View Standings →' : 'View Bracket →',
     };
   }
   return {
