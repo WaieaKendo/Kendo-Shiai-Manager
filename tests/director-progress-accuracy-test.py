@@ -54,7 +54,7 @@ with sync_playwright() as p:
     # Five-person team: three scoreable team pairings x five bouts = 15.
     page.evaluate("""
       KSMTest.app.ksmSetSetting('teamFormat','5-Person Team');
-      KSMTest.app.state.teams=[{team:'One',division:'Team Tournament',type:'5-Person Team'}];
+      KSMTest.app.setPeople({teams: [{team:'One',division:'Team Tournament',type:'5-Person Team'}]});
       KSMTest.app.setDivisionLists({divisionTypes:{...KSMTest.app.state.divisionTypes,'Team Tournament':'Team'}});
       KSMTest.app.state.teamBracketNodes={'Team Tournament':[
         {id:'SF1',left:{team:1},right:{team:2},court:'A'},
@@ -73,7 +73,7 @@ with sync_playwright() as p:
     # Three-person team uses the same queue pairing count with a roster size of three.
     page.evaluate("""
       KSMTest.app.ksmSetSetting('teamFormat','3-Person Team');
-      KSMTest.app.state.teams=[{team:'One',division:'Team Tournament',type:'3-Person Team'}];
+      KSMTest.app.setPeople({teams: [{team:'One',division:'Team Tournament',type:'3-Person Team'}]});
     """)
     team_three=page.evaluate("KSMTest.app.directorDivisionProgress('Team Tournament',null)")
     assert team_three['total']==9,team_three
@@ -81,7 +81,7 @@ with sync_playwright() as p:
     # Kachinuki has no fixed denominator, progress bar, or remaining count.
     page.evaluate("""
       KSMTest.app.ksmSetSetting('teamFormat','Kachinuki');
-      KSMTest.app.state.teams=[{team:'One',division:'Team Tournament',type:'Kachinuki'}];
+      KSMTest.app.setPeople({teams: [{team:'One',division:'Team Tournament',type:'Kachinuki'}]});
       KSMTest.app.state.allMatches['Team Tournament']=[
         {division:'Team Tournament',type:'kachinuki',teamPair:'node-SF1',done:true,court:'A'},
         {division:'Team Tournament',type:'kachinuki',teamPair:'node-SF1',done:false,court:'A'}

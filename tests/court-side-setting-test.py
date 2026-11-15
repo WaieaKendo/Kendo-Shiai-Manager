@@ -9,8 +9,8 @@ from ksm_browser import launch_chromium, load_app
 
 SETUP = """() => {
   KSMTest.app.setDivisionLists({divisions:['Open'],divisionTypes:{Open: 'Single Elimination'},divisionCourts:{Open: 'split'}});
-  KSMTest.app.state.competitors = Array.from({length: 8}, (_, i) => ({name: 'P' + (i + 1), dojo: 'D' + (i % 3), division: 'Open', seed: '', status: 'Checked'}));
-  KSMTest.app.state.teams = []; KSMTest.app.state.exhibitions = []; KSMTest.app.ksmSetSetting('teamEnabled', 'Disabled');
+  KSMTest.app.setPeople({competitors: Array.from({length: 8}, (_, i) => ({name: 'P' + (i + 1), dojo: 'D' + (i % 3), division: 'Open', seed: '', status: 'Checked'}))});
+  KSMTest.app.setPeople({teams: []}); KSMTest.app.setPeople({exhibitions: []}); KSMTest.app.ksmSetSetting('teamEnabled', 'Disabled');
   KSMTest.app.generatePools({validated: true});
 }"""
 

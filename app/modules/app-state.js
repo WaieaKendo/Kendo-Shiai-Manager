@@ -118,6 +118,14 @@ moveToStore('divisionTypes',['tournament','divisionTypes']);
 moveToStore('divisionCourts',['tournament','divisionCourts']);
 moveToStore('hiddenPresets',['tournament','hiddenPresets']);
 moveToStore('divisionRenames',['tournament','divisionRenames']);
+// The people (PR 10, docs/STORE.md section 3 item 10): the `tournament` slice holds Registration's players, teams and
+// exhibition matches and the team divisions, written only through app/modules/registration/people-store.js (one
+// tournament/… action each) or a load's replaceState(). Rows are store data: a row is never edited in place.
+// `teamDivisions` is absent (undefined, so not in the snapshot) until the load-time migration builds it, as before.
+moveToStore('competitors',['tournament','competitors']);
+moveToStore('teams',['tournament','teams']);
+moveToStore('exhibitions',['tournament','exhibitions']);
+moveToStore('teamDivisions',['tournament','teamDivisions']);
 /** Whether a store path is a Setup field: a load applies those through applySetupSnapshot(), with the Setup's precedence. */
 const isSettingsPath=(/** @type {string[]} */ p)=>p[0]==='tournament'&&p[1]==='settings';
 /** A tournament closed (ksmResetTournament()): the shown match is the first and every court's pad is empty. */

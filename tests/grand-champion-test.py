@@ -245,7 +245,7 @@ def pool_and_fusen_cases(browser):
 
     # The same person won two sources: no draw until the director picks the runner-up for one.
     page.evaluate("""()=>{const st=KSMTest.app.state;st.generated=false;
-      st.competitors=st.competitors.map(c=>c.division==='Masters'&&c.name==='Eli'?{...c,name:'Aki',dojo:'Aki Dojo'}:c);}""")
+      KSMTest.app.setPeople({competitors:st.competitors.map(c=>c.division==='Masters'&&c.name==='Eli'?{...c,name:'Aki',dojo:'Aki Dojo'}:c)});}""")
     dup = page.evaluate("KSMTest.addGrandChampion(['Open','Masters'],{name:'Twice'})")
     page.evaluate('KSMTest.app.generatePools({validated:true})')
     page.evaluate("""()=>{for(let i=0;i<4;i++){const m=KSMTest.prepareCourt('A');if(!m)break;KSMTest.play([[m.white==='Aki'?'W':'R','M']]);}}""")
@@ -263,7 +263,7 @@ def pool_and_fusen_cases(browser):
     # PR review: a pool of winners under way; a winner who has not played yet withdraws, the runner-up
     # takes their place (no question, nothing played touched).
     page.evaluate("""()=>{const st=KSMTest.app.state;st.generated=false;
-      st.competitors=st.competitors.map(c=>c.division==='Masters'&&c.name==='Aki'?{...c,name:'Eli',dojo:'Eli Dojo'}:c);}""")
+      KSMTest.app.setPeople({competitors:st.competitors.map(c=>c.division==='Masters'&&c.name==='Aki'?{...c,name:'Eli',dojo:'Eli Dojo'}:c)});}""")
     sub = page.evaluate("KSMTest.addGrandChampion(['Open','Women','Masters'],{format:'Round Robin',court:'B',name:'Sub Pool'})")
     page.evaluate('KSMTest.app.generatePools({validated:true})')
     for court in ('A', 'B', 'A'):
@@ -366,7 +366,7 @@ def merge_cases(browser, base):
 
     # PR review: two devices withdraw different winners at once: both stand-ins are kept.
     a.page.evaluate('''entries=>{const st=KSMTest.app.state;st.generated=false;KSMTest.app.setDivisionLists({divisions:[...st.divisions,'Masters'],divisionTypes:{...st.divisionTypes,Masters:'Single Elimination'},
-      divisionCourts:{...st.divisionCourts,Masters:'A'}});st.competitors.push(...entries.map(e=>({...e,division:'Masters'})));}''', DIVISIONS[2]['entrants'])
+      divisionCourts:{...st.divisionCourts,Masters:'A'}});KSMTest.app.setPeople({competitors:[...st.competitors,...entries.map(e=>({...e,division:'Masters'}))]});}''', DIVISIONS[2]['entrants'])
     both = a.page.evaluate("KSMTest.addGrandChampion(['Open','Women'],{court:'B',name:'Both out'})")
     tie = a.page.evaluate("KSMTest.addGrandChampion(['Open','Women','Masters'],{court:'B',name:'Tie Pool',format:'Round Robin'})")
     a.page.evaluate('KSMTest.app.generatePools({validated:true})')

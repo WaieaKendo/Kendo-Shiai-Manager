@@ -17,7 +17,7 @@ def main():
         a.wait_for(lambda: 'Switch A' in page.locator(sel('tournament-chip')).inner_text(), message='A chip')
         page.locator(sel('setup-tournament-name')).fill('Switch A Renamed')
         a.wait_for(lambda: 'Switch A Renamed' in page.locator(sel('tournament-chip')).inner_text(), message='chip follows name editing')
-        page.evaluate("KSMTest.app.setDivisionLists({divisions:['Only A']});KSMTest.app.state.competitors=[{name:'A only'}];KSMTest.app.pinCourtLocally('B');KSMTest.app.criticalAutoSave('A fixture')")
+        page.evaluate("KSMTest.app.setDivisionLists({divisions:['Only A']});KSMTest.app.setPeople({competitors: [{name:'A only'}]});KSMTest.app.pinCourtLocally('B');KSMTest.app.criticalAutoSave('A fixture')")
         a.wait_idle()
         page.evaluate("(id)=>localStorage.setItem('ksm:match-timer:'+JSON.stringify([id,'B','fixture']),JSON.stringify({runningSince:Date.now()}))",aid)
         page.locator('.nav-brand').click()
@@ -76,7 +76,7 @@ def main():
         # An imported/local draft can have neither mutation counters nor an outbox/session.
         draft = KsmApp.local(browser.new_page(), 'Local draft', problems=problems)
         dp = draft.page
-        dp.evaluate("KSMTest.app.ksmSetSetting('tName','Local only');KSMTest.app.state.competitors=[{name:'Local competitor'}];KSMTest.app.markLocalSave('Imported draft');sessionStorage.removeItem(KSMTest.app.KSM_V316_STAFF_SESSION)")
+        dp.evaluate("KSMTest.app.ksmSetSetting('tName','Local only');KSMTest.app.setPeople({competitors: [{name:'Local competitor'}]});KSMTest.app.markLocalSave('Imported draft');sessionStorage.removeItem(KSMTest.app.KSM_V316_STAFF_SESSION)")
         raw = dp.evaluate('localStorage.getItem(KSMTest.app.KSM_SAVE_KEY)')
         assert dp.evaluate('!KSMTest.app.cloudSession.tournamentId && !KSMTest.app.readOutbox() && !KSMTest.app.localChangesPending() && !KSMTest.app.v316StaffPassword()')
         draft.expect_dialog('This tournament is only saved on this device')

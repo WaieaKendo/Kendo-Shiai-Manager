@@ -209,6 +209,31 @@ window.KSMTest = {
     // The division lists (divisions, divisionTypes, divisionCourts) are store data (#15 PR 9): a test sets them here,
     // one action; a list it leaves out keeps its value. The team court's entry stays the Setup's (setSetting / teamCourt).
     setDivisionLists: lists => ksmReplaceDivisions(lists.divisions ?? state.divisions, lists.divisionTypes ?? state.divisionTypes, lists.divisionCourts ?? state.divisionCourts),
+    // The people (competitors, teams, exhibitions, teamDivisions) are store data too (#15 PR 10): a test sets whole lists
+    // here, one tournament/peopleLoaded; a list it leaves out keeps its value, `teamDivisions: undefined` clears it (the
+    // app builds it again on its next read). A row is never edited in place: set the list again with the row changed.
+    setPeople: lists => ksmLoadPeople(lists),
+    // Registration's operations, as its islands and buttons call them (tests/people-store-test.py).
+    addRow: (...a) => addRow(...a),
+    addTeamRow: (...a) => addTeamRow(...a),
+    addAutoTeam: (...a) => addAutoTeam(...a),
+    addExhibitionRow: (...a) => addExhibitionRow(...a),
+    cycleCompetitorStatus: (...a) => cycleCompetitorStatus(...a),
+    cycleTeamStatus: (...a) => cycleTeamStatus(...a),
+    ksmCycleExhibitionStatus: (...a) => ksmCycleExhibitionStatus(...a),
+    ksmUpdateCompetitor: (...a) => ksmUpdateCompetitor(...a),
+    ksmSetTeamField: (...a) => ksmSetTeamField(...a),
+    ksmSetExhibitionField: (...a) => ksmSetExhibitionField(...a),
+    ksmRemoveCompetitor: (...a) => ksmRemoveCompetitor(...a),
+    ksmRemoveTeam: (...a) => ksmRemoveTeam(...a),
+    ksmRemoveExhibition: (...a) => ksmRemoveExhibition(...a),
+    ksmImportCSVFile: (...a) => ksmImportCSVFile(...a),
+    loadSamples: (...a) => loadSamples(...a),
+    loadTeamSamples: (...a) => loadTeamSamples(...a),
+    clearCompetitors: (...a) => clearCompetitors(...a),
+    clearTeams: (...a) => clearTeams(...a),
+    clearExhibitions: (...a) => clearExhibitions(...a),
+    get registrationInputs() { return {players: window.ksmRegistrationPlayersInput, teams: window.ksmRegistrationTeamsInput, exhibitions: window.ksmRegistrationExhibitionsInput}; },
     get cloudSession() { return cloudSession; },
     get APPROVED_DYNAMIC_MATCH_TYPES() { return APPROVED_DYNAMIC_MATCH_TYPES; },
     get KSM_MERGE_LABELS() { return KSM_MERGE_LABELS; },
@@ -402,11 +427,11 @@ window.KSMTest = {
   removeTeamDivision(id) { return ksmRemoveTeamDivision(id); },
   assignTeamDivision(index, id) { return ksmAssignTeamDivision(state.teams[index], id); },
   // New registrations (after generation they go to a team division without a draw) and the Regenerate dialog.
-  addTeams(rows) { state.teams.push(...ksmNewTeamRows(rows)); renderTeams(); return state.teams.slice(-rows.length).map(t => t.teamDivisionId); },
+  addTeams(rows) { ksmLoadPeople({teams: [...state.teams, ...ksmNewTeamRows(rows)]}); renderTeams(); return state.teams.slice(-rows.length).map(t => t.teamDivisionId); },
   addIndividualDivision(name, format, court, entrants) {
     // The division lists are the store's (#15 PR 9): set through the app's action, as its own code does.
     ksmReplaceDivisions([...state.divisions, name], {...state.divisionTypes, [name]: format}, {...state.divisionCourts, [name]: court});
-    state.competitors.push(...entrants.map(e => ({...e, division: name}))); renderDivisionSetup(); renderDivisions();
+    ksmLoadPeople({competitors: [...state.competitors, ...entrants.map(e => ({...e, division: name}))]}); renderDivisionSetup(); renderDivisions();
   },
   openRegenerate() { openRegenerateDivisionDialog(); },
   // #86: grand champion rows (Setup's island calls the same actions).
@@ -418,8 +443,7 @@ window.KSMTest = {
   configure(entries) {
     const divs = entries.filter(d => !d.team), team = entries.find(d => d.team);
     ksmReplaceDivisions(divs.map(d => d.name), Object.fromEntries(divs.map(d => [d.name, d.format])), Object.fromEntries(divs.map(d => [d.name, d.court])));
-    state.competitors = divs.flatMap(d => d.entrants.map(e => ({...e, division: d.name})));
-    state.teams = []; state.exhibitions = [];
+    ksmLoadPeople({competitors: divs.flatMap(d => d.entrants.map(e => ({...e, division: d.name}))), teams: [], exhibitions: []});
     // The Setup fields are the store's (tournament.settings, #15 PR 8): set through the app, as its own code does.
     ksmSetSetting('teamEnabled', team ? 'Enabled' : 'Disabled');
     if (team) {
@@ -427,12 +451,12 @@ window.KSMTest = {
       // The Setup field and its divisionCourts entry together, as the app's own writers do (#15 PR 8b).
       ksmSetTeamCourt(team.court);
       const slots = team.format === '5-Person Team' ? ['senpo','jiho','chuken','fukusho','taisho'] : ['senpo','chuken','taisho'];
-      state.teams = Array.from({length: team.teams}, (_, i) => {
+      ksmLoadPeople({teams: Array.from({length: team.teams}, (_, i) => {
         const code = String.fromCharCode(65 + i);
         return {team: `Team ${code}`, type: team.format, status: 'Checked', ...Object.fromEntries(slots.map((s, j) => [s, `T${code}${j + 1}`]))};
-      });
+      })});
     }
-    delete state.teamDivisions;ksmTeamDivisions(); // the app's own migration: through assignState(), which a store field needs
+    ksmLoadPeople({teamDivisions: undefined});ksmTeamDivisions(); // the app's own migration (tournament/peopleLoaded)
     generatePools({validated: true});
   },
 

@@ -50,7 +50,7 @@ with sync_playwright() as p:
     # Split direct elimination restores Court Queue and filters it to the active court.
     page.evaluate("""
       KSMTest.app.setDivisionLists({divisionTypes:{...KSMTest.app.state.divisionTypes,Test:'Single Elimination'}});KSMTest.app.setDivisionLists({divisionCourts:{...KSMTest.app.state.divisionCourts,Test:'split'}});
-      KSMTest.app.state.competitors=Array.from({length:8},(_,i)=>({name:'E'+(i+1),dojo:'D',division:'Test',seed:'',status:'Checked'}));
+      KSMTest.app.setPeople({competitors: Array.from({length:8},(_,i)=>({name:'E'+(i+1),dojo:'D',division:'Test',seed:'',status:'Checked'}))});
       KSMTest.app.state.pools={};KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={};KSMTest.app.state.singleElimComps={};KSMTest.app.state.currentByDivision={};
       KSMTest.app.generateDivisionState('Test');KSMTest.app.showDivision('Test');KSMTest.app.setCurrentCourt('A');
       const firstA=KSMTest.app.state.matches.findIndex(m=>m.court==='A'&&!m.done);KSMTest.app.showMatch(firstA);

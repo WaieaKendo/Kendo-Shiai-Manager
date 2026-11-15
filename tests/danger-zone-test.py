@@ -33,7 +33,7 @@ def main():
         local.answers['Create Staff password'] = ''
         local.nav('registration')
         assert visible(local, 'generate-button') and visible(local, 'regenerate-division-button')
-        page.evaluate("() => { const a = KSMTest.app; a.state.competitors = ['A', 'B', 'C'].map(n => ({ name: n, dojo: 'D', division: a.state.divisions[0], seed: '', status: 'Registered' })); a.renderReg(); }")
+        page.evaluate("() => { const a = KSMTest.app; a.setPeople({competitors: ['A', 'B', 'C'].map(n => ({ name: n, dojo: 'D', division: a.state.divisions[0], seed: '', status: 'Registered' }))}); a.renderReg(); }")
         count = page.locator(sel('reg-row')).count()
         assert count == 3, count
         local.expect_dialog('Clear ', accept=False)
@@ -126,7 +126,7 @@ def main():
         results = lambda: (director.show_screen('results'), page.wait_for_timeout(300), page.inner_text('#results'))[2]
         drawn, results_before = snapshot(), results()
         director.nav('registration')
-        page.evaluate("() => { const s = KSMTest.app.state; s.exhibitions = [{white: 'X', red: 'Y', division: 'Exhibition Matches', status: 'Registered'}]; KSMTest.app.renderExhibitions(); }")
+        page.evaluate("() => { const s = KSMTest.app.state; KSMTest.app.setPeople({exhibitions: [{white: 'X', red: 'Y', division: 'Exhibition Matches', status: 'Registered'}]}); KSMTest.app.renderExhibitions(); }")
         teams = page.evaluate('KSMTest.app.state.teams.length')
         counts = {'reg-clear': f'Clear all 4 individual competitors? This cannot be undone.',
                   'team-clear': f'Clear all {teams} teams? This cannot be undone.',

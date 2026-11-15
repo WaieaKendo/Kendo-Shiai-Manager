@@ -81,7 +81,7 @@ def local_cases(browser):
     page.evaluate("([id])=>KSMTest.updateTeamDivision(id,{name:'Kids',court:'A',awardMode:'top1'})",[first])
     page.evaluate("""([id])=>{
       const st=KSMTest.app.state;
-      st.teams.push(...['C','D'].map((n,i)=>({id:'new:'+n,team:'Team '+n,teamDivisionId:id,status:'Checked',senpo:n+'1',jiho:n+'2',chuken:n+'3',fukusho:n+'4',taisho:n+'5'})));
+      KSMTest.app.setPeople({teams:[...st.teams,...['C','D'].map((n,i)=>({id:'new:'+n,team:'Team '+n,teamDivisionId:id,status:'Checked',senpo:n+'1',jiho:n+'2',chuken:n+'3',fukusho:n+'4',taisho:n+'5'}))]});
       KSMTest.app.generatePools({validated:true});
     }""",[second])
     state = app.payload()['state']
@@ -158,7 +158,7 @@ def merge_cases(browser, base):
     tid=a.create_tournament();a.wait_idle()
     first=a.page.evaluate('KSMTest.teamDivisions()[0].id')
     second=a.page.evaluate("KSMTest.addTeamDivision('Adults')")
-    a.page.evaluate("id=>KSMTest.app.state.teams=[{id:'team-1',team:'One',teamDivisionId:id,status:'Checked'},{id:'team-2',team:'Two',teamDivisionId:id,status:'Checked'}]",first)
+    a.page.evaluate("id=>KSMTest.app.setPeople({teams: [{id:'team-1',team:'One',teamDivisionId:id,status:'Checked'},{id:'team-2',team:'Two',teamDivisionId:id,status:'Checked'}]})",first)
     a.save_now();a.wait_idle()
     b=KsmApp.open_device(browser,base,'B',problems,f'?tournament={tid}')
     b.staff_login();b.wait_idle();b.watch_conflicts()

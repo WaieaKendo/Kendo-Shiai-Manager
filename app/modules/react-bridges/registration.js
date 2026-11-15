@@ -4,11 +4,12 @@ import {renderDivisions} from '../court/court-match-order.js';
 import {ksmSetting,scheduleAutoSave} from '../sync/cloud-session-and-autosave.js';
 import {regTab} from '../navigation.js';
 import {ksmText} from './court.js';
-import {renderExhibitions,renderReg,renderTeams,statusCycle,updateComp} from '../registration/registration.js';
+import {renderExhibitions,renderReg,renderTeams,updateComp} from '../registration/registration.js';
 import {ksmAssignTeamDivision,ksmDivisionName,ksmTeamDivisions} from '../registration/team-divisions.js';
 import {renderTournamentStatus} from '../registration/validation.js';
 import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {showKsmToast} from '../sync/cloud-realtime-save-and-load.js';
+import {ksmAddPeople,ksmCurrentPerson,ksmCyclePersonStatus,ksmRemovePerson,ksmUpdatePerson} from '../registration/people-store.js';
 // ==========================================================
 // React Registration, parts 1 and 2 (app/react/features/registration/, roadmap M.13, #136 step 2)
 // Registration draws two parts with React islands, mounted by app/react/features/registration/main.tsx:
@@ -67,7 +68,8 @@ function ksmSameCompetitor(a,b){return ['name','dojo','division','seed','status'
 // A row's field changed (its change event): what the inline onchange's updateComp(index,...) did,
 // for the competitor the row belongs to.
 export function ksmUpdateCompetitor(row,key,value){
-  const competitor=ksmRegistrationRowCompetitors?.get(row);
+  // #15 PR 10: the row object it showed, or the one an edit since made of it (people-store.js, as identity did).
+  const competitor=ksmCurrentPerson(ksmRegistrationRowCompetitors?.get(row));
   let index=competitor?state.competitors.indexOf(competitor):row.index;
   if(index<0){
     const same=state.competitors.map((c,i)=>ksmSameCompetitor(c,competitor)?i:-1).filter(i=>i>=0);
@@ -100,7 +102,7 @@ export function ksmRenderTournamentStatus(valid,competitors,divisions,errors){
 export function ksmRemoveCompetitor(i){
   // Owner decision 18 (#29): × on a player of a generated division asks first.
   const c=state.competitors[i];if(c&&c.name&&ksmInGeneratedDivision(c.name,c.division,false)&&!ksmConfirmRemove(c.name,c.division))return;
-  state.competitors.splice(i,1);renderReg();renderTournamentStatus();
+  ksmRemovePerson('competitor',i);renderReg();renderTournamentStatus();
 }
 // Owner decision 18 (#29): after generation, a No Show takes the entry out of its division's pools
 // or bracket (applyIndividualNoShow(), applyWholeTeamNoShow()) and × leaves its matches in place,
@@ -170,7 +172,7 @@ export function ksmPasteRow(name,dojo,division,seed,status){
   if(division&&!state.divisions.includes(division))why.push(`division "${division}" is not offered`);
   if(st===undefined)why.push(`status "${status}" is not Registered, Checked In or No Show`);
   if(why.length){ksmPasteRefused.push(`${name}: ${why.join('; ')}`);return}
-  state.competitors.push({name,dojo:dojo||'',division:division||state.divisions[0],seed:seed||'',status:st});
+  ksmAddPeople('competitor',[{name,dojo:dojo||'',division:division||state.divisions[0],seed:seed||'',status:st}]);
 }
 export function ksmPasteNotice(){
   if(!ksmPasteRefused.length)return;
@@ -284,7 +286,7 @@ export function ksmBindRegistrationEntry(entry,row){
 }
 // The entry's index in `list` now: its own place, the one equal entry of a new list, or -1.
 function ksmRegistrationEntryIndex(list,row,fields){
-  const entry=ksmRegistrationEntries?.get(row);
+  const entry=ksmCurrentPerson(ksmRegistrationEntries?.get(row));
   if(!entry)return row.index;
   const own=list.indexOf(entry);
   if(own>=0)return own;
@@ -298,24 +300,24 @@ function ksmEditDropped(what,list){
 // entry the card or row showed (F20).
 export function ksmSetTeamField(card,key,value){
   const index=ksmRegistrationEntryIndex(state.teams,card,KSM_TEAM_FIELDS);
-  if(index<0){ksmEditDropped(ksmRegistrationEntries.get(card).team||'a team','team list');return}
-  if(state.teams[index]!==ksmRegistrationEntries?.get(card))ksmTeamsStale=true;
+  if(index<0){ksmEditDropped(ksmCurrentPerson(ksmRegistrationEntries.get(card)).team||'a team','team list');return}
+  if(state.teams[index]!==ksmCurrentPerson(ksmRegistrationEntries?.get(card)))ksmTeamsStale=true;
   if(key==='teamDivisionId'){ksmAssignTeamDivision(state.teams[index],value);return}
-  state.teams[index][key]=value;
+  ksmUpdatePerson('team',index,{[key]:value});
 }
 export function ksmRemoveTeam(i){
   // Owner decision 18 (#29): × on a team of the generated team division asks first.
   const t=state.teams[i];if(t&&t.team&&ksmInGeneratedDivision(t.team,t.teamDivisionId||'Team Tournament',true)&&!ksmConfirmRemove(t.team,t.teamDivisionId||'Team Tournament'))return;
-  state.teams.splice(i,1);renderTeams();renderTournamentStatus();
+  ksmRemovePerson('team',i);renderTeams();renderTournamentStatus();
 }
 export function ksmSetExhibitionField(row,key,value){
   const index=ksmRegistrationEntryIndex(state.exhibitions||[],row,KSM_EXHIBITION_FIELDS);
-  if(index<0){const x=ksmRegistrationEntries.get(row);ksmEditDropped(x.white||x.red?`the exhibition match ${x.white||'?'} vs ${x.red||'?'}`:'an exhibition match','exhibition list');return}
-  if(state.exhibitions[index]!==ksmRegistrationEntries?.get(row))ksmExhibitionsStale=true;
-  state.exhibitions[index][key]=value;
+  if(index<0){const x=ksmCurrentPerson(ksmRegistrationEntries.get(row));ksmEditDropped(x.white||x.red?`the exhibition match ${x.white||'?'} vs ${x.red||'?'}`:'an exhibition match','exhibition list');return}
+  if(state.exhibitions[index]!==ksmCurrentPerson(ksmRegistrationEntries?.get(row)))ksmExhibitionsStale=true;
+  ksmUpdatePerson('exhibition',index,{[key]:value});
 }
-export function ksmCycleExhibitionStatus(i){state.exhibitions[i].status=statusCycle(state.exhibitions[i].status);renderExhibitions()}
-export function ksmRemoveExhibition(i){state.exhibitions.splice(i,1);renderExhibitions()}
+export function ksmCycleExhibitionStatus(i){ksmCyclePersonStatus('exhibition',i);renderExhibitions()}
+export function ksmRemoveExhibition(i){ksmRemovePerson('exhibition',i);renderExhibitions()}
 
 // If the React module (app/react/main.tsx, a module script after app.js) did not run, say so on
 // Individual Players instead of an empty table, which nothing fills any more (e.g. an offline

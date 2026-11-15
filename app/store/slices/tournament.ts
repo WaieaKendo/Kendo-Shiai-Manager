@@ -1,13 +1,16 @@
 // Tournament data (#15 step 2.8): shared between devices, synced, saved in the cloud snapshot, the autosave and the
 // .ksm file. docs/STORE.md lists the `state` fields that move here and in which order. PR 8 moved the Setup form
 // (`payload.setup`, which the DOM inputs held) into `settings`; PR 9 the divisions (`divisions`, `divisionTypes`,
-// `divisionCourts`, `hiddenPresets`, `divisionRenames`), which `state` reads through getters (app/modules/app-state.js).
+// `divisionCourts`, `hiddenPresets`, `divisionRenames`); PR 10 the people (`competitors`, `teams`, `exhibitions`,
+// `teamDivisions`). `state` reads them through getters (app/modules/app-state.js).
 import { createNextState, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { DIVISION_PRESETS, TEAM_COURT_KEY, type DivisionRename } from '../../engine/division-lists.ts';
+import { statusCycle } from '../../engine/registration.ts';
+import type { TeamDivision } from '../../engine/team-divisions.ts';
 import { withMeta, type ActionMeta } from '../meta.ts';
 
 /** Bumped when the shape of this slice changes in a way saved data must be migrated for. */
-export const TOURNAMENT_SLICE_VERSION = 3;
+export const TOURNAMENT_SLICE_VERSION = 4;
 
 /**
  * TEAM_COURT_KEY: the legacy team division's key ('Team Tournament', KSMEngine.LEGACY_TEAM_DIVISION_ID). Its
@@ -58,7 +61,24 @@ export interface TournamentSliceState {
   hiddenPresets?: string[] | undefined;
   /** The rename log the save-conflict replay uses (#25, #36); absent until a rename. */
   divisionRenames?: DivisionRename[] | undefined;
+  /** Registration's players, in the order they were added (`state.competitors`): `{name, dojo, division, seed, status}`. */
+  competitors: PersonRow[];
+  /** Registration's teams (`state.teams`): `{team, id, teamDivisionId, type, senpo, …, status}`; merged by id on save conflicts (#95). */
+  teams: PersonRow[];
+  /** Exhibition matches (`state.exhibitions`): `{white, red, division, status}`. */
+  exhibitions: PersonRow[];
+  /** The team divisions (`state.teamDivisions`), in the order they were added; absent until the load-time migration builds them. */
+  teamDivisions?: TeamDivision[] | undefined;
 }
+
+/**
+ * A Registration row (a player, a team, an exhibition match). Rows have no common id (players and exhibition matches
+ * have none; old teams neither): a row action names it by its index in the list, which the app resolves from the row the
+ * screen showed right before the dispatch (app/modules/registration/people-store.js).
+ */
+export type PersonRow = Record<string, unknown>;
+/** The three lists of rows, by key. */
+export type PeopleKey = 'competitors' | 'teams' | 'exhibitions';
 
 const presetsBy = (i: 1 | 2): Record<string, string> => Object.fromEntries(DIVISION_PRESETS.map(p => [p[0], p[i]]));
 
@@ -69,6 +89,9 @@ export const initialTournamentState: TournamentSliceState = {
   divisionTypes: presetsBy(1),
   // The team court's entry ('Team Tournament': settings.teamCourt) follows: withTeamCourt() adds it on the store's first action.
   divisionCourts: presetsBy(2),
+  competitors: [],
+  teams: [],
+  exhibitions: [],
 };
 
 /**
@@ -83,8 +106,13 @@ export function withTeamCourt(s: TournamentSliceState): TournamentSliceState {
   });
 }
 
-/** The division lists a division action sets: each key it names gets that value (the five `state` fields of PR 9). */
-export type DivisionLists = Partial<Pick<TournamentSliceState, 'divisions' | 'divisionTypes' | 'divisionCourts' | 'hiddenPresets' | 'divisionRenames'>>;
+/**
+ * The division lists a division action sets: each key it names gets that value (the five `state` fields of PR 9; a
+ * rename's `competitors` too, PR 10).
+ */
+export type DivisionLists = Partial<Pick<TournamentSliceState, 'divisions' | 'divisionTypes' | 'divisionCourts' | 'hiddenPresets' | 'divisionRenames' | 'competitors'>>;
+/** The people lists a bulk or team division action sets (PR 10): each key it names gets that value. */
+export type PeopleLists = Partial<Pick<TournamentSliceState, PeopleKey | 'teamDivisions'>>;
 
 /**
  * Every division action has this one reducer: it sets the lists its payload names. What an edit does to them is pure
@@ -100,6 +128,37 @@ const setDivisionLists = {
   },
   prepare: withMeta<DivisionLists>(),
 };
+/** The same reducer for the people lists (PR 10): the bulk writes and the team divisions' edits. */
+const setPeopleLists = setDivisionLists as unknown as {
+  reducer(state: TournamentSliceState, action: PayloadAction<PeopleLists, string, ActionMeta>): void;
+  prepare: ReturnType<typeof withMeta<PeopleLists>>;
+};
+
+/** Rows appended to a list (one action for Add 3 rows). */
+export interface RowsAdded { rows: PersonRow[] }
+/** A row's fields: `changes` assigned to the row at `index` (a field the row lacks is added at its end, as an assignment did). */
+export interface RowUpdated { index: number; changes: PersonRow }
+/** The row at `index`. */
+export interface RowAt { index: number }
+type RowReducer<P> = { reducer(state: TournamentSliceState, action: PayloadAction<P, string, ActionMeta>): void; prepare: ReturnType<typeof withMeta<P>> };
+/** The four row actions of one list; an index with no row changes nothing. */
+type RowReducers<N extends string> = Record<`${N}Added`, RowReducer<RowsAdded>> & Record<`${N}Updated`, RowReducer<RowUpdated>>
+  & Record<`${N}Removed`, RowReducer<RowAt>> & Record<`${N}StatusCycled`, RowReducer<RowAt>>;
+/**
+ * `competitorAdded`, `…Updated`, `…Removed`, `…StatusCycled` (the engine's statusCycle(): Registered → Checked → NoShow →
+ * Registered) for one list. Built from the name, so the three lists cost one copy of the code in the store bundle.
+ */
+function rowReducers<N extends string>(name: N, key: PeopleKey): RowReducers<N> {
+  const row = (s: TournamentSliceState, i: number): PersonRow | undefined => s[key][i];
+  const r = <P>(reducer: (s: TournamentSliceState, p: P) => void): RowReducer<P> =>
+    ({ reducer: (s, a) => reducer(s, a.payload), prepare: withMeta<P>() });
+  return {
+    [`${name}Added`]: r<RowsAdded>((s, p) => { s[key].push(...p.rows); }),
+    [`${name}Updated`]: r<RowUpdated>((s, p) => { const x = row(s, p.index); if (x) Object.assign(x, p.changes); }),
+    [`${name}Removed`]: r<RowAt>((s, p) => { if (row(s, p.index)) s[key].splice(p.index, 1); }),
+    [`${name}StatusCycled`]: r<RowAt>((s, p) => { const x = row(s, p.index); if (x) x['status'] = statusCycle(x['status'] as string); }),
+  } as RowReducers<N>;
+}
 
 // Values arrive normalized as the field's input would hold them (KSMEngine.normalizeSetup / normalizeSetupValue, called
 // by the app's adapters in cloud-session-and-autosave.js); the reducers take a text for a Setup field, nothing else.
@@ -152,5 +211,23 @@ export const tournamentSlice = createSlice({
     presetHidden: setDivisionLists,
     /** Restore standard divisions: none hidden. */
     presetsRestored: setDivisionLists,
+    // The people (#15 PR 10). Row actions name a row by its index (PersonRow); the bulk and team division actions set
+    // lists the app computed with the engine (app/modules/registration/people-store.js), like the division actions.
+    ...rowReducers('competitor', 'competitors'),
+    ...rowReducers('team', 'teams'),
+    ...rowReducers('exhibition', 'exhibitions'),
+    /**
+     * Whole lists at once: the samples, Clear, the team-division migration (ksmTeamDivisions(): `teamDivisions` built and
+     * every team given an id and a team division), the test API.
+     */
+    peopleLoaded: setPeopleLists,
+    /** A team division added (and, for the first one, the teams without one put in it). */
+    teamDivisionAdded: setPeopleLists,
+    /** A team division's fields (and its teams' match format with it). */
+    teamDivisionUpdated: setPeopleLists,
+    /** The team divisions' running order (`order`). */
+    teamDivisionMoved: setPeopleLists,
+    /** A team division removed, its teams moved to another one. */
+    teamDivisionRemoved: setPeopleLists,
   },
 });

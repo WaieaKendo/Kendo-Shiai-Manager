@@ -9,7 +9,7 @@ import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {removeDivision,renderDivisionSetup} from '../setup/division-setup.js';
 import {cloudSession} from '../sync/cloud-session-and-autosave.js';
 import {ksmLocalCourtDivision,setLocalCourtDivision} from '../sync/sync-state-and-rebase.js';
-import {KSM_DIVISION_STATE_KEYS,ksmHidePreset,ksmMoveDivision,ksmRemoveDivision,ksmRenameDivisionLists,ksmRestorePresets} from '../setup/divisions-store.js';
+import {KSM_RENAMED_STATE_KEYS,ksmHidePreset,ksmMoveDivision,ksmRemoveDivision,ksmRenameDivisionLists,ksmRestorePresets} from '../setup/divisions-store.js';
 import * as KSMEngine from '../../engine/index.ts';
 // ==========================================================
 // React Setup screen (app/react/features/setup/, roadmap M.13, #136 step 2)
@@ -73,12 +73,13 @@ export function ksmRenameSetupDivision(from,to){
   const client=(typeof cloudSession==='object'&&cloudSession?.clientId)||'local';
   const record={id:`${client}:${Date.now().toString(36)}:${Math.random().toString(36).slice(2,8)}`,from,to:name};
   const renamed=KSMEngine.renamedDivisionState(/** @type {any} */ (state),from,name,record);
-  // #15 PR 9: one rename, one store action for the division lists (tournament/divisionRenamed, with its divisionRenames
-  // record). What else the engine rewrote is still plain `state` (competitors, grand champions, the courts' divisions):
-  // it is assigned first, in the same synchronous step and with no dispatch, so when the action notifies the store's
-  // subscribers both halves already agree. The device fields (the Pools tab's division, the shown division) follow after.
+  // #15 PR 9 / PR 10: one rename, one store action for the division lists and the players (tournament/divisionRenamed,
+  // with its divisionRenames record and the renamed `competitors`). What else the engine rewrote is still plain `state`
+  // (grand champions, the courts' divisions; PRs 11 and 13): it is assigned first, in the same synchronous step and with
+  // no dispatch, so when the action notifies the store's subscribers both halves already agree. The device fields (the
+  // Pools tab's division, the shown division) follow after.
   const {poolViewDivision,currentDivision,...rest}=renamed;
-  const plain=Object.fromEntries(Object.entries(rest).filter(([k])=>!KSM_DIVISION_STATE_KEYS.includes(k)));
+  const plain=Object.fromEntries(Object.entries(rest).filter(([k])=>!KSM_RENAMED_STATE_KEYS.includes(k)));
   assignState(plain);
   ksmRenameDivisionLists(rest);
   if(poolViewDivision!==undefined)dispatch(deviceSlice.actions.poolViewDivisionChanged(poolViewDivision));
