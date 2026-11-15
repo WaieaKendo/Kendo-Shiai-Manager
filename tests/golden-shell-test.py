@@ -432,10 +432,10 @@ def dialogs(browser, react_check):
     g.do('Generate again', lambda a: click(a.page, tid('generate-button')))
     g.do('the check: Close again', lambda a: click(a.page, tid('validation-close')))
     g.do('registration with issues (code)', lambda a: a.page.evaluate("""() => {
-      KSMTest.app.state.competitors = [
+      KSMTest.app.setPeople({competitors: [
         {name: 'Ann <A>', dojo: 'Hilo & Co', division: KSMTest.app.state.divisions[0], seed: 'x', status: 'Checked'},
         {name: 'Ann <A>', dojo: 'Hilo & Co', division: KSMTest.app.state.divisions[0], seed: '', status: 'Checked'},
-        {name: '', dojo: 'Kona', division: KSMTest.app.state.divisions[0], seed: '', status: 'Registered'}];
+        {name: '', dojo: 'Kona', division: KSMTest.app.state.divisions[0], seed: '', status: 'Registered'}]});
       KSMTest.app.renderReg(); KSMTest.app.renderTournamentStatus();
     }"""))
     g.do('Generate with issues', lambda a: click(a.page, tid('generate-button')))
@@ -482,7 +482,7 @@ def dialogs(browser, react_check):
     g.do('Regenerate: Cancel with the keyboard', lambda a: (
         a.page.locator('#regenerateModalActions button:text-is("Cancel")').focus(), a.page.keyboard.press('Enter'), leave(a.page)))
     g.do('Women down to one player (code)', lambda a: a.page.evaluate(
-        "() => { KSMTest.app.state.competitors = KSMTest.app.state.competitors.filter(c => !c.division.startsWith('Women') || c.name === 'W 1'); }"))
+        "() => { KSMTest.app.setPeople({competitors: KSMTest.app.state.competitors.filter(c => !c.division.startsWith('Women') || c.name === 'W 1')}); }"))
     g.do('Regenerate opened (Women fails the check)', lambda a: click(a.page, tid('regenerate-division-button')))
     g.do('Regenerate: Continue (Women)', lambda a: click(a.page, tid('regenerate-continue')))
     g.do('Regenerate: Regenerate (the check fails)', lambda a: click(a.page, tid('regenerate-confirm')))

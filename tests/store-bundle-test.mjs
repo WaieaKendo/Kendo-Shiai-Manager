@@ -21,7 +21,7 @@ check(!fs.existsSync(path.join(ROOT, 'node_modules/@reduxjs/toolkit/node_modules
 // --- the store bundle: self-contained, production, small ---
 const store = await storeBundle();
 const gzip = zlib.gzipSync(store).length;
-const GZIP_BUDGET = 9000; // 7.9 kB with Redux Toolkit 2.13 (2026-11-11); raise it only on purpose, old TVs pay for it
+const GZIP_BUDGET = 9300; // 7.9 kB with Redux Toolkit 2.13 (2026-11-11); 9,000 until #15 PR 10 (the people's 17 actions: 9,206); raise it only on purpose, old TVs pay for it
 check(gzip <= GZIP_BUDGET, `the store bundle is ${gzip} bytes gzip, over the ${GZIP_BUDGET} budget`);
 check(!/process\.env/.test(store), 'the store bundle still reads process.env (NODE_ENV was not defined)');
 check(!/state mutation/i.test(store), 'the store bundle has Redux Toolkit\'s immutability check (a development build)');

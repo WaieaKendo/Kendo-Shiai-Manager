@@ -98,7 +98,8 @@ test('a rename and its divisionRenames record are one dispatch, with the engine\
   const from = 'Kids', to = 'Under 12', record = { id: 'c:1:x', from, to };
   const st = { ...lists(t(s)), competitors: [{ name: 'A', division: from }], courtState: { A: { division: from, index: 0 } } };
   const renamed = KSMEngine.renamedDivisionState(st, from, to, record);
-  const changed = Object.fromEntries(Object.entries(renamed).filter(([k]) => KEYS.includes(k)));
+  // Since PR 10 the renamed players are in the same action (tests/store/people.test.mjs).
+  const changed = Object.fromEntries(Object.entries(renamed).filter(([k]) => [...KEYS, 'competitors'].includes(k)));
   let notified = 0;
   const off = s.subscribe(() => notified++);
   s.dispatch(A.divisionRenamed(changed, meta));
@@ -112,8 +113,9 @@ test('a rename and its divisionRenames record are one dispatch, with the engine\
   assert.deepEqual(now.divisionRenames, [record]);
   // The engine's whole rename (the rebase replays it on payloads) gives the same lists.
   for (const key of ['divisions', 'divisionTypes', 'divisionCourts', 'divisionRenames']) assert.deepEqual(now[key], renamed[key], key);
-  // What the store does not hold yet is the caller's: competitors and the courts' divisions.
-  assert.deepEqual(renamed.competitors, [{ name: 'A', division: to }]);
+  assert.deepEqual(now.competitors, [{ name: 'A', division: to }], 'the players move with it (PR 10)');
+  // What the store does not hold yet is the caller's: the courts' divisions (PR 13).
+  assert.deepEqual(renamed.courtState.A, { division: to, index: 0 });
 });
 
 test('the team court: divisionCourts[\'Team Tournament\'] is settings.teamCourt after every action', () => {

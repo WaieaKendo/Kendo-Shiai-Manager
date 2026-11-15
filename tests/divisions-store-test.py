@@ -78,9 +78,9 @@ def steps():
         ('court', lambda pg: pg.evaluate("() => KSMTest.app.setDivisionCourtNow('Kids', 'B')")),
         ('move up', lambda pg: pg.evaluate("() => KSMTest.app.ksmMoveSetupDivision('Kids', 'up')")),
         ('move first up (nothing)', lambda pg: pg.evaluate(f"() => KSMTest.app.ksmMoveSetupDivision({json.dumps(YONENBU)}, 'up')")),
-        ('players registered', lambda pg: pg.evaluate("""() => { KSMTest.app.state.competitors.push(
+        ('players registered', lambda pg: pg.evaluate("""() => { KSMTest.app.setPeople({competitors: [...KSMTest.app.state.competitors,
             {name: 'K 1', dojo: 'D', division: 'Kids', seed: '', status: 'Registered'},
-            {name: 'Y 1', dojo: 'D', division: 'Yonenbu (11 years and under)', seed: '', status: 'Registered'}); }""")),
+            {name: 'Y 1', dojo: 'D', division: 'Yonenbu (11 years and under)', seed: '', status: 'Registered'}]}); }""")),
         ('rename custom', lambda pg: pg.evaluate("() => KSMTest.app.ksmRenameSetupDivision('Kids', 'Under 12')")),
         ('rename preset', lambda pg: pg.evaluate(f"() => KSMTest.app.ksmRenameSetupDivision({json.dumps(YONENBU)}, 'Youth')")),
         ('rename refused (team event)', lambda pg: pg.evaluate("() => KSMTest.app.ksmRenameSetupDivision('Under 12', 'team tournament')")),

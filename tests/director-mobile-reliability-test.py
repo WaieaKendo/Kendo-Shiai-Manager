@@ -35,7 +35,7 @@ with sync_playwright() as p:
       KSMTest.app.state.singleElimNodes.Individual=KSMTest.app.teamBracketNodesForCount(4);
       KSMTest.app.state.allMatches.Individual=[];
       KSMTest.app.setDivisionLists({divisionTypes:{...KSMTest.app.state.divisionTypes,'Team Tournament':'Team'}});
-      KSMTest.app.state.teams=[{team:'A',division:'Team Tournament',type:'Kachinuki'}];
+      KSMTest.app.setPeople({teams: [{team:'A',division:'Team Tournament',type:'Kachinuki'}]});
       KSMTest.app.state.allMatches['Team Tournament']=[
         {division:'Team Tournament',type:'kachinuki',done:true,court:'A',teamPair:'P1'},
         {division:'Team Tournament',type:'kachinuki',done:false,court:'A',teamPair:'P1'}

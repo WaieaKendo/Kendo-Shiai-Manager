@@ -18,7 +18,7 @@ with sync_playwright() as p:
         result=page.evaluate("""({n,split})=>{
           const div='Sim';
           KSMTest.app.setDivisionLists({divisions:[div],divisionTypes:{[div]:'Single Elimination'},divisionCourts:{[div]:split?'split':'A'}});
-          KSMTest.app.state.competitors=Array.from({length:n},(_,i)=>({name:'P'+(i+1),dojo:'D'+i,division:div,seed:i<4?String(i+1):'',status:'Checked'}));
+          KSMTest.app.setPeople({competitors: Array.from({length:n},(_,i)=>({name:'P'+(i+1),dojo:'D'+i,division:div,seed:i<4?String(i+1):'',status:'Checked'}))});
           KSMTest.app.state.pools={};KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={};KSMTest.app.state.singleElimComps={};KSMTest.app.state.teamBracketNodes={};KSMTest.app.state.teamPools={};KSMTest.app.state.brackets={};KSMTest.app.state.byeWinners={};KSMTest.app.state.currentByDivision={};
           KSMTest.app.generateDivisionState(div);
           const initial=KSMTest.app.state.allMatches[div].length;

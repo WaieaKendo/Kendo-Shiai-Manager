@@ -16,7 +16,7 @@ with sync_playwright() as p:
     # Split validation minimum.
     page.evaluate("""
       KSMTest.app.setDivisionLists({divisions:['Test'],divisionTypes:{Test:'Single Elimination'},divisionCourts:{Test:'split'}});
-      KSMTest.app.state.competitors=[1,2,3].map(i=>({name:'P'+i,dojo:'D'+i,division:'Test',seed:'',status:'Checked'}));
+      KSMTest.app.setPeople({competitors: [1,2,3].map(i=>({name:'P'+i,dojo:'D'+i,division:'Test',seed:'',status:'Checked'}))});
     """)
     v=page.evaluate("KSMTest.app.validateTournament()")
     assert not v['valid'] and any(x['code']=='SPLIT_MINIMUM' for x in v['issues']),v
@@ -24,7 +24,7 @@ with sync_playwright() as p:
     # Split pool assignment: 3 pools -> A on Court A, B/C on Court B.
     page.evaluate("""
       KSMTest.app.setDivisionLists({divisionTypes:{...KSMTest.app.state.divisionTypes,Test:'Round Robin'}});KSMTest.app.setDivisionLists({divisionCourts:{...KSMTest.app.state.divisionCourts,Test:'split'}});
-      KSMTest.app.state.competitors=Array.from({length:9},(_,i)=>({name:'P'+(i+1),dojo:'D'+i,division:'Test',seed:'',status:'Checked'}));
+      KSMTest.app.setPeople({competitors: Array.from({length:9},(_,i)=>({name:'P'+(i+1),dojo:'D'+i,division:'Test',seed:'',status:'Checked'}))});
       KSMTest.app.state.pools={};KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={};KSMTest.app.state.singleElimComps={};KSMTest.app.state.brackets={};KSMTest.app.state.byeWinners={};KSMTest.app.state.currentByDivision={};
       KSMTest.app.generateDivisionState('Test');
     """)
@@ -34,7 +34,7 @@ with sync_playwright() as p:
     # Split direct elimination uses canonical halves and Final A.
     page.evaluate("""
       KSMTest.app.setDivisionLists({divisionTypes:{...KSMTest.app.state.divisionTypes,Test:'Single Elimination'}});KSMTest.app.setDivisionLists({divisionCourts:{...KSMTest.app.state.divisionCourts,Test:'split'}});
-      KSMTest.app.state.competitors=Array.from({length:8},(_,i)=>({name:'E'+(i+1),dojo:'D'+i,division:'Test',seed:i<2?String(i+1):'',status:'Checked'}));
+      KSMTest.app.setPeople({competitors: Array.from({length:8},(_,i)=>({name:'E'+(i+1),dojo:'D'+i,division:'Test',seed:i<2?String(i+1):'',status:'Checked'}))});
       KSMTest.app.state.pools={};KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={};KSMTest.app.state.singleElimComps={};KSMTest.app.state.brackets={};KSMTest.app.state.byeWinners={};KSMTest.app.state.currentByDivision={};
       KSMTest.app.generateDivisionState('Test');
     """)
@@ -82,7 +82,7 @@ with sync_playwright() as p:
     # Direct no-show keeps canonical node count and clears only entrant.
     page.evaluate("""
       KSMTest.app.state.generated=true;KSMTest.app.setDivisionLists({divisionTypes:{...KSMTest.app.state.divisionTypes,Test:'Single Elimination'}});KSMTest.app.setDivisionLists({divisionCourts:{...KSMTest.app.state.divisionCourts,Test:'A'}});
-      KSMTest.app.state.competitors=Array.from({length:8},(_,i)=>({name:'N'+(i+1),dojo:'D',division:'Test',seed:'',status:'Checked'}));
+      KSMTest.app.setPeople({competitors: Array.from({length:8},(_,i)=>({name:'N'+(i+1),dojo:'D',division:'Test',seed:'',status:'Checked'}))});
       KSMTest.app.state.pools={};KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={};KSMTest.app.state.singleElimComps={};KSMTest.app.state.currentByDivision={};
       KSMTest.app.generateDivisionState('Test');window.__nodeCount=KSMTest.app.state.singleElimNodes.Test.length;
       KSMTest.app.applyIndividualNoShow('Test','N1');
@@ -94,7 +94,7 @@ with sync_playwright() as p:
     # Regenerate one division leaves another untouched.
     page.evaluate("""
       KSMTest.app.state.generated=true;KSMTest.app.setDivisionLists({divisions:['Test','Other'],divisionTypes:{Test:'Round Robin',Other:'Round Robin'},divisionCourts:{Test:'A',Other:'B'}});
-      KSMTest.app.state.competitors=[...Array.from({length:6},(_,i)=>({name:'T'+i,dojo:'D',division:'Test',seed:'',status:'Checked'})),...Array.from({length:6},(_,i)=>({name:'O'+i,dojo:'D',division:'Other',seed:'',status:'Checked'}))];
+      KSMTest.app.setPeople({competitors: [...Array.from({length:6},(_,i)=>({name:'T'+i,dojo:'D',division:'Test',seed:'',status:'Checked'})),...Array.from({length:6},(_,i)=>({name:'O'+i,dojo:'D',division:'Other',seed:'',status:'Checked'}))]});
       KSMTest.app.state.pools={};KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={};KSMTest.app.state.singleElimComps={};KSMTest.app.state.teamBracketNodes={};KSMTest.app.state.teamPools={};KSMTest.app.state.brackets={};KSMTest.app.state.byeWinners={};KSMTest.app.state.currentByDivision={};
       KSMTest.app.generateDivisionState('Test');KSMTest.app.generateDivisionState('Other');window.__other=JSON.stringify(KSMTest.app.state.allMatches.Other);
       KSMTest.app.regenerateSingleDivision('Test');

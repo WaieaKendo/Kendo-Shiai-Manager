@@ -1,5 +1,6 @@
 // @ts-check
-import {assignState,state} from '../app-state.js';
+import {state} from '../app-state.js';
+import {ksmLoadPeople,ksmSetPeople,ksmUpdatePerson} from './people-store.js';
 import {ksmSetDivisionCourt} from '../setup/divisions-store.js';
 import {renderDivisions} from '../court/court-match-order.js';
 import {ksmAddDaihyosenForTeamAwards} from '../engine/engine-standings-and-tiebreaks.js';
@@ -26,8 +27,10 @@ export function ksmNoteTeamsReassigned(before,after,source){
   console.warn('[KSM Team divisions] Teams of an unknown team division moved to the first one',source||'load',moved);
   writeCloudDiagnosticsState({stage:'Team division assignment repaired on load',teamsReassigned:moved});
 }
+// The load-time migration (a 4.0 save, the reset's empty state): the team divisions built and every team given an id and a
+// team division, one tournament/peopleLoaded with the two lists it changed (#15 PR 10; it assigned the whole state before).
 export function ksmTeamDivisions(){
-  if(!state.teamDivisions)assignState(KSMEngine.migrateTeamDivisions(/** @type {any} */(state),getSetupSnapshot()));
+  if(!state.teamDivisions){const {teamDivisions,teams}=KSMEngine.migrateTeamDivisions(/** @type {any} */(state),getSetupSnapshot());ksmLoadPeople({teamDivisions,teams})}
   return [...state.teamDivisions].sort((a,b)=>a.order-b.order||a.id.localeCompare(b.id));
 }
 export function ksmTeamDivision(id){return (state.teamDivisions||[]).find(d=>d.id===id)}
@@ -63,20 +66,27 @@ export function ksmTeamSettings(id){
 function ksmTeamDivisionDrawn(id){return Boolean(id)&&(state.allMatches?.[id]||[]).length>0}
 /** Where a new team goes: the first team division without a draw (after generation), else the first. */
 export function ksmDefaultTeamDivisionId(){const rows=ksmTeamDivisions();return (rows.find(d=>!ksmTeamDivisionDrawn(d.id))||rows[0])?.id||''}
+// #15 PR 10: the team divisions are store data. Each edit below computes the new lists from the current ones (rows are
+// copied, never written in place; the stored array keeps its order, as the in-place writes kept it) and dispatches one
+// tournament/teamDivision… action with the lists it changed: `teamDivisions` and, when its teams change with it, `teams`.
+/** `teams` with `change(team)` merged into each team `pick(team)` selects (other teams kept as they are). */
+const teamsWith=(/** @type {(t:any)=>boolean} */ pick,/** @type {(t:any)=>object} */ change)=>(state.teams||[]).map(t=>pick(t)?{...t,...change(t)}:t);
 export function ksmAddTeamDivision(name='Team division'){
   const divisions=ksmTeamDivisions(),id=ksmNewTeamIdentity();
-  state.teamDivisions.push({id,name,teamFormat:'3-Person Team',teamTournamentFormat:'Single Elimination',court:'Both',awardMode:'top2',order:Math.max(-1,...divisions.map(d=>d.order))+1});
+  const added={id,name,teamFormat:'3-Person Team',teamTournamentFormat:'Single Elimination',court:'Both',awardMode:'top2',order:Math.max(-1,...divisions.map(d=>d.order))+1};
+  // The first team division takes the teams that have none.
+  ksmSetPeople('teamDivisionAdded',{teamDivisions:[...state.teamDivisions,/** @type {any} */ (added)],...(divisions.length?{}:{teams:teamsWith(t=>!t.teamDivisionId,()=>({teamDivisionId:id}))})});
   ksmSetDivisionCourt(id,'Both');
-  if(!divisions.length)state.teams.filter(t=>!t.teamDivisionId).forEach(t=>t.teamDivisionId=id);
   ksmTeamDivisionChanged();return id;
 }
 export function ksmUpdateTeamDivision(id,patch){
   const d=ksmTeamDivision(id);if(!d)return 'Team division no longer exists';
   if(patch.name!==undefined&&!String(patch.name).trim())return 'Enter a division name';
   if(ksmTeamDivisionDrawn(id)&&Object.keys(patch).some(k=>!['name','order','awardMode'].includes(k)))return 'Match format and court cannot change once this division is drawn';
-  Object.assign(d,patch,{id:d.id,name:String(patch.name??d.name).trim()});
-  if(patch.court)ksmSetDivisionCourt(id,d.court);// 'Team Tournament': the Setup's team court (ksmSetTeamCourt())
-  if(patch.teamFormat)state.teams.filter(t=>t.teamDivisionId===id).forEach(t=>t.type=d.teamFormat);
+  const next={...d,...patch,id:d.id,name:String(patch.name??d.name).trim()};
+  // Its teams take a new match format with it (one action).
+  ksmSetPeople('teamDivisionUpdated',{teamDivisions:state.teamDivisions.map(x=>x===d?next:x),...(patch.teamFormat?{teams:teamsWith(t=>t.teamDivisionId===id,()=>({type:next.teamFormat}))}:{})});
+  if(patch.court)ksmSetDivisionCourt(id,next.court);// 'Team Tournament': the Setup's team court (ksmSetTeamCourt())
   if(id==='Team Tournament')ksmSyncLegacyTeamDivision();
   if(patch.awardMode)ksmAddDaihyosenForTeamAwards();
   ksmTeamDivisionChanged();return null;
@@ -84,7 +94,11 @@ export function ksmUpdateTeamDivision(id,patch){
 export function ksmMoveTeamDivision(id,direction){
   const rows=ksmTeamDivisions(),i=rows.findIndex(d=>d.id===id),j=i+(direction==='up'?-1:1);
   if(i<0||j<0||j>=rows.length)return;
-  [rows[i],rows[j]]=[rows[j],rows[i]];rows.forEach((d,index)=>d.order=index);ksmTeamDivisionChanged();
+  [rows[i],rows[j]]=[rows[j],rows[i]];
+  // Each division's `order` is its place in the new running order; the stored array keeps its own order.
+  const order=new Map(rows.map((d,index)=>[d.id,index]));
+  ksmSetPeople('teamDivisionMoved',{teamDivisions:state.teamDivisions.map(d=>d.order===order.get(d.id)?d:{...d,order:/** @type {number} */ (order.get(d.id))})});
+  ksmTeamDivisionChanged();
 }
 export function ksmRemoveTeamDivision(id){
   const rows=ksmTeamDivisions(),d=rows.find(d=>d.id===id);if(!d)return false;
@@ -93,16 +107,18 @@ export function ksmRemoveTeamDivision(id){
   const fallback=rows.find(x=>x.id!==id&&!ksmTeamDivisionDrawn(x.id))||(state.generated?null:rows.find(x=>x.id!==id)),teams=state.teams.filter(t=>t.teamDivisionId===id);
   if(teams.length&&!fallback){alert(state.generated?'Its teams need a team division without a draw: add one, or move them first.':'Add another team division before removing one with teams.');return false}
   if(teams.length&&!confirm(`Remove ${d.name}? Its ${teams.length} ${teams.length===1?'team':'teams'} will move to ${fallback.name}.`))return false;
-  state.teamDivisions=rows.filter(d=>d.id!==id);teams.forEach(t=>t.teamDivisionId=fallback.id);
+  // The rest in running order (as before: the sorted list is what is kept), its teams moved, one action.
+  ksmSetPeople('teamDivisionRemoved',{teamDivisions:rows.filter(d=>d.id!==id),...(teams.length?{teams:teamsWith(t=>t.teamDivisionId===id,()=>({teamDivisionId:fallback.id}))}:{})});
   // The 'Team Tournament' entry stays: it is the Setup's team court (ksmSetTeamCourt()), which saveSetup() wrote back on the next render.
   if(id!==KSMEngine.LEGACY_TEAM_DIVISION_ID)ksmSetDivisionCourt(id,null);
   ksmTeamDivisionChanged();return true;
 }
+// The team is the row object the caller read from state.teams (its index there names it, #15 PR 10).
 export function ksmAssignTeamDivision(team,id){
   const d=ksmTeamDivision(id);if(!d)return false;
   const from=ksmTeamDivision(team.teamDivisionId);
   if(team.teamDivisionId!==id&&(ksmTeamDivisionDrawn(team.teamDivisionId)||ksmTeamDivisionDrawn(id))){alert(`${ksmTeamDivisionDrawn(id)?d.name:from?.name||'Its division'} is drawn: teams cannot move into or out of it.`);ksmTeamDivisionChanged();return false}
-  team.teamDivisionId=id;team.type=d.teamFormat;ksmTeamDivisionChanged();return true;
+  ksmUpdatePerson('team',(state.teams||[]).indexOf(team),{teamDivisionId:id,type:d.teamFormat});ksmTeamDivisionChanged();return true;
 }
 function ksmTeamDivisionChanged(){
   ksmRenderTeamDivisions();renderDivisions();renderTeams();renderTournamentStatus();scheduleAutoSave('Team divisions');

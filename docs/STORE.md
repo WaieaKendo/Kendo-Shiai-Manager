@@ -1,8 +1,8 @@
 # The store: plan for moving `state` into Redux Toolkit (#15 step 2.8)
 
-Status (2026-11-14): **prep done (PR 2), Undo/Redo without device keys (PR 3), loads keep the device view (PR 4), device fields moved: `regMode`, `poolViewDivision` (PR 5), the court view (PR 6), `matches` derived and `current` / `score` moved (PR 7), the Setup form in `tournament.settings` (PR 8), `teamAwardMode` and the team court read it (PR 8b), the divisions (PR 9)**. `app/store/` holds a Redux Toolkit store (slices
+Status (2026-11-15): **prep done (PR 2), Undo/Redo without device keys (PR 3), loads keep the device view (PR 4), device fields moved: `regMode`, `poolViewDivision` (PR 5), the court view (PR 6), `matches` derived and `current` / `score` moved (PR 7), the Setup form in `tournament.settings` (PR 8), `teamAwardMode` and the team court read it (PR 8b), the divisions (PR 9), the people (PR 10)**. `app/store/` holds a Redux Toolkit store (slices
 `tournament` and `device`). app.js imports it as a separate tree-shaken, minified
-bundle (+7.9 kB gzip, section 5) and sets `window.KSMStore`; `app/modules/app-state.js` has the helpers the field
+bundle (+9.2 kB gzip since PR 10, section 5) and sets `window.KSMStore`; `app/modules/app-state.js` has the helpers the field
 moves use (`moveToStore()`, `replaceState()`, `assignState()`, section 2). All app data is still the one mutable
 global `state` (`app/modules/app-state.js`). This document is the inventory of that object and the order in which
 its fields move into the store. Decision: Redux Toolkit (issue #15, 2026-10-18); see ROADMAP.md "After the React
@@ -41,17 +41,17 @@ Class: **T** tournament data (shared, synced), **D** device/screen state (this d
 
 | Field | Refs / writes / files | Who writes it | Notes |
 |---|---|---|---|
-| `divisions` | 46 / 8 / 11 | setup (division-setup), registration | **Moved (PR 9)** with the next four (section 3 item 9). Renames: one engine call (`renamedDivisionState`) rewrites `divisions`, `divisionTypes`, `divisionCourts`, `competitors` together: one action (`tournament/divisionRenamed`; `competitors` assigned just before it) |
+| `divisions` | 46 / 8 / 11 | setup (division-setup), registration | **Moved (PR 9)** with the next four (section 3 item 9). Renames: one engine call (`renamedDivisionState`) rewrites `divisions`, `divisionTypes`, `divisionCourts`, `competitors` together: one action (`tournament/divisionRenamed`, `competitors` in it since PR 10) |
 | `hiddenPresets` | 5 / 2 / 1 | setup (react-bridges/setup) | **Moved (PR 9)**: `presetHidden` / `presetsRestored` |
 | `divisionRenames` | 0 in app/modules (5 in 2 files by name) / via `Object.assign` / 2 | division rename (react-bridges/setup, through `renamedDivisionState`), the rebase (`rebaseDivisionRenames`) | The rename log `{id, from, to}` the save-conflict replay uses (#25, #36). **Moved (PR 9)**: appended by `tournament/divisionRenamed`; typed in `TournamentState` |
 | `divisionTypes` | 18 / 7 / 9 | setup, registration | **Moved (PR 9)**: `divisionFormatChanged` (and added / removed / renamed with the division) |
 | `divisionCourts` | 57 / 26 / 18 | setup, registration, team divisions, grand champion, court order, generation, **sync** (load normalizes `'Both'`→`'split'`), `applySetupSnapshot` (`teamCourt`) | **Moved (PR 9)**: `divisionCourtChanged`; its `'Team Tournament'` entry is derived from `settings.teamCourt` in the store (`withTeamCourt()`), so `ksmSetTeamCourt()` is `tournament/settingChanged` alone |
 | `teamAwardMode` | 0 (getter) | Setup field `teamAwardMode` (`tournament/settingChanged`) | Since PR 8b a store getter over `settings.teamAwardMode` (section 3 item 8); the snapshot still carries it |
-| `competitors` | 30 / 8 / 9 | registration (+ its React bridge, rows edited in place) | Three-way merged on save conflicts (`KSM_MERGED_STATE_KEYS`) |
-| `teams` | 31 / 9 / 10 | registration | Merged by team id (#95) |
-| `teamDivisions` | 12 / 2 / 6 | team divisions (load-time migration `migrateTeamDivisions`) | |
+| `competitors` | 30 / 8 / 9 | registration (+ its React bridge, rows edited in place) | Three-way merged on save conflicts (`KSM_MERGED_STATE_KEYS`). **Moved (PR 10)** with the next three (section 3 item 10): `competitorAdded` / `…Updated` / `…Removed` / `…StatusCycled`, `peopleLoaded`; renamed with the division in `divisionRenamed` |
+| `teams` | 31 / 9 / 10 | registration | Merged by team id (#95). **Moved (PR 10)**: `team…` row actions; the team division edits that move or re-format teams carry them |
+| `teamDivisions` | 12 / 2 / 6 | team divisions (load-time migration `migrateTeamDivisions`) | **Moved (PR 10)**: `teamDivisionAdded` / `…Updated` / `…Moved` / `…Removed`; the migration is `peopleLoaded` |
 | `grandChampions` | 10 / 3 / 4 | grand champion | |
-| `exhibitions` | 11 / 5 / 4 | registration | |
+| `exhibitions` | 11 / 5 / 4 | registration | **Moved (PR 10)**: `exhibition…` row actions |
 | `awards` | 8 / 4 / 3 | results (`ksmSetResultAward` edits a row in place) | |
 | `generated` | 23 / 2 / 11 | generation, registration (clear) | |
 | `managementRevision` | 14 / 7 / 5 | generation, pool edits, undo-regenerate, sync | Bumped by structural edits; the rebase compares it |
@@ -134,8 +134,9 @@ with `meta.court`); only who writes them changed (`setCourtPointer()`).
 - **Whole-object writes to `state`** (the mechanism below must handle each): `applyTournamentPayload()` and the
   tournament switcher (`Object.keys(state).forEach(k=>delete state[k]); Object.assign(state, loaded)`); division
   rename (`Object.assign(state, renamedDivisionState(...))`, react-bridges/setup; since PR 9 `assignState()` of the plain
-  fields it rewrites, then `tournament/divisionRenamed`); the team-division migration
-  (`Object.assign(state, migrateTeamDivisions(...))`); undo/redo `applyHistoryPatch()`, which walks a `patch-v1`
+  fields it rewrites, then `tournament/divisionRenamed`, with `competitors` in it since PR 10); the team-division migration
+  (`Object.assign(state, migrateTeamDivisions(...))`; since PR 10 `tournament/peopleLoaded` with the two lists it
+  changes); undo/redo `applyHistoryPatch()`, which walks a `patch-v1`
   path from `state` and writes in place; `historyComparableState()`, which deep-clones every key before and after a
   court action; grand champion removal (`state[key][c]`, `delete state[k][id]`).
 - **Device state outside `state`** → `device` slice when a screen needs it reactive: `ksmLocalCourtDivision`
@@ -164,8 +165,8 @@ Today ~50 files write `state.x` in place. The cutover:
    checklist (plus the alias writes, found by reading each writer). Reads stay `state.x` until a later cleanup.
 3. **Whole-object writes go through two helpers** (done in PR 2): `replaceState(loaded)` (load, remote apply,
    tournament switch: `applyTournamentPayload()`, `ksmResetTournament()` in `tournament-switcher.js`) and
-   `assignState(partial)` (the division rename in `react-bridges/setup.js`, the team-division migration in
-   `ksmTeamDivisions()`). Each dispatches one action for the store-owned keys (`legacy/stateReplaced` /
+   `assignState(partial)` (the division rename in `react-bridges/setup.js`; the team-division migration in
+   `ksmTeamDivisions()` until PR 10 made it `tournament/peopleLoaded`). Each dispatches one action for the store-owned keys (`legacy/stateReplaced` /
    `legacy/stateAssigned`, a list of `{path, value}` the root reducer puts in place; a store key missing from
    `loaded` is set to `undefined`) and assigns the rest exactly as `delete` + `Object.assign` did (tests:
    `tests/store/legacy.test.mjs`). Without them, `delete state[k]` + `Object.assign` would remove a getter and put
@@ -508,6 +509,47 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
 10. **People**: `competitors`, `teams`, `exhibitions`, `teamDivisions` → `tournament/competitorAdded`, `…Updated`,
    `…Removed`, `…StatusCycled`, team and exhibition equivalents, `teamDivision…`. Risk: medium (rows edited in
    place by the Registration bridge). Tests: registration goldens, the #95 merge tests.
+   Done (**PR 10**), no behaviour change (no golden changed):
+   - The four fields are `tournament` slice fields and `state` getters (`moveToStore()`, `app-state.js`): `competitors`,
+     `teams`, `exhibitions` start as `[]`; `teamDivisions` stays undefined (not in the snapshot) until the load-time
+     migration builds it, as before. The snapshot keeps every key, value, type and row order
+     (`tests/people-store-test.py` compares every key of the saved `state` with the PR 9 code's after 47 steps:
+     Registration edits, team divisions, exhibitions, a draw with edits after it, four kinds of load, four save conflicts).
+   - Actions: `competitorAdded` / `…Updated` (`{index, changes}`) / `…Removed` (`{index}`) / `…StatusCycled` (`{index}`,
+     the engine's `statusCycle()` in the reducer), the same four for `team…` and `exhibition…` (one reducer factory for
+     the three lists), `peopleLoaded` (whole lists: the samples, Clear, the team-division migration, the test API's
+     `setPeople()`), and `teamDivisionAdded` / `…Updated` / `…Moved` / `…Removed`, which set `teamDivisions` and, when a
+     team division edit changes its teams (the first one takes the teams without one; a new match format; a removal moves
+     them), `teams` in the same action. Every writer goes through `app/modules/registration/people-store.js`; readers keep
+     `state.x`. A source check (`tests/store/people.test.mjs`) fails on an assignment, a list method or a known alias write.
+   - **How a row is named: by its index.** Players and exhibition matches have no id, and a 4.0 save's teams get one only
+     at the migration, so a row action names its row by its index in the list, resolved by the caller right before the
+     dispatch in the same synchronous step: an inline handler's index, or the row the island showed (F17 / F20: its own
+     object, else the one row with the same fields in a new list; none or several: the edit is dropped with a notice, as
+     before). Tested with a list reordered by another device, a row removed before it and a filtered table.
+   - **Rows are store data**: each edit makes a new row object (untouched rows keep theirs), where the in-place write kept
+     the old one. Two places relied on that identity, and both follow the row now (`ksmCurrentPerson()`, `people-store.js`):
+     the island's bound rows (a typed field committed by the redraw a status click caused found its row by identity;
+     `golden-registration-teams` step 44), and the draw's own lists, which hold the drawn rows themselves until the next
+     load: an individual single elimination's entrants (`singleElimComps`) and a team bracket's teams (`teamElimTeams`,
+     whose rosters the next rounds' bouts are built from). An edit of such a row showed there too, so the new row takes
+     the old one's place there (a list a load gave holds copies, which no edit reached then or now). Round-robin pools
+     hold copies (checked on the PR 9 code).
+   - **The rename is one action**: `tournament/divisionRenamed` carries `competitors` from `renamedDivisionState()` with the
+     division lists (`KSM_RENAMED_STATE_KEYS`); the separate assignment is gone. `grandChampions`, `courtState` and
+     `courtActiveDivision` are still assigned just before it (PRs 11 and 13).
+   - **Team divisions and the team court**: unchanged. `ksmSyncLegacyTeamDivision()` still copies the 'Team Tournament'
+     team division's format, awards and court into the Setup, so its court wins over `settings.teamCourt` on a load and on
+     its own court edit (the snapshot test checks `divisionCourts['Team Tournament']` equals the Setup field after every
+     step, including the legacy team division's court edit and a load with team divisions).
+   - **Save conflicts**: unchanged. `competitors` (three-way) and `teams` (by id, #95) are merged on payload copies; the
+     result lands through `replaceState()` with the same rows in the same order (the snapshot test: both devices add, an
+     edit against a removal, a status cycled on both, teams by id with an add, an edit and a removal).
+   - **Undo/Redo and the restore point**: unchanged (a patch into a moved key goes through `assignState()`, section 2
+     point 8; the undo-regenerate restore point is a payload).
+   - Test code that wrote these fields sets them through `KSMTest.app.setPeople()`; a row is never edited in place there
+     either (a sloppy-mode test script would fail silently: `team-award-mode-change-test.py` did).
+   - The store bundle 8,964 → 9,206 bytes gzip, over the 9,000 budget: raised to 9,300 on purpose (section 5).
 11. **Awards and grand champion**: `awards`, `grandChampions` → `tournament/awardSet`, `grandChampion…`. Risk:
    low-medium. Tests: results goldens, grand champion tests.
 12. **Structure**: `pools`, `teamPools`, `brackets`, `championshipNodes`, `singleElimNodes`, `singleElimComps`,
@@ -572,6 +614,10 @@ call commands instead of window functions.
 - PR 9 (the divisions): the store bundle 8,611 → 8,964 bytes gzip (22,814 → 23,789 raw; the slice's initial lists, one
   shared reducer, `withTeamCourt()`); app.js 666,859 → 678,855 bytes (gzip 173,785 → 177,230: the helpers module, the engine edits and their JSDoc); the
   React bundle unchanged (625,991).
+- PR 10 (the people): the store bundle 8,964 → 9,206 bytes gzip (23,789 → 24,471 raw: 17 action names, one row reducer
+  factory, `statusCycle()`), over the 9,000 budget, which is now 9,300 (`tests/store-bundle-test.mjs`; the reducers are
+  already shared, the names are the cost); app.js 679,493 → 686,256 bytes (gzip 177,264 → 180,104: `people-store.js` and
+  its JSDoc); the React bundle unchanged (625,991).
 - Re-renders: `store.subscribe` listeners run on every dispatch, so selectors must be cheap and return stable
   references. A remote snapshot is one action, one notification (today `ksmNotifyStateChanged` coalesces per
   microtask). Immer copies only the changed path (structural sharing); the deep freeze of a loaded snapshot is one

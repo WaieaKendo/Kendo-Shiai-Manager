@@ -27,7 +27,7 @@ def main():
         preset = next(n for n in names if n.startswith('Yonenbu'))
         assert row(a, preset).locator(sel('setup-division-remove')).count() == 1, 'a preset row has no ×'
         # A preset with a registered player: asked first, then hidden; the player stays.
-        a.page.evaluate("d => { KSMTest.app.state.competitors.push({name: 'Kid One', dojo: 'D', division: d, seed: '', status: 'Checked'}); }", preset)
+        a.page.evaluate("d => { KSMTest.app.setPeople({competitors: [...KSMTest.app.state.competitors, {name: 'Kid One', dojo: 'D', division: d, seed: '', status: 'Checked'}]}); }", preset)
         a.expect_dialog(f'Remove {preset}?', True)
         row(a, preset).locator(sel('setup-division-remove')).click()
         a.wait_for(lambda: preset not in a.page.evaluate(ROWS), message='the preset to be removed')

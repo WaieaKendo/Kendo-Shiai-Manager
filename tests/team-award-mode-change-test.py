@@ -59,8 +59,9 @@ def offline_tied_check(browser, problems):
     page.select_option(sel('team-division-awardMode'), label='Champion only')
     app.configure([{'team': True, 'format': '3-Person Team', 'tournament': 'Round Robin', 'teams': 4, 'court': 'A'}])
     assert play_round_robin(app) is None, 'Champion only: a daihyosen for 2nd'
-    # The mode names 2nd, but the state has no daihyosen for it (set without the Setup field).
-    shown = page.evaluate("() => { KSMTest.app.state.teamDivisions.find(d=>d.id==='Team Tournament').awardMode = 'top2'; return KSMTest.app.resultPlacements('Team Tournament').map(r => [r.place, r.name]); }")
+    # The mode names 2nd, but the state has no daihyosen for it (set without the Setup field; the team divisions are
+    # store data since #15 PR 10, so the row is replaced, not edited in place).
+    shown = page.evaluate("() => { KSMTest.app.setPeople({teamDivisions: KSMTest.app.state.teamDivisions.map(d => d.id === 'Team Tournament' ? {...d, awardMode: 'top2'} : d)}); return KSMTest.app.resultPlacements('Team Tournament').map(r => [r.place, r.name]); }")
     assert shown == [['1st', 'Team A'], ['2nd', TIED]], f'an awarded place still level was named: {shown}'
     page.close()
 

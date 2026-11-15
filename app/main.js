@@ -61,6 +61,7 @@ import {ksmDangerRegenerate,ksmSyncDangerZone} from './modules/setup/danger-zone
 import {courtSummaryFor,directorDivisionProgress,directorSingleElimTotal,initDirectorRefresh,ksmDirectorRefreshTimer,renderDirector,setDirectorRefreshTimer,tournamentSummary} from './modules/setup/director-progress.js';
 import {addCustomDivision,initSetupHeader,renderDivisionSetup,saveSetup,setDivisionCourt,setDivisionFormat,setSetDivisionCourt,syncSetupHeader,toggleDivision} from './modules/setup/division-setup.js';
 import {ksmReplaceDivisions} from './modules/setup/divisions-store.js';
+import {ksmLoadPeople} from './modules/registration/people-store.js';
 import {downloadActionHistorySample,downloadSnapshotAnalysis,readCloudDiagnosticsState,resetLegacyTournamentDataOnce,writeCloudDiagnosticsState} from './modules/sync/cloud-diagnostics.js';
 import {applyRemoteCloudRecord,applyTournamentPayload,closeCloudModal,cloudDiagnostics,confirmTournamentFileLoad,copyTextValue,copyTournamentId,disconnectCloudSocket,flushCloudOutbox,initCloudRealtime,isTvSession,ksmApplyingRemoteSnapshot,ksmCancelReplace,ksmCloudReconnectTimer,ksmCloudSaveInFlight,ksmCloudSavePending,ksmCloudSocket,ksmCloudTimer,ksmConfirmedMutationVersion,ksmDeferredRemoteRecord,ksmFileReplace,ksmLastSuccessfulSaveAt,ksmLocalMutationVersion,ksmPendingTournamentFile,ksmQueuedSaveRetryTimer,ksmReplaceAnyway,ksmSaveStatusMode,ksmSaveTimer,ksmSendCourtClock,ksmSendTieFlash,ksmTieFlashConnected,loadRecoveryFile,loadTournamentFromFile,manualSaveTournament,queueUnsyncedStaffWorkBeforeUnload,reconnectTvRealtime,renderCloudPresence,replaceTournamentFromFile,retryQueuedCloudSave,saveTournamentToCloudWithReason,setKsmApplyingRemoteSnapshot,setKsmCloudReconnectTimer,setKsmCloudSaveInFlight,setKsmCloudSavePending,setKsmCloudSocket,setKsmCloudTimer,setKsmConfirmedMutationVersion,setKsmDeferredRemoteRecord,setKsmLastSuccessfulSaveAt,setKsmLocalMutationVersion,setKsmPendingTournamentFile,setKsmSaveStatusMode,setKsmSaveTimer,showKsmToast,tournamentFilePayload,triggerLoadRecoveryFile,triggerLoadTournament,tvLink} from './modules/sync/cloud-realtime-save-and-load.js';
 import {applySetupSnapshot,autoSaveTournament,clearOutbox,cloudSession,downloadRecoveryFile,getSetupSnapshot,initCloudSession,initSetupSettings,ksmSetSetting,ksmSetting,ksmSessionRole,markLocalSave,persistCloudSession,readOutbox,renderPersistentSaveStatus,saveNow,setConnectionStatus,setKsmSessionRole,tournamentPayload,tournamentSettings,updateSaveStatus,writeOutbox} from './modules/sync/cloud-session-and-autosave.js';
@@ -197,6 +198,8 @@ Object.assign(window, {
   saveSetup, addCustomDivision, renderDivisionSetup, setDivisionFormat, syncSetupHeader, toggleDivision,
   // app/modules/setup/divisions-store.js: the division lists in one action (tests/lib/ksm-test-api.js)
   ksmReplaceDivisions,
+  // app/modules/registration/people-store.js: the people lists in one action (tests/lib/ksm-test-api.js)
+  ksmLoadPeople,
   // app/modules/session/tournament-switcher.js, app/modules/app-state.js
   ksmEmptyState, state,
   // app/modules/registration/team-divisions.js
