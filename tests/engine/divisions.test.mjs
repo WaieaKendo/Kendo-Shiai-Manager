@@ -5,7 +5,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  RENAME_AFTER_DRAW_MESSAGE, RENAME_EMPTY_MESSAGE, divisionRenameError, renamedDivisionState, presetNames, drawMade,
+  RENAME_AFTER_DRAW_MESSAGE, RENAME_EMPTY_MESSAGE, divisionAddError, divisionRenameError, renamedDivisionState, presetNames, drawMade,
   rebaseDivisionRenames, orphanedDivisionStructure, withoutDivisionStructure,
 } from '../../app/engine/divisions.ts';
 
@@ -49,8 +49,8 @@ test('names are trimmed, non-empty and unique among the divisions (case-insensit
   assert.match(divisionRenameError(s, PRESETS, 'Kids', ' MASTERS '), /already a division named "Masters"/);
   // A switched-off preset still has its row: its name is taken.
   assert.match(divisionRenameError(s, PRESETS, 'Kids', 'women’s open'), /already a division named "Women’s Open"/);
-  assert.match(divisionRenameError(s, PRESETS, 'Kids', 'team tournament'), /team event/);
-  assert.match(divisionRenameError(s, PRESETS, 'Kids', 'Exhibition Matches'), /exhibition/);
+  assert.match(divisionRenameError(s, PRESETS, 'Kids', 'team tournament'), /reserved for the team event/);
+  assert.match(divisionRenameError(s, PRESETS, 'Kids', 'Exhibition Matches'), /reserved for exhibition matches/);
   assert.equal(divisionRenameError(s, PRESETS, 'Kids', 'Kids'), null, 'the same name changes nothing');
   assert.equal(divisionRenameError(s, PRESETS, 'Kids', 'KIDS'), null, 'a change of case is allowed');
   assert.equal(divisionRenameError(s, PRESETS, 'Women’s Open', 'Women'), null, 'a switched-off preset can be renamed');
@@ -58,8 +58,39 @@ test('names are trimmed, non-empty and unique among the divisions (case-insensit
 });
 
 test('the team event and the exhibitions are not renamable', () => {
-  assert.match(divisionRenameError(st(), PRESETS, 'Team Tournament', 'Teams'), /team event/);
-  assert.match(divisionRenameError(st(), PRESETS, 'Exhibition Matches', 'Shows'), /Exhibition/);
+  assert.equal(divisionRenameError(st(), PRESETS, 'Team Tournament', 'Teams'), "The team event's name is fixed.");
+  assert.equal(divisionRenameError(st(), PRESETS, 'Exhibition Matches', 'Shows'), "Exhibition Matches' name is fixed.");
+});
+
+test('reserved-name messages say why, with the typed text', () => {
+  assert.equal(divisionAddError(' team tournament '), '"team tournament" is reserved for the team event; choose another name.');
+  assert.equal(divisionAddError('Exhibition Matches'), '"Exhibition Matches" is reserved for exhibition matches; choose another name.');
+  assert.equal(divisionRenameError(st(), PRESETS, 'Kids', ' TEAM TOURNAMENT '), '"TEAM TOURNAMENT" is reserved for the team event; choose another name.');
+  assert.equal(divisionRenameError(st(), PRESETS, 'Kids', 'exhibition matches'), '"exhibition matches" is reserved for exhibition matches; choose another name.');
+  assert.equal(divisionAddError('  '), RENAME_EMPTY_MESSAGE);
+  assert.equal(divisionAddError('Kids'), null);
+});
+
+test('L2: an individual division with a reserved name (a 4.0 save) can be renamed away; the team event cannot', () => {
+  for (const name of ['Team Tournament', 'Exhibition Matches']) {
+    const s = { divisions: ['Kids', name], divisionTypes: { Kids: 'Round Robin', [name]: 'Single Elimination' }, divisionCourts: { Kids: 'A', [name]: 'B' },
+      competitors: [{ division: name }] };
+    assert.equal(divisionRenameError(s, PRESETS, name, 'Open'), null, name);
+    assert.match(divisionRenameError(s, PRESETS, name, 'Kids'), /already a division named "Kids"/);
+    assert.match(divisionRenameError(s, PRESETS, name, 'Team Tournament' === name ? 'exhibition matches' : 'team tournament'), /reserved for/);
+    assert.equal(divisionRenameError({ ...s, generated: true }, PRESETS, name, 'Open'), RENAME_AFTER_DRAW_MESSAGE);
+    // Without a row in state.divisions it is the real team event / exhibitions: fixed.
+    const real = { ...s, divisions: ['Kids'] };
+    assert.match(divisionRenameError(real, PRESETS, name, 'Open'), /name is fixed\.$/);
+  }
+  const s = { divisions: ['Kids', 'Team Tournament'], divisionTypes: { Kids: 'Round Robin', 'Team Tournament': 'Single Elimination' },
+    divisionCourts: { Kids: 'A', 'Team Tournament': 'B' }, competitors: [{ division: 'Team Tournament' }] };
+  const out = renamedDivisionState(s, 'Team Tournament', 'Open');
+  assert.deepEqual(out.divisions, ['Kids', 'Open']);
+  assert.deepEqual(out.divisionTypes, { Kids: 'Round Robin', Open: 'Single Elimination' });
+  assert.equal(out.divisionCourts.Open, 'B', 'the individual division keeps the court it had under its own key');
+  assert.equal(out.divisionCourts['Team Tournament'], 'B', "the team court's entry stays (the store restores it from settings.teamCourt)");
+  assert.equal(out.competitors[0].division, 'Open');
 });
 
 test('nothing is renamed after the draw: the whole tournament generated, or a division with pools or matches', () => {

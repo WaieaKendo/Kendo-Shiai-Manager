@@ -44,7 +44,12 @@ export function renamedDivisionRecords(st: DivisionRecords, from: string, to: st
     out.divisions = st.divisions.map(d => (d === from ? to : d)).filter(d => (seen.has(d) ? false : (seen.add(d), true)));
   }
   if (st.divisionTypes) out.divisionTypes = renameKey(st.divisionTypes, from, to);
-  if (st.divisionCourts) out.divisionCourts = renameKey(st.divisionCourts, from, to);
+  if (st.divisionCourts) {
+    // The team court's entry stays (an individual division of that name, from a 4.0 save, gets its own key: the court it had).
+    out.divisionCourts = from === TEAM_COURT_KEY && Object.hasOwn(st.divisionCourts, from) && !Object.hasOwn(st.divisionCourts, to)
+      ? { ...st.divisionCourts, [to]: st.divisionCourts[from] as string }
+      : renameKey(st.divisionCourts, from, to);
+  }
   return out;
 }
 

@@ -131,13 +131,19 @@ def compare(name, got, want):
 def l1(page):
     """Add division refuses the team event's and the exhibitions' names; nothing changes, a toast says why."""
     global checks
+    # A fresh state without any "Team Tournament" division (the earlier steps loaded one, which would make "nothing was
+    # added" pass on old code too).
+    page.evaluate(*load({'divisions': ['Open'], 'divisionTypes': {'Open': 'Round Robin'}, 'divisionCourts': {'Open': 'A'}},
+                        {'teamCourt': 'B'}, drop=('teamDivisions',)))
     before = page.evaluate(SNAPSHOT)
+    assert page.evaluate('() => KSMTest.app.state.divisions') == ['Open']; checks += 1
     for name in ('Team Tournament', 'team tournament', 'Exhibition Matches'):
         add_custom(page, name, 'Round Robin', 'A')
         assert page.evaluate(SNAPSHOT) == before, f'{name} was added'; checks += 1
+        assert page.evaluate('() => KSMTest.app.state.divisions') == ['Open'], f'{name} was added'; checks += 1
         assert page.input_value('#customDivName') == name, 'the field keeps the text'; checks += 1
         toasts = page.evaluate('() => KSMTest.toasts()')
-        assert any('choose another name' in t for t in toasts[-1:]), toasts; checks += 1
+        assert any('is reserved for' in t and 'choose another name' in t for t in toasts[-1:]), toasts; checks += 1
     team_court_agrees(page, 'L1')
 
 
