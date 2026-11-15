@@ -25,8 +25,11 @@ From 2026-10-20 until 4.0.0 is released, `develop` holds **only 4.0**: the dev s
 - **New work (4.1):** PRs to **`next/4.1`** (pick it as the base). It is not deployed anywhere; CI still
   tests every PR. A change that raises `KSM_CLIENT_SCHEMA` / `MIN_CLIENT_SCHEMA` belongs here, never in
   `develop` before 4.0.0.
-- **Release:** `npm run release -- 4.0.0-rc.N` on `develop`, PR `develop` → `main` (deploys production),
-  then 4.0.0 the same way. No merges to `main` from about 11/7 until after 11/21 except emergency fixes.
+- **Every PR into `develop` while it is an rc** bumps the rc number: `npm run release -- rc`
+  (4.0.0-rc.N → rc.N+1) as the PR's last commit. CI's `version rules` job enforces it.
+- **Release:** when the candidate is approved, `npm run release -- final` (4.0.0-rc.N → 4.0.0) in a PR
+  into `develop`, then PR `develop` → `main` (deploys production). `main` never gets an rc version;
+  CI refuses one. No merges to `main` from about 11/7 until after 11/21 except emergency fixes.
 - **After 4.0.0:** merge `next/4.1` into `develop` (a merge commit) and delete `next/4.1`; work goes to
   `develop` again.
 
@@ -137,7 +140,15 @@ A release:
 npm run release -- 4.0.0
 ```
 
-runs `npm version 4.0.0 --no-git-tag-version` (`package.json` and `package-lock.json`), puts a draft `## v4.0.0` section at the top of `CHANGELOG.md` listing the commit subjects since the last `v*` tag (before the first tag: since the last version change), and runs `npm test`. It commits, tags and deploys nothing. Then: give the section a title and user-facing wording, commit, merge to `main`, `git tag v4.0.0 && git push origin v4.0.0`, run **Deploy production**. Bump the version only for a production release (every production deploy needs a new one); `develop` may carry a pre-release such as `4.1.0-dev` so the dev site's `/api/health` shows it is not production. `engineVersion` (`3.12.9`) is separate and frozen: it marks the saved data format.
+runs `npm version 4.0.0 --no-git-tag-version` (`package.json` and `package-lock.json`), puts a draft `## v4.0.0` section at the top of `CHANGELOG.md` listing the commit subjects since the last `v*` tag (before the first tag: since the last version change), and runs `npm test`. It commits, tags and deploys nothing. Then: give the section a title and user-facing wording, commit, merge to `main`, `git tag v4.0.0 && git push origin v4.0.0`, run **Deploy production**.
+
+Shortcuts, so nobody types a version by hand (rules in `scripts/version-rules.mjs`, also in `AGENTS.md` for agents):
+
+- `npm run release -- X.Y.Z-rc.1` starts the rc phase of `develop` before a tournament; new work goes to `next/<version>` from then on.
+- `npm run release -- rc` (X.Y.Z-rc.N → X.Y.Z-rc.(N+1)): every PR into `develop` during its rc phase, one bump per PR.
+- `npm run release -- final` (X.Y.Z-rc.N → X.Y.Z): the approved release, in a PR into `develop`, before `develop` → `main`.
+
+`main` is production and never carries a pre-release version: the required `test` check includes a `version rules` job that fails a PR into `main` whose version has a suffix or is not newer than `main`'s, and a PR into an rc-phase `develop` that does not take the next rc number (or the final version). Docs-only PRs skip the test workflow, so they are not checked. `engineVersion` (`3.12.9`) is separate and frozen: it marks the saved data format.
 
 ## Renaming production
 
