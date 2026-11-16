@@ -24,6 +24,26 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Release version rules (scripts/version-rules.mjs, docs/DEPLOYMENT.md): a PR into main must carry
+  # a new, non-rc version; a PR into develop in its rc phase must move rc.N to rc.N+1 (or to the
+  # final version). Other bases are not checked. Only on pull requests.
+  version:
+    name: version rules
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check package.json version against ${{ github.base_ref }}
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git fetch -q --depth=1 origin "refs/heads/$BASE_REF"
+          if ! git cat-file -e FETCH_HEAD:package.json 2>/dev/null; then echo "$BASE_REF has no package.json: no version rule to check"; exit 0; fi
+          base_version=$(git show FETCH_HEAD:package.json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).version||""))')
+          head_version=$(node -p 'require("./package.json").version')
+          node scripts/version-rules.mjs "$BASE_REF" "$base_version" "$head_version"
+
   shard:
     name: shard ${{ matrix.shard }}/4
     # Pinned to 24.04 until after the 11/21 tournament (ubuntu-latest moves to Ubuntu 26 from Oct 19, 2026).
@@ -74,15 +94,17 @@ jobs:
           # tournaments, so give each test up to 7 minutes here (180 s locally).
           KSM_TEST_TIMEOUT_MS: '420000'
 
-  # The one check to require: green only when every shard passed (also when a shard was cancelled or skipped).
+  # The one check to require: green only when every shard and the version rules passed (also when a shard was cancelled or skipped).
   test:
     name: test
-    needs: shard
+    needs: [shard, version]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: All shards passed
         run: |
-          echo "shards: ${{ needs.shard.result }}"
+          echo "shards: ${{ needs.shard.result }}, version rules: ${{ needs.version.result }}"
           test "${{ needs.shard.result }}" = "success"
+          # Skipped outside pull requests (deploy.yml's calls, Run workflow).
+          case "${{ needs.version.result }}" in success|skipped) ;; *) echo "::error::the version rules failed (see the 'version rules' job)"; exit 1 ;; esac

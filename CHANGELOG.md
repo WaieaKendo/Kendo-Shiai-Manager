@@ -1,3 +1,30 @@
+## v4.0.0-rc.2 — Split courts, tiebreaks and the TV
+
+Fixes and polish for the 11/21 tournament since rc.1. Reload every device once after the update.
+
+### Courts
+- **Split courts** keep both courts' results when their saves collide. A bracket stays split after the draw, pool seeds and kachinuki lineups are kept, and a division of 10 gets a bracket of 4.
+- **Changing a division's court after the draw** moves its unplayed matches. Generate starts each court on its own division.
+- **Refreshing a court page** (`/court/a`, `/court/b`) reopens that court for staff.
+
+### Pools, team divisions and results
+- **Tiebreaks:** players placed by a tiebreak have a `*` on their points, with a note under the pool and a Tiebreak section.
+- **A team added after the draw** can join a drawn team division that has not started.
+- **Results** shows a card for divisions that are not drawn yet, and a waiting grand champion.
+
+### TV and navigation
+- **The TV has no header** (no Staff Login on the TV). After a division it shows "Next: <division>", also in place of empty Upcoming cards.
+- **Courts and TV menu items are links** that open in a new tab; choosing one closes the phone menu.
+- Setup's × buttons are inline and red; Import CSV lists missing divisions once; a straight apostrophe matches names like "Women’s Open".
+
+### Saving
+- The server stays within its CPU budget on large tournaments, and a failed save keeps the live version.
+- Resetting a tournament clears changes that were not confirmed yet.
+
+### Behind the scenes
+- Release rules for contributors and AI agents (`AGENTS.md`): every PR into `develop` during an rc bumps the rc number, `main` never gets an rc, and CI checks both.
+- More tests and fewer flaky ones.
+
 ## v4.0.0-rc.1 — Ready for the 11/21 tournament
 
 The first 4.x release, built for the 11/21 tournament: a rebuilt app (same look, faster and better tested), new tournament structure, and much safer saving between devices. This is the first release candidate: it goes to production for testing, and fixes follow as rc.2, rc.3 … until 4.0.0.
