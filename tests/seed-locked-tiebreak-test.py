@@ -6,8 +6,8 @@ HTML=app_html()
 with sync_playwright() as p:
   b=launch_chromium(p);page=b.new_page();errs=[];page.on('pageerror',lambda e:errs.append(str(e)));load_app(page, HTML)
   page.evaluate("""
-    KSMTest.app.state.pools={Test:[{label:'A',size:3,players:[{name:'A',dojo:'D'},{name:'B',dojo:'D'},{name:'C',dojo:'D'}]}]};
-    KSMTest.app.state.brackets={Test:[['A1','A2']]};KSMTest.app.state.allMatches={Test:[]};KSMTest.app.setDivisionLists({divisionCourts:{Test:'A'}});
+    KSMTest.app.setDraw({pools:{Test:[{label:'A',size:3,players:[{name:'A',dojo:'D'},{name:'B',dojo:'D'},{name:'C',dojo:'D'}]}]}});
+    KSMTest.app.setDraw({brackets:{Test:[['A1','A2']]}});KSMTest.app.state.allMatches={Test:[]};KSMTest.app.setDivisionLists({divisionCourts:{Test:'A'}});
     const base=[{name:'A',dojo:'D',wins:1,pts:1},{name:'B',dojo:'D',wins:1,pts:1},{name:'C',dojo:'D',wins:1,pts:1}];
     KSMTest.app.initialPoolStandings=()=>base;
     // Series 1 locks A first, B/C tied.

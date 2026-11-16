@@ -24,7 +24,7 @@ with sync_playwright() as p:
     page.evaluate("""
       KSMTest.app.setDivisionLists({divisions:['Test'],divisionTypes:{Test:'Round Robin'},divisionCourts:{Test:'split'}});
       KSMTest.app.setPeople({competitors: Array.from({length:8},(_,i)=>({name:'P'+(i+1),dojo:'D',division:'Test',seed:'',status:'Checked'}))});
-      KSMTest.app.state.pools={};KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={};KSMTest.app.state.singleElimComps={};KSMTest.app.state.brackets={};KSMTest.app.state.championshipNodes={};KSMTest.app.state.byeWinners={};KSMTest.app.state.currentByDivision={};
+      KSMTest.app.setDraw({pools:{}});KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={};KSMTest.app.setDraw({singleElimComps:{}});KSMTest.app.setDraw({brackets:{}});KSMTest.app.state.championshipNodes={};KSMTest.app.setDraw({byeWinners:{}});KSMTest.app.state.currentByDivision={};
       KSMTest.app.generateDivisionState('Test');
       window.__standardCount=KSMTest.app.state.allMatches.Test.filter(m=>m.championship).length;
       window.__totalCount=KSMTest.app.state.allMatches.Test.length;
@@ -42,7 +42,7 @@ with sync_playwright() as p:
     # Individual pool tiebreak is approved and marked with an explicit origin/type.
     page.evaluate("""
       const pool={label:'Z',size:2,players:[{name:'ZA',dojo:'D'},{name:'ZB',dojo:'D'}]};
-      KSMTest.app.state.pools.Test.push(pool);
+      KSMTest.app.setDraw({pools:{...KSMTest.app.state.pools,Test:[...KSMTest.app.state.pools.Test,pool]}});
       const anchor={division:'Test',pool:'Z',white:'ZA',red:'ZB',wdojo:'D',rdojo:'D',done:true,wp:[],rp:[],type:'individual',court:'B'};
       KSMTest.app.state.allMatches.Test.push(anchor);
       const tb=KSMTest.app.makeTiebreakMatch('Test','Z',{name:'ZA',dojo:'D'},{name:'ZB',dojo:'D'},true,1,0);

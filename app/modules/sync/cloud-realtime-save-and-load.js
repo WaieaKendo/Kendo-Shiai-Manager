@@ -715,8 +715,10 @@ export function applyTournamentPayload(payload,saveAfter,options={}){
   // copy, before replaceState(), now that the courts are the store's (#15 PR 9; was a loop on the live state after it,
   // reading only what the copy holds: KSMEngine.loadedDivisionCourts()).
   loaded.divisionCourts=KSMEngine.loadedDivisionCourts(loaded);
+  // A save without `teamElimTeams` / `managementRevision` loads with {} / 0: on the copy, in that order, now that the
+  // revision is the store's (#15 PR 12a; both were set on the live state after the assign, which put them in this order).
+  loaded.teamElimTeams=loaded.teamElimTeams||{};loaded.managementRevision=loaded.managementRevision||0;
   replaceState(loaded);
-  state.teamElimTeams=state.teamElimTeams||{};state.managementRevision=state.managementRevision||0;
   if(localCourt){pinCourtLocally(localCourt);ksmSetCurrentCourt(normalizeCourt(localCourt))}else ksmSetCurrentCourt('A');
   if(isTvSession())ksmSetPublicCourt(normalizeCourt(localCourt||localPublicCourt));else ksmSetPublicCourt(normalizeCourt(localPublicCourt));
   applySetupSnapshot(payload.setup);

@@ -48,8 +48,9 @@ test('the Setup fields: the snapshot order, the page\'s defaults and select opti
   assert.deepEqual(JSON.parse(before), [...SETUP_KEYS]);
   const s = createKsmStore();
   // Since PR 9 the slice also holds the division lists (tests/store/divisions.test.mjs), since PR 10 the people
-  // (tests/store/people.test.mjs), since PR 11 the awards (tests/store/awards.test.mjs).
-  const { divisions, divisionTypes, divisionCourts, competitors, teams, exhibitions, awards, ...rest } = s.getState().tournament;
+  // (tests/store/people.test.mjs), since PR 11 the awards (tests/store/awards.test.mjs), since PR 12a the draw
+  // (tests/store/structure.test.mjs).
+  const { divisions, divisionTypes, divisionCourts, competitors, teams, exhibitions, awards, pools, teamPools, brackets, generated, managementRevision, ...rest } = s.getState().tournament;
   assert.deepEqual(rest, { sliceVersion: TOURNAMENT_SLICE_VERSION, settings: initialSettings });
 });
 

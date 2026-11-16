@@ -216,6 +216,10 @@ window.KSMTest = {
     // Results' awards editor and Setup's grand champion rows, as their islands call them (tests/awards-store-test.py).
     // Awards are store data (#15 PR 11): a test sets the list or a row's fields here, one action each; a row is never edited in place.
     setAwards: awards => ksmLoadAwards(awards),
+    // The draw (pools, teamPools, brackets, singleElimComps, byeWinners, generated, managementRevision) is store data too
+    // (#15 PR 12a): a test sets whole maps here, one action; a key it leaves out keeps its value. An entry is never edited
+    // in place: set the map again with the entry changed.
+    setDraw: lists => ksmSetDraw('drawEntriesUpdated', lists),
     setAward: (index, changes) => ksmSetAward(index, changes),
     addResultAward: (...a) => addResultAward(...a),
     removeResultAward: (...a) => removeResultAward(...a),

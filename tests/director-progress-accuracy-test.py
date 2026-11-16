@@ -14,10 +14,10 @@ with sync_playwright() as p:
 
     # Pool play: 6 pool bouts + a four-qualifier championship (3 bouts) = 9.
     page.evaluate("""
-      KSMTest.app.state.pools={PoolDiv:[
+      KSMTest.app.setDraw({pools:{PoolDiv:[
         {label:'A',players:[{name:'A1'},{name:'A2'},{name:'A3'}]},
         {label:'B',players:[{name:'B1'},{name:'B2'},{name:'B3'}]}
-      ]};
+      ]}});
       KSMTest.app.setDivisionLists({divisionTypes:{PoolDiv:'Round Robin'}});
       KSMTest.app.setDivisionLists({divisionCourts:{PoolDiv:'A'}});
       KSMTest.app.state.allMatches={PoolDiv:[
@@ -34,7 +34,7 @@ with sync_playwright() as p:
 
     # Direct elimination: Court Context nodes, not only instantiated first-round Match Objects.
     page.evaluate("""
-      KSMTest.app.state.pools.DirectDiv=[];
+      KSMTest.app.setDraw({pools:{...KSMTest.app.state.pools,DirectDiv:[]}});
       KSMTest.app.setDivisionLists({divisionTypes:{...KSMTest.app.state.divisionTypes,DirectDiv:'Single Elimination'}});
       KSMTest.app.setDivisionLists({divisionCourts:{...KSMTest.app.state.divisionCourts,DirectDiv:'A'}});
       KSMTest.app.state.singleElimNodes={DirectDiv:[

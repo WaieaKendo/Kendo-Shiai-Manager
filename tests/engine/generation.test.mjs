@@ -10,6 +10,9 @@ import { eligibleIndividuals, eligibleTeams, generateDivision } from '../../app/
 import { readSettings } from '../../app/engine/settings.ts';
 import { html, withDependencies, extractFunction } from '../lib/ksm-source.mjs';
 import { gitShow, gitListAppJs } from '../lib/git-show.mjs';
+import { drawHelpers } from '../lib/draw-helpers.mjs';
+
+const DRAW_HELPERS = ['ksmSetDraw', 'ksmDrawWith', 'ksmEditedPools', 'ksmNextManagementRevision', 'KSM_DRAW_KEYS'];
 
 const OLD = 'e7312a6';
 const people = (n, div = 'Open') => Array.from({ length: n }, (_, i) => ({ name: `P${String(i + 1).padStart(2, '0')}`, dojo: `Dojo ${'ABC'[i % 3]}`, seed: '', status: 'Checked', division: div }));
@@ -65,11 +68,12 @@ test('F21: the Setup team court A or B puts every team bout on that court; Both 
 test('F21: generateDivisionState keeps later team bracket bouts on the Setup team court', () => {
   // ksmSetTeamCourt() (#15 PR 8b) also sets the Setup field in the store: here only its divisionCourts entry. Since PR 9
   // the division courts are store data too, written by ksmSetDivisionCourt() (the legacy team division's: the team court).
-  const exclude = ['state', 'alert', 'console', 'tournamentSettings', 'ksmSetTeamCourt', 'ksmSetDivisionCourt'];
+  // Since PR 12a the draw is store data, written by app/modules/engine/structure-store.js: here its helpers on the plain state (drawHelpers).
+  const exclude = ['state', 'alert', 'console', 'tournamentSettings', 'ksmSetTeamCourt', 'ksmSetDivisionCourt', ...DRAW_HELPERS];
   const code = withDependencies(html, extractFunction(html, 'generateDivisionState'), { exclude });
   for (const court of ['A', 'B']) {
     const ctx = vm.createContext({ alert() {}, console: { warn() {}, error() {}, info() {}, log() {} } });
-    vm.runInContext(code, ctx);
+    vm.runInContext(drawHelpers, ctx); vm.runInContext(code, ctx);
     ctx.tournamentSettings = () => settings({ teamTournamentFormat: 'Single Elimination', teamFormat: '3-Person Team' });
     ctx.ksmSetTeamCourt = c => { ctx.state.divisionCourts['Team Tournament'] = c; };
     ctx.ksmSetDivisionCourt = (d, c) => { if (d === 'Team Tournament') ctx.ksmSetTeamCourt(c); else if (c === null) delete ctx.state.divisionCourts[d]; else ctx.state.divisionCourts[d] = c; };
@@ -94,13 +98,14 @@ test('generateDivisionState equals the pre-move legacy code on every golden scen
   assert.ok(/KSMEngine\.generateDivision\(/.test(extractFunction(html, 'generateDivisionState')), 'current code delegates');
   // ksmSetTeamCourt() (#15 PR 8b) also sets the Setup field in the store: here only its divisionCourts entry. Since PR 9
   // the division courts are store data too, written by ksmSetDivisionCourt() (the legacy team division's: the team court).
-  const exclude = ['state', 'alert', 'console', 'tournamentSettings', 'ksmSetTeamCourt', 'ksmSetDivisionCourt'];
+  // Since PR 12a the draw is store data, written by app/modules/engine/structure-store.js: here its helpers on the plain state (drawHelpers).
+  const exclude = ['state', 'alert', 'console', 'tournamentSettings', 'ksmSetTeamCourt', 'ksmSetDivisionCourt', ...DRAW_HELPERS];
   const code = src => withDependencies(src, extractFunction(src, 'generateDivisionState'), { exclude });
   const legacyCode = code(oldSrc), currentCode = code(html);
   const run = (src, setup, over) => {
     const alerts = [];
     const ctx = vm.createContext({ alert: m => alerts.push(m), console: { warn() {}, error() {}, info() {}, log() {} } });
-    vm.runInContext(src, ctx);
+    vm.runInContext(drawHelpers, ctx); vm.runInContext(src, ctx);
     ctx.tournamentSettings = () => settings(over);
     ctx.ksmSetTeamCourt = c => { ctx.state.divisionCourts['Team Tournament'] = c; };
     ctx.ksmSetDivisionCourt = (d, c) => { if (d === 'Team Tournament') ctx.ksmSetTeamCourt(c); else if (c === null) delete ctx.state.divisionCourts[d]; else ctx.state.divisionCourts[d] = c; };

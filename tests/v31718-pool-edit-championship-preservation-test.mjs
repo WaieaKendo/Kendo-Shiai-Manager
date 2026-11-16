@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { extractFunction, engine, html as appSource, sw as appServiceWorker } from './lib/ksm-source.mjs';
+import { drawHelpers } from './lib/draw-helpers.mjs';
 
 const html=appSource;
 const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));
@@ -31,6 +32,7 @@ context.seedNameForLabel=()=>null;
 context.ksmPoolEditToSave=div=>context.state.pools[div];
 vm.createContext(context);
 vm.runInContext(`${engine}
+${drawHelpers}
 const POOL_MATCH_TEMPLATES=Object.freeze({
   2:Object.freeze([[0,1]]),
   3:Object.freeze([[0,1],[2,1],[2,0]]),
@@ -46,6 +48,7 @@ function roundMatchCountForDivision(div,round){
 }
 ${extractFunction(html,'divisionCourtMode')}
 ${extractFunction(html,'poolCourtFor')}
+${extractFunction(html,'ksmKeepPoolCourt')}
 ${extractFunction(html,'poolPlayerSlotLetter')}
 ${extractFunction(html,'assignPoolPlayerSlots')}
 ${extractFunction(html,'poolPlayerSlot')}

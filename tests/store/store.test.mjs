@@ -18,7 +18,9 @@ test('two slices, tournament (its version and the Setup settings) and device (it
       // The people (PR 10): no rows; no team divisions until the load-time migration builds them.
       competitors: [], teams: [], exhibitions: [],
       // The awards (PR 11): none; no grand champions until one is added.
-      awards: [] },
+      awards: [],
+      // The draw (PR 12a): not generated; no single elimination entrants or bye winners until Generate Tournament.
+      pools: {}, teamPools: {}, brackets: {}, generated: false, managementRevision: 0 },
     device: { sliceVersion: DEVICE_SLICE_VERSION, regMode: 'individual', poolViewDivision: 'Women’s Open', currentCourt: 'A', publicCourt: 'A', currentDivision: 'Women’s Open', localCourtDivision: { A: null, B: null },
       currentMatchIndex: 0, activeScore: { A: { W: [], R: [], WT: 0, RT: 0 }, B: { W: [], R: [], WT: 0, RT: 0 } } },
   });

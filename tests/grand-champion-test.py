@@ -64,7 +64,7 @@ def local_cases(browser):
     app.expect_dialog('Create Staff password')  # an offline page's autosave offers the cloud
     app.configure(DIVISIONS[:2])
     # Setup: add the row with the island's controls (before the draw).
-    page.evaluate('KSMTest.app.state.generated=false;KSMTest.app.renderAll()')
+    page.evaluate('KSMTest.app.setDraw({generated:false});KSMTest.app.renderAll()')
     app.nav('setup')
     # One grand champion for now: the Enabled switch adds it (no Add button, no Order).
     assert not page.locator(sel('grand-champion-add')).count() and not page.locator(sel('grand-champion-up')).count()
@@ -216,7 +216,7 @@ def pool_and_fusen_cases(browser):
     app = KsmApp.local(page, problems=problems)
     app.expect_dialog('Create Staff password')
     app.configure(DIVISIONS)
-    page.evaluate('KSMTest.app.state.generated=false')
+    page.evaluate('KSMTest.app.setDraw({generated:false})')
     gc = page.evaluate("KSMTest.addGrandChampion(['Open','Women','Masters'],{format:'Round Robin',court:'A',name:'Champions Pool'})")
     assert page.evaluate("id=>KSMTest.updateGrandChampion(id,{format:'Round Robin'})", gc) is None
     page.evaluate('KSMTest.app.generatePools({validated:true})')
@@ -244,7 +244,7 @@ def pool_and_fusen_cases(browser):
     page.evaluate("KSMTest.app.toggleDivision('Masters',true)")
 
     # The same person won two sources: no draw until the director picks the runner-up for one.
-    page.evaluate("""()=>{const st=KSMTest.app.state;st.generated=false;
+    page.evaluate("""()=>{const st=KSMTest.app.state;KSMTest.app.setDraw({generated:false});
       KSMTest.app.setPeople({competitors:st.competitors.map(c=>c.division==='Masters'&&c.name==='Eli'?{...c,name:'Aki',dojo:'Aki Dojo'}:c)});}""")
     dup = page.evaluate("KSMTest.addGrandChampion(['Open','Masters'],{name:'Twice'})")
     page.evaluate('KSMTest.app.generatePools({validated:true})')
@@ -262,7 +262,7 @@ def pool_and_fusen_cases(browser):
 
     # PR review: a pool of winners under way; a winner who has not played yet withdraws, the runner-up
     # takes their place (no question, nothing played touched).
-    page.evaluate("""()=>{const st=KSMTest.app.state;st.generated=false;
+    page.evaluate("""()=>{const st=KSMTest.app.state;KSMTest.app.setDraw({generated:false});
       KSMTest.app.setPeople({competitors:st.competitors.map(c=>c.division==='Masters'&&c.name==='Aki'?{...c,name:'Eli',dojo:'Eli Dojo'}:c)});}""")
     sub = page.evaluate("KSMTest.addGrandChampion(['Open','Women','Masters'],{format:'Round Robin',court:'B',name:'Sub Pool'})")
     page.evaluate('KSMTest.app.generatePools({validated:true})')
@@ -294,7 +294,7 @@ def merge_cases(browser, base):
     a = KsmApp.open_device(browser, base, 'A', problems, tournament_name='Grand champion sync')
     tid = a.create_tournament(); a.wait_idle()
     a.page.evaluate('entries=>KSMTest.configure(entries)', DIVISIONS[:2])
-    a.page.evaluate('KSMTest.app.state.generated=false')
+    a.page.evaluate('KSMTest.app.setDraw({generated:false})')
     gc = a.page.evaluate("KSMTest.addGrandChampion(['Open','Women'],{court:'A'})")
     a.save_now(); a.wait_idle()
     b = KsmApp.open_device(browser, base, 'B', problems, f'?tournament={tid}')
@@ -321,7 +321,7 @@ def merge_cases(browser, base):
     assert 'Grand champion' in b.page.evaluate('KSMTest.diagnostics().mergeConflicts'), b.page.evaluate('KSMTest.diagnostics()')
 
     # Both sources finish at once on two devices (B's save meets A's): one draw, both winners.
-    a.page.evaluate('KSMTest.app.state.generated=false')
+    a.page.evaluate('KSMTest.app.setDraw({generated:false})')
     gc = a.page.evaluate("KSMTest.addGrandChampion(['Open','Women'],{court:'B',name:'Grand Champion'})")
     a.page.evaluate('KSMTest.app.generatePools({validated:true})')
     a.save_now(); a.wait_idle(); b.wait_revision(fetch_record(base, tid)['revision'])
@@ -350,7 +350,7 @@ def merge_cases(browser, base):
 
     # Review #86: B finishes the last source and scores the grand champion before its save lands; the
     # server copy has no draw yet (A saved meanwhile). B's draw and score are kept.
-    a.page.evaluate('KSMTest.app.state.generated=false')
+    a.page.evaluate('KSMTest.app.setDraw({generated:false})')
     late = a.page.evaluate("KSMTest.addGrandChampion(['Open','Women'],{court:'B',name:'Late'})")
     a.page.evaluate('KSMTest.app.generatePools({validated:true})')
     play_court(a, 'A', [['W', 'M']])
@@ -365,7 +365,7 @@ def merge_cases(browser, base):
     assert b.conflicts() >= 3, b.conflicts()
 
     # PR review: two devices withdraw different winners at once: both stand-ins are kept.
-    a.page.evaluate('''entries=>{const st=KSMTest.app.state;st.generated=false;KSMTest.app.setDivisionLists({divisions:[...st.divisions,'Masters'],divisionTypes:{...st.divisionTypes,Masters:'Single Elimination'},
+    a.page.evaluate('''entries=>{const st=KSMTest.app.state;KSMTest.app.setDraw({generated:false});KSMTest.app.setDivisionLists({divisions:[...st.divisions,'Masters'],divisionTypes:{...st.divisionTypes,Masters:'Single Elimination'},
       divisionCourts:{...st.divisionCourts,Masters:'A'}});KSMTest.app.setPeople({competitors:[...st.competitors,...entries.map(e=>({...e,division:'Masters'}))]});}''', DIVISIONS[2]['entrants'])
     both = a.page.evaluate("KSMTest.addGrandChampion(['Open','Women'],{court:'B',name:'Both out'})")
     tie = a.page.evaluate("KSMTest.addGrandChampion(['Open','Women','Masters'],{court:'B',name:'Tie Pool',format:'Round Robin'})")
