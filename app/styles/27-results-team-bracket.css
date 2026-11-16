@@ -1,0 +1,5 @@
+/* ksm:post-split-begin results-team-bracket */
+/* Results' team bracket pop-up: a team match row needs about 440px (both teams, wins and points
+   on each side); rounds at 260px cut off the red-side team. Rounds wrap instead. */
+.results-team-bracket{grid-template-columns:repeat(auto-fill,minmax(min(100%,450px),1fr))}
+/* ksm:post-split-end */
