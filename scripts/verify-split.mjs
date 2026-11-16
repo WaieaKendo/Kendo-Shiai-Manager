@@ -354,6 +354,8 @@ const KNOWN_POST_SPLIT_CSS_EDITS = {
   'modal-above-header': 1,
   // fix/results-team-bracket: app/styles/27-results-team-bracket.css, team bracket rounds wide enough for a match row.
   'results-team-bracket': 1,
+  // feat/brackets-tab: app/styles/28-brackets.css, a Brackets card's court tag (theme tokens).
+  'brackets-screen': 1,
 };
 // Old functions whose body now lives in app/engine/*.ts (parameter lists without braces).
 const MOVED_TO_ENGINE = [
@@ -585,6 +587,8 @@ const REMOVED_SHELL_RENDERER = [
 // 'now' must appear exactly once; the check puts 'before' back (before the test-ID step) and then
 // compares byte for byte, so any other markup change still fails.
 const MARKUP_EDITS = [
+  // feat/brackets-tab: Results is the Brackets screen (spectators look here for the draw all day).
+  ["        <h1>Results</h1>\n        <div class=\"results-gold-rule\"></div>\n        <p class=\"results-subtitle\">Final placements and special awards</p>", "        <h1>Brackets</h1>\n        <div class=\"results-gold-rule\"></div>\n        <p class=\"results-subtitle\">Draws, courts and final placements</p>"],
   // A new tournament starts with an empty Host and Location (examples as placeholders), not the original club's.
   ['<input id="tHost" value="Aiea Taiheiji Kendo Club" data-testid="setup-host">', '<input id="tHost" value="" placeholder="e.g. Aiea Taiheiji Kendo Club" data-testid="setup-host">'],
   ['<input id="tLocation" value="Halawa District Park" data-testid="setup-location">', '<input id="tLocation" value="" placeholder="e.g. Halawa District Park" data-testid="setup-location">'],

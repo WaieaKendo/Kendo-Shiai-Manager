@@ -30,14 +30,15 @@ def main():
                     app.nav('registration');app.click('reg-tab-pools')
                 elif screen=='court/b':app.open_court('B')
                 else:app.nav({'overview':'overview','live':'live-scores'}.get(screen,screen))
-                app.wait_for(lambda: app.address()==prefix+'/'+screen,message=screen+' path')
+                segment={'results':'brackets'}.get(screen,screen)  # Results is the Brackets screen, at /brackets
+                app.wait_for(lambda: app.address()==prefix+'/'+segment,message=screen+' path')
                 assert app.visible_view()==[view]
                 assert app.page.evaluate('history.length')==length,screen
                 app.blur();app.wait_idle()
                 app.reload()
                 # A staff reload keeps every screen, a court's too (#121; before: court addresses reloaded to Live Scores).
                 expected_view=view
-                expected_address=prefix+'/'+screen
+                expected_address=prefix+'/'+segment
                 assert app.visible_view()==[expected_view],(screen,app.visible_view())
                 assert app.address()==expected_address,(screen,app.address())
                 assert app.tournament_id()==tid

@@ -215,6 +215,12 @@ test('slug suggestions preserve a named year, normalize names and avoid reserved
 
 
 test('each app screen has ID and slug paths, canonical spelling and reserved roots', () => {
+  // Results is the Brackets screen: /brackets is its address, /results (older links) opens it and moves to /brackets.
+  assert.equal(isValidSlug('brackets'),false);
+  assert.equal(routePath({screen:'results',id:'lokt-2027',slug:'lokt-2027'}),'/lokt-2027/brackets');
+  assert.deepEqual(parseRoutePath('/lokt-2027/results'),{screen:'results',id:'lokt-2027',slug:'lokt-2027'});
+  assert.equal(resolveUrl('/lokt-2027/results','').redirect,'/lokt-2027/brackets');
+  assert.equal(servesAppShell('/lokt-2027/brackets'),true);
   for(const screen of ['overview','results','setup','registration','pools']) {
     assert.equal(isValidSlug(screen),false,screen);
     assert.equal(parseRoutePath('/'+screen).screen,'home',screen);
@@ -222,7 +228,8 @@ test('each app screen has ID and slug paths, canonical spelling and reserved roo
       const path=routePath(route);
       assert.deepEqual(parseRoutePath(path),route);
       const prefix=route.slug?'/lokt-2027':`/t/${ID}`;
-      assert.equal(resolveUrl(prefix+'/'+screen.toUpperCase()+'/', '?option=kept').redirect,prefix+'/'+screen+'?option=kept');
+      const segment=screen==='results'?'brackets':screen; // Results is the Brackets screen
+      assert.equal(resolveUrl(prefix+'/'+segment.toUpperCase()+'/', '?option=kept').redirect,prefix+'/'+segment+'?option=kept');
       assert.equal(new URLSearchParams(legacyQuery(route,'?option=kept')).get('view'),screen);
       assert.equal(servesAppShell(path),true);
       assert.equal(servesOverlay(path),false);

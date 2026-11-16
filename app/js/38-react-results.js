@@ -28,8 +28,24 @@ function ksmPublishResultsBracket(input){
   window.ksmResultsBracketInput=input;
   window.dispatchEvent(new CustomEvent('ksm:results-bracket'));
 }
+// Where a division is played (Brackets screen): the courts of its matches (matchBelongsToCourt()),
+// or before the draw Setup's court ('A', 'B', 'Both'/'split': both); nowOn the courts whose active
+// division it is (courtSummaryFor(), Overview's rule).
+function ksmResultCourts(div){
+  const all=state.allMatches?.[div]||[];
+  let courts=['A','B'].filter(c=>all.some(m=>matchBelongsToCourt(m,c)));
+  if(!all.length){
+    const team=ksmTeamDivisions().find(d=>d.id===div),mode=String(team?team.court:(state.divisionCourts?.[div]||'')).toLowerCase();
+    courts=mode==='a'?['A']:mode==='b'?['B']:(mode==='both'||mode==='split')?['A','B']:[];
+  }
+  const nowOn=all.length?['A','B'].filter(c=>courtSummaryFor(c).division===div&&!divisionComplete(div)):[];
+  return {courts,nowOn};
+}
 // resultCardHtml(div) as data: placements null for the in-progress card (none yet).
 function ksmResultCard(div){
+  return {...ksmResultCardBase(div),...ksmResultCourts(div)};
+}
+function ksmResultCardBase(div){
   const placements=resultPlacements(div),roundRobin=isTeamRoundRobinDivision(div);
   if(!placements.length){
     const progress=roundRobin?teamRoundRobinProgress(div):null;
@@ -48,7 +64,7 @@ function ksmResultPlaceholder(div){
   const gc=ksmGrandChampion(div);
   const waiting=gc?(gc.sources||[]).filter(s=>!divisionComplete(s)).map(s=>ksmText(ksmDivisionName(s))):[];
   return {division:ksmText(div),name:ksmDivisionName(div),roundRobin:false,placements:null,progress:null,
-    ...(waiting.length?{waitingFor:waiting}:{notDrawn:true})};
+    ...(waiting.length?{waitingFor:waiting}:{notDrawn:true}),...(gc?{}:ksmResultCourts(div))};
 }
 function ksmResultsDashboardInput(){
   const drawn=div=>(state.allMatches?.[div]||[]).length>0;

@@ -1,0 +1,6 @@
+/* ksm:post-split-begin brackets-screen */
+/* Brackets (the Results screen): where a division is played, under its name. "Now on Court A" is
+   the division being played. Theme tokens. */
+.result-card-court{margin:-4px 0 8px;color:var(--muted);font-size:12px;font-weight:850;letter-spacing:.04em;text-transform:uppercase}
+.result-card-court.live{color:var(--green)}
+/* ksm:post-split-end */

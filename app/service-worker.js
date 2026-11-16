@@ -6,7 +6,7 @@ const APP_SHELL = [
   '/assets/ksm-fuji-logo.svg', '/assets/ksm-fuji-logo-nav.svg',
   '/assets/KSM-Background-watermark.svg', '/assets/ksm-seigaiha-light.svg', '/assets/ksm-seigaiha-dark.svg',
   '/assets/nav-icons/setup.svg', '/assets/nav-icons/registration.svg', '/assets/nav-icons/courts.svg',
-  '/assets/nav-icons/live-scores.svg', '/assets/nav-icons/search.svg', '/assets/nav-icons/results.svg',
+  '/assets/nav-icons/live-scores.svg', '/assets/nav-icons/search.svg', '/assets/nav-icons/results.svg', '/assets/nav-icons/brackets.svg',
   '/assets/sounds/whistle01.mp3', '/assets/sounds/whistle02.mp3',
 ];
 // Path URLs (M.9, the scheme in app/engine/routes.ts): the app answers /, /index.html and every
@@ -20,11 +20,11 @@ function isOverlayPath(pathname) {
 }
 const RESERVED_SLUGS = ['api', 't', 'print', 'privacy', 'overlay', 'assets', 'icons', 'index.html',
   'index', 'app', 'app.js', 'app.css', 'engine.js', 'service-worker.js', 'manifest.webmanifest',
-  'favicon.ico', 'robots.txt', 'court', 'tv', 'live', 'overview', 'results', 'setup', 'registration', 'pools', 'react', 'styles', 'js', 'public', '.well-known'];
+  'favicon.ico', 'robots.txt', 'court', 'tv', 'live', 'overview', 'results', 'brackets', 'setup', 'registration', 'pools', 'react', 'styles', 'js', 'public', '.well-known'];
 function servesAppShell(pathname) {
   if (pathname === '/' || pathname === '/index.html') return true;
   if (pathname === '/t' || pathname.startsWith('/t/')) return !isOverlayPath(pathname);
-  const match=pathname.match(/^\/([a-z0-9]+(?:-[a-z0-9]+)*)(?:\/(live|overview|results|setup|registration|pools|court|tv)(?:\/([ab]))?)?\/?$/i);
+  const match=pathname.match(/^\/([a-z0-9]+(?:-[a-z0-9]+)*)(?:\/(live|overview|results|brackets|setup|registration|pools|court|tv)(?:\/([ab]))?)?\/?$/i);
   if (!match || match[1].length>80 || match[1]!==match[1].toLowerCase() || RESERVED_SLUGS.includes(match[1])) return false;
   return !(!['court','tv'].includes(match[2]?.toLowerCase()) && match[3]);
 }

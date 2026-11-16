@@ -103,7 +103,7 @@ export const NAV_ENTRIES: readonly NavEntry[] = [
       })),
     ],
   },
-  { kind: 'tile', className: 'nav-tile', title: 'Results', testId: 'nav-results', icon: 'results', label: 'Results', action: call('navigateTo', 'results') },
+  { kind: 'tile', className: 'nav-tile', title: 'Brackets', testId: 'nav-results', icon: 'results', label: 'Brackets', action: call('navigateTo', 'results') },
   { kind: 'tile', className: 'nav-tile director-only', title: 'Registration', testId: 'nav-registration', icon: 'registration', label: 'Registration', action: call('openRegistrationTab', 'individual') },
   { kind: 'tile', className: 'nav-tile director-only setup-nav-tile', title: 'Setup', testId: 'nav-setup', icon: 'setup', label: 'Setup', action: call('navigateTo', 'setup') },
 ];
