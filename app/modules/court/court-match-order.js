@@ -17,18 +17,19 @@ import {applyCourtSides,localCourtDivision,pinCourtLocally,rememberLocalCourtDiv
 import * as KSMEngine from '../../engine/index.ts';
 export function isTeamMatch(m){return KSMEngine.isTeamMatch(m);// moved to app/engine/match-helpers.ts
   }
-function teamNodeOrderMap(div){let map={};(state.teamBracketNodes?.[div]||[]).forEach((n,i)=>map[n.id]=i);return map}
+/** Node id -> its place in the bracket; `nodes` (a draw not in the store yet) instead of the division's nodes. */
+function teamNodeOrderMap(div,nodes=state.teamBracketNodes?.[div]){let map={};(nodes||[]).forEach((n,i)=>map[n.id]=i);return map}
 function teamPairOrderMap(div){let map={},next=0;(state.allMatches[div]||[]).forEach(m=>{if(isTeamMatch(m)&&m.teamPair&&map[m.teamPair]==null)map[m.teamPair]=next++});return map}
 function teamPositionOrder(m){return KSMEngine.teamPositionOrder(m);// moved to app/engine/match-helpers.ts
   }
-function teamMatchSortKey(div,m){let map=teamNodeOrderMap(div);let node=(m.teamNodeId&&map[m.teamNodeId]!=null)?map[m.teamNodeId]:null;if(node==null && m.teamPair){let sib=(state.allMatches[div]||[]).find(x=>x.teamPair===m.teamPair && x.teamNodeId && map[x.teamNodeId]!=null);if(sib)node=map[sib.teamNodeId];}
+function teamMatchSortKey(div,m,map=teamNodeOrderMap(div)){let node=(m.teamNodeId&&map[m.teamNodeId]!=null)?map[m.teamNodeId]:null;if(node==null && m.teamPair){let sib=(state.allMatches[div]||[]).find(x=>x.teamPair===m.teamPair && x.teamNodeId && map[x.teamNodeId]!=null);if(sib)node=map[sib.teamNodeId];}
   // Round-robin position Match Objects belong to one authoritative team pairing.
   // Keep Senpo -> ... -> Taisho -> representative playoff together before
   // advancing the court to another pair. Elimination continues to use node order.
   if(node==null&&m.teamPair){let pairOrder=teamPairOrderMap(div);if(pairOrder[m.teamPair]!=null)return pairOrder[m.teamPair]*100+teamPositionOrder(m)}
   if(node==null)node=999;return node*100+teamPositionOrder(m)}
-export function sortTeamMatches(div){let arr=state.allMatches[div]||[];if(!arr.some(isTeamMatch))return arr;arr.sort((a,b)=>{
-  let at=isTeamMatch(a),bt=isTeamMatch(b);if(at&&bt)return teamMatchSortKey(div,a)-teamMatchSortKey(div,b);if(at&&!bt)return -1;if(!at&&bt)return 1;return 0;
+export function sortTeamMatches(div,nodes){let arr=state.allMatches[div]||[];if(!arr.some(isTeamMatch))return arr;const map=teamNodeOrderMap(div,nodes);arr.sort((a,b)=>{
+  let at=isTeamMatch(a),bt=isTeamMatch(b);if(at&&bt)return teamMatchSortKey(div,a,map)-teamMatchSortKey(div,b,map);if(at&&!bt)return -1;if(!at&&bt)return 1;return 0;
 });state.allMatches[div]=arr;return arr;}
 export function individualMatchReady(m){return KSMEngine.individualMatchReady(m);// moved to app/engine/match-helpers.ts
   }

@@ -36,16 +36,18 @@ function championshipMatchObjectForNode(div,node){
   return /** @type {Match} */(KSMEngine.championshipMatchObjectForNode(div,node));
 }
 /**
- * Creates the championship nodes (state.championshipNodes) and their Match Objects.
+ * The championship nodes and their Match Objects for `seedPairs` (the division's template, Edit Pool's): the nodes go to
+ * `draft.championshipNodes` (none for an empty template), for the caller's tournament/poolsEdited with the template they
+ * are built from (#15 PR 12b).
  * @param {string} div
  * @param {string[][]} seedPairs
+ * @param {{championshipNodes?:any[]}} draft
  * @returns {Match[]}
  */
-export function buildChampionshipTemplateMatches(div,seedPairs){
+export function buildChampionshipTemplateMatches(div,seedPairs,draft){
   if(!(seedPairs||[]).length)return [];
-  const built=KSMEngine.buildChampionshipTemplateMatches(div,seedPairs,(round,slot,total)=>championshipCourtFor(div,round,slot,total),(state.brackets[div]||championshipLabels(div)||[]).length);
-  state.championshipNodes=state.championshipNodes||{};
-  state.championshipNodes[div]=built.nodes;
+  const built=KSMEngine.buildChampionshipTemplateMatches(div,seedPairs,(round,slot,total)=>championshipCourtFor(div,round,slot,total),seedPairs.length);
+  draft.championshipNodes=built.nodes;
   return /** @type {Match[]} */(built.matches);
 }
 function bracketPairsFromSeeds(seeds){return KSMEngine.bracketPairsFromSeeds(seeds);// moved to app/engine/bracket-helpers.ts

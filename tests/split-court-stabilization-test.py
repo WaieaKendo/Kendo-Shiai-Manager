@@ -22,7 +22,7 @@ with sync_playwright() as p:
         {label:'B',size:3,players:[{name:'B1',dojo:'D'},{name:'B2',dojo:'D'},{name:'B3',dojo:'D'}]},
         {label:'C',size:3,players:[{name:'C1',dojo:'D'},{name:'C2',dojo:'D'},{name:'C3',dojo:'D'}]}
       ]}});
-      KSMTest.app.setDraw({brackets:{Test:KSMTest.app.championshipTemplateForTotal(9)}});KSMTest.app.state.championshipNodes={};KSMTest.app.setDraw({byeWinners:{}});
+      KSMTest.app.setDraw({brackets:{Test:KSMTest.app.championshipTemplateForTotal(9)}});KSMTest.app.setDraw({championshipNodes:{}});KSMTest.app.setDraw({byeWinners:{}});
       KSMTest.app.state.allMatches={Test:KSMTest.app.buildPoolMatches('Test',KSMTest.app.state.pools.Test).concat(KSMTest.app.buildChampionshipTemplateMatches('Test',KSMTest.app.state.brackets.Test))};
       const b=KSMTest.app.state.allMatches.Test.filter(m=>m.pool==='B');
       b[0].done=true;b[0].wp=['M'];b[0].rp=[];
@@ -51,7 +51,7 @@ with sync_playwright() as p:
     page.evaluate("""
       KSMTest.app.setDivisionLists({divisionTypes:{...KSMTest.app.state.divisionTypes,Test:'Single Elimination'}});KSMTest.app.setDivisionLists({divisionCourts:{...KSMTest.app.state.divisionCourts,Test:'split'}});
       KSMTest.app.setPeople({competitors: Array.from({length:8},(_,i)=>({name:'E'+(i+1),dojo:'D',division:'Test',seed:'',status:'Checked'}))});
-      KSMTest.app.setDraw({pools:{}});KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={};KSMTest.app.setDraw({singleElimComps:{}});KSMTest.app.state.currentByDivision={};
+      KSMTest.app.setDraw({pools:{}});KSMTest.app.state.allMatches={};KSMTest.app.setDraw({singleElimNodes:{}});KSMTest.app.setDraw({singleElimComps:{}});KSMTest.app.state.currentByDivision={};
       KSMTest.app.generateDivisionState('Test');KSMTest.app.showDivision('Test');KSMTest.app.setCurrentCourt('A');
       const firstA=KSMTest.app.state.matches.findIndex(m=>m.court==='A'&&!m.done);KSMTest.app.showMatch(firstA);
       KSMTest.app.setCourtSupportMode('singleElim');KSMTest.app.renderQueue();
@@ -78,15 +78,15 @@ with sync_playwright() as p:
       KSMTest.app.setDraw({pools:{Test:[
         {label:'A',size:4,players:[{name:'A1',dojo:'D'},{name:'A2',dojo:'D'},{name:'A3',dojo:'D'},{name:'A4',dojo:'D'}]},
         {label:'B',size:4,players:[{name:'B1',dojo:'D'},{name:'B2',dojo:'D'},{name:'B3',dojo:'D'},{name:'B4',dojo:'D'}]}
-      ]}});KSMTest.app.setDraw({brackets:{Test:KSMTest.app.championshipTemplateForTotal(8)}});KSMTest.app.state.championshipNodes={};KSMTest.app.state.allMatches={Test:KSMTest.app.buildChampionshipTemplateMatches('Test',KSMTest.app.state.brackets.Test)};KSMTest.app.setDraw({byeWinners:{Test:[]}});
+      ]}});KSMTest.app.setDraw({brackets:{Test:KSMTest.app.championshipTemplateForTotal(8)}});KSMTest.app.setDraw({championshipNodes:{}});KSMTest.app.state.allMatches={Test:KSMTest.app.buildChampionshipTemplateMatches('Test',KSMTest.app.state.brackets.Test)};KSMTest.app.setDraw({byeWinners:{Test:[]}});
       KSMTest.app.poolPositionsResolved=()=>false;
     """)
     # (The court queue's championship groups: ksmChampionshipQueueGroups(), in the court module's
     # publish.ts (#136 step 2), in place of the legacy poolChampionshipQueueGroups() removed in M.8
     # step 5. The module is not reachable from the page scripts, so the queue is asked for, as the
     # court screen does: renderQueue() signals and the module's input has these groups last.)
-    queue_groups="""court=>{const s=KSMTest.app.state,nodes=s.singleElimNodes;KSMTest.app.setCurrentCourt(court);KSMTest.app.showDivision('Test');KSMTest.app.showMatch(-1);s.singleElimNodes={};
-      KSMTest.app.renderQueue();s.singleElimNodes=nodes;return window.ksmCourtQueueInput.groups.map(g=>[g.label,g.rows.length])}"""
+    queue_groups="""court=>{const s=KSMTest.app.state,nodes=s.singleElimNodes;KSMTest.app.setCurrentCourt(court);KSMTest.app.showDivision('Test');KSMTest.app.showMatch(-1);KSMTest.app.setDraw({singleElimNodes:{}});
+      KSMTest.app.renderQueue();KSMTest.app.setDraw({singleElimNodes:nodes});return window.ksmCourtQueueInput.groups.map(g=>[g.label,g.rows.length])}"""
     groups_a=page.evaluate(queue_groups,'A')
     groups_b=page.evaluate(queue_groups,'B')
     assert groups_a==[['Semifinal',1],['Final',1]],groups_a
@@ -94,7 +94,7 @@ with sync_playwright() as p:
 
     # Repeated advancement resolution creates exactly one logical Final.
     page.evaluate("""
-      KSMTest.app.setDivisionLists({divisionCourts:{...KSMTest.app.state.divisionCourts,Test:'split'}});KSMTest.app.setDraw({brackets:{Test:[['A1','B2'],['B1','A2']]}});KSMTest.app.state.championshipNodes={};KSMTest.app.setDraw({byeWinners:{Test:[]}});
+      KSMTest.app.setDivisionLists({divisionCourts:{...KSMTest.app.state.divisionCourts,Test:'split'}});KSMTest.app.setDraw({brackets:{Test:[['A1','B2'],['B1','A2']]}});KSMTest.app.setDraw({championshipNodes:{}});KSMTest.app.setDraw({byeWinners:{Test:[]}});
       KSMTest.app.state.allMatches={Test:KSMTest.app.buildChampionshipTemplateMatches('Test',KSMTest.app.state.brackets.Test)};
       const semis=KSMTest.app.state.allMatches.Test.filter(m=>m.position==='Semifinal');
       semis[0].white='W1';semis[0].red='R1';semis[0].wdojo='D';semis[0].rdojo='D';semis[0].done=true;semis[0].wp=['M'];semis[0].rp=[];

@@ -13,6 +13,7 @@ import { individualPlacements } from '../../app/engine/championship.ts';
 import { teamBracketNodesForCount } from '../../app/engine/teams.ts';
 import { html, engine, extractFunction } from '../lib/ksm-source.mjs';
 import { gitShow } from '../lib/git-show.mjs';
+import { drawHelpers } from '../lib/draw-helpers.mjs';
 
 // The frozen templates moved with the team bracket into app/engine/teams.ts (2.6).
 const nodesFor = n => teamBracketNodesForCount(n);
@@ -148,7 +149,8 @@ test('placement, build and advancement equal the pre-move legacy code on golden 
   const load = src => {
     const ctx = vm.createContext({ state: null, console: { error() {} } });
     const tplConst = src === oldSrc ? oldSrc.slice(oldSrc.indexOf('const BRACKET_SLOT_TEMPLATES'), oldSrc.indexOf('};') + 2) : '';
-    vm.runInContext(`${engine}\n${tplConst}\n${SHARED.map(n => extractFunction(html, n)).join('\n')}\n${MOVED.map(n => extractFunction(src, n)).join('\n')}`, ctx);
+    // Since #15 PR 12b the nodes are store data written through structure-store.js: its helpers on the plain state.
+    vm.runInContext(`${engine}\n${drawHelpers}\n${tplConst}\n${SHARED.map(n => extractFunction(html, n)).join('\n')}\n${MOVED.map(n => extractFunction(src, n)).join('\n')}`, ctx);
     return ctx;
   };
   const legacy = load(oldSrc), current = load(html);
@@ -164,10 +166,13 @@ test('placement, build and advancement equal the pre-move legacy code on golden 
         const run = ctx => {
           ctx.state = { singleElimNodes: {}, singleElimComps: {}, allMatches: {}, divisionCourts: { [d.name]: court }, currentDivision: d.name };
           const st = ctx.state, div = d.name, res = [];
+          // The current builder puts the nodes in a draft for the caller's action (#15 PR 12b); the old one wrote them.
+          const build = list => { if (ctx.buildIndividualSingleElimMatches.length < 3) return ctx.buildIndividualSingleElimMatches(div, list);
+            const draft = {}, out = ctx.buildIndividualSingleElimMatches(div, list, draft); st.singleElimNodes[div] = draft.singleElimNodes; return out; };
           const comps = d.entrants.filter(e => e.status !== 'No-show').map(e => ({ ...e, division: div }));
           const ordered = ctx.placeIndividualsForSingleElim(comps);
           st.singleElimComps[div] = ordered;
-          st.allMatches[div] = ctx.buildIndividualSingleElimMatches(div, ordered);
+          st.allMatches[div] = build(ordered);
           const snap = () => res.push(JSON.stringify(st.allMatches[div]), JSON.stringify(st.singleElimNodes[div]),
             JSON.stringify(st.allMatches[div].map(m => [ctx.specificMatchSideLabel(m, 'white'), ctx.specificMatchSideLabel(m, 'red')])),
             JSON.stringify(Object.values(ctx.singleElimSlotInfo(ordered.length))));
@@ -179,7 +184,7 @@ test('placement, build and advancement equal the pre-move legacy code on golden 
             ctx.maybeAdvanceIndividualSingleElim(m); snap();
           }
           // A no-show after the draw rebuilds with an empty slot.
-          st.allMatches[div] = ctx.buildIndividualSingleElimMatches(div, ordered.map((c, i) => (i === ordered.length - 1 ? null : c))); snap();
+          st.allMatches[div] = build(ordered.map((c, i) => (i === ordered.length - 1 ? null : c))); snap();
           return res;
         };
         const a = run(legacy), b = run(current);

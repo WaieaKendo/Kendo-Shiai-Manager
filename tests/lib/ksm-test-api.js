@@ -300,7 +300,9 @@ window.KSMTest = {
     ksmExhibitionsEnabled: (...a) => ksmExhibitionsEnabled(...a),
     ksmSetting: (...a) => ksmSetting(...a),
     applyTournamentPayload: (...a) => applyTournamentPayload(...a),
-    buildChampionshipTemplateMatches: (...a) => buildChampionshipTemplateMatches(...a),
+    // Since #15 PR 12b the app's builder gives the nodes to its caller's action; here they go into the store as before.
+    buildChampionshipTemplateMatches: (div, pairs) => { const draft = {}, out = buildChampionshipTemplateMatches(div, pairs, draft);
+      if (draft.championshipNodes) ksmSetDraw('drawEntriesUpdated', ksmDrawWith(div, {championshipNodes: draft.championshipNodes})); return out; },
     buildTV3ViewModel: (...a) => buildTV3ViewModel(...a),
     chooseCourt: (...a) => chooseCourt(...a),
     clearOutbox: (...a) => clearOutbox(...a),

@@ -35,8 +35,9 @@ function chooseBestSeedSlot(q,positions,info,allPositions){
 function placeIndividualsForSingleElim(comps){
   return KSMEngine.placeIndividualsForSingleElim(comps,comps.length>1?teamBracketNodesForCount(comps.length):[]);
 }
-export function singleElimOrderMap(div){let map={};(state.singleElimNodes?.[div]||[]).forEach((n,i)=>map[n.id]=i);return map;}
-export function sortIndividualSingleElimMatches(div,arr){let order=singleElimOrderMap(div);arr.sort((a,b)=>{
+/** Node id -> its place in the bracket; `nodes` (a draw not in the store yet) instead of the division's nodes. */
+export function singleElimOrderMap(div,nodes=state.singleElimNodes?.[div]){let map={};(nodes||[]).forEach((n,i)=>map[n.id]=i);return map;}
+export function sortIndividualSingleElimMatches(div,arr,nodes){let order=singleElimOrderMap(div,nodes);arr.sort((a,b)=>{
   let oa=order[a.elimNodeId]??9999, ob=order[b.elimNodeId]??9999;
   if(oa!==ob)return oa-ob;
   return (a.bracketSlot||0)-(b.bracketSlot||0);
@@ -70,17 +71,18 @@ export function sideLabelGeneric(side,div){
   return KSMEngine.sideLabelGeneric(side,state.singleElimComps?.[div]||[],state.singleElimNodes?.[div]||[]);
 }
 /**
- * One Match Object per bracket node (state.singleElimNodes), filled as winners are known.
+ * One Match Object per bracket node, filled as winners are known: a new bracket (a No Show's). The nodes go to
+ * `draft.singleElimNodes`, for the caller's own action with the rest of the draw (#15 PR 12b).
  * @param {string} div
  * @param {Competitor[]} comps
+ * @param {{singleElimNodes?:any[]}} draft
  * @returns {Match[]}
  */
-export function buildIndividualSingleElimMatches(div,comps){
-  state.singleElimNodes=state.singleElimNodes||{};
+export function buildIndividualSingleElimMatches(div,comps,draft){
   const built=KSMEngine.buildIndividualSingleElimMatches(div,teamBracketNodesForCount(comps.length),/** @type {Court|'split'} */(state.divisionCourts[div]||'A'));
-  state.singleElimNodes[div]=built.nodes;
+  draft.singleElimNodes=built.nodes;
   const arr=/** @type {Match[]} */(built.matches);
-  syncIndividualSingleElim(div,arr,comps);
+  syncIndividualSingleElim(div,arr,comps,draft);
   return arr;
 }
 /**

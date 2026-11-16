@@ -9,6 +9,7 @@ import {syncChampionshipTemplate} from '../engine/engine-championship.js';
 import {matchBelongsToCourt} from '../engine/engine-generation.js';
 import {eligibleIndividuals} from '../engine/engine-pools.js';
 import {repairCompletedMatchResults} from '../engine/engine-result-integrity.js';
+import {ksmDrawWith,ksmSetDraw} from '../engine/structure-store.js';
 import {ksmAddDaihyosenForTeamAwards,normalizeAllIndividualPoolTiebreakOrder} from '../engine/engine-standings-and-tiebreaks.js';
 import {esc} from '../html-text.js';
 import {noteLocalMutation} from './sync-state-and-rebase.js';
@@ -646,9 +647,11 @@ function repairLoadedEliminationAdvancement(source='tournament load'){
   KSMEngine.loadedEliminationRepairPlan(Object.keys(state.allMatches||{}),state.championshipNodes,state.singleElimNodes).forEach(({division:div,championship,singleElim})=>{
     if(championship)syncChampionshipTemplate(div);
     if(singleElim){
-      (state.singleElimNodes[div]||[]).forEach(node=>{node.winner=null});
+      // Every winner found again from the bouts: on new nodes (store data, #15 PR 12b), one action when it differs.
+      const nodes=state.singleElimNodes[div]||[],draft={singleElimNodes:nodes.map(node=>({...node,winner:null}))};
       const comps=(state.singleElimComps?.[div]||eligibleIndividuals(div).filter(c=>c.name));
-      syncIndividualSingleElim(div,state.allMatches[div]||[],comps);
+      syncIndividualSingleElim(div,state.allMatches[div]||[],comps,draft);
+      if(JSON.stringify(draft.singleElimNodes)!==JSON.stringify(nodes))ksmSetDraw('advancementApplied',ksmDrawWith(div,{singleElimNodes:draft.singleElimNodes}));
     }
   });
 }

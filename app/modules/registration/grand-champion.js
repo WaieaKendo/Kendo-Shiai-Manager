@@ -165,13 +165,15 @@ function ksmSubstituteGrandChampion(gc,swaps){
   const swap=(o,nameKey,dojoKey)=>{const s=o&&swaps.find(x=>same(o[nameKey],o[dojoKey],x.from));if(s){o[nameKey]=s.to.name;o[dojoKey]=s.to.dojo}};
   (state.allMatches?.[gc.id]||[]).forEach(m=>{if(m&&!KSMEngine.grandChampionStarted([m])){swap(m,'white','wdojo');swap(m,'red','rdojo')}});
   // The draw's rows are store data (#15 PR 12a): the stand-in is a new row in the entrants and the pools. A bracket node
-  // won by a bye holds the entrant's row itself, which the old in-place swap changed too: it follows to the new row.
+  // whose winner is the entrant's row itself follows to the new row, as the old in-place swap reached it; the nodes are
+  // store data too (PR 12b): new nodes, in the same action.
   /** @type {Map<object,object>} */ const replaced=new Map();
   const swapped=o=>{if(replaced.has(o))return replaced.get(o);const s=o&&swaps.find(x=>same(o.name,o.dojo,x.from));if(!s)return o;const to={...o,name:s.to.name,dojo:s.to.dojo};replaced.set(o,to);return to};
   const comps=state.singleElimComps?.[gc.id],nextComps=Array.isArray(comps)?comps.map(swapped):null;
-  ksmSetDraw('drawEntriesUpdated',{...(nextComps&&nextComps.some((c,i)=>c!==comps[i])?ksmDrawWith(gc.id,{singleElimComps:nextComps}):{}),
-    ...ksmEditedPools(gc.id,p=>{const players=(p.players||[]).map(swapped);return players.some((x,i)=>x!==p.players[i])?{...p,players}:p})});
-  (state.singleElimNodes?.[gc.id]||[]).forEach(n=>{const to=n&&replaced.get(n.winner);if(to)n.winner=/** @type {any} */ (to)});
+  const pools=ksmEditedPools(gc.id,p=>{const players=(p.players||[]).map(swapped);return players.some((x,i)=>x!==p.players[i])?{...p,players}:p});
+  const nodes=state.singleElimNodes?.[gc.id]||[],nextNodes=nodes.map(n=>{const to=n&&replaced.get(n.winner);return to?{...n,winner:to}:n});
+  ksmSetDraw('drawEntriesUpdated',{...(nextComps&&nextComps.some((c,i)=>c!==comps[i])?ksmDrawWith(gc.id,{singleElimComps:nextComps}):{}),...pools,
+    ...(nextNodes.some((n,i)=>n!==nodes[i])?ksmDrawWith(gc.id,{singleElimNodes:nextNodes}):{})});
   ksmForgetGrandChampionHistory(gc.id);
   return true;
 }

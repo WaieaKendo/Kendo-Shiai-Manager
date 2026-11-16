@@ -39,8 +39,8 @@ the engine as `KSMEngine`); the ones that still call an `app/js` function stay i
 
 These parts are still in `app/js`, and why:
 
-- **Applying plans to `state`** (the `engine-bridge` wrappers): the legacy UI and sync code share one mutable `state`, and Match Object identity has to be preserved.
-- **Orchestration that combines several state reads**: `generateDivisionState` writes the plan and then runs the advancement syncs, which need standings, court modes and existing matches. The same applies to `maybeAdvance*`, `maybeCreateTiebreaks`, `appendApprovedDynamicMatches`, applying no-shows and `regenerateSingleDivision`.
+- **Applying plans to `state`** (the `engine-bridge` wrappers): the legacy UI and sync code share one mutable `state`, and Match Object identity has to be preserved. Since #15 PR 12b a bracket plan's `winners` become new nodes in the store (`ksmNodesWithWinners()`, one `tournament/advancementApplied` after the plan's bout updates were written; `app/modules/engine/structure-store.js`); the bouts are still written in place until PR 13.
+- **Orchestration that combines several state reads**: `generateDivisionState` writes the plan and then runs the advancement syncs (a bracket's first sync on the plan's own nodes, a `draft`, so the nodes go in the division's one draw action), which need standings, court modes and existing matches. The same applies to `maybeAdvance*`, `maybeCreateTiebreaks`, `appendApprovedDynamicMatches`, applying no-shows and `regenerateSingleDivision`.
 - **Queue and court selection**: `sortTeamMatches`, `sortIndividualDivisionMatches`, `nextIndexForCourt`, `matchBelongsToCourt` and `setActiveDivision` read local court and view state. That state gets split out in 2.8.
 - **Scoring actions** (`point()`, `nextMatch()`, undo/history) and **sync/persistence** (rebase, autosave, load/sanitize): these are tied to local storage, the network and the device session.
 - **Validation dialogs, alerts, logging and all HTML rendering** (results, brackets, pools, TV).

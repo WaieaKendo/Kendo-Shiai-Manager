@@ -37,12 +37,12 @@ with sync_playwright() as p:
       KSMTest.app.setDraw({pools:{...KSMTest.app.state.pools,DirectDiv:[]}});
       KSMTest.app.setDivisionLists({divisionTypes:{...KSMTest.app.state.divisionTypes,DirectDiv:'Single Elimination'}});
       KSMTest.app.setDivisionLists({divisionCourts:{...KSMTest.app.state.divisionCourts,DirectDiv:'A'}});
-      KSMTest.app.state.singleElimNodes={DirectDiv:[
+      KSMTest.app.setDraw({singleElimNodes:{DirectDiv:[
         {id:'Q1',left:{team:1},right:{team:2},court:'A'},
         {id:'Q2',left:{team:3},right:{team:4},court:'A'},
         {id:'S1',left:{ref:'Q1'},right:{ref:'Q2'},court:'A'},
         {id:'F',left:{ref:'S1'},right:{team:5},court:'A'}
-      ]};
+      ]}});
       KSMTest.app.state.allMatches.DirectDiv=[
         {division:'DirectDiv',singleElim:true,done:true,court:'A'},
         {division:'DirectDiv',singleElim:true,done:false,court:'A'}
@@ -56,11 +56,11 @@ with sync_playwright() as p:
       KSMTest.app.ksmSetSetting('teamFormat','5-Person Team');
       KSMTest.app.setPeople({teams: [{team:'One',division:'Team Tournament',type:'5-Person Team'}]});
       KSMTest.app.setDivisionLists({divisionTypes:{...KSMTest.app.state.divisionTypes,'Team Tournament':'Team'}});
-      KSMTest.app.state.teamBracketNodes={'Team Tournament':[
+      KSMTest.app.setDraw({teamBracketNodes:{'Team Tournament':[
         {id:'SF1',left:{team:1},right:{team:2},court:'A'},
         {id:'SF2',left:{team:3},right:{team:4},court:'B'},
         {id:'F',left:{ref:'SF1'},right:{ref:'SF2'},court:'A'}
-      ]};
+      ]}});
       KSMTest.app.state.allMatches['Team Tournament']=Array.from({length:5},(_,i)=>({
         division:'Team Tournament',type:'teamPosition',teamPair:'node-SF1',done:i<2,court:'A'
       }));
