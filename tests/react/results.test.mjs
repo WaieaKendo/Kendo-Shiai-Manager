@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   DEFAULT_BRACKET_TITLE, DEFAULT_TOURNAMENT_NAME, EMPTY_RESULTS, EMPTY_RESULTS_BRACKET, NO_AWARDS_TEXT, NO_DIVISIONS_TEXT,
-  resultCardView, resultDetailView, resultsBracketView, resultsView, tournamentNameText,
+  courtTag, ordinal, resultCardView, resultDetailView, resultsBracketView, resultsView, tournamentNameText,
 } from '../../app/react/results/results-model.ts';
 
 const placements = [
@@ -109,4 +109,15 @@ test('owner decision 8: a spectator\'s results are read-only (only then marked)'
   assert.equal('readOnly' in resultsView({ ...input, readOnly: false }), false);
   assert.equal(resultsView({ ...input, readOnly: true }).readOnly, true);
   assert.deepEqual(resultsView({ ...input, readOnly: true }).awards, input.awards);
+});
+
+test('courtTag: each court\'s place in its running order; "Now on" while it is played', () => {
+  assert.deepEqual(['1st', '2nd', '3rd', '4th', '11th', '12th', '13th', '21st', '22nd', '103rd'],
+    [1, 2, 3, 4, 11, 12, 13, 21, 22, 103].map(ordinal));
+  assert.deepEqual(courtTag({ courts: ['A'], nowOn: [], places: { A: 2 } }), { text: 'Court A · 2nd', live: false });
+  assert.deepEqual(courtTag({ courts: ['A', 'B'], nowOn: [], places: { A: 4, B: 3 } }), { text: 'Court A · 4th · Court B · 3rd', live: false });
+  assert.deepEqual(courtTag({ courts: ['A', 'B'], nowOn: [], places: { B: 1 } }), { text: 'Court A · Court B · 1st', live: false });
+  assert.deepEqual(courtTag({ courts: ['A', 'B'], nowOn: [] }), { text: 'Courts A & B', live: false });
+  assert.deepEqual(courtTag({ courts: ['A'], nowOn: ['A'], places: { A: 2 } }), { text: 'Now on Court A', live: true });
+  assert.equal(courtTag({ courts: [], nowOn: [] }), null);
 });
