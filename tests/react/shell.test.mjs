@@ -48,7 +48,7 @@ test('the tiles\' icons come from the branding module', () => {
 });
 
 test('the active tile: the first whose text starts with the screen label (setActiveNavForView())', () => {
-  assert.deepEqual(NAV_ENTRIES.map(tileText), ['Overview', 'Live Scores', 'Courts ▾', 'TV ▾', 'Results', 'Registration', 'Setup']);
+  assert.deepEqual(NAV_ENTRIES.map(tileText), ['Overview', 'Live Scores', 'Courts ▾', 'TV ▾', 'Brackets', 'Registration', 'Setup']);
   const at = label => { const i = activeEntryIndex(NAV_ENTRIES, label); return i < 0 ? null : tileText(NAV_ENTRIES[i]); };
   assert.equal(at('Courts'), 'Courts ▾');
   assert.equal(at('Export'), null);

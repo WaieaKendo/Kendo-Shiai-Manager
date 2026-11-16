@@ -28,8 +28,29 @@ function ksmPublishResultsBracket(input){
   window.ksmResultsBracketInput=input;
   window.dispatchEvent(new CustomEvent('ksm:results-bracket'));
 }
+// Where a division is played (Brackets screen): the courts of its matches (matchBelongsToCourt()),
+// or before the draw Setup's court ('A', 'B', 'Both'/'split': both); nowOn the courts whose active
+// division it is (courtSummaryFor(), Overview's rule).
+function ksmResultCourts(div,active=ksmActiveCourtDivisions()){
+  const all=state.allMatches?.[div]||[];
+  let courts=['A','B'].filter(c=>all.some(m=>matchBelongsToCourt(m,c)));
+  if(!all.length){
+    // Defaults as ksmCourtDivisionList() (35-): a division without a court is on A, a team event on both.
+    const team=ksmTeamDivisions().find(d=>d.id===div),mode=String(state.divisionCourts?.[div]||team?.court||(team||isTeamDivision(div)?'Both':'A')).toLowerCase();
+    courts=mode==='a'?['A']:mode==='b'?['B']:(mode==='both'||mode==='split')?['A','B']:[];
+  }
+  const nowOn=all.length&&!divisionComplete(div)?['A','B'].filter(c=>active[c]===div):[];
+  return {courts,nowOn};
+}
+// Each court's active division (Overview's rule), worked out once per Brackets render.
+function ksmActiveCourtDivisions(){
+  return {A:courtSummaryFor('A').division,B:courtSummaryFor('B').division};
+}
 // resultCardHtml(div) as data: placements null for the in-progress card (none yet).
-function ksmResultCard(div){
+function ksmResultCard(div,active){
+  return {...ksmResultCardBase(div),...ksmResultCourts(div,active)};
+}
+function ksmResultCardBase(div){
   const placements=resultPlacements(div),roundRobin=isTeamRoundRobinDivision(div);
   if(!placements.length){
     const progress=roundRobin?teamRoundRobinProgress(div):null;
@@ -44,11 +65,11 @@ function ksmResultCard(div){
 // Owner request: once the tournament is generated, every division of the event has a card, in
 // Setup's running order (divisions, team divisions, grand champions): one not drawn yet shows "Not
 // drawn yet", a grand champion whose source divisions are still running "Waiting for: <sources>".
-function ksmResultPlaceholder(div){
+function ksmResultPlaceholder(div,active){
   const gc=ksmGrandChampion(div);
   const waiting=gc?(gc.sources||[]).filter(s=>!divisionComplete(s)).map(s=>ksmText(ksmDivisionName(s))):[];
   return {division:ksmText(div),name:ksmDivisionName(div),roundRobin:false,placements:null,progress:null,
-    ...(waiting.length?{waitingFor:waiting}:{notDrawn:true})};
+    ...(waiting.length?{waitingFor:waiting}:{notDrawn:true}),...(gc?{}:ksmResultCourts(div,active))};
 }
 function ksmResultsDashboardInput(){
   const drawn=div=>(state.allMatches?.[div]||[]).length>0;
@@ -69,11 +90,12 @@ function ksmResultsDashboardInput(){
     ])
   ].filter(div=>drawn(div)||event.includes(div));
   const completed=divisions.filter(div=>drawn(div)&&divisionComplete(div));
+  const active=ksmActiveCourtDivisions();
   const pending=divisions.filter(div=>!drawn(div)||!divisionComplete(div));
   return {kind:'results',
     tournamentName:(window.tName&&tName.value)?tName.value:'Kendo Tournament',
-    completed:completed.map(ksmResultCard),
-    pending:pending.map(div=>drawn(div)?ksmResultCard(div):ksmResultPlaceholder(div)),
+    completed:completed.map(div=>ksmResultCard(div,active)),
+    pending:pending.map(div=>drawn(div)?ksmResultCard(div,active):ksmResultPlaceholder(div,active)),
     noDivisions:!divisions.some(drawn),
     awards:(state.awards||[]).map(a=>({award:ksmText(a.award||''),name:ksmText(a.name||''),dojo:ksmText(a.dojo||'')})),
     // Owner decision 8 (#29): spectators see the awards read-only.

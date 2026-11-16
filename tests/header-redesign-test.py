@@ -50,7 +50,7 @@ def main():
                 assert chip.evaluate("el=>parseFloat(getComputedStyle(el).outlineWidth)")>0
 
             toggle=page.locator(sel('nav-toggle'))
-            for role,expected in [('spectator',['Overview','Live Scores','Courts','Results']),('staff',['Overview','Live Scores','Courts','TV','Results','Registration','Setup'])]:
+            for role,expected in [('spectator',['Overview','Live Scores','Courts','Brackets']),('staff',['Overview','Live Scores','Courts','TV','Brackets','Registration','Setup'])]:
                 page.evaluate("role=>{KSMTest.app.setSessionRole(role);KSMTest.app.installRoleBanner(role)}",role)
                 if width<=900:
                     assert toggle.is_visible() and not page.locator('nav.minimal-nav').is_visible()

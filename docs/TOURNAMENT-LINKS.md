@@ -43,7 +43,7 @@ New tournaments suggest a short name from the tournament name and year. A year
 already present in the name is retained. Creation asks for the short name; staff
 can change it in **Setup → Short URL**. It accepts lowercase
 letters, digits and single dashes (1–80 characters), with no leading/trailing dash.
-App screen names (`overview`, `results`, `setup`, `registration`, `pools`), API
+App screen names (`overview`, `results`, `brackets`, `setup`, `registration`, `pools`), API
 and static-resource roots are reserved; the shared list is in
 `app/slug-rules.mjs`. Clients without a short name still use `/t/<id>`; existing
 tournaments gain a name through the staff editor. Older clients creating without
@@ -56,7 +56,8 @@ These forms work with either a slug or `/t/<id>`:
 - `/court/a` and `/court/b`: a court assignment.
 - `/tv/a` and `/tv/b`: TV for the chosen court.
 - `/overlay/a` and `/overlay/b`: the live stream overlay.
-- `/overview` and `/results`: spectator-accessible app screens.
+- `/overview` and `/brackets`: spectator-accessible app screens. Brackets is the Results screen
+  (internally still `results`); `/results` from older links opens it and moves to `/brackets`.
 - `/setup`, `/registration` and `/pools`: staff screens; spectator links fall back
   to `/overview` and Overview. Pools selects Registration’s Pools tab.
 

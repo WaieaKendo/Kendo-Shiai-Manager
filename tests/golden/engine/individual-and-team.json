@@ -818,11 +818,12 @@
  "screens": {
   "results": [
    "AIEA TAIHEIJI KENDO TOURNAMENT",
-   "Results",
-   "Final placements and special awards",
+   "Brackets",
+   "Draws, courts and final placements",
    "Export Results",
    "COMPLETED",
    "Open",
+   "COURT A",
    "1ST",
    "P06",
    "2ND",
@@ -833,6 +834,7 @@
    "P04",
    "View Bracket →",
    "Team Tournament",
+   "COURT B",
    "1ST",
    "Team C",
    "2ND",

@@ -37,6 +37,10 @@ export interface ResultCardInput {
    * divisions are still running (their names). */
   notDrawn?: boolean;
   waitingFor?: string[];
+  /** The courts the division is played on ('A', 'B'), from its matches or Setup's court. */
+  courts?: string[];
+  /** The courts where it is the division being played right now. */
+  nowOn?: string[];
 }
 
 /** One award of state.awards (text as esc() showed it). */
@@ -103,7 +107,16 @@ export interface PlacementRowView {
   name: string;
 }
 
-export type ResultCardView = {name?: string} & (
+/** Where a division is played: "Court A", "Courts A & B"; "Now on Court A" while it is being played. */
+export interface CourtTagView { text: string; live: boolean }
+export function courtTag(card: Pick<ResultCardInput, 'courts' | 'nowOn'>): CourtTagView | null {
+  const now = card.nowOn ?? [], courts = card.courts ?? [];
+  const list = (cs: string[]) => cs.length > 1 ? `Courts ${cs.slice(0, -1).join(', ')} & ${cs[cs.length - 1]}` : `Court ${cs[0]}`;
+  if (now.length) return { text: `Now on ${list(now)}`, live: true };
+  return courts.length ? { text: list(courts), live: false } : null;
+}
+
+export type ResultCardView = {name?: string; court?: CourtTagView} & (
   | {
     kind: 'progress';
     division: string;
@@ -130,6 +143,10 @@ export const NOT_DRAWN_TEXT = 'Not drawn yet';
 export const WAITING_FOR_LABEL = 'Waiting for';
 
 export function resultCardView(card: ResultCardInput): ResultCardView {
+  const tag = courtTag(card);
+  return { ...resultCardViewBase(card), ...(tag ? { court: tag } : {}) } as ResultCardView;
+}
+function resultCardViewBase(card: ResultCardInput): ResultCardView {
   if (card.notDrawn || card.waitingFor?.length) {
     return {
       kind: 'progress', division: card.division, ...(card.name ? { name: card.name } : {}), placeholder: true, button: null,

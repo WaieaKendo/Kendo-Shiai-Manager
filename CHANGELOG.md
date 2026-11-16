@@ -1,3 +1,8 @@
+## v4.0.0-rc.4 — Brackets
+
+- Results is now **Brackets** (new icon, address `/brackets`; older `/results` links still work).
+- Each division's card shows its court ("Court A", "Courts A & B") and "Now on Court A" while it is being played.
+
 ## v4.0.0-rc.3 — Brackets for spectators
 
 - Spectators can open each division's pools and bracket from Results while it is in progress, from the moment the tournament is live.
