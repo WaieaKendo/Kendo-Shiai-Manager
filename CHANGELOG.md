@@ -1,3 +1,7 @@
+## v4.0.0-rc.5 — Court Queue running order
+
+- The Court Queue shows the division being played as a header ("Now") over its rounds, then the court's remaining divisions in running order, one line each: "Up next" on the first, its match count on this court, and "also on Court B" for a division on both courts. Display only: Continue still decides what comes next.
+
 ## v4.0.0-rc.4 — Brackets
 
 - Results is now **Brackets** (new icon, address `/brackets`; older `/results` links still work).
