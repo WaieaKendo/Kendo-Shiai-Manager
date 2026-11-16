@@ -55,8 +55,8 @@ import {previewAllDivisionSheets,previewFullPrintPacket,previewResultsSheet,prev
 import {canModifyRepresentative,divisionComplete,exportCSV,setRepresentative,teamRoster} from './modules/results/results-and-awards.js';
 import {addResultAward,closeResultsBracket,initResultsScreen,openResultsBracket,removeResultAward,renderResultsDashboard,resultPlacements} from './modules/results/results-screen.js';
 import {buildTV3ViewModel,renderTvDisplay} from './modules/results/tv-display.js';
-import {KSM_STAFF_TOURNAMENT,KSM_V316_STAFF_SESSION,canCloudWrite,createNewTournament,initializeCloudRoleFromUrl,installRoleBanner,isReadOnlySession,ksmKeepStaffOutbox,ksmRouteLoading,openTournamentAccess,openTournamentFromHome,performCloudSave,promptNewStaffPassword,rememberTournament,sessionKey,setKsmRouteLoading,showHomePage,spectatorLink,v316StaffPassword} from './modules/session/staff-session-and-library.js';
-import {KSM_DETACHED_DRAFT_KEY,initEmptySetup,initEmptyState,initTournamentSwitcher,ksmEmptySetup,ksmEmptyState,ksmRefreshTournamentChip,ksmShowLibrary,ksmStartupHasCache,ksmStartupLoadFailed,ksmTournamentTransition,setKsmStartupHasCache,setKsmTournamentTransition} from './modules/session/tournament-switcher.js';
+import {KSM_STAFF_TOURNAMENT,KSM_V316_STAFF_SESSION,canCloudWrite,createNewTournament,initializeCloudRoleFromUrl,installRoleBanner,isReadOnlySession,ksmAccountSetRole,ksmKeepStaffOutbox,ksmRouteLoading,openTournamentAccess,openTournamentFromHome,performCloudSave,promptNewStaffPassword,rememberTournament,sessionKey,setKsmRouteLoading,showHomePage,spectatorLink,v316StaffPassword} from './modules/session/staff-session-and-library.js';
+import {KSM_DETACHED_DRAFT_KEY,initEmptySetup,initEmptyState,initTournamentSwitcher,ksmEmptySetup,ksmEmptyState,ksmRefreshTournamentChip,ksmResetTournament,ksmShowLibrary,ksmStartupHasCache,ksmStartupLoadFailed,ksmTournamentTransition,setKsmStartupHasCache,setKsmTournamentTransition} from './modules/session/tournament-switcher.js';
 import {ksmDangerRegenerate,ksmSyncDangerZone} from './modules/setup/danger-zone.js';
 import {courtSummaryFor,directorDivisionProgress,directorSingleElimTotal,initDirectorRefresh,ksmDirectorRefreshTimer,renderDirector,setDirectorRefreshTimer,tournamentSummary} from './modules/setup/director-progress.js';
 import {addCustomDivision,initSetupHeader,renderDivisionSetup,saveSetup,setDivisionCourt,setDivisionFormat,setSetDivisionCourt,syncSetupHeader,toggleDivision} from './modules/setup/division-setup.js';
@@ -309,12 +309,12 @@ Object.assign(window, {
   // app/modules/court/split-court-templates.js
   contextDivisionForCourt, renderContext, renderQueue, setCourtCompletePresentation, syncIndividualSingleElim,
   // app/modules/session/tournament-switcher.js
-  ksmEmptySetup,
+  ksmEmptySetup, ksmResetTournament,
   // app/modules/links/friendly-links.js
   ksmEditTournamentSlug, ksmRenameTournamentSlug, ksmSaveShortUrl,
   // app/modules/session/staff-session-and-library.js
   canCloudWrite, createNewTournament, initializeCloudRoleFromUrl, installRoleBanner, isReadOnlySession, KSM_STAFF_TOURNAMENT,
-  KSM_V316_STAFF_SESSION, ksmKeepStaffOutbox, openTournamentAccess, openTournamentFromHome, performCloudSave,
+  KSM_V316_STAFF_SESSION, ksmAccountSetRole, ksmKeepStaffOutbox, openTournamentAccess, openTournamentFromHome, performCloudSave,
   promptNewStaffPassword, rememberTournament, sessionKey, showHomePage, spectatorLink, v316StaffPassword,
   // app/modules/links/stream-overlay-links.js
   copyStreamOverlayLink,
