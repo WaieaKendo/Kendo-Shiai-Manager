@@ -77,9 +77,9 @@ export function ksmHidePreset(/** @type {string} */ name){
 export function ksmRestorePresets(){divisionAction('presetsRestored',{hiddenPresets:[]})}
 /**
  * A division rename's store lists as renamedDivisionState() rewrote them (`divisions`, `divisionTypes`, `divisionCourts`,
- * `divisionRenames` with the record appended, and since #15 PR 10 `competitors` with the division's players moved): one
- * tournament/divisionRenamed. The caller assigns the rest of what the engine rewrote (grand champions, the courts'
- * divisions: plain `state` until PRs 11 / 13) just before it, so no store subscriber ever sees the two halves disagree
+ * `divisionRenames` with the record appended, and since #15 PR 10 `competitors` with the division's players moved, and since PR 11 `grandChampions` with its sources renamed): one
+ * tournament/divisionRenamed. The caller assigns the rest of what the engine rewrote (the courts'
+ * divisions: plain `state` until PR 13) just before it, so no store subscriber ever sees the two halves disagree
  * (ksmRenameSetupDivision()).
  * @param {Record<string,unknown>} renamed
  */
@@ -91,4 +91,4 @@ export function ksmRenameDivisionLists(renamed){
 /** The keys of `state` this module's actions own. */
 export const KSM_DIVISION_STATE_KEYS=Object.freeze(['divisions','divisionTypes','divisionCourts','hiddenPresets','divisionRenames']);
 /** The keys a rename's tournament/divisionRenamed sets (a rename's partial without them is what the caller assigns). */
-export const KSM_RENAMED_STATE_KEYS=Object.freeze([...KSM_DIVISION_STATE_KEYS,'competitors']);
+export const KSM_RENAMED_STATE_KEYS=Object.freeze([...KSM_DIVISION_STATE_KEYS,'competitors','grandChampions']);

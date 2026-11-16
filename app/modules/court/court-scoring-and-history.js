@@ -48,7 +48,9 @@ export function ensureCourtHistory(){
   });
 }
 function cloneHistoryValue(value){return value===undefined?{...KSM_HISTORY_MISSING}:JSON.parse(JSON.stringify(value))}
-function historyComparableState(){const out={};Object.keys(state).forEach(k=>{if(!KSM_HISTORY_KEYS.has(k))out[k]=cloneHistoryValue(state[k])});return out}
+// A key whose value is undefined is left out, as an absent key was before its group moved into the store (a moved key is a
+// getter that is always a key of `state`): comparing two "missing" markers made a no-op patch for it in every court action.
+function historyComparableState(){const out={};Object.keys(state).forEach(k=>{if(!KSM_HISTORY_KEYS.has(k)&&state[k]!==undefined)out[k]=cloneHistoryValue(state[k])});return out}
 function historyValuesEqual(a,b){return KSMEngine.historyValuesEqual(a,b);// moved to app/engine/sync-helpers.ts
   }
 function buildHistoryPatches(before,after,path=[],patches=[]){

@@ -99,7 +99,7 @@ test('a rename and its divisionRenames record are one dispatch, with the engine\
   const st = { ...lists(t(s)), competitors: [{ name: 'A', division: from }], courtState: { A: { division: from, index: 0 } } };
   const renamed = KSMEngine.renamedDivisionState(st, from, to, record);
   // Since PR 10 the renamed players are in the same action (tests/store/people.test.mjs).
-  const changed = Object.fromEntries(Object.entries(renamed).filter(([k]) => [...KEYS, 'competitors'].includes(k)));
+  const changed = Object.fromEntries(Object.entries(renamed).filter(([k]) => [...KEYS, 'competitors', 'grandChampions'].includes(k)));
   let notified = 0;
   const off = s.subscribe(() => notified++);
   s.dispatch(A.divisionRenamed(changed, meta));

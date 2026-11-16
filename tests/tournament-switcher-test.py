@@ -48,7 +48,7 @@ def main():
         a.wait_for(lambda: a.tournament_id() == aid, message='reload A')
         a.staff_login()
         page.context.set_offline(True)
-        page.evaluate("KSMTest.app.state.awards=[{name:'Unsaved award'}];KSMTest.app.criticalAutoSave('Offline award')")
+        page.evaluate("KSMTest.app.setAwards([{name:'Unsaved award'}]);KSMTest.app.criticalAutoSave('Offline award')")
         return_address,return_view=a.address(),a.visible_view()
         page.evaluate('KSMTest.app.showHomePage()')
         a.wait_for_library()

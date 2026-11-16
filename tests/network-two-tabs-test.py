@@ -138,7 +138,7 @@ def closed_tab_does_not_block_switching(browser, base, problems):
     a = KsmApp.open_device(browser, base, 'Staff', problems, tournament_name='Left Behind')
     left = a.create_tournament(); a.wait_idle()
     refuse_puts(a)
-    a.page.evaluate("KSMTest.app.state.awards=[{name:'Unsent'}];KSMTest.saveNow('edit')")
+    a.page.evaluate("KSMTest.app.setAwards([{name:'Unsent'}]);KSMTest.saveNow('edit')")
     a.wait_for(a.outbox, message='tab A queue')
     t = KsmApp(a.page.context.new_page(), 'New tab', problems)
     t.page.on('dialog', t._on_dialog)

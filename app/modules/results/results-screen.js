@@ -7,6 +7,7 @@ import {ksmRenderResults,ksmRenderResultsBracket} from '../react-bridges/results
 import {ksmGrandChampion} from '../registration/grand-champion.js';
 import {ksmTeamSettings} from '../registration/team-divisions.js';
 import {divisionComplete,isPoolOnlyDivision,teamFinalPlacements} from './results-and-awards.js';
+import {ksmAddAward,ksmRemoveAward} from './awards-store.js';
 import * as KSMEngine from '../../engine/index.ts';
 // ==========================================================
 // KSM v3.9.1 — Results presentation
@@ -36,13 +37,12 @@ export function resultPlacements(div){
   return gc?KSMEngine.grandChampionPlacements(placements,gc.awardMode,KSMEngine.grandChampionWithdrawn(gc)):placements;
 }
 export function addResultAward(){
-  state.awards=state.awards||[];
-  state.awards.push({award:'Fighting Spirit',name:'',dojo:''});
+  ksmAddAward({award:'Fighting Spirit',name:'',dojo:''});
   saveAuto();
   renderResultsDashboard();
 }
 export function removeResultAward(index){
-  state.awards.splice(index,1);
+  ksmRemoveAward(index);
   saveAuto();
   renderResultsDashboard();
 }
