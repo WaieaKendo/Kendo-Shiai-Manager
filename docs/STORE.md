@@ -724,8 +724,10 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
       a plain-state `ksmMoveCourtPointers()` (`tests/lib/derived-matches.mjs`).
     - Known difference on an error path only: a scorekeeper's view choice on a save without `currentByDivision` threw
       (`state.currentByDivision[div]=…` on undefined) and now creates the map.
-    - Measured (headless Chromium, 6x CPU throttling, 6 divisions of 16 on split courts): Next Match (a point and Next
-      Match) median 43.3 → see the PR; a remote snapshot apply 20.1 → see the PR.
+    - Measured (headless Chromium, 6x CPU throttling, 6 divisions of 16 on split courts, 48 bouts and 15 applies per run,
+      four runs each, before and after interleaved): a point and Next Match, median 43-55 ms before and 45-50 ms after; a
+      remote snapshot apply 20-25 ms both. No difference beyond the run-to-run noise (a self-heal that changes nothing
+      dispatches nothing). The owner times a point on the oldest TV/tablet before 13c.
     **13b** (next): `courtActionHistory`, `courtRedoHistory`, `courtUndoLog` into the store; `court/undo` / `court/redo`
     apply an entry's patches in **one** dispatch (also fixes #199's L1: a node patch could land before its bout's patch
     inside one Undo/Redo step); `performCourtAction()` pushes its entry with an action; the rebase's history replay and
