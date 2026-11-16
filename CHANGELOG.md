@@ -1,3 +1,10 @@
+## v4.0.0-rc.3 — Brackets for spectators
+
+- Spectators can open each division's pools and bracket from Results while it is in progress, from the moment the tournament is live.
+- Export Results is staff-only for now.
+- The bracket pop-up opens above the header (its × works) with a readable title; messages stay above pop-ups.
+- Team brackets in Results show both teams on every match.
+
 ## v4.0.0-rc.2 — Split courts, tiebreaks and the TV
 
 Fixes and polish for the 11/21 tournament since rc.1. Reload every device once after the update.

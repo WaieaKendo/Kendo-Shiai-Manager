@@ -352,6 +352,8 @@ const KNOWN_POST_SPLIT_CSS_EDITS = {
   'spectator-export': 1,
   // fix/spectator-brackets: app/styles/26-modal-above-header.css, an open pop-up in <main> above the sticky header.
   'modal-above-header': 1,
+  // fix/results-team-bracket: app/styles/27-results-team-bracket.css, team bracket rounds wide enough for a match row.
+  'results-team-bracket': 1,
 };
 // Old functions whose body now lives in app/engine/*.ts (parameter lists without braces).
 const MOVED_TO_ENGINE = [
