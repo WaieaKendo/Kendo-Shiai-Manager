@@ -472,13 +472,14 @@ function ksmQueuePanelInput(){
 // The division being played on the court (state.currentDivision: what Continue opened) as the
 // header over its rounds, then the court's remaining divisions in running order
 // (ksmCourtDivisionList(), from the one after it as ksmNextCourtDivision() looks), finished and
-// undrawn ones left out: names and match counts only.
+// undrawn ones left out: names and the matches left on this court only.
 function ksmCourtRunningOrder(court,div){
   const list=ksmCourtDivisionList(court),other=court==='A'?'B':'A',otherList=ksmCourtDivisionList(other);
   const i=div?list.indexOf(div):-1,rest=i<0?list:[...list.slice(i+1),...list.slice(0,i)];
   const name=d=>ksmText(ksmDivisionName(d)||d);
   const later=rest.filter(d=>d!==div&&!divisionComplete(d)).map(d=>{
-    const ms=(state.allMatches?.[d]||[]).filter(m=>isValidMatchObject(m)&&matchBelongsToCourt(m,court));
+    // Matches still to play on this court (a division left part-way counts what remains).
+    const ms=(state.allMatches?.[d]||[]).filter(m=>isValidMatchObject(m)&&!m.done&&matchBelongsToCourt(m,court));
     // A team division counts its pairings, not the bouts.
     const matches=ms.some(isTeamMatch)?new Set(ms.map(m=>m.teamPair||`${m.teamWhite}|${m.teamRed}|${m.pool||m.position||''}`)).size:ms.length;
     return matches?{name:name(d),matches,alsoOn:otherList.includes(d)?other:null}:null;

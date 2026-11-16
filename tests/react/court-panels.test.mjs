@@ -153,4 +153,5 @@ test('courtQueueView: the court\'s running order (Now header, later divisions as
   ] } });
   assert.equal(courtQueueView({ kind: 'groups', groups: [], order }).order.later.length, 2);
   assert.deepEqual(courtQueueView({ kind: 'empty', order: { current: null, later: [] } }), { kind: 'empty' });
+  assert.deepEqual(courtQueueView({ kind: 'empty', order: { current: { name: 'X' } } }), { kind: 'empty' });
 });

@@ -138,7 +138,9 @@ function rowView(row: QueueRow): QueueRowItemView {
 
 export function courtQueueView(input: CourtQueueInput): CourtQueueView {
   const { order, ...base } = input;
-  const extra = order && (order.current || order.later.length) ? { order: runningOrderView(order) } : {};
+  // Display only: malformed data drops the running order, never the queue.
+  const ok = !!order && Array.isArray(order.later) && (!!order.current || order.later.length > 0);
+  const extra = ok ? { order: runningOrderView(order) } : {};
   if (base.kind !== 'groups') return { ...base, ...extra };
   return {
     ...extra,
