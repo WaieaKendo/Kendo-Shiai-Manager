@@ -16,7 +16,9 @@ test('two slices, tournament (its version and the Setup settings) and device (it
       divisionTypes: Object.fromEntries(DIVISION_PRESETS.map(p => [p[0], p[1]])),
       divisionCourts: { ...Object.fromEntries(DIVISION_PRESETS.map(p => [p[0], p[2]])), 'Team Tournament': 'Both' },
       // The people (PR 10): no rows; no team divisions until the load-time migration builds them.
-      competitors: [], teams: [], exhibitions: [] },
+      competitors: [], teams: [], exhibitions: [],
+      // The awards (PR 11): none; no grand champions until one is added.
+      awards: [] },
     device: { sliceVersion: DEVICE_SLICE_VERSION, regMode: 'individual', poolViewDivision: 'Women’s Open', currentCourt: 'A', publicCourt: 'A', currentDivision: 'Women’s Open', localCourtDivision: { A: null, B: null },
       currentMatchIndex: 0, activeScore: { A: { W: [], R: [], WT: 0, RT: 0 }, B: { W: [], R: [], WT: 0, RT: 0 } } },
   });

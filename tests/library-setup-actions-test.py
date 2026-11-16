@@ -32,7 +32,7 @@ def main():
         bid = b.create_tournament()
         b.configure([{'name': 'B Division', 'format': 'Round Robin', 'court': 'B',
                       'entrants': [{'name': f'B player {i}', 'dojo': 'B Dojo', 'status': 'Checked'} for i in range(4)]}])
-        b.page.evaluate("KSMTest.app.state.awards=[{award:'Fighting spirit',name:'B winner',dojo:'B Dojo'}]")
+        b.page.evaluate("KSMTest.app.setAwards([{award:'Fighting spirit',name:'B winner',dojo:'B Dojo'}])")
         b.save_now(); b.wait_idle()
         brecord = fetch_record(base, bid)
         page = a.page

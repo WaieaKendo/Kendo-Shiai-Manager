@@ -2,15 +2,16 @@
 // .ksm file. docs/STORE.md lists the `state` fields that move here and in which order. PR 8 moved the Setup form
 // (`payload.setup`, which the DOM inputs held) into `settings`; PR 9 the divisions (`divisions`, `divisionTypes`,
 // `divisionCourts`, `hiddenPresets`, `divisionRenames`); PR 10 the people (`competitors`, `teams`, `exhibitions`,
-// `teamDivisions`). `state` reads them through getters (app/modules/app-state.js).
+// `teamDivisions`); PR 11 the awards and the grand champions (`awards`, `grandChampions`). `state` reads them through getters (app/modules/app-state.js).
 import { createNextState, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { DIVISION_PRESETS, TEAM_COURT_KEY, type DivisionRename } from '../../engine/division-lists.ts';
 import { statusCycle } from '../../engine/registration.ts';
+import type { GrandChampion } from '../../engine/grand-champion.ts';
 import type { TeamDivision } from '../../engine/team-divisions.ts';
 import { withMeta, type ActionMeta } from '../meta.ts';
 
 /** Bumped when the shape of this slice changes in a way saved data must be migrated for. */
-export const TOURNAMENT_SLICE_VERSION = 4;
+export const TOURNAMENT_SLICE_VERSION = 5;
 
 /**
  * TEAM_COURT_KEY: the legacy team division's key ('Team Tournament', KSMEngine.LEGACY_TEAM_DIVISION_ID). Its
@@ -69,7 +70,14 @@ export interface TournamentSliceState {
   exhibitions: PersonRow[];
   /** The team divisions (`state.teamDivisions`), in the order they were added; absent until the load-time migration builds them. */
   teamDivisions?: TeamDivision[] | undefined;
+  /** Results' special awards in the order they were added (`state.awards`): `{award, name, dojo}`; merged three-way on save conflicts. */
+  awards: AwardRow[];
+  /** The grand champion rows (#86) in running order (`state.grandChampions`); absent until one is added; merged by id on save conflicts. */
+  grandChampions?: GrandChampion[] | undefined;
 }
+
+/** A special award as Results' editor holds it. Rows have no id: an award action names its row by its index. */
+export type AwardRow = Record<string, unknown>;
 
 /**
  * A Registration row (a player, a team, an exhibition match). Rows have no common id (players and exhibition matches
@@ -92,6 +100,7 @@ export const initialTournamentState: TournamentSliceState = {
   competitors: [],
   teams: [],
   exhibitions: [],
+  awards: [],
 };
 
 /**
@@ -110,9 +119,11 @@ export function withTeamCourt(s: TournamentSliceState): TournamentSliceState {
  * The division lists a division action sets: each key it names gets that value (the five `state` fields of PR 9; a
  * rename's `competitors` too, PR 10).
  */
-export type DivisionLists = Partial<Pick<TournamentSliceState, 'divisions' | 'divisionTypes' | 'divisionCourts' | 'hiddenPresets' | 'divisionRenames' | 'competitors'>>;
+export type DivisionLists = Partial<Pick<TournamentSliceState, 'divisions' | 'divisionTypes' | 'divisionCourts' | 'hiddenPresets' | 'divisionRenames' | 'competitors' | 'grandChampions'>>;
 /** The people lists a bulk or team division action sets (PR 10): each key it names gets that value. */
 export type PeopleLists = Partial<Pick<TournamentSliceState, PeopleKey | 'teamDivisions'>>;
+/** The lists an awards / grand champion action sets (PR 11): each key it names gets that value. */
+export type AwardLists = Partial<Pick<TournamentSliceState, 'awards' | 'grandChampions'>>;
 
 /**
  * Every division action has this one reducer: it sets the lists its payload names. What an edit does to them is pure
@@ -132,6 +143,12 @@ const setDivisionLists = {
 const setPeopleLists = setDivisionLists as unknown as {
   reducer(state: TournamentSliceState, action: PayloadAction<PeopleLists, string, ActionMeta>): void;
   prepare: ReturnType<typeof withMeta<PeopleLists>>;
+};
+
+/** The same reducer for the awards and grand champion lists (PR 11). */
+const setAwardLists = setDivisionLists as unknown as {
+  reducer(state: TournamentSliceState, action: PayloadAction<AwardLists, string, ActionMeta>): void;
+  prepare: ReturnType<typeof withMeta<AwardLists>>;
 };
 
 /** Rows appended to a list (one action for Add 3 rows). */
@@ -229,5 +246,24 @@ export const tournamentSlice = createSlice({
     teamDivisionMoved: setPeopleLists,
     /** A team division removed, its teams moved to another one. */
     teamDivisionRemoved: setPeopleLists,
+    // Awards and grand champions (#15 PR 11). Like the team divisions' edits, each is computed by the app from the current
+    // rows (an award has no id: its row is found by its index right before the dispatch, in the same synchronous step;
+    // a grand champion has an id and engine rules) and the reducer sets the list it is given.
+    /** An award row added at the end (Results' Add award). */
+    awardAdded: setAwardLists,
+    /** An award's fields (an input's change); a field the row lacks is added at its end, as an assignment did. */
+    awardSet: setAwardLists,
+    /** An award removed (×). */
+    awardRemoved: setAwardLists,
+    /** The whole award list at once (the test API; a load goes through legacy/stateReplaced). */
+    awardsLoaded: setAwardLists,
+    /** A grand champion row added (with its court in `divisionCourts`, a separate action as before). */
+    grandChampionAdded: setAwardLists,
+    /** A grand champion row's fields, or a director's decision saved in it (keep / rebuild, a stand-in). */
+    grandChampionUpdated: setAwardLists,
+    /** The grand champions' running order (`order`). */
+    grandChampionMoved: setAwardLists,
+    /** A grand champion row removed (before its draw). */
+    grandChampionRemoved: setAwardLists,
   },
 });

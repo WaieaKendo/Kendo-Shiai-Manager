@@ -89,7 +89,7 @@ def main():
         other = KsmApp.open_device(browser, base, 'Password changer', problems, app_path(aid))
         other.staff_login()
         a.page.context.set_offline(True)
-        a.page.evaluate("KSMTest.app.state.awards=[{name:'Queued award'}];KSMTest.app.criticalAutoSave('Offline award')")
+        a.page.evaluate("KSMTest.app.setAwards([{name:'Queued award'}]);KSMTest.app.criticalAutoSave('Offline award')")
         a.wait_for(a.outbox, message='offline work queued')
         queued = a.page.evaluate('KSMTest.app.readOutbox().payload.state')
         for _ in range(51):

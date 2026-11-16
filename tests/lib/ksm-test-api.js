@@ -213,6 +213,15 @@ window.KSMTest = {
     // here, one tournament/peopleLoaded; a list it leaves out keeps its value, `teamDivisions: undefined` clears it (the
     // app builds it again on its next read). A row is never edited in place: set the list again with the row changed.
     setPeople: lists => ksmLoadPeople(lists),
+    // Results' awards editor and Setup's grand champion rows, as their islands call them (tests/awards-store-test.py).
+    // Awards are store data (#15 PR 11): a test sets the list or a row's fields here, one action each; a row is never edited in place.
+    setAwards: awards => ksmLoadAwards(awards),
+    setAward: (index, changes) => ksmSetAward(index, changes),
+    addResultAward: (...a) => addResultAward(...a),
+    removeResultAward: (...a) => removeResultAward(...a),
+    ksmSetResultAward: (...a) => ksmSetResultAward(...a),
+    ksmMoveGrandChampion: (...a) => ksmMoveGrandChampion(...a),
+    ksmToggleGrandChampionSource: (...a) => ksmToggleGrandChampionSource(...a),
     // Registration's operations, as its islands and buttons call them (tests/people-store-test.py).
     addRow: (...a) => addRow(...a),
     addTeamRow: (...a) => addTeamRow(...a),

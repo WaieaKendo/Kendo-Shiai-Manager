@@ -21,7 +21,7 @@ def local_cases(browser):
     fixture=json.loads((Path(__file__).parent/'golden/engine/team3-se-2.json').read_text())
     fixture['setup'][0]['court']='A'
     app.configure(fixture['setup'])
-    page.evaluate("KSMTest.app.state.awards=[{award:'Fighting spirit',name:'TA1',dojo:'Dojo'}]")
+    page.evaluate("KSMTest.app.setAwards([{award:'Fighting spirit',name:'TA1',dojo:'Dojo'}])")
     legacy = app.payload()
     for _ in range(3):
         page.evaluate("()=>{KSMTest.prepareCourt('A');KSMTest.play([['W','M']]);}")

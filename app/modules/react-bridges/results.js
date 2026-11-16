@@ -1,6 +1,7 @@
 // @ts-check
 import {state} from '../app-state.js';
 import {saveAuto} from '../sync/cloud-session-and-autosave.js';
+import {ksmSetAward} from '../results/awards-store.js';
 // ==========================================================
 // React Results (app/react/features/results/, roadmap M.13, #136 step 2)
 // The Results screen (#results) is drawn only by React: four islands (the result cards and awards
@@ -31,7 +32,7 @@ export function ksmRenderResultsBracket(div){
 // An award input's change (awardsEditorHtml()'s inline handler: state.awards[i].<field>=this.value;saveAuto();
 // saveAuto() is the scheduled autosave defined for F11 in app/modules/sync/cloud-session-and-autosave.js).
 export function ksmSetResultAward(index,field,value){
-  state.awards[index][field]=value;saveAuto();
+  ksmSetAward(index,{[field]:value});saveAuto();
 }
 
 // If the React module (app/react/main.tsx, a module script after app.js) did not run, say so on

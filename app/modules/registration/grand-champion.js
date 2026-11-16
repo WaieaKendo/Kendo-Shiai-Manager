@@ -14,6 +14,7 @@ import {ksmCloseCloudModal,ksmCloudModalOpen,ksmOpenCloudModal} from '../react-b
 import {ksmDivisionName} from './team-divisions.js';
 import {renderTournamentStatus} from './validation.js';
 import {divisionComplete} from '../results/results-and-awards.js';
+import {ksmSetGrandChampions} from '../results/awards-store.js';
 import {resultPlacements} from '../results/results-screen.js';
 import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {renderDivisionSetup} from '../setup/division-setup.js';
@@ -50,18 +51,27 @@ function ksmGrandChampionDrawn(id){return (state.allMatches?.[id]||[]).length>0}
 export function ksmAddGrandChampion(){
   if(isReadOnlySession())return null;
   const rows=ksmGrandChampions(),gc=KSMEngine.newGrandChampion(ksmNewGrandChampionId(),Math.max(-1,...rows.map(r=>r.order))+1);
-  state.grandChampions=[...rows,gc];ksmSetDivisionCourt(gc.id,gc.court);
+  ksmSetGrandChampions('grandChampionAdded',[...rows,gc]);ksmSetDivisionCourt(gc.id,gc.court);
   ksmGrandChampionChanged();return gc.id;
 }
 const KSM_GC_EDITABLE_AFTER_DRAW=['name','awardMode'];
+/**
+ * The row `gc` with `changes` assigned (a key it lacks is added at its end, as the assignment did), in its place in the
+ * list, as one tournament/grandChampionUpdated: a row is store data, never edited in place. Returns the new row.
+ */
+function ksmReplaceGrandChampion(gc,changes){
+  const next={...gc,...changes};
+  ksmSetGrandChampions('grandChampionUpdated',(state.grandChampions||[]).map(r=>r===gc?next:r));
+  return next;
+}
 /** Changes fields of a row; why not (nothing changed), or null. */
 export function ksmUpdateGrandChampion(id,patch){
   const gc=ksmGrandChampion(id);if(!gc)return 'This grand champion match no longer exists.';
   if(isReadOnlySession())return 'Read only';
   if(patch.name!==undefined&&!String(patch.name).trim())return 'Enter a name for the grand champion match.';
   if(ksmGrandChampionDrawn(id)&&Object.keys(patch).some(k=>!KSM_GC_EDITABLE_AFTER_DRAW.includes(k)))return 'Divisions, format and court cannot change once this match is drawn.';
-  Object.assign(gc,patch,{id:gc.id},patch.name!==undefined?{name:String(patch.name).trim()}:{});
-  if(patch.court)ksmSetDivisionCourt(id,gc.court);
+  const next=ksmReplaceGrandChampion(gc,{...patch,id:gc.id,...(patch.name!==undefined?{name:String(patch.name).trim()}:{})});
+  if(patch.court)ksmSetDivisionCourt(id,next.court);
   ksmGrandChampionChanged();return null;
 }
 export function ksmToggleGrandChampionSource(id,div,on){
@@ -73,11 +83,11 @@ export function ksmToggleGrandChampionSource(id,div,on){
 export function ksmMoveGrandChampion(id,direction){
   const rows=ksmGrandChampions(),i=rows.findIndex(r=>r.id===id),j=i+(direction==='up'?-1:1);
   if(i<0||j<0||j>=rows.length||isReadOnlySession())return;
-  [rows[i],rows[j]]=[rows[j],rows[i]];rows.forEach((r,index)=>r.order=index);state.grandChampions=rows;ksmGrandChampionChanged();
+  [rows[i],rows[j]]=[rows[j],rows[i]];ksmSetGrandChampions('grandChampionMoved',rows.map((r,index)=>({...r,order:index})));ksmGrandChampionChanged();
 }
 export function ksmRemoveGrandChampion(id){
   if(ksmGrandChampionDrawn(id)||isReadOnlySession()||!ksmGrandChampion(id))return false;
-  state.grandChampions=ksmGrandChampions().filter(r=>r.id!==id);ksmSetDivisionCourt(id,null);
+  ksmSetGrandChampions('grandChampionRemoved',ksmGrandChampions().filter(r=>r.id!==id));ksmSetDivisionCourt(id,null);
   ksmClearGrandChampionStructure(id);ksmGrandChampionChanged();return true;
 }
 // ---------------------------------------------------------- the sources
@@ -307,9 +317,9 @@ export function ksmGrandChampionChoose(choice){
   const gc=q&&ksmGrandChampion(q.id);if(!gc||isReadOnlySession())return;
   if(q.kind==='withdraw'&&String(choice).startsWith('source:'))return ksmOpenGrandChampionStandIn(gc.id,String(choice).slice(7));
   if(q.kind==='stand-in'&&(choice==='runner-up'||choice==='fusen-sho')){
-    gc.standIns={...(gc.standIns||{}),[q.source]:{winner:q.winner,kind:choice}};
+    ksmReplaceGrandChampion(gc,{standIns:{...(gc.standIns||{}),[q.source]:{winner:q.winner,kind:choice}}});
   }else if(q.kind==='ask'&&(choice==='keep'||choice==='rebuild')){
-    if(choice==='keep')gc.keep=q.signature;else gc.rebuild=q.signature;
+    ksmReplaceGrandChampion(gc,choice==='keep'?{keep:q.signature}:{rebuild:q.signature});
   }else return;
   ksmSyncGrandChampions('director decision');
   ksmGrandChampionChanged('Grand champion decision');
