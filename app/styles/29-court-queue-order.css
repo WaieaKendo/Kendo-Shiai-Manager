@@ -1,0 +1,11 @@
+/* ksm:post-split-begin court-queue-order */
+/* Court Queue running order: the division being played as a header over its rounds ("Now"), then
+   the court's later divisions as one quiet, non-tappable line each. Theme tokens. */
+.queue-division-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px;padding-bottom:8px;border-bottom:1px solid var(--line);font-weight:900;color:var(--ink)}
+.queue-division-badge{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:2px 8px;font-size:11px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--card)}
+.queue-division-badge.now{color:var(--green);background:var(--greenbg);border-color:var(--green)}
+.queue-later{margin-top:14px;border-top:1px solid var(--line)}
+.queue-division-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 0;border-bottom:1px solid var(--line);color:var(--muted);cursor:default}
+.queue-division-line .queue-division-name{font-weight:850;color:var(--ink)}
+.queue-division-meta{margin-left:auto;font-size:12px}
+/* ksm:post-split-end */

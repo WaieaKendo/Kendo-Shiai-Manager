@@ -356,6 +356,8 @@ const KNOWN_POST_SPLIT_CSS_EDITS = {
   'results-team-bracket': 1,
   // feat/brackets-tab: app/styles/28-brackets.css, a Brackets card's court tag (theme tokens).
   'brackets-screen': 1,
+  // feat/court-queue-order: app/styles/29-court-queue-order.css, the Court Queue's running order (theme tokens).
+  'court-queue-order': 1,
 };
 // Old functions whose body now lives in app/engine/*.ts (parameter lists without braces).
 const MOVED_TO_ENGINE = [
