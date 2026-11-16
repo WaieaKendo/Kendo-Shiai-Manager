@@ -26,5 +26,20 @@ export function viewHelpers(context) {
     ksmEmptyScore: () => ({ W: [], R: [], WT: 0, RT: 0 }),
     ksmSetScore(s) { context.state.score = { W: [...(s?.W || [])], R: [...(s?.R || [])], WT: s?.WT || 0, RT: s?.RT || 0 }; },
     ksmResetCourtPads() { context.state.current = 0; context.state.score = { W: [], R: [], WT: 0, RT: 0 }; },
+    ...pointerHelpers(context),
+  };
+}
+/**
+ * #15 PR 13a: the court pointers are store data in the app, written through ksmMoveCourtPointers()
+ * (app/modules/court/court-pointers-store.js). In a vm test whose `state` is `context.state` it sets the entries the
+ * same way the reducer does (a missing map is created; each named entry is set; the others stay). Exclude
+ * 'ksmMoveCourtPointers' from withDependencies(); ksmCourtPointer() / ksmResolveCourts() can be the app's own.
+ */
+export function pointerHelpers(context) {
+  return {
+    ksmMoveCourtPointers(type, pointers) {
+      (context.pointerActions ||= []).push(type);
+      for (const key of ['currentByDivision', 'courtState', 'courtActiveDivision']) if (pointers[key]) Object.assign(context.state[key] ||= {}, pointers[key]);
+    },
   };
 }

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { extractFunction, engine, html as appSource, sw as appServiceWorker } from './lib/ksm-source.mjs';
+import { pointerHelpers } from './lib/derived-matches.mjs';
 
 const html=appSource;
 const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));
@@ -19,6 +20,7 @@ const context={console};
 context.state={};
 // #15 PR 7: on the live state, current goes through ksmShowMatch() (here the context's plain state).
 context.ksmShowMatch=i=>{context.state.current=i};
+Object.assign(context,pointerHelpers(context)); // #15 PR 13a: the court pointers' store helper, on the plain state
 context.cloneJson=value=>JSON.parse(JSON.stringify(value));
 context.isValidMatchObject=match=>Boolean(match&&typeof match==='object'&&!Array.isArray(match));
 context.individualMatchReady=m=>!!(m&&!m.done&&(!m.templateNode||m.ready)&&(m.white&&m.red));

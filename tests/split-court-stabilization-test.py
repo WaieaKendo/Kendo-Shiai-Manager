@@ -39,8 +39,7 @@ with sync_playwright() as p:
     page.evaluate("""
       KSMTest.app.showDivision('Test');KSMTest.app.setCurrentCourt('B');
       KSMTest.app.showMatch(KSMTest.app.state.matches.findIndex(m=>m.pool==='B'&&m.tiebreak));
-      KSMTest.app.state.courtState={A:{division:'Test',index:0},B:{division:'Test',index:KSMTest.app.state.current}};
-      KSMTest.app.state.courtActiveDivision={A:'Test',B:'Test'};KSMTest.app.setScore({W:[],R:[],WT:0,RT:0});
+      KSMTest.app.setCourtPointers({courtState:{A:{division:'Test',index:0},B:{division:'Test',index:KSMTest.app.state.current}},courtActiveDivision:{A:'Test',B:'Test'}});KSMTest.app.setScore({W:[],R:[],WT:0,RT:0});
       KSMTest.app.nextMatch();
     """)
     assert dialogs and 'Ties are not allowed' in dialogs[-1],dialogs
@@ -51,7 +50,7 @@ with sync_playwright() as p:
     page.evaluate("""
       KSMTest.app.setDivisionLists({divisionTypes:{...KSMTest.app.state.divisionTypes,Test:'Single Elimination'}});KSMTest.app.setDivisionLists({divisionCourts:{...KSMTest.app.state.divisionCourts,Test:'split'}});
       KSMTest.app.setPeople({competitors: Array.from({length:8},(_,i)=>({name:'E'+(i+1),dojo:'D',division:'Test',seed:'',status:'Checked'}))});
-      KSMTest.app.setDraw({pools:{}});KSMTest.app.state.allMatches={};KSMTest.app.setDraw({singleElimNodes:{}});KSMTest.app.setDraw({singleElimComps:{}});KSMTest.app.state.currentByDivision={};
+      KSMTest.app.setDraw({pools:{}});KSMTest.app.state.allMatches={};KSMTest.app.setDraw({singleElimNodes:{}});KSMTest.app.setDraw({singleElimComps:{}});KSMTest.app.setCourtPointers({currentByDivision:{}});
       KSMTest.app.generateDivisionState('Test');KSMTest.app.showDivision('Test');KSMTest.app.setCurrentCourt('A');
       const firstA=KSMTest.app.state.matches.findIndex(m=>m.court==='A'&&!m.done);KSMTest.app.showMatch(firstA);
       KSMTest.app.setCourtSupportMode('singleElim');KSMTest.app.renderQueue();

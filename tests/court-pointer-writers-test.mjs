@@ -14,7 +14,7 @@ let failed = false, count = 0;
 const check = (ok, name) => { count++; if (!ok) { console.log(`FAIL ${name}`); failed = true; } };
 const json = v => JSON.stringify(v);
 
-const STUBS = ['renderDivisions', 'renderScore', 'renderPools', 'renderProgress', 'renderContext', 'renderPublic', 'applyCourtSides', 'criticalAutoSave',
+const STUBS = ['ksmMoveCourtPointers', 'renderDivisions', 'renderScore', 'renderPools', 'renderProgress', 'renderContext', 'renderPublic', 'applyCourtSides', 'criticalAutoSave',
   'isReadOnlySession', 'canCloudWrite', 'isTvSession', 'ksmSetCurrentCourt', 'ksmSetPublicCourt', 'ksmShowDivision', 'setLocalCourtDivision',
   'ksmLocalCourtDivision', 'pinCourtLocally', 'show', 'ksmNotifyStateChanged', 'ksmShowMatch', 'ksmSetScore', 'ksmEmptyScore', 'ksmResetCourtPads'];
 const entry = ['applyCourtState', 'setActiveDivision', 'selectScorekeeperDivision', 'courtCurrentMatch', 'isCourtScorekeeper', 'syncOwnCourtPointer'].map(n => extractFunction(html, n)).join('\n');

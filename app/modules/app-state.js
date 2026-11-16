@@ -85,8 +85,9 @@ moveToStore('poolViewDivision',['device','poolViewDivision']);
 export function ksmSetPoolViewDivision(/** @type {string} */ division){dispatch(deviceSlice.actions.poolViewDivisionChanged(division))}
 // The court view (PR 6): the court this device shows, the court Live Scores / the TV follows, and the division its court
 // screen shows. Written only through these three helpers (device/courtChosen, device/publicCourtChanged,
-// device/divisionShown); the court's shared pointer (courtState[c], courtActiveDivision[c]) is tournament data, written
-// only by that court's own actions (isCourtScorekeeper() in court-match-order.js, docs/STORE.md section 1.2).
+// device/divisionShown); the court's shared pointer (courtState[c], courtActiveDivision[c]) is tournament data (in the
+// store since PR 13a, below), written only by that court's own actions (isCourtScorekeeper() in court-match-order.js,
+// docs/STORE.md section 1.2).
 moveToStore('currentCourt',['device','currentCourt']);
 moveToStore('publicCourt',['device','publicCourt']);
 moveToStore('currentDivision',['device','currentDivision']);
@@ -148,6 +149,14 @@ moveToStore('championshipNodes',['tournament','championshipNodes']);
 moveToStore('teamBracketNodes',['tournament','teamBracketNodes']);
 moveToStore('singleElimNodes',['tournament','singleElimNodes']);
 moveToStore('teamElimTeams',['tournament','teamElimTeams']);
+// The court pointers (PR 13a, docs/STORE.md section 3 item 13): what each court runs (`courtState`), its division kept twice
+// (`courtActiveDivision`) and each division's queue position (`currentByDivision`) are the `tournament` slice's, written
+// only through app/modules/court/court-pointers-store.js (court/divisionSelected, court/pointerMoved, court/pointersResolved,
+// `meta.court`), a division's draw (structure-store.js), the rename or a load's replaceState(). A pointer is store data:
+// never `cs.index = …`, build a new one.
+moveToStore('currentByDivision',['tournament','currentByDivision']);
+moveToStore('courtState',['tournament','courtState']);
+moveToStore('courtActiveDivision',['tournament','courtActiveDivision']);
 /** Whether a store path is a Setup field: a load applies those through applySetupSnapshot(), with the Setup's precedence. */
 const isSettingsPath=(/** @type {string[]} */ p)=>p[0]==='tournament'&&p[1]==='settings';
 /** A tournament closed (ksmResetTournament()): the shown match is the first and every court's pad is empty. */

@@ -1,6 +1,7 @@
 // @ts-check
 import {state} from '../app-state.js';
 import {findNextForCourt,renderDivisions} from './court-match-order.js';
+import {ksmResolveCourts} from './court-pointers-store.js';
 import {ensureCourtHistory,updateUndoButton} from './court-scoring-and-history.js';
 import {renderScore} from './scorekeeper-screen.js';
 import {renderContext} from './split-court-templates.js';
@@ -63,18 +64,12 @@ export function saveEditedPools(){
   const poolMatches=buildPoolMatches(div,pools);
   state.allMatches[div]=poolMatches.concat(championshipMatches);
   syncChampionshipTemplate(div);
-  state.currentByDivision[div]=0;
 
   // Any saved court pointer into the pre-edit array is now stale because the
   // division Match Objects were intentionally rebuilt. Re-resolve each affected
-  // court against the canonical queue before tournament play begins.
-  ['A','B'].forEach(court=>{
-    if(state.courtState?.[court]?.division===div||state.courtActiveDivision?.[court]===div){
-      const next=findNextForCourt(court,div,0);
-      state.courtState[court]=next;
-      state.courtActiveDivision[court]=next.division;
-    }
-  });
+  // court against the canonical queue before tournament play begins: with the
+  // division's queue position back at 0, one court/pointersResolved (#15 PR 13a).
+  ksmResolveCourts(['A','B'].filter(court=>state.courtState?.[court]?.division===div||state.courtActiveDivision?.[court]===div),court=>findNextForCourt(court,div,0),{[div]:0});
   if(div===state.currentDivision)setActiveDivision(div);
   renderPools();
   scheduleAutoSave();

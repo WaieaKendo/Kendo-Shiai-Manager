@@ -79,7 +79,7 @@ test('a unit test per grand champion action: each sets the rows the app computed
 
 test('a division rename carries the grand champions: one action, the players and the sources together', () => {
   // The app's list of what a rename's action carries (divisions-store.js, which needs a browser to load).
-  assert.match(read('app/modules/setup/divisions-store.js'), /KSM_RENAMED_STATE_KEYS=Object\.freeze\(\[\.\.\.KSM_DIVISION_STATE_KEYS,'competitors','grandChampions'\]\);/);
+  assert.match(read('app/modules/setup/divisions-store.js'), /KSM_RENAMED_STATE_KEYS=Object\.freeze\(\[\.\.\.KSM_DIVISION_STATE_KEYS,'competitors','grandChampions','courtState','courtActiveDivision'\]\);/);
   const KSM_RENAMED_STATE_KEYS = ['divisions', 'divisionTypes', 'divisionCourts', 'hiddenPresets', 'divisionRenames', 'competitors', 'grandChampions'];
   const s = fresh();
   s.dispatch(A.peopleLoaded({ competitors: [{ name: 'A', division: 'Open' }] }, meta));

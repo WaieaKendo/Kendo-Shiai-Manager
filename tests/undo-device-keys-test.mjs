@@ -29,7 +29,7 @@ let failed = false, count = 0;
 const check = (ok, name) => { count++; if (!ok) { console.log(`FAIL ${name}`); failed = true; } };
 const json = v => JSON.stringify(v);
 
-const STUBS = ['applyCourtSides', 'renderAll', 'updateUndoButton', 'updateSaveStatus', 'criticalAutoSave', 'showKsmToast', 'ksmNotifyStateChanged',
+const STUBS = ['ksmMoveCourtPointers', 'applyCourtSides', 'renderAll', 'updateUndoButton', 'updateSaveStatus', 'criticalAutoSave', 'showKsmToast', 'ksmNotifyStateChanged',
   'ksmSignalCourtActions', 'storeFieldPath', 'assignState', 'renderScore', 'renderPools', 'renderProgress', 'renderPublic', 'writeCloudDiagnosticsState', 'KSM_TAB_ID',
   // The court view's store helpers (#15 PR 6): here they write the context's plain `state`; this device is Court A's scorekeeper.
   'ksmSetCurrentCourt', 'ksmSetPublicCourt', 'ksmShowDivision', 'canCloudWrite', 'isTvSession',

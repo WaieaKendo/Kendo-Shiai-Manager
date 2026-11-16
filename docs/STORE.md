@@ -1,6 +1,6 @@
 # The store: plan for moving `state` into Redux Toolkit (#15 step 2.8)
 
-Status (2026-11-16): **prep done (PR 2), Undo/Redo without device keys (PR 3), loads keep the device view (PR 4), device fields moved: `regMode`, `poolViewDivision` (PR 5), the court view (PR 6), `matches` derived and `current` / `score` moved (PR 7), the Setup form in `tournament.settings` (PR 8), `teamAwardMode` and the team court read it (PR 8b), the divisions (PR 9), the people (PR 10), the awards and grand champions (PR 11), the draw structure (PR 12a), the bracket nodes (PR 12b)**. `app/store/` holds a Redux Toolkit store (slices
+Status (2026-11-16): **prep done (PR 2), Undo/Redo without device keys (PR 3), loads keep the device view (PR 4), device fields moved: `regMode`, `poolViewDivision` (PR 5), the court view (PR 6), `matches` derived and `current` / `score` moved (PR 7), the Setup form in `tournament.settings` (PR 8), `teamAwardMode` and the team court read it (PR 8b), the divisions (PR 9), the people (PR 10), the awards and grand champions (PR 11), the draw structure (PR 12a), the bracket nodes (PR 12b), the court pointers (PR 13a)**. `app/store/` holds a Redux Toolkit store (slices
 `tournament` and `device`). app.js imports it as a separate tree-shaken, minified
 bundle (+9.2 kB gzip since PR 10, section 5) and sets `window.KSMStore`; `app/modules/app-state.js` has the helpers the field
 moves use (`moveToStore()`, `replaceState()`, `assignState()`, section 2). All app data is still the one mutable
@@ -79,9 +79,9 @@ Class: **T** tournament data (shared, synced), **D** device/screen state (this d
 | `matches` | M | 23 / 7 / 11 | `applyCourtState` (`= state.allMatches[div]`), load | **neither: a selector** (derived, PR 7: a read-only getter returning the live `allMatches[currentDivision]`, `[]` when there is none; no writer left). It was an *alias* of `allMatches[currentDivision]` (writes through either name change both; still true). Saved, so every snapshot carries one division's match list twice |
 | `current` | M | 25 / 5 / 10 | `applyCourtState`, generation, load | **device** (moved, PR 7: `device.currentMatchIndex`, `device/matchShown`): the index of the match this device's court screen shows. Not a selector over `courtState[currentCourt].index`: since PR 6 a device that is not the court's scorekeeper shows its own match, and the scorekeeper's pointer can be ahead of its screen until the next render (section 3 item 7) |
 | `score` | M | 45 / 15 (on 8 lines: `point()` has several) / 8 | scoring (`point`, `hansoku`, `fusen`), `loadScoreFromMatch`, the court view resets | **device** (moved, PR 7: `device.activeScore[court]`, `device/scoreChanged`; `state.score` is this device's court's pad) working copy of the current match's points, copied into the match by `syncActiveScoreToMatch()`; ends as a selector over the match once court actions are actions |
-| `courtState` | M | 33 / 12 / 12 | `applyCourtState` (any local view choice: a division picked, a court chosen), Next Match, generation, setup, grand champion, sync load (`rehydrateLoadedTournamentState`, the payload's value or the self-heal) and rebase (`nextReadyIndexInState`) | **split** (see below): "what is on Court B now" (TV, Live Scores, the other court) is tournament data; a device *viewing* a court or division is device state |
-| `courtActiveDivision` | M | 19 / 10 / 11 | same writers as `courtState` | **tournament**, and then a selector: it is `courtState[c].division` kept twice |
-| `currentByDivision` | M | 13 / 9 / 5 | `applyCourtState` (every local view choice), generation, grand champion, sync load | **split**, then a selector: where each division's queue stands is derivable from the matches (`nextReadyIndexInState`); the remembered position is device state |
+| `courtState` | M | 33 / 12 / 12 | `applyCourtState` (any local view choice: a division picked, a court chosen), Next Match, generation, setup, grand champion, sync load (`rehydrateLoadedTournamentState`, the payload's value or the self-heal) and rebase (`nextReadyIndexInState`) | **split** (see below): "what is on Court B now" (TV, Live Scores, the other court) is tournament data; a device *viewing* a court or division is device state. **Moved (PR 13a)** to `tournament.courtState`: `court/divisionSelected` / `court/pointerMoved` / `court/pointersResolved` (`meta.court`) |
+| `courtActiveDivision` | M | 19 / 10 / 11 | same writers as `courtState` | **tournament**: it is `courtState[c].division` kept twice. **Moved (PR 13a)** as stored data, not a selector: after a 4.0 load without it, or a load whose `courtState` lacks a court, the two differ (only the healed court gets an entry; section 3 item 13) |
+| `currentByDivision` | M | 13 / 9 / 5 | `applyCourtState` (every local view choice), generation, grand champion, sync load | **split**, then a selector: where each division's queue stands is derivable from the matches (`nextReadyIndexInState`); the remembered position is device state. **Moved (PR 13a)** as stored data (it is the scorekeeper's remembered position, not the next ready bout: no selector gives its values); a division's draw carries its entry |
 | `courtActionHistory` | T | 19 / 7 / 4 | `performCourtAction`, undo/redo, rebase | **tournament**, per court: saved so a replacement tablet on the court can still undo; replayed by the rebase |
 | `courtRedoHistory` | T | 16 / 8 / 2 | undo/redo, rebase | **tournament** with the history |
 | `courtUndoLog` | T | 5 / 2 / 1 | undo/redo (F30 log the rebase replays) | **tournament** with the history |
@@ -127,7 +127,8 @@ Structural edits keep re-resolving the pointers on any writable device, as befor
 pool edits, division setup, grand champion draws, tiebreak index fixes and the rebase / load reconciliation (a load
 heals this court's pointer only on its scorekeeper). In this PR `courtState`, `courtActiveDivision` and
 `currentByDivision` stay plain tournament fields (they move in PR 13, where `court/divisionSelected` becomes an action
-with `meta.court`); only who writes them changed (`setCourtPointer()`).
+with `meta.court`); only who writes them changed (`setCourtPointer()`). PR 13a moved them (section 3 item 13); the rule
+is unchanged: a view choice on a device that is not the court's scorekeeper dispatches only `device/…` actions.
 
 ### 1.3 Other mutable state
 
@@ -537,7 +538,7 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
      hold copies (checked on the PR 9 code).
    - **The rename is one action**: `tournament/divisionRenamed` carries `competitors` from `renamedDivisionState()` with the
      division lists (`KSM_RENAMED_STATE_KEYS`); the separate assignment is gone. `grandChampions` joined it in PR 11;
-     `courtState` and `courtActiveDivision` are still assigned just before it (PR 13).
+     `courtState` and `courtActiveDivision` were still assigned just before it until PR 13a, which put them in it.
    - **Team divisions and the team court**: unchanged. `ksmSyncLegacyTeamDivision()` still copies the 'Team Tournament'
      team division's format, awards and court into the Setup, so its court wins over `settings.teamCourt` on a load and on
      its own court edit (the snapshot test checks `divisionCourts['Team Tournament']` equals the Setup field after every
@@ -565,7 +566,7 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
      director's decisions (keep / rebuild, a stand-in) are `grandChampionUpdated` too. A source check
      (`tests/store/awards.test.mjs`) fails on an assignment, a list method or a known in-place write.
    - **The rename** carries `grandChampions` with the division lists (`KSM_RENAMED_STATE_KEYS`): one action, one
-     notification. `courtState` / `courtActiveDivision` are still assigned just before it (PR 13).
+     notification. `courtState` / `courtActiveDivision` were still assigned just before it until PR 13a.
    - **Grand champion draws** are unchanged: `singleElimComps`, `allMatches`, `divisionCourts` and the rest of the draw are
      still plain `state` (PR 12), written in the same synchronous step as before; only the row list moved.
    - **Save conflicts**: unchanged. The merge runs on payload copies (`mergeGrandChampionRecords`, awards three-way) and its
@@ -673,7 +674,81 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
     `courtActionHistory`, `courtRedoHistory`, `courtUndoLog` → `court/pointScored`, `court/hansoku`,
     `court/nextMatch`, `court/undo`, `court/redo`, tiebreak/playoff creation, `patch-v1` from Immer patches. Risk:
     highest. Tests: court-actions, concurrent rebase (v31712, v31715), edit-conflicts, e2e full tournament, all
-    goldens; time a point on the oldest TV/tablet.
+    goldens; time a point on the oldest TV/tablet. Split in three by the coordinator: **13a** the court pointers (done,
+    below), **13b** the court history and undo, **13c** `allMatches` and the court actions.
+    Done (**PR 13a**), no behaviour change (no golden changed):
+    - `currentByDivision`, `courtState`, `courtActiveDivision` are `tournament` slice fields and `state` getters
+      (`moveToStore()`, `app-state.js`) at the literal's places, with the literal's initial values. The snapshot keeps every
+      key, value, type and order (`tests/court-pointers-store-test.py` compares every key of the saved `state` with the
+      PR 12b code's after 36 steps: a court's division picked and renamed before the draw; pools, a single elimination, two
+      round robins and a team bracket drawn on two courts; a regenerate; Edit Pool; Kids' bouts drawn into a tiebreak; Next
+      Match through pools and brackets on both courts; a director on Court A picking a division and drawing Court B; a
+      spectator and a TV on Court B picking and drawing; a remote apply while the spectator shows another division; Staff
+      Login's catch-up and the catch-up before a court action; Undo / Redo across Next Match; three 4.0-shaped loads
+      (without `courtActiveDivision`, a court missing from `courtState`, without both); two save conflicts; the reset; a
+      tournament switch).
+    - **Both stay stored**: `courtActiveDivision` is not always `courtState[c].division` (a 4.0 save without it, or a
+      `courtState` without a court: the load heals only this device's court, so the other court has no
+      `courtActiveDivision` entry; the fixture has both), and `currentByDivision` is the scorekeeper's remembered position,
+      which no selector over the matches gives.
+    - Actions (one reducer: the entries the payload names are set, a missing map created): `court/divisionSelected` (a
+      court's scorekeeper picks a division: `openCourt()`, `setActiveDivision()`), `court/pointerMoved` (Next Match through
+      `applyCourtState()`, a render's self-heal `courtCurrentMatch()`, `syncOwnCourtPointer()` on Staff Login and before a
+      court action, the load's reconciliation, the view rebuilt after Undo/Redo), `court/pointersResolved` (`meta.court`
+      null: generation's `initCourtStates()`, a regenerate, the No Shows, Edit Pool, a division's court changed, the grand
+      champion's draw and clear, the tiebreak reorder on the live state). A division drawn carries its queue position in its
+      draw action (`divisionGenerated`, `divisionRegenerated`, `divisionCleared`; `drawReset` empties the map); the rename
+      carries `courtState` / `courtActiveDivision` in `tournament/divisionRenamed` (`KSM_RENAMED_STATE_KEYS`: it is now
+      everything `renamedDivisionState()` rewrites). Every writer goes through `app/modules/court/court-pointers-store.js`
+      (`ksmMoveCourtPointers()`: only the entries that change, none when nothing does, so a self-heal that lands where the
+      court is notifies no one); readers keep `state.x`. A source check (`tests/store/court-pointers.test.mjs`) fails on an
+      assignment, a `delete` or an `Object.assign` of the three in app code.
+    - **The PR 6 rule is unchanged**: only `isCourtScorekeeper(c)` moves Court *c*'s pointer; a spectator's, a TV's or
+      another court's view choice dispatches only `device/…` actions (the fixture's spectator and TV steps).
+    - **Order, and why no half state is visible**: Next Match writes the bout (`m.done`, plain `allMatches`), runs the
+      advancement (plain bouts, then `advancementApplied`), then `applyCourtState()` dispatches the pointer; generation writes
+      `allMatches` first, then the division's draw with its queue position, then `initCourtStates()`; Edit Pool rebuilds the
+      matches before `pointersResolved`; the tiebreak reorder replaces the list before it. So a pointer never points into a
+      list the store's notification cannot yet see (the browser test checks at every `court/…` notification that each
+      court's index is inside its list and that Next Match's pointer is not on the bout it just finished). As before, a
+      notification inside Next Match from another action (`advancementApplied`) still shows the court on the bout being
+      finished; no reader runs inside the step (islands re-render after it, `ksm:state-changed` is a microtask).
+    - **Save conflicts**: unchanged. The rebase (`preserveOwnedCourtRuntimeState()`, the structural replay's re-resolve,
+      `sanitizeLoadedTournamentState()`) works on payload copies; its result lands through `replaceState()` unchanged
+      (fixture: both courts pressing Next Match at once; a Court B tablet catching up after Staff Login against Court B's
+      Next Match elsewhere; a remote apply while a spectator shows another division).
+    - **Undo/Redo**: a patch on `courtState.A.index` / `currentByDivision.X` goes through `assignState()` with a copy of the
+      key (section 2 point 8) until 13b, as for the other moved keys. **Frozen values**: the tiebreak reorder wrote
+      `cs.index` into the live pointer; on the live state it now builds `{...cs, index}` (a payload copy is still written in
+      place). Tests that wrote the pointers set them through `KSMTest.app.setCourtPointers()` (whole maps); the vm tests get
+      a plain-state `ksmMoveCourtPointers()` (`tests/lib/derived-matches.mjs`).
+    - Known difference on an error path only: a scorekeeper's view choice on a save without `currentByDivision` threw
+      (`state.currentByDivision[div]=…` on undefined) and now creates the map.
+    - Measured (headless Chromium, 6x CPU throttling, 6 divisions of 16 on split courts): Next Match (a point and Next
+      Match) median 43.3 → see the PR; a remote snapshot apply 20.1 → see the PR.
+    **13b** (next): `courtActionHistory`, `courtRedoHistory`, `courtUndoLog` into the store; `court/undo` / `court/redo`
+    apply an entry's patches in **one** dispatch (also fixes #199's L1: a node patch could land before its bout's patch
+    inside one Undo/Redo step); `performCourtAction()` pushes its entry with an action; the rebase's history replay and
+    the F30 log keep working on payloads.
+    **13c** (last): `allMatches` and the court actions (`court/pointScored`, `court/hansoku`, `court/nextMatch`, tiebreak /
+    playoff creation, `patch-v1` from Immer patches). Design note from 13a's survey (app/modules, app/main.js, app/engine):
+    - Identity uses of a Match Object: `arr.indexOf(m)` in `activeScoreArrays()` (court-queue-and-views), the court island's
+      model (react-bridges/court, twice), Live Scores (`all.indexOf(current)`), the playoff insertion
+      (`arr.indexOf(m)` then `splice`, court-context-and-pool-editing); `state.matches===state.allMatches[div]` in
+      `applyCourtHistoryEntry()` (the alias test); `state.matches[state.current]` held across `performCourtAction()` in
+      `nextMatch()` (`m` is read before and written inside); every `cs.index` / `state.current` is an index into a list (6
+      reads of `list[cs.index]`). No `Map` / `Set` / `WeakMap` keyed by a match, no `includes(m)`, no `===` between matches.
+      The sync code already compares by `matchSyncIdentity()`.
+    - Writes through an alias: about 22 field writes on a match held in a variable (`m.done`, `m.wp` …: Next Match,
+      `syncActiveScoreToMatch()`, the grand champion's Fusen-sho, the division court's `m.court`, the results' name fix),
+      2 `Object.assign(match, …)` (result integrity), 12 list mutations (`push` / `splice` / `sort` on a division's list),
+      22 assignments of `state.allMatches[div]`, the engine syncs (`single-elim.ts`, `teams.ts`) writing plan values into
+      matches, and `replayCourtMatchOps(state, …)` / `applyHistoryPatch()` walking paths on the live state.
+    - Approach: first, as its own PR, **ids instead of identity** (no store change): give every match a stable id
+      (`matchSyncIdentity()` already exists), switch the five `indexOf(match)` sites and `nextMatch()`'s held `m` to look the
+      match up again by id after each write, and keep `state.matches` derived. Then move `allMatches` with a reducer per
+      court action that runs the existing engine/app logic on an Immer draft (`produceWithPatches`, so the `patch-v1` entry
+      comes from the patches), converting the alias writes file by file behind the strict browser tests.
 14. **`state` retired**: drop the dead fields (`history`, `contextMode`, `teamBracketState`; with a load-time drop,
     owner OK on the format), `app-state.js` keeps only the getters until the reads are converted, then goes;
     `ksm:state-changed` → `store.subscribe`.
@@ -740,6 +815,10 @@ call commands instead of window functions.
 - PR 12b (the bracket nodes): the store bundle 9,346 → 9,390 bytes gzip (24,837 → 24,935 raw: `advancementApplied` and the
   four initial maps), inside the 9,400 budget; app.js 696,501 → 699,436 bytes (gzip 183,887 → 184,996); no React source
   changed.
+- PR 13a (the court pointers): the store bundle 9,390 → 9,553 bytes gzip (24,935 → 25,427 raw: three `court/…` actions,
+  their reducer and the three initial maps), over the 9,400 budget, which is now 9,600 (`tests/store-bundle-test.mjs`; a
+  second slice or one matcher saved under 20 bytes); app.js 699,803 → 704,181 bytes (gzip 184,886 → 186,279); no React
+  source changed.
 - Re-renders: `store.subscribe` listeners run on every dispatch, so selectors must be cheap and return stable
   references. A remote snapshot is one action, one notification (today `ksmNotifyStateChanged` coalesces per
   microtask). Immer copies only the changed path (structural sharing); the deep freeze of a loaded snapshot is one
