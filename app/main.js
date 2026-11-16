@@ -63,7 +63,7 @@ import {addCustomDivision,initSetupHeader,renderDivisionSetup,saveSetup,setDivis
 import {ksmReplaceDivisions} from './modules/setup/divisions-store.js';
 import {ksmLoadPeople} from './modules/registration/people-store.js';
 import {ksmLoadAwards,ksmSetAward} from './modules/results/awards-store.js';
-import {ksmSetDraw} from './modules/engine/structure-store.js';
+import {ksmDrawWith,ksmSetDraw} from './modules/engine/structure-store.js';
 import {downloadActionHistorySample,downloadSnapshotAnalysis,readCloudDiagnosticsState,resetLegacyTournamentDataOnce,writeCloudDiagnosticsState} from './modules/sync/cloud-diagnostics.js';
 import {applyRemoteCloudRecord,applyTournamentPayload,closeCloudModal,cloudDiagnostics,confirmTournamentFileLoad,copyTextValue,copyTournamentId,disconnectCloudSocket,flushCloudOutbox,initCloudRealtime,isTvSession,ksmApplyingRemoteSnapshot,ksmCancelReplace,ksmCloudReconnectTimer,ksmCloudSaveInFlight,ksmCloudSavePending,ksmCloudSocket,ksmCloudTimer,ksmConfirmedMutationVersion,ksmDeferredRemoteRecord,ksmFileReplace,ksmLastSuccessfulSaveAt,ksmLocalMutationVersion,ksmPendingTournamentFile,ksmQueuedSaveRetryTimer,ksmReplaceAnyway,ksmSaveStatusMode,ksmSaveTimer,ksmSendCourtClock,ksmSendTieFlash,ksmTieFlashConnected,loadRecoveryFile,loadTournamentFromFile,manualSaveTournament,queueUnsyncedStaffWorkBeforeUnload,reconnectTvRealtime,renderCloudPresence,replaceTournamentFromFile,retryQueuedCloudSave,saveTournamentToCloudWithReason,setKsmApplyingRemoteSnapshot,setKsmCloudReconnectTimer,setKsmCloudSaveInFlight,setKsmCloudSavePending,setKsmCloudSocket,setKsmCloudTimer,setKsmConfirmedMutationVersion,setKsmDeferredRemoteRecord,setKsmLastSuccessfulSaveAt,setKsmLocalMutationVersion,setKsmPendingTournamentFile,setKsmSaveStatusMode,setKsmSaveTimer,showKsmToast,tournamentFilePayload,triggerLoadRecoveryFile,triggerLoadTournament,tvLink} from './modules/sync/cloud-realtime-save-and-load.js';
 import {applySetupSnapshot,autoSaveTournament,clearOutbox,cloudSession,downloadRecoveryFile,getSetupSnapshot,initCloudSession,initSetupSettings,ksmSetSetting,ksmSetting,ksmSessionRole,markLocalSave,persistCloudSession,readOutbox,renderPersistentSaveStatus,saveNow,setConnectionStatus,setKsmSessionRole,tournamentPayload,tournamentSettings,updateSaveStatus,writeOutbox} from './modules/sync/cloud-session-and-autosave.js';
@@ -205,7 +205,7 @@ Object.assign(window, {
   // app/modules/results/awards-store.js: awards in one action (tests/lib/ksm-test-api.js)
   ksmLoadAwards, ksmSetAward,
   // app/modules/engine/structure-store.js: the draw's maps in one action (tests/lib/ksm-test-api.js)
-  ksmSetDraw,
+  ksmDrawWith,ksmSetDraw,
   // app/modules/session/tournament-switcher.js, app/modules/app-state.js
   ksmEmptyState, state,
   // app/modules/registration/team-divisions.js

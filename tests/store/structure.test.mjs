@@ -20,7 +20,7 @@ const json = v => JSON.parse(JSON.stringify(v));
 const read = file => fs.readFileSync(new URL(`../../${file}`, import.meta.url), 'utf8');
 const KEYS = ['pools', 'teamPools', 'brackets', 'singleElimComps', 'byeWinners', 'generated', 'managementRevision'];
 const ACTIONS = ['drawReset', 'divisionGenerated', 'tournamentGenerated', 'divisionRegenerated', 'divisionCleared', 'poolsEdited', 'drawEntriesUpdated'];
-const DRAW_KEYS = ['pools', 'teamPools', 'brackets', 'singleElimComps', 'byeWinners']; // structure-store.js's KSM_DRAW_KEYS
+const DRAW_KEYS = ['pools', 'teamPools', 'brackets', 'singleElimComps', 'byeWinners']; // structure-store.js's KSM_DRAW_KEYS of PR 12a
 const pool = (label, ...names) => ({ label, size: names.length, players: names.map(name => ({ name, dojo: 'D' })) });
 
 /** structure-store.js's own helpers (they read `state`) over a plain state, as the vm tests run them. */
@@ -179,7 +179,8 @@ test('source: every write to the draw is an action (no assignment, delete, list 
   assert.doesNotMatch(read('app/modules/setup/division-setup.js'), /delete p\.court/);
   assert.doesNotMatch(read('app/modules/engine/engine-pools.js'), /if\(pool\)pool\.court=court/);
   assert.doesNotMatch(read('app/modules/registration/grand-champion.js'), /forEach\(c=>swap\(c|forEach\(x=>swap\(x/);
-  assert.doesNotMatch(read('app/modules/registration/people-store.js'), /\['singleElimComps','teamElimTeams'\]/);
+  // (PR 12b: `teamElimTeams` is store data too, so the follow builds new lists for both maps; tests/store/bracket-nodes.test.mjs.)
+  assert.doesNotMatch(read('app/modules/registration/people-store.js'), /list\[i\]=to/);
   assert.doesNotMatch(read('app/modules/court/court-context-and-pool-editing.js'), /state\.brackets=state\.brackets\|\|\{\}/);
   // Only structure-store.js dispatches the draw actions (through ksmSetDraw()).
   for (const file of files.filter(f => f !== 'app/modules/engine/structure-store.js')) {

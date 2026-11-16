@@ -28,10 +28,10 @@ import {KSM_DRAW_KEYS,ksmDrawWith,ksmEditedPools,ksmNextManagementRevision,ksmSe
 import * as KSMEngine from '../../engine/index.ts';
 /**
  * One division drawn from the engine's plan (KSMEngine.generateDivision()): its matches and the parts still plain
- * (`allMatches`, `currentByDivision`, the bracket nodes, `teamElimTeams`) are written first, then its pools, team pools,
- * template and entrants in one tournament/… action (`how.type`, default divisionGenerated), so no store notification shows
- * the division half drawn; the steps that read the new draw from the store (the championship template's seeds, the
- * division court) follow. `how.fresh`: the division's old entries are removed in the same action (Regenerate Single
+ * (`allMatches`, `currentByDivision`) are written first, then its pools, team pools, template, entrants and bracket nodes
+ * (with the winners the bracket's first sync gave them, on the plan's own lists) in one tournament/… action (`how.type`,
+ * default divisionGenerated), so no store notification shows the division half drawn; the steps that read the new draw
+ * from the store (the championship template's seeds, the division court) follow. `how.fresh`: the division's old entries are removed in the same action (Regenerate Single
  * Division); `how.lists`: more of the slice set with it when the division was drawn (the regenerate's managementRevision).
  * @param {string} div
  * @param {{type?:import('./structure-store.js').DrawAction,fresh?:boolean,lists?:import('./structure-store.js').DrawLists}} [how]
@@ -42,12 +42,11 @@ export function generateDivisionState(div,how={}){
   if(!plan)return false;
   const draw=(/** @type {Record<string,unknown>} */ entries,drawn=true)=>ksmSetDraw(how.type||'divisionGenerated',{...ksmDrawWith(div,entries,how.fresh?KSM_DRAW_KEYS:[]),...(drawn?how.lists:{})});
   if(plan.kind==='team'){
-    state.teamElimTeams=state.teamElimTeams||{};state.teamElimTeams[div]=plan.teamElimTeams;
-    const m=/** @type {Match[]} */(plan.matches);
-    if(plan.teamBracketNodes){state.teamBracketNodes=state.teamBracketNodes||{};state.teamBracketNodes[div]=plan.teamBracketNodes;syncTeamBracket(div,m,state.teamElimTeams[div]);}
+    const m=/** @type {Match[]} */(plan.matches),draft={teamBracketNodes:plan.teamBracketNodes||undefined};
+    if(plan.teamBracketNodes)syncTeamBracket(div,m,plan.teamElimTeams,draft);
     state.allMatches[div]=m;state.currentByDivision[div]=0;
     // A team round robin's pools are its team pools (one list; KSMEngine.generateDivision()).
-    draw({pools:plan.pools,teamPools:plan.teamPools});
+    draw({teamElimTeams:plan.teamElimTeams,...(draft.teamBracketNodes?{teamBracketNodes:draft.teamBracketNodes}:{}),pools:plan.pools,teamPools:plan.teamPools});
     // The legacy team division's court is the Setup's team court too (#15 PR 8b).
     ksmSetDivisionCourt(div,plan.divisionCourt);return true;// the legacy team division's is the Setup's team court (ksmSetTeamCourt())
   }
@@ -55,14 +54,12 @@ export function generateDivisionState(div,how={}){
     state.allMatches[div]=/** @type {Match[]} */(plan.matches);state.currentByDivision[div]=0;draw({pools:plan.pools},plan.generated);ksmSetDivisionCourt(div,plan.divisionCourt);return plan.generated;
   }
   if(plan.kind==='singleElim'){
-    state.singleElimNodes=state.singleElimNodes||{};state.singleElimNodes[div]=plan.singleElimNodes;
-    const arr=/** @type {Match[]} */(plan.matches);syncIndividualSingleElim(div,arr,plan.singleElimComps);state.allMatches[div]=arr;
+    const arr=/** @type {Match[]} */(plan.matches),draft={singleElimNodes:plan.singleElimNodes};syncIndividualSingleElim(div,arr,plan.singleElimComps,draft);state.allMatches[div]=arr;
     state.currentByDivision[div]=0;
-    draw({pools:[],singleElimComps:plan.singleElimComps});
+    draw({singleElimNodes:draft.singleElimNodes,pools:[],singleElimComps:plan.singleElimComps});
   }else{
-    if(plan.championshipNodes){state.championshipNodes=state.championshipNodes||{};state.championshipNodes[div]=plan.championshipNodes;}
     state.allMatches[div]=/** @type {Match[]} */(plan.matches);state.currentByDivision[div]=0;
-    draw({pools:plan.pools,brackets:plan.brackets});
+    draw({...(plan.championshipNodes?{championshipNodes:plan.championshipNodes}:{}),pools:plan.pools,brackets:plan.brackets});
     syncChampionshipTemplate(div);// reads the pools' seeds and the template from the store
   }
   return true;
@@ -70,8 +67,8 @@ export function generateDivisionState(div,how={}){
 export function generatePools(options={}){
   if(!options.validated){requestTournamentGeneration();return}
   const regenerating=Boolean(state.generated);
-  state.allMatches={};state.teamBracketNodes={};state.singleElimNodes={};state.teamElimTeams={};state.championshipNodes={};state.currentByDivision={};
-  ksmSetDraw('drawReset',{pools:{},teamPools:{},singleElimComps:{},brackets:{},byeWinners:{}});let generated=0;
+  state.allMatches={};state.currentByDivision={};
+  ksmSetDraw('drawReset',{pools:{},teamPools:{},singleElimComps:{},brackets:{},byeWinners:{},teamBracketNodes:{},singleElimNodes:{},teamElimTeams:{},championshipNodes:{}});let generated=0;
   state.divisions.forEach(div=>{if(generateDivisionState(div))generated++});
   if(tournamentSettings().teamEnabled!=='Disabled')ksmTeamDivisions().forEach(d=>{if(generateDivisionState(d.id))generated++});
   if(generateDivisionState('Exhibition Matches'))generated++;
@@ -89,12 +86,13 @@ export function regenerateSingleDivision(div){
   // court pointers were re-resolved puts the old revision back with the old draw, as the bump came after them.
   const revision=state.managementRevision;let bumped=false;
   try{
-    delete state.allMatches[div];delete state.teamBracketNodes[div];delete state.singleElimNodes[div];if(state.teamElimTeams)delete state.teamElimTeams[div];if(state.championshipNodes)delete state.championshipNodes[div];delete state.currentByDivision[div];
+    // The bracket nodes and `teamElimTeams` go with the rest of the draw: removed and drawn again in the one action.
+    delete state.allMatches[div];delete state.currentByDivision[div];
     if(!generateDivisionState(div,{type:'divisionRegenerated',fresh:true,lists:{managementRevision:ksmNextManagementRevision()}}))throw new Error('No eligible entrants remain in this division.');
     initCourtStates();bumped=true;renderAll();scheduleAutoSave();ksmRegenerateDone(div);
   }catch(err){
-    state.allMatches[div]=snapshot.allMatches;state.teamBracketNodes[div]=snapshot.teamBracketNodes;state.singleElimNodes[div]=snapshot.singleElimNodes;state.teamElimTeams=state.teamElimTeams||{};state.teamElimTeams[div]=snapshot.teamElimTeams;state.championshipNodes=state.championshipNodes||{};state.championshipNodes[div]=snapshot.championshipNodes;state.currentByDivision[div]=snapshot.currentByDivision;
-    ksmSetDraw('divisionCleared',{...ksmDrawWith(div,{pools:snapshot.pools,teamPools:snapshot.teamPools,singleElimComps:snapshot.singleElimComps,brackets:snapshot.brackets,byeWinners:snapshot.byeWinners},KSM_DRAW_KEYS),...(bumped?{}:{managementRevision:revision})});
+    state.allMatches[div]=snapshot.allMatches;state.currentByDivision[div]=snapshot.currentByDivision;
+    ksmSetDraw('divisionCleared',{...ksmDrawWith(div,{teamBracketNodes:snapshot.teamBracketNodes,singleElimNodes:snapshot.singleElimNodes,teamElimTeams:snapshot.teamElimTeams,championshipNodes:snapshot.championshipNodes,pools:snapshot.pools,teamPools:snapshot.teamPools,singleElimComps:snapshot.singleElimComps,brackets:snapshot.brackets,byeWinners:snapshot.byeWinners},KSM_DRAW_KEYS),...(bumped?{}:{managementRevision:revision})});
     alert('Unable to regenerate '+div+': '+err.message);
   }
 }
@@ -104,9 +102,9 @@ export function applyIndividualNoShow(div,name){
   if(fmt==='Single Elimination'){
     const comps=state.singleElimComps?.[div]||[];const idx=comps.findIndex(c=>c&&c.name===name);if(idx<0)return false;
     // The entrant's place is empty (null): a new list, the bracket built again from it.
-    const next=comps.map((c,i)=>i===idx?null:c);
-    state.allMatches[div]=buildIndividualSingleElimMatches(div,next);
-    ksmSetDraw('drawEntriesUpdated',{...ksmDrawWith(div,{singleElimComps:next}),managementRevision:ksmNextManagementRevision()});
+    const next=comps.map((c,i)=>i===idx?null:c),draft={};
+    state.allMatches[div]=buildIndividualSingleElimMatches(div,next,draft);
+    ksmSetDraw('drawEntriesUpdated',{...ksmDrawWith(div,{singleElimNodes:draft.singleElimNodes,singleElimComps:next}),managementRevision:ksmNextManagementRevision()});
   }else{
     const pool=(state.pools[div]||[]).find(p=>p.players.some(x=>x.name===name));if(!pool)return false;
     // #24 (product owner): the pool's bouts are rebuilt in the standard order for its new size
@@ -123,7 +121,13 @@ export function applyIndividualNoShow(div,name){
 export function applyWholeTeamNoShow(div,teamName){
   if(!structuralNoShowAllowed(div))return false;
   let nodes=state.teamBracketNodes?.[div]||[];
-  if(nodes.length){let teams=state.teamElimTeams?.[div]||[];let idx=teams.findIndex(t=>t&&t.team===teamName);if(idx<0)return false;teams[idx]=null;nodes.forEach(n=>n.winner=null);state.allMatches[div]=[];syncTeamBracket(div,state.allMatches[div],teams);ksmSetDraw('drawEntriesUpdated',{managementRevision:ksmNextManagementRevision()});}
+  if(nodes.length){
+    let teams=state.teamElimTeams?.[div]||[];let idx=teams.findIndex(t=>t&&t.team===teamName);if(idx<0)return false;
+    // The team's place is empty (null) and the bracket starts again: new lists and nodes, in one action with the bump.
+    const nextTeams=teams.map((t,i)=>i===idx?null:t),draft={teamBracketNodes:nodes.map(n=>({...n,winner:null}))};
+    state.allMatches[div]=[];syncTeamBracket(div,state.allMatches[div],nextTeams,draft);
+    ksmSetDraw('drawEntriesUpdated',{...ksmDrawWith(div,{teamElimTeams:nextTeams,teamBracketNodes:draft.teamBracketNodes}),managementRevision:ksmNextManagementRevision()});
+  }
   else{
     state.allMatches[div]=(state.allMatches[div]||[]).filter(m=>m.teamWhite!==teamName&&m.teamRed!==teamName);
     // The first pool without the team (a team round robin's pools are its team pools: both, ksmEditedPools()).

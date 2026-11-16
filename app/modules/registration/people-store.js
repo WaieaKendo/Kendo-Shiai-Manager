@@ -45,19 +45,20 @@ function act(type,payload,follow){
   }
 }
 /**
- * The draw's own lists of rows: each row an edit replaced, replaced there too. `singleElimComps` is store data (#15 PR
- * 12a): new lists, one tournament/drawEntriesUpdated; `teamElimTeams` is still plain (PR 12b).
+ * The draw's own lists of rows: each row an edit replaced, replaced there too. `singleElimComps` and `teamElimTeams` are
+ * store data (#15 PR 12a, 12b): new lists, one tournament/drawEntriesUpdated.
  * @param {Map<object,object>} replaced
  */
 function followDraw(replaced){
-  /** @type {Record<string,unknown[]>} */ const comps={};
-  for(const [div,list] of Object.entries(/** @type {Record<string,unknown>} */ (state.singleElimComps||{}))){
-    if(Array.isArray(list)&&list.some(r=>r&&replaced.has(r)))comps[div]=list.map(r=>(r&&replaced.get(r))||r);
+  /** @type {Record<string,unknown>} */ const lists={};
+  for(const key of /** @type {const} */ (['singleElimComps','teamElimTeams'])){ // both store data (PR 12a, 12b)
+    /** @type {Record<string,unknown[]>} */ const changed={};
+    for(const [div,list] of Object.entries(/** @type {Record<string,unknown>} */ (state[key]||{}))){
+      if(Array.isArray(list)&&list.some(r=>r&&replaced.has(r)))changed[div]=list.map(r=>(r&&replaced.get(r))||r);
+    }
+    if(Object.keys(changed).length)lists[key]={...state[key],...changed};
   }
-  if(Object.keys(comps).length)ksmSetDraw('drawEntriesUpdated',{singleElimComps:/** @type {any} */ ({...state.singleElimComps,...comps})});
-  for(const list of Object.values(/** @type {Record<string,unknown>} */ (state.teamElimTeams||{}))){
-    if(Array.isArray(list))list.forEach((r,i)=>{const to=r&&replaced.get(r);if(to)list[i]=to});
-  }
+  ksmSetDraw('drawEntriesUpdated',/** @type {any} */ (lists));
 }
 /** The row of `kind` at `index` now, or undefined. @param {PersonKind} kind @param {number} index @returns {PersonRow|undefined} */
 export function ksmPersonAt(kind,index){return /** @type {PersonRow[]|undefined} */ (/** @type {unknown} */ (state[LIST[kind]]))?.[index]}

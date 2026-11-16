@@ -3,8 +3,9 @@
 // (`payload.setup`, which the DOM inputs held) into `settings`; PR 9 the divisions (`divisions`, `divisionTypes`,
 // `divisionCourts`, `hiddenPresets`, `divisionRenames`); PR 10 the people (`competitors`, `teams`, `exhibitions`,
 // `teamDivisions`); PR 11 the awards and the grand champions (`awards`, `grandChampions`); PR 12a the draw structure (`pools`,
-// `teamPools`, `brackets`, `singleElimComps`, `byeWinners`, `generated`, `managementRevision`). `state` reads them through
-// getters (app/modules/app-state.js).
+// `teamPools`, `brackets`, `singleElimComps`, `byeWinners`, `generated`, `managementRevision`); PR 12b the bracket nodes
+// (`championshipNodes`, `singleElimNodes`, `teamBracketNodes`, `teamElimTeams`). `state` reads them through getters
+// (app/modules/app-state.js).
 import { createNextState, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { DIVISION_PRESETS, TEAM_COURT_KEY, type DivisionRename } from '../../engine/division-lists.ts';
 import { statusCycle } from '../../engine/registration.ts';
@@ -13,7 +14,7 @@ import type { TeamDivision } from '../../engine/team-divisions.ts';
 import { withMeta, type ActionMeta } from '../meta.ts';
 
 /** Bumped when the shape of this slice changes in a way saved data must be migrated for. */
-export const TOURNAMENT_SLICE_VERSION = 6;
+export const TOURNAMENT_SLICE_VERSION = 7;
 
 /**
  * TEAM_COURT_KEY: the legacy team division's key ('Team Tournament', KSMEngine.LEGACY_TEAM_DIVISION_ID). Its
@@ -93,6 +94,16 @@ export interface TournamentSliceState {
   generated?: boolean | undefined;
   /** Bumped by each structural edit (`state.managementRevision`); the save-conflict rebase compares it. */
   managementRevision?: number | undefined;
+  // The bracket nodes (PR 12b), maps by division like the draw: a node's `winner` advances while bouts are scored
+  // (tournament/advancementApplied). Replayed per division on save conflicts with the draw.
+  /** A pool division's championship nodes (`state.championshipNodes`): `{id, round, slot, left, right, …}`. */
+  championshipNodes?: Record<string, DrawRow[]> | undefined;
+  /** An individual single elimination's nodes (`state.singleElimNodes`): `{id, round, slot, left, right, winner: {name, dojo} | null}`. */
+  singleElimNodes?: Record<string, DrawRow[]> | undefined;
+  /** A team bracket's nodes (`state.teamBracketNodes`): `{id, round, court, slot, left, right, winner?: team name}`. */
+  teamBracketNodes?: Record<string, DrawRow[]> | undefined;
+  /** A team division's teams in bracket order (`state.teamElimTeams`): Registration's team rows themselves, `null` for a No Show. */
+  teamElimTeams?: Record<string, (DrawRow | null)[]> | undefined;
 }
 
 /** A row of the draw (a pool, a pool player, an entrant): plain JSON the engine built. */
@@ -129,6 +140,10 @@ export const initialTournamentState: TournamentSliceState = {
   brackets: {},
   generated: false,
   managementRevision: 0,
+  championshipNodes: {},
+  singleElimNodes: {},
+  teamBracketNodes: {},
+  teamElimTeams: {},
 };
 
 /**
@@ -153,8 +168,9 @@ export type PeopleLists = Partial<Pick<TournamentSliceState, PeopleKey | 'teamDi
 /** The lists an awards / grand champion action sets (PR 11): each key it names gets that value. */
 export type AwardLists = Partial<Pick<TournamentSliceState, 'awards' | 'grandChampions'>>;
 
-/** The draw lists a structure action sets (PR 12a): each key it names gets that value. */
-export type DrawLists = Partial<Pick<TournamentSliceState, 'pools' | 'teamPools' | 'brackets' | 'singleElimComps' | 'byeWinners' | 'generated' | 'managementRevision'>>;
+/** The draw lists a structure action sets (PR 12a; the bracket nodes since PR 12b): each key it names gets that value. */
+export type DrawLists = Partial<Pick<TournamentSliceState, 'pools' | 'teamPools' | 'brackets' | 'singleElimComps' | 'byeWinners' | 'generated' | 'managementRevision'
+  | 'championshipNodes' | 'singleElimNodes' | 'teamBracketNodes' | 'teamElimTeams'>>;
 
 /**
  * Every division action has this one reducer: it sets the lists its payload names. What an edit does to them is pure
@@ -304,8 +320,8 @@ export const tournamentSlice = createSlice({
     grandChampionRemoved: setAwardLists,
     // The draw (#15 PR 12a). Like the lists above, each is computed by the app (app/modules/engine/structure-store.js)
     // from the current maps and the engine's plan, and the reducer sets the maps it is given. What 12b and 13 still own
-    // (the bracket nodes, `teamElimTeams`, `allMatches`, `courtState`) is plain `state`, written in the same synchronous
-    // step right before the dispatch, so a store notification never shows half a division.
+    // (`allMatches`, `courtState`) is plain `state`, written in the same synchronous step right before the dispatch, so a
+    // store notification never shows half a division. A draw action carries the division's bracket nodes too (PR 12b).
     /** Generate Tournament starts: every division's pools, team pools, brackets, entrants and bye winners empty. */
     drawReset: setDrawLists,
     /** One division drawn from the engine's plan (generateDivision()): its entries in the maps it uses. */
@@ -324,5 +340,10 @@ export const tournamentSlice = createSlice({
      * edit followed into the entrants; the test API's whole maps.
      */
     drawEntriesUpdated: setDrawLists,
+    /**
+     * Bracket winners advanced (PR 12b): the node lists a sync of a bracket gave new winners (a scored bout, a load's
+     * repair), once per sync, after its bouts were written. Never a new draw.
+     */
+    advancementApplied: setDrawLists,
   },
 });

@@ -64,9 +64,9 @@ def reset_individual(page, n: int, fmt: str, court: str, division: str = "Test")
           KSMTest.app.setPeople({competitors: Array.from({length:n},(_,i)=>({
             name:`P${i+1}`,dojo:`D${i+1}`,division,seed:i<4?String(i+1):'',status:'Checked'
           }))});
-          KSMTest.app.setPeople({teams: []});KSMTest.app.setDraw({pools:{}});KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={};
-          KSMTest.app.setDraw({singleElimComps:{}});KSMTest.app.state.teamBracketNodes={};KSMTest.app.setDraw({teamPools:{}});
-          KSMTest.app.setDraw({brackets:{}});KSMTest.app.state.championshipNodes={};KSMTest.app.setDraw({byeWinners:{}});KSMTest.app.state.currentByDivision={};KSMTest.app.state.courtState={};
+          KSMTest.app.setPeople({teams: []});KSMTest.app.setDraw({pools:{}});KSMTest.app.state.allMatches={};KSMTest.app.setDraw({singleElimNodes:{}});
+          KSMTest.app.setDraw({singleElimComps:{}});KSMTest.app.setDraw({teamBracketNodes:{}});KSMTest.app.setDraw({teamPools:{}});
+          KSMTest.app.setDraw({brackets:{}});KSMTest.app.setDraw({championshipNodes:{}});KSMTest.app.setDraw({byeWinners:{}});KSMTest.app.state.currentByDivision={};KSMTest.app.state.courtState={};
           KSMTest.app.state.courtActiveDivision={};KSMTest.app.showDivision(division);KSMTest.app.setCurrentCourt('A');
           KSMTest.app.generateDivisionState(division);KSMTest.app.setDraw({generated:true});KSMTest.app.initCourtStates();
         }""",
@@ -233,7 +233,7 @@ def scenario_save_load_roundtrip(page) -> int:
     reset_individual(page, 8, "Single Elimination", "split")
     payload = page.evaluate("KSMTest.app.tournamentPayload()")
     # Mutate then restore through the actual payload loader.
-    page.evaluate("KSMTest.app.setPeople({competitors: []});KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={}")
+    page.evaluate("KSMTest.app.setPeople({competitors: []});KSMTest.app.state.allMatches={};KSMTest.app.setDraw({singleElimNodes:{}})")
     page.evaluate("p=>KSMTest.app.applyTournamentPayload(p,false)", payload)
     data = page.evaluate("()=>({n:KSMTest.app.state.competitors.length,m:KSMTest.app.state.allMatches.Test.length,nodes:KSMTest.app.state.singleElimNodes.Test.length,mode:KSMTest.app.state.divisionCourts.Test})")
     assert data["n"] == 8, data

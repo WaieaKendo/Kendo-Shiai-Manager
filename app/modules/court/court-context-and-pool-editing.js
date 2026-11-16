@@ -53,13 +53,14 @@ export function saveEditedPools(){
   const bracket=(Array.isArray(state.brackets?.[div])&&state.brackets[div].length)
     ? state.brackets[div]
     : championshipTemplateForTotal(total);
-  // The pools, the template and the managementRevision bump in one tournament/poolsEdited (#15 PR 12a), before the
-  // matches are rebuilt from them (the builders read both from the store); the matches and court pointers follow in the
-  // same synchronous step.
-  ksmSetDraw('poolsEdited',{...ksmDrawWith(div,{pools,brackets:bracket}),managementRevision:ksmNextManagementRevision()});
+  // The pools, the template, its championship nodes (#15 PR 12b: built from the template alone) and the
+  // managementRevision bump in one tournament/poolsEdited (#15 PR 12a), before the pool matches are rebuilt (their
+  // builder reads the pools from the store); the matches and court pointers follow in the same synchronous step.
+  /** @type {{championshipNodes?:any[]}} */ const draft={};
+  const championshipMatches=buildChampionshipTemplateMatches(div,bracket,draft);
+  ksmSetDraw('poolsEdited',{...ksmDrawWith(div,{pools,brackets:bracket,...(draft.championshipNodes?{championshipNodes:draft.championshipNodes}:{})}),managementRevision:ksmNextManagementRevision()});
 
   const poolMatches=buildPoolMatches(div,pools);
-  const championshipMatches=buildChampionshipTemplateMatches(div,bracket);
   state.allMatches[div]=poolMatches.concat(championshipMatches);
   syncChampionshipTemplate(div);
   state.currentByDivision[div]=0;

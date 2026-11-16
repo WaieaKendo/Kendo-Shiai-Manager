@@ -212,7 +212,10 @@ test('championship build, advancement, seeds and placements equal the pre-move l
       const labels = ctx.championshipLabels(div);
       st.brackets[div] = labels;
       res.push(JSON.stringify(labels), ctx.championshipTemplateForTotal(st.pools[div].reduce((n, p) => n + p.players.length, 0)).length);
-      st.allMatches[div].push(...ctx.buildChampionshipTemplateMatches(div, labels));
+      // Since #15 PR 12b the current code puts the nodes in a draft for the caller's action (Edit Pool's poolsEdited).
+      const draft = {};
+      st.allMatches[div].push(...ctx.buildChampionshipTemplateMatches(div, labels, draft));
+      if (draft.championshipNodes) (st.championshipNodes ||= {})[div] = draft.championshipNodes;
       ctx.syncChampionshipTemplate(div); snap();
       for (const c of champ) {
         const m = st.allMatches[div].find(x => x.championship && x.champNodeId === c.node);

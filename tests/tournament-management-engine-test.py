@@ -25,7 +25,7 @@ with sync_playwright() as p:
     page.evaluate("""
       KSMTest.app.setDivisionLists({divisionTypes:{...KSMTest.app.state.divisionTypes,Test:'Round Robin'}});KSMTest.app.setDivisionLists({divisionCourts:{...KSMTest.app.state.divisionCourts,Test:'split'}});
       KSMTest.app.setPeople({competitors: Array.from({length:9},(_,i)=>({name:'P'+(i+1),dojo:'D'+i,division:'Test',seed:'',status:'Checked'}))});
-      KSMTest.app.setDraw({pools:{}});KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={};KSMTest.app.setDraw({singleElimComps:{}});KSMTest.app.setDraw({brackets:{}});KSMTest.app.setDraw({byeWinners:{}});KSMTest.app.state.currentByDivision={};
+      KSMTest.app.setDraw({pools:{}});KSMTest.app.state.allMatches={};KSMTest.app.setDraw({singleElimNodes:{}});KSMTest.app.setDraw({singleElimComps:{}});KSMTest.app.setDraw({brackets:{}});KSMTest.app.setDraw({byeWinners:{}});KSMTest.app.state.currentByDivision={};
       KSMTest.app.generateDivisionState('Test');
     """)
     pool_courts=page.evaluate("Object.fromEntries(KSMTest.app.state.pools.Test.map(p=>[p.label,[...new Set(KSMTest.app.state.allMatches.Test.filter(m=>m.pool===p.label).map(m=>m.court))][0]]))")
@@ -35,7 +35,7 @@ with sync_playwright() as p:
     page.evaluate("""
       KSMTest.app.setDivisionLists({divisionTypes:{...KSMTest.app.state.divisionTypes,Test:'Single Elimination'}});KSMTest.app.setDivisionLists({divisionCourts:{...KSMTest.app.state.divisionCourts,Test:'split'}});
       KSMTest.app.setPeople({competitors: Array.from({length:8},(_,i)=>({name:'E'+(i+1),dojo:'D'+i,division:'Test',seed:i<2?String(i+1):'',status:'Checked'}))});
-      KSMTest.app.setDraw({pools:{}});KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={};KSMTest.app.setDraw({singleElimComps:{}});KSMTest.app.setDraw({brackets:{}});KSMTest.app.setDraw({byeWinners:{}});KSMTest.app.state.currentByDivision={};
+      KSMTest.app.setDraw({pools:{}});KSMTest.app.state.allMatches={};KSMTest.app.setDraw({singleElimNodes:{}});KSMTest.app.setDraw({singleElimComps:{}});KSMTest.app.setDraw({brackets:{}});KSMTest.app.setDraw({byeWinners:{}});KSMTest.app.state.currentByDivision={};
       KSMTest.app.generateDivisionState('Test');
     """)
     node_courts=page.evaluate("Object.fromEntries(KSMTest.app.state.allMatches.Test.map(m=>[m.elimNodeId,m.court]))")
@@ -51,7 +51,7 @@ with sync_playwright() as p:
         {label:'A',size:4,players:[{name:'A1',dojo:'D'},{name:'A2',dojo:'D'},{name:'A3',dojo:'D'},{name:'A4',dojo:'D'}]},
         {label:'B',size:3,players:[{name:'B1',dojo:'D'},{name:'B2',dojo:'D'},{name:'B3',dojo:'D'}]},
         {label:'C',size:3,players:[{name:'C1',dojo:'D'},{name:'C2',dojo:'D'},{name:'C3',dojo:'D'}]}
-      ]}});KSMTest.app.setDraw({brackets:{Test:KSMTest.app.championshipTemplateForTotal(10)}});KSMTest.app.state.championshipNodes={};KSMTest.app.setDraw({byeWinners:{}});KSMTest.app.state.allMatches={Test:KSMTest.app.buildPoolMatches('Test',KSMTest.app.state.pools.Test).concat(KSMTest.app.buildChampionshipTemplateMatches('Test',KSMTest.app.state.brackets.Test))};
+      ]}});KSMTest.app.setDraw({brackets:{Test:KSMTest.app.championshipTemplateForTotal(10)}});KSMTest.app.setDraw({championshipNodes:{}});KSMTest.app.setDraw({byeWinners:{}});KSMTest.app.state.allMatches={Test:KSMTest.app.buildPoolMatches('Test',KSMTest.app.state.pools.Test).concat(KSMTest.app.buildChampionshipTemplateMatches('Test',KSMTest.app.state.brackets.Test))};
       KSMTest.app.state.allMatches.Test.filter(m=>m.pool==='A'||m.pool==='B').forEach((m,i)=>{m.done=true;m.wp=['M'];m.rp=[]});
       KSMTest.app.poolPositionsResolved=(label,div)=>label!=='C';
       KSMTest.app.poolStandings=(label,div)=>[{name:label+'1',dojo:'D',wins:2,pts:2},{name:label+'2',dojo:'D',wins:1,pts:1},{name:label+'3',dojo:'D',wins:0,pts:0}];
@@ -83,7 +83,7 @@ with sync_playwright() as p:
     page.evaluate("""
       KSMTest.app.setDraw({generated:true});KSMTest.app.setDivisionLists({divisionTypes:{...KSMTest.app.state.divisionTypes,Test:'Single Elimination'}});KSMTest.app.setDivisionLists({divisionCourts:{...KSMTest.app.state.divisionCourts,Test:'A'}});
       KSMTest.app.setPeople({competitors: Array.from({length:8},(_,i)=>({name:'N'+(i+1),dojo:'D',division:'Test',seed:'',status:'Checked'}))});
-      KSMTest.app.setDraw({pools:{}});KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={};KSMTest.app.setDraw({singleElimComps:{}});KSMTest.app.state.currentByDivision={};
+      KSMTest.app.setDraw({pools:{}});KSMTest.app.state.allMatches={};KSMTest.app.setDraw({singleElimNodes:{}});KSMTest.app.setDraw({singleElimComps:{}});KSMTest.app.state.currentByDivision={};
       KSMTest.app.generateDivisionState('Test');window.__nodeCount=KSMTest.app.state.singleElimNodes.Test.length;
       KSMTest.app.applyIndividualNoShow('Test','N1');
     """)
@@ -95,7 +95,7 @@ with sync_playwright() as p:
     page.evaluate("""
       KSMTest.app.setDraw({generated:true});KSMTest.app.setDivisionLists({divisions:['Test','Other'],divisionTypes:{Test:'Round Robin',Other:'Round Robin'},divisionCourts:{Test:'A',Other:'B'}});
       KSMTest.app.setPeople({competitors: [...Array.from({length:6},(_,i)=>({name:'T'+i,dojo:'D',division:'Test',seed:'',status:'Checked'})),...Array.from({length:6},(_,i)=>({name:'O'+i,dojo:'D',division:'Other',seed:'',status:'Checked'}))]});
-      KSMTest.app.setDraw({pools:{}});KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={};KSMTest.app.setDraw({singleElimComps:{}});KSMTest.app.state.teamBracketNodes={};KSMTest.app.setDraw({teamPools:{}});KSMTest.app.setDraw({brackets:{}});KSMTest.app.setDraw({byeWinners:{}});KSMTest.app.state.currentByDivision={};
+      KSMTest.app.setDraw({pools:{}});KSMTest.app.state.allMatches={};KSMTest.app.setDraw({singleElimNodes:{}});KSMTest.app.setDraw({singleElimComps:{}});KSMTest.app.setDraw({teamBracketNodes:{}});KSMTest.app.setDraw({teamPools:{}});KSMTest.app.setDraw({brackets:{}});KSMTest.app.setDraw({byeWinners:{}});KSMTest.app.state.currentByDivision={};
       KSMTest.app.generateDivisionState('Test');KSMTest.app.generateDivisionState('Other');window.__other=JSON.stringify(KSMTest.app.state.allMatches.Other);
       KSMTest.app.regenerateSingleDivision('Test');
     """)

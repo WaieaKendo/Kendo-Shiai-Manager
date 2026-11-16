@@ -15,7 +15,7 @@ function check(ok,name){console.log(`${ok?'PASS':'FAIL'} ${name}`);if(!ok)failed
 
 const saveSource=extractFunction(html,'saveEditedPools');
 check(saveSource.includes('buildPoolMatches(div,pools)'),'pool edit rebuilds preliminary matches');
-check(saveSource.includes('buildChampionshipTemplateMatches(div,bracket)'),'pool edit rebuilds championship Match Objects');
+check(saveSource.includes('buildChampionshipTemplateMatches(div,bracket,draft)'),'pool edit rebuilds championship Match Objects');
 check(saveSource.includes('poolMatches.concat(championshipMatches)'),'pool edit preserves both preliminary and championship Match Objects');
 check(saveSource.includes('syncChampionshipTemplate(div)'),'pool edit resynchronizes championship template');
 check(html.includes('KSM repaired missing championship Match Object'),'missing championship Match Objects have a self-healing path');

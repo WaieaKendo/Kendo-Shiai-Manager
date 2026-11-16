@@ -14,6 +14,7 @@ import {
 import { kachinukiTransitionState, kachinukiPairWinner, maybeCreateKachinukiNext } from '../../app/engine/kachinuki.ts';
 import { html, engine, extractFunction } from '../lib/ksm-source.mjs';
 import { gitShow } from '../lib/git-show.mjs';
+import { drawHelpers } from '../lib/draw-helpers.mjs';
 
 const OLD = 'd3931d8';
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -344,9 +345,14 @@ test('team engine equals the pre-move legacy code over the golden team scenarios
   const stubs = `alert=()=>{};isTeamDivision=()=>true;eligibleTeams=()=>teamsList;tournamentSettings=()=>settings;ksmTeamSettings=()=>({...settings,teamAwardMode:state.teamAwardMode||settings.teamAwardMode});
     divisionComplete=div=>{const ms=state.allMatches[div]||[];return ms.length&&ms.every(m=>m.done)};
     appendApprovedDynamicMatches=(div,after,match,type)=>{const arr=state.allMatches[div]||[];const list=Array.isArray(match)?match:[match];list.forEach(x=>{x.origin='TIEBREAK';x.dynamicType=type});arr.splice(arr.indexOf(after)+1,0,...list);state.allMatches[div]=arr;sortTeamMatches(div);return list;};`;
+  // buildTeamMatches() was dead code in the app (no caller) and went in #15 PR 12b; for the current code it is the same
+  // steps on the app's own functions, the nodes through a draft as generation does (structure-store.js's helpers).
+  const currentBuild = `function buildTeamMatches(div,teams){const plan=KSMEngine.buildTeamMatches(div,teams,ksmTeamSettings(div));const m=plan.matches;
+    state.teamElimTeams[div]=[...teams];if(plan.singleElim){const draft={teamBracketNodes:teamBracketNodesForCount(teams.length)};syncTeamBracket(div,m,state.teamElimTeams[div],draft);state.teamBracketNodes[div]=draft.teamBracketNodes}return m}`;
   const load = src => {
     const ctx = vm.createContext({ state: null, teamsList: null, settings: null });
-    vm.runInContext(`${engine}\n${stubs}\n${SHARED.map(n => extractFunction(html, n)).join('\n')}\n${MOVED.map(n => extractFunction(src, n)).join('\n')}`, ctx);
+    const moved = MOVED.map(n => (src === html && n === 'buildTeamMatches' ? currentBuild : extractFunction(src, n))).join('\n');
+    vm.runInContext(`${engine}\n${drawHelpers}\n${stubs}\n${SHARED.map(n => extractFunction(html, n)).join('\n')}\n${moved}`, ctx);
     return ctx;
   };
   const legacy = load(oldSrc), current = load(html);

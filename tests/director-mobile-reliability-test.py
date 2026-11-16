@@ -18,7 +18,7 @@ with sync_playwright() as p:
       KSMTest.app.setDivisionLists({divisionTypes:{Direct8:'Single Elimination'}});
       KSMTest.app.setDivisionLists({divisionCourts:{Direct8:'A'}});
       KSMTest.app.setDraw({singleElimComps:{Direct8:Array.from({length:8},(_,i)=>({name:'P'+(i+1)}))}});
-      KSMTest.app.state.singleElimNodes={Direct8:KSMTest.app.teamBracketNodesForCount(8)};
+      KSMTest.app.setDraw({singleElimNodes:{Direct8:KSMTest.app.teamBracketNodesForCount(8)}});
       KSMTest.app.state.allMatches={Direct8:[]};
     """)
     assert page.evaluate("KSMTest.app.directorSingleElimTotal('Direct8','A')")==7
@@ -32,7 +32,7 @@ with sync_playwright() as p:
       KSMTest.app.setDivisionLists({divisionTypes:{...KSMTest.app.state.divisionTypes,Individual:'Single Elimination'}});
       KSMTest.app.setDivisionLists({divisionCourts:{...KSMTest.app.state.divisionCourts,Individual:'B'}});
       KSMTest.app.setDraw({singleElimComps:{...KSMTest.app.state.singleElimComps,Individual:Array.from({length:4},(_,i)=>({name:'I'+(i+1)}))}});
-      KSMTest.app.state.singleElimNodes.Individual=KSMTest.app.teamBracketNodesForCount(4);
+      KSMTest.app.setDraw({singleElimNodes:{...KSMTest.app.state.singleElimNodes,Individual:KSMTest.app.teamBracketNodesForCount(4)}});
       KSMTest.app.state.allMatches.Individual=[];
       KSMTest.app.setDivisionLists({divisionTypes:{...KSMTest.app.state.divisionTypes,'Team Tournament':'Team'}});
       KSMTest.app.setPeople({teams: [{team:'A',division:'Team Tournament',type:'Kachinuki'}]});

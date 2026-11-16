@@ -1,32 +1,36 @@
 // @ts-check
 import {state} from '../app-state.js';
 import {enforceUniqueIndividualMatches} from '../engine/engine-championship.js';
-import {winnerOf} from '../engine/engine-result-integrity.js';
 import {sortIndividualSingleElimMatches} from '../engine/engine-single-elim.js';
+import {ksmAdvanceBracket,ksmNodesWithWinners} from '../engine/structure-store.js';
 import * as KSMEngine from '../../engine/index.ts';
 // ==========================================================
 // KSM v3.12.4 — Split-Court Template Consolidation
 // ==========================================================
-function syncSingleElimNodeWinnerFromMatch(div,node,match){
-  if(!match||!match.done)return false;
-  const winner=winnerOf(match);
-  if(!winner||winner==='Hikiwake')return false;
-  const next=winner===match.red?{name:match.red,dojo:match.rdojo}:{name:match.white,dojo:match.wdojo};
-  if(!node.winner||node.winner.name!==next.name){node.winner=next;return true;}
-  return false;
-}
 function canonicalSingleElimMatch(div,node,arr){return KSMEngine.canonicalSingleElimMatch(div,node,arr);// moved to app/engine/bracket-helpers.ts
   }
-export function syncIndividualSingleElim(div,arr,comps){
-  state.singleElimNodes=state.singleElimNodes||{};
-  const nodes=state.singleElimNodes[div]||[];
+/**
+ * Fills a single elimination's bouts from its nodes and advances the winners (KSMEngine.syncIndividualSingleElim(), a
+ * plan on copies). The bouts are written first (plain `allMatches`, PR 13), then the nodes with their new winners go in
+ * one tournament/advancementApplied (#15 PR 12b), so no store notification shows a finished bout whose node has not got
+ * its winner. `draft` (a draw being built: generation, a No Show, a load's repair): the nodes are read from and written
+ * to `draft.singleElimNodes` instead, and the caller puts them in its own action.
+ * @param {string} div
+ * @param {Match[]} arr
+ * @param {Competitor[]} comps
+ * @param {{singleElimNodes?:any[]}} [draft]
+ */
+export function syncIndividualSingleElim(div,arr,comps,draft){
+  const nodes=(draft?draft.singleElimNodes:state.singleElimNodes?.[div])||[];
   const plan=KSMEngine.syncIndividualSingleElim(nodes,arr,comps,/** @type {Court|'split'} */(state.divisionCourts[div]||'A'));
   plan.missing.forEach(id=>console.error('KSM template invariant: missing Match Object for',div,id));
-  plan.winners.forEach(w=>{nodes[w.index].winner=w.winner;});
+  const next=ksmNodesWithWinners(nodes,plan.winners);
   plan.updates.forEach(u=>Object.assign(arr[u.index],u.set));
-  sortIndividualSingleElimMatches(div,arr);
+  sortIndividualSingleElimMatches(div,arr,next);
   state.allMatches[div]=arr;
-  return enforceUniqueIndividualMatches(div);
+  const out=enforceUniqueIndividualMatches(div);
+  if(draft)draft.singleElimNodes=next;else ksmAdvanceBracket(div,'singleElimNodes',nodes,next);
+  return out;
 }
 // The court queue panel is React (CourtQueue): the module's ksmQueuePanelInput()
 // (app/react/features/court/publish.ts) makes the decisions of the legacy queue renderer (this

@@ -15,7 +15,8 @@ conversion missed, a pool or entrant edited in place included, throws):
      undo-regenerate restore point); three save conflicts merged on payload copies and applied: two devices draw different
      divisions, one regenerates while the other edits another division's pools, and a pool change against a draw of the
      same division (the director is asked; OK re-applies)), every key of `tournamentPayload().state` has the JSON the code
-     before PR 12a saved (EXPECTED_FILE, recorded by running this file with `--dump` on next/4.1 at cf8d884; random ids,
+     before PR 12a saved (EXPECTED_FILE, recorded by running this file with `--dump` on next/4.1 at cf8d884, and again at
+     1010b95 (the PR 12a code) once court-action patches were compared grouped by key for PR 12b; random ids,
      times and the tab id are replaced by marks; keys other than the structure's and the divisions' are kept as a hash).
      The order of the top-level keys may differ after a load (docs/STORE.md section 3 item 5 (3)); the order inside each
      value may not.
@@ -38,6 +39,13 @@ checks = 0
 
 SNAPSHOT = r"""() => {
   const p = KSMTest.app.tournamentPayload(), st = p.state;
+  // Since PR 12b (bracket-nodes-store-test.py): a court action's patches are compared grouped by top-level key, whose
+  // order after a load differs once a key is a store getter (docs/STORE.md section 3 item 5 (3)).
+  const byKey = v => { if (Array.isArray(v)) return v.map(byKey); if (!v || typeof v !== 'object') return v;
+    const o = Object.fromEntries(Object.entries(v).map(([k, x]) => [k, byKey(x)]));
+    if (Array.isArray(o.patches) && o.patches.every(x => x && Array.isArray(x.path))) o.patches = [...o.patches].sort((x, y) => String(x.path[0]) < String(y.path[0]) ? -1 : String(x.path[0]) > String(y.path[0]) ? 1 : 0);
+    return o; };
+  for (const k of ['courtActionHistory', 'courtRedoHistory', 'courtUndoLog']) if (st[k] !== undefined) st[k] = byKey(st[k]);
   if (Array.isArray(st.divisionRenames)) st.divisionRenames = st.divisionRenames.map((r, i) => ({...r, id: `rename ${i}`}));
   const ids = new Map(), number = text => text.replace(/(team|gc):[0-9a-f]{24,32}/g, id => { if (!ids.has(id)) ids.set(id, `${id.split(':')[0]} #${ids.size}`); return ids.get(id); })
     .replace(/"tabId":"[^"]*"/g, '"tabId":"<tab>"').replace(/\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?Z/g, '<time>').replace(/":1[6-9]\d{11}\b/g, '":<ms>');
