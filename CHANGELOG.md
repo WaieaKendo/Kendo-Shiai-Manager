@@ -1,3 +1,7 @@
+## v4.0.0-rc.5 — Court order on Brackets
+
+- Each Brackets card shows its place in the court's running order: "Court A · 2nd", or "Court A · 4th · Court B · 3rd" for a division on both courts.
+
 ## v4.0.0-rc.4 — Brackets
 
 - Results is now **Brackets** (new icon, address `/brackets`; older `/results` links still work).

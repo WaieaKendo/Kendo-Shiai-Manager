@@ -41,6 +41,8 @@ export interface ResultCardInput {
   courts?: string[];
   /** The courts where it is the division being played right now. */
   nowOn?: string[];
+  /** Each court's 1-based place in its running order (Setup's division order on that court). */
+  places?: Record<string, number>;
 }
 
 /** One award of state.awards (text as esc() showed it). */
@@ -107,13 +109,22 @@ export interface PlacementRowView {
   name: string;
 }
 
-/** Where a division is played: "Court A", "Courts A & B"; "Now on Court A" while it is being played. */
+/** 1 → "1st", 2 → "2nd", 11 → "11th", 23 → "23rd". */
+export function ordinal(n: number): string {
+  const t = n % 100, u = n % 10;
+  return `${n}${t >= 11 && t <= 13 ? 'th' : u === 1 ? 'st' : u === 2 ? 'nd' : u === 3 ? 'rd' : 'th'}`;
+}
+
+/** Where a division is played, with its place in each court's running order: "Court A · 2nd",
+ *  "Court A · 4th · Court B · 3rd"; "Now on Court A" while it is being played. */
 export interface CourtTagView { text: string; live: boolean }
-export function courtTag(card: Pick<ResultCardInput, 'courts' | 'nowOn'>): CourtTagView | null {
-  const now = card.nowOn ?? [], courts = card.courts ?? [];
+export function courtTag(card: Pick<ResultCardInput, 'courts' | 'nowOn' | 'places'>): CourtTagView | null {
+  const now = card.nowOn ?? [], courts = card.courts ?? [], places = card.places ?? {};
   const list = (cs: string[]) => cs.length > 1 ? `Courts ${cs.slice(0, -1).join(', ')} & ${cs[cs.length - 1]}` : `Court ${cs[0]}`;
   if (now.length) return { text: `Now on ${list(now)}`, live: true };
-  return courts.length ? { text: list(courts), live: false } : null;
+  if (!courts.length) return null;
+  if (!courts.some(c => places[c])) return { text: list(courts), live: false };
+  return { text: courts.map(c => places[c] ? `Court ${c} · ${ordinal(places[c])}` : `Court ${c}`).join(' · '), live: false };
 }
 
 export type ResultCardView = {name?: string; court?: CourtTagView} & (

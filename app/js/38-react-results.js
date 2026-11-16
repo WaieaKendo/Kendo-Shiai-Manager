@@ -30,7 +30,8 @@ function ksmPublishResultsBracket(input){
 }
 // Where a division is played (Brackets screen): the courts of its matches (matchBelongsToCourt()),
 // or before the draw Setup's court ('A', 'B', 'Both'/'split': both); nowOn the courts whose active
-// division it is (courtSummaryFor(), Overview's rule).
+// division it is (courtSummaryFor(), Overview's rule); places each court's 1-based place in its
+// running order (ksmCourtDivisionList(), 35-), for the courts that list it.
 function ksmResultCourts(div,active=ksmActiveCourtDivisions()){
   const all=state.allMatches?.[div]||[];
   let courts=['A','B'].filter(c=>all.some(m=>matchBelongsToCourt(m,c)));
@@ -40,11 +41,14 @@ function ksmResultCourts(div,active=ksmActiveCourtDivisions()){
     courts=mode==='a'?['A']:mode==='b'?['B']:(mode==='both'||mode==='split')?['A','B']:[];
   }
   const nowOn=all.length&&!divisionComplete(div)?['A','B'].filter(c=>active[c]===div):[];
-  return {courts,nowOn};
+  const places={};
+  courts.forEach(c=>{const i=(active.lists?.[c]||[]).indexOf(div);if(i>=0)places[c]=i+1;});
+  return {courts,nowOn,places};
 }
-// Each court's active division (Overview's rule), worked out once per Brackets render.
+// Each court's active division (Overview's rule) and running order, worked out once per Brackets render.
 function ksmActiveCourtDivisions(){
-  return {A:courtSummaryFor('A').division,B:courtSummaryFor('B').division};
+  return {A:courtSummaryFor('A').division,B:courtSummaryFor('B').division,
+    lists:{A:ksmCourtDivisionList('A'),B:ksmCourtDivisionList('B')}};
 }
 // resultCardHtml(div) as data: placements null for the in-progress card (none yet).
 function ksmResultCard(div,active){
