@@ -459,9 +459,37 @@ function ksmTeamQueueGroups(div,court,current){
   });
   return out.groups;
 }
+// The Court Queue: the queue below, plus the court's running order (display only; Continue and
+// findNextForCourt() still decide what comes next). Built in a try/catch: a failure only drops
+// the running order, never the queue or the court screen.
+function ksmQueuePanelInput(){
+  const queue=ksmQueuePanelBase();
+  try{
+    const order=ksmCourtRunningOrder(state.currentCourt||'A',state.currentDivision);
+    return order?{...queue,order}:queue;
+  }catch(e){return queue;}
+}
+// The division being played on the court (state.currentDivision: what Continue opened) as the
+// header over its rounds, then the court's remaining divisions in running order
+// (ksmCourtDivisionList(), from the one after it as ksmNextCourtDivision() looks), finished and
+// undrawn ones left out: names and the matches left on this court only.
+function ksmCourtRunningOrder(court,div){
+  const list=ksmCourtDivisionList(court),other=court==='A'?'B':'A',otherList=ksmCourtDivisionList(other);
+  const i=div?list.indexOf(div):-1,rest=i<0?list:[...list.slice(i+1),...list.slice(0,i)];
+  const name=d=>ksmText(ksmDivisionName(d)||d);
+  const later=rest.filter(d=>d!==div&&!divisionComplete(d)).map(d=>{
+    // Matches still to play on this court (a division left part-way counts what remains).
+    const ms=(state.allMatches?.[d]||[]).filter(m=>isValidMatchObject(m)&&!m.done&&matchBelongsToCourt(m,court));
+    // A team division counts its pairings, not the bouts.
+    const matches=ms.some(isTeamMatch)?new Set(ms.map(m=>m.teamPair||`${m.teamWhite}|${m.teamRed}|${m.pool||m.position||''}`)).size:ms.length;
+    return matches?{name:name(d),matches,alsoOn:otherList.includes(d)?other:null}:null;
+  }).filter(Boolean);
+  const current=div&&!divisionComplete(div)?{name:name(div)}:null;
+  return current||later.length?{current,later}:null;
+}
 // renderQueue() as the legacy renderer drew it (removed): the 32- wrapper (a split single
 // elimination: canonicalSingleElimQueue()), then renderQueue() (the last declaration, 24-).
-function ksmQueuePanelInput(){
+function ksmQueuePanelBase(){
   const div=state.currentDivision,court=state.currentCourt||'A';
   if(!div)return {kind:'empty'};
   if(divisionComplete(div))return {kind:'empty'};

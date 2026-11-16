@@ -49,7 +49,16 @@ export interface FinalResultsInput {
   lines: Array<{ place: string; name: string }>;
 }
 
-export type CourtQueueInput =
+/** The court's running order (ksmCourtRunningOrder(), 35-): display only, never tappable. */
+export interface CourtRunningOrderInput {
+  /** The division being played (what Continue opened): the header over the queue's rounds. */
+  current: { name: string } | null;
+  /** The court's remaining divisions in running order: one collapsed line each. */
+  later: Array<{ name: string; matches: number; alsoOn: string | null }>;
+}
+
+export type CourtQueueInput = CourtQueueBaseInput & { order?: CourtRunningOrderInput };
+type CourtQueueBaseInput =
   /** Nothing (no division, a completed division, a single-elimination match on one court). */
   | { kind: 'empty' }
   /** A .muted-card message: 'No active division.', 'Queue complete.', 'Division complete.' */
@@ -74,11 +83,31 @@ export interface QueueGroupView {
   rows: QueueRowItemView[];
 }
 
-export type CourtQueueView =
+export type CourtQueueView = (
   | { kind: 'empty' }
   | { kind: 'message'; text: string }
   | { kind: 'results'; results: FinalResultsInput | null }
-  | { kind: 'groups'; groups: QueueGroupView[] };
+  | { kind: 'groups'; groups: QueueGroupView[] }) & { order?: CourtRunningOrderView };
+
+export const NOW_LABEL = 'Now';
+export const UP_NEXT_LABEL = 'Up next';
+
+export interface CourtRunningOrderView {
+  current: string | null;
+  /** upNext on the first line; meta: "3 matches · also on Court B". */
+  later: Array<{ name: string; upNext: boolean; meta: string }>;
+}
+
+export function runningOrderView(order: CourtRunningOrderInput): CourtRunningOrderView {
+  return {
+    current: order.current ? order.current.name : null,
+    later: order.later.map((d, i) => ({
+      name: d.name,
+      upNext: i === 0,
+      meta: [`${d.matches} ${d.matches === 1 ? 'match' : 'matches'}`, ...(d.alsoOn ? [`also on Court ${d.alsoOn}`] : [])].join(' · '),
+    })),
+  };
+}
 
 /** The static markup (app/index.html): an empty #queue. */
 export const EMPTY_QUEUE: CourtQueueInput = { kind: 'empty' };
@@ -108,9 +137,14 @@ function rowView(row: QueueRow): QueueRowItemView {
 }
 
 export function courtQueueView(input: CourtQueueInput): CourtQueueView {
-  if (input.kind !== 'groups') return input;
+  const { order, ...base } = input;
+  // Display only: malformed data drops the running order, never the queue.
+  const ok = !!order && Array.isArray(order.later) && (!!order.current || order.later.length > 0);
+  const extra = ok ? { order: runningOrderView(order) } : {};
+  if (base.kind !== 'groups') return { ...base, ...extra };
   return {
+    ...extra,
     kind: 'groups',
-    groups: input.groups.filter(g => g.rows.length).map(g => ({ title: normalizeQueueGroupLabel(g.label), rows: g.rows.map(rowView) })),
+    groups: base.groups.filter(g => g.rows.length).map(g => ({ title: normalizeQueueGroupLabel(g.label), rows: g.rows.map(rowView) })),
   };
 }
