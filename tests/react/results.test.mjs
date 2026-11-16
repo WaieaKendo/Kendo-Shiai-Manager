@@ -24,9 +24,9 @@ test('nothing published yet: the static markup (empty body, default name and mod
   assert.deepEqual(resultsBracketView(EMPTY_RESULTS_BRACKET), { kind: 'empty', title: 'Completed Bracket' });
 });
 
-test('resultCardView: an individual division in progress has no button', () => {
+test('resultCardView: an individual division in progress opens its bracket', () => {
   assert.deepEqual(resultCardView({ division: 'Open', roundRobin: false, placements: null, progress: null }),
-    { kind: 'progress', division: 'Open', message: 'Tournament in progress', button: null });
+    { kind: 'progress', division: 'Open', message: 'Tournament in progress', button: 'View Bracket →' });
 });
 
 test('resultCardView: a team round robin in progress counts its pairings and offers the standings', () => {
