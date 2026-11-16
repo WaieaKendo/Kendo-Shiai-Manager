@@ -19,7 +19,7 @@ with sync_playwright() as p:
           const div='Sim';
           KSMTest.app.setDivisionLists({divisions:[div],divisionTypes:{[div]:'Single Elimination'},divisionCourts:{[div]:split?'split':'A'}});
           KSMTest.app.setPeople({competitors: Array.from({length:n},(_,i)=>({name:'P'+(i+1),dojo:'D'+i,division:div,seed:i<4?String(i+1):'',status:'Checked'}))});
-          KSMTest.app.state.pools={};KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={};KSMTest.app.state.singleElimComps={};KSMTest.app.state.teamBracketNodes={};KSMTest.app.state.teamPools={};KSMTest.app.state.brackets={};KSMTest.app.state.byeWinners={};KSMTest.app.state.currentByDivision={};
+          KSMTest.app.setDraw({pools:{}});KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={};KSMTest.app.setDraw({singleElimComps:{}});KSMTest.app.state.teamBracketNodes={};KSMTest.app.setDraw({teamPools:{}});KSMTest.app.setDraw({brackets:{}});KSMTest.app.setDraw({byeWinners:{}});KSMTest.app.state.currentByDivision={};
           KSMTest.app.generateDivisionState(div);
           const initial=KSMTest.app.state.allMatches[div].length;
           let guard=0;
@@ -60,8 +60,8 @@ with sync_playwright() as p:
     tb=page.evaluate("""()=>{
       const div='Tie';
       KSMTest.app.setDivisionLists({divisionCourts:{[div]:'A'}});
-      KSMTest.app.state.pools={[div]:[{label:'A',players:[{name:'A',dojo:'D'},{name:'B',dojo:'D'},{name:'C',dojo:'D'}]}]};
-      KSMTest.app.state.brackets={[div]:[['A1','B2'],['B1','A2']]};
+      KSMTest.app.setDraw({pools:{[div]:[{label:'A',players:[{name:'A',dojo:'D'},{name:'B',dojo:'D'},{name:'C',dojo:'D'}]}]}});
+      KSMTest.app.setDraw({brackets:{[div]:[['A1','B2'],['B1','A2']]}});
       KSMTest.app.state.allMatches={[div]:[
         {division:div,pool:'A',white:'A',red:'B',wdojo:'D',rdojo:'D',done:true,wp:['M'],rp:[],type:'individual',court:'A'},
         {division:div,pool:'A',white:'C',red:'B',wdojo:'D',rdojo:'D',done:true,wp:[],rp:['M'],type:'individual',court:'A'},
@@ -93,7 +93,7 @@ with sync_playwright() as p:
 
     # Championship order is canonical after filtering, regardless of creation order.
     order=page.evaluate("""()=>{
-      const div='Order';KSMTest.app.state.brackets={[div]:[['A1','B2'],['C1','A3'],['B1','C2'],['A2','B3']]};
+      const div='Order';KSMTest.app.setDraw({brackets:{[div]:[['A1','B2'],['C1','A3'],['B1','C2'],['A2','B3']]}});
       KSMTest.app.state.allMatches={[div]:[
         {division:div,type:'individual',championship:true,position:'Quarterfinal',bracketSlot:3,court:'B',white:'W4',red:'R4',done:false},
         {division:div,type:'individual',championship:true,position:'Quarterfinal',bracketSlot:2,court:'B',white:'W3',red:'R3',done:false},

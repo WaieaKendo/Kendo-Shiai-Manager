@@ -7,6 +7,7 @@ import {renderContext} from './split-court-templates.js';
 import {buildChampionshipTemplateMatches,championshipTemplateForTotal,syncChampionshipTemplate} from '../engine/engine-championship.js';
 import {renderPools,setActiveDivision} from '../engine/engine-generation.js';
 import {assignPoolPlayerSlots,buildPoolMatches} from '../engine/engine-pools.js';
+import {ksmDrawWith,ksmNextManagementRevision,ksmSetDraw} from '../engine/structure-store.js';
 import {appendApprovedDynamicMatches} from '../engine/engine-standings-and-tiebreaks.js';
 import {scheduleAutoSave} from '../sync/cloud-session-and-autosave.js';
 import {renderProgress} from '../navigation.js';
@@ -42,7 +43,6 @@ function movePoolPlayer(fromPool,idx,toPool){let div=poolDiv?.value||state.curre
 export function saveEditedPools(){
   let div=poolDiv?.value||state.currentDivision;
   const edited=ksmPoolEditToSave(div);if(!edited)return;const pools=assignPoolPlayerSlots(edited);
-  state.pools[div]=pools;
 
   // Pool editing occurs after the division has already been generated. Rebuild the
   // complete division Match Object set, not just the preliminary pool matches.
@@ -50,11 +50,13 @@ export function saveEditedPools(){
   // the championship Match Objects here can make a QF look populated in the
   // bracket while leaving nothing scorable in the Court queue.
   const total=pools.reduce((sum,pool)=>sum+(pool.players?.length||0),0);
-  state.brackets=state.brackets||{};
-  const bracket=(Array.isArray(state.brackets[div])&&state.brackets[div].length)
+  const bracket=(Array.isArray(state.brackets?.[div])&&state.brackets[div].length)
     ? state.brackets[div]
     : championshipTemplateForTotal(total);
-  state.brackets[div]=bracket;
+  // The pools, the template and the managementRevision bump in one tournament/poolsEdited (#15 PR 12a), before the
+  // matches are rebuilt from them (the builders read both from the store); the matches and court pointers follow in the
+  // same synchronous step.
+  ksmSetDraw('poolsEdited',{...ksmDrawWith(div,{pools,brackets:bracket}),managementRevision:ksmNextManagementRevision()});
 
   const poolMatches=buildPoolMatches(div,pools);
   const championshipMatches=buildChampionshipTemplateMatches(div,bracket);
@@ -72,7 +74,6 @@ export function saveEditedPools(){
       state.courtActiveDivision[court]=next.division;
     }
   });
-  state.managementRevision=(state.managementRevision||0)+1;
   if(div===state.currentDivision)setActiveDivision(div);
   renderPools();
   scheduleAutoSave();

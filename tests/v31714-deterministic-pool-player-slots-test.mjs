@@ -27,7 +27,7 @@ const staticChecks=[
   [enginePools.includes('poolSlot: poolPlayerSlotLetter(index), poolSlotIndex: index'),'pool entries store explicit slot metadata'],
   [enginePools.includes('whitePoolSlot: poolPlayerSlot(w, whiteIndex)'),'white Match Object slot metadata'],
   [enginePools.includes('redPoolSlot: poolPlayerSlot(r, redIndex)'),'red Match Object slot metadata'],
-  [/const pools=assignPoolPlayerSlots\(edited\);\s*state\.pools\[div\]=pools;/.test(html),'edited pools are re-slotted before match rebuild'], // F12: the editor's copy (edited)
+  [/const pools=assignPoolPlayerSlots\(edited\);[\s\S]*?ksmSetDraw\('poolsEdited',\{\.\.\.ksmDrawWith\(div,\{pools,[\s\S]*?buildPoolMatches\(div,pools\)/.test(html),'edited pools are re-slotted before match rebuild'], // F12: the editor's copy (edited); #15 PR 12a: one tournament/poolsEdited
   [poolsModel.includes("EDITOR_HELP = 'Drag players between pools or drop between names to insert into that position. Top-to-bottom order is always A, B, C, D.'")&&poolsReact.includes('<p className="sub">{EDITOR_HELP}</p>'),'edit UI explains slot order'],
   [poolsReact.includes('<span className="pool-slot-badge" data-testid="pool-slot">{x.slot}</span>')&&poolsPublisher.includes('slot: text(poolPlayerSlot(x, idx))'),'generated pool UI shows slot badge'],
   [poolsReact.includes('<span className="pool-slot-badge">{row.player.slot}</span>')&&poolsPublisher.includes('slot: text(poolPlayerSlotLetter(idx))'),'edit UI shows slot letters by position'],

@@ -1,6 +1,6 @@
 # The store: plan for moving `state` into Redux Toolkit (#15 step 2.8)
 
-Status (2026-11-15): **prep done (PR 2), Undo/Redo without device keys (PR 3), loads keep the device view (PR 4), device fields moved: `regMode`, `poolViewDivision` (PR 5), the court view (PR 6), `matches` derived and `current` / `score` moved (PR 7), the Setup form in `tournament.settings` (PR 8), `teamAwardMode` and the team court read it (PR 8b), the divisions (PR 9), the people (PR 10), the awards and grand champions (PR 11)**. `app/store/` holds a Redux Toolkit store (slices
+Status (2026-11-15): **prep done (PR 2), Undo/Redo without device keys (PR 3), loads keep the device view (PR 4), device fields moved: `regMode`, `poolViewDivision` (PR 5), the court view (PR 6), `matches` derived and `current` / `score` moved (PR 7), the Setup form in `tournament.settings` (PR 8), `teamAwardMode` and the team court read it (PR 8b), the divisions (PR 9), the people (PR 10), the awards and grand champions (PR 11), the draw structure (PR 12a)**. `app/store/` holds a Redux Toolkit store (slices
 `tournament` and `device`). app.js imports it as a separate tree-shaken, minified
 bundle (+9.2 kB gzip since PR 10, section 5) and sets `window.KSMStore`; `app/modules/app-state.js` has the helpers the field
 moves use (`moveToStore()`, `replaceState()`, `assignState()`, section 2). All app data is still the one mutable
@@ -53,17 +53,17 @@ Class: **T** tournament data (shared, synced), **D** device/screen state (this d
 | `grandChampions` | 10 / 3 / 4 | grand champion | Merged by id on save conflicts (`KSM_MERGED_STATE_KEYS`). **Moved (PR 11)**: `grandChampionAdded` / `…Updated` / `…Moved` / `…Removed`; renamed with the division in `divisionRenamed`. Absent until a row is added |
 | `exhibitions` | 11 / 5 / 4 | registration | **Moved (PR 10)**: `exhibition…` row actions |
 | `awards` | 8 / 4 / 3 | results (`ksmSetResultAward` edits a row in place) | Three-way merged on save conflicts. **Moved (PR 11)**: `awardAdded` / `awardSet` / `awardRemoved` / `awardsLoaded` |
-| `generated` | 23 / 2 / 11 | generation, registration (clear) | |
-| `managementRevision` | 14 / 7 / 5 | generation, pool edits, undo-regenerate, sync | Bumped by structural edits; the rebase compares it |
-| `pools` | 36 / 7 / 13 | generation, pool editing | Structural (replayed per division on conflicts, `KSM_STRUCTURAL_DIVISION_KEYS`) |
-| `teamPools` | 5 / 3 / 1 | generation | Structural |
-| `brackets` | 18 / 5 / 5 | generation, pool editing | Structural |
-| `championshipNodes` | 21 / 7 / 6 | generation, championship advancement | Structural |
-| `singleElimNodes` | 33 / 7 / 9 | generation, single-elim advancement, split-court templates | Structural |
-| `singleElimComps` | 18 / 4 / 7 | generation | Structural |
-| `byeWinners` | 9 / 3 / 2 | generation | Structural |
-| `teamBracketNodes` | 32 / 7 / 12 | generation, team matches | Structural |
-| `teamElimTeams` | 19 / 8 / 4 | generation, team matches, sync (load default) | Structural |
+| `generated` | 23 / 2 / 11 | generation (no other writer left; the "registration (clear)" of this table's first count is gone) | **Moved (PR 12a)** with the next six (section 3 item 12): `tournamentGenerated` |
+| `managementRevision` | 14 / 7 / 5 | generation, pool edits, No Shows, sync (load default) | Bumped by structural edits; the rebase compares it (on payload copies). **Moved (PR 12a)**: in the same action as the edit it counts |
+| `pools` | 36 / 7 / 13 | generation, pool editing, No Shows, a court change after the draw, the grand champion's stand-in | Structural (replayed per division on conflicts, `KSM_STRUCTURAL_DIVISION_KEYS`). **Moved (PR 12a)** |
+| `teamPools` | 5 / 3 / 1 | generation, a team's No Show (one list with `pools` after a team round robin's draw) | Structural. **Moved (PR 12a)** |
+| `brackets` | 18 / 5 / 5 | generation, pool editing | Structural. **Moved (PR 12a)** |
+| `championshipNodes` | 21 / 7 / 6 | generation, championship advancement | Structural. PR 12b |
+| `singleElimNodes` | 33 / 7 / 9 | generation, single-elim advancement, split-court templates | Structural. PR 12b |
+| `singleElimComps` | 18 / 4 / 7 | generation, a No Show, the grand champion's stand-in, a Registration edit of a drawn row | Structural. **Moved (PR 12a)** |
+| `byeWinners` | 9 / 3 / 2 | generation (reset to `{}` only; no code adds an entry) | Structural. **Moved (PR 12a)** |
+| `teamBracketNodes` | 32 / 7 / 12 | generation, team matches | Structural. PR 12b |
+| `teamElimTeams` | 19 / 8 / 4 | generation, team matches, sync (load default) | Structural. PR 12b |
 | `allMatches` | 162 / 22 / 31 | court actions (scoring, Next Match, tiebreaks, playoffs), generation, every advancement sync, pool editing, sync apply/rebase, undo/redo | The core. Plus the alias writes on Match Objects. Legacy code relies on **Match Object identity** (the engine README's "identity has to be preserved") |
 | Setup form (`payload.setup`, not in `state`) | — | `applySetupSnapshot()` (`tournament/settingsLoaded`), an edit of a Setup input (`tournament/settingChanged`), `ksmSetSetting()` | **Moved (PR 8)** to `tournament.settings`: every reader reads the store (`getSetupSnapshot()`, `tournamentSettings()`, `ksmSetting()`, the islands' `setupSetting()`); the inputs show it |
 
@@ -585,7 +585,58 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
     `byeWinners`, `teamBracketNodes`, `teamElimTeams`, `generated`, `managementRevision` →
     `tournament/divisionGenerated` (the engine's `generateDivision` plan), `…Regenerated`, `poolsEdited`,
     advancement plans as `tournament/advancementApplied`. Risk: high (orchestration, `generateDivisionState`).
-    Tests: golden-engine, pool-edit and regenerate tests, undo-regenerate.
+    Tests: golden-engine, pool-edit and regenerate tests, undo-regenerate. Split in two by the coordinator: **12a** the
+    draw (done, below), **12b** the bracket nodes.
+    Done (**PR 12a**), no behaviour change (no golden changed):
+    - `pools`, `teamPools`, `brackets`, `singleElimComps`, `byeWinners`, `generated`, `managementRevision` are `tournament`
+      slice fields and `state` getters (`moveToStore()`, `app-state.js`), at the literal's places; `singleElimComps` and
+      `byeWinners` stay undefined (not in the snapshot) until Generate Tournament, as before. The snapshot keeps every key,
+      value, type and order inside each value (`tests/structure-store-test.py` compares every key of the saved `state` with
+      the PR 11 code's after 32 steps: every format drawn, Edit Pool, single-division regenerates, No Shows in a pool, a
+      bracket, a team round robin and a team bracket, a court change after the draw and back to split, the grand champion drawn and cleared,
+      five kinds of load including the undo-regenerate restore point, three save conflicts).
+    - Actions (one shared reducer that sets the maps it is given, as PRs 9-11): `drawReset` (Generate Tournament's
+      start), `divisionGenerated` (one division's plan), `tournamentGenerated` (`generated` and the bump), `divisionRegenerated`
+      (Regenerate Single Division: the old entries out, the new draw, the bump), `divisionCleared` (a grand champion's draw
+      cleared; a failed regenerate put back), `poolsEdited` (Save Pool Changes: pools, template, bump), `drawEntriesUpdated`
+      (rows changed without a new draw: a No Show with its bump, the grand champion's stand-in, a court change after the
+      draw dropping the pools' `court`, a pool's split court kept on it by `poolCourtFor()` (it wrote `pool.court` in place;
+      found by the strict browser tests, not by the first draft of the snapshot test), a Registration edit followed into
+      `singleElimComps`). Every writer goes through
+      `app/modules/engine/structure-store.js` (`ksmSetDraw()`, `ksmDrawWith()`: one division's entries with the key order a
+      `delete` and an assignment left, `ksmEditedPools()`); readers keep `state.x`. A source check
+      (`tests/store/structure.test.mjs`) fails on an assignment, a `delete`, a list method or a known in-place write.
+    - **Order, and why no half-drawn division is visible**: `generateDivisionState()` writes the plain parts first
+      (`allMatches`, `currentByDivision`, the nodes, `teamElimTeams`), then dispatches the division's draw, then runs what
+      reads the new draw from the store (`syncChampionshipTemplate()`, the division court); Generate Tournament resets the
+      plain maps right before `drawReset`. Save Pool Changes dispatches first (its match builders read the new pools and
+      template from the store) and rebuilds the matches right after. Each is one synchronous step; the store's only
+      subscribers are the React islands (`useSyncExternalStore`, which re-render after the step) and
+      `ksm:state-changed` is coalesced to a microtask after it (`ksmNotifyStateChanged()`). The browser test checks that every notification of a
+      Generate shows the same divisions in the store's `pools` and in `state.allMatches`.
+    - **Shared objects**: a team round robin's pools are its team pools (one list from the engine) until a load copies
+      them; a team's No Show edited both through that list, so `ksmEditedPools()` replaces the pool in both and keeps one
+      list. A bracket node won by a bye holds the entrant's row itself: the grand champion's stand-in (a new row now) is
+      followed into `singleElimNodes`, as the in-place swap reached it.
+    - **The rename**: `renamedDivisionState()` rewrites none of these fields (a division with a draw cannot be renamed), so
+      `divisionRenamed` is unchanged. **Save conflicts**: unchanged; the structural replay and the merges run on payload
+      copies and land through `replaceState()` with `managementRevision` as computed. **Undo/Redo and the restore point**:
+      unchanged (a patch into a moved key goes through `assignState()`; the undo-regenerate restore point is a load).
+    - **The load**: `managementRevision ||= 0` (with `teamElimTeams ||= {}`, in that order) runs on the loaded copy before
+      `replaceState()`.
+    - Known difference on an error path only: a regenerate whose map is missing (`singleElimComps` on a never-generated save)
+      threw in the old code and was put back; the new code creates the map. Unreachable: a regenerate needs `generated`, and
+      Generate Tournament creates the maps.
+    - Test code that wrote these fields sets them through `KSMTest.app.setDraw()`; an entry is never edited in place there.
+    - The store bundle 9,262 → 9,346 bytes gzip (seven action names), over the 9,300 budget: raised to 9,400 (section 5).
+    **12b (next)**: `championshipNodes`, `singleElimNodes`, `teamBracketNodes`, `teamElimTeams`. Writers: generation (now
+    plain writes next to `divisionGenerated`), the advancement that runs while bouts are scored (`maybeAdvanceChampionship`,
+    `maybeAdvanceIndividualSingleElim`, `syncChampionshipTemplate`, `syncIndividualSingleElim`, `syncTeamBracket`: node
+    `winner` written in place), team matches, the split-court templates, a team's No Show in a bracket (`teams[idx]=null`,
+    `n.winner=null`), the grand champion's stand-in (node winners followed), Registration's follow into `teamElimTeams`
+    (`people-store.js`), the load default (`teamElimTeams ||= {}`), regenerate's delete / restore and the grand champion's
+    clear. Plans as `tournament/advancementApplied`; the nodes hold Registration rows and `singleElimComps` rows
+    themselves (bye winners), which an action must keep.
 13. **Matches and courts**: `allMatches`, `courtState`, `courtActiveDivision` (→ selector), `currentByDivision`,
     `courtActionHistory`, `courtRedoHistory`, `courtUndoLog` → `court/pointScored`, `court/hansoku`,
     `court/nextMatch`, `court/undo`, `court/redo`, tiebreak/playoff creation, `patch-v1` from Immer patches. Risk:
@@ -650,6 +701,10 @@ call commands instead of window functions.
 - PR 11 (awards and grand champions): the store bundle 9,206 → 9,262 bytes gzip (24,471 → 24,631 raw: eight action names on
   the one list-setting reducer), inside the 9,300 budget; app.js 686,256 → 689,076 bytes (gzip 180,104 → 181,035:
   `awards-store.js` and its JSDoc); no React source changed.
+- PR 12a (the draw structure): the store bundle 9,262 → 9,346 bytes gzip (24,631 → 24,837 raw: seven action names on the
+  shared reducer), over the 9,300 budget, which is now 9,400 (`tests/store-bundle-test.mjs`; the reducer is shared, the
+  names are the cost); app.js 689,102 → 695,727 bytes (gzip 181,042 → 183,399: `structure-store.js` and its JSDoc); the
+  React bundle unchanged (625,991).
 - Re-renders: `store.subscribe` listeners run on every dispatch, so selectors must be cheap and return stable
   references. A remote snapshot is one action, one notification (today `ksmNotifyStateChanged` coalesces per
   microtask). Immer copies only the changed path (structural sharing); the deep freeze of a loaded snapshot is one

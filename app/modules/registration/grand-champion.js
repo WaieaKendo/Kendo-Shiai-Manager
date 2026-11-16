@@ -5,6 +5,7 @@ import {renderAll} from '../court/court-context-and-pool-editing.js';
 import {findNextForCourt,renderDivisions} from '../court/court-match-order.js';
 import {enforceUniqueIndividualMatches,maybeAdvanceChampionship,maybeCreateChampionship} from '../engine/engine-championship.js';
 import {generateDivisionState} from '../engine/engine-generation.js';
+import {KSM_DRAW_KEYS,ksmDrawWith,ksmEditedPools,ksmSetDraw} from '../engine/structure-store.js';
 import {completedResultSnapshot} from '../engine/engine-result-integrity.js';
 import {maybeAdvanceIndividualSingleElim} from '../engine/engine-single-elim.js';
 import {maybeCreateTiebreaks} from '../engine/engine-standings-and-tiebreaks.js';
@@ -133,7 +134,9 @@ function ksmForgetGrandChampionHistory(id){
 }
 function ksmClearGrandChampionStructure(id,keepCourts=false){
   let had=false;
-  KSM_GC_STRUCTURE_KEYS.forEach(k=>{if(state[k]&&Object.hasOwn(state[k],id)){delete state[k][id];had=true}});
+  // The plain parts are deleted, then the draw's own entries go in one tournament/divisionCleared (#15 PR 12a).
+  KSM_GC_STRUCTURE_KEYS.forEach(k=>{if(state[k]&&Object.hasOwn(state[k],id)){if(!KSM_DRAW_KEYS.includes(/** @type {any} */ (k)))delete state[k][id];had=true}});
+  ksmSetDraw('divisionCleared',ksmDrawWith(id,{},KSM_DRAW_KEYS));
   if(had)ksmForgetGrandChampionHistory(id);
   if(!keepCourts)['A','B'].forEach(c=>{
     if(state.courtState?.[c]?.division!==id)return;
@@ -161,8 +164,14 @@ function ksmSubstituteGrandChampion(gc,swaps){
   const same=(name,dojo,e)=>name===e.name&&(dojo||'')===(e.dojo||'');
   const swap=(o,nameKey,dojoKey)=>{const s=o&&swaps.find(x=>same(o[nameKey],o[dojoKey],x.from));if(s){o[nameKey]=s.to.name;o[dojoKey]=s.to.dojo}};
   (state.allMatches?.[gc.id]||[]).forEach(m=>{if(m&&!KSMEngine.grandChampionStarted([m])){swap(m,'white','wdojo');swap(m,'red','rdojo')}});
-  (state.singleElimComps?.[gc.id]||[]).forEach(c=>swap(c,'name','dojo'));
-  (state.pools?.[gc.id]||[]).forEach(p=>(p.players||[]).forEach(x=>swap(x,'name','dojo')));
+  // The draw's rows are store data (#15 PR 12a): the stand-in is a new row in the entrants and the pools. A bracket node
+  // won by a bye holds the entrant's row itself, which the old in-place swap changed too: it follows to the new row.
+  /** @type {Map<object,object>} */ const replaced=new Map();
+  const swapped=o=>{if(replaced.has(o))return replaced.get(o);const s=o&&swaps.find(x=>same(o.name,o.dojo,x.from));if(!s)return o;const to={...o,name:s.to.name,dojo:s.to.dojo};replaced.set(o,to);return to};
+  const comps=state.singleElimComps?.[gc.id],nextComps=Array.isArray(comps)?comps.map(swapped):null;
+  ksmSetDraw('drawEntriesUpdated',{...(nextComps&&nextComps.some((c,i)=>c!==comps[i])?ksmDrawWith(gc.id,{singleElimComps:nextComps}):{}),
+    ...ksmEditedPools(gc.id,p=>{const players=(p.players||[]).map(swapped);return players.some((x,i)=>x!==p.players[i])?{...p,players}:p})});
+  (state.singleElimNodes?.[gc.id]||[]).forEach(n=>{const to=n&&replaced.get(n.winner);if(to)n.winner=/** @type {any} */ (to)});
   ksmForgetGrandChampionHistory(gc.id);
   return true;
 }

@@ -12,13 +12,14 @@
 // write kept the old one. Registration's islands bind each shown row to its row object (F17 / F20) and an edit can
 // arrive after another edit of the same row without a redraw in between (a typed field committed by the redraw that a
 // status click caused): ksmCurrentPerson() follows a row to the object that replaced it, as identity did.
-// The draw holds some rows themselves, not copies: an individual single elimination's entrants (`singleElimComps`) and a
+// The draw holds some rows themselves, not copies: an individual single elimination's entrants (`singleElimComps`, store data since PR 12a) and a
 // team bracket's teams (`teamElimTeams`, whose rosters the next rounds' bouts are built from), from generation until the
 // next load. An edit of such a row showed there too (the same object), so the row that replaces it takes its place there
 // (followDraw()); a list a load or a remote apply gave holds copies, which no edit ever reached, then or now.
 import {state} from '../app-state.js';
 import {dispatch,tournamentSlice} from '../../store/index.ts';
 import {settingsMeta} from '../sync/cloud-session-and-autosave.js';
+import {ksmSetDraw} from '../engine/structure-store.js';
 /** @typedef {'competitor'|'team'|'exhibition'} PersonKind */
 /** @typedef {Record<string,unknown>} PersonRow */
 /** The lists of the store's PeopleLists, as the app's types have them (Competitor, Team, Exhibition, TeamDivision). @typedef {{competitors?:object[],teams?:object[],exhibitions?:object[],teamDivisions?:object[]|undefined}} PeopleLists */
@@ -43,12 +44,19 @@ function act(type,payload,follow){
     if(replaced.size)followDraw(replaced);
   }
 }
-/** The draw's own lists of rows (plain `state` until #15 PR 12): each row an edit replaced, replaced there too. @param {Map<object,object>} replaced */
+/**
+ * The draw's own lists of rows: each row an edit replaced, replaced there too. `singleElimComps` is store data (#15 PR
+ * 12a): new lists, one tournament/drawEntriesUpdated; `teamElimTeams` is still plain (PR 12b).
+ * @param {Map<object,object>} replaced
+ */
 function followDraw(replaced){
-  for(const key of /** @type {const} */ (['singleElimComps','teamElimTeams'])){
-    for(const list of Object.values(/** @type {Record<string,unknown>} */ (state[key]||{}))){
-      if(Array.isArray(list))list.forEach((r,i)=>{const to=r&&replaced.get(r);if(to)list[i]=to});
-    }
+  /** @type {Record<string,unknown[]>} */ const comps={};
+  for(const [div,list] of Object.entries(/** @type {Record<string,unknown>} */ (state.singleElimComps||{}))){
+    if(Array.isArray(list)&&list.some(r=>r&&replaced.has(r)))comps[div]=list.map(r=>(r&&replaced.get(r))||r);
+  }
+  if(Object.keys(comps).length)ksmSetDraw('drawEntriesUpdated',{singleElimComps:/** @type {any} */ ({...state.singleElimComps,...comps})});
+  for(const list of Object.values(/** @type {Record<string,unknown>} */ (state.teamElimTeams||{}))){
+    if(Array.isArray(list))list.forEach((r,i)=>{const to=r&&replaced.get(r);if(to)list[i]=to});
   }
 }
 /** The row of `kind` at `index` now, or undefined. @param {PersonKind} kind @param {number} index @returns {PersonRow|undefined} */

@@ -86,7 +86,8 @@ test('a unit test per action: each dispatches the lists its engine edit computed
   const a = A.divisionAdded({ divisions: [] }, meta);
   assert.equal(a.type, 'tournament/divisionAdded');
   assert.equal(a.meta.device, 'test');
-  assert.deepEqual(Object.keys(A).filter(k => k.startsWith('division') || k.startsWith('preset')).sort(), [
+  // (The draw's division actions, PR 12a, are tests/store/structure.test.mjs's.)
+  assert.deepEqual(Object.keys(A).filter(k => (k.startsWith('division') && !/^division(Generated|Regenerated|Cleared)$/.test(k)) || k.startsWith('preset')).sort(), [
     'divisionAdded', 'divisionCourtChanged', 'divisionFormatChanged', 'divisionMoved', 'divisionRemoved', 'divisionRenamed', 'divisionsReplaced',
     'presetHidden', 'presetsRestored',
   ]);

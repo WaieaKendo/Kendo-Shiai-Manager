@@ -1,6 +1,7 @@
 // @ts-check
 import {state} from '../app-state.js';
 import {ksmTeamDivision} from '../registration/team-divisions.js';
+import {ksmDrawHolds,ksmEditedPools,ksmSetDraw} from './structure-store.js';
 import * as KSMEngine from '../../engine/index.ts';
 /**
  * Dojo group used to keep dojo-mates apart in pools (Aiea and Waipahu count as one).
@@ -83,7 +84,18 @@ export function divisionCourtMode(div){return state.divisionCourts[div]||'A'}
  * @param {Pool[]} [pools]
  * @returns {Court}
  */
-export function poolCourtFor(div,poolLabel,pools=state.pools[div]||[]){let mode=divisionCourtMode(div);let pool=pools.find(p=>p.label===poolLabel);if(pool&&pool.court)return pool.court;if(mode!=='split')return /** @type {Court} */(mode);let idx=pools.findIndex(p=>p.label===poolLabel),aCount=Math.floor(pools.length/2);let court=/** @type {Court} */(idx>=0&&idx<aCount?'A':'B');if(pool)pool.court=court;return court}
+export function poolCourtFor(div,poolLabel,pools=state.pools[div]||[]){let mode=divisionCourtMode(div);let pool=pools.find(p=>p.label===poolLabel);if(pool&&pool.court)return pool.court;if(mode!=='split')return /** @type {Court} */(mode);let idx=pools.findIndex(p=>p.label===poolLabel),aCount=Math.floor(pools.length/2);let court=/** @type {Court} */(idx>=0&&idx<aCount?'A':'B');if(pool)ksmKeepPoolCourt(div,pool,court);return court}
+/**
+ * The split court a pool was given is kept on the pool (poolCourtFor() reads it first next time; the snapshot carries it).
+ * A pool of the draw is store data (#15 PR 12a): a new pool row in one tournament/drawEntriesUpdated (in both maps when
+ * a team round robin shares it, ksmEditedPools()). Any other pool (the pool editor's copy, a list a caller built) is
+ * written as before; a stale pool of an older draw (frozen in the tests) is left alone, as nothing reads it any more.
+ * @param {string} div @param {Pool} pool @param {Court} court
+ */
+function ksmKeepPoolCourt(div,pool,court){
+  if(ksmDrawHolds(div,pool))ksmSetDraw('drawEntriesUpdated',ksmEditedPools(div,p=>p===pool?{...p,court}:p));
+  else if(!Object.isFrozen(pool))pool.court=court;
+}
 /**
  * @param {string} div
  * @param {RoundName} round

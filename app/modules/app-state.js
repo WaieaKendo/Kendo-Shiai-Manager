@@ -131,6 +131,18 @@ moveToStore('teamDivisions',['tournament','teamDivisions']);
 // row is never edited in place. `grandChampions` is absent (undefined, so not in the snapshot) until a row is added.
 moveToStore('awards',['tournament','awards']);
 moveToStore('grandChampions',['tournament','grandChampions']);
+// The draw structure (PR 12a, docs/STORE.md section 3 item 12): the `tournament` slice's, written only through
+// app/modules/engine/structure-store.js (one tournament/… action per generated division, regenerate, pool edit, …) or a
+// load's replaceState(). The draw is store data: a pool, an entrant or a template row is never edited in place.
+// `singleElimComps` and `byeWinners` are absent (undefined, so not in the snapshot) until Generate Tournament, as before.
+// The bracket nodes and `teamElimTeams` are still plain (PR 12b).
+moveToStore('pools',['tournament','pools']);
+moveToStore('teamPools',['tournament','teamPools']);
+moveToStore('brackets',['tournament','brackets']);
+moveToStore('singleElimComps',['tournament','singleElimComps']);
+moveToStore('byeWinners',['tournament','byeWinners']);
+moveToStore('generated',['tournament','generated']);
+moveToStore('managementRevision',['tournament','managementRevision']);
 /** Whether a store path is a Setup field: a load applies those through applySetupSnapshot(), with the Setup's precedence. */
 const isSettingsPath=(/** @type {string[]} */ p)=>p[0]==='tournament'&&p[1]==='settings';
 /** A tournament closed (ksmResetTournament()): the shown match is the first and every court's pad is empty. */

@@ -3,6 +3,7 @@ import {DIVISION_PRESETS,state} from '../app-state.js';
 import {findNextForCourt,isTeamMatch,renderDivisions} from '../court/court-match-order.js';
 import {matchBelongsToCourt} from '../engine/engine-generation.js';
 import {championshipCourtFor,divisionCourtMode,poolCourtFor} from '../engine/engine-pools.js';
+import {ksmEditedPools,ksmSetDraw} from '../engine/structure-store.js';
 import {ksmRenderSetupDivisions,ksmRenderSetupHeader} from '../react-bridges/setup.js';
 import {ksmRenderGrandChampionSetup} from '../registration/grand-champion.js';
 import {renderReg} from '../registration/registration.js';
@@ -28,7 +29,8 @@ export function toggleDivision(d,on){if(on&&!state.divisions.includes(d)){const 
 export function ksmReassignDivisionCourt(d){
   const all=state.allMatches?.[d];if(!all)return;
   const mode=divisionCourtMode(d);
-  if(mode!=='split')(state.pools[d]||[]).forEach(p=>{delete p.court});
+  // The pools lose their split-court letter (new pool rows: the draw is store data, #15 PR 12a).
+  if(mode!=='split')ksmSetDraw('drawEntriesUpdated',ksmEditedPools(d,p=>{if(!Object.hasOwn(p,'court'))return p;const {court,...rest}=p;return rest}));
   const roundSize={};all.forEach(m=>{if(m&&m.championship&&!m.singleElim)roundSize[m.position]=(roundSize[m.position]||0)+1});
   const elimNodes=state.singleElimNodes?.[d]||[];
   all.forEach(m=>{
