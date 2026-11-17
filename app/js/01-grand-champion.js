@@ -54,10 +54,11 @@ function ksmToggleGrandChampionSource(id,div,on){
   sources.splice(before<0?sources.length:before,0,div);
   return ksmUpdateGrandChampion(id,{sources});
 }
-function ksmMoveGrandChampionSource(id,div,direction){
+// Setup's bracket: two divisions trade places (bracket slots), until the match is drawn.
+function ksmSwapGrandChampionSources(id,a,b){
   const gc=ksmGrandChampion(id);if(!gc)return 'This grand champion match no longer exists.';
-  const i=gc.sources.indexOf(div),j=i+(direction==='up'?-1:1);
-  if(i<0||j<0||j>=gc.sources.length)return null;
+  const i=gc.sources.indexOf(a),j=gc.sources.indexOf(b);
+  if(i<0||j<0||i===j)return null;
   const sources=[...gc.sources];[sources[i],sources[j]]=[sources[j],sources[i]];
   return ksmUpdateGrandChampion(id,{sources});
 }

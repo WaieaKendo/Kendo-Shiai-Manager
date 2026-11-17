@@ -2,7 +2,7 @@
 // GC_MULTIPLE) and, per match, a card with its fields in one row (Name, Format, Court, Awards) and its
 // divisions as chips. Drawn in #grandChampionSetup from what ksmRenderGrandChampionSetup()
 // (app/js/01-grand-champion.js) publishes (ksm:setup-grand-champions). Every control calls the legacy
-// action (ksmAddGrandChampion, ksmUpdateGrandChampion, ksmToggleGrandChampionSource, ksmMoveGrandChampionSource,
+// action (ksmAddGrandChampion, ksmUpdateGrandChampion, ksmToggleGrandChampionSource, ksmSwapGrandChampionSources,
 // ksmMoveGrandChampion, ksmRemoveGrandChampion, ksmOpenGrandChampionWithdraw, ksmDecideGrandChampion),
 // which saves and publishes again. Cards are keyed by their id, so a redraw keeps a name being typed; a
 // refused change is shown in the card (role="alert"). A disabled control says why (title).
@@ -10,8 +10,8 @@
 import { Fragment, useState, useSyncExternalStore } from 'react';
 import {
   EMPTY_GRAND_CHAMPION_SETUP, GC_AWARD_OPTIONS, GC_COURT_OPTIONS, GC_FORMAT_OPTIONS, GC_MULTIPLE, GC_TEXTS,
-  gcMoveLabel, gcRemoveLabel, gcSourceMoveLabel, gcSourceRemoveLabel, grandChampionControls, grandChampionSourceOptions, grandChampionStatus,
-  type GrandChampionRowInput, type GrandChampionSetupInput,
+  gcMoveLabel, gcRemoveLabel, gcSourceRemoveLabel, gcSwapLabel, grandChampionBracket, grandChampionControls, grandChampionSourceOptions, grandChampionStatus,
+  type GcBracketSide, type GrandChampionRowInput, type GrandChampionSetupInput,
 } from './grand-champion-model.ts';
 
 export const SETUP_GRAND_CHAMPIONS_EVENT = 'ksm:setup-grand-champions';
@@ -22,7 +22,7 @@ interface GrandChampionWindow {
   /** Why the change was refused (nothing changed), or null. */
   ksmUpdateGrandChampion?: (id: string, patch: Record<string, string>) => string | null;
   ksmToggleGrandChampionSource?: (id: string, division: string, on: boolean) => string | null;
-  ksmMoveGrandChampionSource?: (id: string, division: string, direction: 'up' | 'down') => string | null;
+  ksmSwapGrandChampionSources?: (id: string, a: string, b: string) => string | null;
   ksmMoveGrandChampion?: (id: string, direction: 'up' | 'down') => unknown;
   ksmRemoveGrandChampion?: (id: string) => unknown;
   ksmOpenGrandChampionWithdraw?: (id: string) => unknown;
@@ -34,6 +34,53 @@ const subscribe = (onChange: () => void) => {
   return () => window.removeEventListener(SETUP_GRAND_CHAMPIONS_EVENT, onChange);
 };
 const snapshot = () => gcWindow().ksmGrandChampionSetupInput ?? EMPTY_GRAND_CHAMPION_SETUP;
+
+/**
+ * The bracket the draw makes from the divisions' order (same template as the draw). Tap a division,
+ * then another, to swap their places (ksmSwapGrandChampionSources); tapping the picked one again
+ * cancels. Fixed (plain text) once drawn or read-only. Each slot shows who plays for it once known.
+ */
+function Bracket({ input, row, editable, drawnTip, run }: { input: GrandChampionSetupInput; row: GrandChampionRowInput; editable: boolean; drawnTip?: string | undefined; run: (r: string | null | undefined) => void }) {
+  const [picked, setPicked] = useState<string | null>(null);
+  const rounds = grandChampionBracket(input, row);
+  if (!rounds) return null;
+  const pick = picked && row.sources.includes(picked) && editable ? picked : null;
+  const nameOf = (key: string) => input.divisions.find(d => d.key === key)?.name ?? key;
+  const hintId = `grand-champion-bracket-hint-${row.id}`;
+  const tap = (key: string) => {
+    if (!pick) { setPicked(key); return; }
+    setPicked(null);
+    if (pick !== key) run(gcWindow().ksmSwapGrandChampionSources?.(row.id, pick, key));
+  };
+  const side = (s: GcBracketSide, i: number) => {
+    if (s.kind === 'winner') return <div key={i} className="setup-gc-slot setup-gc-slot-from">Winner {s.ref}</div>;
+    if (s.kind === 'bye') return <div key={i} className="setup-gc-slot setup-gc-slot-from">{GC_TEXTS.bracketBye}</div>;
+    const body = <><span className="setup-gc-slot-num">{s.index + 1}</span><span className="setup-gc-slot-name">{s.name}</span>{s.player && <span className="setup-gc-slot-player">{s.player}</span>}</>;
+    if (!editable) return <div key={i} className="setup-gc-slot" title={drawnTip} data-testid="grand-champion-slot" data-division={s.key}>{body}</div>;
+    return (
+      <button key={i} type="button" className={`setup-gc-slot${pick === s.key ? ' setup-gc-slot-picked' : ''}`} aria-pressed={pick === s.key}
+        aria-label={gcSwapLabel(s.name, pick ? nameOf(pick) : null)} onClick={() => tap(s.key)} data-testid="grand-champion-slot" data-division={s.key}>{body}</button>
+    );
+  };
+  return (
+    <div className="field setup-gc-bracket-field">
+      <label>{GC_TEXTS.bracketLabel}</label>
+      {editable && <p className="setup-gc-note setup-gc-hint" id={hintId} aria-live="polite">{pick ? GC_TEXTS.bracketPicked(nameOf(pick)) : GC_TEXTS.bracketHint}</p>}
+      <div className="setup-gc-bracket" role="group" aria-label={`${GC_TEXTS.bracketLabel} — ${row.name}`} aria-describedby={editable ? hintId : undefined} data-testid="grand-champion-bracket">
+        {rounds.map(r => (
+          <div key={r.round} className="setup-gc-round">
+            {r.matches.map(m => (
+              <div key={m.id} className="setup-gc-match" data-testid="grand-champion-bracket-match" data-node={m.id}>
+                <div className="setup-gc-match-id">{m.id}</div>
+                {m.sides.map(side)}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function Card({ input, row }: { input: GrandChampionSetupInput; row: GrandChampionRowInput }) {
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +98,6 @@ function Card({ input, row }: { input: GrandChampionSetupInput; row: GrandChampi
   );
   const options = grandChampionSourceOptions(input, row);
   const chosen = options.filter(o => o.checked), open = options.filter(o => !o.checked);
-  const hintId = `grand-champion-hint-${row.id}`;
   return (
     <div className="setup-gc-card" data-testid="grand-champion-row" data-grand-champion-id={row.id}>
       <div className="setup-gc-fields">
@@ -67,21 +113,10 @@ function Card({ input, row }: { input: GrandChampionSetupInput; row: GrandChampi
       </div>
       <div className="field">
         <label>{GC_TEXTS.sourcesLabel}</label>
-        {chosen.length > 2 && <p className="setup-gc-note setup-gc-hint" id={hintId}>{GC_TEXTS.sourcesHint}</p>}
-        <div className="setup-gc-chips" role="group" aria-label={`${GC_TEXTS.sourcesLabel} — ${row.name}`} aria-describedby={chosen.length > 2 ? hintId : undefined}>
-          {chosen.map((o, i) => (
+        <div className="setup-gc-chips" role="group" aria-label={`${GC_TEXTS.sourcesLabel} — ${row.name}`}>
+          {chosen.map(o => (
             <span key={o.key} className={`setup-gc-chip${o.missing ? ' setup-gc-missing' : ''}`} data-testid="grand-champion-chip" data-division={o.key}>
-              {chosen.length > 1 && (
-                <button type="button" className="setup-gc-chip-move" disabled={!can.sources || i === 0}
-                  title={!can.sources ? drawnTip : gcSourceMoveLabel(o.name, row.name, 'up', i === 0)} aria-label={gcSourceMoveLabel(o.name, row.name, 'up', i === 0)}
-                  onClick={() => run(w.ksmMoveGrandChampionSource?.(row.id, o.key, 'up'))} data-testid="grand-champion-source-up">‹</button>
-              )}
               {o.name}{o.missing ? ` ${GC_TEXTS.missing}` : ''}
-              {chosen.length > 1 && (
-                <button type="button" className="setup-gc-chip-move" disabled={!can.sources || i === chosen.length - 1}
-                  title={!can.sources ? drawnTip : gcSourceMoveLabel(o.name, row.name, 'down', i === chosen.length - 1)} aria-label={gcSourceMoveLabel(o.name, row.name, 'down', i === chosen.length - 1)}
-                  onClick={() => run(w.ksmMoveGrandChampionSource?.(row.id, o.key, 'down'))} data-testid="grand-champion-source-down">›</button>
-              )}
               <button type="button" disabled={!can.sources} title={!can.sources ? drawnTip : undefined} aria-label={gcSourceRemoveLabel(o.name, row.name)}
                 onClick={() => run(w.ksmToggleGrandChampionSource?.(row.id, o.key, false))} data-testid="grand-champion-source-remove">×</button>
             </span>
@@ -95,6 +130,7 @@ function Card({ input, row }: { input: GrandChampionSetupInput; row: GrandChampi
           )}
         </div>
       </div>
+      <Bracket input={input} row={row} editable={can.sources} drawnTip={drawnTip} run={run} />
       {GC_MULTIPLE && (
         <span className="setup-division-moves">
           <button type="button" className="setup-move-btn" disabled={input.readOnly || !row.move.up} aria-label={gcMoveLabel(row.name, 'up')} title={gcMoveLabel(row.name, 'up')}

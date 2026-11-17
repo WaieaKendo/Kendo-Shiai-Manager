@@ -3,6 +3,7 @@
 // renderDivisionSetup()) as a GrandChampionSetupInput (ksm:setup-grand-champions). The legacy code
 // decides everything (the rows, what is locked, who plays); this module turns it into what a row
 // shows. Rules: app/engine/grand-champion.ts.
+import { teamBracketNodesForCount } from '../../engine/teams.ts';
 
 export interface GrandChampionEntrantView {
   name: string;
@@ -66,7 +67,10 @@ export const GC_TEXTS = {
   disabled: 'Disabled',
   enabledDrawnTip: 'The grand champion match is drawn: it can no longer be switched off.',
   sourcesLabel: 'Divisions',
-  sourcesHint: 'Bracket order: 1st plays 2nd, 3rd plays 4th, and so on.',
+  bracketLabel: 'Bracket',
+  bracketHint: 'Tap a division, then another to swap their places.',
+  bracketPicked: (name: string) => `Now tap the division to swap with ${name}.`,
+  bracketBye: 'Bye',
   sourceAdd: '＋ Add division',
   drawnTip: 'Fixed: this grand champion match is drawn (its divisions finished). Its name and awards can still change.',
   formatTwoTip: 'Two divisions always play one match: the format matters from three.',
@@ -128,6 +132,37 @@ export function grandChampionStatus(row: GrandChampionRowInput): { tone: 'info' 
 export const gcMoveLabel = (name: string, direction: 'up' | 'down') => `Move ${direction} — ${name}`;
 export const gcRemoveLabel = (name: string) => `Remove — ${name}`;
 export const gcSourceRemoveLabel = (division: string, name: string) => `Remove ${division} — ${name}`;
-/** A source's ‹ / › label; at the end it cannot move past, it says so. */
-export const gcSourceMoveLabel = (division: string, name: string, direction: 'up' | 'down', atEnd = false) =>
-  atEnd ? `${division} is already ${direction === 'up' ? 'first' : 'last'} — ${name}` : `Move ${division} ${direction === 'up' ? 'earlier' : 'later'} — ${name}`;
+export const gcSwapLabel = (division: string, picked: string | null) => picked ? (picked === division ? `${division}: picked (tap again to cancel)` : `Swap ${division} with ${picked}`) : `${division}: pick to swap its place`;
+
+export type GcBracketSide =
+  | { kind: 'source'; index: number; key: string; name: string; player: string | null }
+  | { kind: 'winner'; ref: string }
+  | { kind: 'bye' };
+export interface GcBracketMatch { id: string; sides: [GcBracketSide, GcBracketSide] }
+export interface GcBracketRound { round: string; matches: GcBracketMatch[] }
+
+/**
+ * The bracket the draw will make from the sources in their order (the same template as the draw:
+ * entrant n is the nth source), by round; each source side names its division and, once known, who
+ * plays for it. Null when there is no bracket to show: a pool of winners, or fewer than three sources.
+ */
+export function grandChampionBracket(input: Pick<GrandChampionSetupInput, 'divisions'>, row: Pick<GrandChampionRowInput, 'sources' | 'format' | 'entrants'>): GcBracketRound[] | null {
+  if (row.sources.length < 3 || row.format !== 'Single Elimination') return null;
+  const nodes = teamBracketNodesForCount(row.sources.length);
+  if (!nodes?.length) return null;
+  const names = new Map(input.divisions.map(d => [d.key, d.name]));
+  const side = (s: { team?: number | undefined; ref?: string | null | undefined } | null): GcBracketSide => {
+    if (s?.team) {
+      const index = s.team - 1, key = row.sources[index]!;
+      return { kind: 'source', index, key, name: names.get(key) ?? key, player: row.entrants[index]?.name ?? null };
+    }
+    return s?.ref ? { kind: 'winner', ref: s.ref } : { kind: 'bye' };
+  };
+  const rounds: GcBracketRound[] = [];
+  for (const n of nodes) {
+    let r = rounds.find(x => x.round === n.round);
+    if (!r) rounds.push(r = { round: n.round, matches: [] });
+    r.matches.push({ id: n.id, sides: [side(n.left), side(n.right)] });
+  }
+  return rounds;
+}

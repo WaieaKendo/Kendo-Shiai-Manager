@@ -76,13 +76,7 @@ def local_cases(browser):
     page.wait_for_function("KSMTest.grandChampions()[0]?.sources.length===2")
     chips = lambda: page.eval_on_selector_all(sel('grand-champion-chip'), 'els=>els.map(e=>e.dataset.division)')
     assert chips() == ['Open', 'Women'], chips()
-    # The chips are the bracket order: ‹ › move a division (the first ‹ and the last › are off).
-    assert page.locator(f'{sel("grand-champion-chip")}[data-division="Open"] {sel("grand-champion-source-up")}').is_disabled()
-    page.locator(f'{sel("grand-champion-chip")}[data-division="Open"] {sel("grand-champion-source-down")}').click()
-    page.wait_for_function("KSMTest.grandChampions()[0]?.sources[0]==='Women'")
-    assert chips() == ['Women', 'Open'], chips()
-    page.locator(f'{sel("grand-champion-chip")}[data-division="Open"] {sel("grand-champion-source-up")}').click()
-    page.wait_for_function("KSMTest.grandChampions()[0]?.sources[0]==='Open'")
+    assert not page.locator(sel('grand-champion-bracket')).count(), 'two divisions: one match, no bracket to arrange'
     # A chip's × takes the division off again.
     page.locator(f'{sel("grand-champion-chip")}[data-division="Women"] {sel("grand-champion-source-remove")}').click()
     page.wait_for_function("KSMTest.grandChampions()[0]?.sources.length===1")
@@ -417,15 +411,57 @@ def merge_cases(browser, base):
     a.close(); b.close()
 
 
+def bracket_cases(browser):
+    """Setup's bracket: the draw's template in the divisions' order; tap two divisions to swap them; the draw follows."""
+    problems = []
+    page = browser.new_page(viewport={'width': 1280, 'height': 900})
+    app = KsmApp.local(page, problems=problems)
+    app.expect_dialog('Create Staff password')
+    app.configure(DIVISIONS)
+    page.evaluate('KSMTest.app.state.generated=false;KSMTest.app.renderAll()')
+    app.nav('setup')
+    page.select_option(sel('grand-champion-enabled'), 'Enabled')
+    page.wait_for_selector(sel('grand-champion-row'))
+    for div in ('Open', 'Women', 'Masters'):
+        page.select_option(sel('grand-champion-source-add'), div)
+    page.wait_for_selector(sel('grand-champion-bracket'))
+    slot = lambda d: page.locator(f'{sel("grand-champion-slot")}[data-division="{d}"]')
+    matches = lambda: page.eval_on_selector_all(sel('grand-champion-bracket-match'), 'els=>els.map(e=>e.dataset.node+": "+[...e.querySelectorAll(".setup-gc-slot")].map(s=>s.querySelector(".setup-gc-slot-name")?.textContent||s.textContent).join(" vs "))')
+    assert matches() == ['SF1: Open vs Women', 'F: Winner SF1 vs Masters'], matches()
+    # Tap Masters, then Open: they trade places (the hint follows the pick); tapping the picked one again cancels.
+    slot('Masters').click()
+    assert slot('Masters').get_attribute('aria-pressed') == 'true'
+    assert 'swap with Masters' in page.locator('.setup-gc-hint').inner_text()
+    slot('Masters').click()
+    assert slot('Masters').get_attribute('aria-pressed') == 'false'
+    slot('Masters').click(); slot('Open').click()
+    page.wait_for_function("KSMTest.grandChampions()[0]?.sources.join()==='Masters,Women,Open'")
+    assert matches() == ['SF1: Masters vs Women', 'F: Winner SF1 vs Open'], matches()
+    # The draw follows: Masters' and Women's winners meet first, Open's winner waits in the Final.
+    page.evaluate('KSMTest.app.generatePools({validated:true})')
+    gc = page.evaluate('KSMTest.grandChampions()[0].id')
+    for court in ('A', 'A', 'B'):
+        play_court(app, court, [['W', 'M']])
+    page.wait_for_function("id=>(KSMTest.app.state.allMatches[id]||[]).length>0", arg=gc)
+    comps = page.evaluate("id=>KSMTest.app.state.singleElimComps[id].map(c=>c.name)", gc)
+    winners = [page.evaluate(f"KSMTest.finalState()['{d}'].placements[0].name") for d in ('Masters', 'Women', 'Open')]
+    assert comps == winners, (comps, winners)
+    app.nav('setup')
+    assert page.locator(sel('grand-champion-slot')).first.evaluate('e=>e.tagName') == 'DIV', 'drawn: the bracket is fixed'
+    assert not problems, problems
+    page.close()
+
+
 def main():
     with sync_playwright() as p:
         browser = launch_chromium(p)
         local_cases(browser)
+        bracket_cases(browser)
         pool_and_fusen_cases(browser)
         with local_worker() as base:
             merge_cases(browser, base)
         browser.close()
-    print('PASS grand champion: setup, fill-in, court queue, awards on Results/TV/print, withdrawals, corrections before/after start, pool, two-device race')
+    print('PASS grand champion: setup, bracket order and swaps, fill-in, court queue, awards on Results/TV/print, withdrawals, corrections before/after start, pool, two-device race')
 
 
 if __name__ == '__main__':

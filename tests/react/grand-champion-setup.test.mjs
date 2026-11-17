@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { gcSourceMoveLabel, grandChampionControls, grandChampionSourceOptions, grandChampionStatus } from '../../app/react/setup/grand-champion-model.ts';
+import { gcSwapLabel, grandChampionBracket, grandChampionControls, grandChampionSourceOptions, grandChampionStatus } from '../../app/react/setup/grand-champion-model.ts';
 
 const row = (over = {}) => ({
   id: 'gc:1', name: 'Grand Champion', sources: ['Open', 'Women'], format: 'Single Elimination', court: 'B', awardMode: 'top1',
@@ -38,9 +38,25 @@ test('status: error, decision, champion, duplicate, playing, waiting', () => {
   assert.equal(grandChampionStatus(row({ waiting: ['Women'], entrants: [{ name: 'Aki', via: 'winner', source: 'Open' }, null] })).text, 'Waiting for Women (so far: Aki from Open)');
 });
 
-test('source move labels: earlier / later, and at the end that it is already first / last', () => {
-  assert.equal(gcSourceMoveLabel('Open', 'Grand Champion', 'up'), 'Move Open earlier — Grand Champion');
-  assert.equal(gcSourceMoveLabel('Open', 'Grand Champion', 'down'), 'Move Open later — Grand Champion');
-  assert.equal(gcSourceMoveLabel('Open', 'Grand Champion', 'up', true), 'Open is already first — Grand Champion');
-  assert.equal(gcSourceMoveLabel('Women', 'Grand Champion', 'down', true), 'Women is already last — Grand Champion');
+test('bracket: the draw\'s template filled with the divisions in order (7: the 7th waits for QF3), who plays once known; none for a pool or under three', () => {
+  const keys = ['Yonenbu', 'Shonenbu', 'Masters', '1-3 Dan', '4-Dan', 'Seinenbu', 'Womens'];
+  const divisions = keys.map(k => ({ key: k, name: k === 'Womens' ? "Women's" : k }));
+  const entrants = keys.map((k, i) => i === 0 ? { name: 'Aki', via: 'winner', source: k } : null);
+  const rounds = grandChampionBracket({ divisions }, row({ sources: keys, entrants }));
+  assert.deepEqual(rounds.map(r => [r.round, r.matches.map(m => m.id)]), [['Quarterfinal', ['QF1', 'QF2', 'QF3']], ['Semifinal', ['SF1', 'SF2']], ['Final', ['F']]]);
+  const label = s => s.kind === 'source' ? `${s.index + 1}:${s.name}${s.player ? `(${s.player})` : ''}` : s.kind === 'winner' ? `W ${s.ref}` : 'bye';
+  assert.deepEqual(rounds.flatMap(r => r.matches.map(m => m.sides.map(label).join(' vs '))), [
+    '1:Yonenbu(Aki) vs 2:Shonenbu', '3:Masters vs 4:1-3 Dan', '5:4-Dan vs 6:Seinenbu', 'W QF1 vs W QF2', "W QF3 vs 7:Women's", 'W SF1 vs W SF2',
+  ]);
+  // Five: the template's bye shows.
+  const five = grandChampionBracket({ divisions }, row({ sources: keys.slice(0, 5), entrants: [] }));
+  assert.deepEqual(five[1].matches.map(m => m.sides.map(label).join(' vs ')), ['W QF1 vs bye', 'W QF2 vs 5:4-Dan']);
+  assert.equal(grandChampionBracket({ divisions }, row({ sources: keys, format: 'Round Robin' })), null, 'a pool of winners has no bracket');
+  assert.equal(grandChampionBracket({ divisions }, row()), null, 'two divisions: one match, nothing to arrange');
+});
+
+test('swap labels: pick, swap with the picked one, cancel', () => {
+  assert.equal(gcSwapLabel('Masters', null), 'Masters: pick to swap its place');
+  assert.equal(gcSwapLabel('Womens', 'Masters'), 'Swap Womens with Masters');
+  assert.equal(gcSwapLabel('Masters', 'Masters'), 'Masters: picked (tap again to cancel)');
 });
