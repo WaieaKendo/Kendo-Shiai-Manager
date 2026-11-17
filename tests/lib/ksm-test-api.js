@@ -375,6 +375,7 @@ window.KSMTest = {
   grandChampions() { return JSON.parse(JSON.stringify(ksmGrandChampions())); },
   addGrandChampion(sources, patch = {}) { const id = ksmAddGrandChampion(); if (id) ksmUpdateGrandChampion(id, {sources, ...patch}); return id; },
   updateGrandChampion(id, patch) { return ksmUpdateGrandChampion(id, patch); },
+  swapGrandChampionSources(id, a, b) { return ksmSwapGrandChampionSources(id, a, b); },
   removeGrandChampion(id) { return ksmRemoveGrandChampion(id); },
   grandChampionQuestion() { const c = ksmShellDialogs?.cloud; return c?.body?.kind === 'grand-champion' ? {title: c.title, message: c.body.message, choices: c.body.choices.map(x => x.id)} : null; },
   configure(entries) {

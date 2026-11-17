@@ -443,7 +443,7 @@ def bracket_cases(browser):
     slot('Women').click()
     assert slot('Women').get_attribute('aria-pressed') == 'true'
     gc_id = page.evaluate('KSMTest.grandChampions()[0].id')
-    page.evaluate("id=>ksmSwapGrandChampionSources(id,'Masters','Open')", gc_id)
+    page.evaluate("id=>KSMTest.swapGrandChampionSources(id,'Masters','Open')", gc_id)
     page.wait_for_function("KSMTest.grandChampions()[0]?.sources.join()==='Open,Women,Masters'")
     page.wait_for_function("document.querySelector('[data-testid=grand-champion-slot][data-division=Women]').getAttribute('aria-pressed')==='false'")
     slot('Open').click(); slot('Masters').click()
