@@ -2,7 +2,7 @@
 // GC_MULTIPLE) and, per match, a card with its fields in one row (Name, Format, Court, Awards) and its
 // divisions as chips. Drawn in #grandChampionSetup from what ksmRenderGrandChampionSetup()
 // (app/js/01-grand-champion.js) publishes (ksm:setup-grand-champions). Every control calls the legacy
-// action (ksmAddGrandChampion, ksmUpdateGrandChampion, ksmToggleGrandChampionSource,
+// action (ksmAddGrandChampion, ksmUpdateGrandChampion, ksmToggleGrandChampionSource, ksmMoveGrandChampionSource,
 // ksmMoveGrandChampion, ksmRemoveGrandChampion, ksmOpenGrandChampionWithdraw, ksmDecideGrandChampion),
 // which saves and publishes again. Cards are keyed by their id, so a redraw keeps a name being typed; a
 // refused change is shown in the card (role="alert"). A disabled control says why (title).
@@ -10,7 +10,7 @@
 import { Fragment, useState, useSyncExternalStore } from 'react';
 import {
   EMPTY_GRAND_CHAMPION_SETUP, GC_AWARD_OPTIONS, GC_COURT_OPTIONS, GC_FORMAT_OPTIONS, GC_MULTIPLE, GC_TEXTS,
-  gcMoveLabel, gcRemoveLabel, gcSourceRemoveLabel, grandChampionControls, grandChampionSourceOptions, grandChampionStatus,
+  gcMoveLabel, gcRemoveLabel, gcSourceMoveLabel, gcSourceRemoveLabel, grandChampionControls, grandChampionSourceOptions, grandChampionStatus,
   type GrandChampionRowInput, type GrandChampionSetupInput,
 } from './grand-champion-model.ts';
 
@@ -22,6 +22,7 @@ interface GrandChampionWindow {
   /** Why the change was refused (nothing changed), or null. */
   ksmUpdateGrandChampion?: (id: string, patch: Record<string, string>) => string | null;
   ksmToggleGrandChampionSource?: (id: string, division: string, on: boolean) => string | null;
+  ksmMoveGrandChampionSource?: (id: string, division: string, direction: 'up' | 'down') => string | null;
   ksmMoveGrandChampion?: (id: string, direction: 'up' | 'down') => unknown;
   ksmRemoveGrandChampion?: (id: string) => unknown;
   ksmOpenGrandChampionWithdraw?: (id: string) => unknown;
@@ -65,10 +66,21 @@ function Card({ input, row }: { input: GrandChampionSetupInput; row: GrandChampi
       </div>
       <div className="field">
         <label>{GC_TEXTS.sourcesLabel}</label>
+        {chosen.length > 2 && <p className="setup-gc-note setup-gc-hint">{GC_TEXTS.sourcesHint}</p>}
         <div className="setup-gc-chips" role="group" aria-label={`${GC_TEXTS.sourcesLabel} — ${row.name}`}>
-          {chosen.map(o => (
+          {chosen.map((o, i) => (
             <span key={o.key} className={`setup-gc-chip${o.missing ? ' setup-gc-missing' : ''}`} data-testid="grand-champion-chip" data-division={o.key}>
+              {chosen.length > 1 && (
+                <button type="button" className="setup-gc-chip-move" disabled={!can.sources || i === 0}
+                  title={!can.sources ? drawnTip : gcSourceMoveLabel(o.name, row.name, 'up')} aria-label={gcSourceMoveLabel(o.name, row.name, 'up')}
+                  onClick={() => run(w.ksmMoveGrandChampionSource?.(row.id, o.key, 'up'))} data-testid="grand-champion-source-up">‹</button>
+              )}
               {o.name}{o.missing ? ` ${GC_TEXTS.missing}` : ''}
+              {chosen.length > 1 && (
+                <button type="button" className="setup-gc-chip-move" disabled={!can.sources || i === chosen.length - 1}
+                  title={!can.sources ? drawnTip : gcSourceMoveLabel(o.name, row.name, 'down')} aria-label={gcSourceMoveLabel(o.name, row.name, 'down')}
+                  onClick={() => run(w.ksmMoveGrandChampionSource?.(row.id, o.key, 'down'))} data-testid="grand-champion-source-down">›</button>
+              )}
               <button type="button" disabled={!can.sources} title={!can.sources ? drawnTip : undefined} aria-label={gcSourceRemoveLabel(o.name, row.name)}
                 onClick={() => run(w.ksmToggleGrandChampionSource?.(row.id, o.key, false))} data-testid="grand-champion-source-remove">×</button>
             </span>

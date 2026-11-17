@@ -14,7 +14,7 @@ export interface GrandChampionEntrantView {
 export interface GrandChampionRowInput {
   id: string;
   name: string;
-  /** Source division keys, in Setup's running order. */
+  /** Source division keys, in bracket order (added in Setup's running order, then reordered by the director). */
   sources: string[];
   format: string;
   court: string;
@@ -66,6 +66,7 @@ export const GC_TEXTS = {
   disabled: 'Disabled',
   enabledDrawnTip: 'The grand champion match is drawn: it can no longer be switched off.',
   sourcesLabel: 'Divisions',
+  sourcesHint: 'Bracket order: 1st plays 2nd, 3rd plays 4th, and so on.',
   sourceAdd: '＋ Add division',
   drawnTip: 'Fixed: this grand champion match is drawn (its divisions finished). Its name and awards can still change.',
   formatTwoTip: 'Two divisions always play one match: the format matters from three.',
@@ -97,12 +98,12 @@ export function grandChampionControls(input: Pick<GrandChampionSetupInput, 'read
   return { name: edit, sources: structure, format: structure && row.sources.length > 2, court: structure, awards: edit, remove: structure };
 }
 
-/** The source checkboxes: every division in use, then any chosen source that is not (flagged). */
+/** The source options: the chosen sources in bracket order (one not in use is flagged), then the other divisions in use. */
 export function grandChampionSourceOptions(input: Pick<GrandChampionSetupInput, 'divisions'>, row: Pick<GrandChampionRowInput, 'sources'>): { key: string; name: string; checked: boolean; missing: boolean }[] {
-  const known = new Set(input.divisions.map(d => d.key));
+  const names = new Map(input.divisions.map(d => [d.key, d.name]));
   return [
-    ...input.divisions.map(d => ({ key: d.key, name: d.name, checked: row.sources.includes(d.key), missing: false })),
-    ...row.sources.filter(s => !known.has(s)).map(s => ({ key: s, name: s, checked: true, missing: true })),
+    ...row.sources.map(s => ({ key: s, name: names.get(s) ?? s, checked: true, missing: !names.has(s) })),
+    ...input.divisions.filter(d => !row.sources.includes(d.key)).map(d => ({ key: d.key, name: d.name, checked: false, missing: false })),
   ];
 }
 
@@ -127,3 +128,4 @@ export function grandChampionStatus(row: GrandChampionRowInput): { tone: 'info' 
 export const gcMoveLabel = (name: string, direction: 'up' | 'down') => `Move ${direction} — ${name}`;
 export const gcRemoveLabel = (name: string) => `Remove — ${name}`;
 export const gcSourceRemoveLabel = (division: string, name: string) => `Remove ${division} — ${name}`;
+export const gcSourceMoveLabel = (division: string, name: string, direction: 'up' | 'down') => `Move ${division} ${direction === 'up' ? 'earlier' : 'later'} — ${name}`;

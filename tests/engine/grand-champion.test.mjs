@@ -183,3 +183,25 @@ test('PR review: two devices withdrawing different winners keep both stand-ins',
   assert.equal(clash[0].standIns.Open.kind, 'fusen-sho'); assert.deepEqual(conflicts, ['Grand champion']);
   assert.deepEqual(mergeGrandChampionRecords(mergeTeamDivisionRecords, base, base, base, 'x', []), base, 'rows without stand-ins unchanged');
 });
+
+test('a grand champion bracket follows its sources (1st vs 2nd, 3rd vs 4th, the 7th waits for the 3rd match), whoever won', () => {
+  const sources = ['Yonenbu', 'Shonenbu', 'Masters', '1-3 Dan', '4-Dan', 'Seinenbu', 'Womens'];
+  const bracket = names => {
+    const entrants = names.map((name, i) => ({ name, dojo: ['Waiea', 'Aiea', 'Waipahu', 'Waiea'][i % 4] }));
+    const plan = generateDivision({ division: 'gc:1', competitors: grandChampionCompetitors('gc:1', entrants), teams: [], divisionType: 'Single Elimination', courtMode: 'A', settings: readSettings({}), keepOrder: true });
+    const matches = plan.matches.map(m => ({ ...m }));
+    syncIndividualSingleElim(plan.singleElimNodes, matches, plan.singleElimComps, 'A').updates.forEach(u => Object.assign(matches[u.index], u.set));
+    const nodes = Object.fromEntries(plan.singleElimNodes.map(n => [n.id, n]));
+    return { comps: plan.singleElimComps.map(c => c.name), qf: ['QF1', 'QF2', 'QF3'].map(id => matches.find(m => m.elimNodeId === id)).map(m => [m.white, m.red].sort()), sf2: nodes.SF2 };
+  };
+  // Winners named so that a name sort would scramble them; two runs with different winners.
+  for (const winners of [['Zed', 'Yuki', 'Xan', 'Wes', 'Vic', 'Uma', 'Tia'], ['Ann', 'Mia', 'Bo', 'Kai', 'Cy', 'Lu', 'Di']]) {
+    const b = bracket(winners);
+    assert.deepEqual(b.comps, winners, 'slots in source order');
+    assert.deepEqual(b.qf, [[winners[0], winners[1]], [winners[2], winners[3]], [winners[4], winners[5]]].map(p => p.sort()));
+    assert.deepEqual([b.sf2.left, b.sf2.right], [{ ref: 'QF3' }, { team: 7 }], `${sources[6]} plays the winner of the 3rd match`);
+  }
+  // Without keepOrder (any other division) the usual placement still applies.
+  const usual = generateDivision({ division: 'Open', competitors: ['Zed', 'Amy', 'Moe'].map(name => ({ name, dojo: 'D', division: 'Open', seed: '', status: 'Checked' })), teams: [], divisionType: 'Single Elimination', courtMode: 'A', settings: readSettings({}) });
+  assert.notDeepEqual(usual.singleElimComps.map(c => c.name), ['Zed', 'Amy', 'Moe'], 'placed by name, not registration order');
+});

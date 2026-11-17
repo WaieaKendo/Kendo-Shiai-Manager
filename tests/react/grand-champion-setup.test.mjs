@@ -17,13 +17,15 @@ test('controls: a drawn row locks its structure, name and awards stay; one not d
   assert.ok(Object.values(grandChampionControls({ locked: false, readOnly: true }, row())).every(v => v === false));
 });
 
-test('source options: the divisions in use, then a chosen one no longer in use (flagged)', () => {
-  const options = grandChampionSourceOptions({ divisions: [{ key: 'Open', name: 'Open' }, { key: 'Masters', name: 'Masters' }] }, row());
-  assert.deepEqual(options, [
+test('source options: the chosen sources in bracket order (one no longer in use flagged), then the other divisions in use', () => {
+  const divisions = [{ key: 'Open', name: 'Open' }, { key: 'Masters', name: 'Masters' }, { key: 'Women', name: 'Women' }];
+  assert.deepEqual(grandChampionSourceOptions({ divisions: divisions.slice(0, 2) }, row()), [
     { key: 'Open', name: 'Open', checked: true, missing: false },
-    { key: 'Masters', name: 'Masters', checked: false, missing: false },
     { key: 'Women', name: 'Women', checked: true, missing: true },
+    { key: 'Masters', name: 'Masters', checked: false, missing: false },
   ]);
+  // Reordered by the director: the chips follow the sources, not the running order.
+  assert.deepEqual(grandChampionSourceOptions({ divisions }, row({ sources: ['Women', 'Open'] })).map(o => [o.key, o.checked]), [['Women', true], ['Open', true], ['Masters', false]]);
 });
 
 test('status: error, decision, champion, duplicate, playing, waiting', () => {
