@@ -739,15 +739,26 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
       (`arr.indexOf(m)` then `splice`, court-context-and-pool-editing); `state.matches===state.allMatches[div]` in
       `applyCourtHistoryEntry()` (the alias test); `state.matches[state.current]` held across `performCourtAction()` in
       `nextMatch()` (`m` is read before and written inside); every `cs.index` / `state.current` is an index into a list (6
-      reads of `list[cs.index]`). No `Map` / `Set` / `WeakMap` keyed by a match, no `includes(m)`, no `===` between matches.
-      The sync code already compares by `matchSyncIdentity()`.
+      reads of `list[cs.index]`). Also (found in #201's review and a re-grep): Director Progress
+      (`ordered.indexOf(current)`, setup/director-progress.js:99); `canonicalSingleElimMatch()` (`m !== kept`, then
+      `arr.indexOf(m)` + `splice`, engine/bracket-helpers.ts:39); the court island's queue (react/features/court/publish.ts:
+      `all.indexOf(current)` at 341 and `m === current` / `m !== current` at 321, 335, 342, 352); the overlay's upcoming
+      bouts (`all.indexOf(current)`, react/features/overlay/court-match.ts:242); the TV's active bout (`x === m`,
+      react/features/tv/publish.ts:54). So `===` / `!==` between matches **is** used. No `Map` / `Set` / `WeakMap` keyed
+      by a match and no `includes(m)`. The sync code already compares by `matchSyncIdentity()`.
     - Writes through an alias: about 22 field writes on a match held in a variable (`m.done`, `m.wp` …: Next Match,
       `syncActiveScoreToMatch()`, the grand champion's Fusen-sho, the division court's `m.court`, the results' name fix),
       2 `Object.assign(match, …)` (result integrity), 12 list mutations (`push` / `splice` / `sort` on a division's list),
       22 assignments of `state.allMatches[div]`, the engine syncs (`single-elim.ts`, `teams.ts`) writing plan values into
       matches, and `replayCourtMatchOps(state, …)` / `applyHistoryPatch()` walking paths on the live state.
+    - A brief half state, unchanged from `next/4.1`: in the grand champion's clear and draw
+      (registration/grand-champion.js:150-157) and Generate Tournament's `drawReset` (engine/engine-generation.js:71), a
+      `tournament/…` notification briefly shows `courtState` on a division whose `allMatches` entry was just deleted; the
+      re-resolve (`court/pointersResolved`) follows in the same synchronous step. Nothing reads it today (islands render
+      after the step), but the no-half-state check in `tests/court-pointers-store-test.py` only looks at `court/*`
+      notifications: **before 13c adds store subscribers, extend it to every notification** (and fix or allow these).
     - Approach: first, as its own PR, **ids instead of identity** (no store change): give every match a stable id
-      (`matchSyncIdentity()` already exists), switch the five `indexOf(match)` sites and `nextMatch()`'s held `m` to look the
+      (`matchSyncIdentity()` already exists), switch the `indexOf(match)` and `===` sites above and `nextMatch()`'s held `m` to look the
       match up again by id after each write, and keep `state.matches` derived. Then move `allMatches` with a reducer per
       court action that runs the existing engine/app logic on an Immer draft (`produceWithPatches`, so the `patch-v1` entry
       comes from the patches), converting the alias writes file by file behind the strict browser tests.
