@@ -145,5 +145,10 @@ test('matchIndexIn: the same object first, else the sync identity; a shared iden
   assert.equal(matchIndexIn(null, a), -1);
   assert.equal(matchIndexIn(copies, { not: 'a match' }), -1);
   assert.equal(findMatchAgain(copies, list[1]), copies[1]);
+  // A name changed since it was held (the identity misses): the held index when that entry is the same slot.
+  const renamed = { ...a, white: 'A2' };
+  assert.equal(matchIndexIn(copies, renamed, 0), 0);
+  assert.equal(matchIndexIn(copies, renamed, 1), -1, 'another slot at the hint');
+  assert.equal(matchIndexIn(copies, renamed), -1);
   assert.equal(findMatchAgain(copies, pool({ white: 'Z', red: 'Q' })), null);
 });

@@ -6,24 +6,38 @@ is the guard 13c relies on. Two offline pages run the same scripted tournaments 
 
   - control: as the app runs today;
   - copied:  every Match Object in `allMatches` is replaced by a structural copy (same values, a new object) at every
-             store notification (any dispatch: a court pointer moved, a court action recorded, an Undo...) and after
-             every step. That is harsher than 13c (where only the matches a write changes get new objects).
+             store notification (any dispatch), every app event (`window.dispatchEvent`: the render signals), every
+             assignment of a division's list (`allMatches[div] = ...`, through a Proxy), just before a court action's
+             body and right after Next Match's result write (two test-only hooks in court-scoring-and-history.js,
+             `window.KSMTestBeforeCourtAction`, absent in the app), and after every step. Those are where 13c dispatches;
+             it is harsher than 13c (where only the matches a write changes get new objects).
 
 After every step both pages must show and score the same bouts: the saved state (every match's points and result, the
 court pointers, the Undo/Redo lists), this device's view (division, index, live score), the court screen's inputs
 (scoreboard, queue, context, header, actions), Live Scores, the TV (its view model for both courts and the TV island's
-input), and Director Progress (both courts and the tournament). Steps: points, hansoku, Fusen-gachi, Undo/Redo, Next
-Match through pools with pool tiebreaks, a split single elimination, round robins on both courts, a 3-person team
-bracket, a team round robin with drawn bouts (the representative playoff, its representative picked) and kachinuki
-(round robin and single elimination). On next/4.1 (before this PR) the copied page diverges (`nextMatch()` and
-`setRepresentative()` wrote through a match read before the action).
+input), and Director Progress (both courts and the tournament). The overlay (its own bundle) is checked in Node on each
+step's saved state (tests/lib/overlay-copy-check.mjs: its selection with every read of a match a new object). Steps:
+points, hansoku, Fusen-gachi, Undo/Redo, Next Match through pools with pool tiebreaks, a split single elimination, round
+robins on both courts, a 3-person team bracket, a team round robin with drawn bouts (the representative playoff, its
+representative picked) and kachinuki (round robin and single elimination).
+
+What it catches (each converted site reverted alone; the PR lists them): nextMatch()'s and setRepresentative()'s
+look-up inside the action, the kachinuki insertion, tvUpcomingMatches(), ksmTeamSheet(), the split single elimination's
+queue and the overlay's upcoming bouts. On next/4.1 (the code before) it fails in four of those: the TV's Upcoming
+Matches, the overlay's upcoming bouts and the split single elimination's queue list the bout being played, and Live
+Scores' team sheet loses its NOW row (the hooks are new, so next/4.1's nextMatch() never sees a copy). The other sites compare objects from one read
+with no write between, where a new object per write cannot separate them; they are converted so 13c need not check.
+`--all` lists every divergence instead of stopping at the first.
 
 It also counts, in the copied page, divisions holding two matches with the same `matchSyncIdentity()` (printed, not an
 error): a kachinuki pairing's bouts share one, which is why KSMEngine.matchIndexIn() breaks a tie by the held index.
 """
 import json
+import subprocess
 import sys
+import tempfile
 import time
+from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 from ksm_browser import launch_chromium, load_app
@@ -55,6 +69,9 @@ COPY_HOOK = r"""() => {
   };
   wrap();
   window.KSMStore.subscribe(() => { wrap(); copyAll(); });
+  // Just before a court action's body and right after Next Match's result write (two test-only
+  // hooks, where 13c dispatches): code that read a match before and writes or compares it after must look it up again.
+  window.KSMTestBeforeCourtAction = copyAll;
   const dispatch = window.dispatchEvent;
   window.dispatchEvent = function (event) { copyAll(); return dispatch.call(this, event); };
 }"""
@@ -199,6 +216,7 @@ def main():
     global checks
     started = time.time()
     duplicates = set()
+    overlay_states = []
     with sync_playwright() as p:
         browser = launch_chromium(p)
         for scenario, steps in scenarios():
@@ -224,18 +242,39 @@ def main():
                                              f'  copied  ...{got[max(0, at - 300):at + 300]}\n  control ...{want[max(0, at - 300):at + 300]}')
                     checks += 1
                 duplicates.update(copied.evaluate(DUPLICATES))
+                overlay_states.append({'label': f'{scenario}: {name}', 'state': copied.evaluate('() => KSMTest.app.tournamentPayload().state')})
             copies = copied.evaluate('() => window.__matchCopies')
             assert copies > len(steps), f'{scenario}: the matches were copied ({copies} times)'
             checks += 1
             if scenario == 'team round robin':
                 picked = copied.evaluate('() => window.__representativesPicked || 0')
-                assert picked > 0, f'{scenario}: a representative was picked ({picked})'
+                if picked == 0 and ALL:
+                    diverged.append(f'{scenario}: no representative was picked (no playoff reached in the copied page)')
+                else:
+                    assert picked > 0, f'{scenario}: a representative was picked ({picked})'
                 checks += 1
             played = control.evaluate('() => Object.values(KSMTest.app.state.allMatches).flat().filter(m => m.done).length')
             assert played > 5, f'{scenario}: bouts were played ({played})'
             checks += 1
             control.close(); copied.close()
         browser.close()
+    # The overlay (its own bundle, not in the app page): its selection on each step's saved state, with every read of a
+    # match a new object, must be the same as on the state as it is.
+    with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False) as f:
+        json.dump(overlay_states, f)
+    out = subprocess.run(['node', '--experimental-strip-types', '--disable-warning=ExperimentalWarning', str(Path(__file__).parent / 'lib/overlay-copy-check.mjs'), f.name],
+                         capture_output=True, text=True, check=True)
+    Path(f.name).unlink()
+    result = json.loads(out.stdout)
+    assert result['count'] == 2 * len(overlay_states), result
+    for m in result['mismatches']:
+        message = f"{m['label']}: overlay court {m['court']} differs when matches are new objects\n  copied  {m['got']}\n  control {m['want']}"
+        if not ALL:
+            raise AssertionError(message)
+        diverged.append(message.replace('\n', ' '))
+    if ALL and result['total'] > len(result['mismatches']):
+        diverged.append(f"... {result['total'] - len(result['mismatches'])} more overlay mismatches")
+    checks += result['count']
     if diverged:
         print('\n'.join(diverged))
         print(f'FAIL match identity copy: {len(diverged)} divergences')

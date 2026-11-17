@@ -298,7 +298,7 @@ export function ksmSingleElimContext(div){
 // teamSheetHtml() (11-/28-, removed in M.13).
 export function ksmTeamSheet(div,pair,heldMatch){
   // The current bout as an entry of this list (by sync identity, not Match Object identity: #15, before 13c).
-  const all=state.allMatches[div]||[],currentMatch=KSMEngine.findMatchAgain(all,heldMatch);
+  const all=state.allMatches[div]||[],currentMatch=KSMEngine.findMatchAgain(all,heldMatch,div===state.currentDivision?state.current:null);
   const matches=all.filter(m=>m.teamPair===pair&&(m.type==='teamPosition'||m.type==='teamPlayoff'));
   const first=/** @type {any} */ (matches[0]||{}),s=teamPairSummary(div,pair);
   return {teamWhite:ksmText(first.teamWhite||'White Team'),teamRed:ksmText(first.teamRed||'Red Team'),

@@ -38,7 +38,8 @@ export function canonicalSingleElimMatch(_div: unknown, node: { id?: unknown }, 
   arr.forEach((m, i) => { if (m.singleElim && m.elimNodeId === node.id) at.push(i); });
   if (!at.length) return null;
   const keptAt = at.find(i => arr[i].done) ?? at[0]!, kept = arr[keptAt];
-  for (let j = at.length - 1; j >= 0; j--) if (at[j] !== keptAt) arr.splice(at[j]!, 1);
+  // (A second reference to the kept object stays, as `m !== kept` left it.)
+  for (let j = at.length - 1; j >= 0; j--) if (at[j] !== keptAt && arr[at[j]!] !== kept) arr.splice(at[j]!, 1);
   return kept;
 }
 

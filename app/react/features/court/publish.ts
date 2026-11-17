@@ -318,7 +318,7 @@ export function ksmOwnQueuePanelInput(): CourtQueueInput {
     const held = state.matches?.[state.current] || null;
     const nodes = state.singleElimNodes?.[div] || [], arr = legacy('enforceUniqueIndividualMatches')(div), out = ksmQueueGroups();
     // enforceUniqueIndividualMatches() writes the division's list: the current bout is found again in it (by sync
-    // identity, the held index first), not compared with the object read before (#15, before 13c).
+    // identity, the held index on a tie), not compared with the object read before (#15, before 13c).
     const current = held ? findMatchAgain(arr, held, state.current) : null;
     nodes.forEach(node => {
       const nodeCourt = divisionCourtMode(div) === 'split' ? (node.round === 'Final' ? 'A' : node.court) : (state.divisionCourts?.[div] || 'A');
@@ -345,7 +345,7 @@ export function ksmOwnQueuePanelInput(): CourtQueueInput {
   }
   if (all.some(m => legacy('isTeamMatch')(m))) return groupsOr(ksmTeamQueueGroups(div, court, current), doneOr('Queue complete.'));
   // Pool play: the pool matches after the current one, then every future championship round.
-  // By position (the current bout found by sync identity, the held index first), not Match Object identity (#15).
+  // By position (the current bout found by sync identity, the held index on a tie), not Match Object identity (#15).
   const currentIndex = current ? matchIndexIn(all, current, state.current) : -1, out = ksmQueueGroups();
   all.filter((m, i) => !m.done && !m.championship && legacy('matchBelongsToCourt')(m, court) && i !== currentIndex && (currentIndex < 0 || i > currentIndex))
     .forEach(m => out.add(`Pool ${m.pool || 'A'}`, ksmQueueRow(m)));
