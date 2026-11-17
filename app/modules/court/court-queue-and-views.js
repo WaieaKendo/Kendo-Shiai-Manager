@@ -4,6 +4,7 @@ import {findNextForCourt,isCourtScorekeeper,isTeamMatch,setCourtPointer,sortTeam
 import {eliminationFinalDone,matchBelongsToCourt} from '../engine/engine-generation.js';
 import {eligibleTeams} from '../engine/engine-pools.js';
 import {esc,jsArg} from '../html-text.js';
+import * as KSMEngine from '../../engine/index.ts';
 export function teamSideLabel(side,div){
   if(!side)return 'TBD';
   // Direct team references must resolve to the registered team name everywhere,
@@ -34,7 +35,14 @@ export function courtCurrentMatch(court){
   let next=arr.slice(cs.index+1).find(x=>!x.done && matchBelongsToCourt(x,court));
   return {division:cs.division,match:m,next};
 }
-export function activeScoreArrays(m){let arr=state.allMatches[m.division]||[],idx=arr.indexOf(m);if(m.division===state.currentDivision && idx===state.current && !m.done){return {W:[...state.score.W],R:[...state.score.R]};}return {W:[...(m.wp||[])],R:[...(m.rp||[])]};}
+// Whether `m` is the match this device is scoring (the one at state.current in the current division). By position and
+// sync identity (KSMEngine.matchIndexIn()), not Match Object identity (#15, before 13c); the same answer as
+// `allMatches[m.division].indexOf(m)===state.current` gave.
+export function isScoringMatch(m){
+  if(!m||m.division!==state.currentDivision)return false;
+  return KSMEngine.matchIndexIn(state.allMatches[m.division]||[],m,state.current)===state.current;
+}
+export function activeScoreArrays(m){if(isScoringMatch(m) && !m.done){return {W:[...state.score.W],R:[...state.score.R]};}return {W:[...(m.wp||[])],R:[...(m.rp||[])]};}
 function renderSearch(){if(!window.searchName||!window.searchDojo)return;let q=searchName.value.toLowerCase(),d=searchDojo.value.toLowerCase();let names=state.competitors.filter(c=>q&&c.name.toLowerCase().includes(q)).slice(0,8);nameResults.classList.toggle('hidden',!names.length);nameResults.innerHTML=names.map((c,i)=>`<div class="search-item" onclick="showCompProfile(${state.competitors.indexOf(c)})">${esc(c.name)}<div class="small">${esc(c.dojo)} • ${esc(c.division)}</div></div>`).join('');let dojos=[...new Set([...state.competitors.map(c=>c.dojo),...state.teams.map(t=>t.dojo)].filter(Boolean))].filter(x=>d&&x.toLowerCase().includes(d)).slice(0,8);dojoResults.classList.toggle('hidden',!dojos.length);dojoResults.innerHTML=dojos.map(x=>`<div class="search-item" onclick="showDojoProfile(${jsArg(x)})">${esc(x)}</div>`).join('')}
 export function showCompProfile(i){let c=state.competitors[i];profile.innerHTML=`<h1>${esc(c.name)}</h1><p>${esc(c.dojo)} • ${esc(c.division)}</p><p>Status: ${esc(c.status)}</p>`}
 

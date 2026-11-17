@@ -5,6 +5,7 @@ import {teamSideLabel} from '../court/court-queue-and-views.js';
 import {championshipLabels,firstRoundName,previousRoundName,sourceLabelForRound} from '../engine/engine-championship.js';
 import {matchBelongsToCourt} from '../engine/engine-generation.js';
 import {sideLabelGeneric} from '../engine/engine-single-elim.js';
+import * as KSMEngine from '../../engine/index.ts';
 import {ksmLinkParams} from '../links/path-urls.js';
 import {closeNavMenus} from '../navigation.js';
 import {ksmRenderLiveScores} from '../react-bridges/live-scores.js';
@@ -65,7 +66,7 @@ function tvTeamNodeEntries(court,current){
 export function tvUpcomingMatches(court,current,teamMode=false){
   let all=state.allMatches[current.division]||[];
   if(all.some(isTeamMatch))all=sortTeamMatches(current.division);else all=sortIndividualDivisionMatches(current.division,all);
-  const idx=all.indexOf(current);
+  const idx=KSMEngine.matchIndexIn(all,current); // by sync identity, not Match Object identity (#15, before 13c)
   let candidates=all.slice(Math.max(0,idx+1)).filter(x=>!x.done&&matchBelongsToCourt(x,court));
   if(teamMode){
     const seen=new Set(),actual=[];

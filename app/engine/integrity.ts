@@ -148,3 +148,32 @@ export function matchSyncIdentity(match: unknown): string {
 export function matchHasSyncIdentity(match: unknown, identity: string | null | undefined): boolean {
   return !!identity && (matchSyncIdentity(match) === identity || legacyTiebreakSyncIdentity(match) === identity);
 }
+
+/**
+ * Where `match` is in `list` (#15, before 13c: no code relies on a Match Object staying the same object). The same object
+ * first (the answer `indexOf` gave), else an entry with the same `matchSyncIdentity()` (a structural copy, or the match
+ * after a write gave it a new object). Several entries can share an identity (a kachinuki pairing's bouts, a 4.0 save's
+ * duplicates): then the one equal to `match` in every field, else the one at `hint` (the index the caller held), else the
+ * first. -1 when it is not there. No new saved field: the identity is computed from the match.
+ */
+export function matchIndexIn(list: readonly unknown[] | null | undefined, match: unknown, hint?: number | null): number {
+  if (!Array.isArray(list) || !match) return -1;
+  const atHint = Number.isInteger(hint) ? (hint as number) : -1;
+  if (atHint >= 0 && list[atHint] === match) return atHint;
+  const same = list.indexOf(match);
+  if (same >= 0) return same;
+  const identity = matchSyncIdentity(match);
+  if (!identity) return -1;
+  const found: number[] = [];
+  list.forEach((m, i) => { if (matchSyncIdentity(m) === identity) found.push(i); });
+  if (found.length <= 1) return found.length ? found[0]! : -1;
+  const text = JSON.stringify(match), equal = found.filter(i => JSON.stringify(list[i]) === text);
+  const pick = equal.length ? equal : found;
+  return pick.includes(atHint) ? atHint : pick[0]!;
+}
+
+/** The entry of `list` that is `match` (matchIndexIn()), or null. */
+export function findMatchAgain<M>(list: readonly M[] | null | undefined, match: unknown, hint?: number | null): M | null {
+  const i = matchIndexIn(list, match, hint);
+  return i >= 0 ? list![i]! : null;
+}

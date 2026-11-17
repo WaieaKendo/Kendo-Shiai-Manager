@@ -15,6 +15,8 @@
 //   pools; here only the generated bracket (state.brackets) is used.
 // - winnerOf(): a finished feeding match's winner is read from its completedResult.
 
+import { matchIndexIn } from '../../../engine/integrity.ts';
+
 export interface UpcomingMatch {
   white: string;
   red: string;
@@ -239,7 +241,7 @@ function teamUpcomingSide(state: State, m: Match, side: 'white' | 'red'): string
 /** tvUpcomingMatches() + tv3UpcomingModel(): the next (up to) two matches on the court. */
 function upcomingMatches(state: State, view: DivisionView, court: Court, current: Match, teamMode: boolean): UpcomingMatch[] {
   const all = view.sort(current.division);
-  const idx = all.indexOf(current);
+  const idx = matchIndexIn(all, current); // by sync identity, not Match Object identity (#15, before 13c)
   const candidates = all.slice(Math.max(0, idx + 1)).filter(x => !x.done && matchBelongsToCourt(state, x, court));
   if (!teamMode) {
     return candidates.slice(0, 2).map(m => ({ white: individualSideLabel(state, m, 'white'), red: individualSideLabel(state, m, 'red'), label: '' }));

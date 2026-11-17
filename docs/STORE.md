@@ -820,6 +820,35 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
       match up again by id after each write, and keep `state.matches` derived. Then move `allMatches` with a reducer per
       court action that runs the existing engine/app logic on an Immer draft (`produceWithPatches`, so the `patch-v1` entry
       comes from the patches), converting the alias writes file by file behind the strict browser tests.
+    - **Done: ids instead of identity** (the PR before 13c; no store change, no saved field, no behaviour change, no golden
+      changed). One helper: `KSMEngine.matchIndexIn(list, match, hint)` / `findMatchAgain()` (`app/engine/integrity.ts`;
+      the React side through `shared/legacy.ts`, the overlay from the engine file): the same object first (what `indexOf`
+      gave), else the entry with the same `matchSyncIdentity()`. The identity is **not unique**: a kachinuki pairing's
+      bouts share one (`team-pair:…:Kachinuki:kachinuki`, and `team-node:…` in a bracket; seen 3-5 per pairing in the
+      test), so among several the one equal in every field wins, else the one at `hint` (the index the caller held), else
+      the first. Converted: `activeScoreArrays()` and `ksmHansokuCounts()` (through `isScoringMatch(m)`), `ksmTeamSheet()`,
+      the court island's pool card and queues (`m === current` → the current bout found again in the list read after
+      `enforceUniqueIndividualMatches()`, or compared by index), the TV's team rows, `tvUpcomingMatches()`, the overlay's
+      upcoming bouts, Director Progress, the kachinuki insertion (`nextMatch()` passes its held index),
+      `canonicalSingleElimMatch()` (by position), `applyCourtHistoryEntry()`'s alias test (by division, not list identity),
+      and the two writers that held a match across `performCourtAction()`: `nextMatch()` and `setRepresentative()` look it
+      up again inside the action. Left as same-moment identity (the objects come from one list read in the same call, with
+      no write between): `normalizeIndividualPoolTiebreakOrderInState()`'s "order changed" test, `uniqueIndividualMatches()`,
+      `syncTeamBracket()`'s `current===arr` (a list, read just before by its callers), and `ksmScoreboardInput()`'s request
+      (handled in the same synchronous event).
+    - What 13c can assume: no code compares a Match Object it read before a write, or before a call that may write, with
+      one read after it; reads by `state.matches[state.current]` / `list[cs.index]` are re-read after a write. Still to do
+      in 13c: the alias writes (fields written one by one through a held match: `nextMatch()`'s result (`wp`, `rp`, `wt`,
+      `rt`, `completedResult`, `done`, the match now found again first), `syncActiveScoreToMatch()`, the grand champion's
+      Fusen-sho, the division court's `m.court`, `appendApprovedDynamicMatches()`'s `origin` / `dynamicType`,
+      `setRepresentative()`'s name, `Object.assign(m, …)` in result integrity, the engine syncs) become one action each.
+      The guard is `tests/match-identity-copy-test.py`: two pages play the same tournaments; in one, every Match Object is
+      replaced by a structural copy at every store notification, every app event (`window.dispatchEvent`) and every
+      assignment of a division's list, and every screen (saved state, this device's view, the court screen's inputs, Live
+      Scores, the TV's model and island input, Director Progress) must match. On next/4.1 it fails in four places: the TV's
+      Upcoming Matches and the split single elimination's court queue list the bout being played, and Live Scores' team
+      sheet loses its "NOW" row and shows the stored points instead of the live score. When `allMatches` moves, its copy hook
+      (a plain write into `state.allMatches` today) becomes a test action that replaces the matches in the store.
 14. **`state` retired**: drop the dead fields (`history`, `contextMode`, `teamBracketState`; with a load-time drop,
     owner OK on the format), `app-state.js` keeps only the getters until the reads are converted, then goes;
     `ksm:state-changed` → `store.subscribe`.

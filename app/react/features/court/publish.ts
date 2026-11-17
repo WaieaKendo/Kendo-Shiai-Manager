@@ -20,7 +20,7 @@
 // next division) with the row and card builders they use, ksmSingleElimContext() and
 // ksmFinalResults() (they read top-level `const`s the module cannot reach), the Red side and
 // Setup actions, and the module-missing notice.
-import { legacy, setupSetting } from '../../shared/legacy.ts';
+import { findMatchAgain, legacy, matchIndexIn, setupSetting } from '../../shared/legacy.ts';
 import { ACTIONS_EVENT, type CourtActionsInput } from './actions-model.ts';
 import { HEADER_EVENT, type CourtHeaderInput } from './header-model.ts';
 import {
@@ -154,11 +154,14 @@ export function ksmPoolCard(div: string, pool: Pool, options: { active?: boolean
   const state = legacy('ksmLegacyState')();
   const aligned = legacy('ksmAlignedRow');
   const { rows, note } = legacy('ksmPoolStandingRows')(div, pool.label);
-  const matches = (state.allMatches?.[div] || []).filter(match => match.pool === pool.label && !match.championship);
+  const all = state.allMatches?.[div] || [];
+  const matches = all.filter(match => match.pool === pool.label && !match.championship);
   const complete = options.completed ?? legacy('poolDisplayComplete')(div, pool.label);
+  // The current bout as an entry of this list (by sync identity, not Match Object identity: #15, before 13c).
+  const current = options.currentMatch ? findMatchAgain(all, options.currentMatch, state.current) : null;
   const row = (match: Match) => aligned(match, {
     status: match.done ? 'DONE' : (match.tiebreak ? 'TIEBREAK' : 'vs'), compact: true,
-    current: !!options.currentMatch && match === options.currentMatch,
+    current: !!current && match === current,
   });
   return {
     label: text(pool.label), active: !!options.active, complete: !!complete,
@@ -312,8 +315,11 @@ export function ksmOwnQueuePanelInput(): CourtQueueInput {
   const divisionCourtMode = legacy('divisionCourtMode');
   const groupsOr = (groups: QueueGroupInput[], fallback: CourtQueueInput): CourtQueueInput => groups.length ? { kind: 'groups', groups } : fallback;
   if ((state.singleElimNodes?.[div] || []).length && divisionCourtMode(div) === 'split') {
-    const current = state.matches?.[state.current] || null;
+    const held = state.matches?.[state.current] || null;
     const nodes = state.singleElimNodes?.[div] || [], arr = legacy('enforceUniqueIndividualMatches')(div), out = ksmQueueGroups();
+    // enforceUniqueIndividualMatches() writes the division's list: the current bout is found again in it (by sync
+    // identity, the held index first), not compared with the object read before (#15, before 13c).
+    const current = held ? findMatchAgain(arr, held, state.current) : null;
     nodes.forEach(node => {
       const nodeCourt = divisionCourtMode(div) === 'split' ? (node.round === 'Final' ? 'A' : node.court) : (state.divisionCourts?.[div] || 'A');
       if (nodeCourt !== court) return;
@@ -332,14 +338,16 @@ export function ksmOwnQueuePanelInput(): CourtQueueInput {
   if (legacy('eliminationFinalDone')(div)) return doneOr('Division complete.');
   if (all.some(m => m.singleElim) && divisionCourtMode(div) === 'split') {
     const out = ksmQueueGroups();
-    legacy('dedupeSingleElimMatches')(div).filter(m => !m.done && legacy('matchBelongsToCourt')(m, court) && m !== current)
+    const list = legacy('dedupeSingleElimMatches')(div), currentHere = current ? findMatchAgain(list, current, state.current) : null;
+    list.filter(m => !m.done && legacy('matchBelongsToCourt')(m, court) && m !== currentHere)
       .forEach(m => out.add(legacy('normalizeQueueGroupLabel')(m.position || 'Championship'), ksmQueueRow(m)));
     return groupsOr(out.groups, doneOr('Queue complete.'));
   }
   if (all.some(m => legacy('isTeamMatch')(m))) return groupsOr(ksmTeamQueueGroups(div, court, current), doneOr('Queue complete.'));
   // Pool play: the pool matches after the current one, then every future championship round.
-  const currentIndex = current ? all.indexOf(current) : -1, out = ksmQueueGroups();
-  all.filter((m, i) => !m.done && !m.championship && legacy('matchBelongsToCourt')(m, court) && m !== current && (currentIndex < 0 || i > currentIndex))
+  // By position (the current bout found by sync identity, the held index first), not Match Object identity (#15).
+  const currentIndex = current ? matchIndexIn(all, current, state.current) : -1, out = ksmQueueGroups();
+  all.filter((m, i) => !m.done && !m.championship && legacy('matchBelongsToCourt')(m, court) && i !== currentIndex && (currentIndex < 0 || i > currentIndex))
     .forEach(m => out.add(`Pool ${m.pool || 'A'}`, ksmQueueRow(m)));
   return groupsOr([...out.groups, ...ksmChampionshipQueueGroups(div, court)], doneOr('Queue complete.'));
 }
@@ -348,8 +356,9 @@ export function ksmQueuePanelInput(): CourtQueueInput {
   const input = ksmOwnQueuePanelInput();
   const state = legacy('ksmLegacyState')();
   const div = state.currentDivision, court = state.currentCourt || 'A';
-  const current = state.matches?.[state.current] || null;
-  const queued = (state.allMatches?.[div] || []).some(m => legacy('isValidMatchObject')(m) && !m.done && m !== current && legacy('matchBelongsToCourt')(m, court));
+  const current = state.matches?.[state.current] || null, all = state.allMatches?.[div] || [];
+  const currentIndex = current ? matchIndexIn(all, current, state.current) : -1; // by position, not object identity (#15)
+  const queued = all.some((m, i) => legacy('isValidMatchObject')(m) && !m.done && i !== currentIndex && legacy('matchBelongsToCourt')(m, court));
   if (queued || (input.kind === 'groups' && input.groups.some(g => g.rows.length))) return input;
   // Resolved at call time: the TV/Live Scores helper in 36- is loaded by then.
   return { ...input, upNext: legacy('ksmUpNext')(court, div) };
