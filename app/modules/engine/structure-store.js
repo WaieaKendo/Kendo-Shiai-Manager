@@ -5,16 +5,17 @@
 // (app/modules/app-state.js). Every write is one tournament/… action through ksmSetDraw(), with maps the caller computed
 // from the current ones (ksmDrawWith(), ksmEditedPools(), ksmNodesWithWinners()), like the division and people edits. The
 // draw is store data (frozen in the tests): a pool, a player row, an entrant, a node or a template is never edited in
-// place; an edit builds the new rows. What is not in the store yet (`allMatches`, `courtState`, `currentByDivision`: PR
-// 13) the caller writes as before, in the same synchronous step as the dispatch.
+// place; an edit builds the new rows. A division drawn starts its queue position (`currentByDivision`, the court pointers'
+// map since #15 PR 13a) in its draw action. What is not in the store yet (`allMatches`: PR 13c) the caller writes as before,
+// in the same synchronous step, before the dispatch.
 // Like the old in-place writes, none of these schedules a save or renders: the caller does what it did before.
 import {state} from '../app-state.js';
 import {dispatch,tournamentSlice} from '../../store/index.ts';
 import {settingsMeta} from '../sync/cloud-session-and-autosave.js';
-/** @typedef {'pools'|'teamPools'|'brackets'|'singleElimComps'|'byeWinners'|'championshipNodes'|'singleElimNodes'|'teamBracketNodes'|'teamElimTeams'} DrawKey */
+/** @typedef {'pools'|'teamPools'|'brackets'|'singleElimComps'|'byeWinners'|'championshipNodes'|'singleElimNodes'|'teamBracketNodes'|'teamElimTeams'|'currentByDivision'} DrawKey */
 /** @typedef {import('../../store/index.ts').DrawLists} DrawLists */
 /** @typedef {'drawReset'|'divisionGenerated'|'tournamentGenerated'|'divisionRegenerated'|'divisionCleared'|'poolsEdited'|'drawEntriesUpdated'|'advancementApplied'} DrawAction */
-/** The nine maps by division (KSM_STRUCTURAL_DIVISION_KEYS has them with `allMatches`). @type {readonly DrawKey[]} */
+/** The nine maps by division (KSM_STRUCTURAL_DIVISION_KEYS has them with `allMatches`); a division's queue position (`currentByDivision`, #15 PR 13a) goes with its draw too. @type {readonly DrawKey[]} */
 export const KSM_DRAW_KEYS=Object.freeze(['pools','teamPools','brackets','singleElimComps','byeWinners','championshipNodes','singleElimNodes','teamBracketNodes','teamElimTeams']);
 /** One structure action; none for an empty edit. @param {DrawAction} type @param {DrawLists} lists */
 export function ksmSetDraw(type,lists){

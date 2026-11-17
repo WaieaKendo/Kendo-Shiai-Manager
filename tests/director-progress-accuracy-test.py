@@ -86,8 +86,7 @@ with sync_playwright() as p:
         {division:'Team Tournament',type:'kachinuki',teamPair:'node-SF1',done:true,court:'A'},
         {division:'Team Tournament',type:'kachinuki',teamPair:'node-SF1',done:false,court:'A'}
       ];
-      KSMTest.app.state.courtState.A={division:'Team Tournament',index:1};
-      KSMTest.app.state.courtState.B={division:null,index:0};
+      KSMTest.app.setCourtPointers({courtState:{A:{division:'Team Tournament',index:1},B:{division:null,index:0}}});
       KSMTest.app.renderDirector();
     """)
     k=page.evaluate("KSMTest.app.directorDivisionProgress('Team Tournament','A')")

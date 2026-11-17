@@ -4,9 +4,9 @@ export { createKsmStore, dispatch, getState, rootReducer, store, subscribe } fro
 export type { AppDispatch, KsmStore, KsmStoreOptions, RootState } from './store.ts';
 export { deviceSlice, DEVICE_SLICE_VERSION } from './slices/device.ts';
 export type { ActiveScore, DeviceSliceState, LocalCourtDivisions, RegistrationTab } from './slices/device.ts';
-export { initialSettings, initialTournamentState, tournamentSlice, TEAM_COURT_KEY, TOURNAMENT_SLICE_VERSION, withTeamCourt } from './slices/tournament.ts';
+export { courtActions, initialSettings, initialTournamentState, tournamentSlice, TEAM_COURT_KEY, TOURNAMENT_SLICE_VERSION, withTeamCourt } from './slices/tournament.ts';
 export type {
-  AwardLists, AwardRow, DivisionLists, DrawLists, DrawRow, PeopleKey, PeopleLists, PersonRow, RowAt, RowsAdded, RowUpdated, SetupKey, TournamentSetup, TournamentSliceState,
+  AwardLists, AwardRow, CourtPointer, CourtPointers, DivisionLists, DrawLists, DrawRow, PeopleKey, PeopleLists, PersonRow, PointerKey, RowAt, RowsAdded, RowUpdated, SetupKey, TournamentSetup, TournamentSliceState,
 } from './slices/tournament.ts';
 export {
   PRODUCTION_BUILD, applyStoreWrites, legacyFieldAssigned, legacyStateAssigned, legacyStateReplaced, setStoreStrict, storeIsStrict,

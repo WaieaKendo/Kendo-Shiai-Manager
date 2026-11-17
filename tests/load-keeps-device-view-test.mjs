@@ -25,7 +25,7 @@ const check = (ok, name) => { count++; if (!ok) { console.log(`FAIL ${name}`); f
 const json = v => JSON.stringify(v);
 
 // Everything a load calls that is not the court view: UI, saving, the pin store, the repairs (tested elsewhere).
-const STUBS = ['renderAll', 'updateUndoButton', 'autoSaveTournament', 'scheduleAutoSave', 'applySetupSnapshot', 'ksmNoteTeamsReassigned',
+const STUBS = ['ksmMoveCourtPointers', 'renderAll', 'updateUndoButton', 'autoSaveTournament', 'scheduleAutoSave', 'applySetupSnapshot', 'ksmNoteTeamsReassigned',
   'ksmAddDaihyosenForTeamAwards', 'ksmSyncGrandChampions', 'repairLoadedEliminationAdvancement', 'sanitizeLoadedTournamentState',
   'normalizeAllIndividualPoolTiebreakOrder', 'replaceState', 'pinCourtLocally', 'pinnedCourt', 'restorePinnedCourt', 'isTvSession',
   'cloudSession', 'applyCourtSides', 'ensureCourtHistory', 'ksmLocalCourtDivision', 'point', 'renderScore', 'ksmNotifyStateChanged', 'renderPublic',

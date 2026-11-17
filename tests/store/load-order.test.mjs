@@ -28,11 +28,13 @@ test('applyTournamentPayload repairs the loaded copy, then replaces state', () =
 const logs = [];
 const record = kind => (...args) => logs.push([kind, JSON.stringify(args)]);
 // #15 PR 7: a repair on the live `state` sets current through ksmShowMatch() (here the context's plain state).
-const context = vm.createContext({ console: { log: record('log'), info: record('info'), warn: record('warn'), error: record('error') }, ksmShowMatch(i) { context.state.current = i; } });
+// #15 PR 13a: the court pointers' writes on the live `state` go through ksmMoveCourtPointers() (here the plain state too).
+const context = vm.createContext({ console: { log: record('log'), info: record('info'), warn: record('warn'), error: record('error') }, ksmShowMatch(i) { context.state.current = i; },
+  ksmMoveCourtPointers(type, p) { for (const k of ['currentByDivision', 'courtState', 'courtActiveDivision']) if (p[k]) Object.assign(context.state[k] ||= {}, p[k]); } });
 vm.runInContext(withDependencies(html, [
   extractFunction(html, 'sanitizeLoadedTournamentState'),
   extractFunction(html, 'normalizeAllIndividualPoolTiebreakOrder'),
-].join('\n'), { exclude: ['state', 'console', 'ksmShowMatch'] }), context);
+].join('\n'), { exclude: ['state', 'console', 'ksmShowMatch', 'ksmMoveCourtPointers'] }), context);
 const clone = value => JSON.parse(JSON.stringify(value));
 
 // Old order: the live object is emptied and gets the loaded keys, then the repairs run on it.

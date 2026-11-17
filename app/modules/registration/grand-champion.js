@@ -3,6 +3,7 @@ import {ksmEmptyScore,ksmSetScore,ksmShowMatch,state} from '../app-state.js';
 import {ksmSetDivisionCourt} from '../setup/divisions-store.js';
 import {renderAll} from '../court/court-context-and-pool-editing.js';
 import {findNextForCourt,renderDivisions} from '../court/court-match-order.js';
+import {ksmResolveCourts} from '../court/court-pointers-store.js';
 import {enforceUniqueIndividualMatches,maybeAdvanceChampionship,maybeCreateChampionship} from '../engine/engine-championship.js';
 import {generateDivisionState} from '../engine/engine-generation.js';
 import {KSM_DRAW_KEYS,ksmDrawWith,ksmEditedPools,ksmSetDraw} from '../engine/structure-store.js';
@@ -135,13 +136,11 @@ function ksmForgetGrandChampionHistory(id){
 function ksmClearGrandChampionStructure(id,keepCourts=false){
   let had=false;
   // The plain parts are deleted, then the draw's own entries go in one tournament/divisionCleared (#15 PR 12a).
-  KSM_GC_STRUCTURE_KEYS.forEach(k=>{if(state[k]&&Object.hasOwn(state[k],id)){if(!KSM_DRAW_KEYS.includes(/** @type {any} */ (k)))delete state[k][id];had=true}});
-  ksmSetDraw('divisionCleared',ksmDrawWith(id,{},KSM_DRAW_KEYS));
+  // (`currentByDivision`, the court pointers' map since #15 PR 13a, goes with the draw's entries.)
+  KSM_GC_STRUCTURE_KEYS.forEach(k=>{if(state[k]&&Object.hasOwn(state[k],id)){if(k==='allMatches')delete state[k][id];had=true}});
+  ksmSetDraw('divisionCleared',ksmDrawWith(id,{},[...KSM_DRAW_KEYS,'currentByDivision']));
   if(had)ksmForgetGrandChampionHistory(id);
-  if(!keepCourts)['A','B'].forEach(c=>{
-    if(state.courtState?.[c]?.division!==id)return;
-    state.courtState[c]=findNextForCourt(c,null,0);state.courtActiveDivision[c]=state.courtState[c].division;
-  });
+  if(!keepCourts)ksmResolveCourts(['A','B'].filter(c=>state.courtState?.[c]?.division===id),c=>findNextForCourt(c,null,0));
   if(state.currentDivision===id&&had){ksmSetScore(ksmEmptyScore());state.history=[]}
   // state.matches follows allMatches[currentDivision] (derived, #15 PR 7): [] once the draw is gone.
   if(state.currentDivision===id&&!state.allMatches?.[id])ksmShowMatch(0);
@@ -151,10 +150,9 @@ function ksmDrawGrandChampion(gc){
   const courts=['A','B'].filter(c=>state.courtState?.[c]?.division===gc.id);
   ksmClearGrandChampionStructure(gc.id,true);
   ksmSetDivisionCourt(gc.id,gc.court);
-  const drawn=generateDivisionState(gc.id);
-  if(drawn)state.currentByDivision[gc.id]=0;
+  const drawn=generateDivisionState(gc.id);// its queue position starts at 0 with its draw (#15 PR 13a)
   // A court that was on the grand champion stays on it (its new first match); none moves elsewhere.
-  courts.forEach(c=>{state.courtState[c]=findNextForCourt(c,drawn?gc.id:null,0);state.courtActiveDivision[c]=state.courtState[c].division});
+  ksmResolveCourts(courts,c=>findNextForCourt(c,drawn?gc.id:null,0));
   if(state.currentDivision===gc.id)ksmShowMatch(0);
   return drawn;
 }

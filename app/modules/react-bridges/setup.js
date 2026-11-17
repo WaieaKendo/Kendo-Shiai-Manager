@@ -74,10 +74,10 @@ export function ksmRenameSetupDivision(from,to){
   const record={id:`${client}:${Date.now().toString(36)}:${Math.random().toString(36).slice(2,8)}`,from,to:name};
   const renamed=KSMEngine.renamedDivisionState(/** @type {any} */ (state),from,name,record);
   // #15 PR 9 / PR 10: one rename, one store action for the division lists and the players (tournament/divisionRenamed,
-  // with its divisionRenames record, the renamed `competitors` and, since PR 11, the grand champions' renamed sources). What
-  // else the engine rewrote is still plain `state` (the courts' divisions; PR 13): it is assigned first, in the same synchronous step and with
-  // no dispatch, so when the action notifies the store's subscribers both halves already agree. The device fields (the
-  // Pools tab's division, the shown division) follow after.
+  // with its divisionRenames record, the renamed `competitors`, since PR 11 the grand champions' renamed sources and since
+  // PR 13a the courts' pointers). Anything else the engine rewrote would still be plain `state` (nothing is today): it is
+  // assigned first, in the same synchronous step and with no dispatch, so when the action notifies the store's
+  // subscribers both halves already agree. The device fields (the Pools tab's division, the shown division) follow after.
   const {poolViewDivision,currentDivision,...rest}=renamed;
   const plain=Object.fromEntries(Object.entries(rest).filter(([k])=>!KSM_RENAMED_STATE_KEYS.includes(k)));
   assignState(plain);

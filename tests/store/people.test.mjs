@@ -120,7 +120,7 @@ test('the rename is one tournament/divisionRenamed: the players move with the di
   assert.ok(t(s).divisions.includes('Under 12') && !t(s).divisions.includes('Kids'));
   // The app: the list includes competitors; the caller's assignState() no longer carries it.
   const store = read('app/modules/setup/divisions-store.js'), setup = read('app/modules/react-bridges/setup.js');
-  assert.match(store, /export const KSM_RENAMED_STATE_KEYS=Object\.freeze\(\[\.\.\.KSM_DIVISION_STATE_KEYS,'competitors','grandChampions'\]\);/);
+  assert.match(store, /export const KSM_RENAMED_STATE_KEYS=Object\.freeze\(\[\.\.\.KSM_DIVISION_STATE_KEYS,'competitors','grandChampions','courtState','courtActiveDivision'\]\);/);
   assert.match(store, /for\(const key of KSM_RENAMED_STATE_KEYS\)/);
   assert.match(setup, /filter\(\(\[k\]\)=>!KSM_RENAMED_STATE_KEYS\.includes\(k\)\)\);\n\s*assignState\(plain\);\n\s*ksmRenameDivisionLists\(rest\);/);
 });

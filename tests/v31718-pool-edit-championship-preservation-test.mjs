@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { extractFunction, engine, html as appSource, sw as appServiceWorker } from './lib/ksm-source.mjs';
+import { pointerHelpers } from './lib/derived-matches.mjs';
 import { drawHelpers } from './lib/draw-helpers.mjs';
 
 const html=appSource;
@@ -27,6 +28,7 @@ context.renderPools=()=>{};
 context.scheduleAutoSave=()=>{};
 context.setActiveDivision=()=>{};
 context.findNextForCourt=(court,div)=>({division:div,index:0});
+Object.assign(context,pointerHelpers(context)); // #15 PR 13a: the court pointers' store helper, on the plain state
 context.seedNameForLabel=()=>null;
 // F12: Save Pool Changes applies the editor's copy (ksmPoolEditToSave(), 41-); here the pools as given.
 context.ksmPoolEditToSave=div=>context.state.pools[div];
@@ -61,6 +63,7 @@ ${extractFunction(html,'championshipCourtFor')}
 ${extractFunction(html,'championshipMatchObjectForNode')}
 ${extractFunction(html,'buildChampionshipTemplateMatches')}
 ${extractFunction(html,'syncChampionshipTemplate')}
+${extractFunction(html,'ksmResolveCourts')}
 ${extractFunction(html,'saveEditedPools')}
 `,context);
 

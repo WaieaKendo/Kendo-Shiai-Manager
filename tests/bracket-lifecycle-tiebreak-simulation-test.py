@@ -19,7 +19,7 @@ with sync_playwright() as p:
           const div='Sim';
           KSMTest.app.setDivisionLists({divisions:[div],divisionTypes:{[div]:'Single Elimination'},divisionCourts:{[div]:split?'split':'A'}});
           KSMTest.app.setPeople({competitors: Array.from({length:n},(_,i)=>({name:'P'+(i+1),dojo:'D'+i,division:div,seed:i<4?String(i+1):'',status:'Checked'}))});
-          KSMTest.app.setDraw({pools:{}});KSMTest.app.state.allMatches={};KSMTest.app.setDraw({singleElimNodes:{}});KSMTest.app.setDraw({singleElimComps:{}});KSMTest.app.setDraw({teamBracketNodes:{}});KSMTest.app.setDraw({teamPools:{}});KSMTest.app.setDraw({brackets:{}});KSMTest.app.setDraw({byeWinners:{}});KSMTest.app.state.currentByDivision={};
+          KSMTest.app.setDraw({pools:{}});KSMTest.app.state.allMatches={};KSMTest.app.setDraw({singleElimNodes:{}});KSMTest.app.setDraw({singleElimComps:{}});KSMTest.app.setDraw({teamBracketNodes:{}});KSMTest.app.setDraw({teamPools:{}});KSMTest.app.setDraw({brackets:{}});KSMTest.app.setDraw({byeWinners:{}});KSMTest.app.setCourtPointers({currentByDivision:{}});
           KSMTest.app.generateDivisionState(div);
           const initial=KSMTest.app.state.allMatches[div].length;
           let guard=0;

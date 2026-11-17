@@ -2,6 +2,7 @@
 import {ksmEmptyScore,ksmSetCurrentCourt,ksmSetPoolViewDivision,ksmSetPublicCourt,ksmSetScore,ksmShowDivision,ksmShowMatch,state} from '../app-state.js';
 import {ksmDefaultDivisionCourts} from '../setup/divisions-store.js';
 import {loadScoreFromMatch} from './court-scoring-and-history.js';
+import {ksmCourtPointer,ksmMoveCourtPointers,ksmResolveCourts} from './court-pointers-store.js';
 import {renderScore} from './scorekeeper-screen.js';
 import {championshipLabels,firstRoundName,roundSequenceFromFirst} from '../engine/engine-championship.js';
 import {matchBelongsToCourt} from '../engine/engine-generation.js';
@@ -87,12 +88,15 @@ export function findNextForCourt(court,preferredDiv=null,startIndex=0){
  * @param {string} court
  */
 export function isCourtScorekeeper(court){return canCloudWrite()&&state.currentCourt===court}
-/** Moves Court `court`'s shared pointer to `cs` (only from that court's own actions: see isCourtScorekeeper()). */
-export function setCourtPointer(court,cs){
-  state.courtState=state.courtState||/** @type {any} */({});state.courtActiveDivision=state.courtActiveDivision||/** @type {any} */({});
-  state.courtState[court]=cs;
-  state.courtActiveDivision[court]=cs.division;
-}
+/**
+ * Moves Court `court`'s shared pointer to `cs` (only from that court's own actions: see isCourtScorekeeper()): one
+ * court/pointerMoved (or `type`), with the division's queue position when `queue` is given (#15 PR 13a).
+ * @param {string} court
+ * @param {{division:string|null,index:number}} cs
+ * @param {'pointerMoved'|'divisionSelected'} [type]
+ * @param {number} [queue]
+ */
+export function setCourtPointer(court,cs,type='pointerMoved',queue){ksmMoveCourtPointers(type,ksmCourtPointer(court,cs,queue),court)}
 /**
  * Brings this court's shared pointer to this device's view, when this device is the court's scorekeeper and they
  * differ: a division picked before Staff Login (a spectator's pick moves only its own view) is the court's division
@@ -113,26 +117,33 @@ export function syncOwnCourtPointer(){
     setCourtPointer(court,cs);
     return true;
   }
-  setCourtPointer(court,{division:div,index});
-  state.currentByDivision[div]=index;
+  setCourtPointer(court,{division:div,index},'pointerMoved',index);
   return true;
 }
-export function applyCourtState(court,cs,keepScore=true){
+/**
+ * This device shows Court `court` at `cs`; on the court's scorekeeper the court's shared pointer (and the division's queue
+ * position, the shown index) moves there too, as one court/… action (`type`: 'divisionSelected' for a court opened or a
+ * division picked, else 'pointerMoved': Next Match, a load's reconciliation, the view rebuilt after Undo/Redo).
+ * @param {string} court
+ * @param {{division:string|null,index:number}} cs
+ * @param {boolean} [keepScore]
+ * @param {'pointerMoved'|'divisionSelected'} [type]
+ */
+export function applyCourtState(court,cs,keepScore=true,type='pointerMoved'){
   // Every caller passes this device's court (openCourt() sets it first), so this checks write access for that court.
   const runsCourt=isCourtScorekeeper(court);
   ksmSetCurrentCourt(court);
-  if(runsCourt)setCourtPointer(court,cs);
+  // The pointer with the queue position the shown index will be (state.current after ksmShowMatch() below).
+  if(runsCourt)setCourtPointer(court,cs,type,cs.index||0);
   // state.matches follows the shown division (it is allMatches[currentDivision], #15 PR 7); state.current is its index.
   ksmShowDivision(cs.division);
   ksmShowMatch(cs.index||0);
-  if(runsCourt)state.currentByDivision[cs.division]=state.current;
   if(keepScore){loadScoreFromMatch(state.matches[state.current]);}
   else{ksmSetScore(ksmEmptyScore());state.history=[]}
   applyCourtSides();
 }
-export function initCourtStates(){
-  ['A','B'].forEach(c=>{state.courtState[c]=findNextForCourt(c,null,0);state.courtActiveDivision[c]=state.courtState[c].division;});
-}
+/** Both courts on their first ready bout (a structural edit: generation, a regenerate, a No Show): one court/pointersResolved. */
+export function initCourtStates(){ksmResolveCourts(['A','B'],c=>findNextForCourt(c,null,0))}
 export function renderDivisions(){
   ksmDefaultDivisionCourts(state.divisions);// each division without a court gets 'A' (one action, none when all have one)
   if(window.poolDiv){let all=[...new Set([...state.divisions,...ksmTeamDivisions().filter(d=>state.allMatches?.[d.id]).map(d=>d.id),...Object.keys(state.allMatches||{})])];let selected=(poolDiv.value&&all.includes(poolDiv.value))?poolDiv.value:((state.poolViewDivision&&all.includes(state.poolViewDivision))?state.poolViewDivision:state.currentDivision);ksmSetPoolViewDivision(selected);poolDiv.innerHTML=all.map(d=>`<option ${d===selected?'selected':''}${ksmDivisionName(d)!==d?` value="${esc(d)}"`:''}>${esc(ksmDivisionName(d))}</option>`).join('');if(selected)poolDiv.value=selected;}
@@ -153,7 +164,7 @@ export function openCourt(c){
   if(!cs || !cs.division || !individualMatchReady(active) || !matchBelongsToCourt(active,c)){
     cs=findNextForCourt(c,cs?.division||state.courtActiveDivision?.[c]||null,0);
   }
-  applyCourtState(c,cs,true);
+  applyCourtState(c,cs,true,'divisionSelected');
   if(cs?.division)rememberLocalCourtDivision(c,cs.division);
   renderDivisions();renderScore();show('score');
 }

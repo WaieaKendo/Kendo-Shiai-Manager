@@ -28,7 +28,7 @@ let failed = false, count = 0;
 const check = (ok, name) => { count++; if (!ok) { console.log(`FAIL ${name}`); failed = true; } };
 const json = v => JSON.stringify(v);
 
-const STUBS = ['renderDivisions', 'renderScore', 'renderPools', 'renderProgress', 'renderContext', 'renderPublic', 'renderAll', 'renderQueue', 'applyCourtSides',
+const STUBS = ['ksmMoveCourtPointers', 'renderDivisions', 'renderScore', 'renderPools', 'renderProgress', 'renderContext', 'renderPublic', 'renderAll', 'renderQueue', 'applyCourtSides',
   'criticalAutoSave', 'scheduleAutoSave', 'updateUndoButton', 'updateSaveStatus', 'showKsmToast', 'ksmNotifyStateChanged', 'ksmSignalCourtActions', 'ksmSignalCourtHeader',
   'ksmSignalCourtScoreboard', 'setCourtCompletePresentation', 'divisionComplete', 'writeCloudDiagnosticsState', 'KSM_TAB_ID', 'storeFieldPath', 'assignState',
   'isReadOnlySession', 'canCloudWrite', 'isTvSession', 'ksmSetCurrentCourt', 'ksmSetPublicCourt', 'ksmShowDivision', 'setLocalCourtDivision', 'ksmLocalCourtDivision',

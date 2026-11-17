@@ -1,6 +1,7 @@
 // @ts-check
 import {ksmShowMatch,state} from '../app-state.js';
 import {individualMatchReady} from '../court/court-match-order.js';
+import {ksmMoveCourtPointers} from '../court/court-pointers-store.js';
 import {poolPositionsResolved,requiredSeedPlaces} from './engine-championship.js';
 import {eligibleTeams,isTeamDivision,poolCourtFor} from './engine-pools.js';
 import {replaceable} from '../replaceable.js';
@@ -234,20 +235,32 @@ function reindexPointersAfterMatchReorder(targetState,div,beforeArr,afterArr){
     if(idx<0||!individualMatchReady(afterArr[idx])||!matchBelongsToCourtInState(targetState,afterArr[idx],court))idx=nextReadyIndexInState(targetState,div,court);
     return idx;
   };
-  targetState.courtState=targetState.courtState||/** @type {ByCourt<CourtState>} */({});
-  targetState.courtActiveDivision=targetState.courtActiveDivision||/** @type {ByCourt<string|null>} */({});
+  // On the live `state` the court pointers are store data (#15 PR 13a): the new pointers (a new object per court, the
+  // same keys) go in one court/pointersResolved at the end; a payload copy is a plain object, written in place.
+  const live=targetState===state;
+  /** @type {any} */ const moved={courtState:{},courtActiveDivision:{}};
+  if(!live){
+    targetState.courtState=targetState.courtState||/** @type {ByCourt<CourtState>} */({});
+    targetState.courtActiveDivision=targetState.courtActiveDivision||/** @type {ByCourt<string|null>} */({});
+  }
   for(const court of ['A','B']){
-    const cs=targetState.courtState[court];
-    if(cs?.division===div)cs.index=findMovedIndex(cs.index,court);
+    const cs=targetState.courtState?.[court];
+    if(cs?.division!==div)continue;
+    const index=findMovedIndex(cs.index,court);
+    if(live)moved.courtState[court]={...cs,index};else cs.index=index;
   }
   if(targetState.currentDivision===div){
     const court=String(targetState.currentCourt||'A').toUpperCase()==='B'?'B':'A';
     const currentIndex=findMovedIndex(targetState.current,court);
     // On the live `state`, current is a store getter (#15 PR 7): its helper; a payload copy is a plain object.
-    if(targetState===state)ksmShowMatch(currentIndex);else targetState.current=currentIndex;
-    targetState.currentByDivision=targetState.currentByDivision||{};
-    targetState.currentByDivision[div]=currentIndex;
+    if(live){ksmShowMatch(currentIndex);moved.currentByDivision={[div]:currentIndex}}
+    else{
+      targetState.current=currentIndex;
+      targetState.currentByDivision=targetState.currentByDivision||{};
+      targetState.currentByDivision[div]=currentIndex;
+    }
   }
+  if(live)ksmMoveCourtPointers('pointersResolved',moved);
 }
 /**
  * @param {TournamentState} targetState

@@ -220,6 +220,9 @@ window.KSMTest = {
     // (#15 PR 12a): a test sets whole maps here, one action; a key it leaves out keeps its value. An entry is never edited
     // in place: set the map again with the entry changed.
     setDraw: lists => ksmSetDraw('drawEntriesUpdated', lists),
+    // The court pointers (courtState, courtActiveDivision, currentByDivision) are store data too (#15 PR 13a): a test sets
+    // whole maps here, one action; a map it leaves out keeps its value. A pointer is never edited in place: set the map again.
+    setCourtPointers: lists => ksmSetDraw('drawEntriesUpdated', lists),
     setAward: (index, changes) => ksmSetAward(index, changes),
     addResultAward: (...a) => addResultAward(...a),
     removeResultAward: (...a) => removeResultAward(...a),
@@ -404,6 +407,9 @@ window.KSMTest = {
     setConnectionStatus: (...a) => setConnectionStatus(...a),
     setCourtSupportMode: (...a) => setCourtSupportMode(...a),
     setSessionRole: (...a) => setSessionRole(...a),
+    // Staff Login's role change (with its court pointer catch-up, #15 PR 6) and closing the tournament (tests/court-pointers-store-test.py).
+    ksmAccountSetRole: (...a) => ksmAccountSetRole(...a),
+    ksmResetTournament: (...a) => ksmResetTournament(...a),
     show: (...a) => show(...a),
     showHomePage: (...a) => showHomePage(...a),
     sortIndividualDivisionMatches: (...a) => sortIndividualDivisionMatches(...a),

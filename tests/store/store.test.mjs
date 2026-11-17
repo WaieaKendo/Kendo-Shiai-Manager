@@ -20,7 +20,9 @@ test('two slices, tournament (its version and the Setup settings) and device (it
       // The awards (PR 11): none; no grand champions until one is added.
       awards: [],
       // The draw (PR 12a): not generated; no single elimination entrants or bye winners until Generate Tournament.
-      pools: {}, teamPools: {}, brackets: {}, generated: false, managementRevision: 0, championshipNodes: {}, singleElimNodes: {}, teamBracketNodes: {}, teamElimTeams: {} },
+      pools: {}, teamPools: {}, brackets: {}, generated: false, managementRevision: 0, championshipNodes: {}, singleElimNodes: {}, teamBracketNodes: {}, teamElimTeams: {},
+      // The court pointers (PR 13a): no division drawn; both courts on no division.
+      currentByDivision: {}, courtState: { A: { division: null, index: 0 }, B: { division: null, index: 0 } }, courtActiveDivision: { A: null, B: null } },
     device: { sliceVersion: DEVICE_SLICE_VERSION, regMode: 'individual', poolViewDivision: 'Women’s Open', currentCourt: 'A', publicCourt: 'A', currentDivision: 'Women’s Open', localCourtDivision: { A: null, B: null },
       currentMatchIndex: 0, activeScore: { A: { W: [], R: [], WT: 0, RT: 0 }, B: { W: [], R: [], WT: 0, RT: 0 } } },
   });

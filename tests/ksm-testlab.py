@@ -66,8 +66,8 @@ def reset_individual(page, n: int, fmt: str, court: str, division: str = "Test")
           }))});
           KSMTest.app.setPeople({teams: []});KSMTest.app.setDraw({pools:{}});KSMTest.app.state.allMatches={};KSMTest.app.setDraw({singleElimNodes:{}});
           KSMTest.app.setDraw({singleElimComps:{}});KSMTest.app.setDraw({teamBracketNodes:{}});KSMTest.app.setDraw({teamPools:{}});
-          KSMTest.app.setDraw({brackets:{}});KSMTest.app.setDraw({championshipNodes:{}});KSMTest.app.setDraw({byeWinners:{}});KSMTest.app.state.currentByDivision={};KSMTest.app.state.courtState={};
-          KSMTest.app.state.courtActiveDivision={};KSMTest.app.showDivision(division);KSMTest.app.setCurrentCourt('A');
+          KSMTest.app.setDraw({brackets:{}});KSMTest.app.setDraw({championshipNodes:{}});KSMTest.app.setDraw({byeWinners:{}});KSMTest.app.setCourtPointers({currentByDivision:{}});KSMTest.app.setCourtPointers({courtState:{}});
+          KSMTest.app.setCourtPointers({courtActiveDivision:{}});KSMTest.app.showDivision(division);KSMTest.app.setCurrentCourt('A');
           KSMTest.app.generateDivisionState(division);KSMTest.app.setDraw({generated:true});KSMTest.app.initCourtStates();
         }""",
         {"n": n, "fmt": fmt, "court": court, "division": division},

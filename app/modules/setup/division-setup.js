@@ -1,6 +1,7 @@
 // @ts-check
 import {DIVISION_PRESETS,state} from '../app-state.js';
 import {findNextForCourt,isTeamMatch,renderDivisions} from '../court/court-match-order.js';
+import {ksmResolveCourts} from '../court/court-pointers-store.js';
 import {matchBelongsToCourt} from '../engine/engine-generation.js';
 import {championshipCourtFor,divisionCourtMode,poolCourtFor} from '../engine/engine-pools.js';
 import {ksmEditedPools,ksmSetDraw} from '../engine/structure-store.js';
@@ -39,10 +40,8 @@ export function ksmReassignDivisionCourt(d){
     else if(m.championship)m.court=championshipCourtFor(d,m.position,m.bracketSlot,roundSize[m.position]||1);
     else m.court=poolCourtFor(d,m.pool);
   });
-  ['A','B'].forEach(c=>{
-    const cs=state.courtState?.[c];
-    if(cs&&cs.division===d){state.courtState[c]=findNextForCourt(c,null,0);state.courtActiveDivision[c]=state.courtState[c].division}
-  });
+  // A court on this division goes to its first ready bout (one court/pointersResolved, #15 PR 13a).
+  ksmResolveCourts(['A','B'].filter(c=>state.courtState?.[c]?.division===d),c=>findNextForCourt(c,null,0));
 }
 export function setDivisionFormat(d,v){ksmSetDivisionFormat(d,v);renderReg()}
 export function renderDivisionSetup(){
