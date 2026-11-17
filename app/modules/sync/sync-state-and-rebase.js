@@ -245,7 +245,7 @@ export function pendingLocalCourtActionsForRebase(localPayload,serverRecord,orig
   const remoteKeys=new Set(remoteEntries.map(historyEntryIdentity));
   return localEntries.filter(action=>action?.format==='patch-v1'&&ksmOwnHistoryEntry(action)&&Number(action.revision||0)>=Number(originalBaseRevision||0)&&!remoteKeys.has(historyEntryIdentity(action)));
 }
-// F30: this device's Undo/Redo since the save's base revision (10-, recordCourtUndoLog()) that the
+// F30: this device's Undo/Redo since the save's base revision (10-, courtUndoLogEntry()) that the
 // server copy does not have yet.
 function undoLogEntryIdentity(entry){return [entry?.clientId||'',entry?.when||'',entry?.court||'',entry?.kind||'',entry?.target||''].join('|')}
 export function pendingLocalUndoLogForRebase(localPayload,serverRecord,originalBaseRevision,court){
@@ -284,7 +284,7 @@ function replayPendingCourtHistory(actions,undoLog,localState,rebasedState,serve
   });
 }
 /**
- * Applies an Undo/Redo's match changes by identity (recordCourtUndoLog()'s matchOps, 10-) to the server copy, wherever its
+ * Applies an Undo/Redo's match changes by identity (courtUndoLogEntry()'s matchOps, 10-) to the server copy, wherever its
  * matches are now (another device may have inserted or moved matches meanwhile): the removed matches are taken out, the
  * inserted ones put back after the match they followed (at the end when it is gone; never twice), the others' fields set.
  * Also used by an ordinary Undo/Redo on the device (applyCourtHistoryEntry(), 10-). Returns {applied: the field patches set,

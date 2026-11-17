@@ -20,8 +20,10 @@ Checked (one offline page, strict store: a write the conversion missed, a pointe
      id are replaced by marks; keys other than the court pointers and the view are kept as a hash). As in PR 12b, a
      court action's patches are compared grouped by top-level key (their order follows Object.keys(state), which after
      a load differs once a key is a store getter: docs/STORE.md section 3 item 5 (3)).
-  2. (this PR's code only) No half state: at every court/* notification, each court's pointer is inside its division's
-     match list, and Next Match's pointer is never on the bout it just finished.
+  2. (this PR's code only) No half state: at every store notification (since #15 PR 13b, #201 review L2; Undo / Redo,
+     Generate Tournament and a grand champion's draw and clear included), each court's pointer is inside its division's
+     match list and not left on a list that was deleted, and Next Match's pointer is never on the bout it just finished.
+     Two brief states inside one synchronous step are allowed by name, with their reason (KNOWN).
   3. Strict store: writing a pointer map, a court's entry or its index in place throws.
 """
 import hashlib
@@ -211,35 +213,66 @@ def strict_writes(page):
 
 
 def no_half_state(page):
-    """2: at every court/* notification the courts' pointers are inside their lists; Next Match's never on the bout it finished."""
+    """2: at every store notification (#201 review L2: not only court/*), Generate Tournament, Next Match through pools and
+    brackets on both courts and Undo / Redo of those, the grand champion drawn and cleared included: each court's pointer is
+    inside its division's list and not left (unresolved) on a list that was deleted; Next Match's never on the bout it finished. Two brief states inside one synchronous
+    step are allowed by name (KNOWN below)."""
     global checks
     load_app(page)
     page.evaluate(SEED)
     configure()(page)
     got = page.evaluate(r"""async () => {
-      const store = window.KSMStore, a = KSMTest.app, bad = [], types = [];
+      const store = window.KSMStore, a = KSMTest.app, bad = [], allowed = {}, types = [];
       const dispatch = store.dispatch;
       store.dispatch = action => { types.push(action.type); return dispatch(action); };
-      let finished = null;
+      let finished = null, phase = '';
+      const lastOn = {};
+      // Inside Generate Tournament (from tournament/drawReset to its court/pointersResolved) the courts still point where
+      // they were: every division is drawn again first, and both courts are re-resolved at its end, in the same
+      // synchronous step. Inside the grand champion's draw (its draw cleared, drawn again, then its courts re-resolved) a
+      // court that stays on it points into the cleared draw for those steps.
+      const KNOWN = {generate: 'Generate Tournament: the courts re-resolved at its end',
+        'gc draw': 'the grand champion drawn: a court on it kept through its clear and new draw, re-resolved after'};
       const check = () => {
         const type = types[types.length - 1];
-        if (!String(type).startsWith('court/')) return;
         const t = store.getState().tournament;
         for (const [c, cs] of Object.entries(t.courtState || {})) {
           const list = cs && cs.division != null ? a.state.allMatches[cs.division] : null;
-          if (Array.isArray(list) && !(cs.index >= 0 && cs.index <= list.length)) bad.push([type, c, cs, list.length]);
-          if (finished && type === 'court/pointerMoved' && Array.isArray(list) && list[cs.index] === finished) bad.push([type, c, 'on the bout it finished']);
+          let problem = null;
+          if (Array.isArray(list)) { lastOn[c] = cs; if (!(cs.index >= 0 && cs.index <= list.length)) problem = [type, c, cs, list.length]; }
+          // Its list deleted and the pointer not re-resolved (the same object): a re-resolve may land on a division without a
+          // list (the next-bout search's fallback, the device's division), as before.
+          else if (cs && cs === lastOn[c]) problem = [type, c, cs, 'its list was deleted'];
+          if (!problem && finished && type === 'court/pointerMoved' && Array.isArray(list) && list[cs.index] === finished) problem = [type, c, 'on the bout it finished'];
+          if (!problem) continue;
+          if (KNOWN[phase]) (allowed[phase] ||= []).push(problem); else bad.push([phase, ...problem]);
         }
       };
       const off = store.subscribe(check);
       for (const court of ['A', 'B', 'A', 'B', 'A', 'B']) for (let i = 0; i < 15; i++) {
         const m = KSMTest.prepareCourt(court); if (!m) break; finished = m; KSMTest.play([['W', 'M']]); finished = null;
+        if (i % 4 === 1) { phase = 'undo'; a.undo(); phase = 'redo'; a.redo(); phase = 'undo twice'; a.undo(); a.undo(); phase = 'redo twice'; a.redo(); a.redo(); phase = ''; }
       }
+      phase = 'generate'; KSMTest.app.generatePools({validated: true}); phase = '';
+      for (const court of ['A', 'B']) for (let i = 0; i < 4; i++) { if (!KSMTest.prepareCourt(court)) break; KSMTest.play([['W', 'M']]); }
+      // The grand champion: drawn when its sources finish (allowed: 'gc draw'), then a source reopened clears it (checked).
+      const people = p => [1, 2].map(i => ({name: `${p} ${i}`, dojo: `${p} Dojo`, seed: '', status: 'Checked'}));
+      phase = 'generate'; KSMTest.configure([{name: 'GC A', format: 'Single Elimination', court: 'A', entrants: people('GA')}, {name: 'GC B', format: 'Single Elimination', court: 'B', entrants: people('GB')}]);
+      phase = ''; KSMTest.addGrandChampion(['GC A', 'GC B'], {name: 'Grand Champion', court: 'A'});
+      phase = 'gc draw'; for (const court of ['A', 'B']) { KSMTest.prepareCourt(court); KSMTest.play([['W', 'M']]); } KSMTest.app.renderAll();
+      const gcId = Object.keys(a.state.allMatches).find(d => d.startsWith('gc:'));
+      phase = ''; KSMTest.app.chooseCourt('A'); KSMTest.app.selectScorekeeperDivision(gcId);
+      phase = 'gc clear'; const before = types.length, p = KSMTest.app.tournamentPayload();
+      p.state.allMatches['GC B'].forEach(m => { m.done = false; m.wp = []; m.rp = []; delete m.completedResult; });
+      KSMTest.app.applyTournamentPayload(p, false, {source: 'court pointers store test'}); KSMTest.app.renderAll(); phase = '';
+      const cleared = Boolean(gcId) && types.slice(before).includes('tournament/divisionCleared');
       off(); store.dispatch = dispatch;
-      return {bad: bad.slice(0, 5), moved: types.filter(t => t === 'court/pointerMoved').length};
+      return {bad: bad.slice(0, 5), allowed: Object.fromEntries(Object.entries(allowed).map(([k, v]) => [k, v.length])),
+        moved: types.filter(t => t === 'court/pointerMoved').length, undos: types.filter(t => t === 'court/undo').length, types: [...new Set(types)].length, cleared, gcId};
     }""")
     assert not got['bad'], got; checks += 1
-    assert got['moved'] > 0, got; checks += 1
+    assert got['moved'] > 0 and got['undos'] > 0 and got['types'] > 10 and got['cleared'], got; checks += 1
+    print('no half state:', got)
 
 
 def main():

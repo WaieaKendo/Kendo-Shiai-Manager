@@ -265,7 +265,7 @@ interface TournamentState {
   currentByDivision: ByDivision<number>;
   courtActionHistory: ByCourt<CourtAction[]>;
   courtRedoHistory: ByCourt<CourtAction[]>;
-  /** Undo/Redo log the save rebase replays (recordCourtUndoLog()). */
+  /** Undo/Redo log the save rebase replays (courtUndoLogEntry()). */
   courtUndoLog?: ByCourt<unknown[]>;
 
   // View state of this device (not merged from other devices)

@@ -2,8 +2,8 @@
 // that miss the conversion (point 8), and the three actions through which `state` writes reach the store before a
 // field group has its own actions: replaceState() / assignState() (point 3) and a stray assignment (point 8). The
 // helpers that dispatch them are in app/modules/app-state.js.
-import { createAction, createNextState } from '@reduxjs/toolkit';
-import { setAutoFreeze } from 'immer';
+import { createAction } from '@reduxjs/toolkit';
+import { freeze, setAutoFreeze } from 'immer';
 
 // Node defines `process`; app.js's build replaces `process.env.NODE_ENV` with "production" (scripts/app-sources.mjs).
 declare const process: { env: { NODE_ENV?: string } };
@@ -38,18 +38,29 @@ export const legacyStateReplaced = createAction<{ writes: StoreWrite[] }>('legac
 /** assignState(): the store-owned keys of a partial assign (a division rename, the team-division migration). */
 export const legacyStateAssigned = createAction<{ writes: StoreWrite[] }>('legacy/stateAssigned');
 
-/** `root` with each write's value at its path (missing objects on the way are created), as one Immer update. */
+/**
+ * `root` with each write's value at its path (missing objects on the way are created), copying only the objects on the
+ * written paths (structural sharing, as Immer's update did; a write of the value already there changes nothing). Not an
+ * Immer update since #15 PR 13b: Immer walks every new value deeply when it finalizes (a load's whole history, a point's
+ * list of 100 entries), which a path copy does not. In strict mode (the tests) the new values and the copied objects are
+ * deep-frozen as Immer froze them; in production nothing is frozen, as with Immer's auto-freeze off.
+ */
 export function applyStoreWrites<S>(root: S, writes: readonly StoreWrite[]): S {
-  if (!writes.length) return root;
-  return createNextState(root, draft => {
-    for (const { path, value } of writes) {
-      if (!path.length) throw new Error('A store write needs a path');
-      let target = draft as Record<string, unknown>;
-      for (const key of path.slice(0, -1)) {
-        const next = target[key];
-        target = (next && typeof next === 'object' ? next : (target[key] = {})) as Record<string, unknown>;
-      }
-      target[path[path.length - 1] as string] = value;
-    }
-  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- plain JSON objects along a path
+  type Obj = any;
+  const copies = new Set<Obj>();
+  const own = (o: Obj): Obj => copies.has(o) ? o : (o = Array.isArray(o) ? [...o] : { ...o }, copies.add(o), o);
+  let out: Obj = root;
+  for (const { path, value } of writes) {
+    const last = path.length - 1, key = path[last];
+    if (key === undefined) throw new Error('A store write needs a path');
+    let at: Obj = out;
+    for (let i = 0; i < last; i++) at = at && typeof at === 'object' ? at[path[i]!] : undefined;
+    if (at && typeof at === 'object' && Object.hasOwn(at, key) && at[key] === value) continue;
+    let target: Obj = out = own(out);
+    for (let i = 0; i < last; i++) { const next = target[path[i]!]; target = target[path[i]!] = own(next && typeof next === 'object' ? next : {}); }
+    target[key] = value;
+  }
+  if (strict) copies.forEach(copy => freeze(copy, true));
+  return out;
 }

@@ -1,6 +1,6 @@
 # The store: plan for moving `state` into Redux Toolkit (#15 step 2.8)
 
-Status (2026-11-16): **prep done (PR 2), Undo/Redo without device keys (PR 3), loads keep the device view (PR 4), device fields moved: `regMode`, `poolViewDivision` (PR 5), the court view (PR 6), `matches` derived and `current` / `score` moved (PR 7), the Setup form in `tournament.settings` (PR 8), `teamAwardMode` and the team court read it (PR 8b), the divisions (PR 9), the people (PR 10), the awards and grand champions (PR 11), the draw structure (PR 12a), the bracket nodes (PR 12b), the court pointers (PR 13a)**. `app/store/` holds a Redux Toolkit store (slices
+Status (2026-11-17): **prep done (PR 2), Undo/Redo without device keys (PR 3), loads keep the device view (PR 4), device fields moved: `regMode`, `poolViewDivision` (PR 5), the court view (PR 6), `matches` derived and `current` / `score` moved (PR 7), the Setup form in `tournament.settings` (PR 8), `teamAwardMode` and the team court read it (PR 8b), the divisions (PR 9), the people (PR 10), the awards and grand champions (PR 11), the draw structure (PR 12a), the bracket nodes (PR 12b), the court pointers (PR 13a), the court history and Undo/Redo (PR 13b)**. `app/store/` holds a Redux Toolkit store (slices
 `tournament` and `device`). app.js imports it as a separate tree-shaken, minified
 bundle (+9.2 kB gzip since PR 10, section 5) and sets `window.KSMStore`; `app/modules/app-state.js` has the helpers the field
 moves use (`moveToStore()`, `replaceState()`, `assignState()`, section 2). All app data is still the one mutable
@@ -82,9 +82,9 @@ Class: **T** tournament data (shared, synced), **D** device/screen state (this d
 | `courtState` | M | 33 / 12 / 12 | `applyCourtState` (any local view choice: a division picked, a court chosen), Next Match, generation, setup, grand champion, sync load (`rehydrateLoadedTournamentState`, the payload's value or the self-heal) and rebase (`nextReadyIndexInState`) | **split** (see below): "what is on Court B now" (TV, Live Scores, the other court) is tournament data; a device *viewing* a court or division is device state. **Moved (PR 13a)** to `tournament.courtState`: `court/divisionSelected` / `court/pointerMoved` / `court/pointersResolved` (`meta.court`) |
 | `courtActiveDivision` | M | 19 / 10 / 11 | same writers as `courtState` | **tournament**: it is `courtState[c].division` kept twice. **Moved (PR 13a)** as stored data, not a selector: after a 4.0 load without it, or a load whose `courtState` lacks a court, the two differ (only the healed court gets an entry; section 3 item 13) |
 | `currentByDivision` | M | 13 / 9 / 5 | `applyCourtState` (every local view choice), generation, grand champion, sync load | **split**, then a selector: where each division's queue stands is derivable from the matches (`nextReadyIndexInState`); the remembered position is device state. **Moved (PR 13a)** as stored data (it is the scorekeeper's remembered position, not the next ready bout: no selector gives its values); a division's draw carries its entry |
-| `courtActionHistory` | T | 19 / 7 / 4 | `performCourtAction`, undo/redo, rebase | **tournament**, per court: saved so a replacement tablet on the court can still undo; replayed by the rebase |
-| `courtRedoHistory` | T | 16 / 8 / 2 | undo/redo, rebase | **tournament** with the history |
-| `courtUndoLog` | T | 5 / 2 / 1 | undo/redo (F30 log the rebase replays) | **tournament** with the history |
+| `courtActionHistory` | T | 19 / 7 / 4 | `performCourtAction`, undo/redo, rebase | **tournament**, per court: saved so a replacement tablet on the court can still undo; replayed by the rebase. **Moved (PR 13b)**: `court/actionRecorded`, `court/undo` / `court/redo`, `court/historyNormalized`, `court/historyForgotten` (`meta.court`) |
+| `courtRedoHistory` | T | 16 / 8 / 2 | undo/redo, rebase | **tournament** with the history. **Moved (PR 13b)** |
+| `courtUndoLog` | T | 5 / 2 / 1 | undo/redo (F30 log the rebase replays) | **tournament** with the history. **Moved (PR 13b)**: appended by `court/undo` / `court/redo`; absent until the first Undo/Redo, as before |
 | `history` | – | 3 / 3 / 3 | reset to `[]` only | **drop** (pre-`patch-v1` undo stack, always empty) |
 | `contextMode` | – | 0 | initial value only | **drop** |
 | `teamBracketState` | – | 0 | initial value only | **drop** |
@@ -214,8 +214,10 @@ Today ~50 files write `state.x` in place. The cutover:
      (`undefined` for a missing value, where it did `delete state[key]`, which throws on the non-configurable getter in
      strict mode, in production too), and a missing parent at `[key, …]` is created the same way. Patches on device keys
      are skipped (point 6). A deeper path into a moved key (since PR 9; e.g. `['divisionCourts', d]`, recorded when a
-     court action's render gave a division its default court) is written into a copy of that key, which goes through
-     `assignState()` as a whole, until `court/undo` applies patches on the draft (PR 13). Tested with a key made a getter
+     court action's render gave a division its default court) is written into a copy of that key. Since PR 13b the new
+     values of every store-owned key an entry changes are collected while its patches apply and go to the store in the
+     entry's one `court/undo` / `court/redo`, after the plain writes (`allMatches`), with the history move and the F30 log
+     entry: no notification shows half an entry (#199 review L1). Tested with a key made a getter
      (`tests/undo-device-keys-test.mjs`).
    - **Strict: the Node tests and the browser tests.** A write the conversion missed throws: an assignment to a
      moved field hits the getter's setter, which throws; a nested write into store data (`state.awards[i].x = …`)
@@ -268,8 +270,12 @@ What must never happen (each PR's tests check the ones it touches):
   carry patches on `score`, `matches`, `current` and `currentDivision`. Since PR 3 `applyHistoryPatch()` skips them
   (`KSM_LOCAL_VIEW_STATE_KEYS`) and the court view is rebuilt from `courtState` after the entry, so such an Undo never
   writes a device getter.
-- **Undo/Redo deleting or assigning a store getter.** A top-level patch (`[key]`) on a store-owned key goes through
-  `assignState()`, never `delete state[key]` or `state[key] = …` (both throw on the non-configurable getter; point 8).
+- **Undo/Redo deleting or assigning a store getter.** A top-level patch (`[key]`) on a store-owned key goes to the
+  store (since PR 13b in the entry's `court/undo` / `court/redo`), never `delete state[key]` or `state[key] = …` (both
+  throw on the non-configurable getter; point 8).
+- **Half an Undo/Redo** (since PR 13b). An entry's store-owned keys and its history move are one dispatch, after its
+  plain writes; `tests/bracket-nodes-store-test.py` and `tests/court-pointers-store-test.py` check every notification
+  while bouts are scored, undone and redone.
 - **Two stores.** The React bundle is separate from app.js, so it must use `window.KSMStore`, never import
   `app/store/store.ts` (that would make a second, empty store).
 
@@ -728,10 +734,56 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
       four runs each, before and after interleaved): a point and Next Match, median 43-55 ms before and 45-50 ms after; a
       remote snapshot apply 20-25 ms both. No difference beyond the run-to-run noise (a self-heal that changes nothing
       dispatches nothing). The owner times a point on the oldest TV/tablet before 13c.
-    **13b** (next): `courtActionHistory`, `courtRedoHistory`, `courtUndoLog` into the store; `court/undo` / `court/redo`
-    apply an entry's patches in **one** dispatch (also fixes #199's L1: a node patch could land before its bout's patch
-    inside one Undo/Redo step); `performCourtAction()` pushes its entry with an action; the rebase's history replay and
-    the F30 log keep working on payloads.
+    Done (**PR 13b**), no behaviour change (no golden changed):
+    - `courtActionHistory`, `courtRedoHistory`, `courtUndoLog` are `tournament` slice fields and `state` getters
+      (`moveToStore()`, `app-state.js`): the first two at the literal's places with `{A: [], B: []}`; the Undo log's getter
+      comes last (it was never in the literal) and is undefined until the first Undo/Redo, so the snapshot leaves it out
+      as before. The snapshot keeps every key, value, type and order, the entries' patch order included
+      (`tests/court-history-store-test.py` compares every key of the saved `state` with the PR 13a code's after 62 steps,
+      the history exactly: points, hansoku, Next Match, each undone and redone on both courts; a new action clearing Redo;
+      an advancing bracket bout and a tiebreak-drawing Next Match undone and redone; the 100-entry limit; the 40-entry Undo
+      log limit; a Redo after a remote apply; a 4.0-shaped save with old entries (no identities, a pre-`patch-v1` entry);
+      four save conflicts; the grand champion drawn, its history forgotten when cleared; the reset; a tournament switch).
+    - Actions (`meta.court`; the app computes each court's new list from the store's, right before the dispatch, in
+      `app/modules/court/court-history-store.js`): `court/actionRecorded` (the entry pushed, the court's Redo list cleared,
+      the oldest dropped beyond 100), `court/undo` / `court/redo` (the entry moved, the F30 log entry appended, trimmed to
+      40, and every store-owned key the entry's patches changed), `court/historyNormalized` (`ensureCourtHistory()`: maps
+      created, pre-`patch-v1` entries dropped; now only when something changes, where it reassigned both lists on every
+      render), `court/historyForgotten` (a grand champion's draw gone: its bouts' patches dropped). Their payload is
+      `writes` (`{path, value}`, as the legacy writes), applied by the root reducer: an Immer reducer given a new list of
+      100 entries walks all of them when it finalizes (+15 ms per point and +23 ms per remote apply at 6x throttling,
+      production build), so `applyStoreWrites()` is now a path copy (only the objects on a written path are copied; strict
+      mode deep-freezes what it wrote, as Immer did), which also serves `replaceState()` / `assignState()`.
+    - **Undo/Redo in one step** (#199 review L1): the entry's patches on plain keys (`allMatches`) are written first, then
+      one `court/undo` / `court/redo` carries the history move, the log entry and the new value of every store-owned key
+      (nodes, pointers, …; device keys still skipped, section 2 point 6). The court view is rebuilt after it as before
+      (`applyCourtState()`: `court/pointerMoved` and the `device/…` actions). It stays a separate dispatch: it reads the
+      patched pointer and lists and writes device state, so folding it in would mean running `applyCourtState()` on copies;
+      after the one dispatch every pointer is already inside its list (the checks below). The F30 log entry is now built before that rebuild and render (it
+      was built after them); the fixture shows the same entries.
+    - **Every notification, no half state** (#201 review L2): the checks in `tests/court-pointers-store-test.py` (pointers
+      inside their lists, not left on a deleted list) and `tests/bracket-nodes-store-test.py` (a finished bout's winner on
+      its node, and no winner on a node whose bout is not finished) run at every store notification, with Undo/Redo, Generate
+      Tournament and a grand champion's draw and clear in the run. The grand champion's clear now re-resolves its courts in
+      its own `tournament/divisionCleared` (same values; the old `court/pointersResolved` came right after it). Allowed by
+      name with their reason: Generate Tournament (`drawReset` empties every draw; the courts are re-resolved at its end by
+      `initCourtStates()`, which needs the new draw; resetting them in `drawReset` would change the saved pointers when
+      nothing gets drawn), and the grand champion's draw (`ksmDrawGrandChampion()`: a court on it is kept through its clear
+      and new draw and re-resolved after it, from the new lists).
+    - **Save conflicts**: unchanged. The rebase's history merge, the match-op replay (`replayCourtMatchOps`) and the F30 log
+      replay run on payload copies; the result lands through `replaceState()` (fixture: two courts scoring, then one
+      undoes; an Undo here while the other court's entry arrives; the F30 log replayed; a Redo here against the other
+      court's Next Match).
+    - **Frozen values**: no code kept a list across a write (the old `stack.pop()` / `push()` on the live lists became the
+      actions above); a grand champion's forget builds new lists. Test code wrote the history only on payload copies;
+      the vm tests get plain-state stand-ins (`historyHelpers()`, `tests/lib/derived-matches.mjs`). A source check
+      (`tests/store/court-history.test.mjs`) fails on an assignment, a `delete` or a list method on the three in app code.
+    - Known difference on an error path only: an Undo/Redo whose patches throw midway left the entry popped (lost) and the
+      store keys written so far; now the entry stays on its list and no store key is written (the plain writes made before
+      the throw stay, as before).
+    - Measured (headless Chromium, 6x CPU throttling, 6 divisions of 16 on split courts, 48 bouts and 15 applies per run,
+      production build, before and after interleaved): a point + Undo + Redo 43-45 ms both; Next Match 22-23 ms both; a
+      remote snapshot apply 21-23 ms before, 18-21 ms after. The strict test build pays for freezing (a load 23-27 → 30 ms).
     **13c** (last): `allMatches` and the court actions (`court/pointScored`, `court/hansoku`, `court/nextMatch`, tiebreak /
     playoff creation, `patch-v1` from Immer patches). Design note from 13a's survey (app/modules, app/main.js, app/engine):
     - Identity uses of a Match Object: `arr.indexOf(m)` in `activeScoreArrays()` (court-queue-and-views), the court island's
@@ -751,12 +803,14 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
       2 `Object.assign(match, …)` (result integrity), 12 list mutations (`push` / `splice` / `sort` on a division's list),
       22 assignments of `state.allMatches[div]`, the engine syncs (`single-elim.ts`, `teams.ts`) writing plan values into
       matches, and `replayCourtMatchOps(state, …)` / `applyHistoryPatch()` walking paths on the live state.
-    - A brief half state, unchanged from `next/4.1`: in the grand champion's clear and draw
-      (registration/grand-champion.js:150-157) and Generate Tournament's `drawReset` (engine/engine-generation.js:71), a
-      `tournament/…` notification briefly shows `courtState` on a division whose `allMatches` entry was just deleted; the
-      re-resolve (`court/pointersResolved`) follows in the same synchronous step. Nothing reads it today (islands render
-      after the step), but the no-half-state check in `tests/court-pointers-store-test.py` only looks at `court/*`
-      notifications: **before 13c adds store subscribers, extend it to every notification** (and fix or allow these).
+    - A brief half state (found in 13a): a `tournament/…` notification showing `courtState` on a division whose `allMatches`
+      entry was just deleted. Since 13b every notification is checked: the grand champion's clear is fixed, Generate
+      Tournament and the grand champion's draw are allowed by name (13b above). 13c's new store subscribers must keep
+      those two in mind, or re-resolve the pointers inside those draw actions.
+    - From 13b: an Immer reducer that is given a large new value (a whole list) walks it when it finalizes, also in
+      production (Immer 11 skips that only when no draft is left unfinalized). 13c's reducers should edit drafts in place
+      (a bout's fields, one match inserted) rather than assign rebuilt lists, and the time of a point, Next Match and an
+      apply should be measured as in 13b.
     - Approach: first, as its own PR, **ids instead of identity** (no store change): give every match a stable id
       (`matchSyncIdentity()` already exists), switch the `indexOf(match)` and `===` sites above and `nextMatch()`'s held `m` to look the
       match up again by id after each write, and keep `state.matches` derived. Then move `allMatches` with a reducer per
@@ -832,6 +886,10 @@ call commands instead of window functions.
   their reducer and the three initial maps), over the 9,400 budget, which is now 9,600 (`tests/store-bundle-test.mjs`; a
   second slice or one matcher saved under 20 bytes); app.js 699,803 → 704,181 bytes (gzip 184,886 → 186,279); no React
   source changed.
+- PR 13b (the court history): the store bundle 9,553 → 9,736 bytes gzip (25,427 → 25,896 raw: five `court/…` action names,
+  the two initial maps, and `applyStoreWrites()` as a path copy instead of an Immer update, +100 of it), over the 9,600
+  budget, which is now 9,800 (`tests/store-bundle-test.mjs`; the history reducers on Immer drafts were 9,907 and walked
+  the whole list on each point); app.js 704,181 → 711,705 bytes (gzip 186,279 → 188,682); no React source changed.
 - Re-renders: `store.subscribe` listeners run on every dispatch, so selectors must be cheap and return stable
   references. A remote snapshot is one action, one notification (today `ksmNotifyStateChanged` coalesces per
   microtask). Immer copies only the changed path (structural sharing); the deep freeze of a loaded snapshot is one

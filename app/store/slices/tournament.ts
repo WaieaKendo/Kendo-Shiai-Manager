@@ -5,16 +5,18 @@
 // `teamDivisions`); PR 11 the awards and the grand champions (`awards`, `grandChampions`); PR 12a the draw structure (`pools`,
 // `teamPools`, `brackets`, `singleElimComps`, `byeWinners`, `generated`, `managementRevision`); PR 12b the bracket nodes
 // (`championshipNodes`, `singleElimNodes`, `teamBracketNodes`, `teamElimTeams`); PR 13a the court pointers (`courtState`,
-// `courtActiveDivision`, `currentByDivision`). `state` reads them through getters (app/modules/app-state.js).
+// `courtActiveDivision`, `currentByDivision`); PR 13b the court history (`courtActionHistory`, `courtRedoHistory`,
+// `courtUndoLog`). `state` reads them through getters (app/modules/app-state.js).
 import { createAction, createNextState, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { DIVISION_PRESETS, TEAM_COURT_KEY, type DivisionRename } from '../../engine/division-lists.ts';
 import { statusCycle } from '../../engine/registration.ts';
 import type { GrandChampion } from '../../engine/grand-champion.ts';
 import type { TeamDivision } from '../../engine/team-divisions.ts';
+import type { StoreWrite } from '../legacy.ts';
 import { withMeta, type ActionMeta } from '../meta.ts';
 
 /** Bumped when the shape of this slice changes in a way saved data must be migrated for. */
-export const TOURNAMENT_SLICE_VERSION = 8;
+export const TOURNAMENT_SLICE_VERSION = 9;
 
 /**
  * TEAM_COURT_KEY: the legacy team division's key ('Team Tournament', KSMEngine.LEGACY_TEAM_DIVISION_ID). Its
@@ -113,7 +115,21 @@ export interface TournamentSliceState {
   courtState?: Record<string, CourtPointer | null | undefined> | undefined;
   /** Each court's division (`state.courtActiveDivision`): `courtState[c].division` kept twice (4.0 reads both). */
   courtActiveDivision?: Record<string, string | null | undefined> | undefined;
+  // The court history (PR 13b), per court ('A', 'B'): saved so a replacement tablet can still undo, replayed by the
+  // save-conflict rebase, read by 4.0 devices. Entries are the app's plain JSON (`patch-v1`, `history-op-v1`), never
+  // edited once recorded. A load may leave any of them undefined; `courtUndoLog` is absent until the first Undo/Redo.
+  /** Each court's Undo list, oldest first (`state.courtActionHistory`): the court actions' `patch-v1` entries. */
+  courtActionHistory?: CourtHistories | undefined;
+  /** Each court's Redo list (`state.courtRedoHistory`), the last undone last. */
+  courtRedoHistory?: CourtHistories | undefined;
+  /** Each court's F30 Undo log (`state.courtUndoLog`): every Undo/Redo, which the rebase replays in time order. */
+  courtUndoLog?: CourtHistories | undefined;
 }
+
+/** A court history entry: plain JSON the app built (app/modules/court/court-scoring-and-history.js). */
+export type CourtHistoryEntry = Record<string, unknown>;
+/** One history map: each court's list. */
+export type CourtHistories = Record<string, CourtHistoryEntry[]>;
 
 /** A court's pointer: the division it runs and the index of its bout in that division's match list. */
 export type CourtPointer = { division: string | null; index: number } & Record<string, unknown>;
@@ -160,6 +176,8 @@ export const initialTournamentState: TournamentSliceState = {
   currentByDivision: {},
   courtState: { A: { division: null, index: 0 }, B: { division: null, index: 0 } },
   courtActiveDivision: { A: null, B: null },
+  courtActionHistory: { A: [], B: [] },
+  courtRedoHistory: { A: [], B: [] },
 };
 
 /**
@@ -199,7 +217,19 @@ export type DrawLists = Partial<Pick<TournamentSliceState, 'pools' | 'teamPools'
  */
 export type CourtPointers = Partial<Pick<TournamentSliceState, PointerKey>>;
 
-const courtAction = <T extends string>(type: T) => createAction(`court/${type}`, withMeta<CourtPointers>());
+/** The court history maps (PR 13b). */
+export type HistoryKey = 'courtActionHistory' | 'courtRedoHistory' | 'courtUndoLog';
+/**
+ * A court history action's payload (PR 13b): `writes`, each value at its store path, applied by the root reducer
+ * (app/store/store.ts) like the legacy writes: a court's new list (['tournament', 'courtActionHistory', 'A']), a whole
+ * map, and for an Undo/Redo every store-owned key its patches changed (bracket nodes, pointers, …), all in one dispatch.
+ * Not an Immer reducer on purpose: a draft given a new list of 100 entries walks all of them (and their patches) when it
+ * finalizes, on every point (docs/STORE.md section 3 item 13, PR 13b's measurements); a path write copies only the path.
+ * app/modules/court/court-history-store.js computes the lists from the store's right before the dispatch.
+ */
+export interface HistoryWrites { writes: StoreWrite[] }
+
+const courtAction = <P = CourtPointers>(type: string) => createAction(`court/${type}`, withMeta<P>());
 /**
  * The court pointer actions (PR 13a), typed `court/…`, each with `meta.court` (the court whose pointer moves; null for a
  * structural edit). One reducer: the entries the payload names are set (app/modules/court/court-pointers-store.js
@@ -212,6 +242,19 @@ export const courtActions = {
   pointerMoved: courtAction('pointerMoved'),
   /** Courts re-resolved by a structural edit (generation, Edit Pool, a division's court, a grand champion, a tiebreak reorder). */
   pointersResolved: courtAction('pointersResolved'),
+};
+/** The court history actions (PR 13b), each with `meta.court` (the court whose history it is; null for both courts'). */
+export const courtHistoryActions = {
+  /** A court action's entry: pushed on the court's Undo list (its oldest dropped beyond 100), the court's Redo list cleared. */
+  actionRecorded: courtAction<HistoryWrites>('actionRecorded'),
+  /** The court's last action undone: moved to its Redo list, the Undo logged (F30), its store-owned keys written. */
+  undo: courtAction<HistoryWrites>('undo'),
+  /** The court's last undone action redone: moved back to its Undo list, the Redo logged, its store-owned keys written. */
+  redo: courtAction<HistoryWrites>('redo'),
+  /** The Undo / Redo maps created where missing and pre-`patch-v1` entries dropped (ensureCourtHistory()). */
+  historyNormalized: courtAction<HistoryWrites>('historyNormalized'),
+  /** A grand champion's draw gone: its bouts' patches dropped from both courts' lists (an entry left empty with them). */
+  historyForgotten: courtAction<HistoryWrites>('historyForgotten'),
 };
 function setCourtPointers(state: TournamentSliceState, { payload }: { payload: CourtPointers }) {
   for (const key of ['currentByDivision', 'courtState', 'courtActiveDivision'] as const) {

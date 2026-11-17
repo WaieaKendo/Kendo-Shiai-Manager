@@ -49,8 +49,9 @@ test('the Setup fields: the snapshot order, the page\'s defaults and select opti
   const s = createKsmStore();
   // Since PR 9 the slice also holds the division lists (tests/store/divisions.test.mjs), since PR 10 the people
   // (tests/store/people.test.mjs), since PR 11 the awards (tests/store/awards.test.mjs), since PR 12a the draw
-  // (tests/store/structure.test.mjs), since PR 13a the court pointers (tests/store/court-pointers.test.mjs).
-  const { divisions, divisionTypes, divisionCourts, competitors, teams, exhibitions, awards, pools, teamPools, brackets, generated, managementRevision, championshipNodes, singleElimNodes, teamBracketNodes, teamElimTeams, currentByDivision, courtState, courtActiveDivision, ...rest } = s.getState().tournament;
+  // (tests/store/structure.test.mjs), since PR 13a the court pointers (tests/store/court-pointers.test.mjs), since PR 13b
+  // the court history (tests/store/court-history.test.mjs).
+  const { divisions, divisionTypes, divisionCourts, competitors, teams, exhibitions, awards, pools, teamPools, brackets, generated, managementRevision, championshipNodes, singleElimNodes, teamBracketNodes, teamElimTeams, currentByDivision, courtState, courtActiveDivision, courtActionHistory, courtRedoHistory, ...rest } = s.getState().tournament;
   assert.deepEqual(rest, { sliceVersion: TOURNAMENT_SLICE_VERSION, settings: initialSettings });
 });
 

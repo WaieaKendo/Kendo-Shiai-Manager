@@ -157,6 +157,14 @@ moveToStore('teamElimTeams',['tournament','teamElimTeams']);
 moveToStore('currentByDivision',['tournament','currentByDivision']);
 moveToStore('courtState',['tournament','courtState']);
 moveToStore('courtActiveDivision',['tournament','courtActiveDivision']);
+// The court history (PR 13b): each court's Undo and Redo lists and the F30 Undo log are the `tournament` slice's, written
+// only through app/modules/court/court-history-store.js (court/actionRecorded, court/undo, court/redo,
+// court/historyNormalized, court/historyForgotten) or a load's replaceState(). An entry is store data: never push onto a
+// list or edit an entry, dispatch. `courtUndoLog` is not in the literal: its getter comes last, undefined until the
+// first Undo/Redo (JSON.stringify leaves it out, as the absent key was).
+moveToStore('courtActionHistory',['tournament','courtActionHistory']);
+moveToStore('courtRedoHistory',['tournament','courtRedoHistory']);
+moveToStore('courtUndoLog',['tournament','courtUndoLog']);
 /** Whether a store path is a Setup field: a load applies those through applySetupSnapshot(), with the Setup's precedence. */
 const isSettingsPath=(/** @type {string[]} */ p)=>p[0]==='tournament'&&p[1]==='settings';
 /** A tournament closed (ksmResetTournament()): the shown match is the first and every court's pad is empty. */
@@ -206,12 +214,25 @@ export function replaceState(loaded,target=state){
  * @param {object} [target]
  */
 export function assignState(partial,target=state){
-  const fields=storeFieldsOf(target),derived=derivedFieldsOf(target),writes=[];
+  const writes=storeWrites(partial,target);
   const t=/** @type {Record<string,unknown>} */ (target);
+  for(const [key,value] of Object.entries(partial))if(!storeFieldsOf(target).has(key)&&!derivedFieldsOf(target).has(key))t[key]=value;
+  if(writes.length)dispatch(legacyStateAssigned({writes}));
+}
+/**
+ * The store writes for `partial`'s store-owned keys, as assignState() makes them (an Undo/Redo's keys go in its own
+ * court/undo or court/redo, #15 PR 13b): each key's value at its store path; a derived key (state.matches) and a plain
+ * key give none.
+ * @param {object} partial
+ * @param {object} [target]
+ * @returns {import('../store/index.ts').StoreWrite[]}
+ */
+export function storeWrites(partial,target=state){
+  const fields=storeFieldsOf(target),derived=derivedFieldsOf(target),writes=[];
   for(const [key,value] of Object.entries(partial)){
     if(derived.has(key))continue;const path=fields.get(key);
     // A Setup field holds a text (tournament.settings): a missing or non-text value (an Undo of a patch that removed it) is not written.
-    if(path){const p=resolvePath(path);if(!isSettingsPath(p)||typeof value==='string')writes.push({path:p,value})}else t[key]=value;
+    if(path){const p=resolvePath(path);if(!isSettingsPath(p)||typeof value==='string')writes.push({path:p,value})}
   }
-  if(writes.length)dispatch(legacyStateAssigned({writes}));
+  return writes;
 }

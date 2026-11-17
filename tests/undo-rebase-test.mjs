@@ -24,6 +24,7 @@
 // edit-conflicts-test.py races the same through the real app and server (Undo, then Redo).
 import vm from 'node:vm';
 import { extractFunction, html, engine } from './lib/ksm-source.mjs';
+import { historyHelpers } from './lib/derived-matches.mjs';
 
 let failed = false, count = 0;
 const check = (ok, name) => { count++; if (!ok) { console.log(`FAIL ${name}`); failed = true; } };
@@ -44,11 +45,13 @@ const code = [engine, constant('KSM_LOCAL_VIEW_STATE_KEYS'), constant('KSM_UNDO_
     // the court's own actions and Undo/Redo (10-), to press them on the device's copy and the rebased copy
     'historyPathParent', 'applyHistoryPatch', 'cloneHistoryValue', 'historyComparableState', 'historyValuesEqual', 'buildHistoryPatches',
     'currentHistoryCourt', 'stampHistoryPatchMatchIdentity', 'ensureCourtHistory', 'performCourtAction', 'applyHistoryValues',
-    'courtUndoMatchesBefore', 'courtUndoMatchOps', 'withCourtMatchOps', 'recordCourtUndoLog', 'undo', 'redo',
+    'courtUndoMatchesBefore', 'courtUndoMatchOps', 'withCourtMatchOps', 'courtUndoLogEntry', 'moveCourtHistory', 'rebuildCourtViewAfterHistory', 'writeHistoryValue', 'undo', 'redo',
     // ordinary Undo/Redo by match identity (10-)
     'withCourtHistoryIdentity', 'historyIndexDivision', 'historyIndexRef', 'resolveHistoryIndexRef', 'invertCourtMatchOps', 'applyCourtHistoryEntry',
     'courtHistoryAppliedEntry', 'courtHistorySkippedNote'].map(n => extractFunction(html, n))].join('\n')
-  + ['KSM_HISTORY_LIMIT', 'KSM_HISTORY_KEYS', 'KSM_HISTORY_MISSING', 'KSM_GC_STRUCTURE_KEYS'].map(constant).join('\n');
+  + ['KSM_HISTORY_KEYS', 'KSM_HISTORY_MISSING', 'KSM_GC_STRUCTURE_KEYS'].map(constant).join('\n')
+  // #15 PR 13b: the history is written through court-history-store.js (plain-state stand-ins: historyHelpers()).
+  + '\nlet ksmLastHistoryOutcome=null,ksmLastHistorySkipped=0,ksmHistoryStoreValues=null;';
 const context = {
   console,
   cloudSession: { clientId: 'court-a', court: 'A', revision: 10 },
@@ -64,6 +67,7 @@ const context = {
   rebaseDivisionRenamesForMerge: (rebased, local, base, server) => ({ local, base, server, refused: [], blocked: [] }), noteDivisionRenamesRefused() {},
   noteStructuralEditBlockedByRename() {}, dropOrphanedDivisionStructure() {},
 };
+Object.assign(context, historyHelpers(context));
 vm.createContext(context);
 vm.runInContext(code, context);
 check(typeof context.replayPendingCourtHistory === 'function', 'the rebase replays the Undo log (replayPendingCourtHistory)');

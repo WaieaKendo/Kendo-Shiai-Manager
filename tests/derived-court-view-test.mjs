@@ -14,7 +14,7 @@
 import vm from 'node:vm';
 import { extractFunction, html, withDependencies } from './lib/ksm-source.mjs';
 import { gitShow } from './lib/git-show.mjs';
-import { deriveMatches, viewHelpers } from './lib/derived-matches.mjs';
+import { deriveMatches, HISTORY_HELPERS, viewHelpers } from './lib/derived-matches.mjs';
 
 const PR6 = '37b48d0'; // next/4.1 before this PR (#180 merged)
 const CHANGED = {
@@ -34,10 +34,12 @@ const STUBS = ['ksmMoveCourtPointers', 'renderDivisions', 'renderScore', 'render
   'isReadOnlySession', 'canCloudWrite', 'isTvSession', 'ksmSetCurrentCourt', 'ksmSetPublicCourt', 'ksmShowDivision', 'setLocalCourtDivision', 'ksmLocalCourtDivision',
   'pinCourtLocally', 'localCourtDivision', 'rememberLocalCourtDivision', 'show', 'alert', 'maybeCreateTiebreaks', 'maybeCreateTeamTiebreak', 'maybeCreateKachinukiNext',
   'maybeAdvanceTeamBracket', 'maybeCreateChampionship', 'maybeAdvanceChampionship', 'maybeAdvanceIndividualSingleElim', 'completedResultSnapshot', 'cloudSession',
-  'ksmShowMatch', 'ksmSetScore', 'ksmEmptyScore', 'ksmResetCourtPads'];
+  'ksmShowMatch', 'ksmSetScore', 'ksmEmptyScore', 'ksmResetCourtPads',
+  // PR 13b: the history is written through these (plain-state stand-ins in viewHelpers()).
+  ...HISTORY_HELPERS];
 const ENTRY = ['openCourt', 'applyCourtState', 'setActiveDivision', 'selectScorekeeperDivision', 'courtCurrentMatch', 'ensureScorableCurrentMatch', 'syncOwnCourtPointer',
   'point', 'hansoku', 'fusen', 'nextMatch', 'undo', 'redo', 'performCourtAction'];
-const newCode = '"use strict";\n' + withDependencies(html, ENTRY.map(n => extractFunction(html, n)).join('\n'), { exclude: STUBS }) + '\nlet ksmLastHistoryOutcome=null,ksmLastHistorySkipped=0;';
+const newCode = '"use strict";\n' + withDependencies(html, ENTRY.map(n => extractFunction(html, n)).join('\n'), { exclude: STUBS }) + '\nlet ksmLastHistoryOutcome=null,ksmLastHistorySkipped=0,ksmHistoryStoreValues=null;';
 let oldCode = newCode;
 for (const [file, names] of Object.entries(CHANGED)) {
   const source = gitShow(PR6, file);

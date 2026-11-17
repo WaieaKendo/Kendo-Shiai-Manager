@@ -2,7 +2,7 @@
 // is in it yet: docs/STORE.md is the migration plan.
 // No RTK Query, no thunks: the sync adapter stays our own code, and reducers stay thin (they call app/engine).
 import { combineReducers, configureStore, type Reducer, type UnknownAction } from '@reduxjs/toolkit';
-import { applyStoreWrites, legacyFieldAssigned, legacyStateAssigned, legacyStateReplaced } from './legacy.ts';
+import { applyStoreWrites, legacyFieldAssigned, type StoreWrite } from './legacy.ts';
 import { deviceSlice } from './slices/device.ts';
 import { tournamentSlice, withTeamCourt } from './slices/tournament.ts';
 
@@ -14,14 +14,18 @@ const slicesReducer = combineReducers({
 export type RootState = ReturnType<typeof slicesReducer>;
 
 /**
- * The slices, plus the legacy writes (app/store/legacy.ts): replaceState() / assignState() of app/modules/app-state.js
- * and a stray assignment in production put a value at a path, whichever slice it is in. Last, the one derived value
- * the tournament slice keeps in place: `divisionCourts['Team Tournament']` is `settings.teamCourt` (withTeamCourt()).
+ * The slices, plus the store writes (app/store/legacy.ts): replaceState() / assignState() of app/modules/app-state.js and a
+ * stray assignment in production put a value at a path, whichever slice it is in; so do an Undo/Redo's store-owned keys
+ * (#15 PR 13b: court/undo, court/redo, whose `writes` land in the same dispatch as the history move the slice makes). An
+ * action carries `payload.writes` only for this (legacy/stateReplaced, legacy/stateAssigned, court/undo, court/redo:
+ * tests/store/court-history.test.mjs checks the action types that do). Last, the one derived value the tournament slice
+ * keeps in place: `divisionCourts['Team Tournament']` is `settings.teamCourt` (withTeamCourt()).
  */
 export const rootReducer: Reducer<RootState, UnknownAction, Partial<RootState>> = (state, action) => {
   let next = slicesReducer(state, action);
+  const writes = (action as { payload?: { writes?: StoreWrite[] } }).payload?.writes;
   if (legacyFieldAssigned.match(action)) next = applyStoreWrites(next, [{ path: action.payload.path, value: action.payload.value }]);
-  else if (legacyStateReplaced.match(action) || legacyStateAssigned.match(action)) next = applyStoreWrites(next, action.payload.writes);
+  else if (writes) next = applyStoreWrites(next, writes);
   const tournament = withTeamCourt(next.tournament);
   return tournament === next.tournament ? next : { ...next, tournament };
 };
