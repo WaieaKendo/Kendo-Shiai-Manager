@@ -164,16 +164,20 @@ export type GrandChampionAction =
 
 /**
  * What the draw needs now. Before it starts it always follows the sources (filled when they are
- * all decided, refilled or cleared when one is corrected); once started, a change is the
+ * all decided, refilled or cleared when one is corrected, a bracket redrawn when they are reordered); once started, a change is the
  * director's decision, remembered by signature (keep: leave it; rebuild: draw again / clear).
  */
 export function grandChampionPlan(gc: Pick<GrandChampion, 'keep' | 'rebuild'>, now: GrandChampionEntrants, structure: GrandChampionStructure): GrandChampionAction {
   const drawn = drawnEntrants(structure);
   const wanted = now.entrants.filter((e): e is GrandChampionEntrant => !!e);
   if (!drawn) return now.ready ? { kind: 'draw', entrants: wanted } : { kind: 'none' };
-  if (now.ready && sameEntrants(drawn, wanted)) return { kind: 'none' };
+  const started = grandChampionStarted(structure.matches);
+  // A bracket's slots are the sources' order: before the start, a reorder (or another device's) draws
+  // again; once started only who plays counts. A pool's order is its own (the pool draw).
+  const sameOrder = !structure.singleElimComps?.length || drawn.map(key).join('\u0001') === wanted.map(key).join('\u0001');
+  if (now.ready && sameEntrants(drawn, wanted) && (started || sameOrder)) return { kind: 'none' };
   const follow: GrandChampionAction = now.ready ? { kind: 'draw', entrants: wanted } : { kind: 'clear' };
-  if (!grandChampionStarted(structure.matches)) return follow;
+  if (!started) return follow;
   // The decision names the new entrants and the draw it was made against: it is never reused for
   // another draw (a later change back to the same players asks again).
   const signature = `${grandChampionSignature(now.entrants)}|${JSON.stringify(drawn.map(key).sort())}`;
