@@ -21,7 +21,7 @@ check(!fs.existsSync(path.join(ROOT, 'node_modules/@reduxjs/toolkit/node_modules
 // --- the store bundle: self-contained, production, small ---
 const store = await storeBundle();
 const gzip = zlib.gzipSync(store).length;
-const GZIP_BUDGET = 9600; // 7.9 kB with Redux Toolkit 2.13 (2026-11-11); 9,000 until #15 PR 10 (the people's 17 actions: 9,206), 9,300 until #15 PR 12a (the draw's 7 actions on the shared reducer: 9,346), 9,400 until #15 PR 13a (the court pointers' three court/… actions, their reducer and initial maps: 9,553); raise it only on purpose, old TVs pay for it
+const GZIP_BUDGET = 9750; // 7.9 kB with Redux Toolkit 2.13 (2026-11-11); 9,000 until #15 PR 10 (the people's 17 actions: 9,206), 9,300 until #15 PR 12a (the draw's 7 actions on the shared reducer: 9,346), 9,400 until #15 PR 13a (the court pointers' three court/… actions, their reducer and initial maps: 9,553), 9,600 until #15 PR 13b (the court history's five court/… actions and two initial maps, and applyStoreWrites() as a path copy instead of an Immer update, so a point, an Undo and a load do not walk the whole history: 9,736); raise it only on purpose, old TVs pay for it
 check(gzip <= GZIP_BUDGET, `the store bundle is ${gzip} bytes gzip, over the ${GZIP_BUDGET} budget`);
 check(!/process\.env/.test(store), 'the store bundle still reads process.env (NODE_ENV was not defined)');
 check(!/state mutation/i.test(store), 'the store bundle has Redux Toolkit\'s immutability check (a development build)');

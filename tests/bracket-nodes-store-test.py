@@ -18,8 +18,8 @@ included, throws):
      the tab id are replaced by marks; keys other than the bracket's are kept as a hash). The order of the top-level
      keys may differ after a load (docs/STORE.md section 3 item 5 (3)), and with it the order of a court action's
      patches on different keys (compared grouped by key); the order inside each value may not.
-  2. (this PR's code only) No half state: while bouts are scored, no store notification shows a finished bracket bout
-     whose node has not got its winner yet.
+  2. (this PR's code only) No half state: while bouts are scored, each undone and redone (since #15 PR 13b), no store
+     notification shows a finished bracket bout whose node has not got its winner yet.
   3. Strict store: writing a map, an entry, a node or a team row in place throws (the nodes are store data).
 """
 import hashlib
@@ -227,19 +227,29 @@ def no_half_state(page):
           const w = KSMTest.matchSummary(m).winner, n = nodes.find(x => x.id === m.elimNodeId);
           if (w && w !== 'Hikiwake' && n?.winner?.name !== w) bad.push([types[types.length - 1], div, m.elimNodeId, w, n?.winner?.name]);
         }
+        // And the other way (an Undo's half): a node with a winner whose bout (both players, not a bye) is there but not finished.
+        for (const [div, nodes] of Object.entries(t.singleElimNodes || {})) for (const n of nodes) {
+          const m = (a.state.allMatches[div] || []).find(x => x.singleElim && x.elimNodeId === n.id);
+          if (n.winner && m && m.white && m.red && !m.done) bad.push([types[types.length - 1], div, n.id, 'a winner, its bout not finished']);
+        }
         for (const [div, nodes] of Object.entries(t.teamBracketNodes || {})) for (const n of nodes) {
           const pair = (a.state.allMatches[div] || []).filter(m => m.teamNodeId === n.id && m.teamPair === 'node-' + n.id);
           if (pair.length && pair.every(m => m.done) && !n.winner) bad.push([types[types.length - 1], div, n.id, 'team pairing done, no winner']);
         }
       };
       const off = store.subscribe(check);
-      for (const court of ['A', 'B', 'A', 'B', 'A', 'B']) for (let i = 0; i < 15; i++) { if (!KSMTest.prepareCourt(court)) break; KSMTest.play([['W', 'M']]); }
+      // #15 PR 13b (#199 review L1): Undo / Redo of each bout too, an advancing one included: the entry's bout and its node
+      // land in one notification (the bout first, plain; the node in court/undo or court/redo).
+      for (const court of ['A', 'B', 'A', 'B', 'A', 'B']) for (let i = 0; i < 15; i++) {
+        if (!KSMTest.prepareCourt(court)) break; KSMTest.play([['W', 'M']]);
+        a.undo(); a.redo(); if (i % 3 === 0) { a.undo(); a.undo(); a.redo(); a.redo(); }
+      }
       off(); store.dispatch = dispatch;
-      return {bad: bad.slice(0, 5), advanced: types.filter(t => t === 'tournament/advancementApplied').length,
+      return {bad: bad.slice(0, 5), advanced: types.filter(t => t === 'tournament/advancementApplied').length, undone: types.filter(t => t === 'court/undo').length,
         winners: Object.values(store.getState().tournament.singleElimNodes || {}).flat().filter(n => n.winner).length};
     }""")
     assert not got['bad'], got; checks += 1
-    assert got['advanced'] > 0 and got['winners'] > 0, got; checks += 1
+    assert got['advanced'] > 0 and got['winners'] > 0 and got['undone'] > 0, got; checks += 1
 
 
 def main():

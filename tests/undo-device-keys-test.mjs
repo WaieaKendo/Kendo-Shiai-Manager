@@ -19,7 +19,7 @@
 import vm from 'node:vm';
 import { extractFunction, html, withDependencies } from './lib/ksm-source.mjs';
 import { gitShow } from './lib/git-show.mjs';
-import { deriveMatches, viewHelpers } from './lib/derived-matches.mjs';
+import { deriveMatches, HISTORY_HELPERS, viewHelpers } from './lib/derived-matches.mjs';
 import { assignState, moveToStore, storeFieldPath } from '../app/modules/app-state.js';
 import { getState } from '../app/store/index.ts';
 
@@ -34,9 +34,11 @@ const STUBS = ['ksmMoveCourtPointers', 'applyCourtSides', 'renderAll', 'updateUn
   // The court view's store helpers (#15 PR 6): here they write the context's plain `state`; this device is Court A's scorekeeper.
   'ksmSetCurrentCourt', 'ksmSetPublicCourt', 'ksmShowDivision', 'canCloudWrite', 'isTvSession',
   // PR 7: state.matches is derived (deriveMatches()), current and score are written through these.
-  'ksmShowMatch', 'ksmSetScore', 'ksmEmptyScore', 'ksmResetCourtPads'];
+  'ksmShowMatch', 'ksmSetScore', 'ksmEmptyScore', 'ksmResetCourtPads',
+  // PR 13b: the history is written through these (plain-state stand-ins in viewHelpers()).
+  ...HISTORY_HELPERS];
 const entry = ['undo', 'redo', 'performCourtAction', 'applyCourtState', 'loadScoreFromMatch'].map(n => extractFunction(html, n)).join('\n');
-const newCode = '"use strict";\n' + withDependencies(html, entry, { exclude: STUBS }) + '\nlet ksmLastHistoryOutcome=null,ksmLastHistorySkipped=0;';
+const newCode = '"use strict";\n' + withDependencies(html, entry, { exclude: STUBS }) + '\nlet ksmLastHistoryOutcome=null,ksmLastHistorySkipped=0,ksmHistoryStoreValues=null;';
 const oldSource = gitShow(BASE, FILE);
 let oldCode = null;
 if (oldSource) {

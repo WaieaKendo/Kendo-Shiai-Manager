@@ -27,6 +27,7 @@ export function viewHelpers(context) {
     ksmSetScore(s) { context.state.score = { W: [...(s?.W || [])], R: [...(s?.R || [])], WT: s?.WT || 0, RT: s?.RT || 0 }; },
     ksmResetCourtPads() { context.state.current = 0; context.state.score = { W: [], R: [], WT: 0, RT: 0 }; },
     ...pointerHelpers(context),
+    ...historyHelpers(context),
   };
 }
 /**
@@ -41,5 +42,29 @@ export function pointerHelpers(context) {
       (context.pointerActions ||= []).push(type);
       for (const key of ['currentByDivision', 'courtState', 'courtActiveDivision']) if (pointers[key]) Object.assign(context.state[key] ||= {}, pointers[key]);
     },
+  };
+}
+/**
+ * #15 PR 13b: the court history is store data in the app, written through app/modules/court/court-history-store.js. In a
+ * vm test whose `state` is `context.state` these do what those actions do to it (the same lists, the same limits); the
+ * store-owned keys an Undo/Redo changed go through `context.assignState` when there are any (a test that makes a key a
+ * getter gives it the app's). Exclude 'ksmRecordCourtAction', 'ksmMoveCourtHistory', 'ksmSetCourtHistories' from
+ * withDependencies() (HISTORY_HELPERS).
+ */
+export const HISTORY_HELPERS = ['ksmRecordCourtAction', 'ksmMoveCourtHistory', 'ksmSetCourtHistories'];
+export function historyHelpers(context) {
+  const map = key => (context.state[key] ||= { A: [], B: [] });
+  const list = (key, court) => { const m = map(key); return Array.isArray(m[court]) ? m[court] : (m[court] = []); };
+  const push = (key, court, entry, limit) => { const l = list(key, court); l.push(entry); if (l.length > limit) l.splice(0, l.length - limit); };
+  return {
+    ksmRecordCourtAction(court, entry) { push('courtActionHistory', court, entry, 100); map('courtRedoHistory')[court] = []; },
+    ksmMoveCourtHistory(kind, court, log, values) {
+      const [from, to] = kind === 'undo' ? ['courtActionHistory', 'courtRedoHistory'] : ['courtRedoHistory', 'courtActionHistory'];
+      const action = list(from, court).pop();
+      if (action) push(to, court, action, 100);
+      push('courtUndoLog', court, log, 40);
+      if (Object.keys(values).length) context.assignState(values, context.state);
+    },
+    ksmSetCourtHistories(type, lists) { Object.assign(context.state, lists); },
   };
 }

@@ -2,6 +2,7 @@
 import {assignState,ksmEmptyScore,ksmSetScore,state,storeFieldPath} from '../app-state.js';
 import {maybeCreateKachinukiNext,renderAll} from './court-context-and-pool-editing.js';
 import {applyCourtState,findNextForCourt,syncOwnCourtPointer} from './court-match-order.js';
+import {KSM_UNDO_LOG_LIMIT,ksmMoveCourtHistory,ksmRecordCourtAction,ksmSetCourtHistories} from './court-history-store.js';
 import {renderScore} from './scorekeeper-screen.js';
 import {enforceUniqueIndividualMatches,maybeAdvanceChampionship,maybeCreateChampionship} from '../engine/engine-championship.js';
 import {renderPools} from '../engine/engine-generation.js';
@@ -33,19 +34,28 @@ function syncActiveScoreToMatch(){
 }
 
 // ---------- KSM v3.17.8-test Compact action-patch court Undo / Redo ----------
-const KSM_HISTORY_LIMIT=100;
+// The history is store data since #15 PR 13b (app/modules/court/court-history-store.js): each court's Undo and Redo lists
+// hold at most KSM_HISTORY_LIMIT entries, the Undo log KSM_UNDO_LOG_LIMIT (court-history-store.js).
 const KSM_HISTORY_KEYS=new Set(['courtActionHistory','courtRedoHistory','courtUndoLog']);
 const KSM_HISTORY_MISSING={__ksmMissing:true};
+/**
+ * Both courts' Undo and Redo lists exist and hold only `patch-v1` entries: one court/historyNormalized with the maps that
+ * were not so (a load of an old save), none when both are (every other call: the render runs it).
+ */
 export function ensureCourtHistory(){
-  state.courtActionHistory=state.courtActionHistory||{A:[],B:[]};
-  state.courtRedoHistory=state.courtRedoHistory||{A:[],B:[]};
-  ['A','B'].forEach(c=>{
-    if(!Array.isArray(state.courtActionHistory[c]))state.courtActionHistory[c]=[];
-    if(!Array.isArray(state.courtRedoHistory[c]))state.courtRedoHistory[c]=[];
-    // Legacy snapshot entries are intentionally discarded because they can exceed storage limits.
-    state.courtActionHistory[c]=state.courtActionHistory[c].filter(action=>action?.format==='patch-v1');
-    state.courtRedoHistory[c]=state.courtRedoHistory[c].filter(action=>action?.format==='patch-v1');
-  });
+  /** @type {any} */ const out={};
+  for(const key of ['courtActionHistory','courtRedoHistory']){
+    const map=state[key];let changed=!map;const next={...(map||{A:[],B:[]})};
+    for(const c of ['A','B']){
+      const list=Array.isArray(next[c])?next[c]:(changed=true,[]);
+      // Legacy snapshot entries are intentionally discarded because they can exceed storage limits.
+      const kept=list.filter(action=>action?.format==='patch-v1');
+      if(kept.length!==list.length)changed=true;
+      next[c]=kept.length===list.length?list:kept;
+    }
+    if(changed)out[key]=next;
+  }
+  ksmSetCourtHistories('historyNormalized',out);
 }
 function cloneHistoryValue(value){return value===undefined?{...KSM_HISTORY_MISSING}:JSON.parse(JSON.stringify(value))}
 // A key whose value is undefined is left out, as an absent key was before its group moved into the store (a moved key is a
@@ -81,12 +91,8 @@ export function performCourtAction(label,fn){
   syncOwnCourtPointer();
   ensureCourtHistory();const court=currentHistoryCourt(),before=historyComparableState();
   const result=fn();const after=historyComparableState(),patches=buildHistoryPatches(before,after).map(patch=>stampHistoryPatchMatchIdentity(patch,before,after));
-  if(patches.length){
-    const stack=state.courtActionHistory[court];
-    stack.push(withCourtHistoryIdentity({format:'patch-v1',label:label||'Action',court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',tabId:KSM_TAB_ID,revision:cloudSession?.revision||0,patches},before,after));
-    if(stack.length>KSM_HISTORY_LIMIT)stack.splice(0,stack.length-KSM_HISTORY_LIMIT);
-    state.courtRedoHistory[court]=[];
-  }
+  // The entry is built whole, then recorded with the Redo list cleared, in one court/actionRecorded (#15 PR 13b).
+  if(patches.length)ksmRecordCourtAction(court,withCourtHistoryIdentity({format:'patch-v1',label:label||'Action',court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',tabId:KSM_TAB_ID,revision:cloudSession?.revision||0,patches},before,after));
   updateUndoButton();if(typeof ksmNotifyStateChanged==='function')ksmNotifyStateChanged('court action');return result;
 }
 function historyPathParent(path,root=state){
@@ -111,33 +117,56 @@ function historyPathParent(path,root=state){
  *     applyHistoryValues() rebuilds the court view after the entry with applyCourtState(), which sets currentDivision,
  *     matches and current from courtState and reloads score from the match (as it already overwrote them before);
  *     `matches` is the alias of allMatches.<currentDivision>, so its patches repeat the same entry's allMatches patches.
- *   - A top-level patch on a key moveToStore() owns goes through the store (assignState(), undefined for a missing
- *     value) instead of `delete state[key]` / an assignment, which throw on its non-configurable getter; a deeper one
- *     is written into a copy of the key, which goes through assignState() too (#15 PR 9).
+ *   - A patch on a key moveToStore() owns is not written into `state` (its non-configurable getter throws on a
+ *     `delete state[key]` / an assignment, and the store's value is frozen data): a top-level one sets the key's new value
+ *     (undefined for a missing one), a deeper one (#15 PR 9: e.g. ['divisionCourts', d], recorded when a court action's
+ *     render gave a division its default court) is written into a copy of the key. Same values as the old in-place writes.
+ *     During an Undo/Redo (#15 PR 13b) the new values are collected in ksmHistoryStoreValues and go to the store in the
+ *     entry's one court/undo or court/redo, after every plain write (allMatches); a patch applied on its own goes through
+ *     assignState() at once.
  */
 function applyHistoryPatch(patch,direction){
   const value=patch?.[direction],path=patch?.path||[];
   if(!path.length||KSM_LOCAL_VIEW_STATE_KEYS.has(path[0]))return;
-  const missing=value&&value.__ksmMissing===true;
-  if(path.length===1&&storeFieldPath(String(path[0]),state)){assignState({[path[0]]:missing?undefined:JSON.parse(JSON.stringify(value))},state);return}
-  // A deeper path into a store-owned key (#15 PR 9: e.g. ['divisionCourts', d], recorded when a court action's render gave
-  // a division its default court) is written into a copy of that key, which goes back through assignState(): the store's
-  // value is frozen data. Same result as the old in-place write.
-  const owned=storeFieldPath(String(path[0]),state)?{[path[0]]:JSON.parse(JSON.stringify(state[path[0]]??null))}:null;
-  const {target,key}=historyPathParent(path,owned?/** @type {any} */ (owned):state);
+  const missing=value&&value.__ksmMissing===true,key=String(path[0]);
+  if(!storeFieldPath(key,state)){writeHistoryValue(state,path,value,missing);return}
+  /** @type {Record<string,unknown>} */ const values=ksmHistoryStoreValues||{};
+  if(path.length===1)values[key]=missing?undefined:JSON.parse(JSON.stringify(value));
+  else{
+    // The key's copy: the one an earlier patch of this entry made, else the store's value.
+    const owned={[key]:Object.hasOwn(values,key)?values[key]:JSON.parse(JSON.stringify(state[key]??null))};
+    writeHistoryValue(owned,path,value,missing);
+    values[key]=owned[key];
+  }
+  if(!ksmHistoryStoreValues)assignState(values,state);
+}
+/** Writes a patch's value (or removes it, `missing`) at `path` under `root`, creating missing parents. */
+function writeHistoryValue(root,path,value,missing){
+  const {target,key}=historyPathParent(path,root);
   if(Array.isArray(target)&&typeof key==='number'){
     if(missing){if(key>=0&&key<target.length)target.splice(key,1)}
     else if(key>=target.length)target.splice(key,0,JSON.parse(JSON.stringify(value)));
     else target[key]=JSON.parse(JSON.stringify(value));
   }else if(missing)delete target[key];
   else target[key]=JSON.parse(JSON.stringify(value));
-  if(owned)assignState(owned,state);
 }
+/** The store-owned keys an Undo/Redo entry's patches change, while it is applied: key → its new value (#15 PR 13b). */
+/** @type {Record<string,unknown>|null} */ let ksmHistoryStoreValues=null;
+/**
+ * Applies `action`'s patches for an Undo ('before') or a Redo ('after'): the plain keys (allMatches) in `state`, the
+ * store-owned keys' new values returned (dispatched by the caller with the history move). Null for an entry without
+ * patches (nothing applied, no court view to rebuild).
+ * @returns {Record<string,unknown>|null}
+ */
 function applyHistoryValues(action,direction){
-  if(action?.format==='patch-v1'&&Array.isArray(action.patches)){
-    ksmLastHistoryOutcome=applyCourtHistoryEntry(action,direction);
-    
-  }else return;
+  if(!(action?.format==='patch-v1'&&Array.isArray(action.patches)))return null;
+  ksmHistoryStoreValues={};
+  // A throw midway leaves the plain writes made so far (as before) and no store key: the entry stays on its list
+  // (docs/STORE.md section 3 item 13, PR 13b's known difference).
+  try{ksmLastHistoryOutcome=applyCourtHistoryEntry(action,direction);return ksmHistoryStoreValues}finally{ksmHistoryStoreValues=null}
+}
+/** After an Undo/Redo: the court view rebuilt from the court's pointer (applyCourtState() reloads the pad from the match), everything drawn. */
+function rebuildCourtViewAfterHistory(){
   ensureCourtHistory();
   const court=currentHistoryCourt();
   const cs=state.courtState?.[court]||{division:state.currentDivision,index:state.current||0};
@@ -152,9 +181,9 @@ export function updateUndoButton(){
 }
 // F30: an Undo or Redo removes or re-adds an action instead of adding one, so a save conflict's
 // rebase (18-, replayPendingCourtHistory()) had nothing to replay and the server copy brought the
-// undone point back. Each Undo/Redo is also logged here (per court, with the action's patches and
-// who/when, like a court action) so the rebase replays it in time order with the court actions.
-export const KSM_UNDO_LOG_LIMIT=40;
+// undone point back. Each Undo/Redo is also logged (per court, with the action's patches and
+// who/when, like a court action: courtUndoLogEntry()) so the rebase replays it in time order with the court actions.
+export {KSM_UNDO_LOG_LIMIT};
 /** The match lists of the divisions `action` changes, before its Undo/Redo is applied (for courtUndoMatchOps()). */
 function courtUndoMatchesBefore(action){
   const out={};
@@ -201,14 +230,12 @@ function withCourtMatchOps(entry,beforeAll,afterAll){
   const matchOps=courtUndoMatchOps(divisions,afterAll);if(matchOps)entry.matchOps=matchOps;
   return entry;
 }
-function recordCourtUndoLog(court,kind,action,matchesBefore){
-  state.courtUndoLog=state.courtUndoLog||{A:[],B:[]};
-  const log=Array.isArray(state.courtUndoLog[court])?state.courtUndoLog[court]:(state.courtUndoLog[court]=[]);
+/** The F30 Undo log entry of an Undo/Redo (`action` as it applied, courtHistoryAppliedEntry()), recorded with its history move. */
+function courtUndoLogEntry(court,kind,action,matchesBefore){
   const entry={format:'history-op-v1',kind,court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',tabId:KSM_TAB_ID,revision:cloudSession?.revision||0,
     target:historyEntryIdentity(action),label:action.label||'Action',patches:cloneJson(action.patches||[])};
   const matchOps=courtUndoMatchOps(matchesBefore);if(matchOps)entry.matchOps=matchOps;
-  log.push(entry);
-  if(log.length>KSM_UNDO_LOG_LIMIT)log.splice(0,log.length-KSM_UNDO_LOG_LIMIT);
+  return entry;
 }
 /**
  * External PR #33 review: an ordinary Undo/Redo on the device applied the entry's patches by array
@@ -297,7 +324,7 @@ function applyCourtHistoryEntry(action,direction){
     result.applied.forEach(patch=>applied.push(undoing?{...patch,before:patch.after,after:patch.before}:patch));
   });
   // `matches` (a device key) is never written (applyHistoryPatch()); which of its patches count as applied is kept as
-  // before, so the Undo log entry (recordCourtUndoLog()) is the same as 4.0 writes.
+  // before, so the Undo log entry (courtUndoLogEntry()) is the same as 4.0 writes.
   const aliased=Object.keys(byDivision).find(div=>state.matches&&state.matches===state.allMatches?.[div]);
   const ordered=undoing?[...all].reverse():all,indexFields=[];
   ordered.forEach(patch=>{
@@ -333,18 +360,30 @@ function courtHistorySkippedNote(kind){
   if(typeof showKsmToast==='function')showKsmToast(`${kind}: a match it changed no longer exists, so that part was not applied`,3500,true);
   return ' (part of it was not applied: a match it changed no longer exists)';
 }
+/**
+ * An Undo ('undo': `action` is the court's last action) or a Redo ('redo': its last undone one), #15 PR 13b: the entry's
+ * patches on plain keys (allMatches) are written first, then one court/undo or court/redo moves the entry to the other
+ * list, appends the F30 log entry and puts every store-owned key the entry changed (bracket nodes, pointers, …) in place,
+ * so no store notification shows half an entry (#199 review L1: a node's winner before its bout). Then the court view is
+ * rebuilt from the court's pointer and everything is drawn, as before.
+ */
+function moveCourtHistory(kind,court,action){
+  const matchesBefore=courtUndoMatchesBefore(action),values=applyHistoryValues(action,kind==='undo'?'before':'after');
+  ksmMoveCourtHistory(kind,court,courtUndoLogEntry(court,kind==='undo'?'UNDO':'REDO',courtHistoryAppliedEntry(action),matchesBefore),values||{});
+  if(values)rebuildCourtViewAfterHistory();
+}
 export function undo(){
   syncOwnCourtPointer();
-  ensureCourtHistory();const court=currentHistoryCourt(),stack=state.courtActionHistory[court];const action=stack.pop();
+  ensureCourtHistory();const court=currentHistoryCourt(),stack=state.courtActionHistory[court],action=stack[stack.length-1];
   if(!action){updateSaveStatus('Nothing to undo');updateUndoButton();return}
-  const matchesBefore=courtUndoMatchesBefore(action);applyHistoryValues(action,'before');recordCourtUndoLog(court,'UNDO',courtHistoryAppliedEntry(action),matchesBefore);state.courtRedoHistory[court].push(action);if(state.courtRedoHistory[court].length>KSM_HISTORY_LIMIT)state.courtRedoHistory[court].shift();
+  moveCourtHistory('undo',court,action);
   updateUndoButton();updateSaveStatus('Undid '+action.label+courtHistorySkippedNote('Undo'));criticalAutoSave('Undo: '+action.label);
 }
 export function redo(){
   syncOwnCourtPointer();
-  ensureCourtHistory();const court=currentHistoryCourt(),stack=state.courtRedoHistory[court];const action=stack.pop();
+  ensureCourtHistory();const court=currentHistoryCourt(),stack=state.courtRedoHistory[court],action=stack[stack.length-1];
   if(!action){updateSaveStatus('Nothing to redo');updateUndoButton();return}
-  const matchesBefore=courtUndoMatchesBefore(action);applyHistoryValues(action,'after');recordCourtUndoLog(court,'REDO',courtHistoryAppliedEntry(action),matchesBefore);state.courtActionHistory[court].push(action);if(state.courtActionHistory[court].length>KSM_HISTORY_LIMIT)state.courtActionHistory[court].shift();
+  moveCourtHistory('redo',court,action);
   updateUndoButton();updateSaveStatus('Redid '+action.label+courtHistorySkippedNote('Redo'));criticalAutoSave('Redo: '+action.label);
 }
 // The score pad is store data (state.score, device/scoreChanged, #15 PR 7): each change builds a new pad.

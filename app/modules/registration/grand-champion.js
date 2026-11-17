@@ -3,6 +3,7 @@ import {ksmEmptyScore,ksmSetScore,ksmShowMatch,state} from '../app-state.js';
 import {ksmSetDivisionCourt} from '../setup/divisions-store.js';
 import {renderAll} from '../court/court-context-and-pool-editing.js';
 import {findNextForCourt,renderDivisions} from '../court/court-match-order.js';
+import {ksmSetCourtHistories} from '../court/court-history-store.js';
 import {ksmResolveCourts} from '../court/court-pointers-store.js';
 import {enforceUniqueIndividualMatches,maybeAdvanceChampionship,maybeCreateChampionship} from '../engine/engine-championship.js';
 import {generateDivisionState} from '../engine/engine-generation.js';
@@ -125,22 +126,35 @@ function ksmGrandChampionStructure(id){
 const KSM_GC_STRUCTURE_KEYS=['pools','teamPools','allMatches','singleElimNodes','singleElimComps','teamBracketNodes','teamElimTeams','brackets','championshipNodes','byeWinners','currentByDivision'];
 // Undo / Redo of a score for a draw that no longer exists must not land on its replacement (the
 // bracket match keeps its identity whoever plays it): those parts of the courts' history go too.
+// The history is store data (#15 PR 13b): the lists that change go in one court/historyForgotten (none when none does).
 function ksmForgetGrandChampionHistory(id){
+  /** @type {any} */ const out={};
   ['courtActionHistory','courtRedoHistory'].forEach(key=>['A','B'].forEach(c=>{
     const stack=state[key]?.[c];if(!Array.isArray(stack))return;
-    state[key][c]=stack.map(a=>a&&Array.isArray(a.patches)&&a.patches.some(p=>p?.path?.[0]==='allMatches'&&p.path[1]===id)
+    const next=stack.map(a=>a&&Array.isArray(a.patches)&&a.patches.some(p=>p?.path?.[0]==='allMatches'&&p.path[1]===id)
       ?{...a,patches:a.patches.filter(p=>!(p?.path?.[0]==='allMatches'&&p.path[1]===id))}:a)
       .filter(a=>!a||!Array.isArray(a.patches)||a.patches.length);
+    if(next.length!==stack.length||next.some((a,i)=>a!==stack[i]))(out[key]||={...state[key]})[c]=next;
   }));
+  ksmSetCourtHistories('historyForgotten',out);
 }
 function ksmClearGrandChampionStructure(id,keepCourts=false){
   let had=false;
   // The plain parts are deleted, then the draw's own entries go in one tournament/divisionCleared (#15 PR 12a).
   // (`currentByDivision`, the court pointers' map since #15 PR 13a, goes with the draw's entries.)
   KSM_GC_STRUCTURE_KEYS.forEach(k=>{if(state[k]&&Object.hasOwn(state[k],id)){if(k==='allMatches')delete state[k][id];had=true}});
-  ksmSetDraw('divisionCleared',ksmDrawWith(id,{},[...KSM_DRAW_KEYS,'currentByDivision']));
+  // A court on the draw is re-resolved in the same tournament/divisionCleared (#15 PR 13b, #201 review L2): no store
+  // notification shows it on the deleted list. Its next bout is found on the lists without this draw (allMatches, deleted
+  // above), as the court/pointersResolved after the clear found it; a draw already gone keeps that separate action.
+  const draw=ksmDrawWith(id,{},[...KSM_DRAW_KEYS,'currentByDivision']),courts=keepCourts?[]:['A','B'].filter(c=>state.courtState?.[c]?.division===id);
+  if(courts.length&&Object.keys(draw).length){
+    const courtState={...state.courtState},courtActiveDivision={...state.courtActiveDivision};
+    for(const c of courts){const cs=findNextForCourt(c,null,0);courtState[c]=cs;courtActiveDivision[c]=cs.division}
+    Object.assign(draw,{courtState,courtActiveDivision});courts.length=0;
+  }
+  ksmSetDraw('divisionCleared',draw);
   if(had)ksmForgetGrandChampionHistory(id);
-  if(!keepCourts)ksmResolveCourts(['A','B'].filter(c=>state.courtState?.[c]?.division===id),c=>findNextForCourt(c,null,0));
+  if(courts.length)ksmResolveCourts(courts,c=>findNextForCourt(c,null,0));
   if(state.currentDivision===id&&had){ksmSetScore(ksmEmptyScore());state.history=[]}
   // state.matches follows allMatches[currentDivision] (derived, #15 PR 7): [] once the draw is gone.
   if(state.currentDivision===id&&!state.allMatches?.[id])ksmShowMatch(0);
