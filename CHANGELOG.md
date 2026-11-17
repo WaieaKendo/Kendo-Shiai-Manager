@@ -3,6 +3,7 @@
 - The grand champion bracket now follows the order of its divisions (1st plays 2nd, 3rd plays 4th, and so on; with 7, the last division plays the winner of the 3rd match), so the matchups are the same whoever wins. Before, they were placed by the winners' names and dojos and changed from one tournament to the next.
 - Setup shows the grand champion bracket (from 3 divisions, single elimination): each match with its divisions, and who plays for each once their division is decided. Tap a division, then another, to swap their places, until the match is drawn. A division you add goes in at its place in the running order.
 - A bracket that is drawn but not started yet is drawn again in the new order if its divisions are reordered, including on another device. Once the first bout is played, the order alone no longer changes it.
+- Setup's divisions table: the "Use" column is now "Enabled".
 
 ## v4.0.0-rc.6 — Court Queue running order
 

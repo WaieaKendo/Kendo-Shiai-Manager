@@ -1,5 +1,5 @@
 // The Setup screen (#setup): the parts React draws, the Individual Divisions table's rows
-// (#divisionSetupRows: Use, the division, its format and its court; × on a custom division) and
+// (#divisionSetupRows: Enabled, the division, its format and its court; × on a custom division) and
 // the tournament name in the hero (#setupTournamentName). Everything else on Setup (the fields,
 // Add Custom Division, the team, exhibition, referee and court-side settings) is legacy markup:
 // the legacy code reads and writes those fields by id synchronously.
@@ -23,7 +23,7 @@ export interface SetupDivisionRowInput {
   division: string;
   /** Its name as esc() showed it. */
   name: string;
-  /** In state.divisions (Use checked; the selects enabled). */
+  /** In state.divisions (Enabled checked; the selects enabled). */
   enabled: boolean;
   /** Not a preset: marked "custom". */
   custom: boolean;

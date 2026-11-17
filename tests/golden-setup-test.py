@@ -2,7 +2,7 @@
 
 Setup shows the tournament details (name, Short URL, host, date, location, courts), the
 Individual Divisions table (#divisionSetupRows: a row per preset division and per custom
-division, with Use, the name, the format and the court; a custom row has × to remove it) and
+division, with Enabled, the name, the format and the court; a custom row has × to remove it) and
 Add Custom Division, the Team Tournament settings (enabled, team match format, tournament
 format, court, team awards), Exhibition Matches, the referees and each court's red side, and
 Save Setup & Continue; the hero repeats the tournament name (#setupTournamentName). The
@@ -432,7 +432,7 @@ def setup_live(browser, react_check):
     g.do('name: typing on after the redraw', lambda a: a.page.keyboard.type('!'))
     g.do("a live update's redraw with the focus in a division's format", lambda a: (
         a.page.locator(in_row(WOMEN, 'setup-division-format')).focus(), a.page.evaluate('() => KSMTest.app.renderAll()')))
-    g.do("a live update's redraw with the focus on a division's Use box", lambda a: (
+    g.do("a live update's redraw with the focus on a division's Enabled box", lambda a: (
         a.page.locator(in_row(WOMEN, 'setup-division-enabled')).focus(), a.page.evaluate('() => KSMTest.app.renderAll()')))
     g.do('referees: typing', lambda a: type_into(a.page, '#court2Refs', 'Ref One\nRef T'))
     g.do("a live update's redraw while typing referees", lambda a: a.page.evaluate('() => KSMTest.app.renderAll()'))
