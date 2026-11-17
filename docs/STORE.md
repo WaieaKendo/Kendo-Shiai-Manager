@@ -739,7 +739,7 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
       (`moveToStore()`, `app-state.js`): the first two at the literal's places with `{A: [], B: []}`; the Undo log's getter
       comes last (it was never in the literal) and is undefined until the first Undo/Redo, so the snapshot leaves it out
       as before. The snapshot keeps every key, value, type and order, the entries' patch order included
-      (`tests/court-history-store-test.py` compares every key of the saved `state` with the PR 13a code's after 62 steps,
+      (`tests/court-history-store-test.py` compares every key of the saved `state` with the PR 13a code's after 60 steps,
       the history exactly: points, hansoku, Next Match, each undone and redone on both courts; a new action clearing Redo;
       an advancing bracket bout and a tiebreak-drawing Next Match undone and redone; the 100-entry limit; the 40-entry Undo
       log limit; a Redo after a remote apply; a 4.0-shaped save with old entries (no identities, a pre-`patch-v1` entry);
@@ -769,7 +769,9 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
       name with their reason: Generate Tournament (`drawReset` empties every draw; the courts are re-resolved at its end by
       `initCourtStates()`, which needs the new draw; resetting them in `drawReset` would change the saved pointers when
       nothing gets drawn), and the grand champion's draw (`ksmDrawGrandChampion()`: a court on it is kept through its clear
-      and new draw and re-resolved after it, from the new lists).
+      and new draw and re-resolved after it, from the new lists). Each is allowed only from the action that opens it
+      (`drawReset`, `divisionCleared`) until the court is re-resolved or the draw is back, for a court on that division, and
+      the test fails if either never occurs (a step redraws the grand champion with a court on it).
     - **Save conflicts**: unchanged. The rebase's history merge, the match-op replay (`replayCourtMatchOps`) and the F30 log
       replay run on payload copies; the result lands through `replaceState()` (fixture: two courts scoring, then one
       undoes; an Undo here while the other court's entry arrives; the F30 log replayed; a Redo here against the other
@@ -779,8 +781,10 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
       the vm tests get plain-state stand-ins (`historyHelpers()`, `tests/lib/derived-matches.mjs`). A source check
       (`tests/store/court-history.test.mjs`) fails on an assignment, a `delete` or a list method on the three in app code.
     - Known difference on an error path only: an Undo/Redo whose patches throw midway left the entry popped (lost) and the
-      store keys written so far; now the entry stays on its list and no store key is written (the plain writes made before
-      the throw stay, as before).
+      store keys written so far; now the entry stays on its list and no store key is written, while the plain `allMatches`
+      writes made before the throw stay (as before). So such a throw can leave a bout changed without its node or pointer;
+      before, it left whichever of them came first in the entry. Dispatching the collected keys on a throw is not done:
+      without the history move it would leave an entry that is half applied and still on the Undo list.
     - Measured (headless Chromium, 6x CPU throttling, 6 divisions of 16 on split courts, 48 bouts and 15 applies per run,
       production build, before and after interleaved): a point + Undo + Redo 43-45 ms both; Next Match 22-23 ms both; a
       remote snapshot apply 21-23 ms before, 18-21 ms after. The strict test build pays for freezing (a load 23-27 → 30 ms).
@@ -888,7 +892,7 @@ call commands instead of window functions.
   source changed.
 - PR 13b (the court history): the store bundle 9,553 → 9,736 bytes gzip (25,427 → 25,896 raw: five `court/…` action names,
   the two initial maps, and `applyStoreWrites()` as a path copy instead of an Immer update, +100 of it), over the 9,600
-  budget, which is now 9,800 (`tests/store-bundle-test.mjs`; the history reducers on Immer drafts were 9,907 and walked
+  budget, which is now 9,750 (`tests/store-bundle-test.mjs`; the history reducers on Immer drafts were 9,907 and walked
   the whole list on each point); app.js 704,181 → 711,705 bytes (gzip 186,279 → 188,682); no React source changed.
 - Re-renders: `store.subscribe` listeners run on every dispatch, so selectors must be cheap and return stable
   references. A remote snapshot is one action, one notification (today `ksmNotifyStateChanged` coalesces per

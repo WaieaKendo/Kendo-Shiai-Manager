@@ -161,6 +161,8 @@ function writeHistoryValue(root,path,value,missing){
 function applyHistoryValues(action,direction){
   if(!(action?.format==='patch-v1'&&Array.isArray(action.patches)))return null;
   ksmHistoryStoreValues={};
+  // A throw midway leaves the plain writes made so far (as before) and no store key: the entry stays on its list
+  // (docs/STORE.md section 3 item 13, PR 13b's known difference).
   try{ksmLastHistoryOutcome=applyCourtHistoryEntry(action,direction);return ksmHistoryStoreValues}finally{ksmHistoryStoreValues=null}
 }
 /** After an Undo/Redo: the court view rebuilt from the court's pointer (applyCourtState() reloads the pad from the match), everything drawn. */
