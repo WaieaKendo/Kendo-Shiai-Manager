@@ -1,3 +1,8 @@
+## v4.0.0-rc.7 — Grand champion bracket order
+
+- The grand champion bracket now follows the order of its divisions (1st plays 2nd, 3rd plays 4th, and so on; with 7, the last division plays the winner of the 3rd match), so the matchups are the same whoever wins. Before, they were placed by the winners' names and dojos and changed from one tournament to the next.
+- Setup lists the grand champion's divisions in that bracket order, and ‹ › on each division moves it until the match is drawn. A division you add goes in at its place in the running order.
+
 ## v4.0.0-rc.6 — Court Queue running order
 
 - The Court Queue shows the division being played as a header ("Now") over its rounds, then the court's remaining divisions in running order, one line each: "Up next" on the first, its match count on this court, and "also on Court B" for a division on both courts. Display only: Continue still decides what comes next.
