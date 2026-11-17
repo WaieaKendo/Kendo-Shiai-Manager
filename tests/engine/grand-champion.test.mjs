@@ -15,7 +15,7 @@ const gc = (over = {}) => ({ ...newGrandChampion('gc:1', 0, ['Open', 'Women']), 
 const done = (winner, runnerUp) => ({ complete: true, winner: { name: winner, dojo: winner + ' Dojo' }, runnerUp: runnerUp ? { name: runnerUp, dojo: runnerUp + ' Dojo' } : null });
 const results = { Open: done('Aki', 'Ben'), Women: done('Cora', 'Dee') };
 const draw = (row, entrants) => {
-  const plan = generateDivision({ division: row.id, competitors: grandChampionCompetitors(row.id, entrants), teams: [], divisionType: grandChampionFormat(row), courtMode: row.court, settings: readSettings({}) });
+  const plan = generateDivision({ division: row.id, competitors: grandChampionCompetitors(row.id, entrants), teams: [], divisionType: grandChampionFormat(row), courtMode: row.court, settings: readSettings({}), keepOrder: true });
   // The app then fills the bracket's sides (syncIndividualSingleElim(), 06-).
   const matches = plan.matches.map(m => ({ ...m }));
   if (plan.kind === 'singleElim') syncIndividualSingleElim(plan.singleElimNodes, matches, plan.singleElimComps, row.court).updates.forEach(u => Object.assign(matches[u.index], u.set));
@@ -204,4 +204,22 @@ test('a grand champion bracket follows its sources (1st vs 2nd, 3rd vs 4th, the 
   // Without keepOrder (any other division) the usual placement still applies.
   const usual = generateDivision({ division: 'Open', competitors: ['Zed', 'Amy', 'Moe'].map(name => ({ name, dojo: 'D', division: 'Open', seed: '', status: 'Checked' })), teams: [], divisionType: 'Single Elimination', courtMode: 'A', settings: readSettings({}) });
   assert.notDeepEqual(usual.singleElimComps.map(c => c.name), ['Zed', 'Amy', 'Moe'], 'placed by name, not registration order');
+});
+
+test('a reorder before the first bout draws the bracket again (also one made on another device); once started, the order alone changes nothing', () => {
+  const three = { ...results, Masters: done('Eli', 'Fay') };
+  const row = gc({ sources: ['Open', 'Women', 'Masters'] }), now = grandChampionEntrants(row, three);
+  const drawn = draw(row, now.entrants);
+  assert.deepEqual(drawn.singleElimComps.map(c => c.name), ['Aki', 'Cora', 'Eli']);
+  assert.deepEqual(grandChampionPlan(row, now, drawn), { kind: 'none' });
+  const moved = { ...row, sources: ['Masters', 'Open', 'Women'] }, reordered = grandChampionEntrants(moved, three);
+  const plan = grandChampionPlan(moved, reordered, drawn);
+  assert.equal(plan.kind, 'draw'); assert.deepEqual(plan.entrants.map(e => e.name), ['Eli', 'Aki', 'Cora']);
+  // Started: the same players in another order is not a change (no question, no redraw).
+  const started = { ...drawn, matches: drawn.matches.map((m, i) => i === 0 ? { ...m, wp: ['M'] } : m) };
+  assert.deepEqual(grandChampionPlan(moved, reordered, started), { kind: 'none' });
+  // A pool's order is its own draw: a reorder does not redraw it.
+  const pool = gc({ sources: ['Open', 'Women', 'Masters'], format: 'Round Robin' });
+  const pooled = draw(pool, now.entrants);
+  assert.deepEqual(grandChampionPlan({ ...pool, sources: ['Masters', 'Open', 'Women'] }, reordered, pooled), { kind: 'none' });
 });

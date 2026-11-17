@@ -51,6 +51,7 @@ function Card({ input, row }: { input: GrandChampionSetupInput; row: GrandChampi
   );
   const options = grandChampionSourceOptions(input, row);
   const chosen = options.filter(o => o.checked), open = options.filter(o => !o.checked);
+  const hintId = `grand-champion-hint-${row.id}`;
   return (
     <div className="setup-gc-card" data-testid="grand-champion-row" data-grand-champion-id={row.id}>
       <div className="setup-gc-fields">
@@ -66,19 +67,19 @@ function Card({ input, row }: { input: GrandChampionSetupInput; row: GrandChampi
       </div>
       <div className="field">
         <label>{GC_TEXTS.sourcesLabel}</label>
-        {chosen.length > 2 && <p className="setup-gc-note setup-gc-hint">{GC_TEXTS.sourcesHint}</p>}
-        <div className="setup-gc-chips" role="group" aria-label={`${GC_TEXTS.sourcesLabel} — ${row.name}`}>
+        {chosen.length > 2 && <p className="setup-gc-note setup-gc-hint" id={hintId}>{GC_TEXTS.sourcesHint}</p>}
+        <div className="setup-gc-chips" role="group" aria-label={`${GC_TEXTS.sourcesLabel} — ${row.name}`} aria-describedby={chosen.length > 2 ? hintId : undefined}>
           {chosen.map((o, i) => (
             <span key={o.key} className={`setup-gc-chip${o.missing ? ' setup-gc-missing' : ''}`} data-testid="grand-champion-chip" data-division={o.key}>
               {chosen.length > 1 && (
                 <button type="button" className="setup-gc-chip-move" disabled={!can.sources || i === 0}
-                  title={!can.sources ? drawnTip : gcSourceMoveLabel(o.name, row.name, 'up')} aria-label={gcSourceMoveLabel(o.name, row.name, 'up')}
+                  title={!can.sources ? drawnTip : gcSourceMoveLabel(o.name, row.name, 'up', i === 0)} aria-label={gcSourceMoveLabel(o.name, row.name, 'up', i === 0)}
                   onClick={() => run(w.ksmMoveGrandChampionSource?.(row.id, o.key, 'up'))} data-testid="grand-champion-source-up">‹</button>
               )}
               {o.name}{o.missing ? ` ${GC_TEXTS.missing}` : ''}
               {chosen.length > 1 && (
                 <button type="button" className="setup-gc-chip-move" disabled={!can.sources || i === chosen.length - 1}
-                  title={!can.sources ? drawnTip : gcSourceMoveLabel(o.name, row.name, 'down')} aria-label={gcSourceMoveLabel(o.name, row.name, 'down')}
+                  title={!can.sources ? drawnTip : gcSourceMoveLabel(o.name, row.name, 'down', i === chosen.length - 1)} aria-label={gcSourceMoveLabel(o.name, row.name, 'down', i === chosen.length - 1)}
                   onClick={() => run(w.ksmMoveGrandChampionSource?.(row.id, o.key, 'down'))} data-testid="grand-champion-source-down">›</button>
               )}
               <button type="button" disabled={!can.sources} title={!can.sources ? drawnTip : undefined} aria-label={gcSourceRemoveLabel(o.name, row.name)}

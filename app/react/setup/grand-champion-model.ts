@@ -128,4 +128,6 @@ export function grandChampionStatus(row: GrandChampionRowInput): { tone: 'info' 
 export const gcMoveLabel = (name: string, direction: 'up' | 'down') => `Move ${direction} — ${name}`;
 export const gcRemoveLabel = (name: string) => `Remove — ${name}`;
 export const gcSourceRemoveLabel = (division: string, name: string) => `Remove ${division} — ${name}`;
-export const gcSourceMoveLabel = (division: string, name: string, direction: 'up' | 'down') => `Move ${division} ${direction === 'up' ? 'earlier' : 'later'} — ${name}`;
+/** A source's ‹ / › label; at the end it cannot move past, it says so. */
+export const gcSourceMoveLabel = (division: string, name: string, direction: 'up' | 'down', atEnd = false) =>
+  atEnd ? `${division} is already ${direction === 'up' ? 'first' : 'last'} — ${name}` : `Move ${division} ${direction === 'up' ? 'earlier' : 'later'} — ${name}`;

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { grandChampionControls, grandChampionSourceOptions, grandChampionStatus } from '../../app/react/setup/grand-champion-model.ts';
+import { gcSourceMoveLabel, grandChampionControls, grandChampionSourceOptions, grandChampionStatus } from '../../app/react/setup/grand-champion-model.ts';
 
 const row = (over = {}) => ({
   id: 'gc:1', name: 'Grand Champion', sources: ['Open', 'Women'], format: 'Single Elimination', court: 'B', awardMode: 'top1',
@@ -36,4 +36,11 @@ test('status: error, decision, champion, duplicate, playing, waiting', () => {
   const entrants = [{ name: 'Ben', via: 'runner-up', source: 'Open' }, { name: 'Cora', via: 'fusen-sho', source: 'Women' }];
   assert.equal(grandChampionStatus(row({ drawn: true, started: true, entrants })).text, 'Playing on Court B: Ben (for Open, runner-up) vs Cora (withdrew: Fusen-sho)');
   assert.equal(grandChampionStatus(row({ waiting: ['Women'], entrants: [{ name: 'Aki', via: 'winner', source: 'Open' }, null] })).text, 'Waiting for Women (so far: Aki from Open)');
+});
+
+test('source move labels: earlier / later, and at the end that it is already first / last', () => {
+  assert.equal(gcSourceMoveLabel('Open', 'Grand Champion', 'up'), 'Move Open earlier — Grand Champion');
+  assert.equal(gcSourceMoveLabel('Open', 'Grand Champion', 'down'), 'Move Open later — Grand Champion');
+  assert.equal(gcSourceMoveLabel('Open', 'Grand Champion', 'up', true), 'Open is already first — Grand Champion');
+  assert.equal(gcSourceMoveLabel('Women', 'Grand Champion', 'down', true), 'Women is already last — Grand Champion');
 });
