@@ -434,9 +434,20 @@ def bracket_cases(browser):
     assert 'swap with Masters' in page.locator('.setup-gc-hint').inner_text()
     slot('Masters').click()
     assert slot('Masters').get_attribute('aria-pressed') == 'false'
+    assert slot('Masters').get_attribute('aria-label') == '3. Masters, F: pick to swap its place', slot('Masters').get_attribute('aria-label')
     slot('Masters').click(); slot('Open').click()
     page.wait_for_function("KSMTest.grandChampions()[0]?.sources.join()==='Masters,Women,Open'")
     assert matches() == ['SF1: Masters vs Women', 'F: Winner SF1 vs Open'], matches()
+    assert page.locator('.setup-gc-hint').inner_text() == 'Swapped Masters and Open.'
+    # A pick does not outlive the order it was made on (here another device's swap arrives).
+    slot('Women').click()
+    assert slot('Women').get_attribute('aria-pressed') == 'true'
+    gc_id = page.evaluate('KSMTest.grandChampions()[0].id')
+    page.evaluate("id=>ksmSwapGrandChampionSources(id,'Masters','Open')", gc_id)
+    page.wait_for_function("KSMTest.grandChampions()[0]?.sources.join()==='Open,Women,Masters'")
+    page.wait_for_function("document.querySelector('[data-testid=grand-champion-slot][data-division=Women]').getAttribute('aria-pressed')==='false'")
+    slot('Open').click(); slot('Masters').click()
+    page.wait_for_function("KSMTest.grandChampions()[0]?.sources.join()==='Masters,Women,Open'")
     # The draw follows: Masters' and Women's winners meet first, Open's winner waits in the Final.
     page.evaluate('KSMTest.app.generatePools({validated:true})')
     gc = page.evaluate('KSMTest.grandChampions()[0].id')

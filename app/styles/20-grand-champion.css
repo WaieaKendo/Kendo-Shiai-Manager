@@ -15,6 +15,7 @@
 .setup-gc-slot{display:flex;align-items:baseline;gap:8px;width:100%;min-height:40px;margin:0;padding:8px 10px;border:0;border-radius:0;background:transparent;color:var(--ink);font:inherit;font-weight:600;text-align:left}
 .setup-gc-slot+.setup-gc-slot{border-top:1px solid var(--line)}
 button.setup-gc-slot{cursor:pointer}
+button.setup-gc-slot:focus-visible{outline:2px solid var(--ksm-gold);outline-offset:-3px}
 button.setup-gc-slot:hover{background:var(--ksm-gold-soft)}
 .setup-gc-slot.setup-gc-slot-picked{background:var(--ksm-gold-soft);box-shadow:inset 3px 0 0 var(--ksm-gold)}
 .setup-gc-slot-from{color:var(--muted);font-weight:400}

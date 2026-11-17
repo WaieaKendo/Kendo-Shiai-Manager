@@ -7,7 +7,7 @@
 // which saves and publishes again. Cards are keyed by their id, so a redraw keeps a name being typed; a
 // refused change is shown in the card (role="alert"). A disabled control says why (title).
 // No colors of its own: the Setup CSS, app/styles/20-grand-champion.css and theme tokens.
-import { Fragment, useState, useSyncExternalStore } from 'react';
+import { Fragment, useEffect, useState, useSyncExternalStore } from 'react';
 import {
   EMPTY_GRAND_CHAMPION_SETUP, GC_AWARD_OPTIONS, GC_COURT_OPTIONS, GC_FORMAT_OPTIONS, GC_MULTIPLE, GC_TEXTS,
   gcMoveLabel, gcRemoveLabel, gcSourceRemoveLabel, gcSwapLabel, grandChampionBracket, grandChampionControls, grandChampionSourceOptions, grandChampionStatus,
@@ -42,37 +42,47 @@ const snapshot = () => gcWindow().ksmGrandChampionSetupInput ?? EMPTY_GRAND_CHAM
  */
 function Bracket({ input, row, editable, drawnTip, run }: { input: GrandChampionSetupInput; row: GrandChampionRowInput; editable: boolean; drawnTip?: string | undefined; run: (r: string | null | undefined) => void }) {
   const [picked, setPicked] = useState<string | null>(null);
+  // What the live hint says after a swap (until the next tap).
+  const [swapped, setSwapped] = useState<string | null>(null);
+  // A pick never outlives the sources it was made on or the bracket being editable (another device's
+  // change, a division removed and added back, the draw locking it).
+  const sourcesKey = row.sources.join('\u0001');
+  useEffect(() => { setPicked(null); }, [sourcesKey, editable]);
   const rounds = grandChampionBracket(input, row);
   if (!rounds) return null;
   const pick = picked && row.sources.includes(picked) && editable ? picked : null;
   const nameOf = (key: string) => input.divisions.find(d => d.key === key)?.name ?? key;
-  const hintId = `grand-champion-bracket-hint-${row.id}`;
+  const hintId = `grand-champion-bracket-hint-${row.id}`, titleId = `grand-champion-bracket-title-${row.id}`;
   const tap = (key: string) => {
+    setSwapped(null);
     if (!pick) { setPicked(key); return; }
     setPicked(null);
-    if (pick !== key) run(gcWindow().ksmSwapGrandChampionSources?.(row.id, pick, key));
+    if (pick === key) return;
+    const refused = gcWindow().ksmSwapGrandChampionSources?.(row.id, pick, key);
+    run(refused);
+    if (!refused) setSwapped(GC_TEXTS.bracketSwapped(nameOf(pick), nameOf(key)));
   };
-  const side = (s: GcBracketSide, i: number) => {
+  const side = (match: string) => (s: GcBracketSide, i: number) => {
     if (s.kind === 'winner') return <div key={i} className="setup-gc-slot setup-gc-slot-from">Winner {s.ref}</div>;
     if (s.kind === 'bye') return <div key={i} className="setup-gc-slot setup-gc-slot-from">{GC_TEXTS.bracketBye}</div>;
     const body = <><span className="setup-gc-slot-num">{s.index + 1}</span><span className="setup-gc-slot-name">{s.name}</span>{s.player && <span className="setup-gc-slot-player">{s.player}</span>}</>;
     if (!editable) return <div key={i} className="setup-gc-slot" title={drawnTip} data-testid="grand-champion-slot" data-division={s.key}>{body}</div>;
     return (
       <button key={i} type="button" className={`setup-gc-slot${pick === s.key ? ' setup-gc-slot-picked' : ''}`} aria-pressed={pick === s.key}
-        aria-label={gcSwapLabel(s.name, pick ? nameOf(pick) : null)} onClick={() => tap(s.key)} data-testid="grand-champion-slot" data-division={s.key}>{body}</button>
+        aria-label={gcSwapLabel({ number: s.index + 1, match, division: s.name, player: s.player }, pick ? nameOf(pick) : null)} onClick={() => tap(s.key)} data-testid="grand-champion-slot" data-division={s.key}>{body}</button>
     );
   };
   return (
     <div className="field setup-gc-bracket-field">
-      <label>{GC_TEXTS.bracketLabel}</label>
-      {editable && <p className="setup-gc-note setup-gc-hint" id={hintId} aria-live="polite">{pick ? GC_TEXTS.bracketPicked(nameOf(pick)) : GC_TEXTS.bracketHint}</p>}
-      <div className="setup-gc-bracket" role="group" aria-label={`${GC_TEXTS.bracketLabel} — ${row.name}`} aria-describedby={editable ? hintId : undefined} data-testid="grand-champion-bracket">
+      <span className="setup-gc-bracket-title" id={titleId}>{GC_TEXTS.bracketLabel}</span>
+      {editable && <p className="setup-gc-note setup-gc-hint" id={hintId} aria-live="polite">{pick ? GC_TEXTS.bracketPicked(nameOf(pick)) : swapped || GC_TEXTS.bracketHint}</p>}
+      <div className="setup-gc-bracket" role="group" aria-labelledby={titleId} aria-describedby={editable ? hintId : undefined} data-testid="grand-champion-bracket">
         {rounds.map(r => (
           <div key={r.round} className="setup-gc-round">
             {r.matches.map(m => (
               <div key={m.id} className="setup-gc-match" data-testid="grand-champion-bracket-match" data-node={m.id}>
                 <div className="setup-gc-match-id">{m.id}</div>
-                {m.sides.map(side)}
+                {m.sides.map(side(m.id))}
               </div>
             ))}
           </div>

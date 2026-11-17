@@ -55,8 +55,8 @@ test('bracket: the draw\'s template filled with the divisions in order (7: the 7
   assert.equal(grandChampionBracket({ divisions }, row()), null, 'two divisions: one match, nothing to arrange');
 });
 
-test('swap labels: pick, swap with the picked one, cancel', () => {
-  assert.equal(gcSwapLabel('Masters', null), 'Masters: pick to swap its place');
-  assert.equal(gcSwapLabel('Womens', 'Masters'), 'Swap Womens with Masters');
-  assert.equal(gcSwapLabel('Masters', 'Masters'), 'Masters: picked (tap again to cancel)');
+test('swap labels: the slot (number, division, player, match), then pick / swap with the picked one / cancel', () => {
+  assert.equal(gcSwapLabel({ number: 3, match: 'QF2', division: 'Masters' }, null), '3. Masters, QF2: pick to swap its place');
+  assert.equal(gcSwapLabel({ number: 7, match: 'SF2', division: 'Womens', player: 'Mei' }, 'Masters'), '7. Womens (Mei), SF2: swap with Masters');
+  assert.equal(gcSwapLabel({ number: 3, match: 'QF2', division: 'Masters' }, 'Masters'), '3. Masters, QF2: picked: tap again to cancel');
 });

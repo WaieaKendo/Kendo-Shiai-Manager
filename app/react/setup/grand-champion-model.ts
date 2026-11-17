@@ -71,6 +71,7 @@ export const GC_TEXTS = {
   bracketHint: 'Tap a division, then another to swap their places.',
   bracketPicked: (name: string) => `Now tap the division to swap with ${name}.`,
   bracketBye: 'Bye',
+  bracketSwapped: (a: string, b: string) => `Swapped ${a} and ${b}.`,
   sourceAdd: '＋ Add division',
   drawnTip: 'Fixed: this grand champion match is drawn (its divisions finished). Its name and awards can still change.',
   formatTwoTip: 'Two divisions always play one match: the format matters from three.',
@@ -132,7 +133,12 @@ export function grandChampionStatus(row: GrandChampionRowInput): { tone: 'info' 
 export const gcMoveLabel = (name: string, direction: 'up' | 'down') => `Move ${direction} — ${name}`;
 export const gcRemoveLabel = (name: string) => `Remove — ${name}`;
 export const gcSourceRemoveLabel = (division: string, name: string) => `Remove ${division} — ${name}`;
-export const gcSwapLabel = (division: string, picked: string | null) => picked ? (picked === division ? `${division}: picked (tap again to cancel)` : `Swap ${division} with ${picked}`) : `${division}: pick to swap its place`;
+/** A bracket slot's label: where it is (number, match, who plays) and what tapping it does. */
+export function gcSwapLabel(slot: { number: number; match: string; division: string; player?: string | null | undefined }, picked: string | null): string {
+  const where = `${slot.number}. ${slot.division}${slot.player ? ` (${slot.player})` : ''}, ${slot.match}`;
+  const does = picked ? (picked === slot.division ? 'picked: tap again to cancel' : `swap with ${picked}`) : 'pick to swap its place';
+  return `${where}: ${does}`;
+}
 
 export type GcBracketSide =
   | { kind: 'source'; index: number; key: string; name: string; player: string | null }
