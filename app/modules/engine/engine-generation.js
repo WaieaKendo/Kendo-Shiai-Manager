@@ -4,7 +4,7 @@ import {ksmSetDivisionCourt} from '../setup/divisions-store.js';
 import {renderAll} from '../court/court-context-and-pool-editing.js';
 import {individualMatchReady,initCourtStates,isCourtScorekeeper,isTeamMatch,renderDivisions,sortIndividualDivisionMatches,setCourtPointer,sortTeamMatches} from '../court/court-match-order.js';
 import {loadScoreFromMatch} from '../court/court-scoring-and-history.js';
-import {ksmSetAllMatches,ksmSetDivisionMatches} from '../court/match-writes.js';
+import {ksmDeleteDivisionMatches,ksmSetAllMatches,ksmSetDivisionMatches} from '../court/match-writes.js';
 import {renderScore} from '../court/scorekeeper-screen.js';
 import {renderContext,syncIndividualSingleElim} from '../court/split-court-templates.js';
 import {syncChampionshipTemplate} from './engine-championship.js';
@@ -91,7 +91,7 @@ export function regenerateSingleDivision(div){
   const revision=state.managementRevision;let bumped=false;
   try{
     // The bracket nodes and `teamElimTeams` go with the rest of the draw: removed and drawn again in the one action.
-    ksmSetDivisionMatches(div,undefined);
+    ksmDeleteDivisionMatches(div);
     if(!generateDivisionState(div,{type:'divisionRegenerated',fresh:true,lists:{managementRevision:ksmNextManagementRevision()}}))throw new Error('No eligible entrants remain in this division.');
     initCourtStates();bumped=true;renderAll();scheduleAutoSave();ksmRegenerateDone(div);
   }catch(err){

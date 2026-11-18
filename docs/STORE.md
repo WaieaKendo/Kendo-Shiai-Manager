@@ -884,82 +884,119 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
       that replaces the matches in the store, and the two hooks become the actions' own dispatches.
     - 13c is split in two by the coordinator: **13c-1** routes every `allMatches` write through one module while it stays a
       plain field (done, below); **13c-2** moves it into the `tournament` slice by changing only that module's bodies.
-    Done (**PR 13c-1**), no behaviour change (no golden changed, no saved-format or store change; the store bundle is the
-    same):
-    - **One write module**: `app/modules/court/match-writes.js`. `ksmSetAllMatches(map)` (Generate Tournament's reset, the
-      rename's renamed map, an Undo patch on `allMatches` itself; `undefined` removes it), `ksmSetDivisionMatches(div, list)`
-      (a draw, a rebuild, a reorder into a new list, a dedupe; `undefined` removes the division), `ksmUpdateMatch(div, index,
-      set, remove)` (one bout's fields in one write, returns the bout as it is after, read again),
-      `ksmUpdateMatches(div, [{index, set, remove}])` (several bouts in one write), `ksmInsertMatches(div, at, matches)`,
-      `ksmAppendMatches(div, matches)`, `ksmRemoveMatches(div, at, count)`, `ksmSortDivisionMatches(div, compare)` (a stable
-      sort; returns the list read again) and `ksmWriteMatchPath(path, value, missing, 'history' | 'replay')` (an Undo/Redo
-      patch with `writeHistoryValue()`'s rules; a match-op patch with `applyPatchToStateObject()`'s). Each names its division
-      and the bout by index (callers that held a bout find its index just before with `KSMEngine.matchIndexIn()`). The
-      last argument `root` is `state` by default; any other object is a payload copy (a load being built, the rebase's
-      server copy), written in place, also in 13c-2. Here every helper still writes in place.
+    Done (**PR 13c-1**, #206), no behaviour change (no golden changed, no saved-format or store change; the store bundle is
+    the same):
+    - **One write module**: `app/modules/court/match-writes.js`.
+      - `ksmSetAllMatches(map)`: Generate Tournament's reset, the rename's renamed map; assigned as given.
+      - `ksmSetDivisionMatches(div, list)`: a draw, a rebuild, a reorder into a new list, a dedupe. `undefined` is stored
+        as the old assignment stored it (the regenerate's restore of a division that had none).
+      - `ksmDeleteDivisionMatches(div)`: the old `delete` (a regenerate before its new draw, a grand champion's clear).
+      - `ksmUpdateMatch(div, index, set, remove)`: one bout's fields in one write; returns the bout read again.
+        `ksmUpdateMatches(div, [{index, set, remove}])`: several bouts in one write. An index without a bout throws, as
+        `Object.assign` on it did.
+      - `ksmInsertMatches(div, at, matches)`, `ksmAppendMatches(div, matches)`, `ksmRemoveMatches(div, at, count)`.
+      - `ksmSortDivisionMatches(div, compare)`: a stable sort; returns the list read again.
+      - `ksmWriteMatchPath(path, value, missing, 'history' | 'replay')`: one path write, with `writeHistoryValue()`'s or
+        `applyPatchToStateObject()`'s rules (the rebase's per-patch replay on its server copy).
+      - `ksmWriteMatchPaths(writes)`: several writes in one step, in order, each look-up by identity seeing the writes
+        before it (fixed paths, a bout found by the first of its identities, a removal by identity, an insertion after a
+        bout by identity). An Undo/Redo entry's `allMatches` writes (its match ops, then its patches) and
+        `replayCourtMatchOps()` are one batch each (#206 review M2).
+
+      Each call names its division and the bout by index or identity (callers that held a bout find its index just before
+      with `KSMEngine.matchIndexIn()`). The last argument `root` is `state` by default; any other object is a payload copy
+      (a load being built, the rebase's server copy), written in place, also in 13c-2. Here every helper still writes in
+      place.
+    - **No write when nothing changes** (#206 review M1): `ksmSetDivisionMatches()` writes nothing when the division
+      already holds the same entries in the same order, and `ksmSortDivisionMatches()` nothing when the order would not
+      change. The read paths that sort or dedupe a division's list on every call (`sortTeamMatches()`,
+      `sortIndividualDivisionMatches()`, `enforceUniqueIndividualMatches()`, `dedupeSingleElimMatches()`; the court queue,
+      Live Scores, the TV, Director Progress, `findNextForCourt()`) so write only when the list really changes.
+      `tests/match-writes-store-test.py` checks that a second round of those paths writes nothing (without the rule: 11
+      writes per round).
     - **Batched per step**: a point (`wp`, `rp`, `wt`, `rt`: `syncActiveScoreToMatch()`), a result (those, `completedResult`,
       `done`: `nextMatch()`, the grand champion's Fusen-sho; the snapshot is taken from the bout with its final points before
       `done`, as before), a representative (`white` / `red`), a result repair (its `set`, then `completedResult` removed for a
       reopen), the engine syncs' plan values (`ksmUpdateMatches()` with the plan's updates), a division's courts after its
-      court changed, a substitution's names (`white`, `wdojo`, `red`, `rdojo` per bout) are one call each; the keys keep
-      their old order (`Object.assign`).
-    - **Engine syncs, same order**: `syncIndividualSingleElim()` (a list that is not the division's yet, a draw's, put in
-      place first; then the plan's values, then the bracket order, then the dedupe; then the nodes' `advancementApplied`),
-      `syncTeamBracket()` (the list put in place when it is a draw's, the new bouts appended, the team order), the
-      championship template (a missing list created, the missing bouts appended, the plan's values) and the dynamic bouts
-      (tiebreaks appended then the pool order repaired; playoffs, daihyosen and kachinuki's next bout inserted after their
-      anchor). Bouts first, nodes after, as before. Every caller reads the list again after a sync (`buildIndividualSingleElimMatches()`
-      returns the division's list, not the draft it was given; generation no longer re-assigns the draft after the sync).
-      `sortTeamMatches()`'s keys read the list as it was before the sort (V8 sorts a copy and writes it back at the end, so
-      the in-place sort's comparator read that order too). `sortIndividualSingleElimMatches()` sorts a copy (its only caller,
-      `dedupeSingleElimMatches()`, replaced the list right after).
-    - **History, rebase, load**: `patch-v1` entries are built as before (whole-state comparison). `applyHistoryPatch()` writes
-      an `allMatches` path with `ksmWriteMatchPath(…, 'history')`; `replayCourtMatchOps()` (an Undo/Redo here and the rebase's
-      server copy) removes, inserts and patches through the helpers (`root` = its target), reading the list again before
-      each look-up. `sanitizeLoadedTournamentState()` and the result repairs write through the helpers with their `root`. The
-      load (`applyTournamentPayload()` → `replaceState()`) and the tournament switch still put the payload's `allMatches` in
-      place with every other key (section 2 point 3): in 13c-2 `moveToStore('allMatches', …)` makes it part of the same
-      `legacy/stateReplaced` (one whole-map write, not a second dispatch).
-    - **Writes in read paths** (unchanged, listed for 13c-2): `sortTeamMatches()` (the court queue, Live Scores, Director
-      Progress, `nextIndexForCourt()`), `sortIndividualDivisionMatches()` (`findNextForCourt()`, Live Scores),
-      `enforceUniqueIndividualMatches()` and `dedupeSingleElimMatches()` (the court island's queue) write the division's
-      list on every call, also when nothing changes.
-    - **Checks**: `tests/store/match-writes.test.mjs` (the helpers' rules, the test hooks, and a source check: no app code
-      outside the module assigns, deletes or mutates `allMatches`, a division's list (`arr` / `all`) or a bout's fields; 48
-      lines in 14 files on next/4.1, none here). `tests/match-writes-store-test.py` compares every key of the saved state with
-      next/4.1's after 59 steps (a rename before the draw; pools with a championship, a single elimination with byes, two
-      round robins and a team bracket; a team's and two players' No Shows; a division's court changed; Edit Pool; a
-      regenerate; points, hansoku, Fusen-gachi, Undo / Redo across Next Match on both courts; an advancing bracket bout and a
-      tiebreak-drawing Next Match undone and redone; a remote apply; three save conflicts; a 4.0-shaped load (a bout without
-      its result snapshot, an invalid entry, no `teamElimTeams`); a team round robin with representative playoffs and the
-      daihyosen of a widened award mode; kachinuki round robin and single elimination; a grand champion drawn, undone and
-      cleared), once as the app runs and once on a page as 13c-2 will leave it (`tests/lib/match-freeze-hook.js`: the map,
-      every list and every bout frozen copies, new ones at each helper write, store notification and app event, so a write
-      that misses the helpers throws and an object held across a write keeps its old values). `tests/match-identity-copy-test.py`
-      runs that frozen page as a third page, and its copied page now copies (and makes stale) at every helper write; on
-      next/4.1 the frozen page throws at the first draw. Known, as in #205: a match held across Next Match's result write
-      and passed on (instead of the one the write returns) is not caught, since nothing after the write reads `done` /
-      `completedResult` from it.
-    - **Left for 13c-2 (tests)**: about 20 test files write `allMatches` in the page or in a vm `state` directly (fixtures:
-      `KSMTest.app.state.allMatches[d] = …`, a bout's `done` set in place); in the browser they need a test helper over the
-      module (e.g. `KSMTest.app.setDivisionMatches`), the vm tests keep their plain `state`.
+      court changed, a substitution's names (`white`, `wdojo`, `red`, `rdojo` per bout) and an Undo/Redo entry are one call
+      each; the keys keep their old order (`Object.assign`).
+    - **Engine syncs, same order**:
+      - `syncIndividualSingleElim()`: a list that is not the division's yet (a draw's) is put in place first; then the
+        plan's values, the bracket order and the dedupe; then the nodes' `advancementApplied`.
+      - `syncTeamBracket()`: the list put in place when it is a draw's, the new bouts appended, the team order.
+      - The championship template: a missing list created, the missing bouts appended, the plan's values.
+      - The dynamic bouts: tiebreaks appended then the pool order repaired; playoffs, daihyosen and kachinuki's next bout
+        inserted after their anchor.
+
+      Bouts first, nodes after, as before. Every caller reads the list again after a sync:
+      `buildIndividualSingleElimMatches()` returns the division's list, not the draft it was given, and generation no longer
+      re-assigns the draft after the sync. `sortTeamMatches()`'s keys read the list as it was before the sort (V8 sorts a
+      copy and writes it back at the end, so the in-place sort's comparator read that order too).
+      `sortIndividualSingleElimMatches()` returns a sorted copy (its only caller, `dedupeSingleElimMatches()`, replaced the
+      list right after).
+    - **History, rebase, load**:
+      - `patch-v1` entries are built as before (whole-state comparison).
+      - An Undo/Redo writes its `allMatches` part as one `ksmWriteMatchPaths()` batch: the match ops of its divisions first,
+        then its patches in the entry's order; the patches on other keys and the match-index fields after it, as before.
+        The applied/skipped record for the Undo log is the same.
+      - The rebase writes its server copy's `allMatches` through the helpers with `root`: the replayed patches
+        (`ksmWriteMatchPath(…, 'replay')`), a bout added for a patch (`ksmAppendMatches()`), a structural division copied
+        (`copyStructuralDivision()`) and the match ops (`replayCourtMatchOps()`, one batch).
+      - `sanitizeLoadedTournamentState()` and the result repairs write through the helpers with their `root`.
+      - The load (`applyTournamentPayload()` → `replaceState()`) and the tournament switch still put the payload's
+        `allMatches` in place with every other key (section 2 point 3). In 13c-2, `moveToStore('allMatches', …)` makes it
+        part of the same `legacy/stateReplaced` (one whole-map write, not a second dispatch).
+    - **Checks**:
+      - `tests/store/match-writes.test.mjs`: the helpers' rules, no write when nothing changes, the batch, the test hooks,
+        and a source check. The source check finds, in app code outside the module (main.js, the modules, React, the
+        engine): `allMatches` / `state.matches` assigned, deleted or list-mutated; a bout's field (`wp`, `done`, `white`,
+        `hansoku`, … on any receiver) assigned, compounded, incremented or its point list mutated; and the same through a
+        name bound from `allMatches` / `state.matches` in the file (`const rows = state.allMatches[div]`, `{[div]: L} =
+        state.allMatches`). On next/4.1 it flagged 48 lines in 14 files with the PR's first, narrower rules; now none.
+        Allowed by exact line: the engine's plan objects (`set.…`, new bouts in `teams.ts`).
+      - A regex reads lines, not scopes: an alias passed through a function or a computed field name is beyond it. **The
+        frozen pages are the backstop**.
+      - `tests/match-writes-store-test.py` compares every key of the saved state with next/4.1's after 59 steps, once as
+        the app runs and once on a page as 13c-2 will leave it (`tests/lib/match-freeze-hook.js`). The steps: a rename
+        before the draw; pools with a championship, a single elimination with byes, two round robins and a team bracket;
+        a team's and two players' No Shows; a division's court changed; Edit Pool; a regenerate; points, hansoku,
+        Fusen-gachi, Undo / Redo across Next Match on both courts; an advancing bracket bout and a tiebreak-drawing Next
+        Match undone and redone; a remote apply; three save conflicts; a 4.0-shaped load (a bout without its result
+        snapshot, an invalid entry, no `teamElimTeams`); a team round robin with representative playoffs and the
+        daihyosen of a widened award mode; kachinuki round robin and single elimination; a grand champion drawn, undone
+        and cleared.
+      - On the frozen page the map, every list and every bout are frozen copies, new ones at each helper write, store
+        notification and app event. So a write that misses the helpers throws, and an object held across a write keeps
+        its old values.
+      - `tests/match-identity-copy-test.py` runs that frozen page as a third page, and its copied page now copies (and
+        makes stale) at every helper write. On next/4.1 the frozen page throws at the first draw.
+      - Known, as in #205: a match held across Next Match's result write and passed on (instead of the one the write
+        returns) is not caught, since nothing after the write reads `done` / `completedResult` from it.
+    - **Left for 13c-2 (tests)**: about 20 test files write `allMatches` in the page or in a vm `state` directly
+      (fixtures: `KSMTest.app.state.allMatches[d] = …`, a bout's `done` set in place). In the browser they need a test
+      helper over the module (e.g. `KSMTest.app.setDivisionMatches`); the vm tests keep their plain `state`.
     **13c-2** (next, small): `allMatches` into the `tournament` slice.
     - `moveToStore('allMatches', ['tournament', 'allMatches'])` at the literal's place; the slice's initial value `{}`.
-    - Only the bodies of `match-writes.js` change, for `root === state`: each helper dispatches one `court/…` action (a
-      point, a result, a representative: `meta.court`) or `tournament/…` action (draws, syncs, repairs) whose payload is
-      `writes` (`{path, value}` under `['tournament', 'allMatches', …]`), applied by the root reducer through
-      `applyStoreWrites()` (a path copy: only the bout and the list on the path are copied, never an Immer reducer over a
-      whole list, #15 PR 13b). An insert, removal or sort writes the division's new list (the same bout objects); a field
-      write writes the bout's new object; `ksmUpdateMatches()` writes each bout it changes in one dispatch. A payload copy
-      (`root !== state`) is still written in place.
+    - Only the bodies of `match-writes.js` change, for `root === state`:
+      - Each helper dispatches one `court/…` action (a point, a result, a representative, an Undo/Redo's batch:
+        `meta.court`) or `tournament/…` action (draws, syncs, repairs). Its payload is `writes` (`{path, value}` under
+        `['tournament', 'allMatches', …]`), applied by the root reducer through `applyStoreWrites()`. That is a path copy:
+        only the bout and the list on the path are copied, never an Immer reducer over a whole list (#15 PR 13b).
+      - An insert, removal or sort writes the division's new list (the same bout objects); a field write writes the bout's
+        new object; `ksmUpdateMatches()` writes each bout it changes in one dispatch.
+      - `ksmWriteMatchPaths()` runs its writes on a working copy of the touched lists (path copies) and dispatches their
+        new values once.
+      - A payload copy (`root !== state`) is still written in place.
+    - **Must: no write when nothing changes.** The no-op checks of `ksmSetDivisionMatches()` / `ksmSortDivisionMatches()`
+      stay in front of the dispatch (a sort or dedupe in a render must never dispatch: a subscriber that renders would
+      loop). `tests/match-writes-store-test.py`'s read-path check stays.
+    - Undo/Redo keeps 13b's order: the entry's plain `allMatches` writes (now one batch, one dispatch), then the one
+      `court/undo` / `court/redo` with the history move and the store-owned keys; then the court view's rebuild.
     - The test hooks (`KSMTestMatchWrite`, `KSMTestBeforeCourtAction`) go; the frozen page of the guard becomes the strict
       store itself (deep-frozen data), so `tests/lib/match-freeze-hook.js` is replaced by checking the store's objects.
     - Every notification checks (`tests/court-pointers-store-test.py`, `tests/bracket-nodes-store-test.py`) see the bouts
       too: Generate Tournament and the grand champion's draw are allowed by name as in 13b; a sync writes its bouts before
       its nodes' `advancementApplied` (as now).
-    - Consider skipping the read-path writes above when the list does not change (they would dispatch on every render).
-    - Undo/Redo: the entry's `allMatches` patches can be collected into its `court/undo` / `court/redo` (in order; the
-      identity look-ups between them read the list again), so an Undo is one dispatch.
     - Measure a point, Next Match and a remote apply as 13b did (6x throttling, production build).
 14. **`state` retired**: drop the dead fields (`history`, `contextMode`, `teamBracketState`; with a load-time drop,
     owner OK on the format), `app-state.js` keeps only the getters until the reads are converted, then goes;

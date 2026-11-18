@@ -20,6 +20,8 @@ removals, sorts, the Undo/Redo and rebase path writes). No behaviour change. Che
   2. The same steps on a page as 13c-2 will leave it (tests/lib/match-freeze-hook.js: the map, every list and every bout
      frozen copies, replaced by new frozen copies at each helper write, store notification and app event): no write
      outside the helpers (it would throw), no object held across a write read stale, and every snapshot as recorded.
+  4. (this PR's code only) With nothing changed, the read paths (renders, the court island's queue, Live Scores, the TV,
+     Director Progress, findNextForCourt()) write nothing (#206 review M1).
   3. (this PR's code only) On the frozen page a division's list assigned or deleted, a list method on it and a field
      written on a bout throw; a point gives its bout a new frozen object and leaves the one held before as it was.
 """
@@ -273,6 +275,33 @@ def strict_writes(page):
     assert held == [False, 0, 1, True], f'a point gives the bout a new frozen object and leaves the held one as it was: {held}'; checks += 1
 
 
+READ_PATHS = r"""async () => {
+  const app = KSMTest.app;
+  app.renderAll(); app.renderPublic(); app.renderTvDisplay(); app.renderQueue(); app.renderContext();
+  // (KSMTest.prepareCourt() runs findNextForCourt() when the court's bout is not ready.)
+  // (The court island's queue dedupes the split single elimination shown on Court A when it publishes; Live Scores and
+  // the TV call tvUpcomingMatches().)
+  for (const c of ['B', 'A']) { KSMTest.prepareCourt(c); app.buildTV3ViewModel(c); app.courtSummaryFor(c); }
+  window.dispatchEvent(new Event('ksm:state-changed'));
+  await new Promise(r => setTimeout(r, 250));
+}"""
+
+
+def read_paths(page):
+    """4 (#206 review M1): the read paths (renders, the court island's queue and dedupe, Live Scores, the TV, Director
+    Progress, findNextForCourt()) write no bout list once it is as they want it: a second round writes nothing."""
+    global checks
+    for court in ('A', 'B'):
+        page.evaluate(PLAY, [court, 6, 3])
+    page.evaluate(f"() => {{ KSMTest.app.chooseCourt('A'); KSMTest.app.selectScorekeeperDivision('{SE}'); }}")
+    page.evaluate(READ_PATHS)
+    first = page.evaluate('() => window.__matchWrites || 0')
+    page.evaluate(READ_PATHS)
+    second = page.evaluate('() => window.__matchWrites || 0')
+    assert second == first, f'the read paths wrote {second - first} times with nothing changed'; checks += 1
+    return first
+
+
 def run_steps(page, errors, label, expected):
     seen = {}
     for name, run in steps():
@@ -322,6 +351,9 @@ def main():
             strict = new_page(browser, strict_errors)
             strict.evaluate(FREEZE_HOOK)
             strict_writes(strict)
+            before = strict.evaluate('() => window.__matchWrites || 0')
+            settled = read_paths(strict)
+            sys.stderr.write(f'read paths: {settled - before} writes while playing and in the first round, none in the second\n')
             assert not strict_errors, strict_errors
         browser.close()
     if not DUMP:

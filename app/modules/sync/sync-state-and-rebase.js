@@ -2,7 +2,7 @@
 import {DIVISION_PRESETS,ksmSetCurrentCourt,ksmSetPublicCourt,state} from '../app-state.js';
 import {deviceSlice,dispatch,getState} from '../../store/index.ts';
 import {KSM_UNDO_LOG_LIMIT} from '../court/court-scoring-and-history.js';
-import {ksmInsertMatches,ksmRemoveMatches,ksmSetDivisionMatches,ksmWriteMatchPath} from '../court/match-writes.js';
+import {ksmAppendMatches,ksmDeleteDivisionMatches,ksmSetDivisionMatches,ksmWriteMatchPath,ksmWriteMatchPaths} from '../court/match-writes.js';
 import {repairCompletedMatchResults} from '../engine/engine-result-integrity.js';
 import {isIndividualPoolTiebreakMatch,normalizeAllIndividualPoolTiebreakOrder,normalizeIndividualPoolTiebreakOrderInState} from '../engine/engine-standings-and-tiebreaks.js';
 import {ksmLinkParams} from '../links/path-urls.js';
@@ -200,7 +200,7 @@ function resolveRebasePatch(localState,rebasedState,patch){
     // snapshot revision. Add the complete valid object without ever creating a sparse
     // array. Individual pool tiebreaks are then normalized back into their own pool's
     // timeline rather than being left at the end of the division after a conflict.
-    remoteArr.push(cloneJson(localMatch));
+    ksmAppendMatches(div,[cloneJson(localMatch)],rebasedState);remoteArr=rebasedState.allMatches[div];
     if(isIndividualPoolTiebreakMatch(/** @type {any} */(localMatch))){
       normalizeIndividualPoolTiebreakOrderInState(rebasedState,div,'concurrent rebase insertion');
       remoteArr=rebasedState?.allMatches?.[div]||remoteArr;
@@ -265,7 +265,10 @@ export function pendingLocalUndoLogForRebase(localPayload,serverRecord,originalB
 function replayPendingCourtHistory(actions,undoLog,localState,rebasedState,serverState,court){
   const applied=new Set((serverState?.courtActionHistory?.[court]||[]).map(historyEntryIdentity));
   const undone=new Set((serverState?.courtRedoHistory?.[court]||[]).map(historyEntryIdentity));
-  const apply=patch=>{const resolved=resolveRebasePatch(localState,rebasedState,patch);if(resolved)applyPatchToStateObject(rebasedState,resolved)};
+  // A patch under allMatches is written through match-writes.js on the server copy (`root`, in place; #206 review L2).
+  const apply=patch=>{const resolved=resolveRebasePatch(localState,rebasedState,patch);if(!resolved)return;
+    if(resolved.path?.[0]==='allMatches'){const value=resolved.after,missing=Boolean(value&&value.__ksmMissing===true);ksmWriteMatchPath(resolved.path,missing?undefined:cloneJson(value),missing,'replay',rebasedState)}
+    else applyPatchToStateObject(rebasedState,resolved)};
   const steps=[...actions.map(entry=>({entry,op:null})),...undoLog.map(entry=>({entry,op:entry.kind}))]
     .map((step,i)=>({...step,i})).sort((a,b)=>String(a.entry.when||'').localeCompare(String(b.entry.when||''))||a.i-b.i);
   steps.forEach(({entry,op})=>{
@@ -293,30 +296,33 @@ function replayPendingCourtHistory(actions,undoLog,localState,rebasedState,serve
  * at the index they were set at; skipped: how many were not, their match being gone}.
  */
 export function replayCourtMatchOps(targetState,matchOps){
-  const applied=[];let skipped=0;
-  // Every write through match-writes.js (#15 PR 13c-1): on the live `state` (an Undo/Redo here) and on the rebase's
-  // server copy alike; the list is read again before each look-up, never held across a write.
-  const list=div=>targetState?.allMatches?.[div];
+  // One batch through match-writes.js (#15 PR 13c-1, #206 review M2): on the live `state` (an Undo/Redo here) and on the
+  // rebase's server copy alike; each look-up by identity sees the writes before it.
+  const {writes,patches,skipped:unlisted}=courtMatchOpsWrites(targetState,matchOps);
+  const applied=[];let skipped=unlisted;
+  ksmWriteMatchPaths(writes,targetState).forEach((result,i)=>{const patch=patches[i];if(!patch)return;if(result.applied)applied.push({...patch,path:result.path});else skipped++});
+  return {applied,skipped};
+}
+/**
+ * replayCourtMatchOps()'s writes for ksmWriteMatchPaths(), in its order (per division: the removals, the insertions, the
+ * field patches), with the patch each field write comes from (null for a removal or an insertion) and how many patches
+ * are skipped up front (their division has no list). Also used by an Undo/Redo, whose whole entry is one batch.
+ * @returns {{writes:any[],patches:any[],skipped:number}}
+ */
+export function courtMatchOpsWrites(targetState,matchOps){
+  const writes=[],patches=[];let skipped=0;
   Object.entries(matchOps||{}).forEach(([div,op])=>{
     if(!op)return;
-    if(!Array.isArray(list(div))){skipped+=(op.patches||[]).length;return}
-    const indexOf=identity=>identity?list(div).findIndex(match=>matchHasSyncIdentity(match,identity)):-1;
-    (op.remove||[]).forEach(identity=>{const i=indexOf(identity);if(i>=0)ksmRemoveMatches(div,i,1,targetState)});
-    (op.insert||[]).forEach(({after,match})=>{
-      if(!isValidMatchObject(match)||indexOf(matchSyncIdentity(match))>=0)return;
-      const anchor=after?indexOf(after):-1;
-      ksmInsertMatches(div,after?(anchor>=0?anchor+1:list(div).length):0,[cloneJson(match)],targetState);
-    });
+    if(!Array.isArray(targetState?.allMatches?.[div])){skipped+=(op.patches||[]).length;return}
+    (op.remove||[]).forEach(identity=>{if(identity){writes.push({remove:div,id:identity});patches.push(null)}});
+    (op.insert||[]).forEach(({after,match})=>{if(!isValidMatchObject(match))return;writes.push({insert:div,after:after||null,match:cloneJson(match)});patches.push(null)});
     (op.patches||[]).forEach(patch=>{
-      const i=indexOf(patch?.matchIdentity);
-      if(i<0){skipped++;return}
-      const resolved={...patch,path:['allMatches',div,i,...(patch.path||[]).slice(3)]};
-      // applyPatchToStateObject()'s rules for a path under allMatches ('replay').
-      const value=resolved.after,missing=Boolean(value&&value.__ksmMissing===true);
-      if(ksmWriteMatchPath(resolved.path,missing?undefined:cloneJson(value),missing,'replay',targetState))applied.push(resolved);else skipped++;
+      const value=patch?.after,missing=Boolean(value&&value.__ksmMissing===true);
+      // applyPatchToStateObject()'s rules for a path under allMatches ('replay'), the bout found by its identity.
+      writes.push({division:div,ids:[patch?.matchIdentity],rest:(patch?.path||[]).slice(3),value,missing,how:'replay',clone:true});patches.push(patch);
     });
   });
-  return {applied,skipped};
+  return {writes,patches,skipped};
 }
 /**
  * The Undo/Redo stacks after a rebase: both devices' entries, but an action undone here stays undone (F30) and a redone one stays redone.
@@ -548,6 +554,8 @@ function structuralDivisionSnapshot(st,div){return KSM_STRUCTURAL_DIVISION_KEYS.
 function copyStructuralDivision(target,source,div){
   KSM_STRUCTURAL_DIVISION_KEYS.concat(['currentByDivision']).forEach(k=>{
     const value=source?.[k]?.[div];
+    // `allMatches` through match-writes.js (a payload copy: `root`, in place; #206 review L2).
+    if(k==='allMatches'){if(value===undefined)ksmDeleteDivisionMatches(div,target);else ksmSetDivisionMatches(div,cloneJson(value),target);return}
     if(value===undefined){if(target[k])delete target[k][div];return}
     target[k]=target[k]||{};target[k][div]=cloneJson(value);
   });

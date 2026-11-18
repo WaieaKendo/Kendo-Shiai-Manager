@@ -36,7 +36,7 @@ const code = [engine, constant('KSM_LOCAL_VIEW_STATE_KEYS'), constant('KSM_UNDO_
   ...['normalizeCourt', 'cloneJson', 'isValidMatchObject', 'matchSyncIdentity', 'legacyTiebreakSyncIdentity', 'matchHasSyncIdentity',
     'individualMatchReady', 'matchBelongsToCourtInState', 'nextReadyIndexInState', 'preserveOwnedCourtRuntimeState', 'applyPatchToStateObject',
     'resolveRebasePatch', 'mergeHistoryEntries', 'historyEntryIdentity', 'pendingLocalCourtActionsForRebase', 'undoLogEntryIdentity',
-    'pendingLocalUndoLogForRebase', 'replayPendingCourtHistory', 'replayCourtMatchOps', 'mergeCourtHistoryStacks', 'ksmTeamDivisionPayload', 'rebaseLocalPayloadOnRecord',
+    'pendingLocalUndoLogForRebase', 'replayPendingCourtHistory', 'replayCourtMatchOps', 'courtMatchOpsWrites', 'mergeCourtHistoryStacks', 'ksmTeamDivisionPayload', 'rebaseLocalPayloadOnRecord',
     // #86: a grand champion draw this device has and the server copy lacks comes along
     'ksmCarryGrandChampionDraws',
     // F36: per-tab ownership of history entries and the other court's replay (18-two-tabs.js)

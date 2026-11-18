@@ -195,6 +195,7 @@ export function withDependencies(source, code, { exclude = [] } = {}) {
 // #15 PR 13c-1: every write to `allMatches` goes through app/modules/court/match-writes.js. A vm test that runs app
 // functions on its own `state` (a global of its context) adds these (they write `state` in place, as the app does until
 // 13c-2; withDependencies() finds them on its own).
-export const MATCH_WRITE_FUNCTIONS = ['ksmMatchWrite', 'ksmMatchList', 'ksmSetAllMatches', 'ksmSetDivisionMatches', 'ksmUpdateMatches', 'ksmUpdateMatch',
-  'ksmInsertMatches', 'ksmAppendMatches', 'ksmRemoveMatches', 'ksmSortDivisionMatches', 'ksmWriteMatchPath'];
+export const MATCH_WRITE_FUNCTIONS = ['ksmMatchWrite', 'ksmMatchList', 'ksmSameEntries', 'ksmSetAllMatches', 'ksmSetDivisionMatches', 'ksmDeleteDivisionMatches',
+  'ksmUpdateMatches', 'ksmUpdateMatch', 'ksmInsertMatches', 'ksmAppendMatches', 'ksmRemoveMatches', 'ksmSortDivisionMatches', 'ksmWriteMatchPath',
+  'ksmWalkMatchPath', 'ksmIndexByIdentity', 'ksmWriteMatchPaths'];
 export const matchWritesSource = MATCH_WRITE_FUNCTIONS.map(name => extractFunction(html, name)).join('\n');

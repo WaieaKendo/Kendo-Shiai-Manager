@@ -5,7 +5,7 @@ import {renderAll} from '../court/court-context-and-pool-editing.js';
 import {findNextForCourt,renderDivisions} from '../court/court-match-order.js';
 import {ksmSetCourtHistories} from '../court/court-history-store.js';
 import {ksmResolveCourts} from '../court/court-pointers-store.js';
-import {ksmSetDivisionMatches,ksmUpdateMatch,ksmUpdateMatches} from '../court/match-writes.js';
+import {ksmDeleteDivisionMatches,ksmUpdateMatch,ksmUpdateMatches} from '../court/match-writes.js';
 import {enforceUniqueIndividualMatches,maybeAdvanceChampionship,maybeCreateChampionship} from '../engine/engine-championship.js';
 import {generateDivisionState} from '../engine/engine-generation.js';
 import {KSM_DRAW_KEYS,ksmDrawWith,ksmEditedPools,ksmSetDraw} from '../engine/structure-store.js';
@@ -143,7 +143,7 @@ function ksmClearGrandChampionStructure(id,keepCourts=false){
   let had=false;
   // The plain parts are deleted, then the draw's own entries go in one tournament/divisionCleared (#15 PR 12a).
   // (`currentByDivision`, the court pointers' map since #15 PR 13a, goes with the draw's entries.)
-  KSM_GC_STRUCTURE_KEYS.forEach(k=>{if(state[k]&&Object.hasOwn(state[k],id)){if(k==='allMatches')ksmSetDivisionMatches(id,undefined);had=true}});
+  KSM_GC_STRUCTURE_KEYS.forEach(k=>{if(state[k]&&Object.hasOwn(state[k],id)){if(k==='allMatches')ksmDeleteDivisionMatches(id);had=true}});
   // A court on the draw is re-resolved in the same tournament/divisionCleared (#15 PR 13b, #201 review L2): no store
   // notification shows it on the deleted list. Its next bout is found on the lists without this draw (allMatches, deleted
   // above), as the court/pointersResolved after the clear found it; a draw already gone keeps that separate action.

@@ -3,7 +3,7 @@ import {assignState,ksmEmptyScore,ksmSetScore,state,storeFieldPath} from '../app
 import {maybeCreateKachinukiNext,renderAll} from './court-context-and-pool-editing.js';
 import {applyCourtState,findNextForCourt,syncOwnCourtPointer} from './court-match-order.js';
 import {KSM_UNDO_LOG_LIMIT,ksmMoveCourtHistory,ksmRecordCourtAction,ksmSetCourtHistories} from './court-history-store.js';
-import {ksmUpdateMatch,ksmWriteMatchPath} from './match-writes.js';
+import {ksmUpdateMatch,ksmWriteMatchPath,ksmWriteMatchPaths} from './match-writes.js';
 import {renderScore} from './scorekeeper-screen.js';
 import {enforceUniqueIndividualMatches,maybeAdvanceChampionship,maybeCreateChampionship} from '../engine/engine-championship.js';
 import {renderPools} from '../engine/engine-generation.js';
@@ -18,7 +18,7 @@ import {ksmNotifyStateChanged} from '../react-bridges/state-bridge.js';
 import {renderPublic} from '../results/live-scores.js';
 import {showKsmToast} from '../sync/cloud-realtime-save-and-load.js';
 import {cloudSession,updateSaveStatus} from '../sync/cloud-session-and-autosave.js';
-import {KSM_LOCAL_VIEW_STATE_KEYS,cloneJson,historyEntryIdentity,matchHasSyncIdentity,matchSyncIdentity,replayCourtMatchOps} from '../sync/sync-state-and-rebase.js';
+import {KSM_LOCAL_VIEW_STATE_KEYS,cloneJson,courtMatchOpsWrites,historyEntryIdentity,matchHasSyncIdentity,matchSyncIdentity} from '../sync/sync-state-and-rebase.js';
 import {KSM_TAB_ID} from '../sync/two-tabs.js';
 import * as KSMEngine from '../../engine/index.ts';
 export function loadScoreFromMatch(m){
@@ -321,12 +321,17 @@ function applyCourtHistoryEntry(action,direction){
     else if(list.some(patch=>patch.path.length<4))mode[div]=action.identityStamps?'skip':'index'; // whole matches by index: only an entry recorded before identities still does that
     else mode[div]='identity';
   });
-  const applied=[];let skipped=0;
+  // Every `allMatches` write of the entry (its match ops first, then its patches in order) is one batch through
+  // match-writes.js (#206 review M2: one dispatch in 13c-2, no notification showing half an Undo); each look-up by
+  // identity sees the writes before it. `applied` keeps a placeholder per batched write, in the old order, filled after.
+  const applied=[],writes=[],slots=[];let skipped=0;
+  const batch=(write,record)=>{writes.push(write);slots.push(record);applied.push(slots.length-1)};
+  const historyWrite=(patch,path)=>{const value=patch[direction];return {path,value,missing:Boolean(value&&value.__ksmMissing===true),how:'history',clone:true}};
   Object.entries(ops).forEach(([div,op])=>{
     if(!op)return;
-    const result=replayCourtMatchOps(state,{[div]:op})||{applied:[],skipped:0};
-    skipped+=result.skipped;
-    result.applied.forEach(patch=>applied.push(undoing?{...patch,before:patch.after,after:patch.before}:patch));
+    const built=courtMatchOpsWrites(state,{[div]:op});
+    skipped+=built.skipped;
+    built.writes.forEach((write,i)=>{const patch=built.patches[i];if(patch)batch(write,result=>{const done={...patch,path:result.path};return undoing?{...done,before:done.after,after:done.before}:done});else{writes.push(write);slots.push(null)}});
   });
   // `matches` (a device key) is never written (applyHistoryPatch()); which of its patches count as applied is kept as
   // before, so the Undo log entry (courtUndoLogEntry()) is the same as 4.0 writes.
@@ -337,18 +342,27 @@ function applyCourtHistoryEntry(action,direction){
     const path=patch?.path||[],div=divOf(patch);
     // state.matches is the same list as allMatches.<div>: its patches repeat those, at indexes that may be stale.
     if(path[0]==='matches'&&aliased!=null&&mode[aliased]!=='index')return;
-    if(div==null){if(patch.indexRefs?.[direction])indexFields.push(patch);else{applyHistoryPatch(patch,direction);applied.push(patch)}return}
+    if(div==null){
+      if(patch.indexRefs?.[direction])indexFields.push(patch);
+      else if(path[0]==='allMatches')batch(historyWrite(patch,path),()=>patch);
+      else{applyHistoryPatch(patch,direction);applied.push(patch)}
+      return;
+    }
     if(mode[div]==='ops')return;
     if(mode[div]==='skip'){skipped++;return}
     if(mode[div]==='identity'){
-      const arr=state.allMatches[div],ids=[identityNow(patch),patch.matchIdentity,patch.matchIdentities?.[other]].filter(Boolean);
-      let i=-1;for(const id of ids){i=arr.findIndex(match=>matchHasSyncIdentity(match,id));if(i>=0)break}
-      if(i<0){skipped++;return}
-      const resolved={...patch,path:['allMatches',div,i,...path.slice(3)]};
-      applyHistoryPatch(resolved,direction);applied.push(resolved);return;
+      const ids=[identityNow(patch),patch.matchIdentity,patch.matchIdentities?.[other]].filter(Boolean);
+      batch({...historyWrite(patch,null),path:undefined,division:div,ids,rest:path.slice(3)},result=>({...patch,path:result.path}));
+      return;
     }
-    applyHistoryPatch(patch,direction);applied.push(patch);
+    batch(historyWrite(patch,path),()=>patch);
   });
+  const results=ksmWriteMatchPaths(writes);
+  for(let i=applied.length-1;i>=0;i--){
+    if(typeof applied[i]!=='number')continue;
+    const k=applied[i],result=results[k];
+    if(result.applied)applied[i]=slots[k](result);else{applied.splice(i,1);skipped++}
+  }
   // The match-index fields last, once the match lists are as they will be.
   indexFields.forEach(patch=>{const value=resolveHistoryIndexRef(patch.indexRefs[direction],patch[direction]);applyHistoryPatch({...patch,[direction]:value},direction);applied.push(patch)});
   if(undoing)applied.reverse();
