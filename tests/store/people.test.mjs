@@ -122,7 +122,8 @@ test('the rename is one tournament/divisionRenamed: the players move with the di
   const store = read('app/modules/setup/divisions-store.js'), setup = read('app/modules/react-bridges/setup.js');
   assert.match(store, /export const KSM_RENAMED_STATE_KEYS=Object\.freeze\(\[\.\.\.KSM_DIVISION_STATE_KEYS,'competitors','grandChampions','courtState','courtActiveDivision'\]\);/);
   assert.match(store, /for\(const key of KSM_RENAMED_STATE_KEYS\)/);
-  assert.match(setup, /filter\(\(\[k\]\)=>!KSM_RENAMED_STATE_KEYS\.includes\(k\)\)\);\n\s*assignState\(plain\);\n\s*ksmRenameDivisionLists\(rest\);/);
+  // (#15 PR 13c-1: `allMatches` goes through its write module, the other plain keys as before.)
+  assert.match(setup, /filter\(\(\[k\]\)=>!KSM_RENAMED_STATE_KEYS\.includes\(k\)&&k!=='allMatches'\)\);\n\s*if\(Object\.hasOwn\(rest,'allMatches'\)\)ksmSetAllMatches\([^;]*\);\n\s*assignState\(plain\);\n\s*ksmRenameDivisionLists\(rest\);/);
 });
 
 test('strict: assigning a field, a list method or an in-place row edit throws and changes nothing', () => {

@@ -2,6 +2,7 @@
 import {ksmShowMatch,state} from '../app-state.js';
 import {individualMatchReady} from '../court/court-match-order.js';
 import {ksmMoveCourtPointers} from '../court/court-pointers-store.js';
+import {ksmAppendMatches,ksmInsertMatches,ksmSetDivisionMatches} from '../court/match-writes.js';
 import {poolPositionsResolved,requiredSeedPlaces} from './engine-championship.js';
 import {eligibleTeams,isTeamDivision,poolCourtFor} from './engine-pools.js';
 import {replaceable} from '../replaceable.js';
@@ -295,7 +296,7 @@ export function normalizeIndividualPoolTiebreakOrderInState(targetState,div,sour
   });
   const changed=rebuilt.length!==before.length||rebuilt.some((match,index)=>match!==before[index]);
   if(!changed)return false;
-  targetState.allMatches[div]=rebuilt;
+  ksmSetDivisionMatches(div,rebuilt,targetState);
   reindexPointersAfterMatchReorder(targetState,div,before,rebuilt);
   console.info('[KSM Tiebreak Order] Repaired pool-local tiebreak placement',{source,division:div});
   return true;
@@ -325,7 +326,7 @@ export function appendApprovedDynamicMatches(div,afterMatch,matches,dynamicType)
     // Pool tiebreaks are part of that pool's timeline, not generic appended matches.
     // Add them safely, then canonicalize by pool so object-identity changes or a
     // cloud rebase can never strand Pool A's playoff after Pool D.
-    arr.push(...list);state.allMatches[div]=arr;
+    ksmAppendMatches(div,list);
     normalizeIndividualPoolTiebreakOrderInState(state,div,'dynamic tiebreak creation');
     return list;
   }
@@ -334,8 +335,7 @@ export function appendApprovedDynamicMatches(div,afterMatch,matches,dynamicType)
   const afterIdentity=matchSyncIdentity(afterMatch);
   let idx=afterMatch?KSMEngine.matchIndexIn(arr,afterMatch):-1;
   if(idx<0&&afterMatch)idx=arr.findIndex(match=>afterIdentity&&matchHasSyncIdentity(match,afterIdentity));
-  arr.splice(idx>=0?idx+1:arr.length,0,...list);
-  state.allMatches[div]=arr;
+  ksmInsertMatches(div,idx>=0?idx+1:arr.length,list);
   return list;
 }
 /**

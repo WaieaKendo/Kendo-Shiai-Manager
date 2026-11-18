@@ -3,6 +3,7 @@ import {ksmEmptyScore,ksmSetCurrentCourt,ksmSetPoolViewDivision,ksmSetPublicCour
 import {ksmDefaultDivisionCourts} from '../setup/divisions-store.js';
 import {loadScoreFromMatch} from './court-scoring-and-history.js';
 import {ksmCourtPointer,ksmMoveCourtPointers,ksmResolveCourts} from './court-pointers-store.js';
+import {ksmSetDivisionMatches,ksmSortDivisionMatches} from './match-writes.js';
 import {renderScore} from './scorekeeper-screen.js';
 import {championshipLabels,firstRoundName,roundSequenceFromFirst} from '../engine/engine-championship.js';
 import {matchBelongsToCourt} from '../engine/engine-generation.js';
@@ -20,18 +21,22 @@ export function isTeamMatch(m){return KSMEngine.isTeamMatch(m);// moved to app/e
   }
 /** Node id -> its place in the bracket; `nodes` (a draw not in the store yet) instead of the division's nodes. */
 function teamNodeOrderMap(div,nodes=state.teamBracketNodes?.[div]){let map={};(nodes||[]).forEach((n,i)=>map[n.id]=i);return map}
-function teamPairOrderMap(div){let map={},next=0;(state.allMatches[div]||[]).forEach(m=>{if(isTeamMatch(m)&&m.teamPair&&map[m.teamPair]==null)map[m.teamPair]=next++});return map}
+function teamPairOrderMap(div,list=state.allMatches[div]){let map={},next=0;(list||[]).forEach(m=>{if(isTeamMatch(m)&&m.teamPair&&map[m.teamPair]==null)map[m.teamPair]=next++});return map}
 function teamPositionOrder(m){return KSMEngine.teamPositionOrder(m);// moved to app/engine/match-helpers.ts
   }
-function teamMatchSortKey(div,m,map=teamNodeOrderMap(div)){let node=(m.teamNodeId&&map[m.teamNodeId]!=null)?map[m.teamNodeId]:null;if(node==null && m.teamPair){let sib=(state.allMatches[div]||[]).find(x=>x.teamPair===m.teamPair && x.teamNodeId && map[x.teamNodeId]!=null);if(sib)node=map[sib.teamNodeId];}
+// `list` / `pairOrder`: the division's list and its pair order as they were before a sort (sortTeamMatches()).
+function teamMatchSortKey(div,m,map=teamNodeOrderMap(div),list=state.allMatches[div],pairOrder){let node=(m.teamNodeId&&map[m.teamNodeId]!=null)?map[m.teamNodeId]:null;if(node==null && m.teamPair){let sib=(list||[]).find(x=>x.teamPair===m.teamPair && x.teamNodeId && map[x.teamNodeId]!=null);if(sib)node=map[sib.teamNodeId];}
   // Round-robin position Match Objects belong to one authoritative team pairing.
   // Keep Senpo -> ... -> Taisho -> representative playoff together before
   // advancing the court to another pair. Elimination continues to use node order.
-  if(node==null&&m.teamPair){let pairOrder=teamPairOrderMap(div);if(pairOrder[m.teamPair]!=null)return pairOrder[m.teamPair]*100+teamPositionOrder(m)}
+  if(node==null&&m.teamPair){pairOrder=pairOrder||teamPairOrderMap(div,list);if(pairOrder[m.teamPair]!=null)return pairOrder[m.teamPair]*100+teamPositionOrder(m)}
   if(node==null)node=999;return node*100+teamPositionOrder(m)}
-export function sortTeamMatches(div,nodes){let arr=state.allMatches[div]||[];if(!arr.some(isTeamMatch))return arr;const map=teamNodeOrderMap(div,nodes);arr.sort((a,b)=>{
-  let at=isTeamMatch(a),bt=isTeamMatch(b);if(at&&bt)return teamMatchSortKey(div,a,map)-teamMatchSortKey(div,b,map);if(at&&!bt)return -1;if(!at&&bt)return 1;return 0;
-});state.allMatches[div]=arr;return arr;}
+// The division's list sorted through match-writes.js (#15 PR 13c-1); returns it as it is after, read again. The sort keys
+// read the list as it was before the sort (V8 sorts a copy and writes it back at the end, so the in-place sort's
+// comparator read that order too; 13c-2 sorts a copy of the store's list).
+export function sortTeamMatches(div,nodes){let arr=state.allMatches[div]||[];if(!arr.some(isTeamMatch))return arr;const map=teamNodeOrderMap(div,nodes),before=[...arr],pairOrder=teamPairOrderMap(div,before);return ksmSortDivisionMatches(div,(a,b)=>{
+  let at=isTeamMatch(a),bt=isTeamMatch(b);if(at&&bt)return teamMatchSortKey(div,a,map,before,pairOrder)-teamMatchSortKey(div,b,map,before,pairOrder);if(at&&!bt)return -1;if(!at&&bt)return 1;return 0;
+});}
 export function individualMatchReady(m){return KSMEngine.individualMatchReady(m);// moved to app/engine/match-helpers.ts
   }
 function championshipRoundIndex(div,round){
@@ -55,7 +60,7 @@ export function sortIndividualDivisionMatches(div,arr){
     const as=Number(a.m.bracketSlot??9999),bs=Number(b.m.bracketSlot??9999);
     return as!==bs?as-bs:a.i-b.i;
   });
-  const out=indexed.map(x=>x.m);state.allMatches[div]=out;return out;
+  const out=indexed.map(x=>x.m);ksmSetDivisionMatches(div,out);return state.allMatches[div];
 }
 export function findNextForCourt(court,preferredDiv=null,startIndex=0){
   // The active match must always be pulled from the same ordered queue that

@@ -2,6 +2,7 @@
 import {state} from '../app-state.js';
 import {findNextForCourt,renderDivisions} from './court-match-order.js';
 import {ksmResolveCourts} from './court-pointers-store.js';
+import {ksmInsertMatches,ksmSetDivisionMatches} from './match-writes.js';
 import {ensureCourtHistory,updateUndoButton} from './court-scoring-and-history.js';
 import {renderScore} from './scorekeeper-screen.js';
 import {renderContext} from './split-court-templates.js';
@@ -33,7 +34,7 @@ export function maybeCreateKachinukiNext(m,hint){
   let div=m.division,arr=state.allMatches[div]||[];
   if(plan.kind==='playoff')appendApprovedDynamicMatches(div,m,/** @type {Match} */(plan.match),'KACHINUKI_REPRESENTATIVE');
   // After `m` found by sync identity (KSMEngine.matchIndexIn()), not Match Object identity (#15, before 13c).
-  else{let idx=KSMEngine.matchIndexIn(arr,m,hint);arr.splice(idx+1,0,/** @type {Match} */(plan.match));state.allMatches[div]=arr;}
+  else{let idx=KSMEngine.matchIndexIn(arr,m,hint);ksmInsertMatches(div,idx+1,[/** @type {Match} */(plan.match)]);}
 }
 
 export function dragPoolPlayer(ev,poolLabel,idx){ev.dataTransfer.setData('text/plain',JSON.stringify({poolLabel,idx}));}
@@ -69,7 +70,7 @@ export function saveEditedPools(){
   ksmSetDraw('poolsEdited',{...ksmDrawWith(div,{pools,brackets:bracket,...(draft.championshipNodes?{championshipNodes:draft.championshipNodes}:{})}),managementRevision:ksmNextManagementRevision()});
 
   const poolMatches=buildPoolMatches(div,pools);
-  state.allMatches[div]=poolMatches.concat(championshipMatches);
+  ksmSetDivisionMatches(div,poolMatches.concat(championshipMatches));
   syncChampionshipTemplate(div);
 
   // Any saved court pointer into the pre-edit array is now stale because the

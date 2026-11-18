@@ -1,6 +1,7 @@
 // @ts-check
 import {state} from '../app-state.js';
 import {performCourtAction} from '../court/court-scoring-and-history.js';
+import {ksmUpdateMatch} from '../court/match-writes.js';
 import {renderScore} from '../court/scorekeeper-screen.js';
 import {championshipLabels} from '../engine/engine-championship.js';
 import {matchBelongsToCourt} from '../engine/engine-generation.js';
@@ -53,5 +54,6 @@ export function setRepresentative(side,val){
   if(!m||!val||!canModifyRepresentative(m)){if(m&&!canModifyRepresentative(m))updateSaveStatus('Representative selection is read only');return;}
   // Looked up again inside the action (by sync identity, the held index on a tie or a renamed bout), not written through the held object (#15).
   const div=state.currentDivision,index=state.current;
-  performCourtAction(`${side==='W'?'White':'Red'} Representative`,()=>{const live=KSMEngine.findMatchAgain(state.allMatches?.[div],m,index)||m;if(side==='W')live.white=val;else live.red=val;renderScore()});
+  // One write through match-writes.js (#15 PR 13c-1); a bout no longer in its list (none is: nothing writes in between) is left as it is.
+  performCourtAction(`${side==='W'?'White':'Red'} Representative`,()=>{const at=KSMEngine.matchIndexIn(state.allMatches?.[div],m,index);if(at>=0)ksmUpdateMatch(div,at,side==='W'?{white:val}:{red:val});renderScore()});
 }

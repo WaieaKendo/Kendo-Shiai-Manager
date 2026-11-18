@@ -1,6 +1,7 @@
 // @ts-check
 import {state} from '../app-state.js';
 import {syncIndividualSingleElim} from '../court/split-court-templates.js';
+import {ksmSetDivisionMatches} from '../court/match-writes.js';
 import {champWinnerObj,seedNameForLabel} from './engine-championship.js';
 import {eligibleIndividuals} from './engine-pools.js';
 import {teamBracketNodesForCount} from './engine-team-bracket.js';
@@ -37,14 +38,18 @@ function placeIndividualsForSingleElim(comps){
 }
 /** Node id -> its place in the bracket; `nodes` (a draw not in the store yet) instead of the division's nodes. */
 export function singleElimOrderMap(div,nodes=state.singleElimNodes?.[div]){let map={};(nodes||[]).forEach((n,i)=>map[n.id]=i);return map;}
-export function sortIndividualSingleElimMatches(div,arr,nodes){let order=singleElimOrderMap(div,nodes);arr.sort((a,b)=>{
+/** The single elimination's bout order (node order, then bracket slot), for a sort; `nodes` (a draw not in the store yet) instead of the division's. */
+export function singleElimMatchCompare(div,nodes){let order=singleElimOrderMap(div,nodes);return (a,b)=>{
   let oa=order[a.elimNodeId]??9999, ob=order[b.elimNodeId]??9999;
   if(oa!==ob)return oa-ob;
   return (a.bracketSlot||0)-(b.bracketSlot||0);
-});return arr;}
+}}
+/** `arr` in the single elimination's bout order: a sorted copy (#15 PR 13c-1: the division's own list is sorted through match-writes.js). */
+export function sortIndividualSingleElimMatches(div,arr,nodes){return [...arr].sort(singleElimMatchCompare(div,nodes));}
 export function dedupeSingleElimMatches(div){
   let arr=state.allMatches[div]||[];
   let seen=new Set(), out=[];
+  // Sorted on a copy (#15 PR 13c-1): the division's list was sorted in place and replaced by `out` right after, so only `out` is written.
   sortIndividualSingleElimMatches(div,arr).forEach(m=>{
     if(m.singleElim){
       let k=m.elimNodeId||m.position+'-'+(m.bracketSlot||'');
@@ -53,8 +58,8 @@ export function dedupeSingleElimMatches(div){
     }
     out.push(m);
   });
-  state.allMatches[div]=out;
-  return out;
+  ksmSetDivisionMatches(div,out);
+  return state.allMatches[div];
 }
 /**
  * @param {BracketSource|null} side
@@ -83,7 +88,9 @@ export function buildIndividualSingleElimMatches(div,comps,draft){
   draft.singleElimNodes=built.nodes;
   const arr=/** @type {Match[]} */(built.matches);
   syncIndividualSingleElim(div,arr,comps,draft);
-  return arr;
+  // The division's list as the sync left it (it is `arr`, sorted, with the plan's values: a new bracket has no duplicate
+  // to drop), read again (#15 PR 13c-1).
+  return state.allMatches[div];
 }
 /**
  * @param {Match} m

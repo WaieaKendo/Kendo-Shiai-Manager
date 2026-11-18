@@ -1,5 +1,6 @@
 // @ts-check
 import {state} from '../app-state.js';
+import {ksmAppendMatches,ksmSetDivisionMatches,ksmUpdateMatches} from '../court/match-writes.js';
 import {championshipCourtFor} from './engine-pools.js';
 import {isPoolOnlyDivision} from '../results/results-and-awards.js';
 import {replaceable} from '../replaceable.js';
@@ -88,8 +89,8 @@ export function individualLogicalMatchKey(m){
  */
 export function enforceUniqueIndividualMatches(div){
   const out=KSMEngine.uniqueIndividualMatches(state.allMatches?.[div]||[]);
-  state.allMatches[div]=out; // state.matches follows (it is allMatches[currentDivision], #15 PR 7)
-  return out;
+  ksmSetDivisionMatches(div,out); // state.matches follows (it is allMatches[currentDivision], #15 PR 7)
+  return state.allMatches[div];
 }
 /**
  * @param {number} n number of first-round matches
@@ -178,11 +179,14 @@ export function syncChampionshipTemplate(div){
   const arr=state.allMatches?.[div]||[];
   if(!nodes.length)return arr;
   const plan=KSMEngine.syncChampionshipTemplate(div,nodes,arr,label=>seedNameForLabel(div,label,true));
+  // Written through match-writes.js (#15 PR 13c-1): a division without a list gets one, the missing bouts are appended
+  // (their indexes are the plan's), then the plan's values in one write; the list is read again for the caller.
+  if(!Array.isArray(state.allMatches?.[div]))ksmSetDivisionMatches(div,[]);
   // Self-heal: a generated championship node must always have a Match Object.
-  plan.missing.forEach(m=>{arr.push(/** @type {Match} */(m));console.warn('KSM repaired missing championship Match Object',div,m.champNodeId);});
-  plan.updates.forEach(u=>Object.assign(arr[u.index],u.set));
-  state.allMatches[div]=arr;
-  return arr;
+  plan.missing.forEach(m=>console.warn('KSM repaired missing championship Match Object',div,m.champNodeId));
+  ksmAppendMatches(div,/** @type {Match[]} */(plan.missing));
+  ksmUpdateMatches(div,plan.updates);
+  return state.allMatches[div];
 }
 function championshipSeeds(div){
   return championshipLabels(div).map(([r,w])=>[r==='BYE'?{name:'BYE',dojo:''}:seedNameForLabel(div,r,true),w==='BYE'?{name:'BYE',dojo:''}:seedNameForLabel(div,w,true),r,w]);

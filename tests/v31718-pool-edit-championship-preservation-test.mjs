@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { extractFunction, engine, html as appSource, sw as appServiceWorker } from './lib/ksm-source.mjs';
+import { extractFunction, engine, html as appSource, sw as appServiceWorker, matchWritesSource } from './lib/ksm-source.mjs';
 import { pointerHelpers } from './lib/derived-matches.mjs';
 import { drawHelpers } from './lib/draw-helpers.mjs';
 
@@ -35,6 +35,7 @@ context.ksmPoolEditToSave=div=>context.state.pools[div];
 vm.createContext(context);
 vm.runInContext(`${engine}
 ${drawHelpers}
+${matchWritesSource}
 const POOL_MATCH_TEMPLATES=Object.freeze({
   2:Object.freeze([[0,1]]),
   3:Object.freeze([[0,1],[2,1],[2,0]]),

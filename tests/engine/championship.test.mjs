@@ -10,7 +10,7 @@ import {
   poolSeedResolution, seedNameForLabel, championshipNodeSource, syncChampionshipTemplate, sourceLabelForRound,
   individualPlacements, firstRoundName, roundMatchCount,
 } from '../../app/engine/championship.ts';
-import { html, engine, extractFunction } from '../lib/ksm-source.mjs';
+import { html, engine, extractFunction, matchWritesSource } from '../lib/ksm-source.mjs';
 import { gitShow } from '../lib/git-show.mjs';
 
 const pool = (label, ...names) => ({ label, players: names.map(n => ({ name: n, dojo: `${n}-dojo` })) });
@@ -191,7 +191,8 @@ test('championship build, advancement, seeds and placements equal the pre-move l
   const oldSrc = oldFiles.join('\n');
   const load = src => {
     const ctx = vm.createContext({ state: null, console: { warn() {} } });
-    vm.runInContext(`${engine}\n${STUBS}\n${FUNCS.map(n => extractFunction(src, n)).join('\n')}`, ctx);
+    // #15 PR 13c-1: allMatches is written through match-writes.js (in place on the context's `state`).
+    vm.runInContext(`${engine}\n${matchWritesSource}\n${STUBS}\n${FUNCS.map(n => extractFunction(src, n)).join('\n')}`, ctx);
     return ctx;
   };
   const legacy = load(oldSrc), current = load(html);

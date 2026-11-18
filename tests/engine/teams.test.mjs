@@ -12,7 +12,7 @@ import {
   teamRoundRobinTiebreakPlan, teamPairIds, teamPairMatches,
 } from '../../app/engine/teams.ts';
 import { kachinukiTransitionState, kachinukiPairWinner, maybeCreateKachinukiNext } from '../../app/engine/kachinuki.ts';
-import { html, engine, extractFunction } from '../lib/ksm-source.mjs';
+import { html, engine, extractFunction, matchWritesSource } from '../lib/ksm-source.mjs';
 import { gitShow } from '../lib/git-show.mjs';
 import { drawHelpers } from '../lib/draw-helpers.mjs';
 
@@ -352,7 +352,8 @@ test('team engine equals the pre-move legacy code over the golden team scenarios
   const load = src => {
     const ctx = vm.createContext({ state: null, teamsList: null, settings: null });
     const moved = MOVED.map(n => (src === html && n === 'buildTeamMatches' ? currentBuild : extractFunction(src, n))).join('\n');
-    vm.runInContext(`${engine}\n${drawHelpers}\n${stubs}\n${SHARED.map(n => extractFunction(html, n)).join('\n')}\n${moved}`, ctx);
+    // #15 PR 13c-1: allMatches is written through match-writes.js (in place on the context's `state`).
+    vm.runInContext(`${engine}\n${drawHelpers}\n${matchWritesSource}\n${stubs}\n${SHARED.map(n => extractFunction(html, n)).join('\n')}\n${moved}`, ctx);
     return ctx;
   };
   const legacy = load(oldSrc), current = load(html);

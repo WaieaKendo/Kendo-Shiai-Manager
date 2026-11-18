@@ -5,6 +5,7 @@ import {renderAll} from '../court/court-context-and-pool-editing.js';
 import {findNextForCourt,renderDivisions} from '../court/court-match-order.js';
 import {ksmSetCourtHistories} from '../court/court-history-store.js';
 import {ksmResolveCourts} from '../court/court-pointers-store.js';
+import {ksmDeleteDivisionMatches,ksmUpdateMatch,ksmUpdateMatches} from '../court/match-writes.js';
 import {enforceUniqueIndividualMatches,maybeAdvanceChampionship,maybeCreateChampionship} from '../engine/engine-championship.js';
 import {generateDivisionState} from '../engine/engine-generation.js';
 import {KSM_DRAW_KEYS,ksmDrawWith,ksmEditedPools,ksmSetDraw} from '../engine/structure-store.js';
@@ -142,7 +143,7 @@ function ksmClearGrandChampionStructure(id,keepCourts=false){
   let had=false;
   // The plain parts are deleted, then the draw's own entries go in one tournament/divisionCleared (#15 PR 12a).
   // (`currentByDivision`, the court pointers' map since #15 PR 13a, goes with the draw's entries.)
-  KSM_GC_STRUCTURE_KEYS.forEach(k=>{if(state[k]&&Object.hasOwn(state[k],id)){if(k==='allMatches')delete state[k][id];had=true}});
+  KSM_GC_STRUCTURE_KEYS.forEach(k=>{if(state[k]&&Object.hasOwn(state[k],id)){if(k==='allMatches')ksmDeleteDivisionMatches(id);had=true}});
   // A court on the draw is re-resolved in the same tournament/divisionCleared (#15 PR 13b, #201 review L2): no store
   // notification shows it on the deleted list. Its next bout is found on the lists without this draw (allMatches, deleted
   // above), as the court/pointersResolved after the clear found it; a draw already gone keeps that separate action.
@@ -174,8 +175,11 @@ function ksmDrawGrandChampion(gc){
 // the runner-up takes the winner's place (slot, bouts) and nothing played is touched.
 function ksmSubstituteGrandChampion(gc,swaps){
   const same=(name,dojo,e)=>name===e.name&&(dojo||'')===(e.dojo||'');
-  const swap=(o,nameKey,dojoKey)=>{const s=o&&swaps.find(x=>same(o[nameKey],o[dojoKey],x.from));if(s){o[nameKey]=s.to.name;o[dojoKey]=s.to.dojo}};
-  (state.allMatches?.[gc.id]||[]).forEach(m=>{if(m&&!KSMEngine.grandChampionStarted([m])){swap(m,'white','wdojo');swap(m,'red','rdojo')}});
+  // The unplayed bouts' names in one write (#15 PR 13c-1: match-writes.js), each bout's keys in the old order.
+  /** @type {import('../court/match-writes.js').MatchUpdate[]} */ const updates=[];
+  const swap=(o,set,nameKey,dojoKey)=>{const s=o&&swaps.find(x=>same(o[nameKey],o[dojoKey],x.from));if(s){set[nameKey]=s.to.name;set[dojoKey]=s.to.dojo}};
+  (state.allMatches?.[gc.id]||[]).forEach((m,index)=>{if(m&&!KSMEngine.grandChampionStarted([m])){const set={};swap(m,set,'white','wdojo');swap(m,set,'red','rdojo');if(Object.keys(set).length)updates.push({index,set})}});
+  ksmUpdateMatches(gc.id,updates);
   // The draw's rows are store data (#15 PR 12a): the stand-in is a new row in the entrants and the pools. A bracket node
   // whose winner is the entrant's row itself follows to the new row, as the old in-place swap reached it; the nodes are
   // store data too (PR 12b): new nodes, in the same action.
@@ -197,9 +201,9 @@ function ksmApplyGrandChampionWithdrawals(gc,now){
   for(let guard=0;guard<40;guard++){
     const arr=state.allMatches?.[gc.id]||[],bout=KSMEngine.grandChampionFusenBouts(arr,withdrawn)[0];
     if(!bout)break;
-    const m=arr[bout.index];
-    m.wp=bout.winner==='W'?['F','F']:[];m.rp=bout.winner==='R'?['F','F']:[];m.wt=0;m.rt=0;
-    m.completedResult=completedResultSnapshot(m);m.done=true;changed=true;
+    // The bout's result in one write (#15 PR 13c-1), as Next Match writes it: the snapshot taken before `done`.
+    const result={wp:bout.winner==='W'?['F','F']:[],rp:bout.winner==='R'?['F','F']:[],wt:0,rt:0};
+    const m=/** @type {Match} */(ksmUpdateMatch(gc.id,bout.index,{...result,completedResult:completedResultSnapshot(/** @type {Match} */({...arr[bout.index],...result})),done:true}));changed=true;
     maybeCreateTiebreaks(m);maybeCreateChampionship(m);maybeAdvanceChampionship(m);maybeAdvanceIndividualSingleElim(m);
     enforceUniqueIndividualMatches(gc.id);
   }

@@ -2,6 +2,7 @@
 import {DIVISION_PRESETS,state} from '../app-state.js';
 import {findNextForCourt,isTeamMatch,renderDivisions} from '../court/court-match-order.js';
 import {ksmResolveCourts} from '../court/court-pointers-store.js';
+import {ksmUpdateMatches} from '../court/match-writes.js';
 import {matchBelongsToCourt} from '../engine/engine-generation.js';
 import {championshipCourtFor,divisionCourtMode,poolCourtFor} from '../engine/engine-pools.js';
 import {ksmEditedPools,ksmSetDraw} from '../engine/structure-store.js';
@@ -34,12 +35,17 @@ export function ksmReassignDivisionCourt(d){
   if(mode!=='split')ksmSetDraw('drawEntriesUpdated',ksmEditedPools(d,p=>{if(!Object.hasOwn(p,'court'))return p;const {court,...rest}=p;return rest}));
   const roundSize={};all.forEach(m=>{if(m&&m.championship&&!m.singleElim)roundSize[m.position]=(roundSize[m.position]||0)+1});
   const elimNodes=state.singleElimNodes?.[d]||[];
-  all.forEach(m=>{
+  // Every unplayed bout's court in one write (#15 PR 13c-1: match-writes.js).
+  /** @type {import('../court/match-writes.js').MatchUpdate[]} */ const updates=[];
+  all.forEach((m,index)=>{
     if(!m||m.done||isTeamMatch(m))return;
-    if(m.singleElim){const node=elimNodes.find(n=>n.id===m.elimNodeId);m.court=mode==='split'?(m.position==='Final'?'A':(node?.court||'A')):/** @type {any} */(mode)}
-    else if(m.championship)m.court=championshipCourtFor(d,m.position,m.bracketSlot,roundSize[m.position]||1);
-    else m.court=poolCourtFor(d,m.pool);
+    let court;
+    if(m.singleElim){const node=elimNodes.find(n=>n.id===m.elimNodeId);court=mode==='split'?(m.position==='Final'?'A':(node?.court||'A')):/** @type {any} */(mode)}
+    else if(m.championship)court=championshipCourtFor(d,m.position,m.bracketSlot,roundSize[m.position]||1);
+    else court=poolCourtFor(d,m.pool);
+    updates.push({index,set:{court}});
   });
+  ksmUpdateMatches(d,updates);
   // A court on this division goes to its first ready bout (one court/pointersResolved, #15 PR 13a).
   ksmResolveCourts(['A','B'].filter(c=>state.courtState?.[c]?.division===d),c=>findNextForCourt(c,null,0));
 }
