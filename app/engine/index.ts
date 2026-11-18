@@ -67,7 +67,7 @@ export { kachinukiTransitionState, kachinukiPairWinner, maybeCreateKachinukiNext
 export type { KachinukiMatchLike, KachinukiBoutLike, KachinukiTransition, KachinukiPlayoff, KachinukiContinuation, KachinukiNext } from './kachinuki.ts';
 export {
   completedResultSnapshot, planCompletedResultRepairs, loadedEliminationRepairPlan, isValidMatchObject,
-  individualLogicalMatchKey, uniqueIndividualMatches, legacyTiebreakSyncIdentity, matchSyncIdentity, matchHasSyncIdentity,
+  individualLogicalMatchKey, uniqueIndividualMatches, legacyTiebreakSyncIdentity, matchSyncIdentity, matchHasSyncIdentity, matchIndexIn, findMatchAgain,
 } from './integrity.ts';
 export type { CompletedResult, CompletedResultRepair, IdentityMatch } from './integrity.ts';
 export { eligibleIndividuals, eligibleTeams, generateDivision, TEAM_DIVISION, EXHIBITION_DIVISION } from './generation.ts';

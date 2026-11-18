@@ -96,7 +96,7 @@ export function courtSummaryFor(court){
   if(div&&Number.isInteger(cs.index))current=all[cs.index]||null;
   if(!current||current.done||!matchBelongsToCourt(current,court))current=pending[0]||null;
   const ordered=relevant.some(isTeamMatch)?sortTeamMatches(div).filter(m=>matchBelongsToCourt(m,court)):relevant;
-  const currentPos=current?ordered.indexOf(current):-1;
+  const currentPos=current?KSMEngine.matchIndexIn(ordered,current):-1; // by sync identity, not object identity (#15)
   const later=currentPos>=0?ordered.slice(currentPos+1).filter(m=>!m.done):pending.slice(current?1:0);
   const progress=div?directorDivisionProgress(div,court):{completed:0,total:0,remaining:0,variable:false};
   return {court,division:div,round:directorMatchLabel(current),...progress,current,onDeck:later[0]||null,following:later[1]||null};

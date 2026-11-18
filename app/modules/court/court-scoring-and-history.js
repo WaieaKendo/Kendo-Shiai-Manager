@@ -90,6 +90,9 @@ export function performCourtAction(label,fn){
   // A division picked before Staff Login reaches the court's pointer with this action's save (not its Undo entry).
   syncOwnCourtPointer();
   ensureCourtHistory();const court=currentHistoryCourt(),before=historyComparableState();
+  // Test-only (tests/match-identity-copy-test.py, #15 before 13c): a point where the guard replaces every Match Object, as a
+  // dispatch before the action's body will in 13c. Absent in the app.
+  /** @type {any} */(globalThis).KSMTestBeforeCourtAction?.('action');
   const result=fn();const after=historyComparableState(),patches=buildHistoryPatches(before,after).map(patch=>stampHistoryPatchMatchIdentity(patch,before,after));
   // The entry is built whole, then recorded with the Redo list cleared, in one court/actionRecorded (#15 PR 13b).
   if(patches.length)ksmRecordCourtAction(court,withCourtHistoryIdentity({format:'patch-v1',label:label||'Action',court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',tabId:KSM_TAB_ID,revision:cloudSession?.revision||0,patches},before,after));
@@ -325,7 +328,8 @@ function applyCourtHistoryEntry(action,direction){
   });
   // `matches` (a device key) is never written (applyHistoryPatch()); which of its patches count as applied is kept as
   // before, so the Undo log entry (courtUndoLogEntry()) is the same as 4.0 writes.
-  const aliased=Object.keys(byDivision).find(div=>state.matches&&state.matches===state.allMatches?.[div]);
+  // (state.matches is allMatches[currentDivision] when that list exists: the test by division, not list identity.)
+  const aliased=Object.keys(byDivision).find(div=>div===state.currentDivision&&Array.isArray(state.allMatches?.[div]));
   const ordered=undoing?[...all].reverse():all,indexFields=[];
   ordered.forEach(patch=>{
     const path=patch?.path||[],div=divOf(patch);
@@ -394,6 +398,9 @@ export function matchRequiresWinner(m){
   return KSMEngine.matchRequiresWinner(m);
 }
 export function nextMatch(){
+  // `m` is looked up again inside the action (KSMEngine.findMatchAgain(): by sync identity, the held index on a tie or a renamed bout), so
+  // the writes go to the list's match even when the list holds new objects by then (#15, before 13c).
+  const div=state.currentDivision,index=state.current;
   let m=state.matches[state.current];
   if(m){
     let attemptedTie=state.score.W.length===state.score.R.length;
@@ -402,6 +409,7 @@ export function nextMatch(){
   }
   const completedLabel=m?`Next Match: ${m.white||m.teamWhite||'White'} vs ${m.red||m.teamRed||'Red'}`:'Next Match';
   performCourtAction(completedLabel,()=>{
+    if(m)m=KSMEngine.findMatchAgain(state.allMatches?.[div],m,index)||m;
     if(m){
       // Commit the final score and winner as one atomic result snapshot. Point taps
       // may have been autosaved under an earlier cloud revision; the completion
@@ -409,7 +417,11 @@ export function nextMatch(){
       m.wp=[...state.score.W];m.rp=[...state.score.R];m.wt=state.score.WT||0;m.rt=state.score.RT||0;
       m.completedResult=completedResultSnapshot(m);
       m.done=true;
-      maybeCreateTiebreaks(m);maybeCreateTeamTiebreak(m);maybeCreateKachinukiNext(m);maybeAdvanceTeamBracket(m);maybeCreateChampionship(m);maybeAdvanceChampionship(m);maybeAdvanceIndividualSingleElim(m);
+      // Test-only copy point (as before the action's body): in 13c this result write is a dispatch, after which the held
+      // `m` is the old object (without the result). Every read after the write uses the match looked up again.
+      /** @type {any} */(globalThis).KSMTestBeforeCourtAction?.('result');
+      m=KSMEngine.findMatchAgain(state.allMatches?.[div],m,index)||m;
+      maybeCreateTiebreaks(m);maybeCreateTeamTiebreak(m);maybeCreateKachinukiNext(m,m.division===div?index:undefined);maybeAdvanceTeamBracket(m);maybeCreateChampionship(m);maybeAdvanceChampionship(m);maybeAdvanceIndividualSingleElim(m);
       enforceUniqueIndividualMatches(m.division);
     }
     let c=state.currentCourt||'A';let next=findNextForCourt(c,state.currentDivision,0);applyCourtState(c,next,false);

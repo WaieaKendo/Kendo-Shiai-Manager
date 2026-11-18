@@ -7,7 +7,7 @@
 // same order, which tests/golden/tv/*.json (recorded from it) pin; text is what esc() showed
 // (ksmText(), String(x||'')); the placements are the court screen's division-complete data
 // (ksmDivisionCompleteInput(), 35-react-court.js). Legacy is read only through shared/legacy.ts.
-import { legacy, legacyTvLive, setupSetting, type LegacyTvViewModel } from '../../shared/legacy.ts';
+import { findMatchAgain, legacy, legacyTvLive, setupSetting, type LegacyTvViewModel } from '../../shared/legacy.ts';
 import { TV_EVENT, type TvBodyInput, type TvInput, type TvPoints, type TvUpcomingInput } from './tv-model.ts';
 
 interface TvWindow {
@@ -45,13 +45,15 @@ export function ksmTvTeam(vm: LegacyTvViewModel): Extract<TvBodyInput, { kind: '
   const m = vm.match as Match;
   const all = (state().allMatches[m.division] || []).filter(x => x.teamPair === m.teamPair && (x.type === 'teamPosition' || x.type === 'teamPlayoff'));
   const rows = all.length ? all : [m];
+  // The active bout as an entry of the rows (by sync identity, not Match Object identity: #15, before 13c).
+  const active = all.length ? findMatchAgain(all, m) : m;
   const first = rows[0] || m;
   const sum = legacy('teamPairSummary')(m.division, m.teamPair as string);
   return {
     kind: 'team', teamWhite: text(first.teamWhite || m.teamWhite || 'White Team'), teamRed: text(first.teamRed || m.teamRed || 'Red Team'),
     rows: rows.map(x => {
       const p = legacy('activeScoreArrays')(x);
-      return { white: text(x.white || 'TBD'), red: text(x.red || 'TBD'), points: { W: ksmTvLetters(p.W), R: ksmTvLetters(p.R) }, hansoku: legacy('ksmHansokuCounts')(x), active: x === m };
+      return { white: text(x.white || 'TBD'), red: text(x.red || 'TBD'), points: { W: ksmTvLetters(p.W), R: ksmTvLetters(p.R) }, hansoku: legacy('ksmHansokuCounts')(x), active: x === active };
     }),
     // Printed into the template as they are (no esc()).
     summary: { wWins: String(sum.wWins), wPts: String(sum.wPts), rWins: String(sum.rWins), rPts: String(sum.rPts) },

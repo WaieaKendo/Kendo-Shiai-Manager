@@ -2,7 +2,7 @@
 import {state} from '../app-state.js';
 import {individualMatchReady,isTeamMatch} from '../court/court-match-order.js';
 import {SINGLE_ELIM_CONTEXT_LAYOUTS} from '../court/court-queue-and-context.js';
-import {activeScoreArrays,teamSideLabel} from '../court/court-queue-and-views.js';
+import {activeScoreArrays,isScoringMatch,teamSideLabel} from '../court/court-queue-and-views.js';
 import {champMatchBySlot,championshipLabels,expectedRoundCount,firstRoundName,nextRoundFromName,previousRoundName,roundSequenceFromFirst,seedNameForLabel,sourceLabelForRound} from '../engine/engine-championship.js';
 import {matchBelongsToCourt} from '../engine/engine-generation.js';
 import {divisionCourtMode,isTeamDivision} from '../engine/engine-pools.js';
@@ -11,6 +11,7 @@ import {sideLabelGeneric,specificMatchSideLabel} from '../engine/engine-single-e
 import {isTeamRoundRobinDivision,teamPairIds,teamPairSummary,teamRoundRobinPairResolved,teamRoundRobinProgress,teamStandings} from '../engine/engine-standings-and-tiebreaks.js';
 import {teamWinner} from '../engine/engine-team-bracket.js';
 import {poolStandings} from '../engine/engine-standings-and-tiebreaks.js';
+import * as KSMEngine from '../../engine/index.ts';
 import {navigateTo} from '../navigation.js';
 import {ksmGrandChampion} from '../registration/grand-champion.js';
 import {ksmDivisionName,ksmTeamDivisions,ksmTeamSettings} from '../registration/team-divisions.js';
@@ -79,8 +80,7 @@ export function ksmIsRoundRobinDaihyosen(m){return !!(m&&m.roundRobinTiebreak&&m
 // points), else the match's stored wt/rt. Live Scores and the TV show them too.
 export function ksmHansokuCounts(m){
   if(!m)return {W:0,R:0};
-  const arr=state.allMatches?.[m.division]||[],idx=arr.indexOf(m);
-  if(m.division===state.currentDivision&&idx===state.current&&!m.done)return {W:Number(state.score?.WT)||0,R:Number(state.score?.RT)||0};
+  if(isScoringMatch(m)&&!m.done)return {W:Number(state.score?.WT)||0,R:Number(state.score?.RT)||0};
   return {W:Number(m.wt)||0,R:Number(m.rt)||0};
 }
 // #38 "Configure court": set this court's Red side by editing Setup's field (Court A/B — Red side), so
@@ -296,8 +296,10 @@ export function ksmSingleElimContext(div){
   return {kind:'single-elim',left:cards(layout.left),right:cards(layout.right)};
 }
 // teamSheetHtml() (11-/28-, removed in M.13).
-export function ksmTeamSheet(div,pair,currentMatch){
-  const matches=(state.allMatches[div]||[]).filter(m=>m.teamPair===pair&&(m.type==='teamPosition'||m.type==='teamPlayoff'));
+export function ksmTeamSheet(div,pair,heldMatch){
+  // The current bout as an entry of this list (by sync identity, not Match Object identity: #15, before 13c).
+  const all=state.allMatches[div]||[],currentMatch=KSMEngine.findMatchAgain(all,heldMatch,div===state.currentDivision?state.current:null);
+  const matches=all.filter(m=>m.teamPair===pair&&(m.type==='teamPosition'||m.type==='teamPlayoff'));
   const first=/** @type {any} */ (matches[0]||{}),s=teamPairSummary(div,pair);
   return {teamWhite:ksmText(first.teamWhite||'White Team'),teamRed:ksmText(first.teamRed||'Red Team'),
     rows:matches.map(match=>{

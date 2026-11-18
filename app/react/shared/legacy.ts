@@ -9,6 +9,8 @@
 
 import type { TournamentSettings } from '../../engine/settings.ts';
 import { teamSlots } from '../../engine/index.ts';
+// A Match Object found again in a list by sync identity, not object identity (#15, before 13c).
+export { matchIndexIn, findMatchAgain } from '../../engine/index.ts';
 import type { ResultPoolInput } from '../features/results/results-model.ts';
 import type { HansokuCounts, UpNextInput } from '../features/live-scores/live-scores-model.ts';
 import type { CourtCompleteInput } from './ui/complete-model.ts';

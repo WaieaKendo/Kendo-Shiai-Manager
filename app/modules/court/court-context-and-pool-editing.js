@@ -22,11 +22,18 @@ import {ksmSyncDangerZone} from '../setup/danger-zone.js';
 import {renderDirector} from '../setup/director-progress.js';
 import {saveSetup} from '../setup/division-setup.js';
 import * as KSMEngine from '../../engine/index.ts';
-export function maybeCreateKachinukiNext(m){
+/**
+ * After a kachinuki bout: the next bout (or the playoff) after it. `hint`: where the caller held `m` (a pairing's bouts
+ * share one sync identity, so the held index decides when `m` is no longer the list's object: #15, before 13c).
+ * @param {any} m
+ * @param {number} [hint]
+ */
+export function maybeCreateKachinukiNext(m,hint){
   const plan=KSMEngine.maybeCreateKachinukiNext(m);if(!plan)return;
   let div=m.division,arr=state.allMatches[div]||[];
   if(plan.kind==='playoff')appendApprovedDynamicMatches(div,m,/** @type {Match} */(plan.match),'KACHINUKI_REPRESENTATIVE');
-  else{let idx=arr.indexOf(m);arr.splice(idx+1,0,/** @type {Match} */(plan.match));state.allMatches[div]=arr;}
+  // After `m` found by sync identity (KSMEngine.matchIndexIn()), not Match Object identity (#15, before 13c).
+  else{let idx=KSMEngine.matchIndexIn(arr,m,hint);arr.splice(idx+1,0,/** @type {Match} */(plan.match));state.allMatches[div]=arr;}
 }
 
 export function dragPoolPlayer(ev,poolLabel,idx){ev.dataTransfer.setData('text/plain',JSON.stringify({poolLabel,idx}));}

@@ -329,8 +329,11 @@ export function appendApprovedDynamicMatches(div,afterMatch,matches,dynamicType)
     normalizeIndividualPoolTiebreakOrderInState(state,div,'dynamic tiebreak creation');
     return list;
   }
+  // The anchor by KSMEngine.matchIndexIn() (#15, before 13c): the object, else its sync identity (a kachinuki pairing's
+  // bouts share one: the entry equal in every field), else a pre-2.x tiebreak identity as before.
   const afterIdentity=matchSyncIdentity(afterMatch);
-  const idx=afterMatch?arr.findIndex(match=>match===afterMatch||(afterIdentity&&matchHasSyncIdentity(match,afterIdentity))):-1;
+  let idx=afterMatch?KSMEngine.matchIndexIn(arr,afterMatch):-1;
+  if(idx<0&&afterMatch)idx=arr.findIndex(match=>afterIdentity&&matchHasSyncIdentity(match,afterIdentity));
   arr.splice(idx>=0?idx+1:arr.length,0,...list);
   state.allMatches[div]=arr;
   return list;

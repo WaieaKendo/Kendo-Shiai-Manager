@@ -51,5 +51,7 @@ function repSelect(side,team,current){
 export function setRepresentative(side,val){
   let m=state.matches[state.current];
   if(!m||!val||!canModifyRepresentative(m)){if(m&&!canModifyRepresentative(m))updateSaveStatus('Representative selection is read only');return;}
-  performCourtAction(`${side==='W'?'White':'Red'} Representative`,()=>{if(side==='W')m.white=val;else m.red=val;renderScore()});
+  // Looked up again inside the action (by sync identity, the held index on a tie or a renamed bout), not written through the held object (#15).
+  const div=state.currentDivision,index=state.current;
+  performCourtAction(`${side==='W'?'White':'Red'} Representative`,()=>{const live=KSMEngine.findMatchAgain(state.allMatches?.[div],m,index)||m;if(side==='W')live.white=val;else live.red=val;renderScore()});
 }

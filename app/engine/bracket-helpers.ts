@@ -33,10 +33,13 @@ export function indivNodeHasMatch(arr: readonly any[], node: { id?: unknown }): 
 
 /** The one match kept for a single-elimination node (a finished one first); the others are removed from `arr`. */
 export function canonicalSingleElimMatch(_div: unknown, node: { id?: unknown }, arr: any[]): any {
-  const matches = arr.filter(m => m.singleElim && m.elimNodeId === node.id);
-  if (!matches.length) return null;
-  const kept = matches.find(m => m.done) || matches[0];
-  matches.forEach(m => { if (m !== kept) { const i = arr.indexOf(m); if (i >= 0) arr.splice(i, 1); } });
+  // By position, not Match Object identity (#15, before 13c): the node's entries, the kept one, the others removed.
+  const at: number[] = [];
+  arr.forEach((m, i) => { if (m.singleElim && m.elimNodeId === node.id) at.push(i); });
+  if (!at.length) return null;
+  const keptAt = at.find(i => arr[i].done) ?? at[0]!, kept = arr[keptAt];
+  // (A second reference to the kept object stays, as `m !== kept` left it.)
+  for (let j = at.length - 1; j >= 0; j--) if (at[j] !== keptAt && arr[at[j]!] !== kept) arr.splice(at[j]!, 1);
   return kept;
 }
 
