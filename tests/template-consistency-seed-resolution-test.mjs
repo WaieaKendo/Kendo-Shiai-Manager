@@ -1,4 +1,4 @@
-import { html as appSource, engine, extractFunction } from './lib/ksm-source.mjs';
+import { html as appSource, engine, extractFunction, matchWritesSource } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
 import { drawHelpers } from './lib/draw-helpers.mjs';
 import vm from 'node:vm';
@@ -55,7 +55,7 @@ function ok(cond,msg){if(!cond)throw new Error(msg);passed++;}
     structuralNoShowAllowed:()=>true,syncChampionshipTemplate:()=>{},initCourtStates:()=>{},
     buildIndividualSingleElimMatches:()=>[]
   };
-  vm.createContext(context);vm.runInContext(engine,context);vm.runInContext(drawHelpers,context);vm.runInContext(extract('applyIndividualNoShow'),context);
+  vm.createContext(context);vm.runInContext(engine,context);vm.runInContext(drawHelpers,context);vm.runInContext(matchWritesSource,context);vm.runInContext(extract('applyIndividualNoShow'),context);
   ok(context.applyIndividualNoShow('D','B')===true,'no-show should apply');
   const arr=context.state.allMatches.D;
   // #24: pool A (A, B, C) without B is a pool of 2: its one bout A-C (slots A and C kept) in the

@@ -2,6 +2,7 @@
 import {DIVISION_PRESETS,ksmSetCurrentCourt,ksmSetPublicCourt,state} from '../app-state.js';
 import {deviceSlice,dispatch,getState} from '../../store/index.ts';
 import {KSM_UNDO_LOG_LIMIT} from '../court/court-scoring-and-history.js';
+import {ksmInsertMatches,ksmRemoveMatches,ksmSetDivisionMatches,ksmWriteMatchPath} from '../court/match-writes.js';
 import {repairCompletedMatchResults} from '../engine/engine-result-integrity.js';
 import {isIndividualPoolTiebreakMatch,normalizeAllIndividualPoolTiebreakOrder,normalizeIndividualPoolTiebreakOrderInState} from '../engine/engine-standings-and-tiebreaks.js';
 import {ksmLinkParams} from '../links/path-urls.js';
@@ -225,9 +226,10 @@ export function sanitizeLoadedTournamentState(targetState,source='load'){
     const invalid=[];arr.forEach((m,i)=>{if(!isValidMatchObject(m))invalid.push(i)});
     if(!invalid.length)continue;
     const adjust=index=>{const n=Number(index);if(!Number.isFinite(n))return index;return Math.max(0,n-invalid.filter(i=>i<n).length)};
-    all[div]=arr.filter(isValidMatchObject);
-    if(targetState.currentByDivision&&targetState.currentByDivision[div]!=null)targetState.currentByDivision[div]=Math.min(adjust(targetState.currentByDivision[div]),all[div].length);
-    for(const court of ['A','B'])if(targetState.courtState?.[court]?.division===div)targetState.courtState[court].index=Math.min(adjust(targetState.courtState[court].index),all[div].length);
+    const kept=/** @type {Match[]} */(arr.filter(isValidMatchObject));
+    ksmSetDivisionMatches(div,kept,targetState);
+    if(targetState.currentByDivision&&targetState.currentByDivision[div]!=null)targetState.currentByDivision[div]=Math.min(adjust(targetState.currentByDivision[div]),kept.length);
+    for(const court of ['A','B'])if(targetState.courtState?.[court]?.division===div)targetState.courtState[court].index=Math.min(adjust(targetState.courtState[court].index),kept.length);
     repaired+=invalid.length;divisions.push({division:div,removed:invalid.length,indexes:invalid});
   }
   if(repaired)console.warn(`[KSM State Integrity] Removed ${repaired} invalid match entr${repaired===1?'y':'ies'} from ${source}`,divisions);
@@ -292,22 +294,26 @@ function replayPendingCourtHistory(actions,undoLog,localState,rebasedState,serve
  */
 export function replayCourtMatchOps(targetState,matchOps){
   const applied=[];let skipped=0;
+  // Every write through match-writes.js (#15 PR 13c-1): on the live `state` (an Undo/Redo here) and on the rebase's
+  // server copy alike; the list is read again before each look-up, never held across a write.
+  const list=div=>targetState?.allMatches?.[div];
   Object.entries(matchOps||{}).forEach(([div,op])=>{
-    const arr=targetState?.allMatches?.[div];
     if(!op)return;
-    if(!Array.isArray(arr)){skipped+=(op.patches||[]).length;return}
-    const indexOf=identity=>identity?arr.findIndex(match=>matchHasSyncIdentity(match,identity)):-1;
-    (op.remove||[]).forEach(identity=>{const i=indexOf(identity);if(i>=0)arr.splice(i,1)});
+    if(!Array.isArray(list(div))){skipped+=(op.patches||[]).length;return}
+    const indexOf=identity=>identity?list(div).findIndex(match=>matchHasSyncIdentity(match,identity)):-1;
+    (op.remove||[]).forEach(identity=>{const i=indexOf(identity);if(i>=0)ksmRemoveMatches(div,i,1,targetState)});
     (op.insert||[]).forEach(({after,match})=>{
       if(!isValidMatchObject(match)||indexOf(matchSyncIdentity(match))>=0)return;
       const anchor=after?indexOf(after):-1;
-      arr.splice(after?(anchor>=0?anchor+1:arr.length):0,0,cloneJson(match));
+      ksmInsertMatches(div,after?(anchor>=0?anchor+1:list(div).length):0,[cloneJson(match)],targetState);
     });
     (op.patches||[]).forEach(patch=>{
       const i=indexOf(patch?.matchIdentity);
       if(i<0){skipped++;return}
       const resolved={...patch,path:['allMatches',div,i,...(patch.path||[]).slice(3)]};
-      if(applyPatchToStateObject(targetState,resolved))applied.push(resolved);else skipped++;
+      // applyPatchToStateObject()'s rules for a path under allMatches ('replay').
+      const value=resolved.after,missing=Boolean(value&&value.__ksmMissing===true);
+      if(ksmWriteMatchPath(resolved.path,missing?undefined:cloneJson(value),missing,'replay',targetState))applied.push(resolved);else skipped++;
     });
   });
   return {applied,skipped};

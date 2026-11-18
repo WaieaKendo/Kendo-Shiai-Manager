@@ -1,5 +1,6 @@
 // @ts-check
 import {state} from '../app-state.js';
+import {ksmUpdateMatch} from '../court/match-writes.js';
 import * as KSMEngine from '../../engine/index.ts';
 /**
  * @param {Match} m
@@ -54,16 +55,15 @@ export function completedResultSnapshot(m){
  */
 export function repairCompletedMatchResults(targetState=state,source='load'){
   const plan=KSMEngine.planCompletedResultRepairs(targetState?.allMatches,new Date().toISOString());
-  const all=/** @type {Record<string, Match[]>} */(targetState?.allMatches);
+  // Each repair is one write (#15 PR 13c-1: match-writes.js; a payload copy is written in place).
   plan.repairs.forEach(r=>{
-    const m=all[r.division][r.index];
     if(r.action==='reopen'){
       // A completed elimination match without an identifiable winner is unsafe.
       // Re-open the feeder instead of allowing the literal word Hikiwake to
       // advance into a semifinal/final and freeze the bracket.
-      Object.assign(m,r.set);delete m.completedResult;
+      const m=/** @type {Match} */(ksmUpdateMatch(r.division,r.index,r.set,['completedResult'],targetState));
       console.warn('[KSM Result Integrity] Re-opened completed winner-required match with no winner',{source,division:r.division,index:r.index,position:m.position,white:m.white,red:m.red});
-    }else Object.assign(m,r.set);
+    }else ksmUpdateMatch(r.division,r.index,r.set,[],targetState);
   });
   const {restored,created,reopened}=plan;
   if(restored||created||reopened)console.info('[KSM Result Integrity] Normalized completed match results',{source,restored,created,reopened});

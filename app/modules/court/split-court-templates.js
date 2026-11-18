@@ -1,7 +1,8 @@
 // @ts-check
 import {state} from '../app-state.js';
 import {enforceUniqueIndividualMatches} from '../engine/engine-championship.js';
-import {sortIndividualSingleElimMatches} from '../engine/engine-single-elim.js';
+import {singleElimMatchCompare} from '../engine/engine-single-elim.js';
+import {ksmSetDivisionMatches,ksmSortDivisionMatches,ksmUpdateMatches} from './match-writes.js';
 import {ksmAdvanceBracket,ksmNodesWithWinners} from '../engine/structure-store.js';
 import * as KSMEngine from '../../engine/index.ts';
 // ==========================================================
@@ -11,7 +12,9 @@ function canonicalSingleElimMatch(div,node,arr){return KSMEngine.canonicalSingle
   }
 /**
  * Fills a single elimination's bouts from its nodes and advances the winners (KSMEngine.syncIndividualSingleElim(), a
- * plan on copies). The bouts are written first (plain `allMatches`, PR 13), then the nodes with their new winners go in
+ * plan on copies). The bouts are written first (`allMatches` through match-writes.js, #15 PR 13c-1: a list that is not
+ * the division's yet, a draw's, is put in place first, then the plan's values and the bracket order are written to the
+ * division's list; the caller reads the list again, never `arr`), then the nodes with their new winners go in
  * one tournament/advancementApplied (#15 PR 12b), so no store notification shows a finished bout whose node has not got
  * its winner. `draft` (a draw being built: generation, a No Show, a load's repair): the nodes are read from and written
  * to `draft.singleElimNodes` instead, and the caller puts them in its own action.
@@ -25,9 +28,9 @@ export function syncIndividualSingleElim(div,arr,comps,draft){
   const plan=KSMEngine.syncIndividualSingleElim(nodes,arr,comps,/** @type {Court|'split'} */(state.divisionCourts[div]||'A'));
   plan.missing.forEach(id=>console.error('KSM template invariant: missing Match Object for',div,id));
   const next=ksmNodesWithWinners(nodes,plan.winners);
-  plan.updates.forEach(u=>Object.assign(arr[u.index],u.set));
-  sortIndividualSingleElimMatches(div,arr,next);
-  state.allMatches[div]=arr;
+  if(arr!==state.allMatches?.[div])ksmSetDivisionMatches(div,arr);
+  ksmUpdateMatches(div,plan.updates);
+  ksmSortDivisionMatches(div,singleElimMatchCompare(div,next));
   const out=enforceUniqueIndividualMatches(div);
   if(draft)draft.singleElimNodes=next;else ksmAdvanceBracket(div,'singleElimNodes',nodes,next);
   return out;

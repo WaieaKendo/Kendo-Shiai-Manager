@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { extractFunction, engine, html as appSource, sw as appServiceWorker } from './lib/ksm-source.mjs';
+import { extractFunction, engine, html as appSource, sw as appServiceWorker, matchWritesSource } from './lib/ksm-source.mjs';
 import { pointerHelpers } from './lib/derived-matches.mjs';
 
 const html=appSource;
@@ -33,6 +33,7 @@ context.nextReadyIndexInState=(targetState,div,court)=>{
 vm.createContext(context);
 vm.runInContext(`
 ${engine}
+${matchWritesSource}
 ${extractFunction(html,'legacyTiebreakSyncIdentity')}
 ${extractFunction(html,'matchSyncIdentity')}
 ${extractFunction(html,'matchHasSyncIdentity')}

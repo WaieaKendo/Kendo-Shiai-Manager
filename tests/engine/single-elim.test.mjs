@@ -11,7 +11,7 @@ import {
 } from '../../app/engine/single-elim.ts';
 import { individualPlacements } from '../../app/engine/championship.ts';
 import { teamBracketNodesForCount } from '../../app/engine/teams.ts';
-import { html, engine, extractFunction } from '../lib/ksm-source.mjs';
+import { html, engine, extractFunction, matchWritesSource } from '../lib/ksm-source.mjs';
 import { gitShow } from '../lib/git-show.mjs';
 import { drawHelpers } from '../lib/draw-helpers.mjs';
 
@@ -145,12 +145,13 @@ test('placement, build and advancement equal the pre-move legacy code on golden 
   const MOVED = ['placeIndividualsForSingleElim', 'singleElimSlotInfo', 'chooseBestSeedSlot', 'protectedSeedQuadrant', 'singleElimBracketSize',
     'buildIndividualSingleElimMatches', 'indivSide', 'syncIndividualSingleElim', 'maybeAdvanceIndividualSingleElim', 'sideLabelGeneric',
     'specificMatchSideLabel', 'singleElimOrderMap', 'sortIndividualSingleElimMatches'];
-  const SHARED = ['T', 'W', 'N', 'teamBracketNodesForCount', 'clubGroup', 'winnerOf', 'individualLogicalMatchKey', 'enforceUniqueIndividualMatches'];
+  const SHARED = ['T', 'W', 'N', 'teamBracketNodesForCount', 'clubGroup', 'winnerOf', 'individualLogicalMatchKey', 'enforceUniqueIndividualMatches', 'singleElimMatchCompare'];
   const load = src => {
     const ctx = vm.createContext({ state: null, console: { error() {} } });
     const tplConst = src === oldSrc ? oldSrc.slice(oldSrc.indexOf('const BRACKET_SLOT_TEMPLATES'), oldSrc.indexOf('};') + 2) : '';
     // Since #15 PR 12b the nodes are store data written through structure-store.js: its helpers on the plain state.
-    vm.runInContext(`${engine}\n${drawHelpers}\n${tplConst}\n${SHARED.map(n => extractFunction(html, n)).join('\n')}\n${MOVED.map(n => extractFunction(src, n)).join('\n')}`, ctx);
+    // #15 PR 13c-1: allMatches is written through match-writes.js (in place on the context's `state`).
+    vm.runInContext(`${engine}\n${drawHelpers}\n${matchWritesSource}\n${tplConst}\n${SHARED.map(n => extractFunction(html, n)).join('\n')}\n${MOVED.map(n => extractFunction(src, n)).join('\n')}`, ctx);
     return ctx;
   };
   const legacy = load(oldSrc), current = load(html);

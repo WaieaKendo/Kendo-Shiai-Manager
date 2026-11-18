@@ -2,6 +2,7 @@
 import {DIVISION_PRESETS,assignState,ksmShowDivision,state} from '../app-state.js';
 import {deviceSlice,dispatch} from '../../store/index.ts';
 import {renderDivisions} from '../court/court-match-order.js';
+import {ksmSetAllMatches} from '../court/match-writes.js';
 import {scheduleAutoSave} from '../sync/cloud-session-and-autosave.js';
 import {renderReg} from '../registration/registration.js';
 import {renderTournamentStatus} from '../registration/validation.js';
@@ -79,7 +80,9 @@ export function ksmRenameSetupDivision(from,to){
   // assigned first, in the same synchronous step and with no dispatch, so when the action notifies the store's
   // subscribers both halves already agree. The device fields (the Pools tab's division, the shown division) follow after.
   const {poolViewDivision,currentDivision,...rest}=renamed;
-  const plain=Object.fromEntries(Object.entries(rest).filter(([k])=>!KSM_RENAMED_STATE_KEYS.includes(k)));
+  // `allMatches` (the division's key renamed) through its write module (#15 PR 13c-1), the rest as before.
+  const plain=Object.fromEntries(Object.entries(rest).filter(([k])=>!KSM_RENAMED_STATE_KEYS.includes(k)&&k!=='allMatches'));
+  if(Object.hasOwn(rest,'allMatches'))ksmSetAllMatches(/** @type {any} */(rest).allMatches);
   assignState(plain);
   ksmRenameDivisionLists(rest);
   if(poolViewDivision!==undefined)dispatch(deviceSlice.actions.poolViewDivisionChanged(poolViewDivision));

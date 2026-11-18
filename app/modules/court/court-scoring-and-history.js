@@ -3,6 +3,7 @@ import {assignState,ksmEmptyScore,ksmSetScore,state,storeFieldPath} from '../app
 import {maybeCreateKachinukiNext,renderAll} from './court-context-and-pool-editing.js';
 import {applyCourtState,findNextForCourt,syncOwnCourtPointer} from './court-match-order.js';
 import {KSM_UNDO_LOG_LIMIT,ksmMoveCourtHistory,ksmRecordCourtAction,ksmSetCourtHistories} from './court-history-store.js';
+import {ksmUpdateMatch,ksmWriteMatchPath} from './match-writes.js';
 import {renderScore} from './scorekeeper-screen.js';
 import {enforceUniqueIndividualMatches,maybeAdvanceChampionship,maybeCreateChampionship} from '../engine/engine-championship.js';
 import {renderPools} from '../engine/engine-generation.js';
@@ -24,13 +25,12 @@ export function loadScoreFromMatch(m){
   if(!m || m.done){ksmSetScore(ksmEmptyScore());return;}
   ksmSetScore({W:[...(m.wp||[])],R:[...(m.rp||[])],WT:m.wt||0,RT:m.rt||0});
 }
+// A point's four fields in one write (#15 PR 13c-1: app/modules/court/match-writes.js); state.matches is
+// allMatches[currentDivision], so the shown bout is that division's entry at state.current.
 function syncActiveScoreToMatch(){
   let m=state.matches?.[state.current];
   if(!m || m.done)return;
-  m.wp=[...(state.score?.W||[])];
-  m.rp=[...(state.score?.R||[])];
-  m.wt=state.score?.WT||0;
-  m.rt=state.score?.RT||0;
+  ksmUpdateMatch(/** @type {string} */(state.currentDivision),state.current,{wp:[...(state.score?.W||[])],rp:[...(state.score?.R||[])],wt:state.score?.WT||0,rt:state.score?.RT||0});
 }
 
 // ---------- KSM v3.17.8-test Compact action-patch court Undo / Redo ----------
@@ -132,6 +132,8 @@ function applyHistoryPatch(patch,direction){
   const value=patch?.[direction],path=patch?.path||[];
   if(!path.length||KSM_LOCAL_VIEW_STATE_KEYS.has(path[0]))return;
   const missing=value&&value.__ksmMissing===true,key=String(path[0]);
+  // `allMatches` (plain until 13c-2) through its one write module (#15 PR 13c-1), with writeHistoryValue()'s rules.
+  if(key==='allMatches'){ksmWriteMatchPath(path,missing?undefined:JSON.parse(JSON.stringify(value)),missing,'history');return}
   if(!storeFieldPath(key,state)){writeHistoryValue(state,path,value,missing);return}
   /** @type {Record<string,unknown>} */ const values=ksmHistoryStoreValues||{};
   if(path.length===1)values[key]=missing?undefined:JSON.parse(JSON.stringify(value));
@@ -409,18 +411,19 @@ export function nextMatch(){
   }
   const completedLabel=m?`Next Match: ${m.white||m.teamWhite||'White'} vs ${m.red||m.teamRed||'Red'}`:'Next Match';
   performCourtAction(completedLabel,()=>{
-    if(m)m=KSMEngine.findMatchAgain(state.allMatches?.[div],m,index)||m;
+    const at=m?KSMEngine.matchIndexIn(state.allMatches?.[div],m,index):-1;
+    if(at>=0)m=state.allMatches[div][at];
     if(m){
       // Commit the final score and winner as one atomic result snapshot. Point taps
       // may have been autosaved under an earlier cloud revision; the completion
       // action must still carry everything needed to reconstruct the winner safely.
-      m.wp=[...state.score.W];m.rp=[...state.score.R];m.wt=state.score.WT||0;m.rt=state.score.RT||0;
-      m.completedResult=completedResultSnapshot(m);
-      m.done=true;
-      // Test-only copy point (as before the action's body): in 13c this result write is a dispatch, after which the held
-      // `m` is the old object (without the result). Every read after the write uses the match looked up again.
-      /** @type {any} */(globalThis).KSMTestBeforeCourtAction?.('result');
-      m=KSMEngine.findMatchAgain(state.allMatches?.[div],m,index)||m;
+      // One write (#15 PR 13c-1, app/modules/court/match-writes.js), the fields in the old order; the snapshot is taken
+      // from the bout with its final points, before `done`, as before. The write returns the bout as it is after it
+      // (in 13c-2 a new object: the held `m` keeps its old values); every read after it uses that.
+      const result={wp:[...state.score.W],rp:[...state.score.R],wt:state.score.WT||0,rt:state.score.RT||0};
+      const final={...result,completedResult:completedResultSnapshot(/** @type {Match} */({...m,...result})),done:true};
+      // A bout no longer in its list (none is today: nothing writes between the look-up and here) gets the result on a copy.
+      m=at>=0?ksmUpdateMatch(div,at,final)||m:{...m,...final};
       maybeCreateTiebreaks(m);maybeCreateTeamTiebreak(m);maybeCreateKachinukiNext(m,m.division===div?index:undefined);maybeAdvanceTeamBracket(m);maybeCreateChampionship(m);maybeAdvanceChampionship(m);maybeAdvanceIndividualSingleElim(m);
       enforceUniqueIndividualMatches(m.division);
     }

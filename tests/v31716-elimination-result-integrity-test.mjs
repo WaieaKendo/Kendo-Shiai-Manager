@@ -11,7 +11,8 @@ const worker=fs.readFileSync(new URL('../src-worker.js',import.meta.url),'utf8')
 let failed=false;
 function check(ok,name){console.log(`${ok?'PASS':'FAIL'} ${name}`);if(!ok)failed=true}
 
-check(html.includes('m.completedResult=completedResultSnapshot(m);'),'match completion writes atomic result snapshot');
+// #15 PR 13c-1: the result in one write through match-writes.js, the snapshot taken before `done`.
+check(html.includes('completedResult:completedResultSnapshot(/** @type {Match} */({...m,...result})),done:true}'),'match completion writes atomic result snapshot');
 check(html.includes('repairLoadedEliminationAdvancement(options.source||\'tournament load\')'),'loads repair elimination advancement before render');
 check(html.includes('patch.matchIdentity||matchSyncIdentity(localArr[path[2]])'),'rebase prefers action-time match identity');
 
