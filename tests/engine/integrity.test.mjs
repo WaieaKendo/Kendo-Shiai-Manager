@@ -150,5 +150,17 @@ test('matchIndexIn: the same object first, else the sync identity; a shared iden
   assert.equal(matchIndexIn(copies, renamed, 0), 0);
   assert.equal(matchIndexIn(copies, renamed, 1), -1, 'another slot at the hint');
   assert.equal(matchIndexIn(copies, renamed), -1);
+  // A pool saved before the slots (no whitePoolSlot / redPoolSlot; poolOrder is the pool's index) and exhibitions: every
+  // bout is the same slot, so the hint is not taken.
+  const old = (white, red) => ({ division: 'Old', type: 'individual', pool: 'A', poolOrder: 0, white, red, done: false, wp: [], rp: [] });
+  const legacy = [old('A', 'B'), old('C', 'D'), old('A', 'C')].map(m => structuredClone(m));
+  assert.equal(matchIndexIn(legacy, { ...old('A', 'B'), white: 'Ann' }, 1), -1);
+  assert.equal(matchIndexIn(legacy, { ...old('A', 'B'), white: 'Ann' }, 0), -1);
+  const ex = (white, red) => ({ division: 'Exhibition', type: 'exhibition', white, red, done: false, wp: [], rp: [] });
+  assert.equal(matchIndexIn([ex('A', 'B'), ex('C', 'D')], { ...ex('A', 'B'), white: 'Ann' }, 1), -1);
+  // With the template order, a renamed pool bout is its own slot again.
+  const slotted = [{ ...old('A', 'B'), poolTemplateOrder: 0 }, { ...old('C', 'D'), poolTemplateOrder: 1 }];
+  assert.equal(matchIndexIn(slotted, { ...slotted[0], white: 'Ann' }, 0), 0);
+  assert.equal(matchIndexIn(slotted, { ...slotted[0], white: 'Ann' }, 1), -1);
   assert.equal(findMatchAgain(copies, pool({ white: 'Z', red: 'Q' })), null);
 });

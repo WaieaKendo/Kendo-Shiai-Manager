@@ -828,7 +828,8 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
       test), so among several the one equal in every field wins, else the one at `hint` (the index the caller held), else
       the first. When no entry has the identity (pool and tiebreak identities hold the names, so a rename between holding
       and looking up misses), the entry at `hint` is taken if it is the same slot (`sameMatchSlot()`: every placement
-      field equal, names aside), else -1 (and `nextMatch()` / `setRepresentative()` keep the held object, as before).
+      field equal, `poolTemplateOrder` included, names aside) and no other entry of the list is (exhibitions and pool bouts
+      saved before the slots share one slot), else -1 (and `nextMatch()` / `setRepresentative()` keep the held object, as before).
       Converted: `activeScoreArrays()` and `ksmHansokuCounts()` (through `isScoringMatch(m)`), `ksmTeamSheet()`, the court
       island's pool card and queues (`m === current` → the current bout found again in the list read after
       `enforceUniqueIndividualMatches()`, or compared by index), the TV's team rows, `tvUpcomingMatches()`, the overlay's
@@ -836,7 +837,9 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
       `appendApprovedDynamicMatches()`'s anchor (the pre-2.x tiebreak identity kept as the last fallback),
       `canonicalSingleElimMatch()` (by position; a second reference to the kept object stays, as before),
       `applyCourtHistoryEntry()`'s alias test (by division, not list identity), and the two writers that held a match
-      across `performCourtAction()`: `nextMatch()` and `setRepresentative()` look it up again inside the action. Left as
+      across `performCourtAction()`: `nextMatch()` and `setRepresentative()` look it up again inside the action, and
+      `nextMatch()` looks it up once more right after writing the result, so the calls after it (tiebreaks, kachinuki,
+      brackets) are given the list's match, not the object it wrote. Left as
       same-moment identity (the objects come from one list read in the same call, with no write between):
       `normalizeIndividualPoolTiebreakOrderInState()`'s "order changed" test, `uniqueIndividualMatches()`,
       `syncTeamBracket()`'s `current===arr` (a list, read just before by its callers), and `ksmScoreboardInput()`'s request
@@ -847,7 +850,9 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
       court queues pass `state.current` (their list is `allMatches[div]`). 13c can pass the court's index through
       `courtCurrentMatch()` if that case matters.
     - What 13c can assume: no code compares a Match Object it read before a write, or before a call that may write, with
-      one read after it; reads by `state.matches[state.current]` / `list[cs.index]` are re-read after a write. Still to do
+      one read after it; reads by `state.matches[state.current]` / `list[cs.index]` are re-read after a write. **Rule for
+      13c: every read after a write uses the match looked up again**, never the object the write went through (in 13c that
+      object keeps its old values). Still to do
       in 13c: the alias writes (fields written one by one through a held match: `nextMatch()`'s result (`wp`, `rp`, `wt`,
       `rt`, `completedResult`, `done`, the match now found again first), `syncActiveScoreToMatch()`, the grand champion's
       Fusen-sho, the division court's `m.court`, `appendApprovedDynamicMatches()`'s `origin` / `dynamicType`,
@@ -855,14 +860,22 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
     - The guard is `tests/match-identity-copy-test.py`: two pages play the same tournaments; in one, every Match Object is
       replaced by a structural copy at every store notification, every app event (`window.dispatchEvent`), every
       assignment of a division's list, just before a court action's body and right after Next Match's result write (two
-      test-only hooks, `window.KSMTestBeforeCourtAction`, in `court-scoring-and-history.js`), and every screen (saved
+      test-only hooks, `globalThis.KSMTestBeforeCourtAction?.('action' | 'result')`, in `court-scoring-and-history.js`; at
+      the second, the objects copied at the first are put back to their values from then, so a held match is as stale as
+      in 13c), and every screen (saved
       state, this device's view, the court screen's inputs, Live Scores, the TV's model and island input, Director
       Progress; the overlay in Node, `tests/lib/overlay-copy-check.mjs`) must match. Each converted site reverted alone:
-      caught are `nextMatch()`'s and `setRepresentative()`'s look-up, the kachinuki insertion, `tvUpcomingMatches()`,
-      `ksmTeamSheet()`, the split single elimination's queue and the overlay. Not caught, and why: the anchor of
+      caught are `nextMatch()`'s and `setRepresentative()`'s look-up inside the action, `tvUpcomingMatches()`,
+      `ksmTeamSheet()`, the split single elimination's queue and the overlay. `nextMatch()`'s look-up after the result write
+      and the kachinuki insertion guard the same case: reverted together they are caught (30 divergences); either alone is
+      not, because the other one still finds the bout, and the stale match differs from the list's only in `done` and
+      `completedResult`, which no call after the write reads from `m` (each point already wrote `wp` / `rp` / `wt` / `rt`
+      through `syncActiveScoreToMatch()`; the calls read `done` from the list). Not caught, and why: the anchor of
       `appendApprovedDynamicMatches()` (the old code already fell back to the identity, and `sortTeamMatches()` reorders the
       kachinuki playoff after it), Director Progress (its list is already sorted in place, so the fallback gives the same
-      bouts), and `activeScoreArrays()` / `ksmHansokuCounts()`, `ksmPoolCard()`, the pool and dedupe queues,
+      bouts), `ksmHansokuCounts()` (on Live Scores' team and kachinuki path, `tvUpcomingMatches()` → `sortTeamMatches()`
+      rewrites the list between reading the bout and the call, as for `ksmTeamSheet()`, but the stored `wt` / `rt` equal the
+      live counts, since each hansoku writes them), and `activeScoreArrays()`, `ksmPoolCard()`, the pool and dedupe queues,
       `ksmQueuePanelInput()`, the TV's team rows, the alias test and `canonicalSingleElimMatch()` (the objects compared come
       from one read with no write between, so a new object per write cannot separate them; the alias test compares lists,
       which the copies keep). On next/4.1 it fails in four places: the TV's Upcoming Matches, the overlay's upcoming bouts

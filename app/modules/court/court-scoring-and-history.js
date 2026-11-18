@@ -92,7 +92,7 @@ export function performCourtAction(label,fn){
   ensureCourtHistory();const court=currentHistoryCourt(),before=historyComparableState();
   // Test-only (tests/match-identity-copy-test.py, #15 before 13c): a point where the guard replaces every Match Object, as a
   // dispatch before the action's body will in 13c. Absent in the app.
-  /** @type {any} */(globalThis).KSMTestBeforeCourtAction?.();
+  /** @type {any} */(globalThis).KSMTestBeforeCourtAction?.('action');
   const result=fn();const after=historyComparableState(),patches=buildHistoryPatches(before,after).map(patch=>stampHistoryPatchMatchIdentity(patch,before,after));
   // The entry is built whole, then recorded with the Redo list cleared, in one court/actionRecorded (#15 PR 13b).
   if(patches.length)ksmRecordCourtAction(court,withCourtHistoryIdentity({format:'patch-v1',label:label||'Action',court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',tabId:KSM_TAB_ID,revision:cloudSession?.revision||0,patches},before,after));
@@ -417,8 +417,10 @@ export function nextMatch(){
       m.wp=[...state.score.W];m.rp=[...state.score.R];m.wt=state.score.WT||0;m.rt=state.score.RT||0;
       m.completedResult=completedResultSnapshot(m);
       m.done=true;
-      // Test-only copy point (as before the action's body): in 13c this result write is a dispatch, so `m` below is stale.
-      /** @type {any} */(globalThis).KSMTestBeforeCourtAction?.();
+      // Test-only copy point (as before the action's body): in 13c this result write is a dispatch, after which the held
+      // `m` is the old object (without the result). Every read after the write uses the match looked up again.
+      /** @type {any} */(globalThis).KSMTestBeforeCourtAction?.('result');
+      m=KSMEngine.findMatchAgain(state.allMatches?.[div],m,index)||m;
       maybeCreateTiebreaks(m);maybeCreateTeamTiebreak(m);maybeCreateKachinukiNext(m,m.division===div?index:undefined);maybeAdvanceTeamBracket(m);maybeCreateChampionship(m);maybeAdvanceChampionship(m);maybeAdvanceIndividualSingleElim(m);
       enforceUniqueIndividualMatches(m.division);
     }

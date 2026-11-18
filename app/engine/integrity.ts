@@ -155,7 +155,7 @@ export function matchHasSyncIdentity(match: unknown, identity: string | null | u
  * after a write gave it a new object). Several entries can share an identity (a kachinuki pairing's bouts, a 4.0 save's
  * duplicates): then the one equal to `match` in every field, else the one at `hint` (the index the caller held), else the
  * first. When no entry has its identity (a name in it changed: pool and tiebreak identities hold the names), the entry at
- * `hint` if it is the same slot (sameMatchSlot()). -1 when it is not there. No new saved field: the identity is computed
+ * `hint` if it is the same slot (sameMatchSlot()) and no other entry is. -1 when it is not there. No new saved field: the identity is computed
  * from the match.
  */
 export function matchIndexIn(list: readonly unknown[] | null | undefined, match: unknown, hint?: number | null): number {
@@ -168,14 +168,19 @@ export function matchIndexIn(list: readonly unknown[] | null | undefined, match:
   if (!identity) return -1;
   const found: number[] = [];
   list.forEach((m, i) => { if (matchSyncIdentity(m) === identity) found.push(i); });
-  if (!found.length) return atHint >= 0 && sameMatchSlot(list[atHint], match) ? atHint : -1;
+  // The identity missed (a name in it changed): the held index, only when that entry is the one entry of the list in the
+  // same slot (exhibitions, and pool bouts saved before the slots, share theirs).
+  if (!found.length) {
+    if (atHint < 0 || !sameMatchSlot(list[atHint], match)) return -1;
+    return list.some((m, i) => i !== atHint && sameMatchSlot(m, match)) ? -1 : atHint;
+  }
   if (found.length === 1) return found[0]!;
   const text = JSON.stringify(match), equal = found.filter(i => JSON.stringify(list[i]) === text);
   const pick = equal.length ? equal : found;
   return pick.includes(atHint) ? atHint : pick[0]!;
 }
 
-const SLOT_FIELDS = ['division', 'type', 'pool', 'position', 'bracketSlot', 'poolOrder', 'whitePoolSlot', 'redPoolSlot', 'teamPair',
+const SLOT_FIELDS = ['division', 'type', 'pool', 'position', 'bracketSlot', 'poolOrder', 'poolTemplateOrder', 'whitePoolSlot', 'redPoolSlot', 'teamPair',
   'teamNodeId', 'elimNodeId', 'champNodeId', 'tiebreak', 'tiebreakSeries', 'tiebreakIndex', 'championship', 'singleElim'] as const;
 /** Whether two Match Objects are the same bout's slot: every placement field equal, the names aside. */
 export function sameMatchSlot(a: unknown, b: unknown): boolean {

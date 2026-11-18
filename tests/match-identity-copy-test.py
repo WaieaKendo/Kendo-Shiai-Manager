@@ -9,8 +9,10 @@ is the guard 13c relies on. Two offline pages run the same scripted tournaments 
              store notification (any dispatch), every app event (`window.dispatchEvent`: the render signals), every
              assignment of a division's list (`allMatches[div] = ...`, through a Proxy), just before a court action's
              body and right after Next Match's result write (two test-only hooks in court-scoring-and-history.js,
-             `window.KSMTestBeforeCourtAction`, absent in the app), and after every step. Those are where 13c dispatches;
-             it is harsher than 13c (where only the matches a write changes get new objects).
+             `globalThis.KSMTestBeforeCourtAction`, unset in the app), and after every step. Those are where 13c
+             dispatches; it is harsher than 13c (where only the matches a write changes get new objects). At the
+             second hook the objects copied at the first are put back to their values from then, so a match held across
+             the result write is as stale as in 13c (the old object, without the write).
 
 After every step both pages must show and score the same bouts: the saved state (every match's points and result, the
 court pointers, the Undo/Redo lists), this device's view (division, index, live score), the court screen's inputs
@@ -22,8 +24,10 @@ robins on both courts, a 3-person team bracket, a team round robin with drawn bo
 representative picked) and kachinuki (round robin and single elimination).
 
 What it catches (each converted site reverted alone; the PR lists them): nextMatch()'s and setRepresentative()'s
-look-up inside the action, the kachinuki insertion, tvUpcomingMatches(), ksmTeamSheet(), the split single elimination's
-queue and the overlay's upcoming bouts. On next/4.1 (the code before) it fails in four of those: the TV's Upcoming
+look-up inside the action, tvUpcomingMatches(), ksmTeamSheet(), the split single elimination's queue and the overlay's
+upcoming bouts; nextMatch()'s look-up after the result write together with the kachinuki insertion (either alone is
+not: the other still finds the bout, and the stale match lacks only done / completedResult, which nothing after the
+write reads from it). On next/4.1 (the code before) it fails in four of those: the TV's Upcoming
 Matches, the overlay's upcoming bouts and the split single elimination's queue list the bout being played, and Live
 Scores' team sheet loses its NOW row (the hooks are new, so next/4.1's nextMatch() never sees a copy). The other sites compare objects from one read
 with no write between, where a new object per write cannot separate them; they are converted so 13c need not check.
@@ -71,7 +75,18 @@ COPY_HOOK = r"""() => {
   window.KSMStore.subscribe(() => { wrap(); copyAll(); });
   // Just before a court action's body and right after Next Match's result write (two test-only
   // hooks, where 13c dispatches): code that read a match before and writes or compares it after must look it up again.
-  window.KSMTestBeforeCourtAction = copyAll;
+  // At the second hook the objects copied at the first one (the ones the action read, then wrote) are put back to their
+  // values from then: a held match is as stale as in 13c, where a write gives the list a new object and leaves the old one
+  // as it was.
+  let held = [];
+  const live = () => Object.values(KSMTest.app.state.allMatches || {}).filter(Array.isArray).flat().filter(m => m && typeof m === 'object');
+  window.KSMTestBeforeCourtAction = where => {
+    copyAll();
+    if (where === 'action') { held = live().map(m => [m, structuredClone(m)]); return; }
+    for (const [m, was] of held) { for (const k of Object.keys(m)) delete m[k]; Object.assign(m, was); }
+    held = [];
+    window.__staleRestores = (window.__staleRestores || 0) + 1;
+  };
   const dispatch = window.dispatchEvent;
   window.dispatchEvent = function (event) { copyAll(); return dispatch.call(this, event); };
 }"""
@@ -243,6 +258,9 @@ def main():
                     checks += 1
                 duplicates.update(copied.evaluate(DUPLICATES))
                 overlay_states.append({'label': f'{scenario}: {name}', 'state': copied.evaluate('() => KSMTest.app.tournamentPayload().state')})
+            stale = copied.evaluate('() => window.__staleRestores || 0')
+            assert stale > 0, f'{scenario}: held matches were made stale after a result write ({stale})'
+            checks += 1
             copies = copied.evaluate('() => window.__matchCopies')
             assert copies > len(steps), f'{scenario}: the matches were copied ({copies} times)'
             checks += 1
