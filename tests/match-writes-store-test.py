@@ -278,9 +278,9 @@ def strict_writes(page):
 READ_PATHS = r"""async () => {
   const app = KSMTest.app;
   app.renderAll(); app.renderPublic(); app.renderTvDisplay(); app.renderQueue(); app.renderContext();
-  // (KSMTest.prepareCourt() runs findNextForCourt() when the court's bout is not ready.)
+  // (KSMTest.prepareCourt() finds the court's next bout when its bout is not ready.)
   // (The court island's queue dedupes the split single elimination shown on Court A when it publishes; Live Scores and
-  // the TV call tvUpcomingMatches().)
+  // the TV sort their upcoming bouts.)
   for (const c of ['B', 'A']) { KSMTest.prepareCourt(c); app.buildTV3ViewModel(c); app.courtSummaryFor(c); }
   window.dispatchEvent(new Event('ksm:state-changed'));
   await new Promise(r => setTimeout(r, 250));
@@ -292,7 +292,7 @@ def read_paths(page):
     Progress, findNextForCourt()) write no bout list once it is as they want it: a second round writes nothing."""
     global checks
     for court in ('A', 'B'):
-        page.evaluate(PLAY, [court, 6, 3])
+        play(court, 6, 3)(page)
     page.evaluate(f"() => {{ KSMTest.app.chooseCourt('A'); KSMTest.app.selectScorekeeperDivision('{SE}'); }}")
     page.evaluate(READ_PATHS)
     first = page.evaluate('() => window.__matchWrites || 0')
