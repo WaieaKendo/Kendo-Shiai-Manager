@@ -267,7 +267,7 @@ def strict_writes(page):
         threw = page.evaluate(f"() => {{ 'use strict'; try {{ {write}; return false; }} catch (e) {{ return e instanceof TypeError; }} }}")
         assert threw, f'{write} did not throw on the frozen page'; checks += 1
     held = page.evaluate(f"""() => {{ const div = '{KIDS}', before = KSMTest.app.state.allMatches[div][0];
-        KSMTest.prepareCourt('A'); KSMTest.app.selectScorekeeperDivision(div); point('W', 'M');
+        KSMTest.prepareCourt('A'); KSMTest.app.selectScorekeeperDivision(div); KSMTest.app.point('W', 'M');
         const after = KSMTest.app.state.allMatches[div][0];
         return [before === after, (before.wp || []).length, (after.wp || []).length, Object.isFrozen(after)]; }}""")
     assert held == [False, 0, 1, True], f'a point gives the bout a new frozen object and leaves the held one as it was: {held}'; checks += 1
