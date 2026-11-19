@@ -186,9 +186,10 @@ function writeHistoryValue(root,path,value,missing){
 function applyHistoryValues(action,direction){
   if(!(action?.format==='patch-v1'&&Array.isArray(action.patches)))return null;
   ksmHistoryStoreValues={};
-  // A throw anywhere in it (before the bouts' batch, inside it, or after it with the index fields) writes nothing: every
-  // value, the bouts' too, goes to the store only in the caller's court/undo or court/redo, so the entry stays on its
-  // list as it was (docs/STORE.md section 3 item 13; #206 re-review L-a).
+  // A throw anywhere in it (before the bouts' batch, inside it, or after it with the index fields) makes no store write:
+  // every store value, the bouts' too, goes to the store only in the caller's court/undo or court/redo, so the entry stays
+  // on its list as it was (docs/STORE.md section 3 item 13; #206 re-review L-a). Patches on the plain (dead) keys made
+  // before the throw stay written in place (writeHistoryValue()), as before.
   try{ksmLastHistoryOutcome=applyCourtHistoryEntry(action,direction);return ksmHistoryStoreValues}finally{ksmHistoryStoreValues=null}
 }
 /** After an Undo/Redo: the court view rebuilt from the court's pointer (applyCourtState() reloads the pad from the match), everything drawn. */

@@ -103,3 +103,61 @@ test('withMeta() as a slice prepare callback: the action carries payload and met
   assert.deepEqual(action, { type: 'probe/record', payload: { point: 'M' }, meta: { who: 'Ana', when: '2026-11-11T10:00:00.000Z', device: 'c1/t1', court: 'A' } });
   assert.deepEqual(slice.reducer(undefined, action).last, { point: 'M', court: 'A' });
 });
+
+// #15 PR 13c-2 (#207 review M1): store.hold() / holdNotifications(). A court action, an Undo/Redo and a structural step
+// run inside one; nothing in production subscribes to the store yet (the islands listen to window events), so this is the
+// contract item 14 builds on.
+test('hold(): the state changes at once, the subscribers run once at the outermost end, and only if something was dispatched', () => {
+  const s = createKsmStore();
+  const ping = () => ({ type: 'test/ping' });
+  let n = 0, seen = [];
+  const off = s.subscribe(() => { n++; seen.push(s.getState()); });
+  // nesting: one notification, after the outermost hold; getState() is new right after each dispatch inside
+  const out = s.hold(() => {
+    const before = s.getState();
+    s.dispatch({ type: 'tournament/settingChanged', payload: { key: 'tName', value: 'A' }, meta: actionMeta() });
+    assert.notEqual(s.getState(), before);
+    s.hold(() => { s.dispatch(ping()); s.dispatch(ping()); });
+    assert.equal(n, 0, 'nothing while held, the inner hold\'s end included');
+    return 'result';
+  });
+  assert.deepEqual([out, n], ['result', 1]);
+  assert.equal(seen[0].tournament.settings.tName, 'A', 'the listener sees the end state');
+  // no dispatch: no notification
+  s.hold(() => s.getState()); assert.equal(n, 1);
+  // without a hold, one notification per dispatch, as Redux
+  s.dispatch(ping()); s.dispatch(ping()); assert.equal(n, 3);
+  // a throw inside: the error is thrown, the subscribers are notified once and the hold is released
+  assert.throws(() => s.hold(() => { s.dispatch(ping()); throw new Error('inside'); }), /inside/);
+  assert.equal(n, 4);
+  s.dispatch(ping()); assert.equal(n, 5, 'released: the next dispatch notifies at once');
+  off();
+  // a listener that dispatches during the flush (re-entrant): its dispatch notifies at once (nothing is held any more), once
+  const order = [];
+  const s2 = createKsmStore();
+  let again = true;
+  s2.subscribe(() => { order.push('a'); if (again) { again = false; s2.dispatch(ping()); } });
+  s2.subscribe(() => order.push('b'));
+  s2.hold(() => s2.dispatch(ping()));
+  assert.deepEqual(order, ['a', 'a', 'b', 'b'], 'the nested dispatch notifies every listener, then the flush goes on');
+  // a listener unsubscribed during the flush: the flush runs the listeners it started with; later ones see it gone
+  const s3 = createKsmStore(), calls = [];
+  let offB = () => {};
+  s3.subscribe(() => { calls.push('a'); offB(); });
+  offB = s3.subscribe(() => calls.push('b'));
+  s3.hold(() => s3.dispatch(ping()));
+  s3.dispatch(ping());
+  assert.deepEqual(calls, ['a', 'b', 'a'], 'unsubscribed in the flush: called in that flush, not after');
+  // a listener that throws while the held step threw too: the step's error is thrown; the listener's is reported as an
+  // unhandled rejection, not in its place
+  // (Promise.reject() is watched here: node:test would fail the test on the real unhandled rejection.)
+  const s4 = createKsmStore(), reported = [], reject = Promise.reject;
+  Promise.reject = e => { reported.push(e.message); return reject.call(Promise, e).catch(() => {}); };
+  try {
+    s4.subscribe(() => { throw new Error('listener'); });
+    assert.throws(() => s4.hold(() => { s4.dispatch(ping()); throw new Error('step'); }), /step/);
+    assert.deepEqual(reported, ['listener']);
+    assert.throws(() => s4.hold(() => s4.dispatch(ping())), /listener/, 'when the step did not throw, the listener\'s error is thrown, as Redux');
+    assert.deepEqual(reported, ['listener']);
+  } finally { Promise.reject = reject; }
+});

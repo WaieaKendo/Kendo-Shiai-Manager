@@ -62,7 +62,8 @@ export function createKsmStore(preloadedState?: Partial<RootState>, { developmen
   // action a listener saw dispatched is the step's own last one).
   let held = 0, missed = false;
   const listeners = new Set<() => void>();
-  base.subscribe(() => { if (held) missed = true; else for (const listener of [...listeners]) listener(); });
+  const notify = () => { for (const listener of [...listeners]) listener(); };
+  base.subscribe(() => { if (held) missed = true; else notify(); });
   return Object.assign(base, {
     subscribe(listener: () => void): () => void {
       const own = () => listener();
@@ -75,11 +76,18 @@ export function createKsmStore(preloadedState?: Partial<RootState>, { developmen
      * throws). A court action, an Undo/Redo and a structural step (a division's draw, a No Show, a grand champion's
      * draw cleared) run inside one, so no subscriber sees a bout finished whose bracket node has not got its winner yet,
      * a pointer on a bout that the same step is about to move off, or a division half drawn (docs/STORE.md section 3
-     * item 13, PR 13c-2).
+     * item 13, PR 13c-2). Nested holds notify once, at the outermost end; a hold with no dispatch notifies nothing. When
+     * `fn` throws, its error is the one thrown: a listener that throws in that flush is reported on its own (an
+     * unhandled rejection), never in place of it. Nothing in production subscribes to the store yet (the
+     * islands listen to window events), so this is the contract item 14 (`ksm:state-changed` → store.subscribe) builds on.
      */
     hold<T>(fn: () => T): T {
       held++;
-      try { return fn(); } finally { if (!--held && missed) { missed = false; for (const listener of [...listeners]) listener(); } }
+      let ok = false;
+      try { const out = fn(); ok = true; return out; } finally {
+        // (After a throw in `fn`, a listener's own error is reported as an unhandled rejection, not thrown over `fn`'s.)
+        if (!--held && missed) { missed = false; try { notify(); } catch (error) { if (ok) throw error; void Promise.reject(error); } }
+      }
     },
   });
 }

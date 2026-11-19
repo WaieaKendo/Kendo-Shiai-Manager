@@ -786,8 +786,8 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
       before, it left whichever of them came first in the entry. Dispatching the collected keys on a throw is not done:
       without the history move it would leave an entry that is half applied and still on the Undo list.
       (13c-1 made the entry's `allMatches` writes one batch: a throw before it left no bout written, one inside it the
-      batch's writes so far. Since 13c-2 the batch goes in the court/undo or court/redo too, so a throw anywhere leaves
-      nothing written: #206 re-review L-a.)
+      batch's writes so far. Since 13c-2 the batch goes in the court/undo or court/redo too, so a throw anywhere makes no
+      store write; patches on the plain dead keys made before it stay written in place: #206 re-review L-a.)
     - Measured (headless Chromium, 6x CPU throttling, 6 divisions of 16 on split courts, 48 bouts and 15 applies per run,
       production build, before and after interleaved): a point + Undo + Redo 43-45 ms both; Next Match 22-23 ms both; a
       remote snapshot apply 21-23 ms before, 18-21 ms after. The strict test build pays for freezing (a load 23-27 → 30 ms).
@@ -1024,10 +1024,14 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
       load), 58 notifications instead of 5.
     - **Undo/Redo is one dispatch**: the entry's bouts are planned (`ksmPlanMatchPaths()`: the batch on a copy-on-write
       root, not dispatched) and go as `allMatches` with the entry's other store-owned keys in its one `court/undo` /
-      `court/redo`; the index fields and the F30 log entry read the planned map. So a throw anywhere in an entry writes
-      nothing (#206 re-review L-a), and no notification shows a bout undone while its node or pointer is not.
+      `court/redo`; the index fields and the F30 log entry read the planned map. So a throw anywhere in an entry makes no
+      store write (patches on the plain dead keys made before it stay written in place; #206 re-review L-a), and no
+      notification shows a bout undone while its node or pointer is not.
     - **One notification per step** (`store.hold()`, `holdNotifications()`): dispatches inside change the state at once
-      (`getState()` is new after each), but subscribers run once at the end of the outermost hold. Used by
+      (`getState()` is new after each), but subscribers run once at the end of the outermost hold (nested holds: once;
+      no dispatch: none; when the held step throws, its error is thrown and a listener's own error in that flush is
+      reported as an unhandled rejection; `tests/store/store.test.mjs`). Nothing in production subscribes to the store
+      yet (the islands listen to window events): the hold is the contract item 14 builds on. Used by
       `performCourtAction()`, `undo()` / `redo()`, `generateDivisionState()`, Generate Tournament's reset (bouts emptied +
       `tournament/drawReset`), a regenerate, the two No Shows and a grand champion's clear. Why: a court action writes its
       bout (`court/matchUpdated`) before the bracket sync's `tournament/advancementApplied`, and a draw its bouts before
@@ -1146,8 +1150,10 @@ call commands instead of window functions.
   the whole list on each point); app.js 704,181 → 711,705 bytes (gzip 186,279 → 188,682); no React source changed.
 - PR 13c-2 (the bouts): the store bundle 9,736 → 9,928 bytes gzip (25,896 → 26,448 raw: the eight `matchActions`, built
   from their names (−8 against eight `createAction` calls), +87; the notification hold, +105), over the 9,750 budget,
-  which is now 9,950 (`tests/store-bundle-test.mjs`; a hold that flushed through a no-op dispatch was 11 bytes smaller but
-  showed listeners a fake last action); app.js 731,281 → 739,359 bytes (gzip 194,483 → 196,772); no React source changed.
+  which became 9,950 (`tests/store-bundle-test.mjs`; a hold that flushed through a no-op dispatch was 11 bytes smaller but
+  showed listeners a fake last action). #207's review: the hold rethrows the held step's own error before a listener's
+  (+31), 9,959, so the budget is 9,975. Nothing in production subscribes yet (the islands listen to window events): the
+  hold is item 14's contract. app.js 731,281 → 739,359 bytes (gzip 194,483 → 196,772); no React source changed.
   Times: section 3 item 13 (no slowdown at 6x throttling).
 - Re-renders: `store.subscribe` listeners run on every dispatch, so selectors must be cheap and return stable
   references. A remote snapshot is one action, one notification (today `ksmNotifyStateChanged` coalesces per

@@ -30,12 +30,14 @@ import * as KSMEngine from '../../engine/index.ts';
 /** @typedef {{index:number,set?:MatchSet,remove?:readonly string[]}} MatchUpdate */
 /** @typedef {{allMatches?:Record<string,Match[]>}} MatchRoot */
 /** @typedef {keyof typeof matchActions} MatchActionType */
-/** @typedef {(parent:any,key:string|number)=>any} Own `parent[key]` made writable: on the live state a copy put in its place (once per write), on a payload copy the object itself */
+/** @typedef {((parent:any,key:string|number)=>any)&{changed?:boolean}} Own `parent[key]` made writable: on the live state a copy put in its place (once per write), on a payload copy the object itself; `changed`: set (ksmChanged()) by a write that decides itself whether it changed anything */
 
 /** Whether `root` is the live `state`, whose `allMatches` is the store's (a vm test's own `state` is plain: tests/lib/ksm-source.mjs). @param {unknown} root */
 function ksmInStore(root){return root===state}
-/** On a payload copy every object is written in place. @type {Own} */
-const ksmInPlace=(parent,key)=>parent[key];
+/** On a payload copy every object is written in place (a new function per write, for its `changed` mark). @returns {Own} */
+const ksmInPlace=()=>(parent,key)=>parent[key];
+/** Marks the write `own` belongs to as one that changed something (an exact write: a path write, a removal). @param {Own} own */
+const ksmChanged=own=>{own.changed=true};
 /**
  * A copy-on-write `own` for one write on the live state: the first time an object (the map, a list, a bout, a point
  * list) is made writable, a shallow copy takes its place in its (already copied) parent; the old object is left as it
@@ -55,7 +57,8 @@ function ksmCopyOnWrite(){
  * Runs `write(r, own)`. On a payload copy, `r` is `root` and every write is in place. On the live state, `r` is a working
  * root whose `allMatches` starts as the store's map; `own` copies what the write changes; when the map is a new one at
  * the end (something was written), it is dispatched as one `type` action (`meta.court`: `court`, for a court's own write).
- * Nothing is dispatched when `write` throws.
+ * Nothing is dispatched when `write` throws, or when an `exact` write marked no change.
+ * @param {boolean} [exact]
  * @template T
  * @param {MatchRoot} root
  * @param {MatchActionType} type
@@ -63,11 +66,13 @@ function ksmCopyOnWrite(){
  * @param {string|null} [court]
  * @returns {T}
  */
-function ksmMatchWrite(root,type,write,court=null){
-  if(!ksmInStore(root))return write(root,ksmInPlace);
-  const was=state.allMatches,r={allMatches:was};
-  const result=write(r,ksmCopyOnWrite());
-  if(r.allMatches!==was)dispatch(matchActions[type]({writes:[{path:['tournament','allMatches'],value:r.allMatches}]},{...settingsMeta(),court}));
+function ksmMatchWrite(root,type,write,court=null,exact=false){
+  if(!ksmInStore(root))return write(root,ksmInPlace());
+  const was=state.allMatches,r={allMatches:was},own=ksmCopyOnWrite();
+  const result=write(r,own);
+  // An exact write (`exact`: a path write, a removal) copies the objects on its way before it knows whether it writes:
+  // it dispatches only when it marked a change (ksmChanged()), so a refused or empty one sends nothing (#207 review L1).
+  if(r.allMatches!==was&&(!exact||own.changed))dispatch(matchActions[type]({writes:[{path:['tournament','allMatches'],value:r.allMatches}]},{...settingsMeta(),court}));
   return result;
 }
 /** @param {any} r @param {Own} own @returns {Record<string,Match[]>} the map made writable, created ({}) when missing */
@@ -148,7 +153,12 @@ function ksmWriteUpdates(div,updates,root,type,court){
     }
   },court);
 }
-/** Whether `u` changes `m`: a field it sets that `m` lacks or holds another value in (JSON-equal counts as the same), or a field it removes that `m` has. @param {any} m @param {MatchUpdate} u */
+/**
+ * Whether `u` changes `m`: a field it sets that `m` lacks or holds another value in (JSON-equal counts as the same), or a
+ * field it removes that `m` has. The comparison is by JSON, so NaN, null and undefined inside an array or object compare
+ * equal (and keys in another order differ); bout data is plain JSON and never holds those.
+ * @param {any} m @param {MatchUpdate} u
+ */
 function ksmUpdateChanges(m,u){
   if(!m||typeof m!=='object')return true;
   const same=(/** @type {unknown} */ a,/** @type {unknown} */ b)=>a===b||(a!==null&&b!==null&&typeof a==='object'&&typeof b==='object'&&JSON.stringify(a)===JSON.stringify(b));
@@ -198,7 +208,7 @@ export function ksmAppendMatches(div,matches,root=state){
  * @param {MatchRoot} [root]
  */
 export function ksmRemoveMatches(div,at,count=1,root=state){
-  ksmMatchWrite(root,'matchesRemoved',(r,own)=>{if(Array.isArray(r.allMatches?.[div]))own(own(r,'allMatches'),div).splice(at,count)});
+  ksmMatchWrite(root,'matchesRemoved',(r,own)=>{if(Array.isArray(r.allMatches?.[div])&&own(own(r,'allMatches'),div).splice(at,count).length)ksmChanged(own)},null,true);
 }
 /**
  * A division's list sorted by `compare` (Array.prototype.sort: stable), as the old `arr.sort(...)` on the live
@@ -235,22 +245,24 @@ export function ksmSortDivisionMatches(div,compare,root=state){
  */
 export function ksmWriteMatchPath(path,value,missing,how,root=state){
   if(path[0]!=='allMatches')throw new Error('ksmWriteMatchPath: not an allMatches path: '+JSON.stringify(path));
-  return ksmMatchWrite(root,'matchesPatched',(r,own)=>ksmWalkMatchPath(r,path,()=>value,missing,how,own));
+  return ksmMatchWrite(root,'matchesPatched',(r,own)=>ksmWalkMatchPath(r,path,()=>value,missing,how,own),null,true);
 }
 /**
  * ksmWriteMatchPath()'s walk on `r` (inside a write), each object on the way made writable by `own`. `make()` gives the
  * value, called only when it is written (a write that is refused never builds it: #206 re-review L-c).
  * @param {any} r @param {readonly (string|number)[]} path @param {()=>unknown} make @param {boolean} missing
  * @param {'history'|'replay'} how @param {Own} own @returns {boolean}
+ * Marks `own` changed (ksmChanged()) at each real change: a missing parent created, a value written, an entry removed.
  */
 function ksmWalkMatchPath(r,path,make,missing,how,own){
+  const changed=()=>ksmChanged(own);
   let target=r;
   for(let i=0;i<path.length-1;i++){
     const key=path[i],next=path[i+1];
     if(how==='replay'&&Array.isArray(target)&&typeof key==='number'){
       if(key<0||key>=target.length)return false;
       if(target[key]===undefined||target[key]===null)return false;
-    }else if(target[key]===undefined||target[key]===null)target[key]=typeof next==='number'?[]:{};
+    }else if(target[key]===undefined||target[key]===null){target[key]=typeof next==='number'?[]:{};changed()}
     target=own(target,key);
     if(how==='replay'&&(target===undefined||target===null))return false;
   }
@@ -258,17 +270,16 @@ function ksmWalkMatchPath(r,path,make,missing,how,own){
   if(Array.isArray(target)&&typeof key==='number'){
     if(how==='replay'){
       if(key<0)return false;
-      if(missing){if(key<target.length){target.splice(key,1);return true}return false}
+      if(missing){if(key<target.length){target.splice(key,1);changed();return true}return false}
       if(key>target.length)return false;
       if(key===target.length)target.push(make());else target[key]=make();
-      return true;
+      changed();return true;
     }
-    if(missing){if(key>=0&&key<target.length)target.splice(key,1)}
-    else if(key>=target.length)target.splice(key,0,make());
-    else target[key]=make();
+    if(missing){if(key>=0&&key<target.length){target.splice(key,1);changed()}}
+    else{if(key>=target.length)target.splice(key,0,make());else target[key]=make();changed()}
     return true;
   }
-  if(missing)delete target[key];else target[key]=make();
+  if(missing){if(Object.hasOwn(target,key)){delete target[key];changed()}}else{target[key]=make();changed()}
   return true;
 }
 /** The index of the bout of `list` with one of `ids` (the first id found wins), else -1. @param {readonly unknown[]} list @param {readonly (string|null|undefined)[]} ids */
@@ -295,7 +306,7 @@ function ksmIndexByIdentity(list,ids){
  */
 export function ksmWriteMatchPaths(writes,root=state){
   if(!writes.length)return [];
-  return ksmMatchWrite(root,'matchesPatched',(r,own)=>ksmApplyMatchPaths(r,own,writes));
+  return ksmMatchWrite(root,'matchesPatched',(r,own)=>ksmApplyMatchPaths(r,own,writes),null,true);
 }
 /**
  * An Undo/Redo's batch (app/modules/court/court-scoring-and-history.js, #15 PR 13c-2): ksmWriteMatchPaths()'s writes on
@@ -307,23 +318,24 @@ export function ksmWriteMatchPaths(writes,root=state){
  */
 export function ksmPlanMatchPaths(writes){
   // (A vm test's plain `state` is written in place, as before.)
-  const inStore=ksmInStore(state),r=inStore?{allMatches:state.allMatches}:state;
-  const results=writes.length?ksmApplyMatchPaths(r,inStore?ksmCopyOnWrite():ksmInPlace,writes):[];
-  return {results,allMatches:r.allMatches};
+  const inStore=ksmInStore(state),r=inStore?{allMatches:state.allMatches}:state,own=inStore?ksmCopyOnWrite():ksmInPlace();
+  const results=writes.length?ksmApplyMatchPaths(r,own,writes):[];
+  // (Objects copied on the way to a write that was refused change nothing: then the store's own map, #207 review L1.)
+  return {results,allMatches:own.changed?r.allMatches:state.allMatches};
 }
 /** ksmWriteMatchPaths()'s writes on `r`, in order. @param {any} r @param {Own} own @param {readonly any[]} writes */
 function ksmApplyMatchPaths(r,own,writes){
   return writes.map(w=>{
     if(w.remove!==undefined){
       const list=r.allMatches?.[w.remove];if(!Array.isArray(list))return {applied:false};
-      const i=ksmIndexByIdentity(list,[w.id]);if(i>=0)own(own(r,'allMatches'),w.remove).splice(i,1);
+      const i=ksmIndexByIdentity(list,[w.id]);if(i>=0){own(own(r,'allMatches'),w.remove).splice(i,1);ksmChanged(own)}
       return {applied:i>=0};
     }
     if(w.insert!==undefined){
       const list=r.allMatches?.[w.insert];if(!Array.isArray(list))return {applied:false};
       if(ksmIndexByIdentity(list,[KSMEngine.matchSyncIdentity(w.match)])>=0)return {applied:false};
       const anchor=w.after?ksmIndexByIdentity(list,[w.after]):-1;
-      own(own(r,'allMatches'),w.insert).splice(w.after?(anchor>=0?anchor+1:list.length):0,0,w.match);
+      own(own(r,'allMatches'),w.insert).splice(w.after?(anchor>=0?anchor+1:list.length):0,0,w.match);ksmChanged(own);
       return {applied:true};
     }
     let path=w.path;

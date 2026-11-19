@@ -174,7 +174,8 @@ export const VM_STAND_INS = {
   ksmInStore: 'function ksmInStore(){return false}',
   // A plain `state` keeps its keys where a load puts them: no getter to reorder around.
   historyKeyOrder: 'function historyKeyOrder(keys){return keys}',
-  ksmInPlace: 'const ksmInPlace=(parent,key)=>parent[key];',
+  ksmInPlace: 'const ksmInPlace=()=>(parent,key)=>parent[key];',
+  ksmChanged: 'const ksmChanged=own=>{own.changed=true};',
   holdNotifications: 'function holdNotifications(fn){return fn()}',
 };
 export function withDependencies(source, code, { exclude = [] } = {}) {
@@ -210,5 +211,5 @@ export const MATCH_WRITE_FUNCTIONS = ['ksmMatchWrite', 'ksmOwnMap', 'ksmMatchLis
   'ksmUpdateMatches', 'ksmWriteUpdates', 'ksmUpdateChanges', 'ksmUpdateMatch', 'ksmInsertMatches', 'ksmAppendMatches', 'ksmRemoveMatches', 'ksmSortDivisionMatches', 'ksmWriteMatchPath',
   'ksmWalkMatchPath', 'ksmIndexByIdentity', 'ksmWriteMatchPaths', 'ksmApplyMatchPaths', 'ksmPlanMatchPaths', 'ksmCopyOnWrite'];
 // (With the held store notification of a court action and an Undo/Redo: a vm test has no store.)
-export const matchWritesSource = [VM_STAND_INS.ksmInStore, VM_STAND_INS.ksmInPlace, VM_STAND_INS.holdNotifications,
+export const matchWritesSource = [VM_STAND_INS.ksmInStore, VM_STAND_INS.ksmInPlace, VM_STAND_INS.ksmChanged, VM_STAND_INS.holdNotifications,
   ...MATCH_WRITE_FUNCTIONS.map(name => extractFunction(html, name))].join('\n');

@@ -92,7 +92,9 @@ export function regenerateSingleDivision(div){
   // The managementRevision bump goes with the new draw (one tournament/divisionRegenerated); a failure before the
   // court pointers were re-resolved puts the old revision back with the old draw, as the bump came after them.
   const revision=state.managementRevision;let bumped=false;
-  // The old bouts' delete, the new draw (or the old one put back) notify once (#15 PR 13c-2).
+  // The old bouts' delete, the new draw (or the old one put back) notify once (#15 PR 13c-2); a failure's alert comes after
+  // that notification, so the restored draw is announced before the alert waits for the director (#207 review L3).
+  /** @type {any} */ let failed=null;
   holdNotifications(()=>{try{
     // The bracket nodes and `teamElimTeams` go with the rest of the draw: removed and drawn again in the one action.
     ksmDeleteDivisionMatches(div);
@@ -101,8 +103,9 @@ export function regenerateSingleDivision(div){
   }catch(err){
     ksmSetDivisionMatches(div,snapshot.allMatches);
     ksmSetDraw('divisionCleared',{...ksmDrawWith(div,{currentByDivision:snapshot.currentByDivision,teamBracketNodes:snapshot.teamBracketNodes,singleElimNodes:snapshot.singleElimNodes,teamElimTeams:snapshot.teamElimTeams,championshipNodes:snapshot.championshipNodes,pools:snapshot.pools,teamPools:snapshot.teamPools,singleElimComps:snapshot.singleElimComps,brackets:snapshot.brackets,byeWinners:snapshot.byeWinners},[...KSM_DRAW_KEYS,'currentByDivision']),...(bumped?{}:{managementRevision:revision})});
-    alert('Unable to regenerate '+div+': '+err.message);
+    failed=err;
   }});
+  if(failed)alert('Unable to regenerate '+div+': '+failed.message);
 }
 // A No Show: the division's bouts and its draw notify once (#15 PR 13c-2).
 export function applyIndividualNoShow(div,name){return holdNotifications(()=>{

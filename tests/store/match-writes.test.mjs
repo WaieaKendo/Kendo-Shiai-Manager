@@ -157,6 +157,15 @@ test('no write when nothing changes (#206 review M1): the same entries, the same
     MW.ksmUpdateMatch('D', 0, { done: false, white: 'W1' }); MW.ksmUpdateMatch('D', 1, { id: 2 }, ['nope']);
     MW.ksmUpdateMatches('D', [{ index: 0, set: { red: 'R1' } }, { index: 1, set: { done: false } }]);
     MW.ksmWriteMatchPaths([{ remove: 'D', id: 'none' }, { division: 'D', ids: ['none'], rest: ['done'], value: true, how: 'replay' }]);
+    // #207 review L1: writes that copy on their way and then write nothing (an index past the end, a replay that stops,
+    // a removal past the end, a missing field deleted) send nothing
+    MW.ksmWriteMatchPath(['allMatches', 'D', 5, 'done'], true, false, 'replay');
+    MW.ksmWriteMatchPath(['allMatches', 'D', 9], undefined, true, 'history');
+    MW.ksmWriteMatchPath(['allMatches', 'D', 0, 'nope'], undefined, true, 'history');
+    MW.ksmWriteMatchPaths([{ path: ['allMatches', 'D', 7], value: bout(7), how: 'replay' }, { path: ['allMatches', 'D', 0, 'gone'], missing: true, how: 'replay' }]);
+    MW.ksmRemoveMatches('D', 5, 1);
+    assert.equal(MW.ksmPlanMatchPaths([{ path: ['allMatches', 'D', 5, 'done'], value: true, how: 'replay' }]).allMatches, state.allMatches,
+      'a planned batch that wrote nothing gives the store\'s own map (an Undo carries no new allMatches)');
   });
   assert.deepEqual(seen, []);
   assert.equal(state.allMatches.D, list);
