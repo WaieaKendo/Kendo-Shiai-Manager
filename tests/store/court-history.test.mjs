@@ -209,9 +209,13 @@ test('source: every write to the history is an action (no assignment, delete, li
   for (const file of files.filter(f => f !== 'app/modules/court/court-history-store.js')) assert.doesNotMatch(read(file), /courtHistoryActions\b/, file);
 });
 
-test('Undo/Redo: the plain keys first, then one dispatch with every store-owned key; the view rebuilt after it', () => {
+test('Undo/Redo: one dispatch with every key the entry changes, its bouts too (#15 PR 13c-2); the view rebuilt after it', () => {
   const move = extractFunction(html, 'moveCourtHistory');
-  assert.match(move, /values=applyHistoryValues\(action,[^)]*\);\s*ksmMoveCourtHistory\(kind,court,courtUndoLogEntry\([^;]*\),values\|\|\{\}\);\s*if\(values\)rebuildCourtViewAfterHistory\(\);/);
+  assert.match(move, /values=applyHistoryValues\(action,[^)]*\);[^;]*;\s*ksmMoveCourtHistory\(kind,court,courtUndoLogEntry\([^;]*\),values\|\|\{\}\);\s*if\(values\)rebuildCourtViewAfterHistory\(\);/);
+  const entry = extractFunction(html, 'applyCourtHistoryEntry');
+  assert.match(entry, /const planned=ksmPlanMatchPaths\(writes\)/, 'the bouts\' batch is planned, not dispatched');
+  assert.match(entry, /ksmHistoryStoreValues\.allMatches=planned\.allMatches/, 'and goes with the entry\'s other keys');
+  assert.doesNotMatch(entry, /ksmWriteMatchPaths\(/);
   const patch = extractFunction(html, 'applyHistoryPatch');
   assert.match(patch, /if\(!storeFieldPath\(key,state\)\)\{writeHistoryValue\(state,path,value,missing\);return\}/, 'a plain key is written in place');
   assert.match(patch, /if\(!ksmHistoryStoreValues\)assignState\(values,state\);/, 'a store key goes to the entry\'s dispatch (or assignState() on its own)');

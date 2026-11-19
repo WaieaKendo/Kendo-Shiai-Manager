@@ -1,12 +1,12 @@
 // The store's public API for app code (app/main.js, app/modules). Never re-export react.ts here: app.js does not
 // bundle React, and the islands import react.ts directly.
-export { createKsmStore, dispatch, getState, rootReducer, store, subscribe } from './store.ts';
+export { createKsmStore, dispatch, getState, holdNotifications, rootReducer, store, subscribe } from './store.ts';
 export type { AppDispatch, KsmStore, KsmStoreOptions, RootState } from './store.ts';
 export { deviceSlice, DEVICE_SLICE_VERSION } from './slices/device.ts';
 export type { ActiveScore, DeviceSliceState, LocalCourtDivisions, RegistrationTab } from './slices/device.ts';
-export { courtActions, courtHistoryActions, initialSettings, initialTournamentState, tournamentSlice, TEAM_COURT_KEY, TOURNAMENT_SLICE_VERSION, withTeamCourt } from './slices/tournament.ts';
+export { courtActions, courtHistoryActions, matchActions, initialSettings, initialTournamentState, tournamentSlice, TEAM_COURT_KEY, TOURNAMENT_SLICE_VERSION, withTeamCourt } from './slices/tournament.ts';
 export type {
-  AwardLists, AwardRow, CourtHistories, CourtHistoryEntry, CourtPointer, CourtPointers, HistoryKey, HistoryWrites, DivisionLists, DrawLists, DrawRow, PeopleKey, PeopleLists, PersonRow, PointerKey, RowAt, RowsAdded, RowUpdated, SetupKey, TournamentSetup, TournamentSliceState,
+  AwardLists, AwardRow, CourtHistories, CourtHistoryEntry, CourtPointer, CourtPointers, HistoryKey, HistoryWrites, MatchRow, DivisionLists, DrawLists, DrawRow, PeopleKey, PeopleLists, PersonRow, PointerKey, RowAt, RowsAdded, RowUpdated, SetupKey, TournamentSetup, TournamentSliceState,
 } from './slices/tournament.ts';
 export {
   PRODUCTION_BUILD, applyStoreWrites, legacyFieldAssigned, legacyStateAssigned, legacyStateReplaced, setStoreStrict, storeIsStrict,

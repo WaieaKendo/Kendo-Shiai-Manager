@@ -23,7 +23,7 @@
 //     gone is skipped (and the scorer told), nothing else changed.
 // edit-conflicts-test.py races the same through the real app and server (Undo, then Redo).
 import vm from 'node:vm';
-import { extractFunction, html, engine, matchWritesSource } from './lib/ksm-source.mjs';
+import { extractFunction, html, engine, matchWritesSource, VM_STAND_INS } from './lib/ksm-source.mjs';
 import { historyHelpers } from './lib/derived-matches.mjs';
 
 let failed = false, count = 0;
@@ -53,7 +53,9 @@ const code = [engine, constant('KSM_LOCAL_VIEW_STATE_KEYS'), constant('KSM_UNDO_
   // #15 PR 13b: the history is written through court-history-store.js (plain-state stand-ins: historyHelpers()).
   + '\nlet ksmLastHistoryOutcome=null,ksmLastHistorySkipped=0,ksmHistoryStoreValues=null;'
   // #15 PR 13c-1: allMatches is written through match-writes.js (in place on this context's `state`).
-  + '\n' + matchWritesSource;
+  + '\n' + matchWritesSource
+  // #15 PR 13c-2: the history's key order on a plain `state` is its own.
+  + '\n' + VM_STAND_INS.historyKeyOrder;
 const context = {
   console,
   cloudSession: { clientId: 'court-a', court: 'A', revision: 10 },

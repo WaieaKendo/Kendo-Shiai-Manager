@@ -47,7 +47,7 @@ export interface KsmStoreOptions {
  * with NODE_ENV 'production', which leaves the checks out, see docs/STORE.md section 5).
  */
 export function createKsmStore(preloadedState?: Partial<RootState>, { developmentChecks = true }: KsmStoreOptions = {}) {
-  return configureStore({
+  const base = configureStore({
     reducer: rootReducer,
     middleware: getDefaultMiddleware => getDefaultMiddleware({
       thunk: false,
@@ -56,6 +56,39 @@ export function createKsmStore(preloadedState?: Partial<RootState>, { developmen
     }),
     devTools: false,
     ...(preloadedState ? { preloadedState } : {}),
+  });
+  // The subscribers, notified after each dispatch as Redux does, except inside hold() (#15 PR 13c-2): there a listener
+  // only notes that it was skipped, and the end of the outermost hold() runs each listener once (no action: the last
+  // action a listener saw dispatched is the step's own last one).
+  let held = 0, missed = false;
+  const listeners = new Set<() => void>();
+  const notify = () => { for (const listener of [...listeners]) listener(); };
+  base.subscribe(() => { if (held) missed = true; else notify(); });
+  return Object.assign(base, {
+    subscribe(listener: () => void): () => void {
+      const own = () => listener();
+      listeners.add(own);
+      return () => { listeners.delete(own); };
+    },
+    /**
+     * Runs `fn`; the dispatches inside it change the state at once (getState() is new right after each), but the
+     * subscribers are notified once, when the outermost hold() ends, if anything was dispatched (also when `fn`
+     * throws). A court action, an Undo/Redo and a structural step (a division's draw, a No Show, a grand champion's
+     * draw cleared) run inside one, so no subscriber sees a bout finished whose bracket node has not got its winner yet,
+     * a pointer on a bout that the same step is about to move off, or a division half drawn (docs/STORE.md section 3
+     * item 13, PR 13c-2). Nested holds notify once, at the outermost end; a hold with no dispatch notifies nothing. When
+     * `fn` throws, its error is the one thrown: a listener that throws in that flush is reported on its own (an
+     * unhandled rejection), never in place of it. Nothing in production subscribes to the store yet (the
+     * islands listen to window events), so this is the contract item 14 (`ksm:state-changed` → store.subscribe) builds on.
+     */
+    hold<T>(fn: () => T): T {
+      held++;
+      let ok = false;
+      try { const out = fn(); ok = true; return out; } finally {
+        // (After a throw in `fn`, a listener's own error is reported as an unhandled rejection, not thrown over `fn`'s.)
+        if (!--held && missed) { missed = false; try { notify(); } catch (error) { if (ok) throw error; void Promise.reject(error); } }
+      }
+    },
   });
 }
 
@@ -69,3 +102,5 @@ export const store: KsmStore = createKsmStore();
 export const dispatch: AppDispatch = action => store.dispatch(action);
 export const getState = (): RootState => store.getState();
 export const subscribe = (listener: () => void): (() => void) => store.subscribe(listener);
+/** store.hold(): `fn`'s dispatches notify the subscribers once, at its end. */
+export const holdNotifications = <T>(fn: () => T): T => store.hold(fn);

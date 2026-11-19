@@ -1,8 +1,9 @@
-"""Every write to `allMatches` through one module (#15 PR 13c-1, docs/STORE.md section 3 item 13).
+"""Every write to `allMatches` through one module, on the store (#15 PR 13c-1, 13c-2; docs/STORE.md section 3 item 13).
 
-`allMatches` stays a plain field; every write to it, to a division's list or to a bout goes through
-app/modules/court/match-writes.js (whole lists, one bout's fields in one write, several bouts' fields, inserts, appends,
-removals, sorts, the Undo/Redo and rebase path writes). No behaviour change. Checked:
+Every write to `allMatches`, to a division's list or to a bout goes through app/modules/court/match-writes.js (whole lists,
+one bout's fields in one write, several bouts' fields, inserts, appends, removals, sorts, the Undo/Redo and rebase path
+writes); since 13c-2 each call on the live state is one store action and `state.allMatches` is a store getter. No
+behaviour change. Checked:
 
   1. The saved snapshot is the same, value for value: after each step (a division renamed before the draw; pools with a
      championship, a single elimination with byes (split courts), two round robins and a team bracket drawn; a team's
@@ -15,15 +16,15 @@ removals, sorts, the Undo/Redo and rebase path writes). No behaviour change. Che
      Next Match); a team round robin with drawn bouts (representative playoffs, their representatives picked) and its
      daihyosen; kachinuki round robin and single elimination (bouts inserted as they go) with Undo / Redo; a grand
      champion drawn, played, undone and cleared), every key of `tournamentPayload().state` has the JSON the code before
-     this PR saved (EXPECTED_FILE, recorded by running this file with `--dump` on next/4.1 at 821ad0e; random ids, times
+     13c-1 saved (EXPECTED_FILE, recorded by running this file with `--dump` on next/4.1 at 821ad0e; random ids, times
      and the tab id are replaced by marks; keys other than the pointers and the view are kept as a hash).
-  2. The same steps on a page as 13c-2 will leave it (tests/lib/match-freeze-hook.js: the map, every list and every bout
-     frozen copies, replaced by new frozen copies at each helper write, store notification and app event): no write
-     outside the helpers (it would throw), no object held across a write read stale, and every snapshot as recorded.
-  4. (this PR's code only) With nothing changed, the read paths (renders, the court island's queue, Live Scores, the TV,
-     Director Progress, findNextForCourt()) write nothing (#206 review M1).
-  3. (this PR's code only) On the frozen page a division's list assigned or deleted, a list method on it and a field
-     written on a bout throw; a point gives its bout a new frozen object and leaves the one held before as it was.
+  2. After every step the bouts are the store's (`state.allMatches` is getState().tournament.allMatches) and frozen, the
+     map, every list and every bout (the browser tests run the store strict): a write outside the helpers would throw,
+     and a held object keeps its old values. (13c-1's tests/lib/match-freeze-hook.js imitated this on a plain field.)
+  3. On that page a division's list or the map assigned or deleted, a list method on it and a field written on a bout
+     throw; a point gives its bout a new frozen object and leaves the one held before as it was.
+  4. With nothing changed, the read paths (renders, the court island's queue, Live Scores, the TV, Director Progress,
+     findNextForCourt()) dispatch no bout write (#206 review M1): a second round changes nothing.
 """
 import hashlib
 import json
@@ -36,7 +37,19 @@ from ksm_browser import launch_chromium, load_app
 
 DUMP = '--dump' in sys.argv
 EXPECTED_FILE = Path(__file__).parent / 'store/fixtures/match-writes-snapshots-before.json'
-FREEZE_HOOK = (Path(__file__).parent / 'lib/match-freeze-hook.js').read_text()
+# Counts the dispatches that change the store's bouts (the helpers' actions, an Undo/Redo, a load): window.__matchWrites.
+COUNT_WRITES = r"""() => { const s = window.KSMStore, d = s.dispatch; window.__matchWrites = 0;
+  s.dispatch = action => { const was = s.getState().tournament.allMatches, out = d(action); if (s.getState().tournament.allMatches !== was) window.__matchWrites++; return out; }; }"""
+# 2: the bouts are the store's, deeply frozen (a sample of every list: the first and last bout and their point lists).
+FROZEN = r"""() => { const all = KSMTest.app.state.allMatches, t = window.KSMStore.getState().tournament.allMatches, bad = [];
+  if (all !== t) bad.push('state.allMatches is not the store\'s');
+  if (all && !Object.isFrozen(all)) bad.push('the map is not frozen');
+  for (const [d, list] of Object.entries(all || {})) {
+    if (!Array.isArray(list)) continue;
+    if (!Object.isFrozen(list)) bad.push(d + ': list');
+    for (const m of [list[0], list[list.length - 1]]) if (m && typeof m === 'object' && (!Object.isFrozen(m) || (m.wp && !Object.isFrozen(m.wp)))) bad.push(d + ': bout');
+  }
+  return [bad.slice(0, 5), Object.values(all || {}).reduce((n, l) => n + (Array.isArray(l) ? l.length : 0), 0)]; }"""
 checks = 0
 
 SNAPSHOT = r"""() => {
@@ -257,22 +270,20 @@ def compare(name, got, want, label):
 
 
 def strict_writes(page):
-    """3: on the frozen page a write that does not go through match-writes.js throws; the helpers write."""
+    """3: a write that does not go through match-writes.js throws (store data, strict); the helpers write."""
     global checks
     configure()(page)
-    # (`state.allMatches = …` itself stays a plain assignment until 13c-2 makes it a getter: replaceState() assigns it on
-    # a load; tests/store/match-writes.test.mjs finds such a write in the sources.)
-    for write in (f"KSMTest.app.state.allMatches['{KIDS}'] = []", f"delete KSMTest.app.state.allMatches['{KIDS}']",
+    for write in ("KSMTest.app.state.allMatches = {}", f"KSMTest.app.state.allMatches['{KIDS}'] = []", f"delete KSMTest.app.state.allMatches['{KIDS}']",
                   f"KSMTest.app.state.allMatches['{KIDS}'].push({{}})", f"KSMTest.app.state.allMatches['{KIDS}'].splice(0, 1)",
                   f"KSMTest.app.state.allMatches['{KIDS}'].sort(() => 0)", f"KSMTest.app.state.allMatches['{KIDS}'][0].done = true",
                   f"KSMTest.app.state.allMatches['{KIDS}'][0].wp.push('M')", "KSMTest.app.state.matches.push({})"):
         threw = page.evaluate(f"() => {{ 'use strict'; try {{ {write}; return false; }} catch (e) {{ return e instanceof TypeError; }} }}")
-        assert threw, f'{write} did not throw on the frozen page'; checks += 1
+        assert threw, f'{write} did not throw'; checks += 1
     held = page.evaluate(f"""() => {{ const div = '{KIDS}', before = KSMTest.app.state.allMatches[div][0];
         KSMTest.prepareCourt('A'); KSMTest.app.selectScorekeeperDivision(div); KSMTest.app.point('W', 'M');
         const after = KSMTest.app.state.allMatches[div][0];
-        return [before === after, (before.wp || []).length, (after.wp || []).length, Object.isFrozen(after)]; }}""")
-    assert held == [False, 0, 1, True], f'a point gives the bout a new frozen object and leaves the held one as it was: {held}'; checks += 1
+        return [before === after, (before.wp || []).length, (after.wp || []).length, Object.isFrozen(after), after === window.KSMStore.getState().tournament.allMatches[div][0]]; }}""")
+    assert held == [False, 0, 1, True, True], f'a point gives the bout a new frozen object (the store\'s) and leaves the held one as it was: {held}'; checks += 1
 
 
 READ_PATHS = r"""async () => {
@@ -303,6 +314,7 @@ def read_paths(page):
 
 
 def run_steps(page, errors, label, expected):
+    global checks
     seen = {}
     for name, run in steps():
         page.evaluate(SEED)
@@ -315,6 +327,8 @@ def run_steps(page, errors, label, expected):
         assert not errors, f'{label}: {name}: {errors}'
         if not DUMP:
             compare(name, seen[name], expected[name], label)
+            bad, _ = page.evaluate(FROZEN)
+            assert not bad, f'{label}: {name}: the store\'s bouts, frozen: {bad}'; checks += 1
     return seen
 
 
@@ -334,22 +348,19 @@ def main():
         browser = launch_chromium(p)
         expected = None if DUMP else json.loads(EXPECTED_FILE.read_text())
         errors = []
-        seen = run_steps(new_page(browser, errors), errors, 'app', expected)
+        page = new_page(browser, errors)
+        page.evaluate(COUNT_WRITES)
+        seen = run_steps(page, errors, 'app', expected)
         if DUMP:
             print(json.dumps(seen, indent=1, ensure_ascii=False))
         else:
             assert list(seen) == list(expected), 'the same steps as recorded'; checks += 1
-            # 2: the same steps with every match frozen between the helpers' writes
-            frozen_errors = []
-            frozen = new_page(browser, frozen_errors)
-            frozen.evaluate(FREEZE_HOOK)
-            run_steps(frozen, frozen_errors, 'frozen', expected)
-            writes = frozen.evaluate('() => window.__matchWrites || 0')
-            assert writes > len(steps()), f'the frozen page wrote through match-writes.js ({writes})'; checks += 1
-            # 3
+            writes = page.evaluate('() => window.__matchWrites || 0')
+            assert writes > len(steps()), f'the steps wrote the store\'s bouts ({writes})'; checks += 1
+            # 3, 4
             strict_errors = []
             strict = new_page(browser, strict_errors)
-            strict.evaluate(FREEZE_HOOK)
+            strict.evaluate(COUNT_WRITES)
             strict_writes(strict)
             before = strict.evaluate('() => window.__matchWrites || 0')
             settled = read_paths(strict)

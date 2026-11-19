@@ -1,4 +1,5 @@
 // @ts-check
+import {holdNotifications} from '../../store/index.ts';
 import {ksmEmptyScore,ksmSetScore,ksmShowMatch,state} from '../app-state.js';
 import {ksmSetDivisionCourt} from '../setup/divisions-store.js';
 import {renderAll} from '../court/court-context-and-pool-editing.js';
@@ -139,7 +140,8 @@ function ksmForgetGrandChampionHistory(id){
   }));
   ksmSetCourtHistories('historyForgotten',out);
 }
-function ksmClearGrandChampionStructure(id,keepCourts=false){
+function ksmClearGrandChampionStructure(id,keepCourts=false){return holdNotifications(()=>{
+  // One notification (#15 PR 13c-2): the bouts' delete is its own dispatch, before the draw's tournament/divisionCleared.
   let had=false;
   // The plain parts are deleted, then the draw's own entries go in one tournament/divisionCleared (#15 PR 12a).
   // (`currentByDivision`, the court pointers' map since #15 PR 13a, goes with the draw's entries.)
@@ -160,7 +162,7 @@ function ksmClearGrandChampionStructure(id,keepCourts=false){
   // state.matches follows allMatches[currentDivision] (derived, #15 PR 7): [] once the draw is gone.
   if(state.currentDivision===id&&!state.allMatches?.[id])ksmShowMatch(0);
   return had;
-}
+})}
 function ksmDrawGrandChampion(gc){
   const courts=['A','B'].filter(c=>state.courtState?.[c]?.division===gc.id);
   ksmClearGrandChampionStructure(gc.id,true);

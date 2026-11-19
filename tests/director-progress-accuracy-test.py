@@ -20,14 +20,14 @@ with sync_playwright() as p:
       ]}});
       KSMTest.app.setDivisionLists({divisionTypes:{PoolDiv:'Round Robin'}});
       KSMTest.app.setDivisionLists({divisionCourts:{PoolDiv:'A'}});
-      KSMTest.app.state.allMatches={PoolDiv:[
+      KSMTest.app.setAllMatches({PoolDiv:[
         {division:'PoolDiv',pool:'A',type:'individual',done:true,court:'A'},
         {division:'PoolDiv',pool:'A',type:'individual',done:false,court:'A'},
         {division:'PoolDiv',pool:'A',type:'individual',done:false,court:'A'},
         {division:'PoolDiv',pool:'B',type:'individual',done:false,court:'A'},
         {division:'PoolDiv',pool:'B',type:'individual',done:false,court:'A'},
         {division:'PoolDiv',pool:'B',type:'individual',done:false,court:'A'}
-      ]};
+      ]});
     """)
     pool=page.evaluate("KSMTest.app.directorDivisionProgress('PoolDiv','A')")
     assert pool=={'completed':1,'total':9,'remaining':8,'variable':False},pool
@@ -43,10 +43,10 @@ with sync_playwright() as p:
         {id:'S1',left:{ref:'Q1'},right:{ref:'Q2'},court:'A'},
         {id:'F',left:{ref:'S1'},right:{team:5},court:'A'}
       ]}});
-      KSMTest.app.state.allMatches.DirectDiv=[
+      KSMTest.app.setDivisionMatches('DirectDiv', [
         {division:'DirectDiv',singleElim:true,done:true,court:'A'},
         {division:'DirectDiv',singleElim:true,done:false,court:'A'}
-      ];
+      ]);
     """)
     direct=page.evaluate("KSMTest.app.directorDivisionProgress('DirectDiv','A')")
     assert direct=={'completed':1,'total':4,'remaining':3,'variable':False},direct
@@ -61,9 +61,9 @@ with sync_playwright() as p:
         {id:'SF2',left:{team:3},right:{team:4},court:'B'},
         {id:'F',left:{ref:'SF1'},right:{ref:'SF2'},court:'A'}
       ]}});
-      KSMTest.app.state.allMatches['Team Tournament']=Array.from({length:5},(_,i)=>({
+      KSMTest.app.setDivisionMatches('Team Tournament', Array.from({length:5},(_,i)=>({
         division:'Team Tournament',type:'teamPosition',teamPair:'node-SF1',done:i<2,court:'A'
-      }));
+      })));
     """)
     team_all=page.evaluate("KSMTest.app.directorDivisionProgress('Team Tournament',null)")
     team_a=page.evaluate("KSMTest.app.directorDivisionProgress('Team Tournament','A')")
@@ -82,10 +82,10 @@ with sync_playwright() as p:
     page.evaluate("""
       KSMTest.app.ksmSetSetting('teamFormat','Kachinuki');
       KSMTest.app.setPeople({teams: [{team:'One',division:'Team Tournament',type:'Kachinuki'}]});
-      KSMTest.app.state.allMatches['Team Tournament']=[
+      KSMTest.app.setDivisionMatches('Team Tournament', [
         {division:'Team Tournament',type:'kachinuki',teamPair:'node-SF1',done:true,court:'A'},
         {division:'Team Tournament',type:'kachinuki',teamPair:'node-SF1',done:false,court:'A'}
-      ];
+      ]);
       KSMTest.app.setCourtPointers({courtState:{A:{division:'Team Tournament',index:1},B:{division:null,index:0}}});
       KSMTest.app.renderDirector();
     """)

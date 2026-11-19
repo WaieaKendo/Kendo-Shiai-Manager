@@ -165,6 +165,11 @@ moveToStore('courtActiveDivision',['tournament','courtActiveDivision']);
 moveToStore('courtActionHistory',['tournament','courtActionHistory']);
 moveToStore('courtRedoHistory',['tournament','courtRedoHistory']);
 moveToStore('courtUndoLog',['tournament','courtUndoLog']);
+// The bouts (PR 13c-2): every division's list is the `tournament` slice's, written only through
+// app/modules/court/match-writes.js (matchActions), a load's replaceState() and an Undo/Redo's court/undo / court/redo.
+// A list and a bout are store data: never `m.done = …` or `list.push(…)`, call a helper; and a bout read before a write
+// keeps its old values (read it again after). The getter is at the literal's place, so the snapshot's key order stays.
+moveToStore('allMatches',['tournament','allMatches']);
 /** Whether a store path is a Setup field: a load applies those through applySetupSnapshot(), with the Setup's precedence. */
 const isSettingsPath=(/** @type {string[]} */ p)=>p[0]==='tournament'&&p[1]==='settings';
 /** A tournament closed (ksmResetTournament()): the shown match is the first and every court's pad is empty. */

@@ -488,7 +488,7 @@ def dialogs(browser, react_check):
     g.do('Regenerate: Regenerate (the check fails)', lambda a: click(a.page, tid('regenerate-confirm')))
     g.do('the check: Close (after Regenerate)', lambda a: click(a.page, tid('validation-close')))
     g.do('every division started (code)', lambda a: a.page.evaluate(
-        "() => Object.values(KSMTest.app.state.allMatches).forEach(ms => { if (ms[0]) ms[0].done = true; })"))
+        "() => Object.entries(KSMTest.app.state.allMatches).forEach(([d, ms]) => { if (ms[0]) KSMTest.app.updateMatch(d, 0, {done: true}); })"))
     g.do('Regenerate opened (no division ready)', lambda a: click(a.page, tid('regenerate-division-button')))
     g.do('Regenerate: Continue (nothing chosen: the alert)', lambda a: click(a.page, tid('regenerate-continue')))
     g.do('Regenerate: x (end)', lambda a: click(a.page, tid('regenerate-modal-close')))

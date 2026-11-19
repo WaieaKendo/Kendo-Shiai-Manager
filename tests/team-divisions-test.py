@@ -52,7 +52,7 @@ def local_cases(browser):
     assert page.evaluate('KSMTest.teamDivisions()[0].teamFormat')=='3-Person Team', 'legacy adapter overwrote the persisted division format'
     assert page.evaluate('KSMTest.teamDivisions()[0].awardMode')=='top2', 'legacy adapter overwrote the persisted division awards'
     # First division's existing generated structure is discarded for this new draw.
-    page.evaluate("""() => {KSMTest.app.setDraw({generated:false});KSMTest.app.state.allMatches={};} """)
+    page.evaluate("""() => {KSMTest.app.setDraw({generated:false});KSMTest.app.setAllMatches({});} """)
     first = page.evaluate('KSMTest.teamDivisions()[0].id')
     app.expect_dialog('Add another team division before removing one with teams.')
     assert page.evaluate('id=>KSMTest.removeTeamDivision(id)',first) is False
@@ -130,7 +130,7 @@ def local_cases(browser):
     assert app.final_state()==final
     # A second-division kachinuki reaches the last opposing player and only then ends.
     # (a drawn team division is fixed: its draw is discarded first, as a regenerate would)
-    page.evaluate("""id=>{KSMTest.app.setDraw({generated:false});delete KSMTest.app.state.allMatches[id];KSMTest.updateTeamDivision(id,{teamFormat:'Kachinuki'});KSMTest.app.generatePools({validated:true});}""",second)
+    page.evaluate("""id=>{KSMTest.app.setDraw({generated:false});KSMTest.app.setAllMatches(Object.fromEntries(Object.entries(KSMTest.app.state.allMatches).filter(([d])=>d!==id)));KSMTest.updateTeamDivision(id,{teamFormat:'Kachinuki'});KSMTest.app.generatePools({validated:true});}""",second)
     for _ in range(20):
         progressed=page.evaluate("""()=>{const m=KSMTest.prepareCourt('B');if(!m)return false;KSMTest.play([['W','M']]);return true;}""")
         if not progressed:
@@ -139,7 +139,7 @@ def local_cases(browser):
     assert len(bouts)==3 and all(m['done'] for m in bouts), bouts
     assert any(m.get('rIndex')==2 for m in bouts), 'last player never lost'
     # Continue and Up next display names while their actions keep persisted IDs.
-    page.evaluate("""id=>{KSMTest.app.setDraw({generated:false});delete KSMTest.app.state.allMatches[id];KSMTest.updateTeamDivision(id,{court:'A'});KSMTest.moveTeamDivision(id,'down');KSMTest.app.generatePools({validated:true});}""",second)
+    page.evaluate("""id=>{KSMTest.app.setDraw({generated:false});KSMTest.app.setAllMatches(Object.fromEntries(Object.entries(KSMTest.app.state.allMatches).filter(([d])=>d!==id)));KSMTest.updateTeamDivision(id,{court:'A'});KSMTest.moveTeamDivision(id,'down');KSMTest.app.generatePools({validated:true});}""",second)
     app.open_court('A')
     assert page.evaluate('id=>KSMTest.app.ksmUpNext("A",id).division',first)=='Adult Open'
     for _ in range(3):
