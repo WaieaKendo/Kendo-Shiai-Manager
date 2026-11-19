@@ -6,17 +6,17 @@
 // `teamPools`, `brackets`, `singleElimComps`, `byeWinners`, `generated`, `managementRevision`); PR 12b the bracket nodes
 // (`championshipNodes`, `singleElimNodes`, `teamBracketNodes`, `teamElimTeams`); PR 13a the court pointers (`courtState`,
 // `courtActiveDivision`, `currentByDivision`); PR 13b the court history (`courtActionHistory`, `courtRedoHistory`,
-// `courtUndoLog`). `state` reads them through getters (app/modules/app-state.js).
-import { createAction, createNextState, createSlice, type PayloadAction } from '@reduxjs/toolkit';
+// `courtUndoLog`); PR 13c-2 the bouts (`allMatches`). `state` reads them through getters (app/modules/app-state.js).
+import { createAction, createNextState, createSlice, type ActionCreatorWithPreparedPayload, type PayloadAction } from '@reduxjs/toolkit';
 import { DIVISION_PRESETS, TEAM_COURT_KEY, type DivisionRename } from '../../engine/division-lists.ts';
 import { statusCycle } from '../../engine/registration.ts';
 import type { GrandChampion } from '../../engine/grand-champion.ts';
 import type { TeamDivision } from '../../engine/team-divisions.ts';
 import type { StoreWrite } from '../legacy.ts';
-import { withMeta, type ActionMeta } from '../meta.ts';
+import { withMeta, type ActionMeta, type ActionMetaInput } from '../meta.ts';
 
 /** Bumped when the shape of this slice changes in a way saved data must be migrated for. */
-export const TOURNAMENT_SLICE_VERSION = 9;
+export const TOURNAMENT_SLICE_VERSION = 10;
 
 /**
  * TEAM_COURT_KEY: the legacy team division's key ('Team Tournament', KSMEngine.LEGACY_TEAM_DIVISION_ID). Its
@@ -124,7 +124,16 @@ export interface TournamentSliceState {
   courtRedoHistory?: CourtHistories | undefined;
   /** Each court's F30 Undo log (`state.courtUndoLog`): every Undo/Redo, which the rebase replays in time order. */
   courtUndoLog?: CourtHistories | undefined;
+  /**
+   * The bouts (PR 13c-2), by division (`state.allMatches`): each division's list in running order, plain JSON the app
+   * built. Written only by app/modules/court/match-writes.js (matchActions), a load and an Undo/Redo. A load may leave it
+   * undefined.
+   */
+  allMatches?: Record<string, MatchRow[]> | undefined;
 }
+
+/** A bout (`allMatches[division][i]`): plain JSON the app built (`white`, `red`, `wp`, `rp`, `done`, …). */
+export type MatchRow = Record<string, unknown>;
 
 /** A court history entry: plain JSON the app built (app/modules/court/court-scoring-and-history.js). */
 export type CourtHistoryEntry = Record<string, unknown>;
@@ -178,6 +187,7 @@ export const initialTournamentState: TournamentSliceState = {
   courtActiveDivision: { A: null, B: null },
   courtActionHistory: { A: [], B: [] },
   courtRedoHistory: { A: [], B: [] },
+  allMatches: {},
 };
 
 /**
@@ -256,6 +266,31 @@ export const courtHistoryActions = {
   /** A grand champion's draw gone: its bouts' patches dropped from both courts' lists (an entry left empty with them). */
   historyForgotten: courtAction<HistoryWrites>('historyForgotten'),
 };
+/** The match actions' keys (each `tournament/<key>`, except matchUpdated: `court/matchUpdated`). */
+type MatchActionKey = 'matchUpdated' | 'allMatchesSet' | 'divisionMatchesSet' | 'matchesUpdated' | 'matchesAdded' | 'matchesRemoved' | 'matchesSorted' | 'matchesPatched';
+/**
+ * The bouts (PR 13c-2): every write of `allMatches` is one of these, one per call of a helper of
+ * app/modules/court/match-writes.js. Like the history actions, the payload is `writes` (the new map at
+ * ['tournament', 'allMatches'], whose copied lists and bouts are the only new objects), applied by the root reducer as a
+ * path copy: never an Immer reducer over a whole list. court/… is a court's own write (`meta.court`); tournament/… the
+ * rest (draws, syncs, repairs, the test API). An Undo/Redo writes its bouts in its own court/undo or court/redo.
+ *   - matchUpdated: one bout's fields (ksmUpdateMatch()): a point, a result, a representative, a grand champion's
+ *     Fusen-sho, a repair;
+ *   - allMatchesSet: the whole map (ksmSetAllMatches()): Generate Tournament's reset, a division renamed;
+ *   - divisionMatchesSet: a division's list replaced or taken out (ksmSetDivisionMatches(), ksmDeleteDivisionMatches()):
+ *     a draw, a rebuild, a dedupe;
+ *   - matchesUpdated: several bouts' fields (ksmUpdateMatches()): an engine sync's plan, a division's courts, a
+ *     substitution, a repair;
+ *   - matchesAdded: bouts added (ksmInsertMatches(), ksmAppendMatches()): a tiebreak, a playoff, kachinuki's next bout, a
+ *     template's missing bouts;
+ *   - matchesRemoved: bouts taken out (ksmRemoveMatches());
+ *   - matchesSorted: a division's bouts reordered (ksmSortDivisionMatches());
+ *   - matchesPatched: path writes, one or a batch (ksmWriteMatchPath(), ksmWriteMatchPaths()).
+ * (Built from the names, so the eight cost one copy of the code in the store bundle, docs/STORE.md section 5.)
+ */
+export const matchActions = Object.fromEntries((['matchUpdated', 'allMatchesSet', 'divisionMatchesSet', 'matchesUpdated', 'matchesAdded', 'matchesRemoved',
+  'matchesSorted', 'matchesPatched'] as const).map(key => [key, createAction(`${key === 'matchUpdated' ? 'court' : 'tournament'}/${key}`, withMeta<HistoryWrites>())])) as
+  unknown as Record<MatchActionKey, ActionCreatorWithPreparedPayload<[HistoryWrites, ActionMetaInput?], HistoryWrites, string, never, ActionMeta>>;
 function setCourtPointers(state: TournamentSliceState, { payload }: { payload: CourtPointers }) {
   for (const key of ['currentByDivision', 'courtState', 'courtActiveDivision'] as const) {
     const entries = payload[key];
@@ -410,10 +445,9 @@ export const tournamentSlice = createSlice({
     /** A grand champion row removed (before its draw). */
     grandChampionRemoved: setAwardLists,
     // The draw (#15 PR 12a). Like the lists above, each is computed by the app (app/modules/engine/structure-store.js)
-    // from the current maps and the engine's plan, and the reducer sets the maps it is given. What 13c still owns
-    // (`allMatches`) is plain `state`, written in the same synchronous step right before the dispatch, so a store
-    // notification never shows half a division. A draw action carries the division's bracket nodes too (PR 12b) and its
-    // queue position (`currentByDivision`, PR 13a).
+    // from the current maps and the engine's plan, and the reducer sets the maps it is given. The division's bouts
+    // (`allMatches`, PR 13c-2: matchActions) are written in the same synchronous step right before the dispatch. A draw
+    // action carries the division's bracket nodes too (PR 12b) and its queue position (`currentByDivision`, PR 13a).
     /** Generate Tournament starts: every division's pools, team pools, brackets, entrants and bye winners empty. */
     drawReset: setDrawLists,
     /** One division drawn from the engine's plan (generateDivision()): its entries in the maps it uses. */

@@ -47,7 +47,7 @@ export interface KsmStoreOptions {
  * with NODE_ENV 'production', which leaves the checks out, see docs/STORE.md section 5).
  */
 export function createKsmStore(preloadedState?: Partial<RootState>, { developmentChecks = true }: KsmStoreOptions = {}) {
-  return configureStore({
+  const base = configureStore({
     reducer: rootReducer,
     middleware: getDefaultMiddleware => getDefaultMiddleware({
       thunk: false,
@@ -56,6 +56,31 @@ export function createKsmStore(preloadedState?: Partial<RootState>, { developmen
     }),
     devTools: false,
     ...(preloadedState ? { preloadedState } : {}),
+  });
+  // The subscribers, notified after each dispatch as Redux does, except inside hold() (#15 PR 13c-2): there a listener
+  // only notes that it was skipped, and the end of the outermost hold() runs each listener once (no action: the last
+  // action a listener saw dispatched is the step's own last one).
+  let held = 0, missed = false;
+  const listeners = new Set<() => void>();
+  base.subscribe(() => { if (held) missed = true; else for (const listener of [...listeners]) listener(); });
+  return Object.assign(base, {
+    subscribe(listener: () => void): () => void {
+      const own = () => listener();
+      listeners.add(own);
+      return () => { listeners.delete(own); };
+    },
+    /**
+     * Runs `fn`; the dispatches inside it change the state at once (getState() is new right after each), but the
+     * subscribers are notified once, when the outermost hold() ends, if anything was dispatched (also when `fn`
+     * throws). A court action, an Undo/Redo and a structural step (a division's draw, a No Show, a grand champion's
+     * draw cleared) run inside one, so no subscriber sees a bout finished whose bracket node has not got its winner yet,
+     * a pointer on a bout that the same step is about to move off, or a division half drawn (docs/STORE.md section 3
+     * item 13, PR 13c-2).
+     */
+    hold<T>(fn: () => T): T {
+      held++;
+      try { return fn(); } finally { if (!--held && missed) { missed = false; for (const listener of [...listeners]) listener(); } }
+    },
   });
 }
 
@@ -69,3 +94,5 @@ export const store: KsmStore = createKsmStore();
 export const dispatch: AppDispatch = action => store.dispatch(action);
 export const getState = (): RootState => store.getState();
 export const subscribe = (listener: () => void): (() => void) => store.subscribe(listener);
+/** store.hold(): `fn`'s dispatches notify the subscribers once, at its end. */
+export const holdNotifications = <T>(fn: () => T): T => store.hold(fn);

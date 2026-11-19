@@ -2,7 +2,7 @@
 import {DIVISION_PRESETS,ksmSetCurrentCourt,ksmSetPublicCourt,state} from '../app-state.js';
 import {deviceSlice,dispatch,getState} from '../../store/index.ts';
 import {KSM_UNDO_LOG_LIMIT} from '../court/court-scoring-and-history.js';
-import {ksmAppendMatches,ksmDeleteDivisionMatches,ksmSetDivisionMatches,ksmWriteMatchPath,ksmWriteMatchPaths} from '../court/match-writes.js';
+import {ksmAppendMatches,ksmDeleteDivisionMatches,ksmSetDivisionMatches,ksmWriteMatchPaths} from '../court/match-writes.js';
 import {repairCompletedMatchResults} from '../engine/engine-result-integrity.js';
 import {isIndividualPoolTiebreakMatch,normalizeAllIndividualPoolTiebreakOrder,normalizeIndividualPoolTiebreakOrderInState} from '../engine/engine-standings-and-tiebreaks.js';
 import {ksmLinkParams} from '../links/path-urls.js';
@@ -267,7 +267,9 @@ function replayPendingCourtHistory(actions,undoLog,localState,rebasedState,serve
   const undone=new Set((serverState?.courtRedoHistory?.[court]||[]).map(historyEntryIdentity));
   // A patch under allMatches is written through match-writes.js on the server copy (`root`, in place; #206 review L2).
   const apply=patch=>{const resolved=resolveRebasePatch(localState,rebasedState,patch);if(!resolved)return;
-    if(resolved.path?.[0]==='allMatches'){const value=resolved.after,missing=Boolean(value&&value.__ksmMissing===true);ksmWriteMatchPath(resolved.path,missing?undefined:cloneJson(value),missing,'replay',rebasedState)}
+    // (The value is copied inside the walk, only when it is written: a patch that cannot be replayed is skipped without
+    // copying its value, as applyPatchToStateObject() did; #206 re-review L-c.)
+    if(resolved.path?.[0]==='allMatches'){const value=resolved.after,missing=Boolean(value&&value.__ksmMissing===true);ksmWriteMatchPaths([{path:resolved.path,value,missing,how:'replay',clone:true}],rebasedState)}
     else applyPatchToStateObject(rebasedState,resolved)};
   const steps=[...actions.map(entry=>({entry,op:null})),...undoLog.map(entry=>({entry,op:entry.kind}))]
     .map((step,i)=>({...step,i})).sort((a,b)=>String(a.entry.when||'').localeCompare(String(b.entry.when||''))||a.i-b.i);

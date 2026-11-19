@@ -246,7 +246,10 @@ def no_half_state(page):
           // Its list deleted and the pointer not re-resolved (the same object): a re-resolve may land on a division without a
           // list (the next-bout search's fallback, the device's division), as before.
           else if (cs && cs === lastOn[c]) problem = [type, c, cs, 'its list was deleted'];
-          if (!problem && finished && type === 'court/pointerMoved' && Array.isArray(list) && list[cs.index] === finished) problem = [type, c, 'on the bout it finished'];
+          // (Since #15 PR 13c-2 a write gives the bout a new object and a court action notifies once, at its end: the bout is
+          // compared by its identity, and a pointer on it once it is finished is the problem, whatever action notified.)
+          const at = Array.isArray(list) ? list[cs.index] : null;
+          if (!problem && finished && at && at.done && a.matchSyncIdentity(at) === finished) problem = [type, c, 'on the bout it finished'];
           if (problem && KNOWN[type] && !windows[c]) windows[c] = {name: KNOWN[type], division: cs.division};
           const w = windows[c];
           if (problem && w && w.division === cs.division) (allowed[w.name] ||= []).push(problem);
@@ -257,7 +260,7 @@ def no_half_state(page):
       };
       const off = store.subscribe(check);
       for (const court of ['A', 'B', 'A', 'B', 'A', 'B']) for (let i = 0; i < 15; i++) {
-        const m = KSMTest.prepareCourt(court); if (!m) break; finished = m; KSMTest.play([['W', 'M']]); finished = null;
+        const m = KSMTest.prepareCourt(court); if (!m) break; finished = a.matchSyncIdentity(m); KSMTest.play([['W', 'M']]); finished = null;
         if (i % 4 === 1) { phase = 'undo'; a.undo(); phase = 'redo'; a.redo(); phase = 'undo twice'; a.undo(); a.undo(); phase = 'redo twice'; a.redo(); a.redo(); phase = ''; }
       }
       phase = 'generate'; KSMTest.app.generatePools({validated: true}); phase = '';

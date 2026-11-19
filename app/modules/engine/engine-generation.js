@@ -1,6 +1,7 @@
 // Generation, the no-show rebuilds, the court helpers and the Pools view entry (step 4a of #136; was app/js/08-engine-generation.js).
 import {ksmSetPoolViewDivision,ksmShowDivision,ksmShowMatch,state} from '../app-state.js';
 import {ksmSetDivisionCourt} from '../setup/divisions-store.js';
+import {holdNotifications} from '../../store/index.ts';
 import {renderAll} from '../court/court-context-and-pool-editing.js';
 import {individualMatchReady,initCourtStates,isCourtScorekeeper,isTeamMatch,renderDivisions,sortIndividualDivisionMatches,setCourtPointer,sortTeamMatches} from '../court/court-match-order.js';
 import {loadScoreFromMatch} from '../court/court-scoring-and-history.js';
@@ -38,7 +39,8 @@ import * as KSMEngine from '../../engine/index.ts';
  * @param {string} div
  * @param {{type?:import('./structure-store.js').DrawAction,fresh?:boolean,lists?:import('./structure-store.js').DrawLists}} [how]
  */
-export function generateDivisionState(div,how={}){
+export function generateDivisionState(div,how={}){return holdNotifications(()=>{
+  // One notification for the division's bouts and its draw (#15 PR 13c-2: the bouts are their own dispatches before it).
   const settings=ksmTeamSettings(div);
   const plan=KSMEngine.generateDivision({division:div,teamDivisionId:ksmTeamDivision(div)?.id,competitors:ksmGrandChampion(div)?ksmGrandChampionCompetitors(div):state.competitors,teams:state.teams,exhibitions:state.exhibitions,divisionType:ksmGrandChampion(div)?KSMEngine.grandChampionFormat(ksmGrandChampion(div)):state.divisionTypes[div],courtMode:state.divisionCourts[div],settings,bracketNodesForCount:teamBracketNodesForCount});
   if(!plan)return false;
@@ -67,12 +69,13 @@ export function generateDivisionState(div,how={}){
     syncChampionshipTemplate(div);// reads the pools' seeds and the template from the store
   }
   return true;
-}
+})}
 export function generatePools(options={}){
   if(!options.validated){requestTournamentGeneration();return}
   const regenerating=Boolean(state.generated);
-  ksmSetAllMatches({});
-  ksmSetDraw('drawReset',{currentByDivision:{},pools:{},teamPools:{},singleElimComps:{},brackets:{},byeWinners:{},teamBracketNodes:{},singleElimNodes:{},teamElimTeams:{},championshipNodes:{}});let generated=0;
+  // Every bout and every draw emptied, one notification (#15 PR 13c-2: the bouts are their own dispatch).
+  holdNotifications(()=>{ksmSetAllMatches({});
+    ksmSetDraw('drawReset',{currentByDivision:{},pools:{},teamPools:{},singleElimComps:{},brackets:{},byeWinners:{},teamBracketNodes:{},singleElimNodes:{},teamElimTeams:{},championshipNodes:{}})});let generated=0;
   state.divisions.forEach(div=>{if(generateDivisionState(div))generated++});
   if(tournamentSettings().teamEnabled!=='Disabled')ksmTeamDivisions().forEach(d=>{if(generateDivisionState(d.id))generated++});
   if(generateDivisionState('Exhibition Matches'))generated++;
@@ -89,7 +92,8 @@ export function regenerateSingleDivision(div){
   // The managementRevision bump goes with the new draw (one tournament/divisionRegenerated); a failure before the
   // court pointers were re-resolved puts the old revision back with the old draw, as the bump came after them.
   const revision=state.managementRevision;let bumped=false;
-  try{
+  // The old bouts' delete, the new draw (or the old one put back) notify once (#15 PR 13c-2).
+  holdNotifications(()=>{try{
     // The bracket nodes and `teamElimTeams` go with the rest of the draw: removed and drawn again in the one action.
     ksmDeleteDivisionMatches(div);
     if(!generateDivisionState(div,{type:'divisionRegenerated',fresh:true,lists:{managementRevision:ksmNextManagementRevision()}}))throw new Error('No eligible entrants remain in this division.');
@@ -98,9 +102,10 @@ export function regenerateSingleDivision(div){
     ksmSetDivisionMatches(div,snapshot.allMatches);
     ksmSetDraw('divisionCleared',{...ksmDrawWith(div,{currentByDivision:snapshot.currentByDivision,teamBracketNodes:snapshot.teamBracketNodes,singleElimNodes:snapshot.singleElimNodes,teamElimTeams:snapshot.teamElimTeams,championshipNodes:snapshot.championshipNodes,pools:snapshot.pools,teamPools:snapshot.teamPools,singleElimComps:snapshot.singleElimComps,brackets:snapshot.brackets,byeWinners:snapshot.byeWinners},[...KSM_DRAW_KEYS,'currentByDivision']),...(bumped?{}:{managementRevision:revision})});
     alert('Unable to regenerate '+div+': '+err.message);
-  }
+  }});
 }
-export function applyIndividualNoShow(div,name){
+// A No Show: the division's bouts and its draw notify once (#15 PR 13c-2).
+export function applyIndividualNoShow(div,name){return holdNotifications(()=>{
   if(!structuralNoShowAllowed(div))return false;
   let fmt=state.divisionTypes[div]||'Round Robin';
   if(fmt==='Single Elimination'){
@@ -121,8 +126,8 @@ export function applyIndividualNoShow(div,name){
     syncChampionshipTemplate(div);
   }
   initCourtStates();return true;
-}
-export function applyWholeTeamNoShow(div,teamName){
+})}
+export function applyWholeTeamNoShow(div,teamName){return holdNotifications(()=>{
   if(!structuralNoShowAllowed(div))return false;
   let nodes=state.teamBracketNodes?.[div]||[];
   if(nodes.length){
@@ -139,7 +144,7 @@ export function applyWholeTeamNoShow(div,teamName){
     ksmSetDraw('drawEntriesUpdated',{...(first?ksmEditedPools(div,p=>p===first?{...p,players:p.players.filter(x=>x.name!==teamName)}:p):{}),managementRevision:ksmNextManagementRevision()});
   }
   initCourtStates();return true;
-}
+})}
 export function matchBelongsToCourt(m,c){if(!m)return false;if(m.court)return m.court===c;let mode=state.divisionCourts[m.division]||'A';return mode==='split'?c==='A':mode===c}
 export function eliminationFinalDone(div){let arr=state.allMatches[div]||[];return arr.some(m=>m&&m.singleElim&&m.position==='Final'&&m.done)}
 function nextIndexForCourt(div,c,start=0){let arr=state.allMatches[div]||[];if(eliminationFinalDone(div))return arr.length;if(arr.some(isTeamMatch)){arr=sortTeamMatches(div);start=0;}else{arr=sortIndividualDivisionMatches(div,arr);start=0;}let idx=arr.findIndex((m,i)=>i>=start && individualMatchReady(m) && matchBelongsToCourt(m,c));return idx<0?arr.length:idx}

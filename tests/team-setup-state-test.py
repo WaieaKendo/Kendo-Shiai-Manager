@@ -37,7 +37,7 @@ def main():
         # Generated, the first team division drawn: it is fixed (names, awards and order stay editable); the
         # Add button stays on (a new team division can be added and drawn on its own).
         a.page.evaluate('''() => { const app = KSMTest.app, id = KSMTest.teamDivisions()[0].id;
-          app.setDraw({generated:true}); app.state.allMatches = {...app.state.allMatches, [id]: [{type: 'teamPlayoff'}]}; app.ksmRenderTeamDivisions(); }''')
+          app.setDraw({generated:true}); app.setAllMatches({...app.state.allMatches, [id]: [{type: 'teamPlayoff'}]}); app.ksmRenderTeamDivisions(); }''')
         s = a.page.evaluate(STATE)
         assert not s['add'] and s['note'].startswith('Drawn team divisions are fixed'), s
         s['disabled'] = s['disabled'][:len(s['disabled']) // 2]  # the drawn (first) row

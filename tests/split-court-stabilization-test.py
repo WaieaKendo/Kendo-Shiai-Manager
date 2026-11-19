@@ -23,12 +23,11 @@ with sync_playwright() as p:
         {label:'C',size:3,players:[{name:'C1',dojo:'D'},{name:'C2',dojo:'D'},{name:'C3',dojo:'D'}]}
       ]}});
       KSMTest.app.setDraw({brackets:{Test:KSMTest.app.championshipTemplateForTotal(9)}});KSMTest.app.setDraw({championshipNodes:{}});KSMTest.app.setDraw({byeWinners:{}});
-      KSMTest.app.state.allMatches={Test:KSMTest.app.buildPoolMatches('Test',KSMTest.app.state.pools.Test).concat(KSMTest.app.buildChampionshipTemplateMatches('Test',KSMTest.app.state.brackets.Test))};
+      KSMTest.app.setAllMatches({Test:KSMTest.app.buildPoolMatches('Test',KSMTest.app.state.pools.Test).concat(KSMTest.app.buildChampionshipTemplateMatches('Test',KSMTest.app.state.brackets.Test))});
       const b=KSMTest.app.state.allMatches.Test.filter(m=>m.pool==='B');
-      b[0].done=true;b[0].wp=['M'];b[0].rp=[];
-      b[1].done=true;b[1].wp=['M'];b[1].rp=[];
-      b[2].done=true;b[2].wp=[];b[2].rp=[];
-      KSMTest.app.maybeCreateTiebreaks(b[2]);
+      KSMTest.app.updateBout(b[0],{done:true,wp:['M'],rp:[]});
+      KSMTest.app.updateBout(b[1],{done:true,wp:['M'],rp:[]});
+      KSMTest.app.maybeCreateTiebreaks(KSMTest.app.updateBout(b[2],{done:true,wp:[],rp:[]}));
     """)
     tb=page.evaluate("KSMTest.app.state.allMatches.Test.filter(m=>m.pool==='B'&&m.tiebreak)")
     assert len(tb)==1,tb
@@ -50,7 +49,7 @@ with sync_playwright() as p:
     page.evaluate("""
       KSMTest.app.setDivisionLists({divisionTypes:{...KSMTest.app.state.divisionTypes,Test:'Single Elimination'}});KSMTest.app.setDivisionLists({divisionCourts:{...KSMTest.app.state.divisionCourts,Test:'split'}});
       KSMTest.app.setPeople({competitors: Array.from({length:8},(_,i)=>({name:'E'+(i+1),dojo:'D',division:'Test',seed:'',status:'Checked'}))});
-      KSMTest.app.setDraw({pools:{}});KSMTest.app.state.allMatches={};KSMTest.app.setDraw({singleElimNodes:{}});KSMTest.app.setDraw({singleElimComps:{}});KSMTest.app.setCourtPointers({currentByDivision:{}});
+      KSMTest.app.setDraw({pools:{}});KSMTest.app.setAllMatches({});KSMTest.app.setDraw({singleElimNodes:{}});KSMTest.app.setDraw({singleElimComps:{}});KSMTest.app.setCourtPointers({currentByDivision:{}});
       KSMTest.app.generateDivisionState('Test');KSMTest.app.showDivision('Test');KSMTest.app.setCurrentCourt('A');
       const firstA=KSMTest.app.state.matches.findIndex(m=>m.court==='A'&&!m.done);KSMTest.app.showMatch(firstA);
       KSMTest.app.setCourtSupportMode('singleElim');KSMTest.app.renderQueue();
@@ -77,7 +76,7 @@ with sync_playwright() as p:
       KSMTest.app.setDraw({pools:{Test:[
         {label:'A',size:4,players:[{name:'A1',dojo:'D'},{name:'A2',dojo:'D'},{name:'A3',dojo:'D'},{name:'A4',dojo:'D'}]},
         {label:'B',size:4,players:[{name:'B1',dojo:'D'},{name:'B2',dojo:'D'},{name:'B3',dojo:'D'},{name:'B4',dojo:'D'}]}
-      ]}});KSMTest.app.setDraw({brackets:{Test:KSMTest.app.championshipTemplateForTotal(8)}});KSMTest.app.setDraw({championshipNodes:{}});KSMTest.app.state.allMatches={Test:KSMTest.app.buildChampionshipTemplateMatches('Test',KSMTest.app.state.brackets.Test)};KSMTest.app.setDraw({byeWinners:{Test:[]}});
+      ]}});KSMTest.app.setDraw({brackets:{Test:KSMTest.app.championshipTemplateForTotal(8)}});KSMTest.app.setDraw({championshipNodes:{}});KSMTest.app.setAllMatches({Test:KSMTest.app.buildChampionshipTemplateMatches('Test',KSMTest.app.state.brackets.Test)});KSMTest.app.setDraw({byeWinners:{Test:[]}});
       KSMTest.app.poolPositionsResolved=()=>false;
     """)
     # (The court queue's championship groups: ksmChampionshipQueueGroups(), in the court module's
@@ -94,10 +93,10 @@ with sync_playwright() as p:
     # Repeated advancement resolution creates exactly one logical Final.
     page.evaluate("""
       KSMTest.app.setDivisionLists({divisionCourts:{...KSMTest.app.state.divisionCourts,Test:'split'}});KSMTest.app.setDraw({brackets:{Test:[['A1','B2'],['B1','A2']]}});KSMTest.app.setDraw({championshipNodes:{}});KSMTest.app.setDraw({byeWinners:{Test:[]}});
-      KSMTest.app.state.allMatches={Test:KSMTest.app.buildChampionshipTemplateMatches('Test',KSMTest.app.state.brackets.Test)};
+      KSMTest.app.setAllMatches({Test:KSMTest.app.buildChampionshipTemplateMatches('Test',KSMTest.app.state.brackets.Test)});
       const semis=KSMTest.app.state.allMatches.Test.filter(m=>m.position==='Semifinal');
-      semis[0].white='W1';semis[0].red='R1';semis[0].wdojo='D';semis[0].rdojo='D';semis[0].done=true;semis[0].wp=['M'];semis[0].rp=[];
-      semis[1].white='W2';semis[1].red='R2';semis[1].wdojo='D';semis[1].rdojo='D';semis[1].done=true;semis[1].wp=[];semis[1].rp=['M'];
+      KSMTest.app.updateBout(semis[0],{white:'W1',red:'R1',wdojo:'D',rdojo:'D',done:true,wp:['M'],rp:[]});
+      KSMTest.app.updateBout(semis[1],{white:'W2',red:'R2',wdojo:'D',rdojo:'D',done:true,wp:[],rp:['M']});
       window.__beforeCount=KSMTest.app.state.allMatches.Test.length;
       KSMTest.app.recomputeChampionshipAdvancement('Test');KSMTest.app.recomputeChampionshipAdvancement('Test');KSMTest.app.recomputeChampionshipAdvancement('Test');
     """)

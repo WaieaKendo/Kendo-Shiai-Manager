@@ -427,7 +427,7 @@ def teams_live(browser, react_check):
     g.do('generated: a team to No Show (taken out of the bracket)', lambda a: click(a.page, team_field('team-status', 0)))
     g.do('generated: on to Registered (not added again)', lambda a: click(a.page, team_field('team-status', 0)))
     g.do('a team match done (the division has started)', lambda a: a.page.evaluate(
-        "() => { KSMTest.app.state.allMatches['Team Tournament'][0].done = true; KSMTest.app.renderTeams(); }"))
+        "() => { KSMTest.app.updateMatch('Team Tournament', 0, {done: true}); KSMTest.app.renderTeams(); }"))
     g.do('started: a team to No Show (the alert, nothing changed)', lambda a: click(a.page, team_field('team-status', 1)))
     g.finish()
 

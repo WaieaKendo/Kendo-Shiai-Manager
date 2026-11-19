@@ -216,7 +216,7 @@ Today ~50 files write `state.x` in place. The cutover:
      are skipped (point 6). A deeper path into a moved key (since PR 9; e.g. `['divisionCourts', d]`, recorded when a
      court action's render gave a division its default court) is written into a copy of that key. Since PR 13b the new
      values of every store-owned key an entry changes are collected while its patches apply and go to the store in the
-     entry's one `court/undo` / `court/redo`, after the plain writes (`allMatches`), with the history move and the F30 log
+     entry's one `court/undo` / `court/redo` (with its bouts, `allMatches`, since PR 13c-2), with the history move and the F30 log
      entry: no notification shows half an entry (#199 review L1). Tested with a key made a getter
      (`tests/undo-device-keys-test.mjs`).
    - **Strict: the Node tests and the browser tests.** A write the conversion missed throws: an assignment to a
@@ -273,8 +273,8 @@ What must never happen (each PR's tests check the ones it touches):
 - **Undo/Redo deleting or assigning a store getter.** A top-level patch (`[key]`) on a store-owned key goes to the
   store (since PR 13b in the entry's `court/undo` / `court/redo`), never `delete state[key]` or `state[key] = …` (both
   throw on the non-configurable getter; point 8).
-- **Half an Undo/Redo** (since PR 13b). An entry's store-owned keys and its history move are one dispatch, after its
-  plain writes; `tests/bracket-nodes-store-test.py` and `tests/court-pointers-store-test.py` check every notification
+- **Half an Undo/Redo** (since PR 13b). An entry's store-owned keys, its bouts (since PR 13c-2) and its history move are
+  one dispatch; `tests/bracket-nodes-store-test.py` and `tests/court-pointers-store-test.py` check every notification
   while bouts are scored, undone and redone.
 - **Two stores.** The React bundle is separate from app.js, so it must use `window.KSMStore`, never import
   `app/store/store.ts` (that would make a second, empty store).
@@ -785,6 +785,9 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
       writes made before the throw stay (as before). So such a throw can leave a bout changed without its node or pointer;
       before, it left whichever of them came first in the entry. Dispatching the collected keys on a throw is not done:
       without the history move it would leave an entry that is half applied and still on the Undo list.
+      (13c-1 made the entry's `allMatches` writes one batch: a throw before it left no bout written, one inside it the
+      batch's writes so far. Since 13c-2 the batch goes in the court/undo or court/redo too, so a throw anywhere leaves
+      nothing written: #206 re-review L-a.)
     - Measured (headless Chromium, 6x CPU throttling, 6 divisions of 16 on split courts, 48 bouts and 15 applies per run,
       production build, before and after interleaved): a point + Undo + Redo 43-45 ms both; Next Match 22-23 ms both; a
       remote snapshot apply 21-23 ms before, 18-21 ms after. The strict test build pays for freezing (a load 23-27 → 30 ms).
@@ -975,7 +978,7 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
     - **Left for 13c-2 (tests)**: about 20 test files write `allMatches` in the page or in a vm `state` directly
       (fixtures: `KSMTest.app.state.allMatches[d] = …`, a bout's `done` set in place). In the browser they need a test
       helper over the module (e.g. `KSMTest.app.setDivisionMatches`); the vm tests keep their plain `state`.
-    **13c-2** (next, small): `allMatches` into the `tournament` slice.
+    **13c-2** (the plan): `allMatches` into the `tournament` slice.
     - `moveToStore('allMatches', ['tournament', 'allMatches'])` at the literal's place; the slice's initial value `{}`.
     - Only the bodies of `match-writes.js` change, for `root === state`:
       - Each helper dispatches one `court/…` action (a point, a result, a representative, an Undo/Redo's batch:
@@ -998,9 +1001,78 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
       too: Generate Tournament and the grand champion's draw are allowed by name as in 13b; a sync writes its bouts before
       its nodes' `advancementApplied` (as now).
     - Measure a point, Next Match and a remote apply as 13b did (6x throttling, production build).
+    Done (**PR 13c-2**), no behaviour change (no golden changed; `tests/match-writes-store-test.py`'s 59 steps match the
+    next/4.1 fixture value for value, now on the store):
+    - **The field**: `moveToStore('allMatches', ['tournament', 'allMatches'])` at the literal's place (between `teamPools`
+      and `currentByDivision`); the slice starts with `{}`; `TOURNAMENT_SLICE_VERSION` 9 → 10. A load puts the payload's
+      map in place in its one `legacy/stateReplaced`.
+    - **The actions** (`matchActions`, `app/store/slices/tournament.ts`): `court/matchUpdated` (`ksmUpdateMatch()`: a point,
+      a result, a representative, a grand champion's Fusen-sho, a repair; `meta.court` is this device's court),
+      `tournament/allMatchesSet` (`ksmSetAllMatches()`), `tournament/divisionMatchesSet` (`ksmSetDivisionMatches()`,
+      `ksmDeleteDivisionMatches()`), `tournament/matchesUpdated` (`ksmUpdateMatches()`), `tournament/matchesAdded`
+      (`ksmInsertMatches()`, `ksmAppendMatches()`), `tournament/matchesRemoved`, `tournament/matchesSorted`,
+      `tournament/matchesPatched` (`ksmWriteMatchPath()`, `ksmWriteMatchPaths()`). Each carries one write, the new map at
+      `['tournament', 'allMatches']`, applied by the root reducer (`applyStoreWrites()`); no Immer reducer.
+    - **The bodies** (`app/modules/court/match-writes.js`): on the live `state` a helper runs its old body on a working root
+      whose objects are copied on first write (`ksmCopyOnWrite()`: the map, the touched lists, the touched bouts, a point
+      list on a path), then dispatches the new map once; nothing is dispatched when the body threw or wrote nothing. A
+      payload copy (`root !== state`) is written in place as before. A vm test's own plain `state` too
+      (`ksmInStore()`, stood in by `tests/lib/ksm-source.mjs`).
+    - **No write when nothing changes**, now for fields too: `ksmUpdateMatch()` / `ksmUpdateMatches()` leave out an update
+      whose fields already hold the values (JSON-equal) and dispatch nothing when none is left. Without it a remote apply
+      dispatched 9 times more (the result repair and the championship template's sync rewrite the same values on every
+      load), 58 notifications instead of 5.
+    - **Undo/Redo is one dispatch**: the entry's bouts are planned (`ksmPlanMatchPaths()`: the batch on a copy-on-write
+      root, not dispatched) and go as `allMatches` with the entry's other store-owned keys in its one `court/undo` /
+      `court/redo`; the index fields and the F30 log entry read the planned map. So a throw anywhere in an entry writes
+      nothing (#206 re-review L-a), and no notification shows a bout undone while its node or pointer is not.
+    - **One notification per step** (`store.hold()`, `holdNotifications()`): dispatches inside change the state at once
+      (`getState()` is new after each), but subscribers run once at the end of the outermost hold. Used by
+      `performCourtAction()`, `undo()` / `redo()`, `generateDivisionState()`, Generate Tournament's reset (bouts emptied +
+      `tournament/drawReset`), a regenerate, the two No Shows and a grand champion's clear. Why: a court action writes its
+      bout (`court/matchUpdated`) before the bracket sync's `tournament/advancementApplied`, and a draw its bouts before
+      `tournament/divisionGenerated`; carrying the bouts in those actions would need the bouts' reads in between (the
+      syncs read the list they just wrote) to see a map that is not dispatched yet. The every-notification checks
+      (`tests/court-pointers-store-test.py`, `tests/bracket-nodes-store-test.py`) now see the bouts and pass, with only
+      Generate Tournament and the grand champion's draw allowed by name as in 13b (the "pointer on the bout it finished"
+      check compares the bout by its sync identity at every notification).
+    - **The history's key order**: a court action's `patch-v1` patches follow `Object.keys(state)`. A plain `allMatches` was
+      re-added by every load after the store getters (before `history`, `contextMode`), so its patches came after
+      `matches`' ones; as a getter it keeps the literal's place. `historyKeyOrder()` puts it back where the plain key was
+      once a load has moved the plain keys behind it, so saved entries keep their patch order (the fixture found it).
+    - **#206 re-review Lows**: L-a above; L-b the source check (`tests/store/match-writes.test.mjs`) also finds `m.court =`
+      / `m.position =` (not on `cloudSession.`, `pool.`, `set.`), `?.push` / `?.splice` and `?.[…]` on the way to a list
+      method (on `allMatches` and on an alias), `.length =` on an alias, `Object.assign(x, {done: …})` and `m['done'] =`,
+      with probes; L-c the rebase's replay (`sync-state-and-rebase.js`) clones a patch's value inside the walk, only on a
+      write (`ksmWriteMatchPaths([{…, clone: true}])`), so a patch that cannot be replayed with `after: undefined`
+      returns false again instead of throwing.
+    - **Tests**: the test hooks (`KSMTestMatchWrite`, `KSMTestBeforeCourtAction`) and `tests/lib/match-freeze-hook.js` are
+      gone: the store's own deep-frozen data is the frozen page. `tests/match-writes-store-test.py` checks after each step
+      that `state.allMatches` is the store's and frozen, and counts the store's bout writes for the read-path check;
+      `tests/match-identity-copy-test.py` runs two pages (the store page, and one whose copies are a
+      `tournament/allMatchesSet` at every notification and app event). `KSMTest.app.setAllMatches`, `setDivisionMatches`,
+      `updateMatch`, `updateMatches`, `updateBout` write bouts in the browser tests; 15 browser test files (and
+      `tests/store/match-view.test.mjs`) that wrote `allMatches` or a bout in the page were converted (in sloppy page code a write to a frozen bout is silently ignored, so some
+      only showed up as golden differences). The vm tests keep their plain `state`.
+    - Measured (headless Chromium, 6x CPU throttling, production build, before = next/4.1 and after interleaved, 5 runs,
+      medians of the runs' medians, range of run medians): a point 8.8 (8.4-10.1) → 8.8 (8.5-9.1) ms; a point + Undo +
+      Redo 44.7 (41.5-54.1) → 44.2 (43.3-45.6); Next Match in pools 22.6 (22.2-25.8) → 23.1 (22.5-23.4), advancing a
+      bracket 10.1 (10.0-10.8) → 11.0 (10.2-11.5), kachinuki 8.9 (8.4-9.2) → 8.2 (8.1-8.8); a remote snapshot apply 21.7
+      (21.4-24.8) → 21.6 (21.1-23.1); Generate Tournament of 8 divisions of 32 63.1 (58.4-65.7) → 63.5 (61.3-64.9). Store
+      notifications: a point 2 → 1, an Undo 5 → 1, Next Match 5-6 → 1, an apply 5 → 5; dispatches: a point 2 → 3, an
+      Undo 5 → 5, Next Match in pools 5 → 6.
 14. **`state` retired**: drop the dead fields (`history`, `contextMode`, `teamBracketState`; with a load-time drop,
     owner OK on the format), `app-state.js` keeps only the getters until the reads are converted, then goes;
     `ksm:state-changed` → `store.subscribe`.
+    After 13c-2 every tournament field is in the store; what is left in `state`: the three dead plain keys above, the
+    derived `matches` and the device getters. What 14 needs: (1) the plain keys dropped with a load-time drop, and then
+    `historyKeyOrder()` (13c-2) can go only if the saved patch order of `allMatches` vs `matches` may change, or `matches`
+    patches stop being recorded (they are never applied: device key); (2) the reads of `state.x` → selectors or
+    `getState()` per module (the getters make this mechanical, file by file); (3) `replaceState()` / `assignState()` →
+    `tournament/loaded` and per-group actions (no plain keys left to assign); (4) `ksm:state-changed` → `store.subscribe`
+    with `holdNotifications()` already giving one notification per court action and structural step; (5) the vm tests'
+    plain `state` stand-ins (`tests/lib/ksm-source.mjs` `VM_STAND_INS`, `derived-matches.mjs`) replaced by a real store
+    per test.
 
 Then **#15 step 3, commands**: one function per user action (`scorePoint`, `nextMatch`, `undo`, `editPool`, …) that
 checks it is allowed, builds the action with `meta`, and dispatches; inline `onclick` globals and the React islands
@@ -1072,6 +1144,11 @@ call commands instead of window functions.
   the two initial maps, and `applyStoreWrites()` as a path copy instead of an Immer update, +100 of it), over the 9,600
   budget, which is now 9,750 (`tests/store-bundle-test.mjs`; the history reducers on Immer drafts were 9,907 and walked
   the whole list on each point); app.js 704,181 → 711,705 bytes (gzip 186,279 → 188,682); no React source changed.
+- PR 13c-2 (the bouts): the store bundle 9,736 → 9,928 bytes gzip (25,896 → 26,448 raw: the eight `matchActions`, built
+  from their names (−8 against eight `createAction` calls), +87; the notification hold, +105), over the 9,750 budget,
+  which is now 9,950 (`tests/store-bundle-test.mjs`; a hold that flushed through a no-op dispatch was 11 bytes smaller but
+  showed listeners a fake last action); app.js 731,281 → 739,359 bytes (gzip 194,483 → 196,772); no React source changed.
+  Times: section 3 item 13 (no slowdown at 6x throttling).
 - Re-renders: `store.subscribe` listeners run on every dispatch, so selectors must be cheap and return stable
   references. A remote snapshot is one action, one notification (today `ksmNotifyStateChanged` coalesces per
   microtask). Immer copies only the changed path (structural sharing); the deep freeze of a loaded snapshot is one

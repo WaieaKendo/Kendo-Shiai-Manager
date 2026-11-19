@@ -1,9 +1,10 @@
 // @ts-check
-import {assignState,ksmEmptyScore,ksmSetScore,state,storeFieldPath} from '../app-state.js';
+import {assignState,ksmEmptyScore,ksmSetScore,state,stateFieldIsDerived,storeFieldPath} from '../app-state.js';
 import {maybeCreateKachinukiNext,renderAll} from './court-context-and-pool-editing.js';
 import {applyCourtState,findNextForCourt,syncOwnCourtPointer} from './court-match-order.js';
 import {KSM_UNDO_LOG_LIMIT,ksmMoveCourtHistory,ksmRecordCourtAction,ksmSetCourtHistories} from './court-history-store.js';
-import {ksmUpdateMatch,ksmWriteMatchPath,ksmWriteMatchPaths} from './match-writes.js';
+import {ksmPlanMatchPaths,ksmUpdateMatch,ksmWriteMatchPath} from './match-writes.js';
+import {holdNotifications} from '../../store/index.ts';
 import {renderScore} from './scorekeeper-screen.js';
 import {enforceUniqueIndividualMatches,maybeAdvanceChampionship,maybeCreateChampionship} from '../engine/engine-championship.js';
 import {renderPools} from '../engine/engine-generation.js';
@@ -60,7 +61,21 @@ export function ensureCourtHistory(){
 function cloneHistoryValue(value){return value===undefined?{...KSM_HISTORY_MISSING}:JSON.parse(JSON.stringify(value))}
 // A key whose value is undefined is left out, as an absent key was before its group moved into the store (a moved key is a
 // getter that is always a key of `state`): comparing two "missing" markers made a no-op patch for it in every court action.
-function historyComparableState(){const out={};Object.keys(state).forEach(k=>{if(!KSM_HISTORY_KEYS.has(k)&&state[k]!==undefined)out[k]=cloneHistoryValue(state[k])});return out}
+function historyComparableState(){const out={};historyKeyOrder(Object.keys(state)).forEach(k=>{if(!KSM_HISTORY_KEYS.has(k)&&state[k]!==undefined)out[k]=cloneHistoryValue(state[k])});return out}
+/**
+ * `state`'s keys in the order they had while `allMatches` was a plain key (#15 PR 13c-2), so a court action's patches keep
+ * their order in its saved entry. A load (replaceState()) deletes the plain keys and adds them back after the store
+ * getters, in the payload's order, where `allMatches` came right before `history` and `contextMode`; as a getter it keeps
+ * its place in the literal. So once the plain keys are behind it (a load happened), it moves back among them.
+ * @param {string[]} keys
+ */
+export function historyKeyOrder(keys){
+  const at=keys.indexOf('allMatches'),plain=keys.filter(k=>!storeFieldPath(k,state)&&!stateFieldIsDerived(k,state));
+  if(at<0||!plain.length||plain.some(k=>keys.indexOf(k)<at))return keys;
+  const rest=keys.filter(k=>k!=='allMatches'),before=rest.findIndex(k=>k==='history'||k==='contextMode');
+  rest.splice(before<0?rest.length:before,0,'allMatches');
+  return rest;
+}
 function historyValuesEqual(a,b){return KSMEngine.historyValuesEqual(a,b);// moved to app/engine/sync-helpers.ts
   }
 function buildHistoryPatches(before,after,path=[],patches=[]){
@@ -86,18 +101,21 @@ function buildHistoryPatches(before,after,path=[],patches=[]){
 function currentHistoryCourt(){const c=String(state.currentCourt||cloudSession?.court||'A').toUpperCase();return c==='B'?'B':'A'}
 function stampHistoryPatchMatchIdentity(patch,before,after){return KSMEngine.stampHistoryPatchMatchIdentity(patch,before,after);// moved to app/engine/sync-helpers.ts
   }
-export function performCourtAction(label,fn){
+/**
+ * A court action (a point, a hansoku, Next Match, a representative, …): `fn` runs between two copies of the state, and the
+ * difference is recorded as the court's `patch-v1` entry. Its dispatches (the pad, the bout, the bracket nodes, the
+ * pointer, the entry: #15 PR 13c-2) notify the store's subscribers once, at its end (holdNotifications()), so no
+ * subscriber sees a bout finished whose node has not got its winner yet (the sync writes the bouts, then the nodes).
+ */
+export function performCourtAction(label,fn){return holdNotifications(()=>{
   // A division picked before Staff Login reaches the court's pointer with this action's save (not its Undo entry).
   syncOwnCourtPointer();
   ensureCourtHistory();const court=currentHistoryCourt(),before=historyComparableState();
-  // Test-only (tests/match-identity-copy-test.py, #15 before 13c): a point where the guard replaces every Match Object, as a
-  // dispatch before the action's body will in 13c. Absent in the app.
-  /** @type {any} */(globalThis).KSMTestBeforeCourtAction?.('action');
   const result=fn();const after=historyComparableState(),patches=buildHistoryPatches(before,after).map(patch=>stampHistoryPatchMatchIdentity(patch,before,after));
   // The entry is built whole, then recorded with the Redo list cleared, in one court/actionRecorded (#15 PR 13b).
   if(patches.length)ksmRecordCourtAction(court,withCourtHistoryIdentity({format:'patch-v1',label:label||'Action',court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',tabId:KSM_TAB_ID,revision:cloudSession?.revision||0,patches},before,after));
   updateUndoButton();if(typeof ksmNotifyStateChanged==='function')ksmNotifyStateChanged('court action');return result;
-}
+})}
 function historyPathParent(path,root=state){
   let target=root;
   for(let i=0;i<path.length-1;i++){
@@ -125,14 +143,15 @@ function historyPathParent(path,root=state){
  *     (undefined for a missing one), a deeper one (#15 PR 9: e.g. ['divisionCourts', d], recorded when a court action's
  *     render gave a division its default court) is written into a copy of the key. Same values as the old in-place writes.
  *     During an Undo/Redo (#15 PR 13b) the new values are collected in ksmHistoryStoreValues and go to the store in the
- *     entry's one court/undo or court/redo, after every plain write (allMatches); a patch applied on its own goes through
- *     assignState() at once.
+ *     entry's one court/undo or court/redo, with the entry's bouts (allMatches, PR 13c-2); a patch applied on its own goes
+ *     through assignState() at once.
  */
 function applyHistoryPatch(patch,direction){
   const value=patch?.[direction],path=patch?.path||[];
   if(!path.length||KSM_LOCAL_VIEW_STATE_KEYS.has(path[0]))return;
   const missing=value&&value.__ksmMissing===true,key=String(path[0]);
-  // `allMatches` (plain until 13c-2) through its one write module (#15 PR 13c-1), with writeHistoryValue()'s rules.
+  // `allMatches` through its one write module (#15 PR 13c-1), with writeHistoryValue()'s rules. (An Undo/Redo entry's bout
+  // patches never come here: applyCourtHistoryEntry() batches them into the entry's court/undo or court/redo.)
   if(key==='allMatches'){ksmWriteMatchPath(path,missing?undefined:JSON.parse(JSON.stringify(value)),missing,'history');return}
   if(!storeFieldPath(key,state)){writeHistoryValue(state,path,value,missing);return}
   /** @type {Record<string,unknown>} */ const values=ksmHistoryStoreValues||{};
@@ -158,16 +177,18 @@ function writeHistoryValue(root,path,value,missing){
 /** The store-owned keys an Undo/Redo entry's patches change, while it is applied: key → its new value (#15 PR 13b). */
 /** @type {Record<string,unknown>|null} */ let ksmHistoryStoreValues=null;
 /**
- * Applies `action`'s patches for an Undo ('before') or a Redo ('after'): the plain keys (allMatches) in `state`, the
- * store-owned keys' new values returned (dispatched by the caller with the history move). Null for an entry without
- * patches (nothing applied, no court view to rebuild).
+ * Applies `action`'s patches for an Undo ('before') or a Redo ('after'): the new values of every store-owned key they
+ * change are returned (dispatched by the caller with the history move), `allMatches` among them since #15 PR 13c-2 (the
+ * bouts as the entry's one batch leaves them). Null for an entry without patches (nothing applied, no court view to
+ * rebuild).
  * @returns {Record<string,unknown>|null}
  */
 function applyHistoryValues(action,direction){
   if(!(action?.format==='patch-v1'&&Array.isArray(action.patches)))return null;
   ksmHistoryStoreValues={};
-  // A throw midway leaves the plain writes made so far (as before) and no store key: the entry stays on its list
-  // (docs/STORE.md section 3 item 13, PR 13b's known difference).
+  // A throw anywhere in it (before the bouts' batch, inside it, or after it with the index fields) writes nothing: every
+  // value, the bouts' too, goes to the store only in the caller's court/undo or court/redo, so the entry stays on its
+  // list as it was (docs/STORE.md section 3 item 13; #206 re-review L-a).
   try{ksmLastHistoryOutcome=applyCourtHistoryEntry(action,direction);return ksmHistoryStoreValues}finally{ksmHistoryStoreValues=null}
 }
 /** After an Undo/Redo: the court view rebuilt from the court's pointer (applyCourtState() reloads the pad from the match), everything drawn. */
@@ -235,11 +256,11 @@ function withCourtMatchOps(entry,beforeAll,afterAll){
   const matchOps=courtUndoMatchOps(divisions,afterAll);if(matchOps)entry.matchOps=matchOps;
   return entry;
 }
-/** The F30 Undo log entry of an Undo/Redo (`action` as it applied, courtHistoryAppliedEntry()), recorded with its history move. */
-function courtUndoLogEntry(court,kind,action,matchesBefore){
+/** The F30 Undo log entry of an Undo/Redo (`action` as it applied, courtHistoryAppliedEntry(); `matchesAfter`: the bouts as it leaves them), recorded with its history move. */
+function courtUndoLogEntry(court,kind,action,matchesBefore,matchesAfter){
   const entry={format:'history-op-v1',kind,court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',tabId:KSM_TAB_ID,revision:cloudSession?.revision||0,
     target:historyEntryIdentity(action),label:action.label||'Action',patches:cloneJson(action.patches||[])};
-  const matchOps=courtUndoMatchOps(matchesBefore);if(matchOps)entry.matchOps=matchOps;
+  const matchOps=courtUndoMatchOps(matchesBefore,matchesAfter);if(matchOps)entry.matchOps=matchOps;
   return entry;
 }
 /**
@@ -281,9 +302,9 @@ function historyIndexRef(st,division,value){
   const id=matchSyncIdentity(arr[value]);
   return id?{division,id}:null;
 }
-/** The index `ref` points to in the current match list (the recorded `value` when that match is gone). */
-function resolveHistoryIndexRef(ref,value){
-  const arr=state.allMatches?.[ref?.division];
+/** The index `ref` points to in the match list of `all` (the recorded `value` when that match is gone). */
+function resolveHistoryIndexRef(ref,value,all=state.allMatches){
+  const arr=all?.[ref?.division];
   if(!Array.isArray(arr))return value;
   if(ref.end)return arr.length;
   const i=arr.findIndex(match=>matchHasSyncIdentity(match,ref.id));
@@ -322,7 +343,8 @@ function applyCourtHistoryEntry(action,direction){
     else mode[div]='identity';
   });
   // Every `allMatches` write of the entry (its match ops first, then its patches in order) is one batch through
-  // match-writes.js (#206 review M2: one dispatch in 13c-2, no notification showing half an Undo); each look-up by
+  // match-writes.js (#206 review M2), planned and dispatched with the entry's court/undo or court/redo (#15 PR 13c-2: no
+  // notification shows half an Undo); each look-up by
   // identity sees the writes before it. `applied` keeps a placeholder per batched write, in the old order, filled after.
   const applied=[],writes=[],slots=[];let skipped=0;
   const batch=(write,record)=>{writes.push(write);slots.push(record);applied.push(slots.length-1)};
@@ -357,14 +379,17 @@ function applyCourtHistoryEntry(action,direction){
     }
     batch(historyWrite(patch,path),()=>patch);
   });
-  const results=ksmWriteMatchPaths(writes);
+  // Not dispatched here (#15 PR 13c-2): the map as the batch leaves it is read by the index fields below and the Undo log,
+  // and goes to the store with the entry's other keys in its one court/undo or court/redo.
+  const planned=ksmPlanMatchPaths(writes),results=planned.results;
+  if(planned.allMatches!==state.allMatches){if(ksmHistoryStoreValues)ksmHistoryStoreValues.allMatches=planned.allMatches;else assignState({allMatches:planned.allMatches},state)}
   for(let i=applied.length-1;i>=0;i--){
     if(typeof applied[i]!=='number')continue;
     const k=applied[i],result=results[k];
     if(result.applied)applied[i]=slots[k](result);else{applied.splice(i,1);skipped++}
   }
   // The match-index fields last, once the match lists are as they will be.
-  indexFields.forEach(patch=>{const value=resolveHistoryIndexRef(patch.indexRefs[direction],patch[direction]);applyHistoryPatch({...patch,[direction]:value},direction);applied.push(patch)});
+  indexFields.forEach(patch=>{const value=resolveHistoryIndexRef(patch.indexRefs[direction],patch[direction],planned.allMatches);applyHistoryPatch({...patch,[direction]:value},direction);applied.push(patch)});
   if(undoing)applied.reverse();
   return {patches:applied,skipped};
 }
@@ -381,31 +406,32 @@ function courtHistorySkippedNote(kind){
   return ' (part of it was not applied: a match it changed no longer exists)';
 }
 /**
- * An Undo ('undo': `action` is the court's last action) or a Redo ('redo': its last undone one), #15 PR 13b: the entry's
- * patches on plain keys (allMatches) are written first, then one court/undo or court/redo moves the entry to the other
- * list, appends the F30 log entry and puts every store-owned key the entry changed (bracket nodes, pointers, …) in place,
- * so no store notification shows half an entry (#199 review L1: a node's winner before its bout). Then the court view is
- * rebuilt from the court's pointer and everything is drawn, as before.
+ * An Undo ('undo': `action` is the court's last action) or a Redo ('redo': its last undone one), #15 PR 13b and 13c-2: one
+ * court/undo or court/redo moves the entry to the other list, appends the F30 log entry and puts every key the entry
+ * changed in place, its bouts (`allMatches`, one batch) with its bracket nodes, pointers, …, so no store notification
+ * shows half an entry (#199 review L1: a node's winner before its bout). Then the court view is rebuilt from the court's
+ * pointer and everything is drawn, as before (undo() / redo() hold the notifications until then).
  */
 function moveCourtHistory(kind,court,action){
   const matchesBefore=courtUndoMatchesBefore(action),values=applyHistoryValues(action,kind==='undo'?'before':'after');
-  ksmMoveCourtHistory(kind,court,courtUndoLogEntry(court,kind==='undo'?'UNDO':'REDO',courtHistoryAppliedEntry(action),matchesBefore),values||{});
+  const matchesAfter=values&&Object.hasOwn(values,'allMatches')?values.allMatches:state.allMatches;
+  ksmMoveCourtHistory(kind,court,courtUndoLogEntry(court,kind==='undo'?'UNDO':'REDO',courtHistoryAppliedEntry(action),matchesBefore,matchesAfter),values||{});
   if(values)rebuildCourtViewAfterHistory();
 }
-export function undo(){
+export function undo(){holdNotifications(()=>{
   syncOwnCourtPointer();
   ensureCourtHistory();const court=currentHistoryCourt(),stack=state.courtActionHistory[court],action=stack[stack.length-1];
   if(!action){updateSaveStatus('Nothing to undo');updateUndoButton();return}
   moveCourtHistory('undo',court,action);
   updateUndoButton();updateSaveStatus('Undid '+action.label+courtHistorySkippedNote('Undo'));criticalAutoSave('Undo: '+action.label);
-}
-export function redo(){
+})}
+export function redo(){holdNotifications(()=>{
   syncOwnCourtPointer();
   ensureCourtHistory();const court=currentHistoryCourt(),stack=state.courtRedoHistory[court],action=stack[stack.length-1];
   if(!action){updateSaveStatus('Nothing to redo');updateUndoButton();return}
   moveCourtHistory('redo',court,action);
   updateUndoButton();updateSaveStatus('Redid '+action.label+courtHistorySkippedNote('Redo'));criticalAutoSave('Redo: '+action.label);
-}
+})}
 // The score pad is store data (state.score, device/scoreChanged, #15 PR 7): each change builds a new pad.
 export function point(side,letter){performCourtAction(`${side==='W'?'White':'Red'} ${letter}`,()=>{const s=state.score;ksmSetScore({...s,[side]:[...s[side],letter]});window.dispatchEvent(new Event('ksm:timer-point'));syncActiveScoreToMatch();renderScore()})}
 export function hansoku(side){performCourtAction(`${side==='W'?'White':'Red'} Hansoku`,()=>{window.dispatchEvent(new Event('ksm:timer-point'));const s=state.score;if(side==='W'){const WT=s.WT+1;ksmSetScore({...s,WT,R:WT%2===0?[...s.R,'H']:s.R})}else{const RT=s.RT+1;ksmSetScore({...s,RT,W:RT%2===0?[...s.W,'H']:s.W})}syncActiveScoreToMatch();renderScore()})}
@@ -433,7 +459,7 @@ export function nextMatch(){
       // action must still carry everything needed to reconstruct the winner safely.
       // One write (#15 PR 13c-1, app/modules/court/match-writes.js), the fields in the old order; the snapshot is taken
       // from the bout with its final points, before `done`, as before. The write returns the bout as it is after it
-      // (in 13c-2 a new object: the held `m` keeps its old values); every read after it uses that.
+      // (a new object since #15 PR 13c-2: the held `m` keeps its old values); every read after it uses that.
       const result={wp:[...state.score.W],rp:[...state.score.R],wt:state.score.WT||0,rt:state.score.RT||0};
       const final={...result,completedResult:completedResultSnapshot(/** @type {Match} */({...m,...result})),done:true};
       // A bout no longer in its list (none is today: nothing writes between the look-up and here) gets the result on a copy.

@@ -213,6 +213,21 @@ window.KSMTest = {
     // here, one tournament/peopleLoaded; a list it leaves out keeps its value, `teamDivisions: undefined` clears it (the
     // app builds it again on its next read). A row is never edited in place: set the list again with the row changed.
     setPeople: lists => ksmLoadPeople(lists),
+    // The bouts (allMatches) are store data too (#15 PR 13c-2): a test writes them through the app's write module, one
+    // action per call; a bout or a list is never edited in place (frozen in the tests). `set`: the fields to set, in their
+    // order; `remove`: the fields to delete. A division's list is stored as given; `setAllMatches` replaces the whole map.
+    setAllMatches: map => ksmSetAllMatches(map),
+    setDivisionMatches: (div, list) => ksmSetDivisionMatches(div, list),
+    updateMatch: (div, index, set, remove = []) => ksmUpdateMatch(div, index, set, remove),
+    updateMatches: (div, updates) => ksmUpdateMatches(div, updates),
+    // A bout the test holds (read from the list just before, no write between): its fields set through updateMatch(),
+    // the bout as it is after returned (the one held keeps its old values).
+    updateBout: (m, set, remove = []) => {
+      // (by identity; else the bout found again, as the app does: a sync may have given it a new object since)
+      const div = m.division, list = state.allMatches?.[div] || [], i = list.includes(m) ? list.indexOf(m) : KSMEngine.matchIndexIn(list, m);
+      if (i < 0) throw new Error(`KSMTest.app.updateBout: the bout is not in allMatches[${div}] (read it again)`);
+      return ksmUpdateMatch(div, i, set, remove);
+    },
     // Results' awards editor and Setup's grand champion rows, as their islands call them (tests/awards-store-test.py).
     // Awards are store data (#15 PR 11): a test sets the list or a row's fields here, one action each; a row is never edited in place.
     setAwards: awards => ksmLoadAwards(awards),

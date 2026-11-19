@@ -16,9 +16,12 @@ const bout = n => ({ division: 'Open', white: `W${n}`, red: `R${n}`, wp: [], rp:
 const defaultReporter = w => console.warn('[KSM Store] A store field was assigned outside an action', w);
 function reset() {
   ksmSetCurrentCourt('A'); ksmShowDivision('Women’s Open'); ksmResetCourtPads();
-  delete state.allMatches.Open; delete state.allMatches.Kids;
+  // (allMatches is store data since #15 PR 13c-2: a whole-map write, as a load makes it.)
+  const { Open, Kids, ...rest } = state.allMatches || {};
+  assignState({ allMatches: rest });
 }
-function withOpen() { state.allMatches.Open = [bout(1), bout(2), bout(3)]; ksmShowDivision('Open'); return state.allMatches.Open; }
+const setMatches = (div, list) => assignState({ allMatches: { ...state.allMatches, [div]: list } });
+function withOpen() { setMatches('Open', [bout(1), bout(2), bout(3)]); ksmShowDivision('Open'); return state.allMatches.Open; }
 
 test('the slice: the shown index and a pad per court, one action each', () => {
   const s = createKsmStore();
@@ -50,16 +53,14 @@ test('matches, current and score are enumerable getters in their old place; the 
   reset();
 });
 
-test('state.matches is the live list of the shown division: the same array object, in-place writes land in allMatches', () => {
+test('state.matches is the live list of the shown division: the same array object, never a copy (store data since #15 PR 13c-2)', () => {
   const open = withOpen();
   assert.equal(state.matches, open);
-  state.matches[1].wp = ['K'];
-  state.matches.push(bout(4));
-  assert.deepEqual(state.allMatches.Open[1].wp, ['K']);
-  assert.equal(state.allMatches.Open.length, 4);
-  state.allMatches.Open = [...open].reverse();
+  assert.throws(() => { state.matches[1].wp = ['K']; }, TypeError, 'a bout is frozen store data in the tests');
+  assert.throws(() => { state.matches.push(bout(4)); }, TypeError);
+  setMatches('Open', [...open].reverse());
   assert.equal(state.matches, state.allMatches.Open, 'a replaced list (a sort, a repair) is followed at once');
-  state.allMatches.Kids = [bout(1)];
+  setMatches('Kids', [bout(1)]);
   ksmShowDivision('Kids');
   assert.equal(state.matches, state.allMatches.Kids, 'another division shown: its list');
   ksmShowDivision('Nothing drawn');

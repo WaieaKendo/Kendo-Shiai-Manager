@@ -4,23 +4,18 @@ When PR 13c moves `allMatches` into the store, a write gives the matches it chan
 match and later compares it with `===` / `indexOf`, or writes through it, would show or score the wrong bout. This test
 is the guard 13c relies on. Two offline pages run the same scripted tournaments with the same random seed:
 
-  - control: as the app runs today;
+  - control: as the app runs (the store's bouts, frozen in the tests);
   - copied:  every Match Object in `allMatches` is replaced by a structural copy (same values, a new object) at every
-             store notification (any dispatch), every app event (`window.dispatchEvent`: the render signals), every
-             assignment of a division's list (`allMatches[div] = ...`, through a Proxy), just before a court action's
-             body and right after Next Match's result write (two test-only hooks in court-scoring-and-history.js,
-             `globalThis.KSMTestBeforeCourtAction`, unset in the app), and after every step. Those are where 13c
-             dispatches; it is harsher than 13c (where only the matches a write changes get new objects). At the
-             second hook the objects copied at the first are put back to their values from then, so a match held across
-             the result write is as stale as in 13c (the old object, without the write).
+             store notification, every app event (`window.dispatchEvent`: the render signals) and after every step;
+             harsher than the store (where only the matches a write changes get new objects).
 
-Since #15 PR 13c-1 every write to `allMatches` goes through app/modules/court/match-writes.js, and each helper call is a
-copy point too (globalThis.KSMTestMatchWrite: the objects read before the write are put back to their values from then,
-so a match held across any write, not only Next Match's result, is as stale as in 13c-2). A third page, `frozen`
-(tests/lib/match-freeze-hook.js), is the page as 13c-2 will leave it: the map, every list and every match frozen copies,
-new ones at each helper write, store notification and app event, so a write that misses the helpers throws and an object
-held across a write keeps its old values. On next/4.1 (before 13c-1) the frozen page throws at the first draw (Generate
-Tournament's `state.allMatches[div] = …` on the frozen map) in each scenario; the copied page passes there since #205.
+Since #15 PR 13c-2 `allMatches` is store data (app/modules/court/match-writes.js: one action per write, a path copy), so
+in both pages a write gives the bouts it changes new objects and leaves the old ones as they were (an object held across
+a write is stale), and the browser tests' strict store deep-freezes the map, every list and every bout, so a write that
+misses the helpers throws (13c-1's third, "frozen" page imitated this on a plain field: tests/lib/match-freeze-hook.js,
+gone with 13c-1's test hooks). The copied page's copies are a test action through the same module
+(KSMTest.app.setAllMatches(): every bout a new object), made at every store notification (a court action and an Undo/Redo
+notify once, at their end) and every app event, and after every step.
 
 After every step the pages must show and score the same bouts: the saved state (every match's points and result, the
 court pointers, the Undo/Redo lists), this device's view (division, index, live score), the court screen's inputs
@@ -54,9 +49,6 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 from ksm_browser import launch_chromium, load_app
 
-# #15 PR 13c-1: the third page, as 13c-2 will leave it (every match, list and the map frozen between the helpers' writes).
-FREEZE_HOOK = (Path(__file__).parent / 'lib/match-freeze-hook.js').read_text()
-
 checks = 0
 # --all: report every divergence (one line each) instead of stopping at the first; exits 1 if any.
 ALL = '--all' in sys.argv
@@ -64,54 +56,35 @@ diverged = []
 
 SEED = r"""() => { let a = 29; Math.random = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }"""
 
-# The copied page: every Match Object replaced by a copy at every store notification, and on demand.
+# The copied page: every Match Object replaced by a copy at every store notification and app event, and on demand. Since
+# #15 PR 13c-2 the bouts are store data: the copy is one write through the app's write module (tournament/allMatchesSet),
+# never made from inside its own notification.
 COPY_HOOK = r"""() => {
+  let copying = false;
   const copyAll = () => {
-    const all = KSMTest.app.state.allMatches || {};
-    for (const d of Object.keys(all)) { const arr = all[d]; if (!Array.isArray(arr)) continue;
-      for (let i = 0; i < arr.length; i++) if (arr[i] && typeof arr[i] === 'object') arr[i] = structuredClone(arr[i]); }
+    const all = KSMTest.app.state.allMatches;
+    if (copying || !all || typeof all !== 'object') return;
+    copying = true;
+    try {
+      const next = {};
+      for (const d of Object.keys(all)) next[d] = Array.isArray(all[d]) ? all[d].map(m => (m && typeof m === 'object' ? structuredClone(m) : m)) : all[d];
+      KSMTest.app.setAllMatches(next);
+    } finally { copying = false; }
     window.__matchCopies = (window.__matchCopies || 0) + 1;
   };
   window.__copyAllMatches = copyAll;
-  // A division's list assigned (13c's dispatch points): copied right after. Re-wrapped
-  // after a load replaces allMatches.
-  const wrapped = new WeakSet();
-  const wrap = () => {
-    const st = KSMTest.app.state, all = st.allMatches;
-    if (!all || typeof all !== 'object' || wrapped.has(all)) return;
-    const proxy = new Proxy(all, {set(t, k, v) { t[k] = v; copyAll(); return true; }});
-    wrapped.add(proxy); st.allMatches = proxy;
-  };
-  wrap();
-  window.KSMStore.subscribe(() => { wrap(); copyAll(); });
-  // Just before a court action's body and right after Next Match's result write (two test-only
-  // hooks, where 13c dispatches): code that read a match before and writes or compares it after must look it up again.
-  // At the second hook the objects copied at the first one (the ones the action read, then wrote) are put back to their
-  // values from then: a held match is as stale as in 13c, where a write gives the list a new object and leaves the old one
-  // as it was.
-  let held = [];
-  const live = () => Object.values(KSMTest.app.state.allMatches || {}).filter(Array.isArray).flat().filter(m => m && typeof m === 'object');
-  window.KSMTestBeforeCourtAction = where => {
-    copyAll();
-    if (where === 'action') { held = live().map(m => [m, structuredClone(m)]); return; }
-    for (const [m, was] of held) { for (const k of Object.keys(m)) delete m[k]; Object.assign(m, was); }
-    held = [];
-    window.__staleRestores = (window.__staleRestores || 0) + 1;
-  };
-  // #15 PR 13c-1: every write through app/modules/court/match-writes.js (13c-2's dispatch points; the 'result' point
-  // above was Next Match's result write, now one of them): the matches copied after it, and the objects read before it
-  // put back to their values from then, so a match held across any write is as stale as in 13c-2.
-  let before = [];
-  window.KSMTestMatchWrite = where => {
-    if (where === 'before') { before = live().map(m => [m, structuredClone(m)]); return; }
-    copyAll();
-    for (const [m, was] of before) { for (const k of Object.keys(m)) delete m[k]; Object.assign(m, was); }
-    before = [];
-    window.__staleRestores = (window.__staleRestores || 0) + 1;
-  };
+  window.KSMStore.subscribe(copyAll);
   const dispatch = window.dispatchEvent;
   window.dispatchEvent = function (event) { copyAll(); return dispatch.call(this, event); };
 }"""
+# The control page: the store's bouts are written (window.__matchWrites: dispatches that change them) and deep-frozen.
+COUNT_WRITES = r"""() => { const s = window.KSMStore, d = s.dispatch; window.__matchWrites = 0;
+  s.dispatch = action => { const was = s.getState().tournament.allMatches, out = d(action); if (s.getState().tournament.allMatches !== was) window.__matchWrites++; return out; }; }"""
+FROZEN = r"""() => { const all = KSMTest.app.state.allMatches, bad = [];
+  if (all !== window.KSMStore.getState().tournament.allMatches) bad.push('not the store\'s');
+  if (all && !Object.isFrozen(all)) bad.push('map');
+  for (const [d, list] of Object.entries(all || {})) if (Array.isArray(list) && (!Object.isFrozen(list) || list.some(m => m && typeof m === 'object' && !Object.isFrozen(m)))) bad.push(d);
+  return bad.slice(0, 5); }"""
 
 OBSERVE = r"""() => {
   const app = KSMTest.app, st = app.tournamentPayload().state;
@@ -246,8 +219,8 @@ def open_page(browser, errors, mode):
     load_app(page)
     if mode == 'copied':
         page.evaluate(COPY_HOOK)
-    elif mode == 'frozen':
-        page.evaluate(FREEZE_HOOK)
+    else:
+        page.evaluate(COUNT_WRITES)
     return page
 
 
@@ -259,9 +232,9 @@ def main():
     with sync_playwright() as p:
         browser = launch_chromium(p)
         for scenario, steps in scenarios():
-            errors = {'control': [], 'copied': [], 'frozen': []}
-            pages = {mode: open_page(browser, errors[mode], mode) for mode in ('control', 'copied', 'frozen')}
-            control, copied, frozen = pages['control'], pages['copied'], pages['frozen']
+            errors = {'control': [], 'copied': []}
+            pages = {mode: open_page(browser, errors[mode], mode) for mode in ('control', 'copied')}
+            control, copied = pages['control'], pages['copied']
             failed = set()
             for name, run in steps:
                 seen = {}
@@ -274,7 +247,7 @@ def main():
                         if label == 'copied':
                             page.evaluate('() => window.__copyAllMatches()')
                         seen[label] = page.evaluate(OBSERVE)
-                    except Exception as e:  # a frozen page's write that missed the helpers throws inside the step
+                    except Exception as e:  # a write that missed the helpers throws inside the step (frozen store data)
                         errors[label].append(str(e).split('\n')[0])
                     if errors[label]:
                         message = f'{scenario}: {name}: {label} page errors {errors[label][:3]}'
@@ -282,8 +255,16 @@ def main():
                             raise AssertionError(message)
                         diverged.append(message)
                         failed.add(label)
-                for label in ('copied', 'frozen'):
-                    if label not in seen:
+                if 'control' in seen:
+                    bad = control.evaluate(FROZEN)
+                    if bad:
+                        message = f'{scenario}: {name}: the store\'s bouts are not all frozen: {bad}'
+                        if not ALL:
+                            raise AssertionError(message)
+                        diverged.append(message)
+                    checks += 1
+                for label in ('copied',):
+                    if label not in seen or 'control' not in seen:
                         continue
                     for key, want in seen['control'].items():
                         got = seen[label][key]
@@ -297,12 +278,9 @@ def main():
                         checks += 1
                 duplicates.update(copied.evaluate(DUPLICATES))
                 overlay_states.append({'label': f'{scenario}: {name}', 'state': copied.evaluate('() => KSMTest.app.tournamentPayload().state')})
-            stale = copied.evaluate('() => window.__staleRestores || 0')
-            assert stale > 0 or ALL, f'{scenario}: held matches were made stale after a result write ({stale})'
-            checks += 1
-            if 'frozen' not in failed:
-                writes = frozen.evaluate('() => window.__matchWrites || 0')
-                assert writes > len(steps), f'{scenario}: the frozen page wrote through match-writes.js ({writes})'
+            if 'control' not in failed:
+                writes = control.evaluate('() => window.__matchWrites || 0')
+                assert writes > len(steps), f'{scenario}: the store\'s bouts were written ({writes})'
                 checks += 1
             copies = copied.evaluate('() => window.__matchCopies')
             assert copies > len(steps), f'{scenario}: the matches were copied ({copies} times)'
@@ -317,7 +295,7 @@ def main():
             played = control.evaluate('() => Object.values(KSMTest.app.state.allMatches).flat().filter(m => m.done).length')
             assert played > 5, f'{scenario}: bouts were played ({played})'
             checks += 1
-            control.close(); copied.close(); frozen.close()
+            control.close(); copied.close()
         browser.close()
     # The overlay (its own bundle, not in the app page): its selection on each step's saved state, with every read of a
     # match a new object, must be the same as on the state as it is.

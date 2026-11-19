@@ -492,7 +492,7 @@ def reg_live(browser, react_check):
     g.do('generated: a player to No Show (taken out of the division)', lambda a: (
         click(a.page, field('reg-status', 0)), click(a.page, field('reg-status', 0)), click(a.page, field('reg-status', 0))))
     g.do('a match of Open & <Co> done (the division has started)', lambda a: a.page.evaluate(
-        "() => { KSMTest.app.state.allMatches['Open & <Co>'][0].done = true; KSMTest.app.renderReg(); }"))
+        "() => { KSMTest.app.updateMatch('Open & <Co>', 0, {done: true}); KSMTest.app.renderReg(); }"))
     g.do('started: a player to No Show (the alert, nothing changed)', lambda a: (
         click(a.page, field('reg-status', 4)), click(a.page, field('reg-status', 4)), click(a.page, field('reg-status', 4))))
     g.finish()
