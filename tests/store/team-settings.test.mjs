@@ -1,12 +1,13 @@
 // #15 PR 8b (docs/STORE.md section 3): state.teamAwardMode is a getter over the Setup field settings.teamAwardMode.
 // One value: the snapshot still carries the top-level copy (4.0 devices read it) with the same value; it is written
-// through tournament/settingChanged; a load does not write it through replaceState() (applySetupSnapshot() sets it with
+// through tournament/settingChanged; a load does not write it through ksmLoadTournamentState() (applySetupSnapshot() sets it with
 // the Setup's precedence, tests/team-settings-store-test.py); a stray assignment throws in tests, and is logged and
 // applied in production.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { dispatch, getState, setStoreStrict, tournamentSlice } from '../../app/store/index.ts';
-import { assignState, replaceState, setStrayStoreWriteReporter, state, storeFieldPath } from '../../app/modules/app-state.js';
+import { ksmLoadTournamentState, setStrayStoreWriteReporter, state, storeFieldPath } from '../../app/modules/app-state.js';
+import { assignStoreKeys } from '../lib/store-keys.mjs';
 
 const set = value => dispatch(tournamentSlice.actions.settingChanged({ key: 'teamAwardMode', value }, { device: 'test' }));
 const setting = () => getState().tournament.settings.teamAwardMode;
@@ -48,25 +49,25 @@ test('production: a stray assignment is logged and applied to the Setup field', 
   }
 });
 
-test('a load (replaceState) leaves the Setup field to applySetupSnapshot(): a payload value or a missing key does not write it', () => {
+test('a load (ksmLoadTournamentState) leaves the Setup field to applySetupSnapshot(): a payload value or a missing key does not write it', () => {
   set('top1');
   const before = JSON.parse(JSON.stringify(state));
-  replaceState({ ...before, teamAwardMode: 'dual3' });
-  assert.equal(setting(), 'top1', 'a payload\'s top-level copy is not written by replaceState()');
+  ksmLoadTournamentState({ ...before, teamAwardMode: 'dual3' });
+  assert.equal(setting(), 'top1', 'a payload\'s top-level copy is not written by ksmLoadTournamentState()');
   const { teamAwardMode, ...without } = before;
-  replaceState(without);
+  ksmLoadTournamentState(without);
   assert.equal(setting(), 'top1', 'a payload without the key does not clear the Setup field');
   assert.equal(typeof getState().tournament.settings.teamAwardMode, 'string');
-  replaceState(before);
+  ksmLoadTournamentState(before);
   set('top2');
 });
 
-test('assignState() writes a text and skips a missing value (the Setup field always holds a text)', () => {
-  assignState({ teamAwardMode: 'dual3' });
+test('assignStoreKeys() writes a text and skips a missing value (the Setup field always holds a text)', () => {
+  assignStoreKeys({ teamAwardMode: 'dual3' });
   assert.equal(setting(), 'dual3');
-  assignState({ teamAwardMode: undefined });
+  assignStoreKeys({ teamAwardMode: undefined });
   assert.equal(setting(), 'dual3');
-  assignState({ teamAwardMode: 'top2' });
+  assignStoreKeys({ teamAwardMode: 'top2' });
   assert.equal(setting(), 'top2');
 });
 

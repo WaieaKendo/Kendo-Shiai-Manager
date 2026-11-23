@@ -21,7 +21,7 @@ check(!fs.existsSync(path.join(ROOT, 'node_modules/@reduxjs/toolkit/node_modules
 // --- the store bundle: self-contained, production, small ---
 const store = await storeBundle();
 const gzip = zlib.gzipSync(store).length;
-const GZIP_BUDGET = 9975; // 7.9 kB with Redux Toolkit 2.13 (2026-11-11); 9,000 until #15 PR 10 (the people's 17 actions: 9,206), 9,300 until #15 PR 12a (the draw's 7 actions on the shared reducer: 9,346), 9,400 until #15 PR 13a (the court pointers' three court/… actions, their reducer and initial maps: 9,553), 9,600 until #15 PR 13b (the court history's five court/… actions and two initial maps, and applyStoreWrites() as a path copy instead of an Immer update, so a point, an Undo and a load do not walk the whole history: 9,736), 9,750 until #15 PR 13c-2 (the bouts' eight match actions, +87, and the store's notification hold for a court action, an Undo/Redo and a structural step, +105: 9,928; 9,950 until #207's review made the hold throw the held step's own error before a listener's, +31: 9,959. Nothing in production subscribes to the store yet, the islands listen to window events: the hold is #15 item 14's contract); raise it only on purpose, old TVs pay for it
+const GZIP_BUDGET = 9975; // 7.9 kB with Redux Toolkit 2.13 (2026-11-11); 9,000 until #15 PR 10 (the people's 17 actions: 9,206), 9,300 until #15 PR 12a (the draw's 7 actions on the shared reducer: 9,346), 9,400 until #15 PR 13a (the court pointers' three court/… actions, their reducer and initial maps: 9,553), 9,600 until #15 PR 13b (the court history's five court/… actions and two initial maps, and applyStoreWrites() as a path copy instead of an Immer update, so a point, an Undo and a load do not walk the whole history: 9,736), 9,750 until #15 PR 13c-2 (the bouts' eight match actions, +87, and the store's notification hold for a court action, an Undo/Redo and a structural step, +105: 9,928; 9,950 until #207's review made the hold throw the held step's own error before a listener's, +31: 9,959. the hold is #15 item 14's contract; item 14a, tournament/loaded in place of the two legacy whole-object actions: 9,937); raise it only on purpose, old TVs pay for it
 check(gzip <= GZIP_BUDGET, `the store bundle is ${gzip} bytes gzip, over the ${GZIP_BUDGET} budget`);
 check(!/process\.env/.test(store), 'the store bundle still reads process.env (NODE_ENV was not defined)');
 check(!/state mutation/i.test(store), 'the store bundle has Redux Toolkit\'s immutability check (a development build)');
@@ -39,14 +39,14 @@ if (!problems.length) {
   check(mod.PRODUCTION_BUILD === true, 'the store bundle is not the production build (PRODUCTION_BUILD)');
   check(mod.storeIsStrict() === false, 'the production store must not be strict');
   const s = mod.createKsmStore();
-  s.dispatch(mod.legacyStateAssigned({ writes: [{ path: ['device', 'probe'], value: { n: 1 } }] }));
+  s.dispatch(mod.tournamentLoaded({ writes: [{ path: ['device', 'probe'], value: { n: 1 } }] }));
   check(s.getState().device.probe?.n === 1, 'a legacy write does not reach the store in the bundle');
   check(!Object.isFrozen(s.getState().device), 'production must not freeze store state (docs/STORE.md point 8)');
   // A stray nested write into store data on the real bundle (docs/STORE.md point 8, production; the Node source test is
   // tests/store/legacy.test.mjs): applied in place without throwing, no subscriber runs, the next snapshot carries it,
   // the next dispatch keeps it.
   const p = mod.createKsmStore();
-  p.dispatch(mod.legacyStateAssigned({ writes: [{ path: ['tournament', 'awards'], value: [{ place: 1, name: 'A' }] }] }));
+  p.dispatch(mod.tournamentLoaded({ writes: [{ path: ['tournament', 'awards'], value: [{ place: 1, name: 'A' }] }] }));
   let heard = 0;
   p.subscribe(() => { heard++; });
   const older = p.getState();
@@ -55,10 +55,10 @@ if (!problems.length) {
   check(!threw, `production: a nested write into store data threw in the bundle (${threw})`);
   check(heard === 0 && p.getState() === older, 'production: a nested write must not dispatch or replace the store state');
   check(/"name":"B"/.test(JSON.stringify(p.getState())), 'production: the next snapshot does not carry a nested write');
-  p.dispatch(mod.legacyStateAssigned({ writes: [{ path: ['device', 'probe'], value: 3 }] }));
+  p.dispatch(mod.tournamentLoaded({ writes: [{ path: ['device', 'probe'], value: 3 }] }));
   check(heard === 1 && p.getState().tournament.awards[0].name === 'B', 'production: the next dispatch lost a nested write or did not notify');
   mod.setStoreStrict(true);
-  s.dispatch(mod.legacyStateAssigned({ writes: [{ path: ['device', 'probe'], value: { n: 2 } }] }));
+  s.dispatch(mod.tournamentLoaded({ writes: [{ path: ['device', 'probe'], value: { n: 2 } }] }));
   check(Object.isFrozen(s.getState().device), 'setStoreStrict(true) does not turn the freeze on in the bundle');
 }
 

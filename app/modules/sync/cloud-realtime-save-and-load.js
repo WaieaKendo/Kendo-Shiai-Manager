@@ -1,5 +1,6 @@
 // @ts-check
-import {ksmEmptyScore,ksmSetCurrentCourt,ksmSetPublicCourt,ksmSetScore,ksmShowDivision,ksmShowMatch,replaceState,state} from '../app-state.js';
+import {holdNotifications} from '../../store/index.ts';
+import {ksmEmptyScore,ksmSetCurrentCourt,ksmSetPublicCourt,ksmSetScore,ksmLoadTournamentState,ksmShowDivision,ksmShowMatch,state} from '../app-state.js';
 import {cloudSocketUrl,connectCloudSocket,ksmCacheTournament,ksmReadHeaders,ksmUsesAccountAuth,loadTournamentFromCloud,setSessionRole} from '../auth/auth0-access.js';
 import {renderAll} from '../court/court-context-and-pool-editing.js';
 import {applyCourtState,findNextForCourt,individualMatchReady} from '../court/court-match-order.js';
@@ -493,7 +494,7 @@ export function confirmTournamentFileLoad(payload,fileName){
 }
 export function applyTournamentFilePayload(payload,saveAfter){
   const before=tournamentPayload();
-  // This device's view before the file (#177 review): a load that throws after replaceState() may already have moved
+  // This device's view before the file (#177 review): a load that throws after ksmLoadTournamentState() may already have moved
   // it to the file's court entry, so the restore is given this view, not the one the failed load left.
   const view={division:state.currentDivision,local:{A:localCourtDivision('A'),B:localCourtDivision('B')}};
   try{applyTournamentPayload(payload,saveAfter);return true}
@@ -702,7 +703,12 @@ function rehydrateLoadedTournamentState(options){
     ksmSetScore(ksmEmptyScore());
   }
 }
-export function applyTournamentPayload(payload,saveAfter,options={}){
+/**
+ * Loads a tournament payload (a file, a cloud record, a remote apply, a rebase's result): its migrated, repaired copy as one
+ * tournament/loaded, then this device's court view, the Setup and the load-time repairs. Store subscribers are notified
+ * once, at the end (holdNotifications(), #15 item 14a), so no island renders a tournament loaded but not yet repaired.
+ */
+export function applyTournamentPayload(payload,saveAfter,options={}){return holdNotifications(()=>{
   if(!payload || !payload.state) throw new Error('Invalid KSM file');
   const localCourt=options.pinnedCourt||pinnedCourt()||cloudSession.court||state.currentCourt||null;
   const localPublicCourt=state.publicCourt||localCourt||'A';
@@ -715,13 +721,13 @@ export function applyTournamentPayload(payload,saveAfter,options={}){
   sanitizeLoadedTournamentState(loaded,options.source||'tournament load');
   normalizeAllIndividualPoolTiebreakOrder(loaded,options.source||'tournament load');
   // divisionCourts as the load keeps it ({} when missing; an individual division's 4.0 'Both' is 'split'): on the loaded
-  // copy, before replaceState(), now that the courts are the store's (#15 PR 9; was a loop on the live state after it,
+  // copy, before ksmLoadTournamentState(), now that the courts are the store's (#15 PR 9; was a loop on the live state after it,
   // reading only what the copy holds: KSMEngine.loadedDivisionCourts()).
   loaded.divisionCourts=KSMEngine.loadedDivisionCourts(loaded);
   // A save without `teamElimTeams` / `managementRevision` loads with {} / 0: on the copy, in that order, now that the
   // revision is the store's (#15 PR 12a; both were set on the live state after the assign, which put them in this order).
   loaded.teamElimTeams=loaded.teamElimTeams||{};loaded.managementRevision=loaded.managementRevision||0;
-  replaceState(loaded);
+  ksmLoadTournamentState(loaded);
   if(localCourt){pinCourtLocally(localCourt);ksmSetCurrentCourt(normalizeCourt(localCourt))}else ksmSetCurrentCourt('A');
   if(isTvSession())ksmSetPublicCourt(normalizeCourt(localCourt||localPublicCourt));else ksmSetPublicCourt(normalizeCourt(localPublicCourt));
   applySetupSnapshot(payload.setup);
@@ -734,7 +740,7 @@ export function applyTournamentPayload(payload,saveAfter,options={}){
   renderAll();
   updateUndoButton();
   if(saveAfter) autoSaveTournament();
-}
+})}
 export function restoreAutoSaveIfWanted(){
   return false;
   try{

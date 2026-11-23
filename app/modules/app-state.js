@@ -2,9 +2,10 @@
 // The tournament state object (never reassigned) and the division presets its initial value is built from.
 // Moved out of the classic script in step 3d of #136; app/main.js and app/modules import both from here.
 // #15 step 2.8 moves its fields into the Redux Toolkit store (app/store) one group at a time: see docs/STORE.md.
-// Each key of `state` is either a plain property or, once its group has moved, a store getter (moveToStore()); every
-// write that replaces or assigns several keys at once goes through replaceState() / assignState() (STORE.md section 2).
-import {deviceSlice,dispatch,getState,legacyFieldAssigned,legacyStateAssigned,legacyStateReplaced,storeIsStrict} from '../store/index.ts';
+// Each key of `state` is a store getter (moveToStore(), deriveInState()) or one of the plain keys a load assigns
+// (ksmLoadTournamentState(): the dead `history`, `contextMode`, `teamBracketState`; STORE.md section 3 item 14). Reads
+// still go through `state` until item 14's per-module read PRs; then this file goes.
+import {deviceSlice,dispatch,getState,legacyFieldAssigned,storeIsStrict,tournamentLoaded} from '../store/index.ts';
 import * as KSMEngine from '../engine/index.ts';
 /** @typedef {string[]|(()=>string[])} StorePath a store path, or (for state.score) one that depends on this device's court */
 /** The standard divisions (name, format, court): app/engine/division-lists.ts, which the store's initial lists use too. */
@@ -50,7 +51,7 @@ export function moveToStore(key,path,target=state){
   if(storeFieldsOf(target).has(key)||derivedFieldsOf(target).has(key))throw new Error(`state.${key} is already in the store`);
   const at=typeof path==='function'?path:[...path];
   const now=()=>{const p=resolvePath(at);if(!valid(p))throw new Error(`moveToStore(${key}): the store path must be a list of keys`);return p};
-  const read=()=>{/** @type {any} */ let value=getState();for(const p of now())value=value==null?undefined:value[p];return value};
+  const read=()=>storeValueAt(now());
   Object.defineProperty(target,key,{enumerable:true,configurable:false,get:read,set(value){
     const p=now();
     if(storeIsStrict())throw new TypeError(`state.${key} is in the store (${p.join('.')}): dispatch an action instead of assigning it`);
@@ -62,7 +63,7 @@ export function moveToStore(key,path,target=state){
 /**
  * Makes `state[key]` an enumerable, non-configurable, read-only getter computed by `derive` (docs/STORE.md section 3,
  * PR 7: state.matches). Enumerable, so the snapshot still carries its value. It has no store path of its own: a load,
- * a remote apply and assignState() ignore a value for it, and so does an assignment the conversion missed (strict:
+ * a remote apply and an Undo/Redo ignore a value for it, and so does an assignment the conversion missed (strict:
  * throws; production: logged, then ignored, since the fields it is derived from already say what it is).
  * @param {string} key
  * @param {()=>unknown} derive
@@ -107,11 +108,11 @@ moveToStore('current',['device','currentMatchIndex']);
 moveToStore('score',()=>['device','activeScore',state.currentCourt||'A']);
 // The team award mode (PR 8b): the Setup field settings.teamAwardMode is the one value; state.teamAwardMode is a getter over
 // it, so the snapshot still carries the top-level copy 4.0 devices read (same value). Written through ksmSetSetting()
-// (tournament/settingChanged) or the Setup input; a load sets it in applySetupSnapshot() (replaceState() skips it, below).
+// (tournament/settingChanged) or the Setup input; a load sets it in applySetupSnapshot() (ksmLoadTournamentState() skips it, below).
 moveToStore('teamAwardMode',['tournament','settings','teamAwardMode']);
 // The divisions (PR 9, docs/STORE.md section 3 item 9): the `tournament` slice holds the five lists (its initial value
 // is the standard divisions, as the literal above had them), written only through app/modules/setup/divisions-store.js
-// (one tournament/division… action each) or a load's replaceState(). `divisionCourts['Team Tournament']` is the Setup's
+// (one tournament/division… action each) or a load's tournament/loaded. `divisionCourts['Team Tournament']` is the Setup's
 // team court (the store keeps it equal to settings.teamCourt). `hiddenPresets` and `divisionRenames` are absent (undefined,
 // so not in the snapshot) until set, as before.
 moveToStore('divisions',['tournament','divisions']);
@@ -121,20 +122,20 @@ moveToStore('hiddenPresets',['tournament','hiddenPresets']);
 moveToStore('divisionRenames',['tournament','divisionRenames']);
 // The people (PR 10, docs/STORE.md section 3 item 10): the `tournament` slice holds Registration's players, teams and
 // exhibition matches and the team divisions, written only through app/modules/registration/people-store.js (one
-// tournament/… action each) or a load's replaceState(). Rows are store data: a row is never edited in place.
+// tournament/… action each) or a load's tournament/loaded. Rows are store data: a row is never edited in place.
 // `teamDivisions` is absent (undefined, so not in the snapshot) until the load-time migration builds it, as before.
 moveToStore('competitors',['tournament','competitors']);
 moveToStore('teams',['tournament','teams']);
 moveToStore('exhibitions',['tournament','exhibitions']);
 moveToStore('teamDivisions',['tournament','teamDivisions']);
 // Awards and grand champions (PR 11, docs/STORE.md section 3 item 11): the `tournament` slice's, written only through
-// app/modules/results/awards-store.js (one tournament/… action each) or a load's replaceState(). Rows are store data: a
+// app/modules/results/awards-store.js (one tournament/… action each) or a load's tournament/loaded. Rows are store data: a
 // row is never edited in place. `grandChampions` is absent (undefined, so not in the snapshot) until a row is added.
 moveToStore('awards',['tournament','awards']);
 moveToStore('grandChampions',['tournament','grandChampions']);
 // The draw structure (PR 12a, docs/STORE.md section 3 item 12): the `tournament` slice's, written only through
 // app/modules/engine/structure-store.js (one tournament/… action per generated division, regenerate, pool edit, …) or a
-// load's replaceState(). The draw is store data: a pool, an entrant or a template row is never edited in place.
+// load's tournament/loaded. The draw is store data: a pool, an entrant or a template row is never edited in place.
 // `singleElimComps` and `byeWinners` are absent (undefined, so not in the snapshot) until Generate Tournament, as before.
 moveToStore('pools',['tournament','pools']);
 moveToStore('teamPools',['tournament','teamPools']);
@@ -152,21 +153,21 @@ moveToStore('teamElimTeams',['tournament','teamElimTeams']);
 // The court pointers (PR 13a, docs/STORE.md section 3 item 13): what each court runs (`courtState`), its division kept twice
 // (`courtActiveDivision`) and each division's queue position (`currentByDivision`) are the `tournament` slice's, written
 // only through app/modules/court/court-pointers-store.js (court/divisionSelected, court/pointerMoved, court/pointersResolved,
-// `meta.court`), a division's draw (structure-store.js), the rename or a load's replaceState(). A pointer is store data:
+// `meta.court`), a division's draw (structure-store.js), the rename or a load's tournament/loaded. A pointer is store data:
 // never `cs.index = …`, build a new one.
 moveToStore('currentByDivision',['tournament','currentByDivision']);
 moveToStore('courtState',['tournament','courtState']);
 moveToStore('courtActiveDivision',['tournament','courtActiveDivision']);
 // The court history (PR 13b): each court's Undo and Redo lists and the F30 Undo log are the `tournament` slice's, written
 // only through app/modules/court/court-history-store.js (court/actionRecorded, court/undo, court/redo,
-// court/historyNormalized, court/historyForgotten) or a load's replaceState(). An entry is store data: never push onto a
+// court/historyNormalized, court/historyForgotten) or a load's tournament/loaded. An entry is store data: never push onto a
 // list or edit an entry, dispatch. `courtUndoLog` is not in the literal: its getter comes last, undefined until the
 // first Undo/Redo (JSON.stringify leaves it out, as the absent key was).
 moveToStore('courtActionHistory',['tournament','courtActionHistory']);
 moveToStore('courtRedoHistory',['tournament','courtRedoHistory']);
 moveToStore('courtUndoLog',['tournament','courtUndoLog']);
 // The bouts (PR 13c-2): every division's list is the `tournament` slice's, written only through
-// app/modules/court/match-writes.js (matchActions), a load's replaceState() and an Undo/Redo's court/undo / court/redo.
+// app/modules/court/match-writes.js (matchActions), a load's tournament/loaded and an Undo/Redo's court/undo / court/redo.
 // A list and a bout are store data: never `m.done = …` or `list.push(…)`, call a helper; and a bout read before a write
 // keeps its old values (read it again after). The getter is at the literal's place, so the snapshot's key order stays.
 moveToStore('allMatches',['tournament','allMatches']);
@@ -190,44 +191,37 @@ export function ksmSetScore(/** @type {ScorePad} */ score){
   dispatch(deviceSlice.actions.scoreChanged({court:state.currentCourt||'A',score:next}));
 }
 /**
- * Replaces all of `state` with `loaded`'s keys (a load, a remote apply, the tournament switch): plain keys are deleted
- * and assigned in `loaded`'s order, as `Object.keys(state).forEach(k=>delete state[k]);Object.assign(state,loaded)` did;
- * store-owned keys (absent ones as undefined) go to the store in one legacy/stateReplaced action, except the device
- * fields, which this device keeps (a payload's value is ignored), the Setup fields (state.teamAwardMode), which the
- * caller's applySetupSnapshot() sets with the Setup's precedence, and the derived keys (state.matches), whose payload
- * value is ignored.
+ * A tournament loaded into `state` (a load, a remote apply, a rebase's result, the tournament switch; #15 item 14a, was
+ * the whole-object replace helper): its store-owned keys (absent ones as undefined) go to the store in one tournament/loaded, except the
+ * device fields, which this device keeps (a payload's value is ignored, docs/STORE.md point 4), the Setup fields
+ * (state.teamAwardMode), which the caller's applySetupSnapshot() sets with the Setup's precedence, and the derived keys
+ * (state.matches), whose payload value is ignored. Nothing is dispatched when every value is already the store's.
+ * The rest are `state`'s plain keys: the dead fields `history`, `contextMode`, `teamBracketState` (still saved, owner's
+ * decision of 2026-11-19) and any other key a payload carries. They are deleted and assigned in `loaded`'s order, as
+ * `Object.keys(state).forEach(k=>delete state[k]);Object.assign(state,loaded)` did, so the snapshot keeps its key order
+ * (historyKeyOrder() in court-scoring-and-history.js depends on it).
  * @param {object} loaded
- * @param {object} [target]
+ * @param {object} [target] the app's `state`; tests pass their own object
  */
-export function replaceState(loaded,target=state){
+export function ksmLoadTournamentState(loaded,target=state){
   const fields=storeFieldsOf(target),derived=derivedFieldsOf(target),writes=[];
   const t=/** @type {Record<string,unknown>} */ (target);
   for(const key of Object.keys(t))if(!fields.has(key)&&!derived.has(key))delete t[key];
-  // A device field (path in the `device` slice) is this device's: a payload never overwrites it (docs/STORE.md point 4).
+  const add=(/** @type {string[]} */ p,/** @type {unknown} */ value)=>{if(p[0]!=='device'&&!isSettingsPath(p)&&storeValueAt(p)!==value)writes.push({path:p,value})};
   for(const [key,value] of Object.entries(loaded)){
     if(derived.has(key))continue;
     const path=fields.get(key);
-    if(path){const p=resolvePath(path);if(p[0]!=='device'&&!isSettingsPath(p))writes.push({path:p,value})}else t[key]=value;
+    if(path)add(resolvePath(path),value);else t[key]=value;
   }
-  for(const [key,path] of fields){const p=resolvePath(path);if(p[0]!=='device'&&!isSettingsPath(p)&&!Object.hasOwn(loaded,key))writes.push({path:p,value:undefined})}
-  if(writes.length)dispatch(legacyStateReplaced({writes}));
+  for(const [key,path] of fields)if(!Object.hasOwn(loaded,key))add(resolvePath(path),undefined);
+  if(writes.length)dispatch(tournamentLoaded({writes}));
 }
+/** The store's value at `path` (undefined where the path does not lead anywhere). */
+function storeValueAt(/** @type {string[]} */ path){/** @type {any} */ let value=getState();for(const p of path)value=value==null?undefined:value[p];return value}
 /**
- * Assigns `partial`'s keys to `state` (a division rename, the team-division migration), as Object.assign(state,partial)
- * did; store-owned keys go to the store in one legacy/stateAssigned action; a derived key (state.matches) is ignored.
- * @param {object} partial
- * @param {object} [target]
- */
-export function assignState(partial,target=state){
-  const writes=storeWrites(partial,target);
-  const t=/** @type {Record<string,unknown>} */ (target);
-  for(const [key,value] of Object.entries(partial))if(!storeFieldsOf(target).has(key)&&!derivedFieldsOf(target).has(key))t[key]=value;
-  if(writes.length)dispatch(legacyStateAssigned({writes}));
-}
-/**
- * The store writes for `partial`'s store-owned keys, as assignState() makes them (an Undo/Redo's keys go in its own
- * court/undo or court/redo, #15 PR 13b): each key's value at its store path; a derived key (state.matches) and a plain
- * key give none.
+ * The store writes for `partial`'s store-owned keys: an Undo/Redo's keys go in its own court/undo or court/redo (#15 PR
+ * 13b, court-history-store.js): each key's value at its store path; a derived key (state.matches) and a plain key give
+ * none.
  * @param {object} partial
  * @param {object} [target]
  * @returns {import('../store/index.ts').StoreWrite[]}

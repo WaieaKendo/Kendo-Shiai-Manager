@@ -293,7 +293,8 @@ READ_PATHS = r"""async () => {
   // (The court island's queue dedupes the split single elimination shown on Court A when it publishes; Live Scores and
   // the TV sort their upcoming bouts.)
   for (const c of ['B', 'A']) { KSMTest.prepareCourt(c); app.buildTV3ViewModel(c); app.courtSummaryFor(c); }
-  window.dispatchEvent(new Event('ksm:state-changed'));
+  // (The islands re-render on a store notification since #15 item 14a; a no-op dispatch notifies them as a change would.)
+  window.KSMStore.dispatch({type: 'test/ping'});
   await new Promise(r => setTimeout(r, 250));
 }"""
 

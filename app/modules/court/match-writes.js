@@ -88,7 +88,7 @@ function ksmMatchList(r,div,own){
 }
 /**
  * The whole map (Generate Tournament's reset, the rename's renamed map), assigned as given (`undefined` too, as the old
- * assignment and assignState() did).
+ * assignment and the whole-object assign helper did).
  * @param {Record<string,Match[]>|undefined} map
  * @param {MatchRoot} [root]
  */

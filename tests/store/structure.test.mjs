@@ -9,7 +9,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { createKsmStore, dispatch, getState, setStoreStrict, tournamentSlice } from '../../app/store/index.ts';
-import { assignState, replaceState, setStrayStoreWriteReporter, state, storeFieldPath } from '../../app/modules/app-state.js';
+import { ksmLoadTournamentState, setStrayStoreWriteReporter, state, storeFieldPath } from '../../app/modules/app-state.js';
+import { assignStoreKeys } from '../lib/store-keys.mjs';
 import { drawHelpers } from '../lib/draw-helpers.mjs';
 
 const A = tournamentSlice.actions;
@@ -111,7 +112,7 @@ test('ksmEditedPools(): a pool edited in both maps; a list both maps share stays
 });
 
 test('strict mode: a map, an entry or a row of the draw written in place throws', () => {
-  replaceState({ ...json(state), pools: { Open: [pool('A', 'a', 'b')] }, brackets: { Open: [['A1', 'B2']] }, singleElimComps: { Kids: [{ name: 'k' }] }, generated: true, managementRevision: 3 });
+  ksmLoadTournamentState({ ...json(state), pools: { Open: [pool('A', 'a', 'b')] }, brackets: { Open: [['A1', 'B2']] }, singleElimComps: { Kids: [{ name: 'k' }] }, generated: true, managementRevision: 3 });
   try {
     for (const write of [() => { state.pools = {}; }, () => { state.pools.Open = []; }, () => { delete state.pools.Open; },
       () => { state.pools.Open[0].players = []; }, () => { state.pools.Open[0].players[0].name = 'x'; }, () => { delete state.pools.Open[0].court; state.pools.Open[0].size = 9; },
@@ -123,7 +124,7 @@ test('strict mode: a map, an entry or a row of the draw written in place throws'
     assert.equal(state.managementRevision, 3);
   } finally {
     const { singleElimComps, ...rest } = json(state);
-    replaceState({ ...rest, pools: {}, brackets: {}, generated: false, managementRevision: 0 });
+    ksmLoadTournamentState({ ...rest, pools: {}, brackets: {}, generated: false, managementRevision: 0 });
   }
 });
 
@@ -141,24 +142,24 @@ test('production: a stray assignment is logged and applied', () => {
   } finally {
     setStoreStrict(true);
     setStrayStoreWriteReporter(w => console.warn(w));
-    replaceState({ ...json(state), pools: {}, generated: false, managementRevision: 0 });
+    ksmLoadTournamentState({ ...json(state), pools: {}, generated: false, managementRevision: 0 });
   }
 });
 
-test('replaceState() / assignState() put the draw in the store; a 4.0 save without some maps leaves them undefined', () => {
+test('ksmLoadTournamentState() / assignStoreKeys() put the draw in the store; a 4.0 save without some maps leaves them undefined', () => {
   const saved = json(state);
   const loaded = { ...saved, pools: { B: [pool('A', 'b')], A: [pool('A', 'a')] }, teamPools: { T: [] }, brackets: { A: [['A1', 'B2']] },
     singleElimComps: { S: [{ name: 's' }, null] }, byeWinners: { A: [{ slot: 1, obj: { name: 'a', dojo: '' } }] }, generated: true, managementRevision: 7 };
-  replaceState(loaded);
+  ksmLoadTournamentState(loaded);
   const snap = json(state);
   for (const key of KEYS) assert.deepEqual(snap[key], loaded[key], key);
   assert.deepEqual(Object.keys(snap.pools), ['B', 'A'], 'the stored order');
   const { singleElimComps, byeWinners, teamPools, ...old } = loaded;
-  replaceState(old);
+  ksmLoadTournamentState(old);
   assert.ok(!('singleElimComps' in json(state)) && !('byeWinners' in json(state)) && !('teamPools' in json(state)));
-  assignState({ managementRevision: 9 });
+  assignStoreKeys({ managementRevision: 9 });
   assert.equal(state.managementRevision, 9);
-  replaceState(saved);
+  ksmLoadTournamentState(saved);
   assert.deepEqual(json(state), saved);
 });
 

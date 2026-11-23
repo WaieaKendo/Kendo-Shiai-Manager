@@ -1,5 +1,5 @@
 // @ts-check
-import {DIVISION_PRESETS,assignState,ksmShowDivision,state} from '../app-state.js';
+import {DIVISION_PRESETS,ksmShowDivision,state} from '../app-state.js';
 import {deviceSlice,dispatch} from '../../store/index.ts';
 import {renderDivisions} from '../court/court-match-order.js';
 import {ksmSetAllMatches} from '../court/match-writes.js';
@@ -10,7 +10,7 @@ import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {removeDivision,renderDivisionSetup} from '../setup/division-setup.js';
 import {cloudSession} from '../sync/cloud-session-and-autosave.js';
 import {ksmLocalCourtDivision,setLocalCourtDivision} from '../sync/sync-state-and-rebase.js';
-import {KSM_RENAMED_STATE_KEYS,ksmHidePreset,ksmMoveDivision,ksmRemoveDivision,ksmRenameDivisionLists,ksmRestorePresets} from '../setup/divisions-store.js';
+import {ksmHidePreset,ksmMoveDivision,ksmRemoveDivision,ksmRenameDivisionLists,ksmRestorePresets} from '../setup/divisions-store.js';
 import * as KSMEngine from '../../engine/index.ts';
 // ==========================================================
 // React Setup screen (app/react/features/setup/, roadmap M.13, #136 step 2)
@@ -76,14 +76,12 @@ export function ksmRenameSetupDivision(from,to){
   const renamed=KSMEngine.renamedDivisionState(/** @type {any} */ (state),from,name,record);
   // #15 PR 9 / PR 10: one rename, one store action for the division lists and the players (tournament/divisionRenamed,
   // with its divisionRenames record, the renamed `competitors`, since PR 11 the grand champions' renamed sources and since
-  // PR 13a the courts' pointers). Anything else the engine rewrote would still be plain `state` (nothing is today): it is
-  // assigned first, in the same synchronous step and with no dispatch, so when the action notifies the store's
-  // subscribers both halves already agree. The device fields (the Pools tab's division, the shown division) follow after.
+  // PR 13a the courts' pointers). That is everything the engine rewrites besides the two device fields (the Pools tab's
+  // division, the shown division), which follow after; since #15 item 14a nothing is assigned to `state` here (the
+  // assign of the rest was always empty: tests/store/divisions.test.mjs checks the engine's keys).
   const {poolViewDivision,currentDivision,...rest}=renamed;
-  // `allMatches` (the division's key renamed) through its write module (#15 PR 13c-1), the rest as before.
-  const plain=Object.fromEntries(Object.entries(rest).filter(([k])=>!KSM_RENAMED_STATE_KEYS.includes(k)&&k!=='allMatches'));
+  // `allMatches` (the division's key renamed) through its write module (#15 PR 13c-1), if the engine ever renames it.
   if(Object.hasOwn(rest,'allMatches'))ksmSetAllMatches(/** @type {any} */(rest).allMatches);
-  assignState(plain);
   ksmRenameDivisionLists(rest);
   if(poolViewDivision!==undefined)dispatch(deviceSlice.actions.poolViewDivisionChanged(poolViewDivision));
   if(currentDivision!==undefined)ksmShowDivision(currentDivision??null);

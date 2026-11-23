@@ -4,12 +4,12 @@ export { createKsmStore, dispatch, getState, holdNotifications, rootReducer, sto
 export type { AppDispatch, KsmStore, KsmStoreOptions, RootState } from './store.ts';
 export { deviceSlice, DEVICE_SLICE_VERSION } from './slices/device.ts';
 export type { ActiveScore, DeviceSliceState, LocalCourtDivisions, RegistrationTab } from './slices/device.ts';
-export { courtActions, courtHistoryActions, matchActions, initialSettings, initialTournamentState, tournamentSlice, TEAM_COURT_KEY, TOURNAMENT_SLICE_VERSION, withTeamCourt } from './slices/tournament.ts';
+export { courtActions, courtHistoryActions, matchActions, initialSettings, tournamentLoaded, initialTournamentState, tournamentSlice, TEAM_COURT_KEY, TOURNAMENT_SLICE_VERSION, withTeamCourt } from './slices/tournament.ts';
 export type {
   AwardLists, AwardRow, CourtHistories, CourtHistoryEntry, CourtPointer, CourtPointers, HistoryKey, HistoryWrites, MatchRow, DivisionLists, DrawLists, DrawRow, PeopleKey, PeopleLists, PersonRow, PointerKey, RowAt, RowsAdded, RowUpdated, SetupKey, TournamentSetup, TournamentSliceState,
 } from './slices/tournament.ts';
 export {
-  PRODUCTION_BUILD, applyStoreWrites, legacyFieldAssigned, legacyStateAssigned, legacyStateReplaced, setStoreStrict, storeIsStrict,
+  PRODUCTION_BUILD, applyStoreWrites, legacyFieldAssigned, setStoreStrict, storeIsStrict,
 } from './legacy.ts';
 export type { StoreWrite } from './legacy.ts';
 export { actionMeta, metaCourt, withMeta } from './meta.ts';

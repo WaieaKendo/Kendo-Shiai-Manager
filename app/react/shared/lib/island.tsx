@@ -5,7 +5,7 @@
 //   island.unmount();
 //
 // Mounting into an element that already has an island re-renders that island.
-// Components that read the legacy `state` use useLegacyState() (legacy-bridge.ts).
+// Components that read the store use useStoreSelector() (app/store/react.ts) or subscribe to window.KSMStore.
 import { StrictMode, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 

@@ -27,7 +27,7 @@ const json = v => JSON.stringify(v);
 // Everything a load calls that is not the court view: UI, saving, the pin store, the repairs (tested elsewhere).
 const STUBS = ['ksmMoveCourtPointers', 'renderAll', 'updateUndoButton', 'autoSaveTournament', 'scheduleAutoSave', 'applySetupSnapshot', 'ksmNoteTeamsReassigned',
   'ksmAddDaihyosenForTeamAwards', 'ksmSyncGrandChampions', 'repairLoadedEliminationAdvancement', 'sanitizeLoadedTournamentState',
-  'normalizeAllIndividualPoolTiebreakOrder', 'replaceState', 'pinCourtLocally', 'pinnedCourt', 'restorePinnedCourt', 'isTvSession',
+  'normalizeAllIndividualPoolTiebreakOrder', 'replaceState', 'ksmLoadTournamentState', 'pinCourtLocally', 'pinnedCourt', 'restorePinnedCourt', 'isTvSession',
   'cloudSession', 'applyCourtSides', 'ensureCourtHistory', 'ksmLocalCourtDivision', 'point', 'renderScore', 'ksmNotifyStateChanged', 'renderPublic',
   // The device fields' store helpers (#15 PR 6): here they write the context's plain `state`, as the old code did.
   'ksmSetCurrentCourt', 'ksmSetPublicCourt', 'ksmShowDivision', 'setLocalCourtDivision', 'canCloudWrite',
@@ -71,7 +71,8 @@ function makeContext(code, { pin = null, tv = false, staff = true, local = {}, b
   let pinned = pin;
   context.pinnedCourt = () => pinned;
   context.pinCourtLocally = c => { pinned = c; };
-  context.replaceState = loaded => { for (const k of Object.keys(context.state)) delete context.state[k]; Object.assign(context.state, loaded); if (!plain) deriveMatches(context.state); };
+  // (ksmLoadTournamentState() since #15 item 14a; the older code under test calls it replaceState().)
+  context.replaceState = context.ksmLoadTournamentState = loaded => { for (const k of Object.keys(context.state)) delete context.state[k]; Object.assign(context.state, loaded); if (!plain) deriveMatches(context.state); };
   Object.assign(context, viewHelpers(context));
   context.restorePinnedCourt = () => { if (!pinned) return null; context.cloudSession.court = pinned; context.state.currentCourt = pinned; if (tv) context.state.publicCourt = pinned; return pinned; };
   vm.createContext(context);

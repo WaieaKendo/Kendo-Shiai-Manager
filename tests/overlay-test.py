@@ -110,20 +110,20 @@ def main():
         assert o['white_sub'].startswith('Dojo') and o['red_sub'].startswith('Dojo') and o['next'], o
         assert o['sides'] == ['overlay-white', 'overlay-red'], o
 
-        court = KsmApp.open_device(browser, base, 'Court A', problems, app_path(tid, 'court', 'A'),
-                                   before_load=lambda pg: pg.add_init_script(
-                                       "window.__ksmChanges=0;addEventListener('ksm:state-changed',()=>window.__ksmChanges++)"))
+        court = KsmApp.open_device(browser, base, 'Court A', problems, app_path(tid, 'court', 'A'))
         court.wait_generated()
         court.staff_login()
         court.open_court('A')
         m = court.wait_for(court.current_match, message='a match on Court A')
         assert (m['white'], m['red']) == (o['white'], o['red']), f'scorekeeper {m} vs overlay {o}'
 
+        # The islands' change signal is the store's subscription since #15 item 14a (was the ksm:state-changed event).
+        court.page.evaluate("window.__ksmChanges=0;window.KSMStore.subscribe(()=>window.__ksmChanges++)")
         started = time.time()
         court.score_point('W', 'M')
         wait_overlay(ov_a, lambda o: o['white_points'] == 'M', 'White Men on the overlay', source=court)
         point_s = time.time() - started
-        assert court.page.evaluate('window.__ksmChanges') > 0, 'no ksm:state-changed event after a court action'
+        assert court.page.evaluate('window.__ksmChanges') > 0, 'no store notification after a court action'
         court.hansoku('R')
         wait_overlay(ov_a, lambda o: o['red_hansoku'] == 1, 'Red hansoku indicator', source=court)
 

@@ -1,7 +1,8 @@
 // Legacy `state` and the store side by side (#15, docs/STORE.md section 2): the strict / production switch for writes
-// that miss the conversion (point 8), and the three actions through which `state` writes reach the store before a
-// field group has its own actions: replaceState() / assignState() (point 3) and a stray assignment (point 8). The
-// helpers that dispatch them are in app/modules/app-state.js.
+// that miss the conversion (point 8), and the action a stray assignment to a store getter dispatches in production
+// (point 8; moveToStore() in app/modules/app-state.js). Every field group has its own actions since #15 item 14a, which
+// retired replaceState() / assignState() and their legacy/stateReplaced / legacy/stateAssigned (a load is
+// tournament/loaded, app/store/slices/tournament.ts).
 import { createAction } from '@reduxjs/toolkit';
 import { freeze, setAutoFreeze } from 'immer';
 
@@ -33,10 +34,6 @@ export interface StoreWrite { path: string[]; value: unknown }
  * moveToStore()'s setter dispatches it (tests/store/legacy.test.mjs checks): it is a fallback, never a way to write.
  */
 export const legacyFieldAssigned = createAction<{ key: string } & StoreWrite>('legacy/fieldAssigned');
-/** replaceState(): the store-owned keys of a whole-state replace (a load, a remote apply, the tournament switch). */
-export const legacyStateReplaced = createAction<{ writes: StoreWrite[] }>('legacy/stateReplaced');
-/** assignState(): the store-owned keys of a partial assign (a division rename, the team-division migration). */
-export const legacyStateAssigned = createAction<{ writes: StoreWrite[] }>('legacy/stateAssigned');
 
 /**
  * `root` with each write's value at its path (missing objects on the way are created), copying only the objects on the

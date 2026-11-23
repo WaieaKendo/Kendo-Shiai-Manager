@@ -291,6 +291,15 @@ type MatchActionKey = 'matchUpdated' | 'allMatchesSet' | 'divisionMatchesSet' | 
 export const matchActions = Object.fromEntries((['matchUpdated', 'allMatchesSet', 'divisionMatchesSet', 'matchesUpdated', 'matchesAdded', 'matchesRemoved',
   'matchesSorted', 'matchesPatched'] as const).map(key => [key, createAction(`${key === 'matchUpdated' ? 'court' : 'tournament'}/${key}`, withMeta<HistoryWrites>())])) as
   unknown as Record<MatchActionKey, ActionCreatorWithPreparedPayload<[HistoryWrites, ActionMetaInput?], HistoryWrites, string, never, ActionMeta>>;
+/**
+ * A tournament loaded (#15 item 14a; docs/STORE.md section 2 point 4): a load, a remote apply, a rebase's result, the
+ * tournament switch's empty state. One action for the whole payload, as its migrated, repaired copy has it: `writes` holds
+ * each store-owned tournament key's value at its path (['tournament', key]; a key the payload lacks as undefined), applied
+ * by the root reducer as a path copy like the history and match actions (no Immer walk over a whole loaded tournament).
+ * Never the device fields (this device's view, point 4) nor the Setup fields (applySetupSnapshot() sets those with the
+ * Setup's precedence). Built by ksmLoadTournamentState() (app/modules/app-state.js), which replaced replaceState().
+ */
+export const tournamentLoaded = createAction<HistoryWrites>('tournament/loaded');
 function setCourtPointers(state: TournamentSliceState, { payload }: { payload: CourtPointers }) {
   for (const key of ['currentByDivision', 'courtState', 'courtActiveDivision'] as const) {
     const entries = payload[key];
