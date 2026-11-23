@@ -118,7 +118,7 @@ def main():
         assert (m['white'], m['red']) == (o['white'], o['red']), f'scorekeeper {m} vs overlay {o}'
 
         # The islands' change signal is the store's subscription since #15 item 14a (was the ksm:state-changed event).
-        court.page.evaluate("window.__ksmChanges=0;window.KSMStore.subscribe(()=>window.__ksmChanges++)")
+        court.page.evaluate("() => { window.__ksmChanges = 0; window.KSMStore.subscribe(() => window.__ksmChanges++); }")
         started = time.time()
         court.score_point('W', 'M')
         wait_overlay(ov_a, lambda o: o['white_points'] == 'M', 'White Men on the overlay', source=court)
