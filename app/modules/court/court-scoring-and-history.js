@@ -1,5 +1,5 @@
 // @ts-check
-import {assignState,ksmEmptyScore,ksmSetScore,state,stateFieldIsDerived,storeFieldPath} from '../app-state.js';
+import {ksmEmptyScore,ksmSetScore,state,stateFieldIsDerived,storeFieldPath} from '../app-state.js';
 import {maybeCreateKachinukiNext,renderAll} from './court-context-and-pool-editing.js';
 import {applyCourtState,findNextForCourt,syncOwnCourtPointer} from './court-match-order.js';
 import {KSM_UNDO_LOG_LIMIT,ksmMoveCourtHistory,ksmRecordCourtAction,ksmSetCourtHistories} from './court-history-store.js';
@@ -15,7 +15,6 @@ import {maybeAdvanceTeamBracket} from '../engine/engine-team-bracket.js';
 import {criticalAutoSave} from '../sync/cloud-session-and-autosave.js';
 import {renderProgress} from '../navigation.js';
 import {ksmSignalCourtActions} from '../react-bridges/court.js';
-import {ksmNotifyStateChanged} from '../react-bridges/state-bridge.js';
 import {renderPublic} from '../results/live-scores.js';
 import {showKsmToast} from '../sync/cloud-realtime-save-and-load.js';
 import {cloudSession,updateSaveStatus} from '../sync/cloud-session-and-autosave.js';
@@ -64,7 +63,7 @@ function cloneHistoryValue(value){return value===undefined?{...KSM_HISTORY_MISSI
 function historyComparableState(){const out={};historyKeyOrder(Object.keys(state)).forEach(k=>{if(!KSM_HISTORY_KEYS.has(k)&&state[k]!==undefined)out[k]=cloneHistoryValue(state[k])});return out}
 /**
  * `state`'s keys in the order they had while `allMatches` was a plain key (#15 PR 13c-2), so a court action's patches keep
- * their order in its saved entry. A load (replaceState()) deletes the plain keys and adds them back after the store
+ * their order in its saved entry. A load (ksmLoadTournamentState()) deletes the plain keys and adds them back after the store
  * getters, in the payload's order, where `allMatches` came right before `history` and `contextMode`; as a getter it keeps
  * its place in the literal. So once the plain keys are behind it (a load happened), it moves back among them.
  * @param {string[]} keys
@@ -114,17 +113,14 @@ export function performCourtAction(label,fn){return holdNotifications(()=>{
   const result=fn();const after=historyComparableState(),patches=buildHistoryPatches(before,after).map(patch=>stampHistoryPatchMatchIdentity(patch,before,after));
   // The entry is built whole, then recorded with the Redo list cleared, in one court/actionRecorded (#15 PR 13b).
   if(patches.length)ksmRecordCourtAction(court,withCourtHistoryIdentity({format:'patch-v1',label:label||'Action',court,when:new Date().toISOString(),clientId:cloudSession?.clientId||'',tabId:KSM_TAB_ID,revision:cloudSession?.revision||0,patches},before,after));
-  updateUndoButton();if(typeof ksmNotifyStateChanged==='function')ksmNotifyStateChanged('court action');return result;
+  updateUndoButton();return result;
 })}
 function historyPathParent(path,root=state){
   let target=root;
   for(let i=0;i<path.length-1;i++){
     const key=path[i],next=path[i+1];
-    if(target[key]===undefined||target[key]===null){
-      const empty=typeof next==='number'?[]:{};
-      // A store-owned top-level key is a getter: never assign it directly (docs/STORE.md section 2 point 8).
-      if(i===0&&root===state&&storeFieldPath(String(key),state))assignState({[key]:empty},state);else target[key]=empty;
-    }
+    // (Under `state` only a plain key comes here: applyHistoryPatch() writes a store-owned key into its own copy.)
+    if(target[key]===undefined||target[key]===null)target[key]=typeof next==='number'?[]:{};
     target=target[key];
   }
   return {target,key:path[path.length-1]};
@@ -142,9 +138,9 @@ function historyPathParent(path,root=state){
  *     `delete state[key]` / an assignment, and the store's value is frozen data): a top-level one sets the key's new value
  *     (undefined for a missing one), a deeper one (#15 PR 9: e.g. ['divisionCourts', d], recorded when a court action's
  *     render gave a division its default court) is written into a copy of the key. Same values as the old in-place writes.
- *     During an Undo/Redo (#15 PR 13b) the new values are collected in ksmHistoryStoreValues and go to the store in the
- *     entry's one court/undo or court/redo, with the entry's bouts (allMatches, PR 13c-2); a patch applied on its own goes
- *     through assignState() at once.
+ *     The new values are collected in ksmHistoryStoreValues and go to the store in the entry's one court/undo or
+ *     court/redo (#15 PR 13b), with the entry's bouts (allMatches, PR 13c-2). A patch is only applied inside an entry
+ *     (applyHistoryValues()); since #15 item 14a a store-owned patch outside one throws (it had a fallback write, never reached).
  */
 function applyHistoryPatch(patch,direction){
   const value=patch?.[direction],path=patch?.path||[];
@@ -154,7 +150,7 @@ function applyHistoryPatch(patch,direction){
   // patches never come here: applyCourtHistoryEntry() batches them into the entry's court/undo or court/redo.)
   if(key==='allMatches'){ksmWriteMatchPath(path,missing?undefined:JSON.parse(JSON.stringify(value)),missing,'history');return}
   if(!storeFieldPath(key,state)){writeHistoryValue(state,path,value,missing);return}
-  /** @type {Record<string,unknown>} */ const values=ksmHistoryStoreValues||{};
+  const values=historyStoreValues();
   if(path.length===1)values[key]=missing?undefined:JSON.parse(JSON.stringify(value));
   else{
     // The key's copy: the one an earlier patch of this entry made, else the store's value.
@@ -162,7 +158,6 @@ function applyHistoryPatch(patch,direction){
     writeHistoryValue(owned,path,value,missing);
     values[key]=owned[key];
   }
-  if(!ksmHistoryStoreValues)assignState(values,state);
 }
 /** Writes a patch's value (or removes it, `missing`) at `path` under `root`, creating missing parents. */
 function writeHistoryValue(root,path,value,missing){
@@ -176,6 +171,8 @@ function writeHistoryValue(root,path,value,missing){
 }
 /** The store-owned keys an Undo/Redo entry's patches change, while it is applied: key → its new value (#15 PR 13b). */
 /** @type {Record<string,unknown>|null} */ let ksmHistoryStoreValues=null;
+/** The entry's store values being collected; a store write outside an Undo/Redo entry is a bug (no action carries it). */
+function historyStoreValues(){if(!ksmHistoryStoreValues)throw new Error('A court history patch on store data outside an Undo/Redo entry');return ksmHistoryStoreValues}
 /**
  * Applies `action`'s patches for an Undo ('before') or a Redo ('after'): the new values of every store-owned key they
  * change are returned (dispatched by the caller with the history move), `allMatches` among them since #15 PR 13c-2 (the
@@ -383,7 +380,7 @@ function applyCourtHistoryEntry(action,direction){
   // Not dispatched here (#15 PR 13c-2): the map as the batch leaves it is read by the index fields below and the Undo log,
   // and goes to the store with the entry's other keys in its one court/undo or court/redo.
   const planned=ksmPlanMatchPaths(writes),results=planned.results;
-  if(planned.allMatches!==state.allMatches){if(ksmHistoryStoreValues)ksmHistoryStoreValues.allMatches=planned.allMatches;else assignState({allMatches:planned.allMatches},state)}
+  if(planned.allMatches!==state.allMatches)historyStoreValues().allMatches=planned.allMatches;
   for(let i=applied.length-1;i>=0;i--){
     if(typeof applied[i]!=='number')continue;
     const k=applied[i],result=results[k];

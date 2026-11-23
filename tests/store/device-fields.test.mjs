@@ -1,10 +1,10 @@
 // #15 PR 5 (docs/STORE.md section 3): the first device fields, regMode and poolViewDivision, in the store's `device` slice.
 // `state` reads them through getters; they are written only through device/registrationTabChanged and
-// device/poolViewDivisionChanged; a load (replaceState) keeps this device's value.
+// device/poolViewDivisionChanged; a load (ksmLoadTournamentState) keeps this device's value.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createKsmStore, deviceSlice, dispatch, getState, setStoreStrict, rootReducer } from '../../app/store/index.ts';
-import { ksmSetPoolViewDivision, replaceState, setStrayStoreWriteReporter, state, storeFieldPath } from '../../app/modules/app-state.js';
+import { ksmSetPoolViewDivision, ksmLoadTournamentState, setStrayStoreWriteReporter, state, storeFieldPath } from '../../app/modules/app-state.js';
 
 const actions = deviceSlice.actions;
 const KEYS = ['regMode', 'poolViewDivision'];
@@ -78,15 +78,15 @@ test('production: a stray assignment is logged, dispatches legacy/fieldAssigned 
   setStrayStoreWriteReporter(w => console.warn('[KSM Store] A store field was assigned outside an action', w));
 });
 
-test('a load keeps this device: replaceState ignores a payload regMode / poolViewDivision, and a missing one is not cleared', () => {
+test('a load keeps this device: ksmLoadTournamentState() ignores a payload regMode / poolViewDivision, and a missing one is not cleared', () => {
   dispatch(actions.registrationTabChanged('pools'));
   dispatch(actions.poolViewDivisionChanged('Open'));
   const own = { ...JSON.parse(JSON.stringify(state)) };
-  replaceState({ ...own, regMode: 'team', poolViewDivision: 'Other' });
+  ksmLoadTournamentState({ ...own, regMode: 'team', poolViewDivision: 'Other' });
   assert.equal(state.regMode, 'pools');
   assert.equal(state.poolViewDivision, 'Open');
   const { regMode, poolViewDivision, ...without } = own;
-  replaceState(without);
+  ksmLoadTournamentState(without);
   assert.equal(state.regMode, 'pools');
   assert.equal(state.poolViewDivision, 'Open');
   assert.deepEqual(Object.keys(state).filter(k => KEYS.includes(k)), ['poolViewDivision', 'regMode'], 'both stay in the snapshot');

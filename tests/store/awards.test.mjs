@@ -6,7 +6,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { createKsmStore, dispatch, getState, setStoreStrict, tournamentSlice } from '../../app/store/index.ts';
-import { assignState, replaceState, setStrayStoreWriteReporter, state, storeFieldPath } from '../../app/modules/app-state.js';
+import { ksmLoadTournamentState, setStrayStoreWriteReporter, state, storeFieldPath } from '../../app/modules/app-state.js';
+import { assignStoreKeys } from '../lib/store-keys.mjs';
 import * as KSMEngine from '../../app/engine/index.ts';
 
 const A = tournamentSlice.actions;
@@ -95,7 +96,7 @@ test('a division rename carries the grand champions: one action, the players and
 });
 
 test('strict mode: an award or a grand champion edited in place, or its list written, throws', () => {
-  replaceState({ ...json(state), awards: [award('a')], grandChampions: [gc('gc:a', 0), gc('gc:b', 1)] });
+  ksmLoadTournamentState({ ...json(state), awards: [award('a')], grandChampions: [gc('gc:a', 0), gc('gc:b', 1)] });
   try {
     for (const write of [() => { state.awards = []; }, () => { state.grandChampions = []; }, () => { state.awards.push({}); },
       () => { state.awards[0].name = 'x'; }, () => { state.grandChampions[0].name = 'x'; }, () => { state.grandChampions[0].order = 5; },
@@ -105,7 +106,7 @@ test('strict mode: an award or a grand champion edited in place, or its list wri
     assert.deepEqual(json(state).awards, [award('a')]);
   } finally {
     const { grandChampions, ...rest } = json(state);
-    replaceState({ ...rest, awards: [] });
+    ksmLoadTournamentState({ ...rest, awards: [] });
   }
 });
 
@@ -126,24 +127,24 @@ test('production: a stray assignment is logged and applied', () => {
     setStoreStrict(true);
     setStrayStoreWriteReporter(w => console.warn(w));
     const { grandChampions, ...rest } = json(state);
-    replaceState({ ...rest, awards: [] });
+    ksmLoadTournamentState({ ...rest, awards: [] });
   }
 });
 
-test('replaceState() / assignState() put the two fields in the store with their rows in order', () => {
+test('ksmLoadTournamentState() / assignStoreKeys() put the two fields in the store with their rows in order', () => {
   const saved = json(state);
   const loaded = { ...saved, awards: [award('z'), award('a', { award: 'Kantosho' })], grandChampions: [gc('gc:b', 1), gc('gc:a', 0)] };
-  replaceState(loaded);
+  ksmLoadTournamentState(loaded);
   const snap = json(state);
   assert.deepEqual(snap.awards, loaded.awards);
   assert.deepEqual(snap.grandChampions, loaded.grandChampions, 'the stored order, not the sorted one');
   // A 4.0 save without grand champions: undefined, not in the snapshot.
   const { grandChampions, ...old } = loaded;
-  replaceState(old);
+  ksmLoadTournamentState(old);
   assert.ok(!('grandChampions' in json(state)));
-  assignState({ grandChampions: loaded.grandChampions });
+  assignStoreKeys({ grandChampions: loaded.grandChampions });
   assert.deepEqual(json(state).grandChampions, loaded.grandChampions);
-  replaceState(saved);
+  ksmLoadTournamentState(saved);
   assert.deepEqual(json(state), saved);
 });
 

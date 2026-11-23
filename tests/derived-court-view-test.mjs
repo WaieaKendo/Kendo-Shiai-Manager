@@ -30,7 +30,7 @@ const json = v => JSON.stringify(v);
 
 const STUBS = ['ksmMoveCourtPointers', 'renderDivisions', 'renderScore', 'renderPools', 'renderProgress', 'renderContext', 'renderPublic', 'renderAll', 'renderQueue', 'applyCourtSides',
   'criticalAutoSave', 'scheduleAutoSave', 'updateUndoButton', 'updateSaveStatus', 'showKsmToast', 'ksmNotifyStateChanged', 'ksmSignalCourtActions', 'ksmSignalCourtHeader',
-  'ksmSignalCourtScoreboard', 'setCourtCompletePresentation', 'divisionComplete', 'writeCloudDiagnosticsState', 'KSM_TAB_ID', 'storeFieldPath', 'assignState',
+  'ksmSignalCourtScoreboard', 'setCourtCompletePresentation', 'divisionComplete', 'writeCloudDiagnosticsState', 'KSM_TAB_ID', 'storeFieldPath', 'assignStoreKeys',
   'isReadOnlySession', 'canCloudWrite', 'isTvSession', 'ksmSetCurrentCourt', 'ksmSetPublicCourt', 'ksmShowDivision', 'setLocalCourtDivision', 'ksmLocalCourtDivision',
   'pinCourtLocally', 'localCourtDivision', 'rememberLocalCourtDivision', 'show', 'alert', 'maybeCreateTiebreaks', 'maybeCreateTeamTiebreak', 'maybeCreateKachinukiNext',
   'maybeAdvanceTeamBracket', 'maybeCreateChampionship', 'maybeAdvanceChampionship', 'maybeAdvanceIndividualSingleElim', 'completedResultSnapshot', 'cloudSession',
@@ -81,7 +81,7 @@ function device(code, derived, { staff = true, tv = false, court = 'A' }) {
     renderDivisions() {}, renderScore() {}, renderPools() {}, renderProgress() {}, renderContext() {}, renderPublic() {}, renderAll() {}, renderQueue() {}, applyCourtSides() {},
     criticalAutoSave() {}, scheduleAutoSave() {}, updateUndoButton() {}, updateSaveStatus() {}, showKsmToast() {}, ksmNotifyStateChanged() {}, ksmSignalCourtActions() {},
     ksmSignalCourtHeader() {}, ksmSignalCourtScoreboard() {}, setCourtCompletePresentation() {}, divisionComplete: () => false, writeCloudDiagnosticsState() {}, alert() {},
-    storeFieldPath: () => null, assignState() { throw new Error('no store-owned key here'); }, show() {},
+    storeFieldPath: () => null, assignStoreKeys() { throw new Error('no store-owned key here'); }, show() {},
     isReadOnlySession: () => !staff, canCloudWrite: () => staff, isTvSession: () => tv, pinCourtLocally: c => c,
     localCourtDivision: c => local[c], rememberLocalCourtDivision(c, d) { local[c] = d; }, setLocalCourtDivision(c, d) { local[c] = d; },
     ksmSetCurrentCourt(c) { context.state.currentCourt = c; }, ksmSetPublicCourt(c) { context.state.publicCourt = c; }, ksmShowDivision(d) { context.state.currentDivision = d; },

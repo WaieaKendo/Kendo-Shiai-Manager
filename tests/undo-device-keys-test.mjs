@@ -15,12 +15,13 @@
 //   * the one difference: after the court was switched to another division (not a court action), 4.0 wrote the
 //     entry's `matches` patches by index into that other division's matches; now only allMatches is written;
 //   * a top-level patch on a key moveToStore() owns (a getter): 4.0 threw (delete / assignment on the getter, strict
-//     mode); now it goes through the store (assignState), for a value and for a missing one.
+//     mode); now it goes through the store (in the entry's court/undo or court/redo), for a value and for a missing one.
 import vm from 'node:vm';
 import { extractFunction, html, withDependencies } from './lib/ksm-source.mjs';
 import { gitShow } from './lib/git-show.mjs';
 import { deriveMatches, HISTORY_HELPERS, viewHelpers } from './lib/derived-matches.mjs';
-import { assignState, moveToStore, storeFieldPath } from '../app/modules/app-state.js';
+import { moveToStore, storeFieldPath } from '../app/modules/app-state.js';
+import { assignStoreKeys } from './lib/store-keys.mjs';
 import { getState } from '../app/store/index.ts';
 
 const BASE = 'f8240cae77b991285f4a5be53620f1076f17c6ea'; // next/4.1 before this PR (#173 merged)
@@ -30,7 +31,7 @@ const check = (ok, name) => { count++; if (!ok) { console.log(`FAIL ${name}`); f
 const json = v => JSON.stringify(v);
 
 const STUBS = ['ksmMoveCourtPointers', 'applyCourtSides', 'renderAll', 'updateUndoButton', 'updateSaveStatus', 'criticalAutoSave', 'showKsmToast', 'ksmNotifyStateChanged',
-  'ksmSignalCourtActions', 'storeFieldPath', 'assignState', 'renderScore', 'renderPools', 'renderProgress', 'renderPublic', 'writeCloudDiagnosticsState', 'KSM_TAB_ID',
+  'ksmSignalCourtActions', 'storeFieldPath', 'assignStoreKeys', 'renderScore', 'renderPools', 'renderProgress', 'renderPublic', 'writeCloudDiagnosticsState', 'KSM_TAB_ID',
   // The court view's store helpers (#15 PR 6): here they write the context's plain `state`; this device is Court A's scorekeeper.
   'ksmSetCurrentCourt', 'ksmSetPublicCourt', 'ksmShowDivision', 'canCloudWrite', 'isTvSession',
   // PR 7: state.matches is derived (deriveMatches()), current and score are written through these.
@@ -70,7 +71,7 @@ function makeContext(code) {
     window: { dispatchEvent() {} }, Event: class {},
     applyCourtSides() {}, renderAll() {}, updateUndoButton() {}, updateSaveStatus() {}, criticalAutoSave() {}, showKsmToast() {}, ksmNotifyStateChanged() {},
     ksmSignalCourtActions() {}, renderScore() {}, renderPools() {}, renderProgress() {}, renderPublic() {}, writeCloudDiagnosticsState() {},
-    storeFieldPath: () => null, assignState() { throw new Error('no store-owned key in this case'); },
+    storeFieldPath: () => null, assignStoreKeys() { throw new Error('no store-owned key in this case'); },
     canCloudWrite: () => true, isTvSession: () => false,
     ksmSetCurrentCourt(c) { context.state.currentCourt = c; }, ksmSetPublicCourt(c) { context.state.publicCourt = c; }, ksmShowDivision(d) { context.state.currentDivision = d; },
   };
@@ -215,7 +216,7 @@ if (OLD) {
     const c = makeContext(code);
     c.state = deriveMatches(tournament());
     c.storeFieldPath = storeFieldPath;
-    c.assignState = assignState;
+    c.assignStoreKeys = assignStoreKeys; // the vm's stand-in for the entry's court/undo / court/redo (tests/lib/derived-matches.mjs)
     return c;
   };
   const MISSING = { __ksmMissing: true };
@@ -235,11 +236,16 @@ if (OLD) {
   check(!error, `undo (a missing value, today a delete) of a store-owned top-level key: no throw (${error?.message})`);
   check(getState().tournament.undoProbe === undefined && c.state.undoProbe === undefined && Object.hasOwn(c.state, 'undoProbe'), 'undo: the store holds undefined, the getter stays');
   check(json(c.state.allMatches.Open[0].wp) === '[]', 'undo: the rest of the entry applied');
-  // A nested path under a store-owned key that is missing: the empty parent is created through the store too.
+  // A nested path under a store-owned key that is missing: the parent is created in the key's copy, which goes to the store
+  // with the entry (#15 item 14a: historyPathParent() no longer writes the store itself; only plain keys reach it there).
   moveToStore('undoProbeParent', ['tournament', 'undoProbeParent'], c.state);
-  let created = null;
-  try { vm.runInContext('historyPathParent(["undoProbeParent","x"])', c); created = getState().tournament.undoProbeParent; } catch (e) { error = e; }
-  check(json(created) === '{}', `a missing store-owned parent is created through the store (${error?.message || json(created)})`);
+  c.state.courtRedoHistory.A.push({ ...fixture('undoProbe'), patches: [{ path: ['undoProbeParent', 'x'], before: MISSING, after: 1 }] });
+  error = null;
+  try { c.redo(); } catch (e) { error = e; }
+  check(!error && json(getState().tournament.undoProbeParent) === '{"x":1}', `a missing store-owned parent is created in the entry's copy (${error?.message || json(getState().tournament.undoProbeParent)})`);
+  let outside = null;
+  try { vm.runInContext('applyHistoryPatch({path: ["undoProbeParent", "y"], after: 2}, "after")', c); } catch (e) { outside = e; }
+  check(/outside an Undo\/Redo entry/.test(outside?.message || ''), `a store-owned patch outside an entry throws (${outside?.message})`);
   if (OLD) {
     const o = storeContext(oldCode);
     moveToStore('undoProbeOld', ['tournament', 'undoProbeOld'], o.state);

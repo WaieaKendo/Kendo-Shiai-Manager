@@ -7,8 +7,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { createKsmStore, dispatch, getState, legacyStateAssigned, setStoreStrict, tournamentSlice, withTeamCourt } from '../../app/store/index.ts';
-import { assignState, replaceState, setStrayStoreWriteReporter, state, storeFieldPath } from '../../app/modules/app-state.js';
+import { createKsmStore, dispatch, getState, setStoreStrict, tournamentLoaded, tournamentSlice, withTeamCourt } from '../../app/store/index.ts';
+import { ksmLoadTournamentState, setStrayStoreWriteReporter, state, storeFieldPath } from '../../app/modules/app-state.js';
+import { assignStoreKeys } from '../lib/store-keys.mjs';
 import * as KSMEngine from '../../app/engine/index.ts';
 
 const A = tournamentSlice.actions;
@@ -130,10 +131,10 @@ test('the team court: divisionCourts[\'Team Tournament\'] is settings.teamCourt 
   assert.equal(t(s).divisionCourts[TT], 'B');
   s.dispatch(A.divisionRemoved(KSMEngine.removedDivision(t(s), TT), meta));
   assert.equal(t(s).divisionCourts[TT], 'B', 'removing a division of that name keeps the team court');
-  // A legacy write (a load) with another value or none: the Setup's value, at the payload's place when it names it.
-  s.dispatch(legacyStateAssigned({ writes: [{ path: ['tournament', 'divisionCourts'], value: { [TT]: 'A', Open: 'B' } }] }));
+  // A load (tournament/loaded) with another value or none: the Setup's value, at the payload's place when it names it.
+  s.dispatch(tournamentLoaded({ writes: [{ path: ['tournament', 'divisionCourts'], value: { [TT]: 'A', Open: 'B' } }] }));
   assert.deepEqual(Object.entries(t(s).divisionCourts), [[TT, 'B'], ['Open', 'B']]);
-  s.dispatch(legacyStateAssigned({ writes: [{ path: ['tournament', 'divisionCourts'], value: undefined }] }));
+  s.dispatch(tournamentLoaded({ writes: [{ path: ['tournament', 'divisionCourts'], value: undefined }] }));
   assert.deepEqual(t(s).divisionCourts, { [TT]: 'B' });
   // withTeamCourt keeps the object when it already agrees (no new state, no re-render).
   const now = t(s);
@@ -198,11 +199,11 @@ test('production: a stray assignment is logged and applied', () => {
   } finally {
     setStoreStrict(true);
     setStrayStoreWriteReporter(w => console.warn(w));
-    replaceState({ ...json(state), divisions: before.divisions, divisionTypes: before.divisionTypes, divisionCourts: before.divisionCourts, hiddenPresets: before.hiddenPresets, divisionRenames: before.divisionRenames });
+    ksmLoadTournamentState({ ...json(state), divisions: before.divisions, divisionTypes: before.divisionTypes, divisionCourts: before.divisionCourts, hiddenPresets: before.hiddenPresets, divisionRenames: before.divisionRenames });
   }
 });
 
-test('replaceState() / assignState() put the five fields in the store; the snapshot keeps every value and type', () => {
+test('ksmLoadTournamentState() / assignStoreKeys() put the five fields in the store; the snapshot keeps every value and type', () => {
   const saved = json(state);
   const loaded = {
     ...saved,
@@ -210,12 +211,12 @@ test('replaceState() / assignState() put the five fields in the store; the snaps
     divisionCourts: { Open: 'B', [TT]: 'A', Kids: 'split' }, hiddenPresets: ['Women’s Open'],
     divisionRenames: [{ id: 'c:1', from: 'Kids 1', to: 'Kids' }],
   };
-  replaceState(loaded);
+  ksmLoadTournamentState(loaded);
   const snap = json(state);
   for (const key of KEYS) assert.deepEqual(snap[key], key === 'divisionCourts' ? { ...loaded.divisionCourts, [TT]: getState().tournament.settings.teamCourt } : loaded[key], key);
   assert.deepEqual(Object.keys(snap.divisionCourts), ['Open', TT, 'Kids'], 'the team court keeps the payload\'s place');
-  assignState({ hiddenPresets: undefined, divisionRenames: undefined });
+  assignStoreKeys({ hiddenPresets: undefined, divisionRenames: undefined });
   assert.ok(!('hiddenPresets' in json(state)), 'undefined again: not in the snapshot');
-  replaceState(saved);
+  ksmLoadTournamentState(saved);
   assert.deepEqual(json(state), saved);
 });

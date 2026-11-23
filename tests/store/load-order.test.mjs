@@ -1,5 +1,5 @@
 // #15 PR 2 (docs/STORE.md section 2, point 4): applyTournamentPayload() runs sanitizeLoadedTournamentState() and
-// normalizeAllIndividualPoolTiebreakOrder() on the loaded copy BEFORE it replaces `state` (replaceState()), where it
+// normalizeAllIndividualPoolTiebreakOrder() on the loaded copy BEFORE it replaces `state` (ksmLoadTournamentState()), where it
 // used to run them on the live `state` after `delete` + Object.assign. This test runs both orders, the app's own
 // functions (as they are in app/modules, in a vm with their dependencies), on payloads built from every engine golden
 // plus payloads that need each repair, while `state` still holds another tournament, and asserts the same `state` and
@@ -10,7 +10,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import { extractFunction, html, withDependencies } from '../lib/ksm-source.mjs';
-import { replaceState } from '../../app/modules/app-state.js';
+import { ksmLoadTournamentState } from '../../app/modules/app-state.js';
 
 const ROOT = path.resolve(import.meta.dirname, '../..');
 const SOURCE = 'live sync';
@@ -21,8 +21,8 @@ const applyFn = extractFunction(loadSource, 'applyTournamentPayload');
 test('applyTournamentPayload repairs the loaded copy, then replaces state', () => {
   const at = s => { const i = applyFn.indexOf(s); assert.ok(i >= 0, `applyTournamentPayload calls ${s}`); return i; };
   assert.ok(at("sanitizeLoadedTournamentState(loaded,") < at("normalizeAllIndividualPoolTiebreakOrder(loaded,"));
-  assert.ok(at("normalizeAllIndividualPoolTiebreakOrder(loaded,") < at('replaceState(loaded);'));
-  assert.doesNotMatch(applyFn, /delete state\[|Object\.assign\(state/, 'no whole-object write to state outside replaceState()');
+  assert.ok(at("normalizeAllIndividualPoolTiebreakOrder(loaded,") < at('ksmLoadTournamentState(loaded);'));
+  assert.doesNotMatch(applyFn, /delete state\[|Object\.assign\(state/, 'no whole-object write to state outside ksmLoadTournamentState()');
 });
 
 const logs = [];
@@ -53,7 +53,7 @@ function newOrder(previous, loaded) {
   const live = context.state = clone(previous);
   context.sanitizeLoadedTournamentState(loaded, SOURCE);
   context.normalizeAllIndividualPoolTiebreakOrder(loaded, SOURCE);
-  replaceState(loaded, live);
+  ksmLoadTournamentState(loaded, live);
   return { json: JSON.stringify(live), logs: [...logs] };
 }
 

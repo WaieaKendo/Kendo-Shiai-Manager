@@ -6,9 +6,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createKsmStore, deviceSlice, dispatch, getState, setStoreStrict } from '../../app/store/index.ts';
 import {
-  assignState, ksmEmptyScore, ksmResetCourtPads, ksmSetCurrentCourt, ksmSetScore, ksmShowDivision, ksmShowMatch, replaceState, setStrayStoreWriteReporter,
+  ksmEmptyScore, ksmResetCourtPads, ksmSetCurrentCourt, ksmSetScore, ksmShowDivision, ksmShowMatch, ksmLoadTournamentState, setStrayStoreWriteReporter,
   state, stateFieldIsDerived, storeFieldPath,
 } from '../../app/modules/app-state.js';
+import { assignStoreKeys } from '../lib/store-keys.mjs';
 
 const actions = deviceSlice.actions;
 const empty = () => ({ W: [], R: [], WT: 0, RT: 0 });
@@ -18,9 +19,9 @@ function reset() {
   ksmSetCurrentCourt('A'); ksmShowDivision('Women’s Open'); ksmResetCourtPads();
   // (allMatches is store data since #15 PR 13c-2: a whole-map write, as a load makes it.)
   const { Open, Kids, ...rest } = state.allMatches || {};
-  assignState({ allMatches: rest });
+  assignStoreKeys({ allMatches: rest });
 }
-const setMatches = (div, list) => assignState({ allMatches: { ...state.allMatches, [div]: list } });
+const setMatches = (div, list) => assignStoreKeys({ allMatches: { ...state.allMatches, [div]: list } });
 function withOpen() { setMatches('Open', [bout(1), bout(2), bout(3)]); ksmShowDivision('Open'); return state.allMatches.Open; }
 
 test('the slice: the shown index and a pad per court, one action each', () => {
@@ -130,21 +131,21 @@ test('production: matches is logged and ignored; current and score are logged an
   }
 });
 
-test('a load ignores the payload\'s matches, current and score; assignState ignores matches', () => {
+test('a load ignores the payload\'s matches, current and score; a test assign ignores matches', () => {
   const open = withOpen();
   ksmShowMatch(1); ksmSetScore({ W: ['M'], R: [], WT: 0, RT: 0 });
   const own = JSON.parse(JSON.stringify(state));
-  // Another device's payload (remote apply, reload, first load, file load, tournament switch all go through replaceState).
-  replaceState({ ...own, matches: [bout(9)], current: 2, score: { W: [], R: ['K', 'K'], WT: 0, RT: 0 } });
+  // Another device's payload (remote apply, reload, first load, file load, tournament switch all go through ksmLoadTournamentState()).
+  ksmLoadTournamentState({ ...own, matches: [bout(9)], current: 2, score: { W: [], R: ['K', 'K'], WT: 0, RT: 0 } });
   assert.equal(state.current, 1);
   assert.deepEqual(state.score, { W: ['M'], R: [], WT: 0, RT: 0 });
   assert.equal(state.matches, state.allMatches.Open, 'the loaded allMatches.Open, not the payload\'s matches copy');
   assert.deepEqual(state.matches, JSON.parse(JSON.stringify(open)));
   const { matches, current, score, ...without } = own;
-  replaceState(without);
+  ksmLoadTournamentState(without);
   assert.equal(state.current, 1);
   assert.ok(['matches', 'current', 'score'].every(k => Object.keys(state).includes(k)), 'still in the snapshot');
-  assignState({ matches: [bout(8)] });
+  assignStoreKeys({ matches: [bout(8)] });
   assert.equal(state.matches, state.allMatches.Open);
   reset();
 });

@@ -1,13 +1,13 @@
 // #15 PR 6 (docs/STORE.md section 3 item 6): the court view in the store's `device` slice. state.currentCourt,
 // state.publicCourt and state.currentDivision are store getters written only through device/courtChosen,
 // device/publicCourtChanged and device/divisionShown; the division a court device chose per court
-// (ksmLocalCourtDivision) is device.localCourtDivision. A load (replaceState) keeps all of them; the snapshot still
+// (ksmLocalCourtDivision) is device.localCourtDivision. A load (ksmLoadTournamentState) keeps all of them; the snapshot still
 // carries the three `state` fields with their values.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createKsmStore, deviceSlice, dispatch, getState, setStoreStrict } from '../../app/store/index.ts';
 import {
-  ksmSetCurrentCourt, ksmSetPublicCourt, ksmShowDivision, replaceState, setStrayStoreWriteReporter, state, storeFieldPath,
+  ksmSetCurrentCourt, ksmSetPublicCourt, ksmShowDivision, ksmLoadTournamentState, setStrayStoreWriteReporter, state, storeFieldPath,
 } from '../../app/modules/app-state.js';
 
 const actions = deviceSlice.actions;
@@ -87,13 +87,13 @@ test('a load keeps this device\'s court, public court, division and per-court ch
   ksmSetCurrentCourt('B'); ksmSetPublicCourt('B'); ksmShowDivision('Juniors');
   dispatch(actions.localCourtDivisionChosen({ court: 'B', division: 'Juniors' }));
   const own = JSON.parse(JSON.stringify(state));
-  // Another device's payload (remote apply, reload, first load, file load, tournament switch all go through replaceState).
-  replaceState({ ...own, currentCourt: 'A', publicCourt: 'A', currentDivision: 'Open' });
+  // Another device's payload (remote apply, reload, first load, file load, tournament switch all go through ksmLoadTournamentState()).
+  ksmLoadTournamentState({ ...own, currentCourt: 'A', publicCourt: 'A', currentDivision: 'Open' });
   assert.deepEqual([state.currentCourt, state.publicCourt, state.currentDivision], ['B', 'B', 'Juniors']);
   assert.deepEqual(getState().device.localCourtDivision, { A: null, B: 'Juniors' });
   // A payload without the fields (an old file) does not clear them.
   const { currentCourt, publicCourt, currentDivision, ...without } = own;
-  replaceState(without);
+  ksmLoadTournamentState(without);
   assert.deepEqual([state.currentCourt, state.publicCourt, state.currentDivision], ['B', 'B', 'Juniors']);
   assert.ok(KEYS.every(k => Object.keys(state).includes(k)), 'still in the snapshot');
   reset();

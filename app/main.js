@@ -44,7 +44,7 @@ import {ksmBindRegistrationEntry,ksmBindRegistrationRow,ksmBlurRedrawn,ksmConfir
 import {ksmRenderResults,ksmRenderResultsBracket,ksmSetResultAward} from './modules/react-bridges/results.js';
 import {ksmDivisionPresetNames,ksmDivisionRemoveBlocked,ksmDivisionRenameBlocked,ksmMoveSetupDivision,ksmPublishSetup,ksmRemoveSetupDivision,ksmRenameSetupDivision,ksmRenderSetupDivisions,ksmRenderSetupHeader,ksmRestoreStandardDivisions} from './modules/react-bridges/setup.js';
 import {ksmCanDeleteTournament,ksmCloseCloudModal,ksmCloseShellDialog,ksmCloudModalOpen,ksmConfirmDeleteTournament,ksmConfirmValidation,ksmContinueRegenerateDivision,ksmNavActive,ksmNavMenuStyle,ksmNavOpenMenu,ksmOpenCloudModal,ksmOpenDeleteTournament,ksmOpenDiagnostics,ksmOpenFileLoadModal,ksmOpenRegenerateDialog,ksmOpenTournamentAccess,ksmPersistentSaveStatusText,ksmPublishHeader,ksmRegeneratePoolDivision,ksmRenderConnectionStatus,ksmRenderPresence,ksmRenderSaveStatus,ksmRenderSessionRole,ksmSetActiveNav,ksmSetFusenOpen,ksmSetTestTools,ksmShellDialogs,ksmShellDialogsState,ksmShellHeaderState,ksmShowValidationDialog,ksmToggleTestTools,setKsmForgotTournament} from './modules/react-bridges/shell.js';
-import {ksmLegacyCloudSession,ksmLegacyState,ksmLegacyStateVersion,ksmNotifyStateChanged} from './modules/react-bridges/state-bridge.js';
+import {ksmLegacyCloudSession,ksmLegacyState} from './modules/react-bridges/state-bridge.js';
 import {ksmRenderTv} from './modules/react-bridges/tv.js';
 import {ksmAddGrandChampion,ksmDecideGrandChampion,ksmGrandChampion,ksmGrandChampionChoose,ksmGrandChampions,ksmMoveGrandChampion,ksmOpenGrandChampionWithdraw,ksmRemoveGrandChampion,ksmSyncGrandChampions,ksmToggleGrandChampionSource,ksmUpdateGrandChampion} from './modules/registration/grand-champion.js';
 import {addAutoTeam,addExhibitionRow,addRow,addTeamRow,clearCompetitors,clearExhibitions,clearTeams,closeManagementModal,continueRegenerateDivision,cycleCompetitorStatus,cycleTeamStatus,loadFullTournament,loadSamples,loadTeamSamples,openRegenerateDivisionDialog,renderExhibitions,renderReg,renderTeams} from './modules/registration/registration.js';
@@ -193,7 +193,7 @@ Object.assign(window, {
   ksmHeaderLogo, ksmIsExplicitSpectatorUrl, ksmLinkParams, ksmLinkUrl, ksmRecordScreenPath, ksmReplaceUrl, ksmResolvedUrl, ksmResolveSlug,
   ksmShowRequestedScreen, ksmTournamentHomeUrl,
   // app/modules/react-bridges/state-bridge.js
-  ksmLegacyCloudSession, ksmLegacyState, ksmLegacyStateVersion, ksmNotifyStateChanged,
+  ksmLegacyCloudSession, ksmLegacyState,
   // app/modules/registration/grand-champion.js
   ksmAddGrandChampion, ksmDecideGrandChampion, ksmGrandChampion, ksmGrandChampionChoose, ksmGrandChampions, ksmMoveGrandChampion,
   ksmOpenGrandChampionWithdraw, ksmRemoveGrandChampion, ksmToggleGrandChampionSource, ksmUpdateGrandChampion,

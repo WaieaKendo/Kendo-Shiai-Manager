@@ -47,8 +47,8 @@ export function pointerHelpers(context) {
 /**
  * #15 PR 13b: the court history is store data in the app, written through app/modules/court/court-history-store.js. In a
  * vm test whose `state` is `context.state` these do what those actions do to it (the same lists, the same limits); the
- * store-owned keys an Undo/Redo changed go through `context.assignState` when there are any (a test that makes a key a
- * getter gives it the app's). Exclude 'ksmRecordCourtAction', 'ksmMoveCourtHistory', 'ksmSetCourtHistories' from
+ * store-owned keys an Undo/Redo changed go through `context.assignStoreKeys` when there are any (a test that makes a
+ * key a getter gives it tests/lib/store-keys.mjs; the app sends them in its court/undo or court/redo). Exclude 'ksmRecordCourtAction', 'ksmMoveCourtHistory', 'ksmSetCourtHistories' from
  * withDependencies() (HISTORY_HELPERS).
  */
 export const HISTORY_HELPERS = ['ksmRecordCourtAction', 'ksmMoveCourtHistory', 'ksmSetCourtHistories'];
@@ -63,7 +63,7 @@ export function historyHelpers(context) {
       const action = list(from, court).pop();
       if (action) push(to, court, action, 100);
       push('courtUndoLog', court, log, 40);
-      if (Object.keys(values).length) context.assignState(values, context.state);
+      if (Object.keys(values).length) context.assignStoreKeys(values, context.state);
     },
     ksmSetCourtHistories(type, lists) { Object.assign(context.state, lists); },
   };

@@ -7,7 +7,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { createKsmStore, dispatch, getState, setStoreStrict, tournamentSlice } from '../../app/store/index.ts';
-import { assignState, replaceState, setStrayStoreWriteReporter, state, storeFieldPath } from '../../app/modules/app-state.js';
+import { ksmLoadTournamentState, setStrayStoreWriteReporter, state, storeFieldPath } from '../../app/modules/app-state.js';
+import { assignStoreKeys } from '../lib/store-keys.mjs';
 import * as KSMEngine from '../../app/engine/index.ts';
 
 const A = tournamentSlice.actions;
@@ -118,16 +119,20 @@ test('the rename is one tournament/divisionRenamed: the players move with the di
   assert.deepEqual(t(s).competitors.map(c => c.division), ['Under 12', 'Open']);
   assert.equal(t(s).competitors[1], before.competitors[1], 'a player of another division is the same object');
   assert.ok(t(s).divisions.includes('Under 12') && !t(s).divisions.includes('Kids'));
-  // The app: the list includes competitors; the caller's assignState() no longer carries it.
+  // The app: the list includes competitors, and since #15 item 14a nothing else of the rename is assigned to `state`.
   const store = read('app/modules/setup/divisions-store.js'), setup = read('app/modules/react-bridges/setup.js');
   assert.match(store, /export const KSM_RENAMED_STATE_KEYS=Object\.freeze\(\[\.\.\.KSM_DIVISION_STATE_KEYS,'competitors','grandChampions','courtState','courtActiveDivision'\]\);/);
   assert.match(store, /for\(const key of KSM_RENAMED_STATE_KEYS\)/);
-  // (#15 PR 13c-1: `allMatches` goes through its write module, the other plain keys as before.)
-  assert.match(setup, /filter\(\(\[k\]\)=>!KSM_RENAMED_STATE_KEYS\.includes\(k\)&&k!=='allMatches'\)\);\n\s*if\(Object\.hasOwn\(rest,'allMatches'\)\)ksmSetAllMatches\([^;]*\);\n\s*assignState\(plain\);\n\s*ksmRenameDivisionLists\(rest\);/);
+  // (#15 PR 13c-1: `allMatches` goes through its write module; item 14a: no plain assign, the engine rewrites only these keys.)
+  assert.match(setup, /if\(Object\.hasOwn\(rest,'allMatches'\)\)ksmSetAllMatches\([^;]*\);\n\s*ksmRenameDivisionLists\(rest\);/);
+  assert.doesNotMatch(setup, /assignState|Object\.assign\(state/);
+  const all = KSMEngine.renamedDivisionState({ ...json(state), currentDivision: 'Kids', poolViewDivision: 'Kids', courtState: { A: { division: 'Kids', index: 0 } }, courtActiveDivision: { A: 'Kids' } }, 'Kids', 'Under 12', { id: 'r', from: 'Kids', to: 'Under 12' });
+  const KEYS = ['divisions', 'divisionTypes', 'divisionCourts', 'hiddenPresets', 'divisionRenames', 'competitors', 'grandChampions', 'courtState', 'courtActiveDivision'];
+  assert.deepEqual(Object.keys(all).filter(k => !KEYS.includes(k)).sort(), ['currentDivision', 'poolViewDivision'], 'a rename rewrites only the action\'s keys and the two device fields');
 });
 
 test('strict: assigning a field, a list method or an in-place row edit throws and changes nothing', () => {
-  replaceState({ ...json(state), competitors: [player('a')], teams: [{ id: 't:1', team: 'T', status: 'Checked' }],
+  ksmLoadTournamentState({ ...json(state), competitors: [player('a')], teams: [{ id: 't:1', team: 'T', status: 'Checked' }],
     exhibitions: [{ white: 'W', red: 'R', division: 'Exhibition Matches', status: 'Registered' }] });
   const before = json(state);
   assert.throws(() => { state.competitors = []; }, /state\.competitors is in the store \(tournament\.competitors\)/);
@@ -139,7 +144,7 @@ test('strict: assigning a field, a list method or an in-place row edit throws an
   assert.throws(() => { state.exhibitions[0].white = 'x'; }, TypeError);
   assert.throws(() => { delete state.teamDivisions; }, TypeError, 'the getter cannot be deleted');
   assert.deepEqual(json(state), before);
-  replaceState({ ...json(state), competitors: [], teams: [], exhibitions: [] });
+  ksmLoadTournamentState({ ...json(state), competitors: [], teams: [], exhibitions: [] });
 });
 
 test('production: a stray assignment is logged and applied', () => {
@@ -159,11 +164,11 @@ test('production: a stray assignment is logged and applied', () => {
   } finally {
     setStoreStrict(true);
     setStrayStoreWriteReporter(w => console.warn(w));
-    replaceState({ ...json(state), competitors: [], teams: [], exhibitions: [] });
+    ksmLoadTournamentState({ ...json(state), competitors: [], teams: [], exhibitions: [] });
   }
 });
 
-test('replaceState() / assignState() put the four fields in the store with their rows in order', () => {
+test('ksmLoadTournamentState() / assignStoreKeys() put the four fields in the store with their rows in order', () => {
   const saved = json(state);
   const loaded = {
     ...saved,
@@ -172,16 +177,16 @@ test('replaceState() / assignState() put the four fields in the store with their
     exhibitions: [{ white: 'W', red: 'R', division: 'Exhibition Matches', status: 'Checked' }],
     teamDivisions: [{ id: 'team:x', name: 'X', teamFormat: '3-Person Team', teamTournamentFormat: 'Round Robin', court: 'A', awardMode: 'top2', order: 0 }],
   };
-  replaceState(loaded);
+  ksmLoadTournamentState(loaded);
   const snap = json(state);
   for (const key of KEYS) assert.deepEqual(snap[key], loaded[key], key);
   // A 4.0 save without team divisions: undefined, not in the snapshot (the migration builds them on the next read).
   const { teamDivisions, ...old } = loaded;
-  replaceState(old);
+  ksmLoadTournamentState(old);
   assert.ok(!('teamDivisions' in json(state)));
-  assignState({ teamDivisions: loaded.teamDivisions });
+  assignStoreKeys({ teamDivisions: loaded.teamDivisions });
   assert.deepEqual(json(state).teamDivisions, loaded.teamDivisions);
-  replaceState(saved);
+  ksmLoadTournamentState(saved);
   assert.deepEqual(json(state), saved);
 });
 

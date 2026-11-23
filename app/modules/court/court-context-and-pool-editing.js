@@ -15,7 +15,6 @@ import {scheduleAutoSave} from '../sync/cloud-session-and-autosave.js';
 import {renderProgress} from '../navigation.js';
 import {ksmPoolEditPools,ksmPoolEditToSave,ksmRenderPoolEditor} from '../react-bridges/pools.js';
 import {ksmPasteNotice,ksmPasteRow} from '../react-bridges/registration.js';
-import {ksmNotifyStateChanged} from '../react-bridges/state-bridge.js';
 import {renderExhibitions,renderReg,renderTeams} from '../registration/registration.js';
 import {renderTournamentStatus} from '../registration/validation.js';
 import {ksmRefreshTournamentChip} from '../session/tournament-switcher.js';
@@ -86,7 +85,7 @@ export function saveEditedPools(){
 // renderAll() (step 4a of #136): ONE final function. The setup header code used to wrap it at load to redraw the Overview
 // when it is shown; that redraw is the last line below. Every load-time caller ran after that wrapper (the first
 // renderAll() is initFirstRender(), app/modules/boot.js), and nothing that runs before it calls renderAll().
-export function renderAll(){if(typeof ksmRefreshTournamentChip==='function')ksmRefreshTournamentChip();ksmSyncDangerZone();ensureCourtHistory();renderDivisions();renderReg();renderTeams();renderExhibitions();renderPools();renderScore();renderProgress();renderContext();saveSetup();renderTournamentStatus();updateUndoButton();if(typeof ksmNotifyStateChanged==='function')ksmNotifyStateChanged('render');
+export function renderAll(){if(typeof ksmRefreshTournamentChip==='function')ksmRefreshTournamentChip();ksmSyncDangerZone();ensureCourtHistory();renderDivisions();renderReg();renderTeams();renderExhibitions();renderPools();renderScore();renderProgress();renderContext();saveSetup();renderTournamentStatus();updateUndoButton();
   if(!document.getElementById('director')?.classList.contains('hidden'))renderDirector();}
 // The paste listener (initPasteFromExcel(), run from app/main.js).
 export function initPasteFromExcel(){

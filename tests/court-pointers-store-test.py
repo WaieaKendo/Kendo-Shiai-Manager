@@ -232,9 +232,9 @@ def no_half_state(page):
       // are re-resolved, and only for a court on the division it deleted:
       // - Generate Tournament: tournament/drawReset deletes every draw; the courts keep pointing where they were while every
       //   division is drawn again and are re-resolved at its end (court/pointersResolved).
-      // - A grand champion redrawn with a court on it: tournament/divisionCleared deletes its draw with the court kept on it;
-      //   the draw comes back (tournament/divisionGenerated) and the court is re-resolved from the new list.
-      const KNOWN = {'tournament/drawReset': 'generate', 'tournament/divisionCleared': 'gc draw'};
+      // - (A grand champion redrawn with a court on it, on a load, needed 'gc draw' here until #15 item 14a: the load is one
+      //   held notification now, so no subscriber sees its draw deleted before it comes back.)
+      const KNOWN = {'tournament/drawReset': 'generate'};
       const check = () => {
         const type = types[types.length - 1];
         const t = store.getState().tournament;
@@ -254,8 +254,6 @@ def no_half_state(page):
           const w = windows[c];
           if (problem && w && w.division === cs.division) (allowed[w.name] ||= []).push(problem);
           else if (problem) bad.push([phase, ...problem]);
-          // A grand champion's draw is back: its court's window closes (the check above already ran on this notification).
-          if (w && w.name === 'gc draw' && Array.isArray(list)) delete windows[c];
         }
       };
       const off = store.subscribe(check);
@@ -272,7 +270,7 @@ def no_half_state(page):
       phase = 'gc drawn'; for (const court of ['A', 'B']) { KSMTest.prepareCourt(court); KSMTest.play([['W', 'M']]); } KSMTest.app.renderAll();
       const gcId = Object.keys(a.state.allMatches).find(d => d.startsWith('gc:'));
       phase = ''; KSMTest.app.chooseCourt('A'); KSMTest.app.selectScorekeeperDivision(gcId);
-      // A source's winner changed on a load: the grand champion is drawn again with Court A on it ('gc draw' allowed).
+      // A source's winner changed on a load: the grand champion is drawn again with Court A on it (one held notification).
       phase = 'gc redraw'; const q = KSMTest.app.tournamentPayload();
       q.state.allMatches['GC B'].forEach(m => { m.wp = []; m.rp = ['M']; delete m.completedResult; });
       KSMTest.app.applyTournamentPayload(q, false, {source: 'court pointers store test'}); KSMTest.app.renderAll();
@@ -286,7 +284,7 @@ def no_half_state(page):
     }""")
     assert not got['bad'], got; checks += 1
     assert got['moved'] > 0 and got['undos'] > 0 and got['types'] > 10 and got['cleared'], got; checks += 1
-    assert set(got['allowed']) == {'generate', 'gc draw'}, f'every allowance is used (a stale one would hide nothing): {got}'; checks += 1
+    assert set(got['allowed']) == {'generate'}, f'every allowance is used (a stale one would hide nothing): {got}'; checks += 1
     print('no half state:', got)
 
 

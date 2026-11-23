@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { courtActions, createKsmStore, getState, setStoreStrict, tournamentSlice } from '../../app/store/index.ts';
-import { replaceState, setStrayStoreWriteReporter, state, storeFieldPath } from '../../app/modules/app-state.js';
+import { ksmLoadTournamentState, setStrayStoreWriteReporter, state, storeFieldPath } from '../../app/modules/app-state.js';
 import { extractFunction, html } from '../lib/ksm-source.mjs';
 
 const A = tournamentSlice.actions;
@@ -135,7 +135,7 @@ test('ksmMoveCourtPointers(): only the entries that change, one action, none whe
 });
 
 test('strict mode: a map, a court\'s entry or its index written in place throws', () => {
-  replaceState({ ...json(state), courtState: { A: { division: 'Open', index: 1 }, B: { division: null, index: 0 } }, currentByDivision: { Open: 1 } });
+  ksmLoadTournamentState({ ...json(state), courtState: { A: { division: 'Open', index: 1 }, B: { division: null, index: 0 } }, currentByDivision: { Open: 1 } });
   try {
     for (const write of [() => { state.courtState = {}; }, () => { state.courtState.A = { division: null, index: 0 }; }, () => { state.courtState.A.index++; },
       () => { state.courtState.B.division = 'x'; }, () => { delete state.courtState.B; }, () => { state.courtActiveDivision = {}; },
@@ -144,7 +144,7 @@ test('strict mode: a map, a court\'s entry or its index written in place throws'
       assert.throws(write, TypeError, String(write));
     }
     assert.deepEqual(json(state.courtState.A), { division: 'Open', index: 1 });
-  } finally { replaceState({ ...json(state), courtState: { A: { division: null, index: 0 }, B: { division: null, index: 0 } }, currentByDivision: {} }); }
+  } finally { ksmLoadTournamentState({ ...json(state), courtState: { A: { division: null, index: 0 }, B: { division: null, index: 0 } }, currentByDivision: {} }); }
 });
 
 test('production: a stray assignment is logged and applied', () => {
@@ -160,20 +160,20 @@ test('production: a stray assignment is logged and applied', () => {
   } finally {
     setStoreStrict(true);
     setStrayStoreWriteReporter(w => console.warn(w));
-    replaceState({ ...json(state), courtState: { A: { division: null, index: 0 }, B: { division: null, index: 0 } }, currentByDivision: {} });
+    ksmLoadTournamentState({ ...json(state), courtState: { A: { division: null, index: 0 }, B: { division: null, index: 0 } }, currentByDivision: {} });
   }
 });
 
-test('replaceState() puts the pointers in the store in the payload\'s order; a 4.0 save without courtActiveDivision leaves it undefined', () => {
+test('ksmLoadTournamentState() puts the pointers in the store in the payload\'s order; a 4.0 save without courtActiveDivision leaves it undefined', () => {
   const saved = json(state);
   const loaded = { ...saved, courtState: { B: { division: 'Kids', index: 2 }, A: { division: 'Open', index: 0 } }, courtActiveDivision: { B: 'Kids', A: 'Open' }, currentByDivision: { Kids: 2, Open: 0 } };
-  replaceState(loaded);
+  ksmLoadTournamentState(loaded);
   assert.deepEqual(json(state).courtState, loaded.courtState);
   assert.deepEqual(Object.keys(state.courtState), ['B', 'A']);
   const { courtActiveDivision, ...old } = loaded;
-  replaceState(old);
+  ksmLoadTournamentState(old);
   assert.ok(!('courtActiveDivision' in json(state)), 'not in the snapshot, as when the payload lacked it');
-  replaceState(saved);
+  ksmLoadTournamentState(saved);
   assert.deepEqual(json(state), saved);
 });
 

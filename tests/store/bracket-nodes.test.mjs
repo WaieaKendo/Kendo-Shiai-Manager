@@ -11,7 +11,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { createKsmStore, getState, setStoreStrict, tournamentSlice } from '../../app/store/index.ts';
-import { replaceState, setStrayStoreWriteReporter, state, storeFieldPath } from '../../app/modules/app-state.js';
+import { ksmLoadTournamentState, setStrayStoreWriteReporter, state, storeFieldPath } from '../../app/modules/app-state.js';
 import { drawHelpers } from '../lib/draw-helpers.mjs';
 
 const A = tournamentSlice.actions;
@@ -101,7 +101,7 @@ test('ksmAdvanceBracket(): one action for new winners, none for none; a missing 
 
 test('strict mode: a map, an entry, a node or a team row written in place throws', () => {
   const row = { team: 'Team A' };
-  replaceState({ ...json(state), singleElimNodes: { SE: [{ id: 'F', winner: null }] }, teamBracketNodes: { T: [{ id: 'F' }] },
+  ksmLoadTournamentState({ ...json(state), singleElimNodes: { SE: [{ id: 'F', winner: null }] }, teamBracketNodes: { T: [{ id: 'F' }] },
     championshipNodes: { RR: [{ id: 'C' }] }, teamElimTeams: { T: [row] } });
   try {
     for (const write of [() => { state.singleElimNodes = {}; }, () => { state.singleElimNodes.SE = []; }, () => { delete state.singleElimNodes.SE; },
@@ -112,7 +112,7 @@ test('strict mode: a map, an entry, a node or a team row written in place throws
     }
     assert.deepEqual(json(state).singleElimNodes, { SE: [{ id: 'F', winner: null }] });
   } finally {
-    replaceState({ ...json(state), singleElimNodes: {}, teamBracketNodes: {}, championshipNodes: {}, teamElimTeams: {} });
+    ksmLoadTournamentState({ ...json(state), singleElimNodes: {}, teamBracketNodes: {}, championshipNodes: {}, teamElimTeams: {} });
   }
 });
 
@@ -129,21 +129,21 @@ test('production: a stray assignment is logged and applied', () => {
   } finally {
     setStoreStrict(true);
     setStrayStoreWriteReporter(w => console.warn(w));
-    replaceState({ ...json(state), singleElimNodes: {}, teamElimTeams: {} });
+    ksmLoadTournamentState({ ...json(state), singleElimNodes: {}, teamElimTeams: {} });
   }
 });
 
-test('replaceState() puts the nodes in the store; a 4.0 save without teamElimTeams leaves it undefined (the load adds {} on its copy first)', () => {
+test('ksmLoadTournamentState() puts the nodes in the store; a 4.0 save without teamElimTeams leaves it undefined (the load adds {} on its copy first)', () => {
   const saved = json(state);
   const loaded = { ...saved, singleElimNodes: { B: [{ id: 'F', winner: { name: 'b', dojo: '' } }], A: [] }, teamElimTeams: { T: [{ team: 'Team A' }, null] } };
-  replaceState(loaded);
+  ksmLoadTournamentState(loaded);
   assert.deepEqual(json(state).singleElimNodes, loaded.singleElimNodes);
   assert.deepEqual(Object.keys(state.singleElimNodes), ['B', 'A']);
   const { teamElimTeams, ...old } = loaded;
-  replaceState(old);
+  ksmLoadTournamentState(old);
   assert.ok(!('teamElimTeams' in json(state)));
   assert.match(read('app/modules/sync/cloud-realtime-save-and-load.js'), /loaded\.teamElimTeams=loaded\.teamElimTeams\|\|\{\}/);
-  replaceState(saved);
+  ksmLoadTournamentState(saved);
   assert.deepEqual(json(state), saved);
 });
 

@@ -1,10 +1,11 @@
 # The store: plan for moving `state` into Redux Toolkit (#15 step 2.8)
 
-Status (2026-11-17): **prep done (PR 2), Undo/Redo without device keys (PR 3), loads keep the device view (PR 4), device fields moved: `regMode`, `poolViewDivision` (PR 5), the court view (PR 6), `matches` derived and `current` / `score` moved (PR 7), the Setup form in `tournament.settings` (PR 8), `teamAwardMode` and the team court read it (PR 8b), the divisions (PR 9), the people (PR 10), the awards and grand champions (PR 11), the draw structure (PR 12a), the bracket nodes (PR 12b), the court pointers (PR 13a), the court history and Undo/Redo (PR 13b)**. `app/store/` holds a Redux Toolkit store (slices
+Status (2026-11-17): **prep done (PR 2), Undo/Redo without device keys (PR 3), loads keep the device view (PR 4), device fields moved: `regMode`, `poolViewDivision` (PR 5), the court view (PR 6), `matches` derived and `current` / `score` moved (PR 7), the Setup form in `tournament.settings` (PR 8), `teamAwardMode` and the team court read it (PR 8b), the divisions (PR 9), the people (PR 10), the awards and grand champions (PR 11), the draw structure (PR 12a), the bracket nodes (PR 12b), the court pointers (PR 13a), the court history and Undo/Redo (PR 13b), the bouts (PR 13c-1, 13c-2), the writes and notifications of `state` retired (item 14a)**. `app/store/` holds a Redux Toolkit store (slices
 `tournament` and `device`). app.js imports it as a separate tree-shaken, minified
 bundle (+9.2 kB gzip since PR 10, section 5) and sets `window.KSMStore`; `app/modules/app-state.js` has the helpers the field
-moves use (`moveToStore()`, `replaceState()`, `assignState()`, section 2). All app data is still the one mutable
-global `state` (`app/modules/app-state.js`). This document is the inventory of that object and the order in which
+moves used (`moveToStore()`, `ksmLoadTournamentState()`, section 2). Every tournament and device field is in the store;
+`state` (`app/modules/app-state.js`) is its getters, the derived `matches` and three dead plain keys, and is still how
+most code reads (section 3 item 14). This document is the inventory of that object and the order in which
 its fields move into the store. Decision: Redux Toolkit (issue #15, 2026-10-18); see ROADMAP.md "After the React
 screens: the remaining architecture".
 
@@ -172,7 +173,11 @@ Today ~50 files write `state.x` in place. The cutover:
    `loaded` is set to `undefined`) and assigns the rest exactly as `delete` + `Object.assign` did (tests:
    `tests/store/legacy.test.mjs`). Without them, `delete state[k]` + `Object.assign` would remove a getter and put
    a plain copy in its place. As a group moves, its PR may give these writes a domain action (`tournament/loaded`,
-   point 4) instead. Note for PR 5: a moved key keeps its place in `Object.keys(state)` (the getter is never
+   point 4) instead. **Retired in item 14a**: a load is `tournament/loaded` (`ksmLoadTournamentState()`, the same
+   key handling: the dead plain keys deleted and assigned in the payload's order, device and Setup keys skipped, no
+   dispatch when nothing changes), and `assignState()` had no write left (the rename's rest was always empty, an
+   Undo/Redo's keys go in its `court/undo` / `court/redo`); `legacy/stateReplaced` / `legacy/stateAssigned` are gone.
+   Note for PR 5: a moved key keeps its place in `Object.keys(state)` (the getter is never
    deleted), while today a load re-adds every key in the payload's order, so the snapshot's key order can differ
    after a load; check the goldens that compare snapshot text.
 4. **A snapshot apply is one action**: `tournament/loaded` with the migrated payload. Today
@@ -203,8 +208,8 @@ Today ~50 files write `state.x` in place. The cutover:
    each `before`) instead of deep-cloning the whole state twice. Undo and Redo become `court/undo` / `court/redo`,
    whose reducer applies the entry's patches (the same path walk as `applyHistoryPatch`, on the draft). The F30
    undo log and the match-op replay (`replayCourtMatchOps`) keep working on payloads.
-7. **Saving.** Each converted writer keeps calling what it called before (`scheduleAutoSave`, `criticalAutoSave`,
-   `ksmNotifyStateChanged`), so save timing and `ksmLocalMutationVersion` are unchanged. With the command layer, a
+7. **Saving.** Each converted writer keeps calling what it called before (`scheduleAutoSave`, `criticalAutoSave`;
+   `ksmNotifyStateChanged` until item 14a made the islands' ping a store subscription), so save timing and `ksmLocalMutationVersion` are unchanged. With the command layer, a
    store listener takes this over: a local action (not `tournament/loaded`) bumps the mutation version and
    schedules the save.
 8. **A stray write never breaks a tournament in production.** Decided in PR 2 (review of #172): two modes, one
@@ -1077,6 +1082,75 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
     with `holdNotifications()` already giving one notification per court action and structural step; (5) the vm tests'
     plain `state` stand-ins (`tests/lib/ksm-source.mjs` `VM_STAND_INS`, `derived-matches.mjs`) replaced by a real store
     per test.
+    **Owner (2026-11-19): keep saving the dead fields** (`history`, `contextMode`, `teamBracketState`): no load-time drop,
+    no saved-format change, so (1) is dropped and `historyKeyOrder()` stays. They stay the only plain keys of `state`.
+    Done (**item 14a**: (3), (4)), no behaviour change (no golden changed; the full snapshot text after each of the 59
+    steps of `tests/match-writes-store-test.py`, key order included, is byte-identical to next/4.1's):
+    - **Inventory** (next/4.1): `replaceState()` 2 calls (`applyTournamentPayload()`, `ksmResetTournament()`);
+      `assignState()` 4 (the rename's rest, always `{}`; three Undo/Redo fallbacks no path reached: `applyHistoryPatch()`
+      and the entry's bouts outside an entry, `historyPathParent()` on a store key); `ksm:state-changed`: 1 publisher
+      (`ksmNotifyStateChanged()`, from `renderAll()` and `performCourtAction()`), 1 listener (the court's `MatchTimer`;
+      `useLegacyState()` had no user); plain writes to `state`: `state.history=[]` (3: a court switch, a division's
+      draw, a grand champion's clear) and the Undo/Redo's `writeHistoryValue()` on a plain key, all on the dead fields.
+    - **The load is `tournament/loaded`** (`tournamentLoaded`, `app/store/slices/tournament.ts`): `ksmLoadTournamentState()`
+      (`app-state.js`, was `replaceState()`) sends the payload's store-owned keys as `writes` at their paths (a key it lacks
+      as undefined), applied by the root reducer's path copy (no Immer walk over a loaded tournament); device and Setup
+      keys skipped as before; a write whose value is already the store's is left out and nothing is dispatched when none
+      is left. The plain keys (the dead three, and any other key a payload carries) are deleted and assigned in the
+      payload's order as before, so the snapshot's key order and `historyKeyOrder()` are unchanged.
+    - **`assignState()` is gone**: the rename assigns nothing (`tests/store/people.test.mjs` checks that the engine's
+      rename touches only its action's keys and the two device fields); an Undo/Redo patch on store data outside an
+      entry now throws (`historyStoreValues()`; no path calls it: every patch is applied inside `applyHistoryValues()`);
+      `historyPathParent()` writes only plain keys. `legacy/stateReplaced` and `legacy/stateAssigned` are removed;
+      `legacy/fieldAssigned` (a stray assignment in production, point 8) stays.
+    - **Notifications**: `ksmNotifyStateChanged()`, `ksm:state-changed`, `window.ksmStateVersion`,
+      `ksmLegacyStateVersion()` and `app/react/shared/lib/legacy-bridge.ts` (`useLegacyState`) are gone. `MatchTimer`
+      subscribes to `window.KSMStore` (`windowStore()`, `app/store/react.ts`) next to its screen events and its 250 ms
+      backstop. A load or remote apply (`applyTournamentPayload()`) and the tournament close (`ksmResetTournament()`'s
+      store part) run in `holdNotifications()`, so each is one notification, as a court action, an Undo/Redo and a
+      structural step already were. The screen-specific `ksm:*` publishers stay (section 4).
+    - **Counts** (the 59 steps; store notifications, `MatchTimer` renders): a point 1 → 1 notification (it had 1
+      `ksm:state-changed` event); point + Undo + Redo 3 → 3; Next Match 1 → 1; a remote apply 5-6 → 1; a 4.0-shaped load
+      6 → 1; a save conflict's rebase 16-19 → 7-9; the tournament closed 5 → 2; all 59 steps 1,138 → 1,082 notifications,
+      the same dispatches (2,114). `MatchTimer` renders: 92 → 94 over the 59 steps (its 250 ms backstop renders too;
+      a point, Next Match and an apply render it once before and after: React batches a held step's one notification).
+    - Measured (headless Chromium, 6x CPU throttling, production build, before = next/4.1 and after interleaved, 5 runs,
+      medians of the runs' medians, range of run medians; this harness's own tournament, so not comparable
+      with 13c-2's figures): a point 5.8 (5.1-7.1) → 6.1 (5.1-6.5) ms; a point + Undo + Redo 29.7 (27.3-32.7) → 29.7
+      (26.9-31.1); Next Match in pools 20.3 (18.9-28.1) → 18.7 (15.3-21.8), advancing a bracket 23.8 (22.1-27.7) → 25.1
+      (21.9-25.8), kachinuki 18.0 (17.3-21.7) → 19.2 (17.5-20.0); a remote snapshot apply 15.1 (13.1-18.9) → 13.5
+      (12.5-14.5); Generate Tournament of 8 divisions of 32 103.7 (92.8-118.5) → 96.2 (91.6-100.0). Store notifications
+      per action: a point 1 → 1, point + Undo + Redo 3 → 3, Next Match 1 → 1, an apply 5 → 1, Generate 24-29 → 24-29;
+      `MatchTimer` renders per action 1-2 → 1-2 (the 250 ms backstop adds one now and then).
+    - Not done here (item 14b): (5) the vm tests' plain `state` on a real store. It needs `moveToStore()` /
+      `deriveInState()` over a given store (today they read the app's one `store`), then one helper
+      (`tests/lib/vm-store.mjs`) gives each vm context a store, a `state` with the app's getters, `dispatch` / `getState`
+      and the real match-writes, pointer and history helpers, so `VM_STAND_INS` (`ksmInStore`, `ksmInPlace`, `ksmChanged`,
+      `historyKeyOrder`, `holdNotifications`) and `tests/lib/derived-matches.mjs` (`deriveMatches`, `viewHelpers`,
+      `pointerHelpers`, `historyHelpers`) go. 26 vm test files use them; the app side is ~30 lines of `app-state.js`.
+
+    **The reads (item 14c), module by module.** `state.x` reads in `app/modules` and `app/main.js` (next/4.1, counted
+    as `state.` / `state?.` / `state[` followed by a name; lines that have one in brackets): court 190 (135 lines),
+    engine 156 (117), registration 111 (86), react-bridges 82 (75), results 74 (52), setup 54 (44), sync 48 (43),
+    app-state.js 29 (26), main.js 4, session 4, links 3, navigation 1: 756 reads on ~590 lines; plus the islands'
+    publishers (`app/react/features/*/publish.ts`, 7 files, ~100 reads of `legacy('ksmLegacyState')()`). Each PR turns
+    a module's reads into selectors over `getState()` (`app/store/selectors.ts`: `selectDivisionMatches(div)`,
+    `selectCourtPointer(c)`, `selectCourtView()`, … each with a test) and leaves no `state` import in that module:
+    1. **court/** (court-scoring-and-history, court-match-order, scorekeeper-screen, court-queue-and-views,
+       court-context-and-pool-editing, match-timer, split-court-templates, match-writes, the two stores; ~150 lines).
+       Rides along with their JS→TS conversion if that is next for court/.
+    2. **engine/** (engine-generation, standings and tiebreaks, championship, single-elim, pools, team-*, structure-store;
+       ~120 lines). The engine helpers already take values; most reads become one `getState().tournament` per function.
+    3. **registration/ + results/** (~140 lines; grand-champion.js is the largest).
+    4. **setup/ + sync/ + session/ + links/ + navigation + main.js** (~100 lines). `tournamentPayload()` (sync) reads
+       `JSON.stringify(state)`: it keeps reading `state` until 6.
+    5. **react-bridges/ + the publishers** (~175 lines): the islands' inputs become selectors and `useStoreSelector()`,
+       and each screen's `ksm:*` event, publisher and `ksmXRequested` flag go (section 4), one screen per PR if large.
+    6. **`app-state.js` goes**: the snapshot is built from the store in `state`'s key order (one list of the keys, the
+       getters' order, then the plain keys in their load order: the dead three move into the store as opaque values,
+       `tournament.legacyKeys`, a map whose key order is kept, so the snapshot stays byte-identical); `historyKeyOrder()`
+       and `historyComparableState()` read that list; `moveToStore()`, `deriveInState()` and the stray-write setter go
+       with the last getter. Each PR is far under ~1,000 app lines; 1-4 can run in any order.
 
 Then **#15 step 3, commands**: one function per user action (`scorePoint`, `nextMatch`, `undo`, `editPool`, …) that
 checks it is allowed, builds the action with `meta`, and dispatches; inline `onclick` globals and the React islands
@@ -1095,7 +1169,8 @@ call commands instead of window functions.
 - The `ksm:*` publishers go away screen by screen: today legacy code computes `window.ksmXInput` and dispatches
   `ksm:x` (`app/react/features/*/publish.ts`). Once the data a screen reads is in the store, its `*-model.ts` view
   functions (already pure) become selectors, and that screen's publisher, its event and its `ksmXRequested` flag
-  are deleted. `useLegacyState` / `ksm:state-changed` go when `state` does. Since PR 8 the islands read the Setup form from the
+  are deleted. `useLegacyState` / `ksm:state-changed` are gone since item 14a (`MatchTimer`, the event's one listener,
+  subscribes to `window.KSMStore`). Since PR 8 the islands read the Setup form from the
   store (`setupSetting()`), not the DOM.
 
 ## 5. Bundle size and re-renders (old TVs and tablets)
@@ -1155,8 +1230,12 @@ call commands instead of window functions.
   (+31), 9,959, so the budget is 9,975. Nothing in production subscribes yet (the islands listen to window events): the
   hold is item 14's contract. app.js 731,281 → 739,359 bytes (gzip 194,483 → 196,772); no React source changed.
   Times: section 3 item 13 (no slowdown at 6x throttling).
+- Item 14a (the writes and notifications of `state`): the store bundle 9,959 → 9,937 bytes gzip (26,500 → 26,440 raw: two
+  legacy actions out, `tournament/loaded` in), inside the 9,975 budget; app.js 740,648 → 739,954 bytes (gzip 197,221 →
+  197,254); the React bundle 626,589 → 626,741 (`MatchTimer` imports `windowStore()`; `legacy-bridge.ts` gone). Times:
+  section 3 item 14 (no slowdown at 6x throttling).
 - Re-renders: `store.subscribe` listeners run on every dispatch, so selectors must be cheap and return stable
-  references. A remote snapshot is one action, one notification (today `ksmNotifyStateChanged` coalesces per
+  references. A remote snapshot is one action, one notification (since item 14a the whole apply is one held notification; before it `ksmNotifyStateChanged` coalesced per
   microtask). Immer copies only the changed path (structural sharing); the deep freeze of a loaded snapshot is one
   O(size) pass per load.
 - Check on the oldest TV/tablet before PR 13 (issue #15): time a point and a snapshot apply (`performance.now()` in

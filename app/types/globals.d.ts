@@ -70,8 +70,6 @@ declare var resultsBody: HTMLElement;
 // The React bridges (app/modules/react-bridges, step 3d of #136): the requests they put on window for the React islands
 // (app/react) and the flags the islands set, read through `window.NAME`.
 interface Window {
-  ksmStateVersion?: number;
-  ksmStateChangeReasons?: any[] | null;
   ksmCourtScoreboardRequested?: any;
   ksmCourtHeaderRequested?: any;
   ksmCourtActionsRequested?: any;

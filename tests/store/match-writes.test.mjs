@@ -9,7 +9,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { replaceState, setStrayStoreWriteReporter, state, storeFieldPath } from '../../app/modules/app-state.js';
+import { ksmLoadTournamentState, setStrayStoreWriteReporter, state, storeFieldPath } from '../../app/modules/app-state.js';
 import { createKsmStore, dispatch, getState, matchActions, setStoreStrict, store } from '../../app/store/index.ts';
 import * as KSMEngine from '../../app/engine/index.ts';
 
@@ -71,7 +71,7 @@ function dispatched(fn) {
   try { fn(); } finally { store.dispatch = was; }
   return seen;
 }
-const reset = () => replaceState({ ...json(state), allMatches: {} });
+const reset = () => ksmLoadTournamentState({ ...json(state), allMatches: {} });
 
 test('the field: an enumerable store getter at the literal\'s place; the slice starts with {}', () => {
   assert.deepEqual(storeFieldPath('allMatches'), ['tournament', 'allMatches']);
@@ -298,7 +298,7 @@ test('source: no app code outside match-writes.js assigns, deletes or mutates al
     'app/engine/single-elim.ts': ['set.ready = false', 'set.bracketSlot = node.slot', "set.red = red?.name || ''", "set.white = white?.name || ''", 'set.ready = !!(red && white)'], // a sync plan's `set`
     'app/engine/teams.ts': ['bouts.forEach(x => { x.teamNodeId = node.id; x.bracketSlot = node.slot || 0; })'], // new bouts, before the plan returns them
     // An Undo/Redo's values for its one court/undo or court/redo (a plain object of new values, not the store's map).
-    'app/modules/court/court-scoring-and-history.js': ['if(ksmHistoryStoreValues)ksmHistoryStoreValues.allMatches=planned.allMatches;'],
+    'app/modules/court/court-scoring-and-history.js': ['historyStoreValues().allMatches=planned.allMatches;'],
   };
   const bad = [];
   for (const file of files.filter(f => f !== own)) {

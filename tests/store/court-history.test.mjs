@@ -9,8 +9,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { applyStoreWrites, courtActions, courtHistoryActions, createKsmStore, getState, legacyStateAssigned, legacyStateReplaced, setStoreStrict } from '../../app/store/index.ts';
-import { replaceState, setStrayStoreWriteReporter, state, storeFieldPath, storeWrites } from '../../app/modules/app-state.js';
+import { applyStoreWrites, courtActions, courtHistoryActions, createKsmStore, getState, matchActions, setStoreStrict, tournamentLoaded } from '../../app/store/index.ts';
+import { ksmLoadTournamentState, setStrayStoreWriteReporter, state, storeFieldPath, storeWrites } from '../../app/modules/app-state.js';
 import { extractFunction, html } from '../lib/ksm-source.mjs';
 
 const t = s => s.getState().tournament;
@@ -62,7 +62,7 @@ test('a unit test per history action: court/…, meta.court, its writes applied 
   assert.deepEqual(json(t(s).courtUndoLog), { A: [log], B: [] });
   assert.deepEqual(json(t(s).singleElimNodes), { Open: [{ id: 'QF1', winner: null }] });
   assert.deepEqual(json(t(s).courtState.A), { division: 'Open', index: 0 });
-  // redo: back; a device path in the writes (an old entry's regMode patch) lands there too, as assignState() put it
+  // redo: back; a device path in the writes (an old entry's regMode patch) lands there too, as assignState() put it before #15 item 14a
   s.dispatch(courtHistoryActions.redo({ writes: [w('courtRedoHistory.A', []), w('courtActionHistory.A', [a1, a2]), w('courtUndoLog.A', [log, { ...log, kind: 'REDO' }]),
     { path: ['device', 'regMode'], value: 'teams' }] }, { court: 'A' }));
   assert.deepEqual(json(t(s).courtActionHistory.A), [a1, a2]);
@@ -92,10 +92,12 @@ test('applyStoreWrites(): a path copy as Immer\'s update was (same values, key o
 test('only the store-write actions carry payload.writes (the root reducer applies any action\'s writes)', () => {
   const store = read('app/store/store.ts');
   assert.match(store, /const writes = \(action as \{ payload\?: \{ writes\?: StoreWrite\[\] \} \}\)\.payload\?\.writes;/);
-  for (const action of [legacyStateReplaced({ writes: [] }), legacyStateAssigned({ writes: [] }), ...Object.values(courtHistoryActions).map(a => a({ writes: [] }))]) assert.ok(Array.isArray(action.payload.writes));
-  // Every other action creator's payload type has no `writes`: the sources name it only for these.
+  for (const action of [tournamentLoaded({ writes: [] }), ...Object.values(matchActions).map(a => a({ writes: [] })), ...Object.values(courtHistoryActions).map(a => a({ writes: [] }))]) assert.ok(Array.isArray(action.payload.writes));
+  // Every other action creator's payload type has no `writes`: the sources name it only for these (#15 item 14a retired
+  // legacy/stateReplaced and legacy/stateAssigned, whose payloads were their own `{ writes: StoreWrite[] }`).
   const sources = ['app/store/slices/tournament.ts', 'app/store/slices/device.ts', 'app/store/legacy.ts'].map(read).join('\n');
-  assert.equal(sources.match(/writes: StoreWrite\[\]/g).length, 3, 'legacyStateReplaced, legacyStateAssigned and HistoryWrites (the court history actions)');
+  assert.equal(sources.match(/writes: StoreWrite\[\]/g).length, 1, 'HistoryWrites (tournament/loaded, the match and court history actions)');
+  assert.equal(sources.match(/<HistoryWrites>\('tournament\/loaded'\)/g).length, 1);
   assert.equal(courtActions.pointerMoved({ courtState: {} }).payload.writes, undefined);
 });
 
@@ -153,7 +155,7 @@ test('ensureCourtHistory(): one court/historyNormalized when a map is missing or
 
 test('strict mode: a map, a court\'s list, a list method or an entry written in place throws', () => {
   const saved = json(state);
-  replaceState({ ...saved, courtActionHistory: { A: [entry('a')], B: [] }, courtUndoLog: { A: [{ kind: 'UNDO' }], B: [] } });
+  ksmLoadTournamentState({ ...saved, courtActionHistory: { A: [entry('a')], B: [] }, courtUndoLog: { A: [{ kind: 'UNDO' }], B: [] } });
   try {
     for (const write of [() => { state.courtActionHistory = {}; }, () => { state.courtActionHistory.A = []; }, () => { state.courtActionHistory.A.push(entry('b')); },
       () => { state.courtActionHistory.A.pop(); }, () => { state.courtActionHistory.A.splice(0, 1); }, () => { state.courtActionHistory.A[0].label = 'x'; },
@@ -162,7 +164,7 @@ test('strict mode: a map, a court\'s list, a list method or an entry written in 
       assert.throws(write, TypeError, String(write));
     }
     assert.equal(state.courtActionHistory.A.length, 1);
-  } finally { replaceState(saved); }
+  } finally { ksmLoadTournamentState(saved); }
 });
 
 test('production: a stray assignment is logged and applied', () => {
@@ -176,18 +178,18 @@ test('production: a stray assignment is logged and applied', () => {
   } finally {
     setStoreStrict(true);
     setStrayStoreWriteReporter(w => console.warn(w));
-    replaceState(saved);
+    ksmLoadTournamentState(saved);
   }
 });
 
-test('replaceState() puts the history in the store as the payload has it; a save without the Undo log leaves it out of the snapshot', () => {
+test('ksmLoadTournamentState() puts the history in the store as the payload has it; a save without the Undo log leaves it out of the snapshot', () => {
   const saved = json(state);
   const loaded = { ...saved, courtActionHistory: { B: [entry('b')], A: [] }, courtUndoLog: { A: [{ kind: 'REDO' }], B: [] } };
-  replaceState(loaded);
+  ksmLoadTournamentState(loaded);
   assert.deepEqual(json(state).courtActionHistory, loaded.courtActionHistory);
   assert.deepEqual(Object.keys(state.courtActionHistory), ['B', 'A']);
   assert.deepEqual(json(state).courtUndoLog, loaded.courtUndoLog);
-  replaceState(saved);
+  ksmLoadTournamentState(saved);
   assert.ok(!('courtUndoLog' in json(state)));
   assert.deepEqual(json(state), saved);
 });
@@ -214,9 +216,11 @@ test('Undo/Redo: one dispatch with every key the entry changes, its bouts too (#
   assert.match(move, /values=applyHistoryValues\(action,[^)]*\);[^;]*;\s*ksmMoveCourtHistory\(kind,court,courtUndoLogEntry\([^;]*\),values\|\|\{\}\);\s*if\(values\)rebuildCourtViewAfterHistory\(\);/);
   const entry = extractFunction(html, 'applyCourtHistoryEntry');
   assert.match(entry, /const planned=ksmPlanMatchPaths\(writes\)/, 'the bouts\' batch is planned, not dispatched');
-  assert.match(entry, /ksmHistoryStoreValues\.allMatches=planned\.allMatches/, 'and goes with the entry\'s other keys');
+  assert.match(entry, /historyStoreValues\(\)\.allMatches=planned\.allMatches/, 'and goes with the entry\'s other keys');
   assert.doesNotMatch(entry, /ksmWriteMatchPaths\(/);
   const patch = extractFunction(html, 'applyHistoryPatch');
   assert.match(patch, /if\(!storeFieldPath\(key,state\)\)\{writeHistoryValue\(state,path,value,missing\);return\}/, 'a plain key is written in place');
-  assert.match(patch, /if\(!ksmHistoryStoreValues\)assignState\(values,state\);/, 'a store key goes to the entry\'s dispatch (or assignState() on its own)');
+  assert.match(patch, /const values=historyStoreValues\(\);/, 'a store key goes to the entry\'s dispatch, never on its own (#15 item 14a)');
+  assert.doesNotMatch(html, /(?<![.\w])(assignState|replaceState)\(/, 'the whole-object helpers are gone');
+  assert.match(extractFunction(html, 'historyStoreValues'), /if\(!ksmHistoryStoreValues\)throw new Error/);
 });

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { windowStore } from '../../../store/react.ts';
 
 interface TimerInput {
   tournamentId: string; court: string; matchKey: string;
@@ -289,11 +290,14 @@ export function MatchTimer() {
   const [, render] = useState(0);
   useEffect(() => {
     const update = () => render(n => n + 1);
-    const events = ['ksm:court-scoreboard', 'ksm:court-header', 'ksm:state-changed', 'ksm:tie-flash-connection', 'ksm:tournament-reset'];
+    const events = ['ksm:court-scoreboard', 'ksm:court-header', 'ksm:tie-flash-connection', 'ksm:tournament-reset'];
     events.forEach(e => window.addEventListener(e, update));
+    // Any change to the tournament (was the 'ksm:state-changed' event until #15 item 14a): one notification per court
+    // action, Undo/Redo, load or structural step (the store's hold), so a burst of dispatches is one re-render.
+    const unsubscribe = windowStore()?.subscribe(update);
     // Backstop: re-read the court input shortly after any event ordering slip, so tied/untied never stays stale.
     const id = window.setInterval(update, 250);
-    return () => { events.forEach(e => window.removeEventListener(e, update)); clearInterval(id); };
+    return () => { events.forEach(e => window.removeEventListener(e, update)); unsubscribe?.(); clearInterval(id); };
   }, []);
   const input = legacy.ksmMatchTimerInput?.();
   if (!input) return null;

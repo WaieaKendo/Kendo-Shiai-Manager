@@ -14,11 +14,11 @@ const slicesReducer = combineReducers({
 export type RootState = ReturnType<typeof slicesReducer>;
 
 /**
- * The slices, plus the store writes (app/store/legacy.ts): replaceState() / assignState() of app/modules/app-state.js and a
- * stray assignment in production put a value at a path, whichever slice it is in; so do an Undo/Redo's store-owned keys
- * (#15 PR 13b: court/undo, court/redo, whose `writes` land in the same dispatch as the history move the slice makes). An
- * action carries `payload.writes` only for this (legacy/stateReplaced, legacy/stateAssigned, court/undo, court/redo:
- * tests/store/court-history.test.mjs checks the action types that do). Last, the one derived value the tournament slice
+ * The slices, plus the store writes (app/store/legacy.ts: applyStoreWrites()): a load (tournament/loaded, #15 item 14a)
+ * and a stray assignment in production put a value at a path, whichever slice it is in; so do the court history and
+ * match actions and an Undo/Redo's store-owned keys (#15 PR 13b: court/undo, court/redo, whose `writes` land in the same
+ * dispatch as the history move). An action carries `payload.writes` only for this (tests/store/court-history.test.mjs
+ * checks the action types that do). Last, the one derived value the tournament slice
  * keeps in place: `divisionCourts['Team Tournament']` is `settings.teamCourt` (withTeamCourt()).
  */
 export const rootReducer: Reducer<RootState, UnknownAction, Partial<RootState>> = (state, action) => {
@@ -78,8 +78,8 @@ export function createKsmStore(preloadedState?: Partial<RootState>, { developmen
      * a pointer on a bout that the same step is about to move off, or a division half drawn (docs/STORE.md section 3
      * item 13, PR 13c-2). Nested holds notify once, at the outermost end; a hold with no dispatch notifies nothing. When
      * `fn` throws, its error is the one thrown: a listener that throws in that flush is reported on its own (an
-     * unhandled rejection), never in place of it. Nothing in production subscribes to the store yet (the
-     * islands listen to window events), so this is the contract item 14 (`ksm:state-changed` → store.subscribe) builds on.
+     * unhandled rejection), never in place of it. Since #15 item 14a the islands' "state changed" ping is
+     * this subscription (it replaced the `ksm:state-changed` window event), so a held step re-renders them once.
      */
     hold<T>(fn: () => T): T {
       held++;

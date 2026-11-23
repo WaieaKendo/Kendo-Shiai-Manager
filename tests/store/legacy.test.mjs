@@ -1,5 +1,6 @@
 // #15 PR 2 (docs/STORE.md section 2): legacy `state` next to the store. moveToStore() (strict: throws; production:
-// logs and dispatches legacy/fieldAssigned), replaceState() / assignState(), every `state` key a plain property or a
+// logs and dispatches legacy/fieldAssigned), ksmLoadTournamentState() (tournament/loaded, #15 item 14a; was replaceState() /
+// assignState()), every `state` key a plain property or a
 // store getter, what a stray nested write does in production (Immer's auto-freeze off, point 8), and that only
 // moveToStore() dispatches legacy/fieldAssigned.
 import test from 'node:test';
@@ -8,9 +9,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createSelector } from '@reduxjs/toolkit';
 import {
-  createKsmStore, getState, legacyFieldAssigned, legacyStateAssigned, setStoreStrict, storeIsStrict, subscribe, PRODUCTION_BUILD,
+  createKsmStore, getState, legacyFieldAssigned, setStoreStrict, storeIsStrict, subscribe, tournamentLoaded, PRODUCTION_BUILD,
 } from '../../app/store/index.ts';
-import { assignState, moveToStore, replaceState, setStrayStoreWriteReporter, state, stateFieldIsDerived, storeFieldPath } from '../../app/modules/app-state.js';
+import { ksmLoadTournamentState, moveToStore, setStrayStoreWriteReporter, state, stateFieldIsDerived, storeFieldPath } from '../../app/modules/app-state.js';
+import { assignStoreKeys } from '../lib/store-keys.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '../..');
 
@@ -98,12 +100,12 @@ test('moveToStore, production: an assignment is logged (cloud diagnostics) and d
   assert.match(main, /setStrayStoreWriteReporter\(write=>\{[^\n]*writeCloudDiagnosticsState\(\{storeStrayWrite:/);
 });
 
-test('replaceState with no store field: exactly delete + Object.assign (keys, order, identity)', () => {
+test('ksmLoadTournamentState() with no store field: exactly delete + Object.assign (keys, order, identity)', () => {
   const nested = { a: [1] };
   const loaded = { z: 1, nested, a: undefined, m: 'x' };
   const viaHelper = { old: 1, z: 0, keep: 2 };
   const viaOld = { old: 1, z: 0, keep: 2 };
-  replaceState(loaded, viaHelper);
+  ksmLoadTournamentState(loaded, viaHelper);
   Object.keys(viaOld).forEach(k => delete viaOld[k]); Object.assign(viaOld, loaded);
   assert.deepEqual(Reflect.ownKeys(viaHelper), Reflect.ownKeys(viaOld));
   assert.deepEqual(Reflect.ownKeys(viaHelper), ['z', 'nested', 'a', 'm']);
@@ -111,47 +113,59 @@ test('replaceState with no store field: exactly delete + Object.assign (keys, or
   assert.ok(Object.hasOwn(viaHelper, 'a'));
 });
 
-test('assignState with no store field: exactly Object.assign', () => {
-  const partial = { divisions: ['B'], divisionRenames: [{ from: 'A', to: 'B' }], gone: undefined };
-  const viaHelper = { divisions: ['A'], other: 1 };
-  const viaOld = { divisions: ['A'], other: 1 };
-  assignState(partial, viaHelper);
-  Object.assign(viaOld, partial);
-  assert.deepEqual(Reflect.ownKeys(viaHelper), Reflect.ownKeys(viaOld));
-  assert.equal(viaHelper.divisionRenames, partial.divisionRenames);
-  assert.equal(JSON.stringify(viaHelper), JSON.stringify(viaOld));
-});
-
-test('replaceState / assignState with store fields: one action for the store keys, the rest assigned', () => {
+test('ksmLoadTournamentState() with store fields: one tournament/loaded for the store keys, the plain keys assigned', () => {
   const t = { plain: 1 };
   moveToStore('a', ['tournament', 'helperA'], t);
   moveToStore('b', ['tournament', 'helperB'], t);
-  const types = [];
-  const off = subscribe(() => types.push(getState().tournament.helperA));
-  replaceState({ a: 'A1', plain: 2, other: 3 }, t);
-  assert.deepEqual(types, ['A1'], 'one dispatch');
+  const seen = [];
+  const off = subscribe(() => seen.push(getState().tournament.helperA));
+  ksmLoadTournamentState({ a: 'A1', plain: 2, other: 3 }, t);
+  assert.deepEqual(seen, ['A1'], 'one dispatch');
   assert.equal(t.a, 'A1');
   assert.equal(t.b, undefined, 'a store key missing from the loaded copy is cleared');
   assert.deepEqual(Object.keys(t), ['a', 'b', 'plain', 'other'], 'the getters keep their place; plain keys follow in loaded order');
-  assignState({ b: { n: 1 }, plain: 9 }, t);
-  off();
-  assert.equal(types.length, 2);
+  ksmLoadTournamentState({ a: 'A2', b: { n: 1 }, plain: 9 }, t);
+  assert.equal(seen.length, 2);
   assert.deepEqual(t.b, { n: 1 });
   assert.equal(t.plain, 9);
+  assert.ok(!Object.hasOwn(t, 'other'), 'a plain key the payload lacks is gone, as delete + Object.assign did');
   assert.ok(Object.isFrozen(getState().tournament.helperB), 'strict: what the store holds is frozen');
   assert.throws(() => { t.b.n = 2; }, TypeError, 'strict: a nested write into store data throws');
+  // No write when nothing changes: the same store values (the same objects) and a missing key already undefined.
+  const b = getState().tournament.helperB;
+  ksmLoadTournamentState({ a: 'A2', b, plain: 10 }, t);
+  off();
+  assert.equal(seen.length, 2, 'no dispatch, no notification');
+  assert.equal(t.plain, 10, 'the plain keys are still assigned');
 });
 
-test('replaceState keeps a device field: a payload never overwrites it, a missing one is not cleared', () => {
+test('tournament/loaded puts each write at its path (the root reducer\'s path copy), one notification', () => {
+  const s = createKsmStore();
+  let notified = 0;
+  s.subscribe(() => notified++);
+  const before = s.getState();
+  const awards = [{ place: 1, name: 'A' }];
+  s.dispatch(tournamentLoaded({ writes: [{ path: ['tournament', 'awards'], value: awards }, { path: ['tournament', 'generated'], value: true }, { path: ['tournament', 'teamDivisions'], value: undefined }] }));
+  const after = s.getState();
+  assert.equal(notified, 1);
+  assert.equal(after.tournament.awards, awards, 'the loaded value itself (frozen in strict mode), not a copy');
+  assert.ok(Object.isFrozen(awards[0]));
+  assert.equal(after.tournament.generated, true);
+  assert.equal(after.tournament.teamDivisions, undefined);
+  assert.equal(after.device, before.device, 'nothing else is copied');
+  assert.equal(tournamentLoaded.type, 'tournament/loaded');
+});
+
+test('ksmLoadTournamentState() keeps a device field: a payload never overwrites it, a missing one is not cleared', () => {
   const t = { plain: 1 };
   moveToStore('view', ['device', 'helperView'], t);
   moveToStore('data', ['tournament', 'helperData'], t);
-  assignState({ view: 'court' }, t); // a local write still reaches the device slice
+  assignStoreKeys({ view: 'court' }, t); // a local write (here the tests' own) reaches the device slice
   assert.equal(getState().device.helperView, 'court');
-  replaceState({ view: 'tv', data: 'D', plain: 2 }, t);
+  ksmLoadTournamentState({ view: 'tv', data: 'D', plain: 2 }, t);
   assert.equal(t.view, 'court', 'the payload value of a device field is ignored');
   assert.equal(t.data, 'D');
-  replaceState({ plain: 3 }, t);
+  ksmLoadTournamentState({ plain: 3 }, t);
   assert.equal(t.view, 'court', 'a device field absent from the payload is not cleared');
   assert.equal(t.data, undefined, 'a tournament field absent from the payload still is');
   assert.deepEqual(Object.keys(t), ['view', 'data', 'plain']);
@@ -160,7 +174,7 @@ test('replaceState keeps a device field: a payload never overwrites it, a missin
 test('production, a nested write into store data (Immer auto-freeze off): applied, seen by the next snapshot, no notification', () => {
   inProduction(() => {
     const s = productionStore();
-    s.dispatch(legacyStateAssigned({ writes: [{ path: ['tournament', 'awards'], value: [{ place: 1, name: 'A' }] }, { path: ['device', 'view'], value: 'court' }] }));
+    s.dispatch(tournamentLoaded({ writes: [{ path: ['tournament', 'awards'], value: [{ place: 1, name: 'A' }] }, { path: ['device', 'view'], value: 'court' }] }));
     let notified = 0;
     s.subscribe(() => { notified++; });
     const names = createSelector([st => st.tournament.awards], awards => awards.map(a => a.name));
@@ -176,20 +190,20 @@ test('production, a nested write into store data (Immer auto-freeze off): applie
     assert.deepEqual(names(s.getState()), ['A'], 'a memoized selector keeps its old result: its input did not change');
 
     // The next dispatch: subscribers run (they run on every dispatch) and read the new value directly,
-    s.dispatch(legacyStateAssigned({ writes: [{ path: ['device', 'view'], value: 'tv' }] }));
+    s.dispatch(tournamentLoaded({ writes: [{ path: ['device', 'view'], value: 'tv' }] }));
     assert.equal(notified, 1);
     assert.equal(s.getState().tournament.awards[0].name, 'B');
     // but structural sharing keeps the awards array, so the selector stays stale until the awards themselves change,
     assert.deepEqual(names(s.getState()), ['A']);
     // and the older state, which shares the object, changed too.
     assert.equal(older.tournament.awards[0].name, 'B');
-    s.dispatch(legacyStateAssigned({ writes: [{ path: ['tournament', 'awards', '1'], value: { place: 2, name: 'C' } }] }));
+    s.dispatch(tournamentLoaded({ writes: [{ path: ['tournament', 'awards', '1'], value: { place: 2, name: 'C' } }] }));
     assert.deepEqual(names(s.getState()), ['B', 'C'], 'recomputed once the awards change through an action');
   });
   // The same write in strict mode (the tests) throws, so the tests find it; RTK's development immutability check (the
   // Node tests' default store) would also report it at the next dispatch.
   const s = createKsmStore();
-  s.dispatch(legacyStateAssigned({ writes: [{ path: ['tournament', 'awards'], value: [{ place: 1, name: 'A' }] }] }));
+  s.dispatch(tournamentLoaded({ writes: [{ path: ['tournament', 'awards'], value: [{ place: 1, name: 'A' }] }] }));
   assert.throws(() => { s.getState().tournament.awards[0].name = 'B'; }, TypeError);
 });
 
