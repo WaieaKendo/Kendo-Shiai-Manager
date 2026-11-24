@@ -267,8 +267,8 @@ for (const [name, [device, payload, options]] of Object.entries(SAME)) {
   let notes = 0; c.subscribe(() => { notes++; });
   let ok; try { ok = c.applyTournamentFilePayload(payloadOf(file), false); } finally { console.error = errorLog; }
   check(ok === false && calls === 2, 'the failed file import reports failure and restores');
-  // #15 item 14a review L3: the restore (the view back, then the old tournament) is one held step: one notification, and one for the load that failed.
-  check(notes === 2, `the failed file load notifies the store twice: the failed load, then one for the whole restore (got ${notes})`);
+  // #15 item 14a review L3: the failed load and the restore (the view back, then the old tournament) are one held step: one notification.
+  check(notes === 1, `the failed file load and its restore notify the store once (got ${notes})`);
   check(c.state.currentDivision === 'Kids', `the restore keeps this device's division (got ${c.state.currentDivision})`);
   check(c.ksmLocalCourtDivision.A === null, `the restore keeps this device's Court A choice (got ${c.ksmLocalCourtDivision.A})`);
   check(json(c.state.allMatches) === '{}', 'the restore is the tournament from before');
@@ -300,7 +300,7 @@ for (const [name, [device, payload, options]] of Object.entries(SAME)) {
     // The #180 code set `matches = []` and `current = 0` itself; `matches` is derived now, so its shown match and the matches / current it left can no
     // longer be shown on a real store (the new code's own view is asserted above). What it wrote besides is still compared: the tournament data.
     const shared = s => json({ allMatches: s.allMatches, courtState: s.courtState, courtActiveDivision: s.courtActiveDivision, currentByDivision: s.currentByDivision });
-    check(shared(was.state) === shared(now.state) && was.view.division === now.view.division && json(was.local) === json(now.local), 'the same tournament data, division and device choices as the #180 code');
+    check(shared(was.state) === shared(now.state) && was.view.division === now.view.division && json(was.view.score) === json(now.view.score) && json(was.local) === json(now.local), 'the same tournament data, division and device choices as the #180 code');
   }
 }
 

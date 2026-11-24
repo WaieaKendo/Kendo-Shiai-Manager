@@ -49,7 +49,7 @@ const takeView = loaded => {
 // What the two orders are compared on: the payload's tournament data keys, sorted (the real state keeps its keys in the literal's order, and
 // has this device's own view, the derived `matches` and the Setup's defaults, which the old order's plain object did not: the Team Tournament
 // court the store adds to `divisionCourts` is left out).
-const DEVICE = new Set(['currentCourt', 'publicCourt', 'currentDivision', 'current', 'score', 'matches', 'regMode', 'poolViewDivision', 'teamAwardMode']);
+const DEVICE = new Set(['matches', 'regMode', 'poolViewDivision', 'teamAwardMode']); // (current, currentDivision, score and the courts stay compared: takeView() sets them on both sides)
 const snapshot = (state, keys) => {
   const out = {};
   for (const k of [...keys].filter(k => !DEVICE.has(k)).sort()) {

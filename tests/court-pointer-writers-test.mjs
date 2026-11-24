@@ -8,7 +8,7 @@
 import vm from 'node:vm';
 import { extractFunction, html, withDependencies } from './lib/ksm-source.mjs';
 import { vmStore } from './lib/vm-store.mjs';
-import { setStoreStrict } from '../app/store/index.ts';
+import { setStoreStrict, storeIsStrict } from '../app/store/index.ts';
 import { gitShow } from './lib/git-show.mjs';
 
 let failed = false, count = 0;
@@ -140,11 +140,12 @@ for (const [label, opts] of [['spectator on Court B', { staff: false, court: 'B'
   check(same.syncOwnCourtPointer() === true && same.state.courtActiveDivision.B === 'Kids' && same.state.courtState.B.index === 1, 'same index: the active division syncs');
   if (pr6Code) {
     // #180's code writes the pointer in place (as the production store allows, docs/STORE.md point 8): not strict for this case.
+    const wasStrict = storeIsStrict();
     setStoreStrict(false);
     try {
       const was = heal(device({ court: 'B', source: pr6Code }));
       check(was.syncOwnCourtPointer() === true && was.state.courtState.B.index === 1, `#180 as merged rewound it (got ${json(was.state.courtState.B)}); PR 7 fixes that`);
-    } finally { setStoreStrict(true); }
+    } finally { setStoreStrict(wasStrict); }
   }
 }
 // 5. #177 review: finding Court A's first match (no division given) does not re-sort or replace Court B's match lists.

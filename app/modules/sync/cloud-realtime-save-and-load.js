@@ -497,8 +497,13 @@ export function applyTournamentFilePayload(payload,saveAfter){
   // This device's view before the file (#177 review): a load that throws after ksmLoadTournamentState() may already have moved
   // it to the file's court entry, so the restore is given this view, not the one the failed load left.
   const view={division:state.currentDivision,local:{A:localCourtDivision('A'),B:localCourtDivision('B')}};
-  try{applyTournamentPayload(payload,saveAfter);return true}
-  catch(err){console.error(err);holdNotifications(()=>{try{setLocalCourtDivision('A',view.local.A);setLocalCourtDivision('B',view.local.B);ksmShowDivision(view.division);applyTournamentPayload(before,false,{deviceView:{division:view.division}})}catch(_){}});alert('Unable to load this tournament file. Nothing was changed.');return false}
+  // The load and, when it throws, the restore are one held step (one store notification); the alert is outside it.
+  const ok=holdNotifications(()=>{
+    try{applyTournamentPayload(payload,saveAfter);return true}
+    catch(err){console.error(err);try{setLocalCourtDivision('A',view.local.A);setLocalCourtDivision('B',view.local.B);ksmShowDivision(view.division);applyTournamentPayload(before,false,{deviceView:{division:view.division}})}catch(_){}return false}
+  });
+  if(!ok)alert('Unable to load this tournament file. Nothing was changed.');
+  return ok;
 }
 export function replaceTournamentFromFile(){
   if(isReadOnlySession()){showKsmToast('Staff Login required to replace this tournament',3500,true);return}
