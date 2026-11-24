@@ -246,7 +246,7 @@ export class TournamentState {
   }
   // Staff access for a save, a delete or the staff live connection. An empty key is no attempt.
   // The key is a staff session token or, during the rollout (devices still on the previous app),
-  // the password itself: that fallback is removed one release after 4.0.0 (docs/DEPLOYMENT.md).
+  // the password itself: that fallback is removed one release after the 4.0 release (docs/DEPLOYMENT.md).
   async staffAccess(suppliedKey, error = 'Session authorization required') {
     if (!suppliedKey) return { ok: false, status: 403, body: { error } };
     if (suppliedKey.startsWith(STAFF_TOKEN_PREFIX)) {
