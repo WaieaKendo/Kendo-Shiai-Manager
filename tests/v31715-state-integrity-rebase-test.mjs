@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { extractFunction, withDependencies, html as appSource, sw as appServiceWorker } from './lib/ksm-source.mjs';
+import { vmStore } from './lib/vm-store.mjs';
 
 const html=appSource;
 const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));
@@ -25,7 +26,7 @@ const snippets=[
   extractFunction(html,'resolveRebasePatch'),
   extractFunction(html,'sanitizeLoadedTournamentState')
 ].join('\n');
-const context={console};vm.createContext(context);vm.runInContext(withDependencies(html,snippets,{exclude:Object.keys(context)}),context);
+const context={console};vmStore(context);vm.createContext(context);vm.runInContext(withDependencies(html,snippets,{exclude:Object.keys(context)}),context);
 
 // Regression 1: a stale deep numeric patch must never create a sparse array.
 const target={allMatches:{Test:[{division:'Test',type:'individual',pool:'A',poolOrder:0,white:'A',red:'B',wp:[]}]}};

@@ -46,15 +46,14 @@ app/                 Front-end source (built by Vite into dist/, which is not co
                         exported function callers use, and a live window.NAME accessor (10 functions: the pool
                         standings and tiebreak ones in engine/, the autosave ones in sync/; #136 step 4d);
                       (00-path-urls.js: path URLs, M.9: an old ?tournament= link becomes its
-                      path first, ksmLinkParams()/ksmLinkUrl(); the ksm:state-changed event for
-                      React islands is app/modules/react-bridges/state-bridge.js)
+                      path first, ksmLinkParams()/ksmLinkUrl(); the React islands re-render from the
+                      store's subscription, app/store/react.ts, since #15 item 14a)
   *.html              Extra pages other than index.html (Vite entries, no app.js):
                         privacy.html = /privacy, static privacy notice (no JavaScript)
                         overlay.html = /t/<id>/overlay/a|b (and /overlay), the stream overlay
   react/              React + strict TypeScript ES modules (own tsconfig.json):
                         main.tsx (index.html's one module script: mounts the screens below),
-                        shared/lib/ (island.tsx = mountIsland, legacy-bridge.ts =
-                        useLegacyState, keyboard.ts),
+                        shared/lib/ (island.tsx = mountIsland, keyboard.ts),
                         shared/ui/ (pieces used by several screens: branding.ts, the
                         court context/match rows (CourtContext.tsx, context-model.ts,
                         MatchRows.tsx, rows-model.ts), CourtComplete.tsx (the

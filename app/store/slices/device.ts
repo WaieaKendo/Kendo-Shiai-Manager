@@ -1,5 +1,5 @@
 // Device / screen state (#15 step 2.8): this device only (the court it is pinned to, the open view, selections). Never
-// merged from other devices, and a load never overwrites it (replaceState() skips device keys). Still written into the
+// merged from other devices, and a load never overwrites it (ksmLoadTournamentState() skips device keys). Still written into the
 // snapshot for 4.0 devices: `state` reads these through getters (moveToStore()). docs/STORE.md lists the fields that
 // move here; PR 5 moved the first two, PR 6 the court view, PR 7 the shown match index and the score pad.
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';

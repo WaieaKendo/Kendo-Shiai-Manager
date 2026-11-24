@@ -19,10 +19,14 @@
 import vm from 'node:vm';
 import { extractFunction, html, withDependencies } from './lib/ksm-source.mjs';
 import { gitShow } from './lib/git-show.mjs';
-import { deriveMatches, HISTORY_HELPERS, viewHelpers } from './lib/derived-matches.mjs';
-import { moveToStore, storeFieldPath } from '../app/modules/app-state.js';
-import { assignStoreKeys } from './lib/store-keys.mjs';
-import { getState } from '../app/store/index.ts';
+import { vmStore } from './lib/vm-store.mjs';
+import { moveToStore, setStrayStoreWriteReporter } from '../app/modules/app-state.js';
+import { setStoreStrict, storeIsStrict } from '../app/store/index.ts';
+
+// The 4.0 code assigns `state.matches` / `current` / `score` and writes the bouts in place, as production tolerates (docs/STORE.md point 8): its
+// context is built and stepped with strict mode off, on a store without the development checks. The new code runs strict (tests/lib/vm-store.mjs).
+setStrayStoreWriteReporter(() => {});
+const asLegacy = fn => { const was = storeIsStrict(); setStoreStrict(false); try { return fn(); } finally { setStoreStrict(was); } };
 
 const BASE = 'f8240cae77b991285f4a5be53620f1076f17c6ea'; // next/4.1 before this PR (#173 merged)
 const FILE = 'app/modules/court/court-scoring-and-history.js';
@@ -30,15 +34,11 @@ let failed = false, count = 0;
 const check = (ok, name) => { count++; if (!ok) { console.log(`FAIL ${name}`); failed = true; } };
 const json = v => JSON.stringify(v);
 
-const STUBS = ['ksmMoveCourtPointers', 'applyCourtSides', 'renderAll', 'updateUndoButton', 'updateSaveStatus', 'criticalAutoSave', 'showKsmToast', 'ksmNotifyStateChanged',
-  'ksmSignalCourtActions', 'storeFieldPath', 'assignStoreKeys', 'renderScore', 'renderPools', 'renderProgress', 'renderPublic', 'writeCloudDiagnosticsState', 'KSM_TAB_ID',
-  // The court view's store helpers (#15 PR 6): here they write the context's plain `state`; this device is Court A's scorekeeper.
-  'ksmSetCurrentCourt', 'ksmSetPublicCourt', 'ksmShowDivision', 'canCloudWrite', 'isTvSession',
-  // PR 7: state.matches is derived (deriveMatches()), current and score are written through these.
-  'ksmShowMatch', 'ksmSetScore', 'ksmEmptyScore', 'ksmResetCourtPads',
-  // PR 13b: the history is written through these (plain-state stand-ins in viewHelpers()).
-  ...HISTORY_HELPERS];
-const entry = ['undo', 'redo', 'performCourtAction', 'applyCourtState', 'loadScoreFromMatch'].map(n => extractFunction(html, n)).join('\n');
+const STUBS = ['applyCourtSides', 'renderAll', 'updateUndoButton', 'updateSaveStatus', 'criticalAutoSave', 'showKsmToast', 'ksmNotifyStateChanged',
+  'ksmSignalCourtActions', 'renderScore', 'renderPools', 'renderProgress', 'renderPublic', 'writeCloudDiagnosticsState', 'KSM_TAB_ID',
+  // This device is Court A's scorekeeper.
+  'canCloudWrite', 'isTvSession'];
+const entry = ['undo', 'redo', 'performCourtAction', 'applyCourtState', 'loadScoreFromMatch', 'ksmUpdateMatch', 'ksmSetScore'].map(n => extractFunction(html, n)).join('\n');
 const newCode = '"use strict";\n' + withDependencies(html, entry, { exclude: STUBS }) + '\nlet ksmLastHistoryOutcome=null,ksmLastHistorySkipped=0,ksmHistoryStoreValues=null;';
 const oldSource = gitShow(BASE, FILE);
 let oldCode = null;
@@ -63,7 +63,7 @@ check(/KSM_LOCAL_VIEW_STATE_KEYS\.has\(path\[0\]\)/.test(extractFunction(html, '
 check((html.match(/new Set\(\['currentCourt','publicCourt','currentDivision','matches','current','score'\]\)/g) || []).length === 1, 'the device keys are defined once');
 
 const FIXED = Date.parse('2026-11-13T10:00:00.000Z');
-function makeContext(code) {
+function makeContext(code, legacy = false) {
   let tick = 0;
   class FixedDate extends Date { constructor(...a) { super(...(a.length ? a : [FIXED + 1000 * tick++])); } static now() { return FIXED + 1000 * tick++; } }
   const context = {
@@ -71,13 +71,16 @@ function makeContext(code) {
     window: { dispatchEvent() {} }, Event: class {},
     applyCourtSides() {}, renderAll() {}, updateUndoButton() {}, updateSaveStatus() {}, criticalAutoSave() {}, showKsmToast() {}, ksmNotifyStateChanged() {},
     ksmSignalCourtActions() {}, renderScore() {}, renderPools() {}, renderProgress() {}, renderPublic() {}, writeCloudDiagnosticsState() {},
-    storeFieldPath: () => null, assignStoreKeys() { throw new Error('no store-owned key in this case'); },
     canCloudWrite: () => true, isTvSession: () => false,
-    ksmSetCurrentCourt(c) { context.state.currentCourt = c; }, ksmSetPublicCourt(c) { context.state.publicCourt = c; }, ksmShowDivision(d) { context.state.currentDivision = d; },
   };
-  Object.assign(context, viewHelpers(context));
-  vm.createContext(context);
-  vm.runInContext(code, context);
+  const make = () => {
+    context.vm = vmStore(context, tournament(), { developmentChecks: !legacy });
+    context.edit = context.vm.edit;
+    vm.createContext(context);
+    vm.runInContext(code, context);
+    if (legacy) context.state.score = { W: [], R: [], WT: 0, RT: 0 }; // the slice's initial pad is frozen: the 4.0 code pushes onto it
+  };
+  if (legacy) asLegacy(make); else make();
   return context;
 }
 
@@ -94,30 +97,31 @@ function tournament() {
 }
 // The court actions as the app does them (point(), hansoku(), nextMatch()'s state effect, a division chosen on the court).
 const ACTIONS = {
-  point: c => c.performCourtAction('White K', () => { c.state.score.W.push('K'); const m = c.state.matches[c.state.current]; m.wp = [...c.state.score.W]; }),
-  point2: c => c.performCourtAction('Red M', () => { c.state.score.R.push('M'); const m = c.state.matches[c.state.current]; m.rp = [...c.state.score.R]; }),
-  hansoku: c => c.performCourtAction('Red Hansoku', () => { c.state.score.RT++; c.state.matches[c.state.current].rt = c.state.score.RT; }),
+  point: c => c.performCourtAction('White K', () => { const sc = c.state.score; c.ksmSetScore({ ...sc, W: [...sc.W, 'K'] }); c.ksmUpdateMatch(c.state.currentDivision, c.state.current, { wp: [...c.state.score.W] }); }),
+  point2: c => c.performCourtAction('Red M', () => { const sc = c.state.score; c.ksmSetScore({ ...sc, R: [...sc.R, 'M'] }); c.ksmUpdateMatch(c.state.currentDivision, c.state.current, { rp: [...c.state.score.R] }); }),
+  hansoku: c => c.performCourtAction('Red Hansoku', () => { const sc = c.state.score; c.ksmSetScore({ ...sc, RT: sc.RT + 1 }); c.ksmUpdateMatch(c.state.currentDivision, c.state.current, { rt: c.state.score.RT }); }),
   next: c => c.performCourtAction('Next Match', () => {
-    const m = c.state.matches[c.state.current]; m.wp = [...c.state.score.W]; m.rp = [...c.state.score.R]; m.done = true;
+    c.ksmUpdateMatch(c.state.currentDivision, c.state.current, { wp: [...c.state.score.W], rp: [...c.state.score.R], done: true });
     c.applyCourtState('A', { division: c.state.currentDivision, index: c.state.current + 1 }, false);
   }),
   toKids: c => c.performCourtAction('Court A: Kids', () => c.applyCourtState('A', { division: 'Kids', index: 1 }, true)),
 };
 /** Runs `steps` (names of ACTIONS, 'undo', 'redo', or functions of the context) on a fresh tournament in `code`'s context. */
 function run(code, steps) {
-  const c = makeContext(code);
-  // The new code's `matches` is derived (PR 7); the 4.0 code ran with the plain alias it assigned.
-  c.state = code === NEW ? deriveMatches(tournament()) : tournament();
-  c.derived = code === NEW;
-  const errors = [];
-  for (const step of steps) {
-    try {
-      if (typeof step === 'function') step(c);
-      else if (step === 'undo' || step === 'redo') c[step]();
-      else ACTIONS[step](c);
-    } catch (e) { errors.push(`${typeof step === 'string' ? step : 'step'}: ${e.message}`); }
-  }
-  return { c, state: c.state, errors };
+  const legacy = code !== NEW; // the 4.0 code: strict mode off for its whole run
+  const body = () => {
+    const c = makeContext(code, legacy);
+    const errors = [];
+    for (const step of steps) {
+      try {
+        if (typeof step === 'function') step(c);
+        else if (step === 'undo' || step === 'redo') c[step]();
+        else ACTIONS[step](c);
+      } catch (e) { errors.push(`${typeof step === 'string' ? step : 'step'}: ${e.message}`); }
+    }
+    return { c, state: c.state, errors };
+  };
+  return legacy ? asLegacy(body) : body();
 }
 // The functions read the context's global `state` (c.state).
 const NEW = newCode, OLD = oldCode;
@@ -127,19 +131,14 @@ const deviceKeysOf = e => [...new Set(e.patches.map(p => p.path[0]).filter(k => 
 // A reload: the state from its JSON, then the rehydrate (applyCourtState) or not. Before #15 PR 7 `matches` was then a
 // copy, no longer the alias; since PR 7 it is derived again at once (replaceState() ignores the payload's copy).
 const reload = rehydrate => c => {
-  const loaded = JSON.parse(JSON.stringify(c.state));
-  for (const k of Object.keys(c.state)) delete c.state[k];
-  Object.assign(c.state, loaded);
-  if (c.derived) deriveMatches(c.state);
+  c.ksmLoadTournamentState(JSON.parse(JSON.stringify(c.state)));
   if (rehydrate) c.applyCourtState(c.state.currentCourt, c.state.courtState[c.state.currentCourt], true);
 };
 // A remote apply: the other court's point on Kids arrives in the payload (this court's histories come with it).
 const remoteApply = c => {
   const loaded = JSON.parse(JSON.stringify(c.state));
   loaded.allMatches.Kids[0].wp.push('D');
-  for (const k of Object.keys(c.state)) delete c.state[k];
-  Object.assign(c.state, loaded);
-  if (c.derived) deriveMatches(c.state);
+  c.ksmLoadTournamentState(loaded);
   c.applyCourtState('A', c.state.courtState.A, true);
 };
 
@@ -170,7 +169,7 @@ const CASES = {
 if (OLD) {
   for (const [name, steps] of Object.entries(CASES)) {
     const before = run(OLD, steps), after = run(NEW, steps);
-    check(!before.errors.length && !after.errors.length, `${name}: no error (${[...before.errors, ...after.errors].join('; ')})`);
+    check(!before.errors.length && !after.errors.length, `${name}: no error (before: ${before.errors.join('; ')} after: ${after.errors.join('; ')})`);
     check(json(after.state) === json(before.state), `${name}: the same state as before this PR\n  before: ${json(before.state)}\n  after:  ${json(after.state)}`);
     check(after.state.matches === after.state.allMatches[after.state.currentDivision], `${name}: matches is the alias of the court's division`);
   }
@@ -203,8 +202,8 @@ if (OLD) {
   check(!moved.errors.length && moved.state.allMatches.Open.every(m => m.division === 'Open') && moved.state.allMatches.Kids.every(m => m.division === 'Kids'), 'division change undone and redone: both match lists intact');
   check(moved.state.currentDivision === 'Open' && moved.state.matches === moved.state.allMatches.Open && json(moved.state.score.W) === '["K"]', 'division change undone: the court shows Open with its K');
   if (OLD) {
-    const was = run(OLD, ['point', 'toKids', 'undo']);
-    check(was.state.allMatches.Kids.some(m => m.division === 'Open'), '4.0 wrote Open\'s bouts into Kids on the Undo of a division change; this PR fixes that');
+    // (4.0's Undo of a division change wrote Open's bouts into Kids by index through its `matches` alias; `matches` is derived now, so that
+    // old code cannot be shown doing it on a real store: only the view-switch case below still shows the 4.0 write.)
     const before = run(OLD, ['point', view, 'undo']);
     check(json(before.state.allMatches.Kids[0].wp) === '[]', `4.0 wrote the Open entry's matches patch into Kids (${json(before.state.allMatches.Kids[0].wp)}); this PR fixes that`);
   }
@@ -212,44 +211,38 @@ if (OLD) {
 
 // 4. A top-level patch on a store-owned key (a getter, as moveToStore() makes it): through the store, never delete/assign.
 {
-  const storeContext = code => {
-    const c = makeContext(code);
-    c.state = deriveMatches(tournament());
-    c.storeFieldPath = storeFieldPath;
-    c.assignStoreKeys = assignStoreKeys; // the vm's stand-in for the entry's court/undo / court/redo (tests/lib/derived-matches.mjs)
-    return c;
-  };
+  const storeContext = code => makeContext(code);
   const MISSING = { __ksmMissing: true };
   const probe = { at: Date.now() };
   const fixture = (key) => ({ format: 'patch-v1', label: 'Probe', court: 'A', when: '2026-11-13T10:00:00.000Z', clientId: 'court-a', revision: 10,
     patches: [{ path: [key], before: MISSING, after: probe }, { path: ['allMatches', 'Open', 0, 'wp', 0], before: MISSING, after: 'K' }] });
   const c = storeContext(newCode);
-  moveToStore('undoProbe', ['tournament', 'undoProbe'], c.state);
-  c.state.courtRedoHistory.A.push(fixture('undoProbe'));
+  moveToStore('undoProbe', ['tournament', 'undoProbe'], c.state, c.vm.store);
+  c.edit(s => { s.courtRedoHistory.A.push(fixture('undoProbe')); });
   let error = null;
   try { c.redo(); } catch (e) { error = e; }
   check(!error, `redo of a store-owned top-level key: no throw (${error?.message})`);
-  check(json(getState().tournament.undoProbe) === json(probe) && json(c.state.undoProbe) === json(probe), 'redo: the value went through the store');
+  check(json(c.getState().tournament.undoProbe) === json(probe) && json(c.state.undoProbe) === json(probe), 'redo: the value went through the store');
   check(json(c.state.allMatches.Open[0].wp) === '["K"]', 'redo: the rest of the entry applied');
   error = null;
   try { c.undo(); } catch (e) { error = e; }
   check(!error, `undo (a missing value, today a delete) of a store-owned top-level key: no throw (${error?.message})`);
-  check(getState().tournament.undoProbe === undefined && c.state.undoProbe === undefined && Object.hasOwn(c.state, 'undoProbe'), 'undo: the store holds undefined, the getter stays');
+  check(c.getState().tournament.undoProbe === undefined && c.state.undoProbe === undefined && Object.hasOwn(c.state, 'undoProbe'), 'undo: the store holds undefined, the getter stays');
   check(json(c.state.allMatches.Open[0].wp) === '[]', 'undo: the rest of the entry applied');
   // A nested path under a store-owned key that is missing: the parent is created in the key's copy, which goes to the store
   // with the entry (#15 item 14a: historyPathParent() no longer writes the store itself; only plain keys reach it there).
-  moveToStore('undoProbeParent', ['tournament', 'undoProbeParent'], c.state);
-  c.state.courtRedoHistory.A.push({ ...fixture('undoProbe'), patches: [{ path: ['undoProbeParent', 'x'], before: MISSING, after: 1 }] });
+  moveToStore('undoProbeParent', ['tournament', 'undoProbeParent'], c.state, c.vm.store);
+  c.edit(s => { s.courtRedoHistory.A.push({ ...fixture('undoProbe'), patches: [{ path: ['undoProbeParent', 'x'], before: MISSING, after: 1 }] }); });
   error = null;
   try { c.redo(); } catch (e) { error = e; }
-  check(!error && json(getState().tournament.undoProbeParent) === '{"x":1}', `a missing store-owned parent is created in the entry's copy (${error?.message || json(getState().tournament.undoProbeParent)})`);
+  check(!error && json(c.getState().tournament.undoProbeParent) === '{"x":1}', `a missing store-owned parent is created in the entry's copy (${error?.message || json(c.getState().tournament.undoProbeParent)})`);
   let outside = null;
   try { vm.runInContext('applyHistoryPatch({path: ["undoProbeParent", "y"], after: 2}, "after")', c); } catch (e) { outside = e; }
   check(/outside an Undo\/Redo entry/.test(outside?.message || ''), `a store-owned patch outside an entry throws (${outside?.message})`);
   if (OLD) {
     const o = storeContext(oldCode);
-    moveToStore('undoProbeOld', ['tournament', 'undoProbeOld'], o.state);
-    o.state.courtRedoHistory.A.push(fixture('undoProbeOld'));
+    moveToStore('undoProbeOld', ['tournament', 'undoProbeOld'], o.state, o.vm.store);
+    o.edit(s => { s.courtRedoHistory.A.push(fixture('undoProbeOld')); });
     let threw = null;
     try { o.redo(); } catch (e) { threw = e; }
     check(threw instanceof TypeError, `4.0 threw on a store-owned top-level key in strict mode (${threw})`);

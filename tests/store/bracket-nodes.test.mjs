@@ -13,6 +13,7 @@ import vm from 'node:vm';
 import { createKsmStore, getState, setStoreStrict, tournamentSlice } from '../../app/store/index.ts';
 import { ksmLoadTournamentState, setStrayStoreWriteReporter, state, storeFieldPath } from '../../app/modules/app-state.js';
 import { drawHelpers } from '../lib/draw-helpers.mjs';
+import { vmStore } from '../lib/vm-store.mjs';
 
 const A = tournamentSlice.actions;
 const meta = { device: 'test' };
@@ -24,7 +25,9 @@ const NODE_KEYS = ['championshipNodes', 'singleElimNodes', 'teamBracketNodes', '
 const node = (id, left, right, extra = {}) => ({ id, round: id.startsWith('F') ? 'Final' : 'Semifinal', slot: 0, left, right, ...extra });
 
 function helpers(st) {
-  const ctx = vm.createContext({ state: st });
+  const ctx = {};
+  vmStore(ctx, st); // a real store holding `st` (tests/lib/vm-store.mjs): ksmSetDraw() dispatches the draw action
+  vm.createContext(ctx);
   vm.runInContext(drawHelpers, ctx);
   return ctx;
 }
@@ -83,20 +86,20 @@ test('ksmNodesWithWinners(): a new node per winner (key order of an assignment),
   assert.deepEqual(plain(nodes), [{ id: 'SF1', left: null, right: null }, { id: 'F', winner: null, left: null }], 'the old nodes untouched');
 });
 
-test('ksmAdvanceBracket(): one action for new winners, none for none; a missing map is created empty, as the sync did', () => {
+test('ksmAdvanceBracket(): one action for new winners, none for none; the map stays as the sync had it', () => {
   const nodes = [{ id: 'F', winner: null }];
-  const st = { singleElimNodes: { B: [], A: nodes } };
-  const h = helpers(st);
+  const h = helpers({ singleElimNodes: { B: [], A: nodes } });
   h.ksmAdvanceBracket('A', 'singleElimNodes', nodes, nodes);
-  assert.equal(st.singleElimNodes.A, nodes, 'nothing new: nothing written');
+  assert.equal(h.state.singleElimNodes.A, nodes, 'nothing new: nothing written');
   const next = [{ id: 'F', winner: { name: 'x' } }];
   h.ksmAdvanceBracket('A', 'singleElimNodes', nodes, next);
-  assert.deepEqual(Object.keys(st.singleElimNodes), ['B', 'A'], 'the entry keeps its place');
-  assert.equal(st.singleElimNodes.A, next);
-  const empty = {};
+  assert.deepEqual(Object.keys(h.state.singleElimNodes), ['B', 'A'], 'the entry keeps its place');
+  assert.equal(h.state.singleElimNodes.A, next);
   const none = [];
-  helpers(empty).ksmAdvanceBracket('X', 'teamBracketNodes', none, none);
-  assert.deepEqual(plain(empty), { teamBracketNodes: {} });
+  const e = helpers({});
+  e.ksmAdvanceBracket('X', 'teamBracketNodes', none, none);
+  // (A plain state had no such map until the sync made it empty; the store's map is always there, {} until a division is drawn.)
+  assert.deepEqual(plain(e.state.teamBracketNodes), {});
 });
 
 test('strict mode: a map, an entry, a node or a team row written in place throws', () => {

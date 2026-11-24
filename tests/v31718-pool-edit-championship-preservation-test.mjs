@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { extractFunction, engine, html as appSource, sw as appServiceWorker, matchWritesSource } from './lib/ksm-source.mjs';
-import { pointerHelpers } from './lib/derived-matches.mjs';
+import { extractFunction, engine, html as appSource, sw as appServiceWorker, matchWritesSource, withDependencies } from './lib/ksm-source.mjs';
+import { vmStore } from './lib/vm-store.mjs';
 import { drawHelpers } from './lib/draw-helpers.mjs';
 
 const html=appSource;
@@ -22,18 +22,17 @@ check(saveSource.includes('syncChampionshipTemplate(div)'),'pool edit resynchron
 check(html.includes('KSM repaired missing championship Match Object'),'missing championship Match Objects have a self-healing path');
 
 const context={console};
-context.state={};
+const { load, edit } = vmStore(context); // a real store (tests/lib/vm-store.mjs)
 context.poolDiv={value:''};
 context.renderPools=()=>{};
 context.scheduleAutoSave=()=>{};
 context.setActiveDivision=()=>{};
 context.findNextForCourt=(court,div)=>({division:div,index:0});
-Object.assign(context,pointerHelpers(context)); // #15 PR 13a: the court pointers' store helper, on the plain state
 context.seedNameForLabel=()=>null;
 // F12: Save Pool Changes applies the editor's copy (ksmPoolEditToSave(), 41-); here the pools as given.
 context.ksmPoolEditToSave=div=>context.state.pools[div];
 vm.createContext(context);
-vm.runInContext(`${engine}
+vm.runInContext(withDependencies(appSource,`${engine}
 ${drawHelpers}
 ${matchWritesSource}
 const POOL_MATCH_TEMPLATES=Object.freeze({
@@ -66,7 +65,7 @@ ${extractFunction(html,'buildChampionshipTemplateMatches')}
 ${extractFunction(html,'syncChampionshipTemplate')}
 ${extractFunction(html,'ksmResolveCourts')}
 ${extractFunction(html,'saveEditedPools')}
-`,context);
+`,{exclude:Object.keys(context)}),context);
 
 function makePlayers(count,prefix){
   return Array.from({length:count},(_,i)=>({name:`${prefix}${i+1}`,dojo:`Dojo${(i%4)+1}`}));
@@ -76,7 +75,7 @@ function makePools(sizes,prefix){
   return sizes.map((size,i)=>({label:String.fromCharCode(65+i),size,players:makePlayers(size,prefix).map((p,j)=>({...p,name:`${prefix}${++n}`}))}));
 }
 function resetDivision(div,sizes,mode,total){
-  context.state={
+  load({
     pools:{[div]:makePools(sizes,div+'-P')},
     brackets:{[div]:context.championshipTemplateForTotal(total)},
     championshipNodes:{},
@@ -87,7 +86,8 @@ function resetDivision(div,sizes,mode,total){
     courtState:{A:{division:null,index:0},B:{division:null,index:0}},
     courtActiveDivision:{A:null,B:null},
     managementRevision:0
-  };
+  });
+  context.dispatch(context.deviceSlice.actions.divisionShown('Other Division')); // (a load keeps this device's own view)
   context.poolDiv.value=div;
   context.seedNameForLabel=()=>null;
   context.saveEditedPools();
@@ -125,7 +125,7 @@ check(d12qf.filter(m=>m.court==='A').length===2&&d12qf.filter(m=>m.court==='B').
 
 // Regression 3: automatically repair a tournament produced by <=3.17.17 where
 // Edit Pool deleted every championship Match Object but left championshipNodes.
-context.state.allMatches.D12=context.state.allMatches.D12.filter(m=>!m.championship);
+edit(s=>{s.allMatches.D12=s.allMatches.D12.filter(m=>!m.championship)});
 check(context.state.allMatches.D12.every(m=>!m.championship),'legacy broken edit state reproduces missing championship Match Objects');
 context.syncChampionshipTemplate('D12');
 const repaired=context.state.allMatches.D12.filter(m=>m.championship);

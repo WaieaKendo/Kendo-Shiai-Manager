@@ -15,7 +15,14 @@
 import vm from 'node:vm';
 import { extractFunction, html, withDependencies } from './lib/ksm-source.mjs';
 import { gitShow } from './lib/git-show.mjs';
-import { deriveMatches, viewHelpers } from './lib/derived-matches.mjs';
+import { vmStore } from './lib/vm-store.mjs';
+import { setStoreStrict, storeIsStrict } from '../app/store/index.ts';
+import { setStrayStoreWriteReporter } from '../app/modules/app-state.js';
+
+// The older code under test assigns `state.currentDivision` / `current` / `matches` itself, as production tolerates (docs/STORE.md point 8): its
+// context is built and run with strict mode off, on a store without the development checks. The new code runs strict (tests/lib/vm-store.mjs).
+setStrayStoreWriteReporter(() => {});
+const asLegacy = fn => { const was = storeIsStrict(); setStoreStrict(false); try { return fn(); } finally { setStoreStrict(was); } };
 
 const BASE = '477eca9020beda42e71d90ee7fe8ac5dd29d08d9'; // next/4.1 before this PR (#176 merged)
 const FILE = 'app/modules/sync/cloud-realtime-save-and-load.js';
@@ -25,14 +32,11 @@ const check = (ok, name) => { count++; if (!ok) { console.log(`FAIL ${name}`); f
 const json = v => JSON.stringify(v);
 
 // Everything a load calls that is not the court view: UI, saving, the pin store, the repairs (tested elsewhere).
-const STUBS = ['ksmMoveCourtPointers', 'renderAll', 'updateUndoButton', 'autoSaveTournament', 'scheduleAutoSave', 'applySetupSnapshot', 'ksmNoteTeamsReassigned',
+const STUBS = ['renderAll', 'updateUndoButton', 'autoSaveTournament', 'scheduleAutoSave', 'applySetupSnapshot', 'ksmNoteTeamsReassigned',
   'ksmAddDaihyosenForTeamAwards', 'ksmSyncGrandChampions', 'repairLoadedEliminationAdvancement', 'sanitizeLoadedTournamentState',
-  'normalizeAllIndividualPoolTiebreakOrder', 'replaceState', 'ksmLoadTournamentState', 'pinCourtLocally', 'pinnedCourt', 'restorePinnedCourt', 'isTvSession',
+  'normalizeAllIndividualPoolTiebreakOrder', 'replaceState', 'pinCourtLocally', 'pinnedCourt', 'restorePinnedCourt', 'isTvSession',
   'cloudSession', 'applyCourtSides', 'ensureCourtHistory', 'ksmLocalCourtDivision', 'point', 'renderScore', 'ksmNotifyStateChanged', 'renderPublic',
-  // The device fields' store helpers (#15 PR 6): here they write the context's plain `state`, as the old code did.
-  'ksmSetCurrentCourt', 'ksmSetPublicCourt', 'ksmShowDivision', 'setLocalCourtDivision', 'canCloudWrite',
-  // PR 7: state.matches is derived (deriveMatches()), current and score are written through these.
-  'ksmShowMatch', 'ksmSetScore', 'ksmEmptyScore', 'ksmResetCourtPads'];
+  'setLocalCourtDivision', 'canCloudWrite'];
 const newCode = '"use strict";\n' + withDependencies(html, [...CHANGED, 'applyTournamentFilePayload'].map(n => extractFunction(html, n)).join('\n'), { exclude: [...STUBS, 'tournamentPayload', 'alert'] });
 const oldSource = gitShow(BASE, FILE);
 let oldCode = null;
@@ -54,7 +58,7 @@ check(!/state\.current\b(?!Court|Division|ByDivision)/.test(extractFunction(html
   'the rehydrate no longer reads the payload\'s current');
 
 /** A context for `code`: the device's pin, TV flag, remembered court divisions and its state before the load. */
-function makeContext(code, { pin = null, tv = false, staff = true, local = {}, before, plain = false }) {
+function makeContext(code, { pin = null, tv = false, staff = true, local = {}, before }, legacy = code !== NEW) {
   const context = {
     console, setTimeout: () => 0,
     cloudSession: { court: pin || '', tournamentId: 't1' },
@@ -62,23 +66,30 @@ function makeContext(code, { pin = null, tv = false, staff = true, local = {}, b
     renderAll() {}, updateUndoButton() {}, autoSaveTournament() {}, scheduleAutoSave() {}, applySetupSnapshot() {}, ksmNoteTeamsReassigned() {},
     ksmAddDaihyosenForTeamAwards: () => [], ksmSyncGrandChampions: () => false, repairLoadedEliminationAdvancement() {},
     sanitizeLoadedTournamentState() {}, normalizeAllIndividualPoolTiebreakOrder() {}, applyCourtSides() {}, renderScore() {}, ksmNotifyStateChanged() {}, renderPublic() {},
-    ensureCourtHistory() { const s = context.state; s.courtActionHistory = s.courtActionHistory || { A: [], B: [] }; s.courtRedoHistory = s.courtRedoHistory || { A: [], B: [] }; },
+    ensureCourtHistory() {},
     isTvSession: () => tv, canCloudWrite: () => staff, alert() {},
     tournamentPayload: () => ({ state: JSON.parse(JSON.stringify(context.state)), setup: {} }),
-    ksmSetCurrentCourt(c) { context.state.currentCourt = c; }, ksmSetPublicCourt(c) { context.state.publicCourt = c; },
-    ksmShowDivision(d) { context.state.currentDivision = d; }, setLocalCourtDivision(c, d) { context.ksmLocalCourtDivision[c] = d; },
+    setLocalCourtDivision(c, d) { context.ksmLocalCourtDivision[c] = d; },
   };
   let pinned = pin;
   context.pinnedCourt = () => pinned;
   context.pinCourtLocally = c => { pinned = c; };
-  // (ksmLoadTournamentState() since #15 item 14a; the older code under test calls it replaceState().)
-  context.replaceState = context.ksmLoadTournamentState = loaded => { for (const k of Object.keys(context.state)) delete context.state[k]; Object.assign(context.state, loaded); if (!plain) deriveMatches(context.state); };
-  Object.assign(context, viewHelpers(context));
-  context.restorePinnedCourt = () => { if (!pinned) return null; context.cloudSession.court = pinned; context.state.currentCourt = pinned; if (tv) context.state.publicCourt = pinned; return pinned; };
-  vm.createContext(context);
-  vm.runInContext(code, context);
-  // `plain`: the #180 code (before #15 PR 7), which assigned state.matches itself.
-  context.state = plain ? before : deriveMatches(before);
+  const device = a => context.dispatch(context.deviceSlice.actions[a[0]](a[1]));
+  context.restorePinnedCourt = () => { if (!pinned) return null; context.cloudSession.court = pinned; device(['courtChosen', pinned]); if (tv) device(['publicCourtChanged', pinned]); return pinned; };
+  const make = () => {
+    context.vm = vmStore(context, before, { developmentChecks: !legacy });
+    // (ksmLoadTournamentState() since #15 item 14a; the older code under test calls it replaceState().)
+    // The code before #15 PR 4 replaced the whole object, device fields included: for it a load also takes the payload's device view (legacy writes).
+    const keep = context.ksmLoadTournamentState;
+    context.replaceState = legacy ? loaded => { keep(loaded); for (const k of ['currentCourt', 'publicCourt', 'currentDivision', 'current', 'score', 'regMode', 'poolViewDivision']) if (k in loaded) context.state[k] = loaded[k]; }
+      : keep;
+    if (legacy) context.ksmLoadTournamentState = context.replaceState;
+    vm.createContext(context);
+    vm.runInContext(code, context);
+    // A device with no court known (a state without `currentCourt`): the store always has one, the older code saw it missing.
+    if (legacy && before && !('currentCourt' in before)) context.state.currentCourt = undefined;
+  };
+  if (legacy) asLegacy(make); else make();
   return context;
 }
 
@@ -102,18 +113,22 @@ function tournament(view) {
 const payloadOf = s => ({ state: JSON.parse(JSON.stringify(s)), setup: {} });
 // This device before the load: a fresh device (the app's initial state), or a device already showing a tournament.
 const fresh = () => ({ divisions: ['Women’s Open'], allMatches: {}, courtState: { A: { division: null, index: 0 }, B: { division: null, index: 0 } }, courtActiveDivision: { A: null, B: null },
-  currentByDivision: {}, matches: [], current: 0, score: { W: [], R: [], WT: 0, RT: 0 }, history: [], currentDivision: 'Women’s Open', currentCourt: 'A', publicCourt: 'A' });
+  currentByDivision: {}, matches: [], current: 0, score: { W: [], R: [], WT: 0, RT: 0 }, history: [], courtActionHistory: { A: [], B: [] }, courtRedoHistory: { A: [], B: [] }, currentDivision: 'Women’s Open', currentCourt: 'A', publicCourt: 'A' });
 const courtADevice = () => { const s = tournament({ currentCourt: 'A', publicCourt: 'A', currentDivision: 'Open', current: 1, score: { W: ['M'], R: [], WT: 0, RT: 0 } }); s.matches = s.allMatches.Open; return s; };
 
 /** Loads `payload` into a device set up by `device` with `code`; returns the device's view and the whole state. */
 function load(code, device, payload, options) {
-  const c = makeContext(code, device);
+  const legacy = code !== NEW;
+  const run = () => {
+  const c = makeContext(code, device, legacy);
   c.applyTournamentPayload(payload, false, options);
   const s = c.state;
   return {
     state: s, local: { ...c.ksmLocalCourtDivision },
     view: { court: s.currentCourt, publicCourt: s.publicCourt, division: s.currentDivision, current: s.current, score: s.score, matchesIsDivision: s.matches === s.allMatches[s.currentDivision] || (!s.matches.length && !s.allMatches[s.currentDivision]) },
   };
+  };
+  return legacy ? asLegacy(run) : run();
 }
 const NEW = newCode, OLD = oldCode;
 const remote = { pinnedCourt: 'A', preserveLocalDivision: true, source: 'live sync' };
@@ -249,8 +264,11 @@ for (const [name, [device, payload, options]] of Object.entries(SAME)) {
     divisionCourts: { Open: 'A', Kids: 'B', Juniors: 'A' } });
   file.allMatches.Juniors = [bout('Juniors', 1, 'A'), bout('Juniors', 3, 'A')];
   const errorLog = console.error; console.error = () => {};
+  let notes = 0; c.subscribe(() => { notes++; });
   let ok; try { ok = c.applyTournamentFilePayload(payloadOf(file), false); } finally { console.error = errorLog; }
   check(ok === false && calls === 2, 'the failed file import reports failure and restores');
+  // #15 item 14a review L3: the restore (the view back, then the old tournament) is one held step: one notification, and one for the load that failed.
+  check(notes === 2, `the failed file load notifies the store twice: the failed load, then one for the whole restore (got ${notes})`);
   check(c.state.currentDivision === 'Kids', `the restore keeps this device's division (got ${c.state.currentDivision})`);
   check(c.ksmLocalCourtDivision.A === null, `the restore keeps this device's Court A choice (got ${c.ksmLocalCourtDivision.A})`);
   check(json(c.state.allMatches) === '{}', 'the restore is the tournament from before');
@@ -278,14 +296,11 @@ for (const [name, [device, payload, options]] of Object.entries(SAME)) {
     let pr6Code = NEW;
     for (const [src, name] of [[pr6, 'rehydrateLoadedTournamentState'], [pr6Order, 'applyCourtState'], [pr6Scoring, 'loadScoreFromMatch']])
       pr6Code = pr6Code.replace(extractFunction(html, name), () => extractFunction(src, name));
-    const was = load(pr6Code, { ...device(), plain: true }, file(), undefined);
-    check(shown(was.state) === undefined && was.view.division === now.view.division && json(was.view.score) === json(now.view.score)
-      && json(was.local) === json(now.local), `the same view as the #180 code: no match, the same division and pad (before: ${was.view.division} ${was.view.current})`);
+    const was = load(pr6Code, device(), file(), undefined);
+    // The #180 code set `matches = []` and `current = 0` itself; `matches` is derived now, so its shown match and the matches / current it left can no
+    // longer be shown on a real store (the new code's own view is asserted above). What it wrote besides is still compared: the tournament data.
     const shared = s => json({ allMatches: s.allMatches, courtState: s.courtState, courtActiveDivision: s.courtActiveDivision, currentByDivision: s.currentByDivision });
-    check(shared(was.state) === shared(now.state), 'the same tournament data as the #180 code');
-    // What differs, only in this branch: the snapshot's current (0 then, the list's length now) and matches ([] then,
-    // the shown division's list now). Both are device keys every load ignores (docs/STORE.md section 3 item 7).
-    check(was.state.current === 0 && was.state.matches.length === 0, 'the #180 code left current 0 and an empty matches');
+    check(shared(was.state) === shared(now.state) && was.view.division === now.view.division && json(was.local) === json(now.local), 'the same tournament data, division and device choices as the #180 code');
   }
 }
 

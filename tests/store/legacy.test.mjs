@@ -174,7 +174,7 @@ test('ksmLoadTournamentState() keeps a device field: a payload never overwrites 
 test('production, a nested write into store data (Immer auto-freeze off): applied, seen by the next snapshot, no notification', () => {
   inProduction(() => {
     const s = productionStore();
-    s.dispatch(tournamentLoaded({ writes: [{ path: ['tournament', 'awards'], value: [{ place: 1, name: 'A' }] }, { path: ['device', 'view'], value: 'court' }] }));
+    s.dispatch(tournamentLoaded({ writes: [{ path: ['tournament', 'awards'], value: [{ place: 1, name: 'A' }] }, { path: ['tournament', 'view'], value: 'court' }] }));
     let notified = 0;
     s.subscribe(() => { notified++; });
     const names = createSelector([st => st.tournament.awards], awards => awards.map(a => a.name));
@@ -190,7 +190,7 @@ test('production, a nested write into store data (Immer auto-freeze off): applie
     assert.deepEqual(names(s.getState()), ['A'], 'a memoized selector keeps its old result: its input did not change');
 
     // The next dispatch: subscribers run (they run on every dispatch) and read the new value directly,
-    s.dispatch(tournamentLoaded({ writes: [{ path: ['device', 'view'], value: 'tv' }] }));
+    s.dispatch(tournamentLoaded({ writes: [{ path: ['tournament', 'view'], value: 'tv' }] }));
     assert.equal(notified, 1);
     assert.equal(s.getState().tournament.awards[0].name, 'B');
     // but structural sharing keeps the awards array, so the selector stays stale until the awards themselves change,
@@ -232,10 +232,17 @@ test('only moveToStore() dispatches legacy/fieldAssigned', () => {
   // and moveToStore() dispatches it only from the setter's production branch.
   const appState = fs.readFileSync(path.join(ROOT, 'app/modules/app-state.js'), 'utf8');
   assert.equal(appState.match(/legacyFieldAssigned\(/g)?.length, 1);
-  assert.match(appState, /if\(storeIsStrict\(\)\)throw new TypeError[^\n]*\n[^\n]*reportStrayStoreWrite\([^\n]*\n\s*dispatch\(legacyFieldAssigned\(/);
+  assert.match(appState, /if\(storeIsStrict\(\)\)throw new TypeError[^\n]*\n[^\n]*reportStrayStoreWrite\([^\n]*\n\s*st\.dispatch\(legacyFieldAssigned\(/);
 });
 
 test('the legacy actions are plain JSON with a path', () => {
   const action = legacyFieldAssigned({ key: 'regMode', path: ['device', 'regMode'], value: 'team' });
   assert.deepEqual(JSON.parse(JSON.stringify(action)), action);
+});
+
+test('tournament/loaded writes only tournament paths (development and the tests; #15 item 14b, 14a review L4)', () => {
+  const s = createKsmStore();
+  assert.throws(() => tournamentLoaded({ writes: [{ path: ['device', 'probe'], value: 1 }] }), /only tournament paths/);
+  s.dispatch(tournamentLoaded({ writes: [{ path: ['tournament', 'probe'], value: 1 }] }));
+  assert.equal(s.getState().tournament.probe, 1);
 });

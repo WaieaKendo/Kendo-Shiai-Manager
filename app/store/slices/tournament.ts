@@ -12,7 +12,7 @@ import { DIVISION_PRESETS, TEAM_COURT_KEY, type DivisionRename } from '../../eng
 import { statusCycle } from '../../engine/registration.ts';
 import type { GrandChampion } from '../../engine/grand-champion.ts';
 import type { TeamDivision } from '../../engine/team-divisions.ts';
-import type { StoreWrite } from '../legacy.ts';
+import { PRODUCTION_BUILD, type StoreWrite } from '../legacy.ts';
 import { withMeta, type ActionMeta, type ActionMetaInput } from '../meta.ts';
 
 /** Bumped when the shape of this slice changes in a way saved data must be migrated for. */
@@ -299,7 +299,11 @@ export const matchActions = Object.fromEntries((['matchUpdated', 'allMatchesSet'
  * Never the device fields (this device's view, point 4) nor the Setup fields (applySetupSnapshot() sets those with the
  * Setup's precedence). Built by ksmLoadTournamentState() (app/modules/app-state.js), which replaced replaceState().
  */
-export const tournamentLoaded = createAction<HistoryWrites>('tournament/loaded');
+export const tournamentLoaded = createAction('tournament/loaded', (loaded: HistoryWrites) => {
+  // (Development and the tests only: the production bundle is at its size budget, and its one caller, ksmLoadTournamentState(), never sends another path.)
+  if (!PRODUCTION_BUILD && loaded.writes.some(w => w.path[0] !== 'tournament')) throw new Error('tournament/loaded writes only tournament paths');
+  return { payload: loaded };
+});
 function setCourtPointers(state: TournamentSliceState, { payload }: { payload: CourtPointers }) {
   for (const key of ['currentByDivision', 'courtState', 'courtActiveDivision'] as const) {
     const entries = payload[key];

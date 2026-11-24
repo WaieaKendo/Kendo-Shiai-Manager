@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { extractFunction, engine, html as appSource, sw as appServiceWorker, matchWritesSource } from './lib/ksm-source.mjs';
-import { pointerHelpers } from './lib/derived-matches.mjs';
+import { extractFunction, engine, html as appSource, sw as appServiceWorker, matchWritesSource, withDependencies } from './lib/ksm-source.mjs';
+import { vmStore } from './lib/vm-store.mjs';
 
 const html=appSource;
 const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));
@@ -17,10 +17,7 @@ check(html.includes("normalizeAllIndividualPoolTiebreakOrder(rebased.state,'conc
 check(html.includes("normalizeAllIndividualPoolTiebreakOrder(loaded,options.source||'tournament load')"),'loaded tournaments self-heal legacy misplaced tiebreaks');
 
 const context={console};
-context.state={};
-// #15 PR 7: on the live state, current goes through ksmShowMatch() (here the context's plain state).
-context.ksmShowMatch=i=>{context.state.current=i};
-Object.assign(context,pointerHelpers(context)); // #15 PR 13a: the court pointers' store helper, on the plain state
+const { load, edit } = vmStore(context); // a real store (tests/lib/vm-store.mjs)
 context.cloneJson=value=>JSON.parse(JSON.stringify(value));
 context.isValidMatchObject=match=>Boolean(match&&typeof match==='object'&&!Array.isArray(match));
 context.individualMatchReady=m=>!!(m&&!m.done&&(!m.templateNode||m.ready)&&(m.white&&m.red));
@@ -31,7 +28,7 @@ context.nextReadyIndexInState=(targetState,div,court)=>{
   return idx<0?arr.length:idx;
 };
 vm.createContext(context);
-vm.runInContext(`
+vm.runInContext(withDependencies(appSource,`
 ${engine}
 ${matchWritesSource}
 ${extractFunction(html,'legacyTiebreakSyncIdentity')}
@@ -44,7 +41,7 @@ ${extractFunction(html,'normalizeAllIndividualPoolTiebreakOrder')}
 const APPROVED_DYNAMIC_MATCH_TYPES=Object.freeze(new Set(['INDIVIDUAL_POOL_TIEBREAK','TEAM_3_PERSON_REPRESENTATIVE','TEAM_5_PERSON_REPRESENTATIVE','KACHINUKI_REPRESENTATIVE','TEAM_3_PERSON_ROUND_ROBIN_TIEBREAK','TEAM_5_PERSON_ROUND_ROBIN_TIEBREAK','KACHINUKI_ROUND_ROBIN_TIEBREAK']));
 ${extractFunction(html,'appendApprovedDynamicMatches')}
 ${extractFunction(html,'resolveRebasePatch')}
-`,context);
+`,{exclude:Object.keys(context)}),context);
 
 function baseMatch(pool,n){return {division:'D',pool,type:'individual',done:true,white:`${pool}${n}W`,red:`${pool}${n}R`,court:'A',poolOrder:n-1};}
 function tie(pool,a,b,series=1,index=0){return {division:'D',pool,type:'individual',tiebreak:true,done:false,white:a,red:b,court:'A',tiebreakSeries:series,tiebreakIndex:index};}
@@ -53,7 +50,9 @@ function makeFourPoolState(){
   const arr=[];
   for(const pool of ['A','B','C','D']){arr.push(baseMatch(pool,1),baseMatch(pool,2),baseMatch(pool,3));}
   arr.push({division:'D',type:'individual',championship:true,position:'Quarterfinal',white:'TBD',red:'TBD',done:false,templateNode:true,ready:false,court:'A'});
-  context.state={pools:{D:['A','B','C','D'].map(label=>({label}))},allMatches:{D:arr},divisionCourts:{D:'A'},courtState:{A:{division:'D',index:2},B:{division:null,index:0}},courtActiveDivision:{A:'D',B:null},currentDivision:'D',currentCourt:'A',current:2,currentByDivision:{D:2}};
+  load({pools:{D:['A','B','C','D'].map(label=>({label}))},allMatches:{D:arr},divisionCourts:{D:'A'},courtState:{A:{division:'D',index:2},B:{division:null,index:0}},courtActiveDivision:{A:'D',B:null},currentByDivision:{D:2}});
+  // This device's view: Court A, showing D's third bout (a load keeps it; the actions are the device's own).
+  context.dispatch(context.deviceSlice.actions.divisionShown('D'));context.dispatch(context.deviceSlice.actions.matchShown(2));
   return arr;
 }
 
@@ -79,7 +78,7 @@ check(seq[6]==='B-1','next pool follows the complete 3-player tiebreak series');
 // appended after Pool D (for example by an older conflict rebase).
 arr=makeFourPoolState();
 const misplaced=tie('A','A1','A2',1,0);
-context.state.allMatches.D.splice(context.state.allMatches.D.length-1,0,misplaced);
+edit(s=>{s.allMatches.D.splice(s.allMatches.D.length-1,0,misplaced)});
 check(poolSequence(context.state.allMatches.D).indexOf('A-TB1.0')>poolSequence(context.state.allMatches.D).indexOf('D-3'),'bad legacy state reproduces tiebreak after Pool D');
 context.normalizeIndividualPoolTiebreakOrderInState(context.state,'D','regression test');
 seq=poolSequence(context.state.allMatches.D);
@@ -109,12 +108,14 @@ check(context.matchHasSyncIdentity(s1,context.legacyTiebreakSyncIdentity(s1)),'l
 // a four-pool split division, so a Pool C tiebreak must become Court B's next
 // match before any Pool D match can start.
 arr=makeFourPoolState();
-context.state.divisionCourts.D='split';
-context.state.pools.D.forEach((pool,index)=>{pool.court=index<2?'A':'B'});
-context.state.allMatches.D.forEach(m=>{if(m.pool==='C'||m.pool==='D')m.court='B'});
 const cTie=tie('C','C1','C2',1,0);cTie.court='B';
-context.state.allMatches.D.splice(context.state.allMatches.D.length-1,0,cTie);
-context.state.courtState.B={division:'D',index:context.state.allMatches.D.findIndex(m=>m.pool==='D')};
+edit(s=>{
+  s.divisionCourts.D='split';
+  s.pools.D.forEach((pool,index)=>{pool.court=index<2?'A':'B'});
+  s.allMatches.D.forEach(m=>{if(m.pool==='C'||m.pool==='D')m.court='B'});
+  s.allMatches.D.splice(s.allMatches.D.length-1,0,cTie);
+  s.courtState.B={division:'D',index:s.allMatches.D.findIndex(m=>m.pool==='D')};
+});
 context.normalizeIndividualPoolTiebreakOrderInState(context.state,'D','split-court regression');
 const splitSeq=poolSequence(context.state.allMatches.D);
 check(splitSeq.indexOf('C-TB1.0')===splitSeq.indexOf('C-3')+1,'split Court B Pool C tiebreak sits directly before Pool D');

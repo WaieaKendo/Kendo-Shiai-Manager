@@ -137,9 +137,10 @@ export function countDefinitions(source, name) { return definitionStarts(source,
 // `exclude` (e.g. functions the test stubs on its vm context) are never pulled in.
 // A reference to KSMEngine pulls in the engine script (`engine`, above).
 
+// (Also the module-private helpers of match-writes.js and court-history-store.js, which the real match-write and history functions call.)
 function topLevelConstants(source) {
   const map = new Map();
-  for (const m of source.matchAll(/(?:^|[;\n}])\s*(?:export\s+)?(const|let)\s+([A-Z][A-Z0-9_]+)\s*=/g)) {
+  for (const m of source.matchAll(/(?:^|[;\n}])\s*(?:export\s+)?(const|let)\s+([A-Z][A-Z0-9_]+|ksm[A-Za-z0-9_]*(?=\s*=\s*(?:\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>)|meta|listOf|courtList|pushed)\s*=/g)) {
     const start = m.index + m[0].indexOf(m[1]);
     let i = start + m[0].length - m[0].indexOf(m[1]), depth = 0;
     for (; i < source.length;) {
@@ -169,29 +170,20 @@ function definedIn(code) {
   return names;
 }
 
-/** What a vm test whose `state` is plain uses instead of the app's store-backed definitions (#15 PR 13c-2). */
-export const VM_STAND_INS = {
-  ksmInStore: 'function ksmInStore(){return false}',
-  // A plain `state` keeps its keys where a load puts them: no getter to reorder around.
-  historyKeyOrder: 'function historyKeyOrder(keys){return keys}',
-  ksmInPlace: 'const ksmInPlace=()=>(parent,key)=>parent[key];',
-  ksmChanged: 'const ksmChanged=own=>{own.changed=true};',
-  holdNotifications: 'function holdNotifications(fn){return fn()}',
-};
+// What tests/lib/vm-store.mjs puts on a context itself: the store's own functions and the app-state helpers bound to the context's `state`.
+// withDependencies() never cuts these out of the source: a test that has no vmStore() on its context stubs what it needs.
+export const VM_STORE_NAMES = ['dispatch', 'getState', 'holdNotifications', 'subscribe', 'storeFieldPath', 'stateFieldIsDerived', 'storeWrites', 'ksmLoadTournamentState', 'assignStoreKeys', 'settingsMeta'];
 export function withDependencies(source, code, { exclude = [] } = {}) {
   const { functions, constants } = definitionIndex(source);
-  const skipNames = new Set([...exclude, ...definedIn(code)]);
+  const skipNames = new Set([...exclude, ...VM_STORE_NAMES, ...definedIn(code)]);
   const added = [];
   const queue = [code];
   while (queue.length) {
     const text = queue.shift();
-    for (const [, name] of text.matchAll(/(?<![\w$.])([A-Za-z_$][\w$]*)\b/g)) {
+    for (const [, name] of text.replaceAll('...', ' ').matchAll(/(?<![\w$.])([A-Za-z_$][\w$]*)\b/g)) {
       if (skipNames.has(name)) continue;
       let def = null;
       if (name === 'KSMEngine') def = engine;
-      // A vm test's `state` is plain and it has no store (#15 PR 13c-2): the bout writes go in place
-      // (match-writes.js), and a held notification is simply the call.
-      else if (Object.hasOwn(VM_STAND_INS, name)) def = VM_STAND_INS[name];
       else if (functions.has(name)) def = extractFunction(source, name);
       else if (constants.has(name)) def = constants.get(name);
       if (!def) continue;
@@ -205,11 +197,9 @@ export function withDependencies(source, code, { exclude = [] } = {}) {
 }
 
 // #15 PR 13c-1 / 13c-2: every write to `allMatches` goes through app/modules/court/match-writes.js. A vm test that runs app
-// functions on its own `state` (a global of its context) adds these: its `state` is plain, so they write it in place (the
-// app's own `state` dispatches instead: ksmInStore() is true only there). withDependencies() finds them on its own.
-export const MATCH_WRITE_FUNCTIONS = ['ksmMatchWrite', 'ksmOwnMap', 'ksmMatchList', 'ksmSameEntries', 'ksmSetAllMatches', 'ksmSetDivisionMatches', 'ksmDeleteDivisionMatches',
+// functions over the helper's real store (tests/lib/vm-store.mjs) adds these (withDependencies() finds them on its own too).
+export const MATCH_WRITE_FUNCTIONS = ['ksmInStore', 'ksmMatchWrite', 'ksmOwnMap', 'ksmMatchList', 'ksmSameEntries', 'ksmSetAllMatches', 'ksmSetDivisionMatches', 'ksmDeleteDivisionMatches',
   'ksmUpdateMatches', 'ksmWriteUpdates', 'ksmUpdateChanges', 'ksmUpdateMatch', 'ksmInsertMatches', 'ksmAppendMatches', 'ksmRemoveMatches', 'ksmSortDivisionMatches', 'ksmWriteMatchPath',
   'ksmWalkMatchPath', 'ksmIndexByIdentity', 'ksmWriteMatchPaths', 'ksmApplyMatchPaths', 'ksmPlanMatchPaths', 'ksmCopyOnWrite'];
-// (With the held store notification of a court action and an Undo/Redo: a vm test has no store.)
-export const matchWritesSource = [VM_STAND_INS.ksmInStore, VM_STAND_INS.ksmInPlace, VM_STAND_INS.ksmChanged, VM_STAND_INS.holdNotifications,
-  ...MATCH_WRITE_FUNCTIONS.map(name => extractFunction(html, name))].join('\n');
+export const matchWritesSource = [...MATCH_WRITE_FUNCTIONS.map(name => extractFunction(html, name)),
+  ...['ksmInPlace', 'ksmChanged'].map(name => html.match(new RegExp(`^const ${name}=[^\n]*`, 'm'))[0])].join('\n');

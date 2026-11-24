@@ -89,5 +89,5 @@ export function ksmRenameDivisionLists(renamed){
 }
 /** The keys of `state` this module's actions own. */
 export const KSM_DIVISION_STATE_KEYS=Object.freeze(['divisions','divisionTypes','divisionCourts','hiddenPresets','divisionRenames']);
-/** The keys a rename's tournament/divisionRenamed sets (a rename's partial without them is what the caller assigns). */
+/** The keys a rename's tournament/divisionRenamed sets (the keys the rename writes in its one action; it assigns nothing else). */
 export const KSM_RENAMED_STATE_KEYS=Object.freeze([...KSM_DIVISION_STATE_KEYS,'competitors','grandChampions','courtState','courtActiveDivision']);
