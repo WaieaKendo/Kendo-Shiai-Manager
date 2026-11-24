@@ -12,6 +12,7 @@ import vm from 'node:vm';
 import { courtActions, createKsmStore, getState, setStoreStrict, tournamentSlice } from '../../app/store/index.ts';
 import { ksmLoadTournamentState, setStrayStoreWriteReporter, state, storeFieldPath } from '../../app/modules/app-state.js';
 import { extractFunction, html } from '../lib/ksm-source.mjs';
+import { plainSelectors } from '../lib/plain-selectors.mjs';
 
 const A = tournamentSlice.actions;
 const meta = { device: 'test' };
@@ -100,7 +101,7 @@ function helpers(initial) {
   const s = createKsmStore({ tournament: { ...getState().tournament, ...initial } }), dispatched = [];
   const st = {};
   for (const k of KEYS) Object.defineProperty(st, k, { enumerable: true, get: () => s.getState().tournament[k] });
-  const ctx = vm.createContext({ state: st, courtActions, settingsMeta: () => ({ device: 'c/t' }), dispatch: a => { dispatched.push(a); return s.dispatch(a); } });
+  const ctx = vm.createContext({ ...plainSelectors({ state: st }), getState: () => s.getState(), state: st, courtActions, settingsMeta: () => ({ device: 'c/t' }), dispatch: a => { dispatched.push(a); return s.dispatch(a); } });
   vm.runInContext(`const KSM_POINTER_KEYS=Object.freeze(['currentByDivision','courtState','courtActiveDivision']);
 ${extractFunction(html, 'ksmMoveCourtPointers')}
 ${extractFunction(html, 'ksmCourtPointer')}

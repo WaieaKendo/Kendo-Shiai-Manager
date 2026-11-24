@@ -1,5 +1,6 @@
 // @ts-check
-import {state} from '../app-state.js';
+import {getState} from '../../store/index.ts';
+import {selectCurrentDivision} from '../selectors.js';
 import {divisionCourtMode} from '../engine/engine-pools.js';
 import * as KSMEngine from '../../engine/index.ts';
 // ---------- KSM v3.9.1 Grouped court queue ----------
@@ -50,7 +51,7 @@ export function setCourtSupportMode(mode){
   const queueCard=document.querySelector('#score .sk-queue-card');
   if(!grid||!queueCard)return;
   const single=mode==='singleElim';
-  const splitSingle=single&&divisionCourtMode(state.currentDivision)==='split';
+  const splitSingle=single&&divisionCourtMode(selectCurrentDivision(getState()))==='split';
   grid.classList.toggle('single-elim-mode',single&&!splitSingle);
   queueCard.classList.toggle('hidden',single&&!splitSingle);
 }

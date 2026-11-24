@@ -8,8 +8,8 @@
 // What is not in the store yet (`allMatches`: PR 13c) the caller writes as before, in the same synchronous step, before
 // the dispatch: a store notification never shows a pointer into a list that is not there yet.
 // Like the old in-place writes, none of these schedules a save or renders: the caller does what it did before.
-import {state} from '../app-state.js';
-import {courtActions,dispatch} from '../../store/index.ts';
+import {courtActions,dispatch,getState} from '../../store/index.ts';
+import {selectTournamentField} from '../selectors.js';
 import {settingsMeta} from '../sync/cloud-session-and-autosave.js';
 /** @typedef {import('../../store/index.ts').CourtPointers} CourtPointers */
 /** @typedef {keyof typeof courtActions} CourtPointerAction */
@@ -26,7 +26,7 @@ export const KSM_POINTER_KEYS=Object.freeze(/** @type {const} */ (['currentByDiv
 export function ksmMoveCourtPointers(type,pointers,court=null){
   /** @type {Record<string,Record<string,unknown>>} */ const out={};
   for(const key of KSM_POINTER_KEYS){
-    const entries=/** @type {Record<string,unknown>|undefined} */ (pointers[key]),now=/** @type {Record<string,unknown>|undefined} */ (state[key]);
+    const entries=/** @type {Record<string,unknown>|undefined} */ (pointers[key]),now=/** @type {Record<string,unknown>|undefined} */ (selectTournamentField(getState(),key));
     if(!entries)continue;
     if(!now){out[key]={...entries};continue}
     const changed=Object.entries(entries).filter(([k,v])=>!Object.hasOwn(now,k)||JSON.stringify(now[k])!==JSON.stringify(v));

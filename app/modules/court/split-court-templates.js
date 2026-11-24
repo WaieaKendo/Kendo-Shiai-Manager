@@ -1,5 +1,6 @@
 // @ts-check
-import {state} from '../app-state.js';
+import {getState} from '../../store/index.ts';
+import {selectAllMatches,selectCourtActiveDivision,selectCourtState,selectCurrentCourt,selectCurrentDivision,selectDivisionCourts,selectSingleElimNodes} from '../selectors.js';
 import {enforceUniqueIndividualMatches} from '../engine/engine-championship.js';
 import {singleElimMatchCompare} from '../engine/engine-single-elim.js';
 import {ksmSetDivisionMatches,ksmSortDivisionMatches,ksmUpdateMatches} from './match-writes.js';
@@ -24,11 +25,11 @@ function canonicalSingleElimMatch(div,node,arr){return KSMEngine.canonicalSingle
  * @param {{singleElimNodes?:any[]}} [draft]
  */
 export function syncIndividualSingleElim(div,arr,comps,draft){
-  const nodes=(draft?draft.singleElimNodes:state.singleElimNodes?.[div])||[];
-  const plan=KSMEngine.syncIndividualSingleElim(nodes,arr,comps,/** @type {Court|'split'} */(state.divisionCourts[div]||'A'));
+  const nodes=(draft?draft.singleElimNodes:selectSingleElimNodes(getState())?.[div])||[];
+  const plan=KSMEngine.syncIndividualSingleElim(nodes,arr,comps,/** @type {Court|'split'} */(selectDivisionCourts(getState())[div]||'A'));
   plan.missing.forEach(id=>console.error('KSM template invariant: missing Match Object for',div,id));
   const next=ksmNodesWithWinners(nodes,plan.winners);
-  if(arr!==state.allMatches?.[div])ksmSetDivisionMatches(div,arr);
+  if(arr!==selectAllMatches(getState())?.[div])ksmSetDivisionMatches(div,arr);
   ksmUpdateMatches(div,plan.updates);
   ksmSortDivisionMatches(div,singleElimMatchCompare(div,next));
   const out=enforceUniqueIndividualMatches(div);
@@ -46,7 +47,7 @@ export function renderQueue(){
 }
 
 export function contextDivisionForCourt(){
-  return state.currentDivision||state.courtActiveDivision?.[state.currentCourt||'A']||state.courtState?.[state.currentCourt||'A']?.division||null;
+  return selectCurrentDivision(getState())||selectCourtActiveDivision(getState())?.[selectCurrentCourt(getState())||'A']||selectCourtState(getState())?.[selectCurrentCourt(getState())||'A']?.division||null;
 }
 // The court context panel is React (CourtContext): the module's ksmContextPanelInput()
 // (app/react/features/court/publish.ts) makes the decisions of the legacy context renderer (this

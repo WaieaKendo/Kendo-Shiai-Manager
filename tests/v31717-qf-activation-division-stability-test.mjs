@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { extractFunction, engine, html as appSource, sw as appServiceWorker } from './lib/ksm-source.mjs';
+import { plainSelectors } from './lib/plain-selectors.mjs';
 
 const html=appSource;
 const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));
@@ -21,7 +22,7 @@ check(html.includes('let m=ensureScorableCurrentMatch();'),'score renderer self-
 // Regression 1: owner-scoped court state must survive a Court B/cloud rebase without
 // copying a stale numeric index. The QF is now at index 2 and must be rediscovered.
 const pureContext={console};
-vm.createContext(pureContext);
+vm.createContext(plainSelectors(pureContext));
 vm.runInContext([
   engine,
   extractFunction(html,'normalizeCourt'),
@@ -100,7 +101,7 @@ localDivisionContext.findNextForCourt=(court,div)=>{
 localDivisionContext.applyCourtState=(court,cs)=>{
   const st=localDivisionContext.state;st.currentCourt=court;st.courtState[court]=cs;st.courtActiveDivision[court]=cs.division;st.currentDivision=cs.division;st.matches=st.allMatches[cs.division]||[];st.current=cs.index;st.currentByDivision[cs.division]=cs.index;
 };
-vm.createContext(localDivisionContext);
+vm.createContext(plainSelectors(localDivisionContext));
 vm.runInContext(extractFunction(html,'rehydrateLoadedTournamentState'),localDivisionContext);
 localDivisionContext.rehydrateLoadedTournamentState({preserveLocalDivision:true});
 check(localDivisionContext.state.currentDivision==='Division New','live sync cannot revert manually selected division');
@@ -123,7 +124,7 @@ renderContext.individualMatchReady=(m)=>!!(m&&!m.done&&(!m.templateNode||m.ready
 renderContext.matchBelongsToCourt=(m,c)=>!!m&&m.court===c;
 renderContext.findNextForCourt=(court,div)=>({division:div,index:1});
 renderContext.applyCourtState=(court,cs)=>{const st=renderContext.state;st.currentCourt=court;st.currentDivision=cs.division;st.matches=st.allMatches[cs.division];st.current=cs.index;};
-vm.createContext(renderContext);
+vm.createContext(plainSelectors(renderContext));
 vm.runInContext(extractFunction(html,'ensureScorableCurrentMatch'),renderContext);
 const healed=renderContext.ensureScorableCurrentMatch();
 check(healed?.position==='Quarterfinal'&&renderContext.state.current===1,'score renderer repairs empty active pointer to ready QF');

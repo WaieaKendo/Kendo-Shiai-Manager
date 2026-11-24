@@ -6,8 +6,9 @@
 // whole before it is recorded and never edited afterwards. What is not in the store yet (`allMatches`: PR 13c) the
 // caller writes as before, in the same synchronous step, before the dispatch.
 // Like the old in-place writes, none of these schedules a save or renders: the caller does what it did before.
-import {state,storeWrites} from '../app-state.js';
-import {courtHistoryActions,dispatch} from '../../store/index.ts';
+import {storeWrites} from '../app-state.js';
+import {courtHistoryActions,dispatch,getState} from '../../store/index.ts';
+import {selectTournamentField} from '../selectors.js';
 import {settingsMeta} from '../sync/cloud-session-and-autosave.js';
 /** @typedef {import('../../store/index.ts').CourtHistoryEntry} CourtHistoryEntry */
 /** @typedef {'courtActionHistory'|'courtRedoHistory'|'courtUndoLog'} HistoryKey */
@@ -20,13 +21,13 @@ export const KSM_UNDO_LOG_LIMIT=40;
 /** @param {string|null} court */
 const meta=court=>({...settingsMeta(),court});
 /** @param {HistoryKey} key @param {string} court @returns {CourtHistoryEntry[]} court `court`'s list in the store ([] when there is none) */
-const listOf=(key,court)=>{const list=state[key]?.[court];return Array.isArray(list)?list:[]};
+const listOf=(key,court)=>{const list=selectTournamentField(getState(),key)?.[court];return Array.isArray(list)?list:[]};
 /**
  * The writes that set court `court`'s list in `key`'s map; when the map is missing, both courts' empty lists first, as the
  * old `state[key] = state[key] || {A: [], B: []}` made it.
  * @param {HistoryKey} key @param {string} court @param {CourtHistoryEntry[]} list @returns {StoreWrite[]}
  */
-const courtList=(key,court,list)=>[...(state[key]?[]:[{path:['tournament',key],value:{A:[],B:[]}}]),{path:['tournament',key,court],value:list}];
+const courtList=(key,court,list)=>[...(selectTournamentField(getState(),key)?[]:[{path:['tournament',key],value:{A:[],B:[]}}]),{path:['tournament',key,court],value:list}];
 /** `list` with `entry` pushed, its oldest dropped beyond `limit`. @param {CourtHistoryEntry[]} list @param {CourtHistoryEntry} entry @param {number} limit */
 const pushed=(list,entry,limit)=>{const next=[...list,entry];return next.length>limit?next.slice(next.length-limit):next};
 /**
@@ -52,7 +53,7 @@ export function ksmMoveCourtHistory(kind,court,log,values){
   /** @type {[HistoryKey,HistoryKey]} */ const [from,to]=kind==='undo'?['courtActionHistory','courtRedoHistory']:['courtRedoHistory','courtActionHistory'];
   const was=listOf(from,court),action=was[was.length-1];
   dispatch(courtHistoryActions[kind]({writes:[...courtList(from,court,was.slice(0,-1)),...courtList(to,court,pushed(listOf(to,court),action,KSM_HISTORY_LIMIT)),
-    ...courtList('courtUndoLog',court,pushed(listOf('courtUndoLog',court),log,KSM_UNDO_LOG_LIMIT)),...storeWrites(values,state)]},meta(court)));
+    ...courtList('courtUndoLog',court,pushed(listOf('courtUndoLog',court),log,KSM_UNDO_LOG_LIMIT)),...storeWrites(values)]},meta(court)));
 }
 /**
  * Whole history maps (`maps`: each key it names gets that value), none when it names none: court/historyNormalized
