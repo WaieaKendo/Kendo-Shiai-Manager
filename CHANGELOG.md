@@ -1,60 +1,7 @@
-## v4.0.0-rc.7 — Grand champion bracket order
+## v4.0.0 — Rebuilt for tournament day
 
-- The grand champion bracket now follows the order of its divisions (1st plays 2nd, 3rd plays 4th, and so on; with 7, the last division plays the winner of the 3rd match), so the matchups are the same whoever wins. Before, they were placed by the winners' names and dojos and changed from one tournament to the next.
-- Setup shows the grand champion bracket (from 3 divisions, single elimination): each match with its divisions, and who plays for each once their division is decided. Tap a division, then another, to swap their places, until the match is drawn. A division you add goes in at its place in the running order.
-- A bracket that is drawn but not started yet is drawn again in the new order if its divisions are reordered, including on another device. Once the first bout is played, the order alone no longer changes it.
-- Setup's divisions table: the "Use" column is now "Enabled".
 
-## v4.0.0-rc.6 — Court Queue running order
-
-- The Court Queue shows the division being played as a header ("Now") over its rounds, then the court's remaining divisions in running order, one line each: "Up next" on the first, its match count on this court, and "also on Court B" for a division on both courts. Display only: Continue still decides what comes next.
-
-## v4.0.0-rc.5 — Court order on Brackets
-
-- Each Brackets card shows its place in the court's running order: "Court A · 2nd", or "Court A · 4th · Court B · 3rd" for a division on both courts.
-
-## v4.0.0-rc.4 — Brackets
-
-- Results is now **Brackets** (new icon, address `/brackets`; older `/results` links still work).
-- Each division's card shows its court ("Court A", "Courts A & B") and "Now on Court A" while it is being played.
-
-## v4.0.0-rc.3 — Brackets for spectators
-
-- Spectators can open each division's pools and bracket from Results while it is in progress, from the moment the tournament is live.
-- Export Results is staff-only for now.
-- The bracket pop-up opens above the header (its × works) with a readable title; messages stay above pop-ups.
-- Team brackets in Results show both teams on every match.
-
-## v4.0.0-rc.2 — Split courts, tiebreaks and the TV
-
-Fixes and polish for the 11/21 tournament since rc.1. Reload every device once after the update.
-
-### Courts
-- **Split courts** keep both courts' results when their saves collide. A bracket stays split after the draw, pool seeds and kachinuki lineups are kept, and a division of 10 gets a bracket of 4.
-- **Changing a division's court after the draw** moves its unplayed matches. Generate starts each court on its own division.
-- **Refreshing a court page** (`/court/a`, `/court/b`) reopens that court for staff.
-
-### Pools, team divisions and results
-- **Tiebreaks:** players placed by a tiebreak have a `*` on their points, with a note under the pool and a Tiebreak section.
-- **A team added after the draw** can join a drawn team division that has not started.
-- **Results** shows a card for divisions that are not drawn yet, and a waiting grand champion.
-
-### TV and navigation
-- **The TV has no header** (no Staff Login on the TV). After a division it shows "Next: <division>", also in place of empty Upcoming cards.
-- **Courts and TV menu items are links** that open in a new tab; choosing one closes the phone menu.
-- Setup's × buttons are inline and red; Import CSV lists missing divisions once; a straight apostrophe matches names like "Women’s Open".
-
-### Saving
-- The server stays within its CPU budget on large tournaments, and a failed save keeps the live version.
-- Resetting a tournament clears changes that were not confirmed yet.
-
-### Behind the scenes
-- Release rules for contributors and AI agents (`AGENTS.md`): every PR into `develop` during an rc bumps the rc number, `main` never gets an rc, and CI checks both.
-- More tests and fewer flaky ones.
-
-## v4.0.0-rc.1 — Ready for the 11/21 tournament
-
-The first 4.x release, built for the 11/21 tournament: a rebuilt app (same look, faster and better tested), new tournament structure, and much safer saving between devices. This is the first release candidate: it goes to production for testing, and fixes follow as rc.2, rc.3 … until 4.0.0.
+The first 4.x release, built for the 11/21 tournament: a rebuilt app (same look, faster and better tested), new tournament structure, and much safer saving between devices. It also includes everything added since the first candidate (listed at the end).
 
 ### After the update: reload every device
 
@@ -112,6 +59,58 @@ Reload every open tablet, laptop, TV and tab once after the update. The server n
 - The app is rebuilt on a typed engine and React screens, with page addresses (`/t/<id>/court/a`, `/t/<id>/tv/b`, …).
 - About 200 automated test files, including network failure, two-device and two-tab cases. CI runs in about 6 minutes.
 - Deploys: every merge to `develop` updates the dev site; a release merged into `main` updates production.
+
+### Added since the first candidate
+
+#### Split courts, tiebreaks and the TV
+
+Fixes and polish for the 11/21 tournament.
+
+##### Courts
+- **Split courts** keep both courts' results when their saves collide. A bracket stays split after the draw, pool seeds and kachinuki lineups are kept, and a division of 10 gets a bracket of 4.
+- **Changing a division's court after the draw** moves its unplayed matches. Generate starts each court on its own division.
+- **Refreshing a court page** (`/court/a`, `/court/b`) reopens that court for staff.
+
+##### Pools, team divisions and results
+- **Tiebreaks:** players placed by a tiebreak have a `*` on their points, with a note under the pool and a Tiebreak section.
+- **A team added after the draw** can join a drawn team division that has not started.
+- **Results** shows a card for divisions that are not drawn yet, and a waiting grand champion.
+
+##### TV and navigation
+- **The TV has no header** (no Staff Login on the TV). After a division it shows "Next: <division>", also in place of empty Upcoming cards.
+- **Courts and TV menu items are links** that open in a new tab; choosing one closes the phone menu.
+- Setup's × buttons are inline and red; Import CSV lists missing divisions once; a straight apostrophe matches names like "Women’s Open".
+
+##### Saving
+- The server stays within its CPU budget on large tournaments, and a failed save keeps the live version.
+- Resetting a tournament clears changes that were not confirmed yet.
+
+#### Brackets for spectators
+
+- Spectators can open each division's pools and bracket from Results while it is in progress, from the moment the tournament is live.
+- Export Results is staff-only for now.
+- The bracket pop-up opens above the header (its × works) with a readable title; messages stay above pop-ups.
+- Team brackets in Results show both teams on every match.
+
+#### Brackets
+
+- Results is now **Brackets** (new icon, address `/brackets`; older `/results` links still work).
+- Each division's card shows its court ("Court A", "Courts A & B") and "Now on Court A" while it is being played.
+
+#### Court order on Brackets
+
+- Each Brackets card shows its place in the court's running order: "Court A · 2nd", or "Court A · 4th · Court B · 3rd" for a division on both courts.
+
+#### Court Queue running order
+
+- The Court Queue shows the division being played as a header ("Now") over its rounds, then the court's remaining divisions in running order, one line each: "Up next" on the first, its match count on this court, and "also on Court B" for a division on both courts. Display only: Continue still decides what comes next.
+
+#### Grand champion bracket order
+
+- The grand champion bracket now follows the order of its divisions (1st plays 2nd, 3rd plays 4th, and so on; with 7, the last division plays the winner of the 3rd match), so the matchups are the same whoever wins. Before, they were placed by the winners' names and dojos and changed from one tournament to the next.
+- Setup shows the grand champion bracket (from 3 divisions, single elimination): each match with its divisions, and who plays for each once their division is decided. Tap a division, then another, to swap their places, until the match is drawn. A division you add goes in at its place in the running order.
+- A bracket that is drawn but not started yet is drawn again in the new order if its divisions are reordered, including on another device. Once the first bout is played, the order alone no longer changes it.
+- Setup's divisions table: the "Use" column is now "Enabled".
 
 ## v3.17.20-test — Pool-Local Tiebreak Ordering
 
