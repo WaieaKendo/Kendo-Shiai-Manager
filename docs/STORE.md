@@ -1136,6 +1136,24 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
       gzip, over the budget: 9,937 → 9,944 with the dev-only form). What 14c still needs: nothing from the tests (they already read through
       `state` getters over a store; a module whose reads become selectors keeps its vm test working until `state` goes in step 6).
 
+    **Done in item 14c-1**: court/'s `state.x` reads are `selectX(getState())` (`app/modules/selectors.js`: the current court,
+    division and index, the pool view, `regMode`, the score pad, `allMatches`, `matches` (derived as in app-state.js), the
+    court pointers, the history lists, the brackets and bracket nodes, `divisionCourts`, `divisions`, the people, and
+    `selectTournamentField(s, key)` for a key a module holds in a variable; each returns what the `state` getter returns, so a
+    read after a write is the new value; `tests/store/selectors.test.mjs`). The selectors are functions of the two slices
+    (`selectDevice`, `selectTournament` in `app/store/selectors.ts`, the only two in the store bundle: every export of the store
+    bundle keeps its name, ~14 bytes gzip each, and 21 of them were 10,255 against the 9,975 budget; the two are 9,961). No
+    `state` import is left in court-queue-and-views, scorekeeper-screen, match-timer, split-court-templates,
+    court-queue-and-context, court-context-and-pool-editing, court-match-order (its dead `history` reset is
+    `ksmClearHistory()` in app-state.js), court-pointers-store and court-history-store (`storeWrites(values)` takes the app's
+    `state` by default). **Left in court/** because they use `state` as an object, not for a read: match-writes.js (`root===state`
+    tells the live state from a payload copy; `root=state` defaults), and in court-scoring-and-history.js
+    `historyComparableState()` / `historyKeyOrder(Object.keys(state))` (the snapshot's keys), `historyPathParent()` /
+    `writeHistoryValue(state, …)` and `storeFieldPath(key, state)` (the Undo/Redo patch writer), `state[key]` in its owned-key fallback,
+    and `courtMatchOpsWrites(state, …)`: they go with item 6 (the snapshot built from the store), or with the commands. A vm
+    test whose context stubs `state` with a plain object gets the selectors over it from `tests/lib/plain-selectors.mjs`;
+    `vmStore()` gives its store's context the selectors.
+
     **The reads (item 14c), module by module.** `state.x` reads in `app/modules` and `app/main.js` (next/4.1, counted
     as `state.` / `state?.` / `state[` followed by a name; lines that have one in brackets): court 190 (135 lines),
     engine 156 (117), registration 111 (86), react-bridges 82 (75), results 74 (52), setup 54 (44), sync 48 (43),
@@ -1145,7 +1163,7 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
     `selectCourtPointer(c)`, `selectCourtView()`, … each with a test) and leaves no `state` import in that module:
     1. **court/** (court-scoring-and-history, court-match-order, scorekeeper-screen, court-queue-and-views,
        court-context-and-pool-editing, match-timer, split-court-templates, match-writes, the two stores; ~150 lines).
-       Rides along with their JS→TS conversion if that is next for court/.
+       **Done in item 14c-1** (below), except what keeps `state` as an object.
     2. **engine/** (engine-generation, standings and tiebreaks, championship, single-elim, pools, team-*, structure-store;
        ~120 lines). The engine helpers already take values; most reads become one `getState().tournament` per function.
     3. **registration/ + results/** (~140 lines; grand-champion.js is the largest).

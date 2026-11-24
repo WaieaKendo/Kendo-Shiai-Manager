@@ -1,5 +1,6 @@
 // @ts-check
-import {state} from '../app-state.js';
+import {getState} from '../../store/index.ts';
+import {selectAllMatches,selectBrackets,selectCourtActiveDivision,selectCourtState,selectCurrentDivision,selectRegMode} from '../selectors.js';
 import {findNextForCourt,renderDivisions} from './court-match-order.js';
 import {ksmResolveCourts} from './court-pointers-store.js';
 import {ksmInsertMatches,ksmSetDivisionMatches} from './match-writes.js';
@@ -30,7 +31,7 @@ import * as KSMEngine from '../../engine/index.ts';
  */
 export function maybeCreateKachinukiNext(m,hint){
   const plan=KSMEngine.maybeCreateKachinukiNext(m);if(!plan)return;
-  let div=m.division,arr=state.allMatches[div]||[];
+  let div=m.division,arr=selectAllMatches(getState())[div]||[];
   if(plan.kind==='playoff')appendApprovedDynamicMatches(div,m,/** @type {Match} */(plan.match),'KACHINUKI_REPRESENTATIVE');
   // After `m` found by sync identity (KSMEngine.matchIndexIn()), not Match Object identity (#15, before 13c).
   else{let idx=KSMEngine.matchIndexIn(arr,m,hint);ksmInsertMatches(div,idx+1,[/** @type {Match} */(plan.match)]);}
@@ -38,18 +39,18 @@ export function maybeCreateKachinukiNext(m,hint){
 
 export function dragPoolPlayer(ev,poolLabel,idx){ev.dataTransfer.setData('text/plain',JSON.stringify({poolLabel,idx}));}
 export function insertPoolPlayer(ev,toLabel,toIndex){
-  ev.preventDefault();ev.stopPropagation();let div=poolDiv?.value||state.currentDivision;let pools=ksmPoolEditPools(div);let data;try{data=JSON.parse(ev.dataTransfer.getData('text/plain'))}catch(e){return}
+  ev.preventDefault();ev.stopPropagation();let div=poolDiv?.value||selectCurrentDivision(getState());let pools=ksmPoolEditPools(div);let data;try{data=JSON.parse(ev.dataTransfer.getData('text/plain'))}catch(e){return}
   let from=pools.find(p=>p.label===data.poolLabel),to=pools.find(p=>p.label===toLabel);if(!from||!to)return;
   let player=from.players.splice(data.idx,1)[0];if(!player)return;
   if(from===to && data.idx<toIndex)toIndex--;
   to.players.splice(Math.max(0,Math.min(toIndex,to.players.length)),0,player);
   toggleEditPools();
 }
-export function dropPoolPlayer(ev,toLabel){ev.preventDefault();let div=poolDiv?.value||state.currentDivision;let pools=ksmPoolEditPools(div);let data;try{data=JSON.parse(ev.dataTransfer.getData('text/plain'))}catch(e){return}let from=pools.find(p=>p.label===data.poolLabel),to=pools.find(p=>p.label===toLabel);if(!from||!to)return;let player=from.players.splice(data.idx,1)[0];if(player)to.players.push(player);toggleEditPools();}
-export function toggleEditPools(){let div=poolDiv?.value||state.currentDivision;let pools=ksmPoolEditPools(div);if(!pools.length)return;poolOutput.className='pools-layout';ksmRenderPoolEditor(div);}
-function movePoolPlayer(fromPool,idx,toPool){let div=poolDiv?.value||state.currentDivision;let pools=ksmPoolEditPools(div);toPool=parseInt(toPool,10);if(fromPool===toPool)return;let player=pools[fromPool].players.splice(idx,1)[0];if(player)pools[toPool].players.push(player);toggleEditPools();}
+export function dropPoolPlayer(ev,toLabel){ev.preventDefault();let div=poolDiv?.value||selectCurrentDivision(getState());let pools=ksmPoolEditPools(div);let data;try{data=JSON.parse(ev.dataTransfer.getData('text/plain'))}catch(e){return}let from=pools.find(p=>p.label===data.poolLabel),to=pools.find(p=>p.label===toLabel);if(!from||!to)return;let player=from.players.splice(data.idx,1)[0];if(player)to.players.push(player);toggleEditPools();}
+export function toggleEditPools(){let div=poolDiv?.value||selectCurrentDivision(getState());let pools=ksmPoolEditPools(div);if(!pools.length)return;poolOutput.className='pools-layout';ksmRenderPoolEditor(div);}
+function movePoolPlayer(fromPool,idx,toPool){let div=poolDiv?.value||selectCurrentDivision(getState());let pools=ksmPoolEditPools(div);toPool=parseInt(toPool,10);if(fromPool===toPool)return;let player=pools[fromPool].players.splice(idx,1)[0];if(player)pools[toPool].players.push(player);toggleEditPools();}
 export function saveEditedPools(){
-  let div=poolDiv?.value||state.currentDivision;
+  let div=poolDiv?.value||selectCurrentDivision(getState());
   const edited=ksmPoolEditToSave(div);if(!edited)return;const pools=assignPoolPlayerSlots(edited);
 
   // Pool editing occurs after the division has already been generated. Rebuild the
@@ -58,8 +59,8 @@ export function saveEditedPools(){
   // the championship Match Objects here can make a QF look populated in the
   // bracket while leaving nothing scorable in the Court queue.
   const total=pools.reduce((sum,pool)=>sum+(pool.players?.length||0),0);
-  const bracket=(Array.isArray(state.brackets?.[div])&&state.brackets[div].length)
-    ? state.brackets[div]
+  const bracket=(Array.isArray(selectBrackets(getState())?.[div])&&selectBrackets(getState())[div].length)
+    ? selectBrackets(getState())[div]
     : championshipTemplateForTotal(total);
   // The pools, the template, its championship nodes (#15 PR 12b: built from the template alone) and the
   // managementRevision bump in one tournament/poolsEdited (#15 PR 12a), before the pool matches are rebuilt (their
@@ -76,8 +77,8 @@ export function saveEditedPools(){
   // division Match Objects were intentionally rebuilt. Re-resolve each affected
   // court against the canonical queue before tournament play begins: with the
   // division's queue position back at 0, one court/pointersResolved (#15 PR 13a).
-  ksmResolveCourts(['A','B'].filter(court=>state.courtState?.[court]?.division===div||state.courtActiveDivision?.[court]===div),court=>findNextForCourt(court,div,0),{[div]:0});
-  if(div===state.currentDivision)setActiveDivision(div);
+  ksmResolveCourts(['A','B'].filter(court=>selectCourtState(getState())?.[court]?.division===div||selectCourtActiveDivision(getState())?.[court]===div),court=>findNextForCourt(court,div,0),{[div]:0});
+  if(div===selectCurrentDivision(getState()))setActiveDivision(div);
   renderPools();
   scheduleAutoSave();
 }
@@ -89,5 +90,5 @@ export function renderAll(){if(typeof ksmRefreshTournamentChip==='function')ksmR
   if(!document.getElementById('director')?.classList.contains('hidden'))renderDirector();}
 // The paste listener (initPasteFromExcel(), run from app/main.js).
 export function initPasteFromExcel(){
-document.addEventListener('paste',e=>{if(!/** @type {any} */(window).registration.classList.contains('hidden')&&state.regMode==='individual'){let text=e.clipboardData.getData('text');if(text&&text.includes('\t')){e.preventDefault();text.trim().split(/\r\n|\r|\n/).forEach(line=>{let[name,dojo,division,seed,status]=line.split('\t').map(cell=>cell.trim());if(name)ksmPasteRow(name,dojo,division,seed,status)});ksmPasteNotice();renderDivisions();renderReg();scheduleAutoSave('Paste from Excel')}}});
+document.addEventListener('paste',e=>{if(!/** @type {any} */(window).registration.classList.contains('hidden')&&selectRegMode(getState())==='individual'){let text=e.clipboardData.getData('text');if(text&&text.includes('\t')){e.preventDefault();text.trim().split(/\r\n|\r|\n/).forEach(line=>{let[name,dojo,division,seed,status]=line.split('\t').map(cell=>cell.trim());if(name)ksmPasteRow(name,dojo,division,seed,status)});ksmPasteNotice();renderDivisions();renderReg();scheduleAutoSave('Paste from Excel')}}});
 }

@@ -6,6 +6,7 @@
 // app's own source (withDependencies() finds them), so a write lands in the store as in the app, and a write the
 // conversion missed throws (strict mode). Nothing here is shared between contexts: each call makes a new store.
 import * as storeApi from '../../app/store/index.ts';
+import * as selectorApi from '../../app/modules/selectors.js';
 import {
   freshState, ksmLoadTournamentState, stateFieldIsDerived, storeFieldPath, storeWrites, wireState,
 } from '../../app/modules/app-state.js';
@@ -43,6 +44,8 @@ export function vmStore(context, initial = null, { developmentChecks = true } = 
     settingsMeta: () => ({ device: '' }),
   };
   for (const [name, value] of Object.entries(storeApi)) if (!BOUND.has(name) && !(name in own)) own[name] = value;
+  // The selectors a module reads through (app/modules/selectors.js: pure functions of the store's state).
+  for (const [name, value] of Object.entries(selectorApi)) own[name] = value;
   Object.assign(context, own);
   /**
    * Changes the tournament as a test's setup would have by writing into `state`: `mutate` edits a copy of the saved

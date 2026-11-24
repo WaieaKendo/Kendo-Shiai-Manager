@@ -1,5 +1,6 @@
 // @ts-check
-import {state} from '../app-state.js';
+import {getState} from '../../store/index.ts';
+import {selectAllMatches,selectCurrentCourt,selectCurrentDivision,selectCurrentIndex,selectMatches} from '../selectors.js';
 import {applyCourtState,findNextForCourt,individualMatchReady} from './court-match-order.js';
 import {fusen,matchRequiresWinner} from './court-scoring-and-history.js';
 import {renderContext,renderQueue,setCourtCompletePresentation} from './split-court-templates.js';
@@ -13,19 +14,19 @@ import {ksmSetting} from '../sync/cloud-session-and-autosave.js';
 // ---------- KSM v3.9.1 Scorekeeper redesign helpers ----------
 export function matchDisplayMeta(m){
   if(!m)return {division:'—', line:'No active match'};
-  let division=m.division||state.currentDivision||'—';
+  let division=m.division||selectCurrentDivision(getState())||'—';
   let line='';
   if(m.type==='teamPosition') line=`${m.teamWhite||''} vs ${m.teamRed||''} · ${m.position||'Team Match'}`;
   else if(m.type==='teamPlayoff') line=`${m.teamWhite||''} vs ${m.teamRed||''} · ${m.position||'Playoff'}`;
   else if(m.type==='kachinuki') line=`Kachinuki · ${m.position||'Winner Stays In'}`;
-  else if(m.championship || m.pool==='Championship') line=`${m.position||'Championship'}${typeof state.current==='number'?' · Match '+(state.current+1):''}`;
-  else line=`Pool ${m.pool||'A'}${typeof state.current==='number'?' · Match '+(state.current+1):''}`;
+  else if(m.championship || m.pool==='Championship') line=`${m.position||'Championship'}${typeof selectCurrentIndex(getState())==='number'?' · Match '+(selectCurrentIndex(getState())+1):''}`;
+  else line=`Pool ${m.pool||'A'}${typeof selectCurrentIndex(getState())==='number'?' · Match '+(selectCurrentIndex(getState())+1):''}`;
   return {division,line};
 }
 export function openFusenDialog(){
-  const m=state.matches?.[state.current];
+  const m=selectMatches(getState())?.[selectCurrentIndex(getState())];
   if(!m){return;}
-  ksmSetFusenOpen(true,{white:m.white||'TBD',red:m.red||'TBD',redLeft:redOnLeftForCourt(state.currentCourt)});
+  ksmSetFusenOpen(true,{white:m.white||'TBD',red:m.red||'TBD',redLeft:redOnLeftForCourt(selectCurrentCourt(getState()))});
 }
 export function closeFusenDialog(){
   ksmSetFusenOpen(false);
@@ -42,14 +43,14 @@ document.addEventListener('keydown',function(e){
 
 // ---------- KSM v3.9.1 Score rendering ----------
 export function ensureScorableCurrentMatch(){
-  const court=state.currentCourt||'A',div=state.currentDivision;
+  const court=selectCurrentCourt(getState())||'A',div=selectCurrentDivision(getState());
   if(!div)return null;
-  const arr=state.allMatches?.[div]||[];
-  const active=arr[state.current];
+  const arr=selectAllMatches(getState())?.[div]||[];
+  const active=arr[selectCurrentIndex(getState())];
   // state.matches is allMatches[currentDivision] (derived, #15 PR 7), so it is already `arr`.
   if(individualMatchReady(active)&&matchBelongsToCourt(active,court))return active;
   const next=findNextForCourt(court,div,0);
-  if(next.division===div&&next.index<arr.length){applyCourtState(court,next,true);return state.matches[state.current]||null;}
+  if(next.division===div&&next.index<arr.length){applyCourtState(court,next,true);return selectMatches(getState())[selectCurrentIndex(getState())]||null;}
   return null;
 }
 
@@ -68,16 +69,16 @@ function renderScoreForMatch(){
   // line and match display are published to it instead of written (M.8).
   updateScoreTournamentName();
   let m=ensureScorableCurrentMatch();
-  if(m && !matchBelongsToCourt(m,state.currentCourt||'A'))m=null;
+  if(m && !matchBelongsToCourt(m,selectCurrentCourt(getState())||'A'))m=null;
   const meta=matchDisplayMeta(m);
-  ksmSignalCourtHeader({matchLine:meta.line,divisionTitle:m?meta.division:(state.currentDivision||'—'),requiresWinner:m?!!matchRequiresWinner(m):null,redLeft:redOnLeftForCourt(state.currentCourt)});
+  ksmSignalCourtHeader({matchLine:meta.line,divisionTitle:m?meta.division:(selectCurrentDivision(getState())||'—'),requiresWinner:m?!!matchRequiresWinner(m):null,redLeft:redOnLeftForCourt(selectCurrentCourt(getState()))});
   ksmSignalCourtScoreboard(m);
   renderQueue();renderPublic();renderContext();
 }
 export function renderScore(){
-  const div=state.currentDivision;
-  const current=state.matches?.[state.current];
-  if(div&&divisionComplete(div)&&(!current||current.done||!matchBelongsToCourt(current,state.currentCourt||'A'))){
+  const div=selectCurrentDivision(getState());
+  const current=selectMatches(getState())?.[selectCurrentIndex(getState())];
+  if(div&&divisionComplete(div)&&(!current||current.done||!matchBelongsToCourt(current,selectCurrentCourt(getState())||'A'))){
     updateScoreTournamentName();ksmSignalCourtHeader({divisionTitle:div,matchLine:'Division complete'});setCourtCompletePresentation(div,true);renderQueue();renderPublic();renderContext();return;
   }
   setCourtCompletePresentation(div,false);renderScoreForMatch();

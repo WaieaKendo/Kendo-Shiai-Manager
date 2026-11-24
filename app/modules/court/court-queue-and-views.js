@@ -1,5 +1,6 @@
 // @ts-check
-import {state} from '../app-state.js';
+import {getState} from '../../store/index.ts';
+import {selectAllMatches,selectCompetitors,selectCourtActiveDivision,selectCourtState,selectCurrentDivision,selectCurrentIndex,selectScore,selectTeamBracketNodes,selectTeams} from '../selectors.js';
 import {findNextForCourt,isCourtScorekeeper,isTeamMatch,setCourtPointer,sortTeamMatches} from './court-match-order.js';
 import {eliminationFinalDone,matchBelongsToCourt} from '../engine/engine-generation.js';
 import {eligibleTeams} from '../engine/engine-pools.js';
@@ -14,22 +15,22 @@ export function teamSideLabel(side,div){
     return (t&&t.team)?t.team:'Team '+side.team;
   }
   if(side.ref){
-    let n=(state.teamBracketNodes?.[div]||[]).find(x=>x.id===side.ref);
+    let n=(selectTeamBracketNodes(getState())?.[div]||[]).find(x=>x.id===side.ref);
     if(n&&n.winner)return n.winner;
     return 'Winner '+side.ref;
   }
   return 'TBD';
 }
 export function courtCurrentMatch(court){
-  let cs=state.courtState?.[court];
+  let cs=selectCourtState(getState())?.[court];
   if(cs&&cs.division&&eliminationFinalDone(cs.division))return null;
-  if(!cs || !cs.division || !(state.allMatches[cs.division]||[])[cs.index] || (state.allMatches[cs.division]||[])[cs.index]?.done){
-    cs=findNextForCourt(court,cs?.division||state.courtActiveDivision?.[court]||null,cs?.index||0);
+  if(!cs || !cs.division || !(selectAllMatches(getState())[cs.division]||[])[cs.index] || (selectAllMatches(getState())[cs.division]||[])[cs.index]?.done){
+    cs=findNextForCourt(court,cs?.division||selectCourtActiveDivision(getState())?.[court]||null,cs?.index||0);
     // Saved as the court's pointer only on that court's scorekeeper; Live Scores, the TV and the director's
     // dashboard on any other device use it for this render only (isCourtScorekeeper(), docs/STORE.md 1.2).
     if(isCourtScorekeeper(court))setCourtPointer(court,cs);
   }
-  let arr=state.allMatches[cs.division]||[];if(arr.some(isTeamMatch))arr=sortTeamMatches(cs.division);
+  let arr=selectAllMatches(getState())[cs.division]||[];if(arr.some(isTeamMatch))arr=sortTeamMatches(cs.division);
   let m=arr[cs.index];
   if(!m || m.done || !matchBelongsToCourt(m,court))return null;
   let next=arr.slice(cs.index+1).find(x=>!x.done && matchBelongsToCourt(x,court));
@@ -39,14 +40,14 @@ export function courtCurrentMatch(court){
 // sync identity (KSMEngine.matchIndexIn()), not Match Object identity (#15, before 13c); the same answer as
 // `allMatches[m.division].indexOf(m)===state.current` gave.
 export function isScoringMatch(m){
-  if(!m||m.division!==state.currentDivision)return false;
-  return KSMEngine.matchIndexIn(state.allMatches[m.division]||[],m,state.current)===state.current;
+  if(!m||m.division!==selectCurrentDivision(getState()))return false;
+  return KSMEngine.matchIndexIn(selectAllMatches(getState())[m.division]||[],m,selectCurrentIndex(getState()))===selectCurrentIndex(getState());
 }
-export function activeScoreArrays(m){if(isScoringMatch(m) && !m.done){return {W:[...state.score.W],R:[...state.score.R]};}return {W:[...(m.wp||[])],R:[...(m.rp||[])]};}
-function renderSearch(){if(!window.searchName||!window.searchDojo)return;let q=searchName.value.toLowerCase(),d=searchDojo.value.toLowerCase();let names=state.competitors.filter(c=>q&&c.name.toLowerCase().includes(q)).slice(0,8);nameResults.classList.toggle('hidden',!names.length);nameResults.innerHTML=names.map((c,i)=>`<div class="search-item" onclick="showCompProfile(${state.competitors.indexOf(c)})">${esc(c.name)}<div class="small">${esc(c.dojo)} • ${esc(c.division)}</div></div>`).join('');let dojos=[...new Set([...state.competitors.map(c=>c.dojo),...state.teams.map(t=>t.dojo)].filter(Boolean))].filter(x=>d&&x.toLowerCase().includes(d)).slice(0,8);dojoResults.classList.toggle('hidden',!dojos.length);dojoResults.innerHTML=dojos.map(x=>`<div class="search-item" onclick="showDojoProfile(${jsArg(x)})">${esc(x)}</div>`).join('')}
-export function showCompProfile(i){let c=state.competitors[i];profile.innerHTML=`<h1>${esc(c.name)}</h1><p>${esc(c.dojo)} • ${esc(c.division)}</p><p>Status: ${esc(c.status)}</p>`}
+export function activeScoreArrays(m){if(isScoringMatch(m) && !m.done){return {W:[...selectScore(getState()).W],R:[...selectScore(getState()).R]};}return {W:[...(m.wp||[])],R:[...(m.rp||[])]};}
+function renderSearch(){if(!window.searchName||!window.searchDojo)return;let q=searchName.value.toLowerCase(),d=searchDojo.value.toLowerCase();let names=selectCompetitors(getState()).filter(c=>q&&c.name.toLowerCase().includes(q)).slice(0,8);nameResults.classList.toggle('hidden',!names.length);nameResults.innerHTML=names.map((c,i)=>`<div class="search-item" onclick="showCompProfile(${selectCompetitors(getState()).indexOf(c)})">${esc(c.name)}<div class="small">${esc(c.dojo)} • ${esc(c.division)}</div></div>`).join('');let dojos=[...new Set([...selectCompetitors(getState()).map(c=>c.dojo),...selectTeams(getState()).map(t=>t.dojo)].filter(Boolean))].filter(x=>d&&x.toLowerCase().includes(d)).slice(0,8);dojoResults.classList.toggle('hidden',!dojos.length);dojoResults.innerHTML=dojos.map(x=>`<div class="search-item" onclick="showDojoProfile(${jsArg(x)})">${esc(x)}</div>`).join('')}
+export function showCompProfile(i){let c=selectCompetitors(getState())[i];profile.innerHTML=`<h1>${esc(c.name)}</h1><p>${esc(c.dojo)} • ${esc(c.division)}</p><p>Status: ${esc(c.status)}</p>`}
 
 // showDojoProfile() (step 4a of #136; was app/js/11-court-queue-and-views.js). A `let`: a test replaces window.showDojoProfile
 // (under an inline onclick), so its window accessor writes through setShowDojoProfile().
-export let showDojoProfile=function showDojoProfile(x){let n=state.competitors.filter(c=>c.dojo===x).length,t=state.teams.filter(c=>c.dojo===x).length;profile.innerHTML=`<h1>${esc(x)}</h1><p>${n} individual entries • ${t} teams</p>`};
+export let showDojoProfile=function showDojoProfile(x){let n=selectCompetitors(getState()).filter(c=>c.dojo===x).length,t=selectTeams(getState()).filter(c=>c.dojo===x).length;profile.innerHTML=`<h1>${esc(x)}</h1><p>${n} individual entries • ${t} teams</p>`};
 export function setShowDojoProfile(value){showDojoProfile=value}

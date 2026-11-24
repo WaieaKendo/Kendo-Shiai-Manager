@@ -12,6 +12,7 @@ import vm from 'node:vm';
 import { applyStoreWrites, courtActions, courtHistoryActions, createKsmStore, getState, matchActions, setStoreStrict, tournamentLoaded } from '../../app/store/index.ts';
 import { ksmLoadTournamentState, setStrayStoreWriteReporter, state, storeFieldPath, storeWrites } from '../../app/modules/app-state.js';
 import { extractFunction, html } from '../lib/ksm-source.mjs';
+import { plainSelectors } from '../lib/plain-selectors.mjs';
 
 const t = s => s.getState().tournament;
 const json = v => JSON.parse(JSON.stringify(v));
@@ -106,7 +107,7 @@ function helpers(initial) {
   const s = createKsmStore({ tournament: { ...getState().tournament, ...initial } }), dispatched = [];
   const st = {};
   for (const k of KEYS) Object.defineProperty(st, k, { enumerable: true, get: () => s.getState().tournament[k] });
-  const ctx = vm.createContext({ state: st, courtHistoryActions, settingsMeta: () => ({ device: 'c/t' }), storeWrites: values => storeWrites(values, state),
+  const ctx = vm.createContext({ ...plainSelectors({ state: st }), getState: () => s.getState(), state: st, courtHistoryActions, settingsMeta: () => ({ device: 'c/t' }), storeWrites: values => storeWrites(values, state),
     dispatch: a => { dispatched.push(a); return s.dispatch(a); } });
   vm.runInContext(['KSM_HISTORY_LIMIT', 'KSM_UNDO_LOG_LIMIT'].map(n => html.match(new RegExp(`const ${n}=[^\\n]*`))[0]).join('\n') + '\n'
     + ['meta', 'listOf', 'courtList', 'pushed'].map(n => html.match(new RegExp(`const ${n}=[^\\n]*`))[0]).join('\n') + '\n'
@@ -144,7 +145,7 @@ test('the helpers: a court action pushed and trimmed to 100 with Redo cleared; a
 
 test('ensureCourtHistory(): one court/historyNormalized when a map is missing or holds an old entry, none otherwise (the render runs it)', () => {
   const fn = extractFunction(html, 'ensureCourtHistory'), calls = [];
-  const run = st => { calls.length = 0; vm.runInContext(fn + '\nensureCourtHistory();', vm.createContext({ state: st, ksmSetCourtHistories: (type, lists) => { if (Object.keys(lists).length) calls.push([type, json(lists)]); } })); return calls; };
+  const run = st => { calls.length = 0; vm.runInContext(fn + '\nensureCourtHistory();', vm.createContext({ ...plainSelectors({ state: st }), state: st, ksmSetCourtHistories: (type, lists) => { if (Object.keys(lists).length) calls.push([type, json(lists)]); } })); return calls; };
   assert.deepEqual(run({ courtActionHistory: { A: [entry('a')], B: [] }, courtRedoHistory: { A: [], B: [] } }), []);
   assert.deepEqual(run({ courtActionHistory: { A: [{ format: 'snapshot' }, entry('a')], B: [] }, courtRedoHistory: { A: [], B: [] } }),
     [['historyNormalized', { courtActionHistory: { A: [entry('a')], B: [] } }]]);

@@ -16,6 +16,7 @@ import { html, engine, extractFunction, matchWritesSource, withDependencies } fr
 import { vmStore } from '../lib/vm-store.mjs';
 import { gitShow } from '../lib/git-show.mjs';
 import { drawHelpers } from '../lib/draw-helpers.mjs';
+import { plainSelectors } from '../lib/plain-selectors.mjs';
 
 const OLD = 'd3931d8';
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -357,7 +358,7 @@ test('team engine equals the pre-move legacy code over the golden team scenarios
   const storeStubs = stubs.replace(/appendApprovedDynamicMatches=[\s\S]*$/, `appendApprovedDynamicMatches=(div,after,match,type)=>{const arr=state.allMatches[div]||[];const list=Array.isArray(match)?match:[match];list.forEach(x=>{x.origin='TIEBREAK';x.dynamicType=type});ksmInsertMatches(div,arr.indexOf(after)+1,list);sortTeamMatches(div);return list;};`);
   const load = (src, inStore) => {
     const raw = { teamsList: null, settings: null };
-    if (inStore) raw.vs = vmStore(raw); else raw.state = null;
+    if (inStore) raw.vs = vmStore(raw); else { raw.state = null; plainSelectors(raw); }
     const ctx = vm.createContext(raw);
     const moved = MOVED.map(n => (src === html && n === 'buildTeamMatches' ? (inStore ? storeBuild : currentBuild) : extractFunction(src, n))).join('\n');
     const code = `${engine}\n${drawHelpers}\n${matchWritesSource}\n${inStore ? storeStubs : stubs}\n${SHARED.map(n => extractFunction(html, n)).join('\n')}\n${moved}`;

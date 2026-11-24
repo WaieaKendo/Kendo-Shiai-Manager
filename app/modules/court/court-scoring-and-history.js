@@ -4,7 +4,8 @@ import {maybeCreateKachinukiNext,renderAll} from './court-context-and-pool-editi
 import {applyCourtState,findNextForCourt,syncOwnCourtPointer} from './court-match-order.js';
 import {KSM_UNDO_LOG_LIMIT,ksmMoveCourtHistory,ksmRecordCourtAction,ksmSetCourtHistories} from './court-history-store.js';
 import {ksmPlanMatchPaths,ksmUpdateMatch,ksmWriteMatchPath} from './match-writes.js';
-import {holdNotifications} from '../../store/index.ts';
+import {getState,holdNotifications} from '../../store/index.ts';
+import {selectAllMatches,selectCourtActionHistory,selectCourtRedoHistory,selectCourtState,selectCurrentCourt,selectCurrentDivision,selectCurrentIndex,selectMatches,selectScore,selectTournamentField} from '../selectors.js';
 import {renderScore} from './scorekeeper-screen.js';
 import {enforceUniqueIndividualMatches,maybeAdvanceChampionship,maybeCreateChampionship} from '../engine/engine-championship.js';
 import {renderPools} from '../engine/engine-generation.js';
@@ -28,9 +29,9 @@ export function loadScoreFromMatch(m){
 // A point's four fields in one write (#15 PR 13c-1: app/modules/court/match-writes.js); state.matches is
 // allMatches[currentDivision], so the shown bout is that division's entry at state.current.
 function syncActiveScoreToMatch(){
-  let m=state.matches?.[state.current];
+  let m=selectMatches(getState())?.[selectCurrentIndex(getState())];
   if(!m || m.done)return;
-  ksmUpdateMatch(/** @type {string} */(state.currentDivision),state.current,{wp:[...(state.score?.W||[])],rp:[...(state.score?.R||[])],wt:state.score?.WT||0,rt:state.score?.RT||0});
+  ksmUpdateMatch(/** @type {string} */(selectCurrentDivision(getState())),selectCurrentIndex(getState()),{wp:[...(selectScore(getState())?.W||[])],rp:[...(selectScore(getState())?.R||[])],wt:selectScore(getState())?.WT||0,rt:selectScore(getState())?.RT||0});
 }
 
 // ---------- KSM v3.17.8-test Compact action-patch court Undo / Redo ----------
@@ -45,7 +46,7 @@ const KSM_HISTORY_MISSING={__ksmMissing:true};
 export function ensureCourtHistory(){
   /** @type {any} */ const out={};
   for(const key of ['courtActionHistory','courtRedoHistory']){
-    const map=state[key];let changed=!map;const next={...(map||{A:[],B:[]})};
+    const map=/** @type {any} */ (selectTournamentField(getState(),/** @type {any} */ (key)));let changed=!map;const next={...(map||{A:[],B:[]})};
     for(const c of ['A','B']){
       const list=Array.isArray(next[c])?next[c]:(changed=true,[]);
       // Legacy snapshot entries are intentionally discarded because they can exceed storage limits.
@@ -97,7 +98,7 @@ function buildHistoryPatches(before,after,path=[],patches=[]){
   patches.push({path:[...path],before:cloneHistoryValue(before),after:cloneHistoryValue(after)});
   return patches;
 }
-function currentHistoryCourt(){const c=String(state.currentCourt||cloudSession?.court||'A').toUpperCase();return c==='B'?'B':'A'}
+function currentHistoryCourt(){const c=String(selectCurrentCourt(getState())||cloudSession?.court||'A').toUpperCase();return c==='B'?'B':'A'}
 function stampHistoryPatchMatchIdentity(patch,before,after){return KSMEngine.stampHistoryPatchMatchIdentity(patch,before,after);// moved to app/engine/sync-helpers.ts
   }
 /**
@@ -193,14 +194,14 @@ function applyHistoryValues(action,direction){
 function rebuildCourtViewAfterHistory(){
   ensureCourtHistory();
   const court=currentHistoryCourt();
-  const cs=state.courtState?.[court]||{division:state.currentDivision,index:state.current||0};
+  const cs=selectCourtState(getState())?.[court]||{division:selectCurrentDivision(getState()),index:selectCurrentIndex(getState())||0};
   if(cs?.division)applyCourtState(court,cs,true);
   renderAll();
 }
 export function updateUndoButton(){
   // The React action row (35-react-court.js) draws the buttons: signal whether Undo/Redo may
   // be pressed (the labels stay plain "Undo"/"Redo").
-  ensureCourtHistory();const court=currentHistoryCourt(),undoStack=state.courtActionHistory[court],redoStack=state.courtRedoHistory[court];
+  ensureCourtHistory();const court=currentHistoryCourt(),undoStack=selectCourtActionHistory(getState())[court],redoStack=selectCourtRedoHistory(getState())[court];
   ksmSignalCourtActions({undo:{disabled:!undoStack.length,label:'Undo'},redo:{disabled:!redoStack.length,label:'Redo'}});
 }
 // F30: an Undo or Redo removes or re-adds an action instead of adding one, so a save conflict's
@@ -211,7 +212,7 @@ export {KSM_UNDO_LOG_LIMIT};
 /** The match lists of the divisions `action` changes, before its Undo/Redo is applied (for courtUndoMatchOps()). */
 function courtUndoMatchesBefore(action){
   const out={};
-  (action?.patches||[]).forEach(patch=>{const div=patch?.path?.[0]==='allMatches'?patch.path[1]:null;if(div!=null&&!(div in out)&&Array.isArray(state.allMatches?.[div]))out[div]=cloneJson(state.allMatches[div])});
+  (action?.patches||[]).forEach(patch=>{const div=patch?.path?.[0]==='allMatches'?patch.path[1]:null;if(div!=null&&!(div in out)&&Array.isArray(selectAllMatches(getState())?.[div]))out[div]=cloneJson(selectAllMatches(getState())[div])});
   return out;
 }
 /**
@@ -227,7 +228,7 @@ function courtUndoMatchesBefore(action){
  * division instead of the index patches (replayCourtMatchOps(), 18-).
  * matchesBefore: the touched divisions' matches before; matchesAfter: all divisions' matches after.
  */
-function courtUndoMatchOps(matchesBefore,matchesAfter=state.allMatches){
+function courtUndoMatchOps(matchesBefore,matchesAfter=selectAllMatches(getState())){
   const ops={};
   Object.keys(matchesBefore||{}).forEach(div=>{
     const before=matchesBefore[div],after=Array.isArray(matchesAfter?.[div])?matchesAfter[div]:[];
@@ -301,7 +302,7 @@ function historyIndexRef(st,division,value){
   return id?{division,id}:null;
 }
 /** The index `ref` points to in the match list of `all` (the recorded `value` when that match is gone). */
-function resolveHistoryIndexRef(ref,value,all=state.allMatches){
+function resolveHistoryIndexRef(ref,value,all=selectAllMatches(getState())){
   const arr=all?.[ref?.division];
   if(!Array.isArray(arr))return value;
   if(ref.end)return arr.length;
@@ -332,7 +333,7 @@ function applyCourtHistoryEntry(action,direction){
   const identityNow=patch=>patch.matchIdentities?patch.matchIdentities[now]:patch.matchIdentity;
   const mode={},ops={};
   Object.entries(byDivision).forEach(([div,list])=>{
-    const arr=state.allMatches?.[div],op=matchOps[div];
+    const arr=selectAllMatches(getState())?.[div],op=matchOps[div];
     if(!Array.isArray(arr)||list.some(patch=>!patch.matchIdentity)){mode[div]='index';return}
     if(op&&((op.insert||[]).length||(op.remove||[]).length)){ops[div]=undoing?invertCourtMatchOps(op):op;mode[div]=ops[div]?'ops':'skip';return}
     const inPlace=list.every(patch=>{const want=identityNow(patch),i=patch.path[2];return want?matchHasSyncIdentity(arr[i],want):i>=arr.length});
@@ -356,7 +357,7 @@ function applyCourtHistoryEntry(action,direction){
   // `matches` (a device key) is never written (applyHistoryPatch()); which of its patches count as applied is kept as
   // before, so the Undo log entry (courtUndoLogEntry()) is the same as 4.0 writes.
   // (state.matches is allMatches[currentDivision] when that list exists: the test by division, not list identity.)
-  const aliased=Object.keys(byDivision).find(div=>div===state.currentDivision&&Array.isArray(state.allMatches?.[div]));
+  const aliased=Object.keys(byDivision).find(div=>div===selectCurrentDivision(getState())&&Array.isArray(selectAllMatches(getState())?.[div]));
   const ordered=undoing?[...all].reverse():all,indexFields=[];
   ordered.forEach(patch=>{
     const path=patch?.path||[],div=divOf(patch);
@@ -380,7 +381,7 @@ function applyCourtHistoryEntry(action,direction){
   // Not dispatched here (#15 PR 13c-2): the map as the batch leaves it is read by the index fields below and the Undo log,
   // and goes to the store with the entry's other keys in its one court/undo or court/redo.
   const planned=ksmPlanMatchPaths(writes),results=planned.results;
-  if(planned.allMatches!==state.allMatches)historyStoreValues().allMatches=planned.allMatches;
+  if(planned.allMatches!==selectAllMatches(getState()))historyStoreValues().allMatches=planned.allMatches;
   for(let i=applied.length-1;i>=0;i--){
     if(typeof applied[i]!=='number')continue;
     const k=applied[i],result=results[k];
@@ -412,45 +413,45 @@ function courtHistorySkippedNote(kind){
  */
 function moveCourtHistory(kind,court,action){
   const matchesBefore=courtUndoMatchesBefore(action),values=applyHistoryValues(action,kind==='undo'?'before':'after');
-  const matchesAfter=values&&Object.hasOwn(values,'allMatches')?values.allMatches:state.allMatches;
+  const matchesAfter=values&&Object.hasOwn(values,'allMatches')?values.allMatches:selectAllMatches(getState());
   ksmMoveCourtHistory(kind,court,courtUndoLogEntry(court,kind==='undo'?'UNDO':'REDO',courtHistoryAppliedEntry(action),matchesBefore,matchesAfter),values||{});
   if(values)rebuildCourtViewAfterHistory();
 }
 export function undo(){holdNotifications(()=>{
   syncOwnCourtPointer();
-  ensureCourtHistory();const court=currentHistoryCourt(),stack=state.courtActionHistory[court],action=stack[stack.length-1];
+  ensureCourtHistory();const court=currentHistoryCourt(),stack=selectCourtActionHistory(getState())[court],action=stack[stack.length-1];
   if(!action){updateSaveStatus('Nothing to undo');updateUndoButton();return}
   moveCourtHistory('undo',court,action);
   updateUndoButton();updateSaveStatus('Undid '+action.label+courtHistorySkippedNote('Undo'));criticalAutoSave('Undo: '+action.label);
 })}
 export function redo(){holdNotifications(()=>{
   syncOwnCourtPointer();
-  ensureCourtHistory();const court=currentHistoryCourt(),stack=state.courtRedoHistory[court],action=stack[stack.length-1];
+  ensureCourtHistory();const court=currentHistoryCourt(),stack=selectCourtRedoHistory(getState())[court],action=stack[stack.length-1];
   if(!action){updateSaveStatus('Nothing to redo');updateUndoButton();return}
   moveCourtHistory('redo',court,action);
   updateUndoButton();updateSaveStatus('Redid '+action.label+courtHistorySkippedNote('Redo'));criticalAutoSave('Redo: '+action.label);
 })}
-// The score pad is store data (state.score, device/scoreChanged, #15 PR 7): each change builds a new pad.
-export function point(side,letter){performCourtAction(`${side==='W'?'White':'Red'} ${letter}`,()=>{const s=state.score;ksmSetScore({...s,[side]:[...s[side],letter]});window.dispatchEvent(new Event('ksm:timer-point'));syncActiveScoreToMatch();renderScore()})}
-export function hansoku(side){performCourtAction(`${side==='W'?'White':'Red'} Hansoku`,()=>{window.dispatchEvent(new Event('ksm:timer-point'));const s=state.score;if(side==='W'){const WT=s.WT+1;ksmSetScore({...s,WT,R:WT%2===0?[...s.R,'H']:s.R})}else{const RT=s.RT+1;ksmSetScore({...s,RT,W:RT%2===0?[...s.W,'H']:s.W})}syncActiveScoreToMatch();renderScore()})}
-export function fusen(side){performCourtAction(`${side==='W'?'White':'Red'} Fusen-gachi`,()=>{const s=state.score;ksmSetScore(side==='W'?{...s,W:[],R:['F','F']}:{...s,R:[],W:['F','F']});syncActiveScoreToMatch();renderScore()})}
+// The score pad is store data (selectScore(getState()), device/scoreChanged, #15 PR 7): each change builds a new pad.
+export function point(side,letter){performCourtAction(`${side==='W'?'White':'Red'} ${letter}`,()=>{const s=selectScore(getState());ksmSetScore({...s,[side]:[...s[side],letter]});window.dispatchEvent(new Event('ksm:timer-point'));syncActiveScoreToMatch();renderScore()})}
+export function hansoku(side){performCourtAction(`${side==='W'?'White':'Red'} Hansoku`,()=>{window.dispatchEvent(new Event('ksm:timer-point'));const s=selectScore(getState());if(side==='W'){const WT=s.WT+1;ksmSetScore({...s,WT,R:WT%2===0?[...s.R,'H']:s.R})}else{const RT=s.RT+1;ksmSetScore({...s,RT,W:RT%2===0?[...s.W,'H']:s.W})}syncActiveScoreToMatch();renderScore()})}
+export function fusen(side){performCourtAction(`${side==='W'?'White':'Red'} Fusen-gachi`,()=>{const s=selectScore(getState());ksmSetScore(side==='W'?{...s,W:[],R:['F','F']}:{...s,R:[],W:['F','F']});syncActiveScoreToMatch();renderScore()})}
 export function matchRequiresWinner(m){
   return KSMEngine.matchRequiresWinner(m);
 }
 export function nextMatch(){
   // `m` is looked up again inside the action (KSMEngine.findMatchAgain(): by sync identity, the held index on a tie or a renamed bout), so
   // the writes go to the list's match even when the list holds new objects by then (#15, before 13c).
-  const div=state.currentDivision,index=state.current;
-  let m=state.matches[state.current];
+  const div=selectCurrentDivision(getState()),index=selectCurrentIndex(getState());
+  let m=selectMatches(getState())[selectCurrentIndex(getState())];
   if(m){
-    let attemptedTie=state.score.W.length===state.score.R.length;
+    let attemptedTie=selectScore(getState()).W.length===selectScore(getState()).R.length;
     let tieNotAllowed=matchRequiresWinner(m);
     if(attemptedTie&&tieNotAllowed){alert('Ties are not allowed for this match. Please enter a winning point before advancing.');return;}
   }
   const completedLabel=m?`Next Match: ${m.white||m.teamWhite||'White'} vs ${m.red||m.teamRed||'Red'}`:'Next Match';
   performCourtAction(completedLabel,()=>{
-    const at=m?KSMEngine.matchIndexIn(state.allMatches?.[div],m,index):-1;
-    if(at>=0)m=state.allMatches[div][at];
+    const at=m?KSMEngine.matchIndexIn(selectAllMatches(getState())?.[div],m,index):-1;
+    if(at>=0)m=selectAllMatches(getState())[div][at];
     if(m){
       // Commit the final score and winner as one atomic result snapshot. Point taps
       // may have been autosaved under an earlier cloud revision; the completion
@@ -458,14 +459,14 @@ export function nextMatch(){
       // One write (#15 PR 13c-1, app/modules/court/match-writes.js), the fields in the old order; the snapshot is taken
       // from the bout with its final points, before `done`, as before. The write returns the bout as it is after it
       // (a new object since #15 PR 13c-2: the held `m` keeps its old values); every read after it uses that.
-      const result={wp:[...state.score.W],rp:[...state.score.R],wt:state.score.WT||0,rt:state.score.RT||0};
+      const result={wp:[...selectScore(getState()).W],rp:[...selectScore(getState()).R],wt:selectScore(getState()).WT||0,rt:selectScore(getState()).RT||0};
       const final={...result,completedResult:completedResultSnapshot(/** @type {Match} */({...m,...result})),done:true};
       // A bout no longer in its list (none is today: nothing writes between the look-up and here) gets the result on a copy.
       m=at>=0?ksmUpdateMatch(div,at,final)||m:{...m,...final};
       maybeCreateTiebreaks(m);maybeCreateTeamTiebreak(m);maybeCreateKachinukiNext(m,m.division===div?index:undefined);maybeAdvanceTeamBracket(m);maybeCreateChampionship(m);maybeAdvanceChampionship(m);maybeAdvanceIndividualSingleElim(m);
       enforceUniqueIndividualMatches(m.division);
     }
-    let c=state.currentCourt||'A';let next=findNextForCourt(c,state.currentDivision,0);applyCourtState(c,next,false);
+    let c=selectCurrentCourt(getState())||'A';let next=findNextForCourt(c,selectCurrentDivision(getState()),0);applyCourtState(c,next,false);
     renderScore();renderPools();renderProgress();renderPublic();
   });
   if(m)criticalAutoSave(`Completed match: ${m.white||m.teamWhite||'White'} vs ${m.red||m.teamRed||'Red'}`);

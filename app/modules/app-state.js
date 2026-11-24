@@ -203,6 +203,8 @@ export function ksmResetCourtPads(){ksmShowMatch(0);dispatch(deviceSlice.actions
 /** The match this device's court screen shows: its index in state.matches (state.current). */
 export function ksmShowMatch(/** @type {number} */ index){if(state.current!==index)dispatch(deviceSlice.actions.matchShown(index))}
 /** @typedef {{W:string[],R:string[],WT:number,RT:number}} ScorePad */
+/** The dead `history` key (saved, never read): a Next Match resets it, as before (docs/STORE.md section 3 item 14). */
+export function ksmClearHistory(){state.history=[]}
 /** An empty score pad. */
 export const ksmEmptyScore=()=>/** @type {ScorePad} */ ({W:[],R:[],WT:0,RT:0});
 /**

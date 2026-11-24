@@ -1,5 +1,6 @@
 // @ts-check
-import {state} from '../app-state.js';
+import {getState} from '../../store/index.ts';
+import {selectCurrentCourt,selectCurrentIndex,selectMatches,selectScore,selectTeamBracketNodes} from '../selectors.js';
 import {renderAll} from './court-context-and-pool-editing.js';
 import {matchRequiresWinner} from './court-scoring-and-history.js';
 import {matchBelongsToCourt} from '../engine/engine-generation.js';
@@ -32,24 +33,24 @@ export function ksmSaveTimerSettings(){
 }
 export function ksmSetCourtTimerSound(sound){
   if(sound!=='whistle01'&&sound!=='whistle02')return;
-  const key=state.currentCourt==='B'?'court2TimerSound':'court1TimerSound',el=document.getElementById(key);
+  const key=selectCurrentCourt(getState())==='B'?'court2TimerSound':'court1TimerSound',el=document.getElementById(key);
   // The field's own change path (ksmSaveTimerSettings(), the autosave), as a Setup edit.
   if(el){ksmSetSetting(key,sound);el.dispatchEvent(new Event('change',{bubbles:true}))}
 }
 export function ksmSetCourtTimerEnabled(enabled){
-  const key=state.currentCourt==='B'?'court2TimerEnabled':'court1TimerEnabled',el=document.getElementById(key);
+  const key=selectCurrentCourt(getState())==='B'?'court2TimerEnabled':'court1TimerEnabled',el=document.getElementById(key);
   if(el){ksmSetSetting(key,enabled?'On':'Off');el.dispatchEvent(new Event('change',{bubbles:true}))}
 }
 export function ksmMatchTimerInput(){
-  const m=state.matches?.[state.current],court=state.currentCourt||'A';
+  const m=selectMatches(getState())?.[selectCurrentIndex(getState())],court=selectCurrentCourt(getState())||'A';
   if(isReadOnlySession()||isTvSession()||!m||m.done||!matchBelongsToCourt(m,court))return null;
   const settings=ksmNormalizeTimerSettings(getSetupSnapshot());
-  const node=(state.teamBracketNodes?.[m.division]||[]).find(n=>n.id===m.teamNodeId);
+  const node=(selectTeamBracketNodes(getState())?.[m.division]||[]).find(n=>n.id===m.teamNodeId);
   const stage=node?.round||m.round||m.position;
   const field={Quarterfinal:'timeQuarterfinal',Semifinal:'timeSemifinal',Final:'timeFinal'}[stage];
   const ms=value=>{if(!value)return 0;const [minutes,seconds]=value.split(':').map(Number);return (minutes*60+seconds)*1000};
   // Unassigned local tournaments have one local autosave slot; cloud tournaments use their ID.
   return {tournamentId:cloudSession.tournamentId||'local',court,matchKey:matchSyncIdentity(m),
     sound:settings[court==='B'?'court2TimerSound':'court1TimerSound'],enabled:settings[court==='B'?'court2TimerEnabled':'court1TimerEnabled']!=='Off',durationMs:ms(settings[field]||settings.timeRegular),enchoMs:ms(settings.timeEncho),
-    tied:(state.score?.W||[]).length===(state.score?.R||[]).length,scored:(state.score?.W||[]).length+(state.score?.R||[]).length>0,requiresWinner:!!matchRequiresWinner(m)};
+    tied:(selectScore(getState())?.W||[]).length===(selectScore(getState())?.R||[]).length,scored:(selectScore(getState())?.W||[]).length+(selectScore(getState())?.R||[]).length>0,requiresWinner:!!matchRequiresWinner(m)};
 }

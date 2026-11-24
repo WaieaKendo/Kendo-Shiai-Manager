@@ -12,5 +12,6 @@ export {
   PRODUCTION_BUILD, applyStoreWrites, legacyFieldAssigned, setStoreStrict, storeIsStrict,
 } from './legacy.ts';
 export type { StoreWrite } from './legacy.ts';
+export { selectDevice, selectTournament } from './selectors.ts';
 export { actionMeta, metaCourt, withMeta } from './meta.ts';
 export type { ActionMeta, ActionMetaInput, StoreCourt } from './meta.ts';
