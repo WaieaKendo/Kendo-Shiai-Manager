@@ -34,7 +34,7 @@ checks={
  'alphabetical pool ordering':'.sort((a, b) => String(a.label).localeCompare(String(b.label)))' in react,
  'render context shared rule':'return ksmPoolContext(m.division, m);' in react and 'return ksmPoolContext(div, null);' in react,
  'landscape live score media':'@media(orientation:landscape) and (max-height:560px) and (max-width:980px)' in html,
- 'no engine schema change':'const state={brackets:' in html,
+ 'no engine schema change':'({brackets:{},championshipNodes:' in html,
 }
 failed=[name for name,ok in checks.items() if not ok]
 for name,ok in checks.items(): print(('PASS' if ok else 'FAIL')+': '+name)
