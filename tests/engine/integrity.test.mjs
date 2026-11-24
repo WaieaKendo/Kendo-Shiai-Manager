@@ -14,6 +14,7 @@ import {
 } from '../../app/engine/integrity.ts';
 import { completedResultSnapshotValid } from '../../app/engine/standings.ts';
 import { html, extractFunction, withDependencies } from '../lib/ksm-source.mjs';
+import { vmStore } from '../lib/vm-store.mjs';
 import { gitShow, gitListAppJs } from '../lib/git-show.mjs';
 
 const AT = '2026-01-01T00:00:00.000Z';
@@ -84,12 +85,15 @@ test('integrity helpers equal the pre-move legacy code on golden final matches',
   const files = names.map(f => gitShow(OLD, `app/js/${f}`));
   if (files.includes(null)) return t.skip(`${OLD} not in this clone`);
   const NAMES = ['repairCompletedMatchResults', 'completedResultSnapshot', 'individualLogicalMatchKey', 'enforceUniqueIndividualMatches', 'matchSyncIdentity', 'matchHasSyncIdentity'];
-  const load = src => {
-    const ctx = vm.createContext({ state: null, console: { warn() {}, info() {} } });
-    vm.runInContext(withDependencies(src, NAMES.map(n => extractFunction(src, n)).join('\n'), { exclude: ['state', 'console'] }), ctx);
+  // The pre-move code runs on a plain `state`; the current code on a real store (tests/lib/vm-store.mjs).
+  const load = (src, inStore) => {
+    const raw = { console: { warn() {}, info() {} } };
+    if (inStore) raw.vs = vmStore(raw); else raw.state = null;
+    const ctx = vm.createContext(raw);
+    vm.runInContext(withDependencies(src, NAMES.map(n => extractFunction(src, n)).join('\n'), { exclude: inStore ? Object.keys(raw) : ['state', 'console'] }), ctx);
     return ctx;
   };
-  const oldSrc = files.join('\n'), legacy = load(oldSrc), current = load(html);
+  const oldSrc = files.join('\n'), legacy = load(oldSrc, false), current = load(html, true);
   assert.ok(!/KSMEngine/.test(extractFunction(oldSrc, 'repairCompletedMatchResults')), 'old code is pre-move');
   const dir = new URL('../golden/engine/', import.meta.url);
   const noTime = s => s.replace(/"recordedAt":"[^"]*"/g, '"recordedAt":""');
@@ -111,7 +115,8 @@ test('integrity helpers equal the pre-move legacy code on golden final matches',
       out.push(ctx.repairCompletedMatchResults({ allMatches: st }, 'test'), st);
       for (const [div, arr] of Object.entries(st)) {
         out.push(arr.map(m => [ctx.individualLogicalMatchKey(m), ctx.matchSyncIdentity(m), ctx.matchHasSyncIdentity(m, ctx.matchSyncIdentity(arr[0])), ctx.completedResultSnapshot(m)]));
-        ctx.state = { allMatches: { [div]: [...arr, ...arr.map(m => ({ ...m, done: !m.done }))] }, currentDivision: div };
+        const live = { allMatches: { [div]: [...arr, ...arr.map(m => ({ ...m, done: !m.done }))] }, currentDivision: div };
+        if (ctx.vs) { ctx.vs.load(live); ctx.dispatch(ctx.deviceSlice.actions.divisionShown(div)); } else ctx.state = live;
         // The legacy code re-aliased state.matches; since #15 PR 7 the app's state.matches is derived (allMatches of the
         // shown division), which this plain object does not have: compare that list.
         out.push(ctx.enforceUniqueIndividualMatches(div), ctx.state.matches ?? ctx.state.allMatches[ctx.state.currentDivision]);

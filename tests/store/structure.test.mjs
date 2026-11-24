@@ -12,6 +12,7 @@ import { createKsmStore, dispatch, getState, setStoreStrict, tournamentSlice } f
 import { ksmLoadTournamentState, setStrayStoreWriteReporter, state, storeFieldPath } from '../../app/modules/app-state.js';
 import { assignStoreKeys } from '../lib/store-keys.mjs';
 import { drawHelpers } from '../lib/draw-helpers.mjs';
+import { vmStore } from '../lib/vm-store.mjs';
 
 const A = tournamentSlice.actions;
 const meta = { device: 'test' };
@@ -24,9 +25,11 @@ const ACTIONS = ['drawReset', 'divisionGenerated', 'tournamentGenerated', 'divis
 const DRAW_KEYS = ['pools', 'teamPools', 'brackets', 'singleElimComps', 'byeWinners']; // structure-store.js's KSM_DRAW_KEYS of PR 12a
 const pool = (label, ...names) => ({ label, size: names.length, players: names.map(name => ({ name, dojo: 'D' })) });
 
-/** structure-store.js's own helpers (they read `state`) over a plain state, as the vm tests run them. */
+/** structure-store.js's own helpers (they read `state`) over a real store holding `st`, as the vm tests run them. */
 function helpers(st) {
-  const ctx = vm.createContext({ state: st });
+  const ctx = {};
+  vmStore(ctx, st); // a real store holding `st` (tests/lib/vm-store.mjs): ksmSetDraw() dispatches the draw action
+  vm.createContext(ctx);
   vm.runInContext(drawHelpers, ctx);
   return ctx;
 }

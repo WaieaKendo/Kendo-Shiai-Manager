@@ -4,8 +4,8 @@
 //
 // Each role runs the app's own court functions twice, in two vm contexts: with the writers as #180 merged them (git show
 // of PR6 below: applyCourtState(), setActiveDivision(), ensureScorableCurrentMatch(), loadScoreFromMatch(), point(),
-// hansoku(), fusen(), enforceUniqueIndividualMatches(), syncOwnCourtPointer()), on a plain `state` whose `matches` is a
-// plain property they assign, and with the new code on a `state` whose `matches` is derived (tests/lib/derived-matches.mjs).
+// hansoku(), fusen(), enforceUniqueIndividualMatches(), syncOwnCourtPointer()), on a real store whose `matches` the old code
+// assigns (a stray write: legacy, so not strict: asLegacy()), and with the new code on the strict store (tests/lib/vm-store.mjs).
 // After every step it compares what the court screen shows (division, current, score, the list `matches` holds) and the
 // tournament data (allMatches, the court pointers), and checks that `matches` is the live list of the shown division.
 // Roles: Court A's scorekeeper (points, hansoku, fusen, Next Match with a tiebreak list rebuilt, Undo, Redo, a division
@@ -14,7 +14,14 @@
 import vm from 'node:vm';
 import { extractFunction, html, withDependencies } from './lib/ksm-source.mjs';
 import { gitShow } from './lib/git-show.mjs';
-import { deriveMatches, HISTORY_HELPERS, viewHelpers } from './lib/derived-matches.mjs';
+import { vmStore } from './lib/vm-store.mjs';
+import { setStoreStrict, storeIsStrict } from '../app/store/index.ts';
+import { setStrayStoreWriteReporter } from '../app/modules/app-state.js';
+
+// The #180 code writes `state.current` / `state.score` / `state.matches` and a bout in place, as production tolerates (docs/STORE.md point 8):
+// its context is built and stepped with strict mode off. The new code runs strict.
+setStrayStoreWriteReporter(() => {});
+const asLegacy = fn => { const was = storeIsStrict(); setStoreStrict(false); try { return fn(); } finally { setStoreStrict(was); } };
 
 const PR6 = '37b48d0'; // next/4.1 before this PR (#180 merged)
 const CHANGED = {
@@ -28,15 +35,12 @@ let failed = false, count = 0;
 const check = (ok, name) => { count++; if (!ok) { console.log(`FAIL ${name}`); failed = true; } };
 const json = v => JSON.stringify(v);
 
-const STUBS = ['ksmMoveCourtPointers', 'renderDivisions', 'renderScore', 'renderPools', 'renderProgress', 'renderContext', 'renderPublic', 'renderAll', 'renderQueue', 'applyCourtSides',
+const STUBS = ['renderDivisions', 'renderScore', 'renderPools', 'renderProgress', 'renderContext', 'renderPublic', 'renderAll', 'renderQueue', 'applyCourtSides',
   'criticalAutoSave', 'scheduleAutoSave', 'updateUndoButton', 'updateSaveStatus', 'showKsmToast', 'ksmNotifyStateChanged', 'ksmSignalCourtActions', 'ksmSignalCourtHeader',
-  'ksmSignalCourtScoreboard', 'setCourtCompletePresentation', 'divisionComplete', 'writeCloudDiagnosticsState', 'KSM_TAB_ID', 'storeFieldPath', 'assignStoreKeys',
-  'isReadOnlySession', 'canCloudWrite', 'isTvSession', 'ksmSetCurrentCourt', 'ksmSetPublicCourt', 'ksmShowDivision', 'setLocalCourtDivision', 'ksmLocalCourtDivision',
+  'ksmSignalCourtScoreboard', 'setCourtCompletePresentation', 'divisionComplete', 'writeCloudDiagnosticsState', 'KSM_TAB_ID',
+  'isReadOnlySession', 'canCloudWrite', 'isTvSession', 'setLocalCourtDivision', 'ksmLocalCourtDivision',
   'pinCourtLocally', 'localCourtDivision', 'rememberLocalCourtDivision', 'show', 'alert', 'maybeCreateTiebreaks', 'maybeCreateTeamTiebreak', 'maybeCreateKachinukiNext',
-  'maybeAdvanceTeamBracket', 'maybeCreateChampionship', 'maybeAdvanceChampionship', 'maybeAdvanceIndividualSingleElim', 'completedResultSnapshot', 'cloudSession',
-  'ksmShowMatch', 'ksmSetScore', 'ksmEmptyScore', 'ksmResetCourtPads',
-  // PR 13b: the history is written through these (plain-state stand-ins in viewHelpers()).
-  ...HISTORY_HELPERS];
+  'maybeAdvanceTeamBracket', 'maybeCreateChampionship', 'maybeAdvanceChampionship', 'maybeAdvanceIndividualSingleElim', 'completedResultSnapshot', 'cloudSession'];
 const ENTRY = ['openCourt', 'applyCourtState', 'setActiveDivision', 'selectScorekeeperDivision', 'courtCurrentMatch', 'ensureScorableCurrentMatch', 'syncOwnCourtPointer',
   'point', 'hansoku', 'fusen', 'nextMatch', 'undo', 'redo', 'performCourtAction'];
 const newCode = '"use strict";\n' + withDependencies(html, ENTRY.map(n => extractFunction(html, n)).join('\n'), { exclude: STUBS }) + '\nlet ksmLastHistoryOutcome=null,ksmLastHistorySkipped=0,ksmHistoryStoreValues=null;';
@@ -72,7 +76,7 @@ function tournament() {
     currentDivision: 'Open', currentCourt: 'A', publicCourt: 'A', courtActionHistory: { A: [], B: [] }, courtRedoHistory: { A: [], B: [] },
   };
 }
-function device(code, derived, { staff = true, tv = false, court = 'A' }) {
+function device(code, legacy, { staff = true, tv = false, court = 'A' }) {
   const local = { A: null, B: null };
   let tick = 0;
   class FixedDate extends Date { constructor(...a) { super(...(a.length ? a : [FIXED + 1000 * tick++])); } static now() { return FIXED + 1000 * tick++; } }
@@ -81,19 +85,14 @@ function device(code, derived, { staff = true, tv = false, court = 'A' }) {
     renderDivisions() {}, renderScore() {}, renderPools() {}, renderProgress() {}, renderContext() {}, renderPublic() {}, renderAll() {}, renderQueue() {}, applyCourtSides() {},
     criticalAutoSave() {}, scheduleAutoSave() {}, updateUndoButton() {}, updateSaveStatus() {}, showKsmToast() {}, ksmNotifyStateChanged() {}, ksmSignalCourtActions() {},
     ksmSignalCourtHeader() {}, ksmSignalCourtScoreboard() {}, setCourtCompletePresentation() {}, divisionComplete: () => false, writeCloudDiagnosticsState() {}, alert() {},
-    storeFieldPath: () => null, assignStoreKeys() { throw new Error('no store-owned key here'); }, show() {},
+    show() {},
     isReadOnlySession: () => !staff, canCloudWrite: () => staff, isTvSession: () => tv, pinCourtLocally: c => c,
     localCourtDivision: c => local[c], rememberLocalCourtDivision(c, d) { local[c] = d; }, setLocalCourtDivision(c, d) { local[c] = d; },
-    ksmSetCurrentCourt(c) { context.state.currentCourt = c; }, ksmSetPublicCourt(c) { context.state.publicCourt = c; }, ksmShowDivision(d) { context.state.currentDivision = d; },
     maybeCreateTiebreaks() {}, maybeCreateTeamTiebreak() {}, maybeCreateKachinukiNext() {}, maybeAdvanceTeamBracket() {}, maybeCreateChampionship() {}, maybeAdvanceChampionship() {},
     maybeAdvanceIndividualSingleElim() {}, completedResultSnapshot: m => ({ winner: m.wp.length > m.rp.length ? m.white : m.wp.length < m.rp.length ? m.red : 'Hikiwake', wp: [...m.wp], rp: [...m.rp] }),
   };
-  Object.assign(context, viewHelpers(context));
-  vm.createContext(context);
-  vm.runInContext(code, context);
-  context.state = tournament();
-  context.state.currentCourt = court;
-  if (derived) deriveMatches(context.state);
+  const make = () => { context.edit = vmStore(context, { ...tournament(), currentCourt: court }, { developmentChecks: !legacy }).edit; vm.createContext(context); vm.runInContext(code, context); if (legacy) context.state.score = { W: [], R: [], WT: 0, RT: 0 }; /* the slice's initial pad is frozen: the old code pushes onto it */ };
+  if (legacy) asLegacy(make); else make();
   return context;
 }
 /** What the court screen shows and the tournament data, after a step. */
@@ -109,17 +108,17 @@ const ROLES = {
     d => d.openCourt('B'), d => d.point('W', 'T'), d => d.selectScorekeeperDivision('Juniors'), d => d.point('R', 'M'), d => d.selectScorekeeperDivision('Kids'), d => d.nextMatch()]],
   'director pinned to Court A viewing Court B\'s division': [{ court: 'A' }, [
     d => d.openCourt('A'), d => d.point('W', 'M'), d => d.setActiveDivision('Kids'), d => d.courtCurrentMatch('B'), d => d.ensureScorableCurrentMatch(),
-    d => { d.state.allMatches.Kids[1].done = true; }, d => d.courtCurrentMatch('B'), d => d.ensureScorableCurrentMatch(), d => d.setActiveDivision('Open')]],
+    d => { d.edit(s => { s.allMatches.Kids[1].done = true; }); }, d => d.courtCurrentMatch('B'), d => d.ensureScorableCurrentMatch(), d => d.setActiveDivision('Open')]],
   'TV following Court B': [{ staff: false, tv: true, court: 'B' }, [
     d => d.applyCourtState('B', d.state.courtState.B, true), d => d.courtCurrentMatch('B'),
     // Court B's scorekeeper finished bout 2 and moved on (arriving in a payload): the TV follows the pointer.
-    d => { d.state.allMatches.Kids[1].done = true; d.state.courtState.B = { division: 'Kids', index: 2 }; }, d => d.applyCourtState('B', d.state.courtState.B, true),
+    d => { d.edit(s => { s.allMatches.Kids[1].done = true; s.courtState.B = { division: 'Kids', index: 2 }; }); }, d => d.applyCourtState('B', d.state.courtState.B, true),
     d => d.ensureScorableCurrentMatch(), d => d.setActiveDivision('Juniors')]],
   'spectator pinned to Court B': [{ staff: false, court: 'B' }, [
     d => d.openCourt('B'), d => d.setActiveDivision('Juniors'), d => d.ensureScorableCurrentMatch(), d => d.selectScorekeeperDivision('Kids'), d => d.courtCurrentMatch('B')]],
 };
 for (const [role, [opts, steps]] of Object.entries(ROLES)) {
-  const after = device(newCode, true, opts), before = oldCode && device(oldCode, false, opts);
+  const after = device(newCode, false, opts), before = oldCode && device(oldCode, true, opts);
   steps.forEach((step, i) => {
     const label = `${role}, step ${i + 1}`;
     let error = null;
@@ -128,7 +127,7 @@ for (const [role, [opts, steps]] of Object.entries(ROLES)) {
     const s = after.state;
     check(s.matches === (s.allMatches[s.currentDivision] || s.matches) && Array.isArray(s.matches), `${label}: state.matches is the live list of the shown division`);
     if (!before) return;
-    step(before);
+    asLegacy(() => step(before));
     check(json(view(s)) === json(view(before.state)), `${label}: the court screen shows what it showed before PR 7\n  before: ${json(view(before.state))}\n  after:  ${json(view(s))}`);
     check(json(data(s)) === json(data(before.state)), `${label}: the tournament data is what it was before PR 7\n  before: ${json(data(before.state))}\n  after:  ${json(data(s))}`);
     check(json(s.courtActionHistory) === json(before.state.courtActionHistory) && json(s.courtRedoHistory) === json(before.state.courtRedoHistory),
@@ -142,39 +141,38 @@ for (const [role, [opts, steps]] of Object.entries(ROLES)) {
 // saves Court B's pointer as Open past its end, where #180 saved Open bout 1 (Court A's bout); both show nothing on B.
 {
   const emptyView = (d, derived) => {
-    d.state.allMatches.Kids.forEach(m => { m.done = true; }); d.state.allMatches.Juniors.forEach(m => { m.done = true; });
-    delete d.state.courtState.B; delete d.state.courtActiveDivision.B;
-    d.state.currentDivision = 'Open';
-    if (derived) d.ksmShowMatch(d.state.matches.length); else { d.state.matches = []; d.state.current = 0; }
+    d.edit(s => { s.allMatches.Kids.forEach(m => { m.done = true; }); s.allMatches.Juniors.forEach(m => { m.done = true; }); delete s.courtState.B; delete s.courtActiveDivision.B; });
+    d.ksmShowDivision('Open');
+    if (derived) d.ksmShowMatch(d.state.matches.length); else asLegacy(() => { d.state.matches = []; d.state.current = 0; });
   };
-  const after = device(newCode, true, { court: 'B' });
+  const after = device(newCode, false, { court: 'B' });
   emptyView(after, true);
+  const allMatchesBefore = JSON.parse(json(after.state.allMatches));
   after.point('W', 'M');
   check(after.state.matches[after.state.current] === undefined && after.state.allMatches.Open.every(m => !m.wp.length || m.white === 'Open 3'),
     `empty view: a point writes no match (got ${json(after.state.allMatches.Open.map(m => m.wp))})`);
   check(json(after.state.courtState.B) === json({ division: 'Open', index: 3 }) && after.courtCurrentMatch('B') === null, 'empty view: Court B\'s pointer is Open past its end, nothing on Court B');
-  if (oldCode) {
-    const before = device(oldCode, false, { court: 'B' });
-    emptyView(before, false);
-    before.point('W', 'M');
-    check(json(after.state.allMatches) === json(before.state.allMatches) && json(after.state.score) === json(before.state.score),
-      'empty view: the same matches and pad as the #180 code after the point');
-    check(json(before.state.courtState.B) === json({ division: 'Open', index: 0 }) && before.courtCurrentMatch('B') === null, '#180 saved Court B\'s pointer on Open bout 1 (Court A\'s), also nothing on Court B');
-  }
+  // What the #180 code did here ran on a plain `state.matches = []`; `matches` is derived now (no plain property to give it), so the
+  // comparison with that code is stated directly: its tap wrote no bout (the same matches as before the tap), the pad showed the tap.
+  check(json(after.state.allMatches) === json(allMatchesBefore) && json(after.state.score) === json({ W: ['M'], R: [], WT: 0, RT: 0 }),
+    'empty view: the same matches as before the tap and the pad shows it, as the #180 code left them');
 }
-// In-place writes through state.matches land in allMatches (the same array object, never a copy).
+// `matches` is the live list of the shown division (the same array object, never a copy); the lists and bouts are store data, so
+// a write through state.matches[i] or a push throws (they were in-place writes before #15 PR 13c-2: a change goes through a helper).
 {
-  const d = device(newCode, true, { court: 'A' });
+  const d = device(newCode, false, { court: 'A' });
   d.openCourt('A');
   const list = d.state.allMatches.Open;
-  d.state.matches[1].wp = ['K', 'K'];
-  d.state.matches.push(bout('Open', 7, 'A'));
-  check(d.state.matches === list && list[1].wp.length === 2 && list.length === 4, 'a write through state.matches[i] and a push land in allMatches.Open');
-  d.state.allMatches.Open = [...list].reverse();
+  check(d.state.matches === list, 'state.matches is the same array object as allMatches.Open');
+  let threw = 0;
+  try { d.state.matches[1].wp = ['K', 'K']; } catch (e) { threw += e instanceof TypeError; }
+  try { d.state.matches.push(bout('Open', 7, 'A')); } catch (e) { threw += e instanceof TypeError; }
+  check(threw === 2 && list[1].wp.length === 1 && list.length === 3, 'a write through state.matches[i] and a push throw (strict mode): the bout and the list are store data');
+  d.edit(s => { s.allMatches.Open.reverse(); });
   check(d.state.matches === d.state.allMatches.Open, 'a replaced list (a sort, a tiebreak repair) is followed at once');
   d.setActiveDivision('Kids');
   check(d.state.matches === d.state.allMatches.Kids, 'a division shown: its list');
-  delete d.state.allMatches.Kids;
+  d.edit(s => { delete s.allMatches.Kids; });
   check(Array.isArray(d.state.matches) && d.state.matches.length === 0, 'a division with no list: []');
 }
 

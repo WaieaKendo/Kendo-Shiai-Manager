@@ -12,7 +12,8 @@ import {
   teamRoundRobinTiebreakPlan, teamPairIds, teamPairMatches,
 } from '../../app/engine/teams.ts';
 import { kachinukiTransitionState, kachinukiPairWinner, maybeCreateKachinukiNext } from '../../app/engine/kachinuki.ts';
-import { html, engine, extractFunction, matchWritesSource } from '../lib/ksm-source.mjs';
+import { html, engine, extractFunction, matchWritesSource, withDependencies } from '../lib/ksm-source.mjs';
+import { vmStore } from '../lib/vm-store.mjs';
 import { gitShow } from '../lib/git-show.mjs';
 import { drawHelpers } from '../lib/draw-helpers.mjs';
 
@@ -349,14 +350,21 @@ test('team engine equals the pre-move legacy code over the golden team scenarios
   // steps on the app's own functions, the nodes through a draft as generation does (structure-store.js's helpers).
   const currentBuild = `function buildTeamMatches(div,teams){const plan=KSMEngine.buildTeamMatches(div,teams,ksmTeamSettings(div));const m=plan.matches;
     state.teamElimTeams[div]=[...teams];if(plan.singleElim){const draft={teamBracketNodes:teamBracketNodesForCount(teams.length)};syncTeamBracket(div,m,state.teamElimTeams[div],draft);state.teamBracketNodes[div]=draft.teamBracketNodes}return m}`;
-  const load = src => {
-    const ctx = vm.createContext({ state: null, teamsList: null, settings: null });
-    const moved = MOVED.map(n => (src === html && n === 'buildTeamMatches' ? currentBuild : extractFunction(src, n))).join('\n');
-    // #15 PR 13c-1: allMatches is written through match-writes.js (in place on the context's `state`).
-    vm.runInContext(`${engine}\n${drawHelpers}\n${matchWritesSource}\n${stubs}\n${SHARED.map(n => extractFunction(html, n)).join('\n')}\n${moved}`, ctx);
+  // The current code on a real store (tests/lib/vm-store.mjs): the draw and the bouts go through the app's own writers.
+  const storeBuild = `function buildTeamMatches(div,teams){const plan=KSMEngine.buildTeamMatches(div,teams,ksmTeamSettings(div));const m=plan.matches;
+    ksmSetDraw('drawEntriesUpdated',{teamElimTeams:{...state.teamElimTeams,[div]:[...teams]}});
+    if(plan.singleElim){const draft={teamBracketNodes:teamBracketNodesForCount(teams.length)};syncTeamBracket(div,m,state.teamElimTeams[div],draft);ksmSetDraw('drawEntriesUpdated',{teamBracketNodes:{...state.teamBracketNodes,[div]:draft.teamBracketNodes}})}return m}`;
+  const storeStubs = stubs.replace(/appendApprovedDynamicMatches=[\s\S]*$/, `appendApprovedDynamicMatches=(div,after,match,type)=>{const arr=state.allMatches[div]||[];const list=Array.isArray(match)?match:[match];list.forEach(x=>{x.origin='TIEBREAK';x.dynamicType=type});ksmInsertMatches(div,arr.indexOf(after)+1,list);sortTeamMatches(div);return list;};`);
+  const load = (src, inStore) => {
+    const raw = { teamsList: null, settings: null };
+    if (inStore) raw.vs = vmStore(raw); else raw.state = null;
+    const ctx = vm.createContext(raw);
+    const moved = MOVED.map(n => (src === html && n === 'buildTeamMatches' ? (inStore ? storeBuild : currentBuild) : extractFunction(src, n))).join('\n');
+    const code = `${engine}\n${drawHelpers}\n${matchWritesSource}\n${inStore ? storeStubs : stubs}\n${SHARED.map(n => extractFunction(html, n)).join('\n')}\n${moved}`;
+    vm.runInContext(inStore ? withDependencies(html, code, { exclude: Object.keys(raw) }) : code, ctx);
     return ctx;
   };
-  const legacy = load(oldSrc), current = load(html);
+  const legacy = load(oldSrc, false), current = load(html, true);
   assert.ok(!/KSMEngine/.test(extractFunction(oldSrc, 'syncTeamBracket')), 'old code is pre-move');
   assert.ok(/KSMEngine\.syncTeamBracket/.test(extractFunction(html, 'syncTeamBracket')), 'current code delegates');
   const dir = new URL('../golden/engine/', import.meta.url);
@@ -376,20 +384,26 @@ test('team engine equals the pre-move legacy code over the golden team scenarios
         const run = ctx => {
           ctx.settings = { teamFormat: d.format, teamTournamentFormat: tfmt };
           ctx.teamsList = makeTeams(count);
-          ctx.state = { allMatches: {}, teamBracketNodes: {}, teamElimTeams: {}, teamAwardMode: 'dual3' };
-          const st = ctx.state, res = [];
-          const snap = () => res.push(JSON.parse(JSON.stringify({ matches: st.allMatches[div], nodes: st.teamBracketNodes[div] || null,
-            standings: ctx.teamStandings(div), placements: ctx.teamFinalPlacements(div), progress: ctx.teamRoundRobinProgress(div) })));
-          st.allMatches[div] = ctx.buildTeamMatches(div, ctx.teamsList);
+          const mut = fn => (ctx.vs ? ctx.vs.edit(fn) : fn(ctx.state)); // a copy edited and loaded on the store, in place on the plain state
+          if (ctx.vs) { ctx.vs.load({ allMatches: {}, teamBracketNodes: {}, teamElimTeams: {} }); ctx.dispatch(ctx.tournamentSlice.actions.settingChanged({ key: 'teamAwardMode', value: 'dual3' }, { device: '' })); }
+          else ctx.state = { allMatches: {}, teamBracketNodes: {}, teamElimTeams: {}, teamAwardMode: 'dual3' };
+          const res = [];
+          const snap = () => { const st = ctx.state; res.push(JSON.parse(JSON.stringify({ matches: st.allMatches[div], nodes: st.teamBracketNodes[div] || null,
+            standings: ctx.teamStandings(div), placements: ctx.teamFinalPlacements(div), progress: ctx.teamRoundRobinProgress(div) }))); };
+          const first = ctx.buildTeamMatches(div, ctx.teamsList);
+          // (On the store syncTeamBracket() has already put the division's bouts in the store, as it wrote the plain list before.)
+          if (!ctx.vs || !ctx.state.allMatches[div]) mut(st => { st.allMatches[div] = first; });
           ctx.sortTeamMatches(div); snap();
           for (let i = 0; i < 200; i++) {
-            const m = st.allMatches[div].find(x => !x.done);
-            if (!m) break;
+            const at = ctx.state.allMatches[div].findIndex(x => !x.done);
+            if (at < 0) break;
+            const m = ctx.state.allMatches[div][at]; // (the bout to play)
             const r = results[i % Math.max(1, results.length)] || { wp: ['M'], rp: [] };
             // A daihyosen (F27, current code only) needs a winner: a drawn result goes to White.
             const level = m.roundRobinTiebreak && r.wp.length === r.rp.length;
-            Object.assign(m, { wp: level ? ['M'] : [...r.wp], rp: level ? [] : [...r.rp], done: true });
-            ctx.maybeCreateTeamTiebreak(m); ctx.maybeCreateKachinukiNext(m); ctx.maybeAdvanceTeamBracket(m); snap();
+            mut(st => { Object.assign(st.allMatches[div][at], { wp: level ? ['M'] : [...r.wp], rp: level ? [] : [...r.rp], done: true }); });
+            const m2 = ctx.state.allMatches[div][at];
+            ctx.maybeCreateTeamTiebreak(m2); ctx.maybeCreateKachinukiNext(m2); ctx.maybeAdvanceTeamBracket(m2); snap();
           }
           return res;
         };

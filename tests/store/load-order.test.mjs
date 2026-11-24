@@ -10,7 +10,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import { extractFunction, html, withDependencies } from '../lib/ksm-source.mjs';
-import { ksmLoadTournamentState } from '../../app/modules/app-state.js';
+import { vmStore } from '../lib/vm-store.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '../..');
 const SOURCE = 'live sync';
@@ -27,34 +27,58 @@ test('applyTournamentPayload repairs the loaded copy, then replaces state', () =
 
 const logs = [];
 const record = kind => (...args) => logs.push([kind, JSON.stringify(args)]);
-// #15 PR 7: a repair on the live `state` sets current through ksmShowMatch() (here the context's plain state).
-// #15 PR 13a: the court pointers' writes on the live `state` go through ksmMoveCourtPointers() (here the plain state too).
-const context = vm.createContext({ console: { log: record('log'), info: record('info'), warn: record('warn'), error: record('error') }, ksmShowMatch(i) { context.state.current = i; },
-  ksmMoveCourtPointers(type, p) { for (const k of ['currentByDivision', 'courtState', 'courtActiveDivision']) if (p[k]) Object.assign(context.state[k] ||= {}, p[k]); } });
+// The context has a real store (tests/lib/vm-store.mjs): a repair on the live `state` writes through the app's own helpers.
+const ctx = { console: { log: record('log'), info: record('info'), warn: record('warn'), error: record('error') } };
+const { load } = vmStore(ctx);
+const context = vm.createContext(ctx);
 vm.runInContext(withDependencies(html, [
   extractFunction(html, 'sanitizeLoadedTournamentState'),
   extractFunction(html, 'normalizeAllIndividualPoolTiebreakOrder'),
-].join('\n'), { exclude: ['state', 'console', 'ksmShowMatch', 'ksmMoveCourtPointers'] }), context);
+].join('\n'), { exclude: Object.keys(ctx) }), context);
 const clone = value => JSON.parse(JSON.stringify(value));
 
-// Old order: the live object is emptied and gets the loaded keys, then the repairs run on it.
+// This test is from the time a load replaced the whole object, this device's view included (#15 PR 2): `takeView()` sets the payload's
+// device fields on the real state the way that replace did (the device actions; a real load keeps this device's own, docs/STORE.md point 4),
+// so the new order's state can still be compared with the old order's plain object. The repairs read the view (current, currentDivision).
+const takeView = loaded => {
+  const a = context.deviceSlice.actions;
+  for (const [key, action] of [['currentCourt', a.courtChosen], ['publicCourt', a.publicCourtChanged], ['currentDivision', a.divisionShown], ['regMode', a.registrationTabChanged], ['poolViewDivision', a.poolViewDivisionChanged], ['current', a.matchShown]])
+    if (loaded[key] !== undefined) context.dispatch(action(loaded[key]));
+  if (loaded.score) context.dispatch(a.scoreChanged({ court: context.state.currentCourt || 'A', score: loaded.score }));
+};
+// What the two orders are compared on: the payload's tournament data keys, sorted (the real state keeps its keys in the literal's order, and
+// has this device's own view, the derived `matches` and the Setup's defaults, which the old order's plain object did not: the Team Tournament
+// court the store adds to `divisionCourts` is left out).
+const DEVICE = new Set(['matches', 'regMode', 'poolViewDivision', 'teamAwardMode']); // (current, currentDivision, score and the courts stay compared: takeView() sets them on both sides)
+const snapshot = (state, keys) => {
+  const out = {};
+  for (const k of [...keys].filter(k => !DEVICE.has(k)).sort()) {
+    const v = JSON.parse(JSON.stringify(state[k] ?? null));
+    if (k === 'divisionCourts' && v) delete v['Team Tournament'];
+    out[k] = v;
+  }
+  return JSON.stringify(out);
+};
+// Old order: a plain object (nothing in the store) is emptied and gets the loaded keys, then the repairs run on it.
 function oldOrder(previous, loaded) {
   logs.length = 0;
-  const live = context.state = clone(previous);
+  const live = clone(previous);
   Object.keys(live).forEach(k => delete live[k]);
   Object.assign(live, loaded);
   context.sanitizeLoadedTournamentState(live, SOURCE);
   context.normalizeAllIndividualPoolTiebreakOrder(live, SOURCE);
-  return { json: JSON.stringify(live), logs: [...logs] };
+  return { json: snapshot(live, Object.keys(loaded)), logs: [...logs] };
 }
-// New order: the repairs run on the loaded copy while the live object still holds the previous tournament.
+// New order: the repairs run on the loaded copy while the store still holds the previous tournament, which a load then replaces.
 function newOrder(previous, loaded) {
+  load(clone(previous));
   logs.length = 0;
-  const live = context.state = clone(previous);
+  const keys = Object.keys(loaded);
   context.sanitizeLoadedTournamentState(loaded, SOURCE);
   context.normalizeAllIndividualPoolTiebreakOrder(loaded, SOURCE);
-  ksmLoadTournamentState(loaded, live);
-  return { json: JSON.stringify(live), logs: [...logs] };
+  context.ksmLoadTournamentState(loaded);
+  takeView(loaded);
+  return { json: snapshot(context.state, keys), logs: [...logs] };
 }
 
 // --- payloads ---

@@ -39,9 +39,9 @@ if (!problems.length) {
   check(mod.PRODUCTION_BUILD === true, 'the store bundle is not the production build (PRODUCTION_BUILD)');
   check(mod.storeIsStrict() === false, 'the production store must not be strict');
   const s = mod.createKsmStore();
-  s.dispatch(mod.tournamentLoaded({ writes: [{ path: ['device', 'probe'], value: { n: 1 } }] }));
-  check(s.getState().device.probe?.n === 1, 'a legacy write does not reach the store in the bundle');
-  check(!Object.isFrozen(s.getState().device), 'production must not freeze store state (docs/STORE.md point 8)');
+  s.dispatch(mod.tournamentLoaded({ writes: [{ path: ['tournament', 'probe'], value: { n: 1 } }] }));
+  check(s.getState().tournament.probe?.n === 1, 'a legacy write does not reach the store in the bundle');
+  check(!Object.isFrozen(s.getState().tournament), 'production must not freeze store state (docs/STORE.md point 8)');
   // A stray nested write into store data on the real bundle (docs/STORE.md point 8, production; the Node source test is
   // tests/store/legacy.test.mjs): applied in place without throwing, no subscriber runs, the next snapshot carries it,
   // the next dispatch keeps it.
@@ -55,11 +55,11 @@ if (!problems.length) {
   check(!threw, `production: a nested write into store data threw in the bundle (${threw})`);
   check(heard === 0 && p.getState() === older, 'production: a nested write must not dispatch or replace the store state');
   check(/"name":"B"/.test(JSON.stringify(p.getState())), 'production: the next snapshot does not carry a nested write');
-  p.dispatch(mod.tournamentLoaded({ writes: [{ path: ['device', 'probe'], value: 3 }] }));
+  p.dispatch(mod.tournamentLoaded({ writes: [{ path: ['tournament', 'probe'], value: 3 }] }));
   check(heard === 1 && p.getState().tournament.awards[0].name === 'B', 'production: the next dispatch lost a nested write or did not notify');
   mod.setStoreStrict(true);
-  s.dispatch(mod.tournamentLoaded({ writes: [{ path: ['device', 'probe'], value: { n: 2 } }] }));
-  check(Object.isFrozen(s.getState().device), 'setStoreStrict(true) does not turn the freeze on in the bundle');
+  s.dispatch(mod.tournamentLoaded({ writes: [{ path: ['tournament', 'probe'], value: { n: 2 } }] }));
+  check(Object.isFrozen(s.getState().tournament), 'setStoreStrict(true) does not turn the freeze on in the bundle');
 }
 
 // --- app.js: the store script once, as it is; app code imports only app/store/index.ts ---

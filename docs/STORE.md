@@ -1122,12 +1122,19 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
       (12.5-14.5); Generate Tournament of 8 divisions of 32 103.7 (92.8-118.5) → 96.2 (91.6-100.0). Store notifications
       per action: a point 1 → 1, point + Undo + Redo 3 → 3, Next Match 1 → 1, an apply 5 → 1, Generate 24-29 → 24-29;
       `MatchTimer` renders per action 1-2 → 1-2 (the 250 ms backstop adds one now and then).
-    - Not done here (item 14b): (5) the vm tests' plain `state` on a real store. It needs `moveToStore()` /
-      `deriveInState()` over a given store (today they read the app's one `store`), then one helper
-      (`tests/lib/vm-store.mjs`) gives each vm context a store, a `state` with the app's getters, `dispatch` / `getState`
-      and the real match-writes, pointer and history helpers, so `VM_STAND_INS` (`ksmInStore`, `ksmInPlace`, `ksmChanged`,
-      `historyKeyOrder`, `holdNotifications`) and `tests/lib/derived-matches.mjs` (`deriveMatches`, `viewHelpers`,
-      `pointerHelpers`, `historyHelpers`) go. 26 vm test files use them; the app side is ~30 lines of `app-state.js`.
+    - **Done in item 14b**: the vm tests run on a real store. `moveToStore()` / `deriveInState()` take the store their getters
+      read (the app's, by default), `app-state.js` lists its getters once (`wire()`, replayed over a test's own `state` by
+      `wireState()`; `freshState()` is the literal), and `tests/lib/vm-store.mjs` (`vmStore(context, tournament)`) gives a vm
+      context a store, a `state` with the app's getters, `dispatch` / `getState` / `holdNotifications`, the action creators,
+      `load()` (a real load) and `edit()` (a test's setup change: a copy of the snapshot, edited and loaded). The match writes,
+      pointer and history helpers and `historyKeyOrder()` are the app's own source (`withDependencies()`). `VM_STAND_INS`,
+      `tests/lib/derived-matches.mjs` and draw-helpers' `ksmSetDraw` stand-in are gone. The tests of the 4.0 / #180 code (plain `matches`,
+      in-place writes) run it on a store without the development checks and strict mode off (`asLegacy()`), as production
+      tolerates; where `matches` being derived makes the old code's behaviour impossible to show, the assertion is stated
+      directly (listed in the PR). 14a's Lows: stale wording fixed; a failed file load's restore is one held step; `tournament/loaded` throws
+      on a path outside `tournament` in development and the tests only (in the production bundle the check costs 48 bytes
+      gzip, over the budget: 9,937 → 9,944 with the dev-only form). What 14c still needs: nothing from the tests (they already read through
+      `state` getters over a store; a module whose reads become selectors keeps its vm test working until `state` goes in step 6).
 
     **The reads (item 14c), module by module.** `state.x` reads in `app/modules` and `app/main.js` (next/4.1, counted
     as `state.` / `state?.` / `state[` followed by a name; lines that have one in brackets): court 190 (135 lines),

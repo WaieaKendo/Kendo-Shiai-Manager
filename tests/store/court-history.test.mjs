@@ -97,7 +97,7 @@ test('only the store-write actions carry payload.writes (the root reducer applie
   // legacy/stateReplaced and legacy/stateAssigned, whose payloads were their own `{ writes: StoreWrite[] }`).
   const sources = ['app/store/slices/tournament.ts', 'app/store/slices/device.ts', 'app/store/legacy.ts'].map(read).join('\n');
   assert.equal(sources.match(/writes: StoreWrite\[\]/g).length, 1, 'HistoryWrites (tournament/loaded, the match and court history actions)');
-  assert.equal(sources.match(/<HistoryWrites>\('tournament\/loaded'\)/g).length, 1);
+  assert.equal(sources.match(/createAction\('tournament\/loaded', \(loaded: HistoryWrites\)/g).length, 1);
   assert.equal(courtActions.pointerMoved({ courtState: {} }).payload.writes, undefined);
 });
 
