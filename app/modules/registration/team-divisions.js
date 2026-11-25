@@ -33,7 +33,7 @@ export function ksmNoteTeamsReassigned(before,after,source){
 // team division, one tournament/peopleLoaded with the two lists it changed (#15 PR 10; it assigned the whole state before).
 export function ksmTeamDivisions(){
   if(!selectTeamDivisions(getState())){const {teamDivisions,teams}=KSMEngine.migrateTeamDivisions(/** @type {any} */(state),getSetupSnapshot());ksmLoadPeople({teamDivisions,teams})}
-  return [...state.teamDivisions].sort((a,b)=>a.order-b.order||a.id.localeCompare(b.id));
+  return [...selectTeamDivisions(getState())].sort((a,b)=>a.order-b.order||a.id.localeCompare(b.id));
 }
 export function ksmTeamDivision(id){return (selectTeamDivisions(getState())||[]).find(d=>d.id===id)}
 // #86: a grand champion's division shows its row's name.
@@ -77,7 +77,7 @@ export function ksmAddTeamDivision(name='Team division'){
   const divisions=ksmTeamDivisions(),id=ksmNewTeamIdentity();
   const added={id,name,teamFormat:'3-Person Team',teamTournamentFormat:'Single Elimination',court:'Both',awardMode:'top2',order:Math.max(-1,...divisions.map(d=>d.order))+1};
   // The first team division takes the teams that have none.
-  ksmSetPeople('teamDivisionAdded',{teamDivisions:[...state.teamDivisions,/** @type {any} */ (added)],...(divisions.length?{}:{teams:teamsWith(t=>!t.teamDivisionId,()=>({teamDivisionId:id}))})});
+  ksmSetPeople('teamDivisionAdded',{teamDivisions:[...selectTeamDivisions(getState()),/** @type {any} */ (added)],...(divisions.length?{}:{teams:teamsWith(t=>!t.teamDivisionId,()=>({teamDivisionId:id}))})});
   ksmSetDivisionCourt(id,'Both');
   ksmTeamDivisionChanged();return id;
 }
