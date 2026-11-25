@@ -636,7 +636,7 @@ def shell_module_missing(browser):
     signals = lambda: page.evaluate('window.__shellSignals')
     page.locator(tid('nav-results')).dispatch_event('click')
     assert page.evaluate(VIEW_JS) == ['results'], 'a plain tile does not work without the React module'
-    assert page.evaluate('KSMTest.app.ksmNavActive') == 'Results', 'setActiveNavForView() did not change the classic state without the island'
+    assert page.evaluate('KSMTest.app.ksmNavActive') == 'Brackets', 'setActiveNavForView() did not change the classic state without the island'
     assert signals()['nav'] >= 1, 'setActiveNavForView() did not signal ksm:shell-nav'
     before = signals()['nav']
     page.locator(tid('nav-courts')).dispatch_event('click')
@@ -690,7 +690,7 @@ def main():
             expected = {
                 'menu: none', 'menu: courtsMenu', 'menu: tvMenu', 'menu placed',
                 'active: none', 'active: Setup', 'active: Registration', 'active: Courts', 'active: Live Scores', 'active: Overview',
-                'active: Results', 'staff button: Staff Login', 'staff button: Logout',
+                'active: Brackets', 'staff button: Staff Login', 'staff button: Logout',
                 'connection: online', 'connection: offline', 'connection: connecting', 'connection: error', 'connection: local',
                 'connection: bogus', 'devices online', 'fusen', 'validation: valid', 'validation: issues', 'regenerate: list',
                 'regenerate: confirm', 'regenerate: done', 'cloud: access', 'cloud: diagnostics', 'cloud: diagnostics retry',

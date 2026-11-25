@@ -2,6 +2,7 @@
 import {state} from '../app-state.js';
 import {ksmAppendMatches,ksmSetDivisionMatches,ksmUpdateMatches} from '../court/match-writes.js';
 import {championshipCourtFor} from './engine-pools.js';
+import {ksmDrawWith,ksmSetDraw} from './structure-store.js';
 import {isPoolOnlyDivision} from '../results/results-and-awards.js';
 import {replaceable} from '../replaceable.js';
 import * as KSMEngine from '../../engine/index.ts';
@@ -175,9 +176,14 @@ function championshipNodeSource(div,side){
  * @returns {Match[]}
  */
 export function syncChampionshipTemplate(div){
-  const nodes=state.championshipNodes?.[div]||[];
   const arr=state.allMatches?.[div]||[];
-  if(!nodes.length)return arr;
+  if(!(state.championshipNodes?.[div]||[]).length)return arr;
+  // The nodes' courts follow the division's court setting now, not the one at the draw: a division
+  // split between the courts after the draw would otherwise have every bout go back to its old court.
+  // Written to the store only when a court really changed.
+  const drawn=state.championshipNodes[div];
+  const nodes=/** @type {any[]} */(KSMEngine.championshipNodesForCourtMode(drawn,state.divisionCourts?.[div]||'A'));
+  if(nodes.some((n,i)=>n.court!==drawn[i].court))ksmSetDraw('drawEntriesUpdated',ksmDrawWith(div,{championshipNodes:nodes}));
   const plan=KSMEngine.syncChampionshipTemplate(div,nodes,arr,label=>seedNameForLabel(div,label,true));
   // Written through match-writes.js (#15 PR 13c-1): a division without a list gets one, the missing bouts are appended
   // (their indexes are the plan's), then the plan's values in one write; the list is read again for the caller.

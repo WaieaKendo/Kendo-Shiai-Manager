@@ -53,7 +53,10 @@ const useResultsBracket = () => useSyncExternalStore(subscribeBracket, bracketSn
 /** resultCardHtml(div). */
 function ResultCard({ card }: { card: ResultCardView }) {
   const open = () => resultsWindow().openResultsBracket?.(card.division);
-  const title = <h2 className="result-card-title" data-testid="result-card-title">{card.name || card.division}</h2>;
+  const title = <>
+    <h2 className="result-card-title" data-testid="result-card-title">{card.name || card.division}</h2>
+    {card.court && <div className={card.court.live ? 'result-card-court live' : 'result-card-court'} data-testid="result-card-court">{card.court.text}</div>}
+  </>;
   if (card.kind === 'progress') {
     return (
       <article className={card.placeholder ? 'result-progress-card result-placeholder-card' : 'result-progress-card'} data-testid="result-card">

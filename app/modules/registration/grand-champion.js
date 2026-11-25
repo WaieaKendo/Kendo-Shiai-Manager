@@ -81,9 +81,22 @@ export function ksmUpdateGrandChampion(id,patch){
 }
 export function ksmToggleGrandChampionSource(id,div,on){
   const gc=ksmGrandChampion(id);if(!gc)return 'This grand champion match no longer exists.';
-  const sources=on?(gc.sources.includes(div)?gc.sources:[...gc.sources,div]):gc.sources.filter(s=>s!==div);
-  // Sources follow Setup's running order, so the draw does not depend on the clicking order.
-  return ksmUpdateGrandChampion(id,{sources:(state.divisions||[]).filter(d=>sources.includes(d)).concat(sources.filter(s=>!(state.divisions||[]).includes(s)))});
+  if(!on)return ksmUpdateGrandChampion(id,{sources:gc.sources.filter(s=>s!==div)});
+  if(gc.sources.includes(div))return null;
+  // The sources are the bracket order (1st plays 2nd, ...). A new one goes in at its place in Setup's running
+  // order (before the first source that runs after it), so the director's reordering of the others stays.
+  const run=state.divisions||[],at=run.indexOf(div),sources=[...gc.sources];
+  const before=at<0?-1:sources.findIndex(s=>run.indexOf(s)>at);
+  sources.splice(before<0?sources.length:before,0,div);
+  return ksmUpdateGrandChampion(id,{sources});
+}
+// Setup's bracket: two divisions trade places (bracket slots), until the match is drawn.
+export function ksmSwapGrandChampionSources(id,a,b){
+  const gc=ksmGrandChampion(id);if(!gc)return 'This grand champion match no longer exists.';
+  const i=gc.sources.indexOf(a),j=gc.sources.indexOf(b);
+  if(i<0||j<0||i===j)return null;
+  const sources=[...gc.sources];[sources[i],sources[j]]=[sources[j],sources[i]];
+  return ksmUpdateGrandChampion(id,{sources});
 }
 export function ksmMoveGrandChampion(id,direction){
   const rows=ksmGrandChampions(),i=rows.findIndex(r=>r.id===id),j=i+(direction==='up'?-1:1);
@@ -133,9 +146,9 @@ function ksmForgetGrandChampionHistory(id){
   /** @type {any} */ const out={};
   ['courtActionHistory','courtRedoHistory'].forEach(key=>['A','B'].forEach(c=>{
     const stack=state[key]?.[c];if(!Array.isArray(stack))return;
-    const next=stack.map(a=>a&&Array.isArray(a.patches)&&a.patches.some(p=>p?.path?.[0]==='allMatches'&&p.path[1]===id)
-      ?{...a,patches:a.patches.filter(p=>!(p?.path?.[0]==='allMatches'&&p.path[1]===id))}:a)
-      .filter(a=>!a||!Array.isArray(a.patches)||a.patches.length);
+    const next=stack.map(a=>a&&Array.isArray(a.patches)&&(a.patches.some(p=>p?.path?.[0]==='allMatches'&&p.path[1]===id)||a.matchOps?.[id])
+      ?{...a,patches:a.patches.filter(p=>!(p?.path?.[0]==='allMatches'&&p.path[1]===id)),...(a.matchOps?.[id]?{matchOps:Object.fromEntries(Object.entries(a.matchOps).filter(([d])=>d!==id))}:{})}:a)
+      .filter(a=>!a||!Array.isArray(a.patches)||a.patches.length||Object.keys(a.matchOps||{}).length);
     if(next.length!==stack.length||next.some((a,i)=>a!==stack[i]))(out[key]||={...state[key]})[c]=next;
   }));
   ksmSetCourtHistories('historyForgotten',out);

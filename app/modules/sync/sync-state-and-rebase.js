@@ -7,7 +7,7 @@ import {repairCompletedMatchResults} from '../engine/engine-result-integrity.js'
 import {isIndividualPoolTiebreakMatch,normalizeAllIndividualPoolTiebreakOrder,normalizeIndividualPoolTiebreakOrderInState} from '../engine/engine-standings-and-tiebreaks.js';
 import {ksmLinkParams} from '../links/path-urls.js';
 import {ksmCarryGrandChampionDraws,ksmNoteGrandChampionPatchDropped,ksmSameGrandChampionDraw} from '../registration/grand-champion.js';
-import {ksmTeamDivisionPayload} from '../registration/team-divisions.js';
+import {ksmTeamDivisionPayload,ksmTeamInDrawOf} from '../registration/team-divisions.js';
 import {writeCloudDiagnosticsState} from './cloud-diagnostics.js';
 import {applyRemoteCloudRecord,isTvSession,ksmCloudSaveInFlight,ksmCloudSavePending,ksmCloudTimer,ksmConfirmedMutationVersion,ksmLocalMutationVersion,ksmSaveTimer,setKsmLocalMutationVersion,showKsmToast} from './cloud-realtime-save-and-load.js';
 import {cloudSession,persistCloudSession,readOutbox} from './cloud-session-and-autosave.js';
@@ -128,6 +128,16 @@ export function cloneJson(value){return KSMEngine.cloneJson(value);// moved to a
 export function isValidMatchObject(match){
   return KSMEngine.isValidMatchObject(match);
 }
+// The cloud revision this device was on when each still-unconfirmed change was made ([version, revision]).
+// A court action is stamped with that revision, but the save that carries it can go out on a newer base:
+// pressed while the previous save was in flight, it is queued and sent once that save's revision is known.
+// The rebase after a conflict replayed only actions stamped at or after the save's base, so such an action
+// (a point, a Next Match) was dropped and the other court's copy won (ATKT, split courts, 2026-11-13).
+// The cutoff is the oldest unconfirmed change's revision instead; the server-history check still keeps
+// anything already saved from being applied twice.
+export const KSM_UNCONFIRMED_MUTATIONS=[];
+export function ksmPendingMutationRevisions(){if(!KSM_UNCONFIRMED_MUTATIONS.length)return KSM_UNCONFIRMED_MUTATIONS;const keep=KSM_UNCONFIRMED_MUTATIONS.filter(([v])=>v>ksmConfirmedMutationVersion&&v<=ksmLocalMutationVersion);KSM_UNCONFIRMED_MUTATIONS.splice(0,KSM_UNCONFIRMED_MUTATIONS.length,...keep);return KSM_UNCONFIRMED_MUTATIONS}
+export function ksmRebaseCutoff(originalBaseRevision){const base=Number(originalBaseRevision||0);return ksmPendingMutationRevisions().reduce((low,[,rev])=>Math.min(low,rev),base)}
 function legacyTiebreakSyncIdentity(match){
   return KSMEngine.legacyTiebreakSyncIdentity(match);
 }
@@ -196,6 +206,12 @@ function resolveRebasePatch(localState,rebasedState,patch){
   let remoteIndex=remoteArr.findIndex(match=>matchHasSyncIdentity(match,identity));
   if(remoteIndex<0&&KSMEngine.isGrandChampionId(div)&&!ksmSameGrandChampionDraw(localState,rebasedState,div)){ksmNoteGrandChampionPatchDropped(div);return null}
   if(remoteIndex<0){
+    // An identity stamped before the match's identity changed (a kachinuki bout before 2026-11-10 had no
+    // :wIndex-rIndex): find the local match by the identity it has now before taking it for a new one.
+    const now=matchSyncIdentity(localMatch);
+    if(now&&now!==identity)remoteIndex=remoteArr.findIndex(match=>matchHasSyncIdentity(match,now));
+  }
+  if(remoteIndex<0){
     // A local action may have created a new dynamic/tiebreak match after the remote
     // snapshot revision. Add the complete valid object without ever creating a sparse
     // array. Individual pool tiebreaks are then normalized back into their own pool's
@@ -245,7 +261,7 @@ export function pendingLocalCourtActionsForRebase(localPayload,serverRecord,orig
   const localEntries=localPayload?.state?.courtActionHistory?.[court]||[];
   const remoteEntries=serverRecord?.payload?.state?.courtActionHistory?.[court]||[];
   const remoteKeys=new Set(remoteEntries.map(historyEntryIdentity));
-  return localEntries.filter(action=>action?.format==='patch-v1'&&ksmOwnHistoryEntry(action)&&Number(action.revision||0)>=Number(originalBaseRevision||0)&&!remoteKeys.has(historyEntryIdentity(action)));
+  return localEntries.filter(action=>action?.format==='patch-v1'&&ksmOwnHistoryEntry(action)&&Number(action.revision||0)>=ksmRebaseCutoff(originalBaseRevision)&&!remoteKeys.has(historyEntryIdentity(action)));
 }
 // F30: this device's Undo/Redo since the save's base revision (10-, courtUndoLogEntry()) that the
 // server copy does not have yet.
@@ -253,7 +269,7 @@ function undoLogEntryIdentity(entry){return [entry?.clientId||'',entry?.when||''
 export function pendingLocalUndoLogForRebase(localPayload,serverRecord,originalBaseRevision,court){
   const local=localPayload?.state?.courtUndoLog?.[court]||[],remote=serverRecord?.payload?.state?.courtUndoLog?.[court]||[];
   const remoteKeys=new Set(remote.map(undoLogEntryIdentity));
-  return local.filter(entry=>entry?.format==='history-op-v1'&&ksmOwnHistoryEntry(entry)&&Number(entry.revision||0)>=Number(originalBaseRevision||0)&&!remoteKeys.has(undoLogEntryIdentity(entry)));
+  return local.filter(entry=>entry?.format==='history-op-v1'&&ksmOwnHistoryEntry(entry)&&Number(entry.revision||0)>=ksmRebaseCutoff(originalBaseRevision)&&!remoteKeys.has(undoLogEntryIdentity(entry)));
 }
 /**
  * Replays this device's pending court actions and Undo/Redo onto `rebasedState` (the server copy) in
@@ -460,17 +476,22 @@ function mergeRegistrationListSplit(server,local,base,divisions,label,conflicts,
   return outside.slice(0,before).concat(inside,outside.slice(before));
 }
 /**
- * #95: a team moved into or out of a team division the other device has already drawn would change that
- * draw's team list under its matches (they refer to teams by position): the drawn division keeps the
- * server's assignment, with the usual "their version was kept" notice. A division this device's own
- * structural edit replays is not the server's draw (its teams come from this device, see above).
+ * #95: a team in a draw that moved to another division would change that draw's team list under its
+ * matches (they refer to teams by position), and a division that has started takes no new teams: the
+ * server's assignment is kept, with the usual "their version was kept" notice. A team not in any draw
+ * (added after the draw) may join a drawn division that has not started, as ksmAssignTeamDivision()
+ * allows; Regenerate Single Division then draws it in. A division this device's own structural edit
+ * replays is not the server's draw (its teams come from this device, see above).
  */
 function ksmKeepDrawnTeamAssignments(st,serverTeams,replayed,conflicts){
-  const drawn=div=>Boolean(div)&&!replayed.includes(div)&&((st.allMatches?.[div]||[]).length>0||Boolean(st.teamElimTeams?.[div]));
+  const theirs=div=>Boolean(div)&&!replayed.includes(div);
+  const started=div=>theirs(div)&&(st.allMatches?.[div]||[]).some(m=>m&&m.done);
   const onServer=new Map(serverTeams.filter(t=>t?.id).map(t=>[t.id,t]));
   (st.teams||[]).forEach(t=>{
     const s=t?.id&&onServer.get(t.id);
-    if(!s||t.teamDivisionId===s.teamDivisionId||!(drawn(s.teamDivisionId)||drawn(t.teamDivisionId)))return;
+    if(!s||t.teamDivisionId===s.teamDivisionId)return;
+    const from=s.teamDivisionId,inDraw=theirs(from)&&(ksmTeamInDrawOf(st,s,from)||ksmTeamInDrawOf(st,t,from));
+    if(!inDraw&&!started(t.teamDivisionId))return;
     t.teamDivisionId=s.teamDivisionId;
     const label='Team division assignment (division already drawn)';
     if(!conflicts.includes(label))conflicts.push(label);
@@ -635,5 +656,5 @@ export function rebaseLocalPayloadOnRecord(localPayload,serverRecord,originalBas
   return rebased;
 }
 // Replaceable by tests (golden *_SAVES_INIT_JS wrap it through window): see app/modules/replaceable.js.
-function noteLocalMutationImpl(){setKsmLocalMutationVersion(ksmLocalMutationVersion+1)}
+function noteLocalMutationImpl(){setKsmLocalMutationVersion(ksmLocalMutationVersion+1);ksmPendingMutationRevisions().push([ksmLocalMutationVersion,Number(cloudSession?.revision||0)])}
 export const noteLocalMutation=replaceable('noteLocalMutation',noteLocalMutationImpl);

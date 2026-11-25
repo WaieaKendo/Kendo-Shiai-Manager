@@ -91,7 +91,27 @@ export function spectatorLink(){if(!cloudSession.tournamentId)return '';return k
 export async function openTournamentAccess(){if(!cloudSession.tournamentId)await saveNow();if(!cloudSession.tournamentId){alert('Connect to the internet and save the tournament first.');return}const link=spectatorLink();const qr=`https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(link)}`;ksmOpenTournamentAccess(link,qr);}
 // Numbers the cloud save attempts in the diagnostics (from app/js/18-sync-state-and-rebase.js; only this function uses it).
 let ksmCloudAttemptCounter=0;
-export async function performCloudSave(payload=tournamentPayload(),baseRevision=cloudSession.revision||0,rebaseAttempt=0,originalBaseRevision=baseRevision,basePayload=cloudBaseFor(baseRevision),options={}){
+// Each 409 rebase attempt moves cloudSession.revision to the server's before sending the rebased copy.
+// When the save does not go through (attempts used up, network error, timeout), this device's copy is
+// still the one it was on originalBaseRevision, without the server changes that rebase merged. Keeping
+// the server's revision made the next save (or the outbox flush) look current, so it was accepted over
+// the other court's newer results (ATKT, split courts, 2026-11-13). Back on its own base, that save
+// meets a 409 and rebases.
+// It goes back to the revision the device was on when the save started, not to the save's base: an
+// outbox flush sends an older snapshot on that snapshot's older base, and while the server kept
+// failing (ATKT, 2026-11-13: HTTP 500s) every retry pulled the device back to that old base
+// (797 -> 747 -> 803 -> 747), so each later save needed a rebase first and collided again.
+export async function performCloudSave(/** @type {any[]} */ ...args){
+  const rebaseAttempt=args[2]||0;
+  if(rebaseAttempt)return ksmPerformCloudSaveOnce(...args);
+  const tournamentId=cloudSession.tournamentId,startRevision=Number(cloudSession.revision||0);
+  try{return await ksmPerformCloudSaveOnce(...args)}
+  catch(err){
+    if(tournamentId&&cloudSession.tournamentId===tournamentId&&Number(cloudSession.revision||0)!==startRevision){cloudSession.revision=startRevision;persistCloudSession()}
+    throw err;
+  }
+}
+async function ksmPerformCloudSaveOnce(payload=tournamentPayload(),baseRevision=cloudSession.revision||0,rebaseAttempt=0,originalBaseRevision=baseRevision,basePayload=cloudBaseFor(baseRevision),options={}){
   const savingEpoch=ksmTournamentEpoch;
   const existing=cloudSession.tournamentId;
   const attemptId=++ksmCloudAttemptCounter;
@@ -211,7 +231,8 @@ export async function performCloudSave(payload=tournamentPayload(),baseRevision=
       return savedRecord;
     }
     if(serverRecord){
-      cloudSession.revision=Number(serverRecord.revision||cloudSession.revision||0);
+      // Not the server's revision: this device's copy is still on originalBaseRevision (see performCloudSave()).
+      cloudSession.revision=Number(originalBaseRevision||cloudSession.revision||0);
       cloudSession.updatedAt=serverRecord.updatedAt;
       persistCloudSession();
     }

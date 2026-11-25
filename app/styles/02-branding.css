@@ -130,7 +130,7 @@
     margin-top:10px;
   }
   #publicTitle:after,#courtTitle:after{display:none;}
-  h3,.field label,th,.bracket-round,.court-chip,.tiebreak-label{
+  h3,.field label,.field .setup-gc-bracket-title,th,.bracket-round,.court-chip,.tiebreak-label{
     color:#6a655d;
     letter-spacing:.11em;
   }

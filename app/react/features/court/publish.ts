@@ -24,7 +24,7 @@ import { findMatchAgain, legacy, matchIndexIn, setupSetting } from '../../shared
 import { ACTIONS_EVENT, type CourtActionsInput } from './actions-model.ts';
 import { HEADER_EVENT, type CourtHeaderInput } from './header-model.ts';
 import {
-  QUEUE_EVENT, type CourtQueueInput, type QueueGroupInput, type QueueRow, type QueueRowInput,
+  QUEUE_EVENT, type CourtQueueInput, type CourtRunningOrderInput, type QueueGroupInput, type QueueRow, type QueueRowInput,
 } from './queue-model.ts';
 import { COMPLETE_EVENT, type CourtCompleteInput } from '../../shared/ui/complete-model.ts';
 import {
@@ -352,7 +352,7 @@ export function ksmOwnQueuePanelInput(): CourtQueueInput {
   return groupsOr([...out.groups, ...ksmChampionshipQueueGroups(div, court)], doneOr('Queue complete.'));
 }
 
-export function ksmQueuePanelInput(): CourtQueueInput {
+function ksmQueuePanelBase(): CourtQueueInput {
   const input = ksmOwnQueuePanelInput();
   const state = legacy('ksmLegacyState')();
   const div = state.currentDivision, court = state.currentCourt || 'A';
@@ -362,6 +362,42 @@ export function ksmQueuePanelInput(): CourtQueueInput {
   if (queued || (input.kind === 'groups' && input.groups.some(g => g.rows.length))) return input;
   // Resolved at call time: the TV/Live Scores helper in 36- is loaded by then.
   return { ...input, upNext: legacy('ksmUpNext')(court, div) };
+}
+
+/**
+ * The Court Queue: the queue above, plus the court's running order (display only; Continue and
+ * findNextForCourt() still decide what comes next). Built in a try/catch: a failure only drops
+ * the running order, never the queue or the court screen.
+ */
+export function ksmQueuePanelInput(): CourtQueueInput {
+  const queue = ksmQueuePanelBase();
+  try {
+    const state = legacy('ksmLegacyState')();
+    const order = ksmCourtRunningOrder(state.currentCourt || 'A', state.currentDivision);
+    return order ? { ...queue, order } : queue;
+  } catch { return queue; }
+}
+
+/**
+ * The division being played on the court (state.currentDivision: what Continue opened) as the
+ * header over its rounds, then the court's remaining divisions in running order
+ * (ksmCourtDivisionList(), from the one after it as ksmNextCourtDivision() looks), finished and
+ * undrawn ones left out: names and the matches left on this court only.
+ */
+function ksmCourtRunningOrder(court: 'A' | 'B', div: string | null | undefined): CourtRunningOrderInput | null {
+  const state = legacy('ksmLegacyState')();
+  const list = legacy('ksmCourtDivisionList')(court), other = court === 'A' ? 'B' : 'A', otherList = legacy('ksmCourtDivisionList')(other);
+  const i = div ? list.indexOf(div) : -1, rest = i < 0 ? list : [...list.slice(i + 1), ...list.slice(0, i)];
+  const name = (d: string): string => text(legacy('ksmDivisionName')(d) || d);
+  const later = rest.filter(d => d !== div && !legacy('divisionComplete')(d)).map(d => {
+    // Matches still to play on this court (a division left part-way counts what remains).
+    const ms = (state.allMatches?.[d] || []).filter(m => legacy('isValidMatchObject')(m) && !m.done && legacy('matchBelongsToCourt')(m, court));
+    // A team division counts its pairings, not the bouts.
+    const matches = ms.some(m => legacy('isTeamMatch')(m)) ? new Set(ms.map(m => m.teamPair || `${m.teamWhite}|${m.teamRed}|${m.pool || m.position || ''}`)).size : ms.length;
+    return matches ? { name: name(d), matches, alsoOn: otherList.includes(d) ? other : null } : null;
+  }).filter((x): x is { name: string; matches: number; alsoOn: string | null } => x !== null);
+  const current = div && !legacy('divisionComplete')(div) ? { name: name(div) } : null;
+  return current || later.length ? { current, later } : null;
 }
 
 // ------------------------------------------------------------------------------ the signals

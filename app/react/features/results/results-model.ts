@@ -45,6 +45,12 @@ export interface ResultCardInput {
    * divisions are still running (their names). */
   notDrawn?: boolean;
   waitingFor?: string[];
+  /** The courts the division is played on ('A', 'B'), from its matches or Setup's court. */
+  courts?: string[];
+  /** The courts where it is the division being played right now. */
+  nowOn?: string[];
+  /** Each court's 1-based place in its running order (Setup's division order on that court). */
+  places?: Record<string, number>;
 }
 
 /** One award of state.awards (text as esc() showed it). */
@@ -111,14 +117,34 @@ export interface PlacementRowView {
   name: string;
 }
 
-export type ResultCardView = {name?: string} & (
+/** 1 → "1st", 2 → "2nd", 11 → "11th", 23 → "23rd". */
+export function ordinal(n: number): string {
+  const t = n % 100, u = n % 10;
+  return `${n}${t >= 11 && t <= 13 ? 'th' : u === 1 ? 'st' : u === 2 ? 'nd' : u === 3 ? 'rd' : 'th'}`;
+}
+
+/** Where a division is played, with its place in each court's running order: "Court A · 2nd",
+ *  "Court A · 4th · Court B · 3rd"; "Now on Court A" while it is being played. */
+export interface CourtTagView { text: string; live: boolean }
+export function courtTag(card: Pick<ResultCardInput, 'courts' | 'nowOn' | 'places'>): CourtTagView | null {
+  const now = card.nowOn ?? [], courts = card.courts ?? [], places = card.places ?? {};
+  const list = (cs: string[]) => cs.length > 1 ? `Courts ${cs.slice(0, -1).join(', ')} & ${cs[cs.length - 1]}` : `Court ${cs[0]}`;
+  if (now.length) return { text: `Now on ${list(now)}`, live: true };
+  if (!courts.length) return null;
+  if (!courts.some(c => places[c])) return { text: list(courts), live: false };
+  return { text: courts.map(c => places[c] ? `Court ${c} · ${ordinal(places[c])}` : `Court ${c}`).join(' · '), live: false };
+}
+
+export type ResultCardView = {name?: string; court?: CourtTagView} & (
   | {
     kind: 'progress';
     division: string;
     message: string;
     /** A placeholder (not drawn yet / waiting for sources): quieter, no bracket to open. */
     placeholder?: true;
-    /** 'View Standings →' for a team round robin, else no button. */
+    /** 'View Standings →' for a team round robin, 'View Bracket →' for a drawn division in
+     *  progress (so participants can find their matches once the tournament is live), none for a
+     *  placeholder. */
     button: string | null;
   }
   | { kind: 'award'; division: string; rows: PlacementRowView[]; button: string });
@@ -136,6 +162,10 @@ export const NOT_DRAWN_TEXT = 'Not drawn yet';
 export const WAITING_FOR_LABEL = 'Waiting for';
 
 export function resultCardView(card: ResultCardInput): ResultCardView {
+  const tag = courtTag(card);
+  return { ...resultCardViewBase(card), ...(tag ? { court: tag } : {}) } as ResultCardView;
+}
+function resultCardViewBase(card: ResultCardInput): ResultCardView {
   if (card.notDrawn || card.waitingFor?.length) {
     return {
       kind: 'progress', division: card.division, ...(card.name ? { name: card.name } : {}), placeholder: true, button: null,
@@ -149,7 +179,7 @@ export function resultCardView(card: ResultCardInput): ResultCardView {
       division: card.division,
       ...(card.name ? {name:card.name} : {}),
       message: card.roundRobin ? `Round robin in progress • ${p?.complete}/${p?.total} pairings complete` : 'Tournament in progress',
-      button: card.roundRobin ? 'View Standings →' : null,
+      button: card.roundRobin ? 'View Standings →' : 'View Bracket →',
     };
   }
   return {

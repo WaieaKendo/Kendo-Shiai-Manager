@@ -57,7 +57,15 @@ export interface QueueUpNext {
   matches: Array<{ white: string; red: string }>;
 }
 
-export type CourtQueueInput = CourtOwnQueueInput & { upNext?: QueueUpNext | null };
+/** The court's running order (ksmCourtRunningOrder(), app/modules/react-bridges/court.js): display only, never tappable. */
+export interface CourtRunningOrderInput {
+  /** The division being played (what Continue opened): the header over the queue's rounds. */
+  current: { name: string } | null;
+  /** The court's remaining divisions in running order: one collapsed line each. */
+  later: Array<{ name: string; matches: number; alsoOn: string | null }>;
+}
+
+export type CourtQueueInput = CourtOwnQueueInput & { upNext?: QueueUpNext | null; order?: CourtRunningOrderInput };
 
 type CourtOwnQueueInput =
   /** Nothing (no division, a completed division, a single-elimination match on one court). */
@@ -84,13 +92,33 @@ export interface QueueGroupView {
   rows: QueueRowItemView[];
 }
 
-export type CourtQueueView =
+export type CourtQueueView = (
   // undefined: no results view; null: retain the team's existing Completed card.
   | { kind: 'up-next'; title: string; rows: QueueRowItemView[]; results: FinalResultsInput | null | undefined }
   | { kind: 'empty' }
   | { kind: 'message'; text: string }
   | { kind: 'results'; results: FinalResultsInput | null }
-  | { kind: 'groups'; groups: QueueGroupView[] };
+  | { kind: 'groups'; groups: QueueGroupView[] }) & { order?: CourtRunningOrderView };
+
+export const NOW_LABEL = 'Now';
+export const UP_NEXT_LABEL = 'Up next';
+
+export interface CourtRunningOrderView {
+  current: string | null;
+  /** upNext on the first line; meta: "3 matches · also on Court B". */
+  later: Array<{ name: string; upNext: boolean; meta: string }>;
+}
+
+export function runningOrderView(order: CourtRunningOrderInput): CourtRunningOrderView {
+  return {
+    current: order.current ? order.current.name : null,
+    later: order.later.map((d, i) => ({
+      name: d.name,
+      upNext: i === 0,
+      meta: [`${d.matches} ${d.matches === 1 ? 'match' : 'matches'}`, ...(d.alsoOn ? [`also on Court ${d.alsoOn}`] : [])].join(' · '),
+    })),
+  };
+}
 
 /** The static markup (app/index.html): an empty #queue. */
 export const EMPTY_QUEUE: CourtQueueInput = { kind: 'empty' };
@@ -120,21 +148,28 @@ function rowView(row: QueueRow): QueueRowItemView {
 }
 
 export function courtQueueView(input: CourtQueueInput): CourtQueueView {
-  const hasOwnRows = input.kind === 'groups' && input.groups.some(g => g.rows.length);
-  if (!hasOwnRows && input.upNext?.matches.length) {
+  const { order, ...rest } = input;
+  // Display only: malformed data drops the running order, never the queue.
+  const ok = !!order && Array.isArray(order.later) && (!!order.current || order.later.length > 0);
+  const extra = ok ? { order: runningOrderView(order) } : {};
+  const hasOwnRows = rest.kind === 'groups' && rest.groups.some(g => g.rows.length);
+  if (!hasOwnRows && rest.upNext?.matches.length) {
     return {
-      kind: 'up-next', title: `Up next: ${input.upNext.division} — not started`,
-      results: input.kind === 'results' ? input.results : undefined,
-      rows: input.upNext.matches.slice(0, 2).map(m => rowView({
+      ...extra,
+      kind: 'up-next', title: `Up next: ${rest.upNext.division} — not started`,
+      results: rest.kind === 'results' ? rest.results : undefined,
+      rows: rest.upNext.matches.slice(0, 2).map(m => rowView({
         kind: 'queue', team: false, placeholder: false, tiebreak: false,
         white: { name: m.white, detail: null }, red: { name: m.red, detail: null },
         center: 'vs', round: '',
       })),
     };
   }
-  if (input.kind !== 'groups') return input;
+  const { upNext: _upNext, ...base } = rest;
+  if (base.kind !== 'groups') return { ...base, ...extra };
   return {
+    ...extra,
     kind: 'groups',
-    groups: input.groups.filter(g => g.rows.length).map(g => ({ title: normalizeQueueGroupLabel(g.label), rows: g.rows.map(rowView) })),
+    groups: base.groups.filter(g => g.rows.length).map(g => ({ title: normalizeQueueGroupLabel(g.label), rows: g.rows.map(rowView) })),
   };
 }

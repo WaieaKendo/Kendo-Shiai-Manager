@@ -114,7 +114,7 @@ export function ksmSetActiveNav(viewId){
     public:"Live Scores",
     director:"Overview",
     tv:"TV Display",
-    results:"Results",
+    results:"Brackets",
     print:"Export"
   };
   ksmNavActive=mapping[viewId]||null;

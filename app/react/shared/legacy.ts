@@ -186,6 +186,7 @@ export interface LegacyGlobals {
   ksmIsRoundRobinDaihyosen: (m: Match | null | undefined) => boolean;
   ksmDaihyosenLabel: () => string;
   ksmNextCourtDivision: (court: Court, current: string | null) => string | null;
+  ksmCourtDivisionList: (court: Court) => string[];
   /** 18-sync-state-and-rebase.js. */
   isValidMatchObject: (m: unknown) => boolean;
   /** 08-engine-generation.js. */

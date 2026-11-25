@@ -159,6 +159,8 @@ let cachedIndex = null;
 function definitionIndex(source) {
   if (cachedIndex?.source === source) return cachedIndex;
   const functions = new Set([...source.matchAll(/function\s+([A-Za-z_$][\w$]*)\s*\(/g)].map(m => m[1]));
+  // A replaceable function (replaceable('NAME', NAMEImpl)) is cut out as `function NAME(` by extractFunction().
+  for (const m of source.matchAll(/replaceable\('([A-Za-z_$][\w$]*)',/g)) functions.add(m[1]);
   cachedIndex = { source, functions, constants: topLevelConstants(source) };
   return cachedIndex;
 }
@@ -188,12 +190,18 @@ export function withDependencies(source, code, { exclude = [] } = {}) {
       else if (constants.has(name)) def = constants.get(name);
       if (!def) continue;
       skipNames.add(name);
-      added.push(def);
+      added.push({ def, isConstant: def !== engine && constants.get(name) === def });
       // The engine is self-contained; its own function names are not app dependencies.
       if (def !== engine) queue.push(def);
     }
   }
-  return [code, ...added].join('\n');
+  // Top-level constants go in the order the source declares them (one may be built from another, e.g.
+  // KSM_AUTOSAVE_CLOUD_ID from KSM_SAVE_KEY): the engine first, then the constants, then the hoisted functions.
+  const position = def => { const at = source.indexOf(def.slice(0, -1)); return at < 0 ? Infinity : at; };
+  const constantDefs = added.filter(a => a.isConstant).map(a => a.def).sort((a, b) => position(a) - position(b));
+  const engineDefs = added.filter(a => a.def === engine).map(a => a.def);
+  const otherDefs = added.filter(a => !a.isConstant && a.def !== engine).map(a => a.def);
+  return [code, ...engineDefs, ...constantDefs, ...otherDefs].join('\n');
 }
 
 // #15 PR 13c-1 / 13c-2: every write to `allMatches` goes through app/modules/court/match-writes.js. A vm test that runs app

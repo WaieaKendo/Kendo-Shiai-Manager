@@ -42,7 +42,7 @@ import * as KSMEngine from '../../engine/index.ts';
 export function generateDivisionState(div,how={}){return holdNotifications(()=>{
   // One notification for the division's bouts and its draw (#15 PR 13c-2: the bouts are their own dispatches before it).
   const settings=ksmTeamSettings(div);
-  const plan=KSMEngine.generateDivision({division:div,teamDivisionId:ksmTeamDivision(div)?.id,competitors:ksmGrandChampion(div)?ksmGrandChampionCompetitors(div):state.competitors,teams:state.teams,exhibitions:state.exhibitions,divisionType:ksmGrandChampion(div)?KSMEngine.grandChampionFormat(ksmGrandChampion(div)):state.divisionTypes[div],courtMode:state.divisionCourts[div],settings,bracketNodesForCount:teamBracketNodesForCount});
+  const plan=KSMEngine.generateDivision({division:div,teamDivisionId:ksmTeamDivision(div)?.id,competitors:ksmGrandChampion(div)?ksmGrandChampionCompetitors(div):state.competitors,teams:state.teams,exhibitions:state.exhibitions,divisionType:ksmGrandChampion(div)?KSMEngine.grandChampionFormat(ksmGrandChampion(div)):state.divisionTypes[div],courtMode:state.divisionCourts[div],settings,bracketNodesForCount:teamBracketNodesForCount,keepOrder:!!ksmGrandChampion(div)});
   if(!plan)return false;
   // The division's queue position (currentByDivision, #15 PR 13a) starts at 0 with its draw, in the same action.
   const draw=(/** @type {Record<string,unknown>} */ entries,drawn=true)=>ksmSetDraw(how.type||'divisionGenerated',{...ksmDrawWith(div,{...entries,currentByDivision:0},how.fresh?[...KSM_DRAW_KEYS,'currentByDivision']:[]),...(drawn?how.lists:{})});

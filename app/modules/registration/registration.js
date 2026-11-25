@@ -20,7 +20,7 @@ export function addTeamRow(n=1){ksmAddPeople('team',Array.from({length:Math.max(
 export function addAutoTeam(){let n=(state.teams||[]).length+1;let team='Auto Team '+n;ksmAddPeople('team',[newTeamRow({team,senpo:team,jiho:team,chuken:team,fukusho:team,taisho:team,status:'Checked'})]);renderTeams()}
 export function statusCycle(s){return KSMEngine.statusCycle(s);// moved to app/engine/registration.ts
   }
-function divisionHasCompletedMatches(div){return (state.allMatches?.[div]||[]).some(m=>m&&m.done)}
+export function divisionHasCompletedMatches(div){return (state.allMatches?.[div]||[]).some(m=>m&&m.done)}
 export function closeManagementModal(id){if(!ksmCloseShellDialog(id))document.getElementById(id)?.classList.add('hidden');}
 export function structuralNoShowAllowed(div){return !!state.generated && !!(state.allMatches?.[div]) && !divisionHasCompletedMatches(div)}
 export function cycleCompetitorStatus(i){

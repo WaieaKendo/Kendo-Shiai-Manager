@@ -371,6 +371,7 @@ window.KSMTest = {
     openTournamentFromHome: (...a) => openTournamentFromHome(...a),
     get pendingTiebreak() { return pendingTiebreak; }, set pendingTiebreak(v) { pendingTiebreak = v; },
     persistCloudSession: (...a) => persistCloudSession(...a),
+    get compactCourtActionEntry() { return compactCourtActionEntry; }, set compactCourtActionEntry(v) { compactCourtActionEntry = v; },
     pinCourtLocally: (...a) => pinCourtLocally(...a),
     point: (...a) => point(...a),
     get poolFinished() { return poolFinished; }, set poolFinished(v) { poolFinished = v; },
@@ -462,6 +463,11 @@ window.KSMTest = {
   // --- Bulk setup without the Setup/Registration UI ------------------------------
   // entries: [{name, format, court, entrants:[{name,dojo,seed,status}]}, {team:true, format, tournament, teams, court}]
   // Mirrors what Setup + Registration + Generate do; used by the golden engine test.
+  // Court actions recorded as an older version did (index patches kept): compactCourtActionEntry() off, or back on.
+  historyCompaction(on) {
+    if (!on && !KSMTest._compact) { KSMTest._compact = KSMTest.app.compactCourtActionEntry; KSMTest.app.compactCourtActionEntry = entry => { const { matchOps, ...older } = entry; return older; }; } // off: an older version's entry (index patches, no match ops)
+    if (on && KSMTest._compact) { KSMTest.app.compactCourtActionEntry = KSMTest._compact; KSMTest._compact = null; }
+  },
   teamDivisions() { return JSON.parse(JSON.stringify(ksmTeamDivisions())); },
   addTeamDivision(name) { return ksmAddTeamDivision(name); },
   updateTeamDivision(id, patch) { return ksmUpdateTeamDivision(id, patch); },
@@ -480,6 +486,7 @@ window.KSMTest = {
   grandChampions() { return JSON.parse(JSON.stringify(ksmGrandChampions())); },
   addGrandChampion(sources, patch = {}) { const id = ksmAddGrandChampion(); if (id) ksmUpdateGrandChampion(id, {sources, ...patch}); return id; },
   updateGrandChampion(id, patch) { return ksmUpdateGrandChampion(id, patch); },
+  swapGrandChampionSources(id, a, b) { return ksmSwapGrandChampionSources(id, a, b); },
   removeGrandChampion(id) { return ksmRemoveGrandChampion(id); },
   grandChampionQuestion() { const c = ksmShellDialogs?.cloud; return c?.body?.kind === 'grand-champion' ? {title: c.title, message: c.body.message, choices: c.body.choices.map(x => x.id)} : null; },
   configure(entries) {
@@ -498,7 +505,15 @@ window.KSMTest = {
         return {team: `Team ${code}`, type: team.format, status: 'Checked', ...Object.fromEntries(slots.map((s, j) => [s, `T${code}${j + 1}`]))};
       })});
     }
+    // `teams` may also be the team rows themselves ({team, senpo, chuken, taisho, ...}).
+    if (team && Array.isArray(team.teams)) ksmLoadPeople({teams: team.teams.map(t => ({type: team.format, status: 'Checked', ...t}))});
     ksmLoadPeople({teamDivisions: undefined});ksmTeamDivisions(); // the app's own migration (tournament/peopleLoaded)
+    // More team divisions: each further {team:true, name, format, tournament, court, teams: [rows]} entry.
+    entries.filter(d => d.team).slice(1).forEach(d => {
+      const id = ksmAddTeamDivision(d.name || 'Team division');
+      ksmUpdateTeamDivision(id, {teamFormat: d.format, teamTournamentFormat: d.tournament, court: d.court});
+      ksmLoadPeople({teams: [...JSON.parse(JSON.stringify(state.teams)), ...d.teams.map(t => ({type: d.format, status: 'Checked', ...t, teamDivisionId: id}))]});
+    });
     generatePools({validated: true});
   },
 

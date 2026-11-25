@@ -24,8 +24,45 @@ const resultsWindow = (): ResultsWindow => window as unknown as ResultsWindow;
 
 const state = (): TournamentState => legacy('ksmLegacyState')();
 
+type ActiveCourts = { A: string | null; B: string | null; lists: Record<'A' | 'B', string[]> };
+type CourtFields = Pick<ResultCardInput, 'courts' | 'nowOn' | 'places'>;
+
+/**
+ * Where a division is played (Brackets screen): the courts of its matches (matchBelongsToCourt()),
+ * or before the draw Setup's court ('A', 'B', 'Both'/'split': both); nowOn the courts whose active
+ * division it is (courtSummaryFor(), Overview's rule); places each court's 1-based place in its
+ * running order (ksmCourtDivisionList()), for the courts that list it.
+ */
+function ksmResultCourts(div: string, active: ActiveCourts): CourtFields {
+  const s = state();
+  const all = s.allMatches?.[div] || [];
+  let courts: string[] = (['A', 'B'] as const).filter(c => all.some(m => legacy('matchBelongsToCourt')(m, c)));
+  if (!all.length) {
+    // Defaults as ksmCourtDivisionList(): a division without a court is on A, a team event on both.
+    const team = legacy('ksmTeamDivisions')().find(d => d.id === div);
+    const mode = String(s.divisionCourts?.[div] || team?.court || (team || legacy('isTeamDivision')(div) ? 'Both' : 'A')).toLowerCase();
+    courts = mode === 'a' ? ['A'] : mode === 'b' ? ['B'] : (mode === 'both' || mode === 'split') ? ['A', 'B'] : [];
+  }
+  const nowOn = all.length && !legacy('divisionComplete')(div) ? (['A', 'B'] as const).filter(c => active[c] === div) : [];
+  const places: Record<string, number> = {};
+  courts.forEach(c => { const i = (active.lists?.[c as 'A' | 'B'] || []).indexOf(div); if (i >= 0) places[c] = i + 1; });
+  return { courts, nowOn: [...nowOn], places };
+}
+
+/** Each court's active division (Overview's rule) and running order, worked out once per Brackets render. */
+function ksmActiveCourtDivisions(): ActiveCourts {
+  return {
+    A: legacy('courtSummaryFor')('A').division, B: legacy('courtSummaryFor')('B').division,
+    lists: { A: legacy('ksmCourtDivisionList')('A'), B: legacy('ksmCourtDivisionList')('B') },
+  };
+}
+
 /** resultCardHtml(div) as data: placements null for the in-progress card (none yet). */
-export function ksmResultCard(div: string): ResultCardInput {
+export function ksmResultCard(div: string, active: ActiveCourts = ksmActiveCourtDivisions()): ResultCardInput {
+  return { ...ksmResultCardBase(div), ...ksmResultCourts(div, active) };
+}
+
+function ksmResultCardBase(div: string): ResultCardInput {
   const placements = legacy('resultPlacements')(div);
   const roundRobin = legacy('isTeamRoundRobinDivision')(div);
   const text = legacy('ksmText');
@@ -48,13 +85,13 @@ export function ksmResultCard(div: string): ResultCardInput {
  * Setup's running order (divisions, team divisions, grand champions): one not drawn yet shows "Not
  * drawn yet", a grand champion whose source divisions are still running "Waiting for: <sources>".
  */
-export function ksmResultPlaceholder(div: string): ResultCardInput {
+export function ksmResultPlaceholder(div: string, active: ActiveCourts = ksmActiveCourtDivisions()): ResultCardInput {
   const text = legacy('ksmText');
   const gc = legacy('ksmGrandChampion')(div);
   const waiting = gc ? (gc.sources || []).filter(s => !legacy('divisionComplete')(s)).map(s => text(legacy('ksmDivisionName')(s))) : [];
   return {
     division: text(div), name: legacy('ksmDivisionName')(div), roundRobin: false, placements: null, progress: null,
-    ...(waiting.length ? { waitingFor: waiting } : { notDrawn: true }),
+    ...(waiting.length ? { waitingFor: waiting } : { notDrawn: true }), ...(gc ? {} : ksmResultCourts(div, active)),
   };
 }
 
@@ -83,13 +120,14 @@ export function ksmResultsDashboardInput(): ResultsInput {
   ].filter(div => drawn(div) || event.includes(div));
   const completed = divisions.filter(div => drawn(div) && divisionComplete(div));
   const pending = divisions.filter(div => !drawn(div) || !divisionComplete(div));
+  const active = ksmActiveCourtDivisions();
   // The Setup name (the store's tournament.settings.tName; was the #tName input's value).
   const tournamentName = setupSetting('tName');
   return {
     kind: 'results',
     tournamentName: tournamentName || 'Kendo Tournament',
-    completed: completed.map(ksmResultCard),
-    pending: pending.map(div => (drawn(div) ? ksmResultCard(div) : ksmResultPlaceholder(div))),
+    completed: completed.map(div => ksmResultCard(div, active)),
+    pending: pending.map(div => (drawn(div) ? ksmResultCard(div, active) : ksmResultPlaceholder(div, active))),
     noDivisions: !divisions.some(drawn),
     awards: (s.awards || []).map(a => ({ award: text(a.award || ''), name: text(a.name || ''), dojo: text(a.dojo || '') })),
     // Owner decision 8 (#29): spectators see the awards read-only.

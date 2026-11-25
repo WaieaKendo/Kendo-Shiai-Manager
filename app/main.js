@@ -34,7 +34,7 @@ import {initFriendlyLinks,ksmEditTournamentSlug,ksmPendingSlug,ksmRenameTourname
 import {initPathUrls,ksmHeaderLogo,ksmIsExplicitSpectatorUrl,ksmLinkParams,ksmLinkUrl,ksmRecordScreenPath,ksmReplaceUrl,ksmResolveSlug,ksmResolvedUrl,ksmShowRequestedScreen,ksmTournamentHomeUrl} from './modules/links/path-urls.js';
 import {copyStreamOverlayLink} from './modules/links/stream-overlay-links.js';
 import {chooseCourt,closeNavMenus,exportResultsAwards,exportTournamentBrackets,initNavigation,navigateTo,openRegistrationTab,regTab,renderProgress,show,toggleNavMenu} from './modules/navigation.js';
-import {ksmAlignedRow,ksmBracket,ksmDaihyosenLabel,ksmDivisionCompleteInput,ksmFinalResults,ksmHansokuCounts,ksmIsRoundRobinDaihyosen,ksmKachinukiSheet,ksmNextCourtDivision,ksmOpenCourtSetup,ksmPlaceholderRow,ksmPoolStandingRows,ksmSetCourtRedSide,ksmSetCourtTvRedSide,ksmSignalCourtActions,ksmSignalCourtHeader,ksmSingleElimContext,ksmSingleElimRoundCard,ksmTeamResults,ksmTeamSheet,ksmText} from './modules/react-bridges/court.js';
+import {ksmAlignedRow,ksmBracket,ksmDaihyosenLabel,ksmDivisionCompleteInput,ksmFinalResults,ksmHansokuCounts,ksmIsRoundRobinDaihyosen,ksmKachinukiSheet,ksmCourtDivisionList, ksmNextCourtDivision,ksmOpenCourtSetup,ksmPlaceholderRow,ksmPoolStandingRows,ksmSetCourtRedSide,ksmSetCourtTvRedSide,ksmSignalCourtActions,ksmSignalCourtHeader,ksmSingleElimContext,ksmSingleElimRoundCard,ksmTeamResults,ksmTeamSheet,ksmText} from './modules/react-bridges/court.js';
 import {initReactBridges} from './modules/react-bridges/index.js';
 import {ksmAuthorizeLibraryTournament,ksmDecorateLibraryInput,ksmDeleteLibraryTournament,ksmDiscardLocalDraft,ksmDownloadDeleteBackup,ksmExportLibraryTournament,ksmLibraryAuthorizedIds,ksmOpenLocalDraft,ksmReadLocalDraft,ksmRenderLibrary,ksmReturnFromLibrary} from './modules/react-bridges/library.js';
 import {ksmBetweenMatches,ksmRenderLiveScores,ksmUpNext} from './modules/react-bridges/live-scores.js';
@@ -46,7 +46,7 @@ import {ksmDivisionPresetNames,ksmDivisionRemoveBlocked,ksmDivisionRenameBlocked
 import {ksmCanDeleteTournament,ksmCloseCloudModal,ksmCloseShellDialog,ksmCloudModalOpen,ksmConfirmDeleteTournament,ksmConfirmValidation,ksmContinueRegenerateDivision,ksmNavActive,ksmNavMenuStyle,ksmNavOpenMenu,ksmOpenCloudModal,ksmOpenDeleteTournament,ksmOpenDiagnostics,ksmOpenFileLoadModal,ksmOpenRegenerateDialog,ksmOpenTournamentAccess,ksmPersistentSaveStatusText,ksmPublishHeader,ksmRegeneratePoolDivision,ksmRenderConnectionStatus,ksmRenderPresence,ksmRenderSaveStatus,ksmRenderSessionRole,ksmSetActiveNav,ksmSetFusenOpen,ksmSetTestTools,ksmShellDialogs,ksmShellDialogsState,ksmShellHeaderState,ksmShowValidationDialog,ksmToggleTestTools,setKsmForgotTournament} from './modules/react-bridges/shell.js';
 import {ksmLegacyCloudSession,ksmLegacyState} from './modules/react-bridges/state-bridge.js';
 import {ksmRenderTv} from './modules/react-bridges/tv.js';
-import {ksmAddGrandChampion,ksmDecideGrandChampion,ksmGrandChampion,ksmGrandChampionChoose,ksmGrandChampions,ksmMoveGrandChampion,ksmOpenGrandChampionWithdraw,ksmRemoveGrandChampion,ksmSyncGrandChampions,ksmToggleGrandChampionSource,ksmUpdateGrandChampion} from './modules/registration/grand-champion.js';
+import {ksmAddGrandChampion,ksmDecideGrandChampion,ksmGrandChampion,ksmGrandChampionChoose,ksmGrandChampions,ksmMoveGrandChampion,ksmOpenGrandChampionWithdraw,ksmRemoveGrandChampion,ksmSwapGrandChampionSources,ksmSyncGrandChampions,ksmToggleGrandChampionSource,ksmUpdateGrandChampion} from './modules/registration/grand-champion.js';
 import {addAutoTeam,addExhibitionRow,addRow,addTeamRow,clearCompetitors,clearExhibitions,clearTeams,closeManagementModal,continueRegenerateDivision,cycleCompetitorStatus,cycleTeamStatus,loadFullTournament,loadSamples,loadTeamSamples,openRegenerateDivisionDialog,renderExhibitions,renderReg,renderTeams} from './modules/registration/registration.js';
 import {ksmAddTeamDivision,ksmAssignTeamDivision,ksmDivisionName,ksmMoveTeamDivision,ksmNewTeamRows,ksmRemoveTeamDivision,ksmRenderTeamDivisions,ksmSetTeamCourt,ksmTeamDivisions,ksmTeamSettings,ksmUpdateTeamDivision} from './modules/registration/team-divisions.js';
 import {renderTournamentStatus,requestTournamentGeneration,validateTournament} from './modules/registration/validation.js';
@@ -196,7 +196,7 @@ Object.assign(window, {
   ksmLegacyCloudSession, ksmLegacyState,
   // app/modules/registration/grand-champion.js
   ksmAddGrandChampion, ksmDecideGrandChampion, ksmGrandChampion, ksmGrandChampionChoose, ksmGrandChampions, ksmMoveGrandChampion,
-  ksmOpenGrandChampionWithdraw, ksmRemoveGrandChampion, ksmToggleGrandChampionSource, ksmUpdateGrandChampion,
+  ksmOpenGrandChampionWithdraw, ksmRemoveGrandChampion, ksmSwapGrandChampionSources, ksmToggleGrandChampionSource, ksmUpdateGrandChampion,
   // app/modules/setup/division-setup.js
   saveSetup, addCustomDivision, renderDivisionSetup, setDivisionFormat, syncSetupHeader, toggleDivision,
   // app/modules/setup/divisions-store.js: the division lists in one action (tests/lib/ksm-test-api.js)
@@ -327,7 +327,7 @@ Object.assign(window, {
   ksmMatchTimerInput, ksmNormalizeTimerSettings, ksmSaveTimerSettings, ksmSetCourtTimerEnabled, ksmSetCourtTimerSound,
   // app/modules/react-bridges/court.js
   ksmAlignedRow, ksmBracket, ksmDaihyosenLabel, ksmDivisionCompleteInput, ksmFinalResults, ksmHansokuCounts, ksmIsRoundRobinDaihyosen,
-  ksmKachinukiSheet, ksmNextCourtDivision, ksmOpenCourtSetup, ksmPlaceholderRow, ksmPoolStandingRows, ksmSetCourtRedSide, ksmSetCourtTvRedSide,
+  ksmKachinukiSheet, ksmCourtDivisionList, ksmNextCourtDivision, ksmOpenCourtSetup, ksmPlaceholderRow, ksmPoolStandingRows, ksmSetCourtRedSide, ksmSetCourtTvRedSide,
   ksmSignalCourtActions, ksmSignalCourtHeader, ksmSingleElimContext, ksmSingleElimRoundCard, ksmTeamResults, ksmTeamSheet, ksmText,
   // app/modules/react-bridges/live-scores.js
   ksmBetweenMatches, ksmRenderLiveScores, ksmUpNext,

@@ -45,6 +45,8 @@ export interface GenerationInput {
   settings: Pick<TournamentSettings, 'teamFormat' | 'teamTournamentFormat' | 'exhibitionEnabled'>;
   /** Bracket template for n entrants; the legacy caller passes its alerting wrapper. */
   bracketNodesForCount?: ((n: number) => TeamBracketNode<'A' | 'B'>[]) | undefined;
+  /** Single elimination: bracket slots follow the competitors' order (a grand champion's sources), no seed or dojo placement. */
+  keepOrder?: boolean | undefined;
 }
 
 export type RoundRobinPool = BuiltPool<SlottedPlayer<CompetitorRow>> & { court?: 'A' | 'B' };
@@ -96,7 +98,7 @@ export function generateDivision(input: GenerationInput): DivisionPlan | null {
   const comps = eligibleIndividuals(input.competitors, div); if (!comps.length) return null;
   const mode = input.courtMode || 'A';
   if ((input.divisionType || 'Round Robin') === 'Single Elimination') {
-    const ordered = placeIndividualsForSingleElim(comps, comps.length > 1 ? nodesFor(comps.length) : []);
+    const ordered = input.keepOrder ? comps : placeIndividualsForSingleElim(comps, comps.length > 1 ? nodesFor(comps.length) : []);
     const built = buildIndividualSingleElimMatches(div, nodesFor(ordered.length) as SingleElimTemplateNode<string>[], mode);
     return { kind: 'singleElim', generated: true, pools: [], singleElimComps: ordered, singleElimNodes: built.nodes, matches: built.matches };
   }

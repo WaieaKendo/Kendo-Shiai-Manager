@@ -29,6 +29,10 @@ function fakeWindow({
     isTeamDivision: div => teamDivisions.some(d => d.id === div),
     ksmTeamResults: div => ({ kind: 'team-bracket', rounds: [], div }),
     ksmPoolStandingRows: (div, label) => ({ note: `note ${label}`, rows: [{ name: 'A', dojo: '', wins: '1', pts: '2', tiebreak: false }] }),
+    // The court tags on the Brackets cards (develop #194/#198): no active division, no running order, a match on its own court.
+    courtSummaryFor: () => ({ division: null }),
+    ksmCourtDivisionList: () => [],
+    matchBelongsToCourt: (m, court) => (m.court || 'A') === court,
     ksmBracket: div => brackets[div] ?? { kind: 'message', text: `bracket ${div}` },
     addEventListener: (type, fn) => { listeners.set(type, fn); },
     dispatch: type => listeners.get(type)?.(),
@@ -61,7 +65,7 @@ test('the tournament name and the awards (text as esc() showed it); a spectator 
 test('a division of the event that is not drawn yet gets the "Not drawn yet" placeholder', () => {
   fakeWindow({ state: { divisions: ['open'] } });
   const input = ksmResultsDashboardInput();
-  assert.deepEqual(input.pending, [{ division: 'open', name: 'Open Division', roundRobin: false, placements: null, progress: null, notDrawn: true }]);
+  assert.deepEqual(input.pending, [{ division: 'open', name: 'Open Division', roundRobin: false, placements: null, progress: null, notDrawn: true, courts: ['A'], nowOn: [], places: {} }]);
   assert.equal(input.noDivisions, true);
 });
 
@@ -83,7 +87,7 @@ test('a grand champion waits on its unfinished sources, in the placeholder', () 
 test('an in-progress team round robin shows its pairing count', () => {
   fakeWindow({ state: { divisions: [], allMatches: { 'Team Tournament': matches(3) } }, teamDivisions: [{ id: 'Team Tournament' }], rr: ['Team Tournament'] });
   const input = ksmResultsDashboardInput();
-  assert.deepEqual(input.pending, [{ division: 'Team Tournament', name: 'Team Tournament', roundRobin: true, placements: null, progress: { complete: 2, total: 6 } }]);
+  assert.deepEqual(input.pending, [{ division: 'Team Tournament', name: 'Team Tournament', roundRobin: true, placements: null, progress: { complete: 2, total: 6 }, courts: ['A'], nowOn: [], places: {} }]);
 });
 
 test('a team division is left out when team divisions are disabled and nothing is drawn', () => {
@@ -99,7 +103,7 @@ test('a completed division: placements as text, the tier printed as it is', () =
   const input = ksmResultsDashboardInput();
   assert.deepEqual(input.pending, []);
   assert.deepEqual(input.completed, [{
-    division: 'open', name: 'Open Division', roundRobin: false, progress: null,
+    division: 'open', name: 'Open Division', roundRobin: false, progress: null, courts: ['A'], nowOn: [], places: {},
     placements: [{ place: '1st', name: 'A <b>', tier: 'gold' }, { place: '2nd', name: 'B', tier: 'silver' }],
   }]);
 });

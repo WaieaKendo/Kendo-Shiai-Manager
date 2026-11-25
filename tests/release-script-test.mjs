@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { compare, prVersionProblem } from '../scripts/version-rules.mjs';
 
 const script = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'scripts', 'release.mjs');
 const checks = [];
@@ -78,6 +79,37 @@ const release = (dir, ...args) => spawnSync(process.execPath, [script, ...args, 
   check(same.status !== 0 && /already 1\.0\.0/.test(same.stderr), 'the current version is refused');
   fs.rmSync(r.dir, { recursive: true, force: true });
 }
+
+// rc phase: `rc` counts up, `final` drops the suffix, both refused outside where they apply.
+{
+  const r = repo();
+  r.git('tag', 'v1.0.0'); // an older tag: rc drafts still start at the last version change
+  const notRc = release(r.dir, 'rc');
+  check(notRc.status !== 0 && /needs an rc version/.test(notRc.stderr) && r.git('status', '--porcelain') === '', '"rc" on 1.0.0 is refused and changes nothing');
+  const noPre = release(r.dir, 'final');
+  check(noPre.status !== 0 && /removes a pre-release/.test(noPre.stderr), '"final" on 1.0.0 is refused');
+  check(release(r.dir, '1.1.0-rc.1').status === 0, 'an explicit 1.1.0-rc.1 starts the rc phase');
+  r.git('commit', '-q', '-am', 'Release 1.1.0-rc.1');
+  r.commit('Fix the scoreboard');
+  const rc = release(r.dir, 'rc');
+  const log = r.read('CHANGELOG.md');
+  check(rc.status === 0 && JSON.parse(r.read('package.json')).version === '1.1.0-rc.2' && JSON.parse(r.read('package-lock.json')).version === '1.1.0-rc.2', '"rc": 1.1.0-rc.1 -> 1.1.0-rc.2 in package.json and package-lock.json');
+  check(log.startsWith('## v1.1.0-rc.2 — TITLE\n') && log.includes('- Fix the scoreboard') && !log.includes('- Release 1.1.0-rc.1'), '"rc": the draft lists only the commits since rc.1');
+  r.git('commit', '-q', '-am', 'Release 1.1.0-rc.2');
+  const fin = release(r.dir, 'final');
+  check(fin.status === 0 && JSON.parse(r.read('package.json')).version === '1.1.0' && r.read('CHANGELOG.md').startsWith('## v1.1.0 — TITLE\n'), '"final": 1.1.0-rc.2 -> 1.1.0 with a v1.1.0 section');
+  fs.rmSync(r.dir, { recursive: true, force: true });
+}
+
+// The PR rules CI checks (scripts/version-rules.mjs).
+check(compare('4.0.0', '4.0.0-rc.9') > 0 && compare('4.0.0-rc.10', '4.0.0-rc.9') > 0 && compare('4.0.0', '3.17.20-test') > 0 && compare('4.0.1', '4.0.0') > 0, 'semver order: release > rc, rc.10 > rc.9, 4.0.0 > 3.17.20-test');
+check(prVersionProblem('main', '3.17.20-test', '4.0.0') === '', 'main: 4.0.0 over 3.17.20-test is allowed');
+check(/never gets a pre-release/.test(prVersionProblem('main', '3.17.20-test', '4.0.0-rc.3')), 'main: an rc version is refused');
+check(/newer than main/.test(prVersionProblem('main', '4.0.0', '4.0.0')) && /newer than main/.test(prVersionProblem('main', '4.0.1', '4.0.0')), 'main: the same or an older version is refused');
+check(prVersionProblem('develop', '4.0.0-rc.1', '4.0.0-rc.2') === '' && prVersionProblem('develop', '4.0.0-rc.1', '4.0.0') === '', 'develop in rc: rc.N+1 or the final version is allowed');
+check(/rc phase/.test(prVersionProblem('develop', '4.0.0-rc.1', '4.0.0-rc.1')) && /rc phase/.test(prVersionProblem('develop', '4.0.0-rc.1', '4.0.0-rc.3')) && /rc phase/.test(prVersionProblem('develop', '4.0.0-rc.1', '4.0.1-rc.2')),
+  'develop in rc: no bump, a skipped number, or another core version is refused');
+check(prVersionProblem('develop', '4.1.0-dev', '4.1.0-dev') === '' && prVersionProblem('next/4.1', '4.0.0-rc.1', '4.0.0-rc.1') === '', 'develop outside rc and next/<version> have no rule');
 
 let failed = 0;
 for (const [ok, name] of checks) { console.log(`${ok ? 'PASS' : 'FAIL'} ${name}`); if (!ok) failed++; }

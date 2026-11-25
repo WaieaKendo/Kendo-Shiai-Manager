@@ -61,7 +61,7 @@ export const DEFAULT_NAV_ICONS: NavIcons = {
   registration: '/assets/nav-icons/registration.svg',
   courts: '/assets/nav-icons/courts.svg',
   liveScores: '/assets/nav-icons/live-scores.svg',
-  results: '/assets/nav-icons/results.svg',
+  results: '/assets/nav-icons/brackets.svg',
   export: '/assets/nav-icons/export.svg',
   saveLoad: '/assets/nav-icons/save-load.svg',
 };

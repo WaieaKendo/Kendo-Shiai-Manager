@@ -35,7 +35,7 @@ export type {
 export {
   championshipTemplateForTotal, championshipLabels, firstRoundName, nextRoundFromName, previousRoundName, nextChampRoundName,
   champRoundOrder, roundSequenceFromFirst, roundMatchCount,
-  championshipCourtFor, championshipMatchObjectForNode, buildChampionshipTemplateMatches, poolFinished,
+  championshipCourtFor, championshipNodesForCourtMode, championshipMatchObjectForNode, buildChampionshipTemplateMatches, poolFinished,
   poolSeedResolution, parseSeedLabel, seedNameForLabel, champWinnerObj, championshipNodeSource,
   syncChampionshipTemplate, sourceLabelForRound, individualPlacements,
 } from './championship.ts';
