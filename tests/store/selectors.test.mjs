@@ -15,6 +15,18 @@ const BY_KEY = {
   selectTeamBracketNodes: 'teamBracketNodes', selectSingleElimNodes: 'singleElimNodes', selectDivisionCourts: 'divisionCourts',
   selectDivisions: 'divisions', selectCompetitors: 'competitors', selectTeams: 'teams', selectCourtActionHistory: 'courtActionHistory',
   selectCourtRedoHistory: 'courtRedoHistory',
+  selectDivisionTypes: 'divisionTypes',
+  selectExhibitions: 'exhibitions',
+  selectTeamDivisions: 'teamDivisions',
+  selectPools: 'pools',
+  selectTeamPools: 'teamPools',
+  selectSingleElimComps: 'singleElimComps',
+  selectByeWinners: 'byeWinners',
+  selectGenerated: 'generated',
+  selectManagementRevision: 'managementRevision',
+  selectChampionshipNodes: 'championshipNodes',
+  selectTeamElimTeams: 'teamElimTeams',
+  selectCurrentByDivision: 'currentByDivision',
 };
 const same = () => {
   for (const [name, key] of Object.entries(BY_KEY)) if (key === 'matches') assert.deepEqual(sel[name](getState()), state[key], `${name} is state.${key}`); // ([] is a new list each time while none is shown)

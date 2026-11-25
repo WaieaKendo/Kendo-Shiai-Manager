@@ -1,5 +1,6 @@
 // @ts-check
-import {state} from '../app-state.js';
+import {getState} from '../../store/index.ts';
+import {selectAllMatches,selectChampionshipNodes,selectDivisionCourts,selectSingleElimComps,selectSingleElimNodes} from '../selectors.js';
 import {syncIndividualSingleElim} from '../court/split-court-templates.js';
 import {ksmSetDivisionMatches} from '../court/match-writes.js';
 import {champWinnerObj,seedNameForLabel} from './engine-championship.js';
@@ -37,7 +38,7 @@ function placeIndividualsForSingleElim(comps){
   return KSMEngine.placeIndividualsForSingleElim(comps,comps.length>1?teamBracketNodesForCount(comps.length):[]);
 }
 /** Node id -> its place in the bracket; `nodes` (a draw not in the store yet) instead of the division's nodes. */
-export function singleElimOrderMap(div,nodes=state.singleElimNodes?.[div]){let map={};(nodes||[]).forEach((n,i)=>map[n.id]=i);return map;}
+export function singleElimOrderMap(div,nodes=selectSingleElimNodes(getState())?.[div]){let map={};(nodes||[]).forEach((n,i)=>map[n.id]=i);return map;}
 /** The single elimination's bout order (node order, then bracket slot), for a sort; `nodes` (a draw not in the store yet) instead of the division's. */
 export function singleElimMatchCompare(div,nodes){let order=singleElimOrderMap(div,nodes);return (a,b)=>{
   let oa=order[a.elimNodeId]??9999, ob=order[b.elimNodeId]??9999;
@@ -47,7 +48,7 @@ export function singleElimMatchCompare(div,nodes){let order=singleElimOrderMap(d
 /** `arr` in the single elimination's bout order: a sorted copy (#15 PR 13c-1: the division's own list is sorted through match-writes.js). */
 export function sortIndividualSingleElimMatches(div,arr,nodes){return [...arr].sort(singleElimMatchCompare(div,nodes));}
 export function dedupeSingleElimMatches(div){
-  let arr=state.allMatches[div]||[];
+  let arr=selectAllMatches(getState())[div]||[];
   let seen=new Set(), out=[];
   // Sorted on a copy (#15 PR 13c-1): the division's list was sorted in place and replaced by `out` right after, so only `out` is written.
   sortIndividualSingleElimMatches(div,arr).forEach(m=>{
@@ -59,7 +60,7 @@ export function dedupeSingleElimMatches(div){
     out.push(m);
   });
   ksmSetDivisionMatches(div,out);
-  return state.allMatches[div];
+  return selectAllMatches(getState())[div];
 }
 /**
  * @param {BracketSource|null} side
@@ -68,12 +69,12 @@ export function dedupeSingleElimMatches(div){
  * @returns {{name: string, dojo: string}|null}
  */
 function indivSide(side,comps,div){
-  return KSMEngine.indivSide(side,comps,state.singleElimNodes?.[div]||[]);
+  return KSMEngine.indivSide(side,comps,selectSingleElimNodes(getState())?.[div]||[]);
 }
 function indivNodeHasMatch(arr,node){return KSMEngine.indivNodeHasMatch(arr,node);// moved to app/engine/bracket-helpers.ts
   }
 export function sideLabelGeneric(side,div){
-  return KSMEngine.sideLabelGeneric(side,state.singleElimComps?.[div]||[],state.singleElimNodes?.[div]||[]);
+  return KSMEngine.sideLabelGeneric(side,selectSingleElimComps(getState())?.[div]||[],selectSingleElimNodes(getState())?.[div]||[]);
 }
 /**
  * One Match Object per bracket node, filled as winners are known: a new bracket (a No Show's). The nodes go to
@@ -84,20 +85,20 @@ export function sideLabelGeneric(side,div){
  * @returns {Match[]}
  */
 export function buildIndividualSingleElimMatches(div,comps,draft){
-  const built=KSMEngine.buildIndividualSingleElimMatches(div,teamBracketNodesForCount(comps.length),/** @type {Court|'split'} */(state.divisionCourts[div]||'A'));
+  const built=KSMEngine.buildIndividualSingleElimMatches(div,teamBracketNodesForCount(comps.length),/** @type {Court|'split'} */(selectDivisionCourts(getState())[div]||'A'));
   draft.singleElimNodes=built.nodes;
   const arr=/** @type {Match[]} */(built.matches);
   syncIndividualSingleElim(div,arr,comps,draft);
   // The division's list as the sync left it (it is `arr`, sorted, with the plan's values: a new bracket has no duplicate
   // to drop), read again (#15 PR 13c-1).
-  return state.allMatches[div];
+  return selectAllMatches(getState())[div];
 }
 /**
  * @param {Match} m
  */
 export function maybeAdvanceIndividualSingleElim(m){
   if(!m||!m.singleElim)return;
-  let div=m.division,arr=state.allMatches[div]||[],comps=(state.singleElimComps&&state.singleElimComps[div])||eligibleIndividuals(div).filter(c=>c.name);
+  let div=m.division,arr=selectAllMatches(getState())[div]||[],comps=(selectSingleElimComps(getState())&&selectSingleElimComps(getState())[div])||eligibleIndividuals(div).filter(c=>c.name);
   syncIndividualSingleElim(div,arr,comps);
 }
 function championshipSideLabel(side,div){
@@ -107,8 +108,8 @@ function championshipSideLabel(side,div){
     return resolved?.name||side.seed;
   }
   if(side.ref){
-    const source=(state.championshipNodes?.[div]||[]).find(node=>node.id===side.ref);
-    const sourceMatch=(state.allMatches?.[div]||[]).find(m=>m&&m.championship&&m.champNodeId===side.ref);
+    const source=(selectChampionshipNodes(getState())?.[div]||[]).find(node=>node.id===side.ref);
+    const sourceMatch=(selectAllMatches(getState())?.[div]||[]).find(m=>m&&m.championship&&m.champNodeId===side.ref);
     if(sourceMatch?.done){const winner=champWinnerObj(sourceMatch);if(winner)return winner.name;}
     return `Winner of ${source?.round||'Match'} Match ${Number(source?.slot||0)+1}`;
   }
@@ -125,11 +126,11 @@ export function specificMatchSideLabel(match,side){
   const actual=side==='white'?(match.white||match.teamWhite):(match.red||match.teamRed);
   if(actual)return actual;
   if(match.singleElim){
-    const node=(state.singleElimNodes?.[match.division]||[]).find(n=>n.id===match.elimNodeId);
+    const node=(selectSingleElimNodes(getState())?.[match.division]||[]).find(n=>n.id===match.elimNodeId);
     return sideLabelGeneric(side==='white'?node?.right:node?.left,match.division);
   }
   if(match.championship){
-    const node=(state.championshipNodes?.[match.division]||[]).find(n=>n.id===match.champNodeId);
+    const node=(selectChampionshipNodes(getState())?.[match.division]||[]).find(n=>n.id===match.champNodeId);
     return championshipSideLabel(side==='white'?node?.right:node?.left,match.division);
   }
   return 'TBD';

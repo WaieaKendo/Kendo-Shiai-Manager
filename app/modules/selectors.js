@@ -47,3 +47,27 @@ export const selectTeams=s=>selectTournamentField(s,'teams');
 export const selectCourtActionHistory=s=>selectTournamentField(s,'courtActionHistory');
 /** `state.courtRedoHistory`. @param {RootState} s */
 export const selectCourtRedoHistory=s=>selectTournamentField(s,'courtRedoHistory');
+/** `state.divisionTypes`. @param {RootState} s */
+export const selectDivisionTypes=s=>selectTournamentField(s,'divisionTypes');
+/** `state.exhibitions`. @param {RootState} s */
+export const selectExhibitions=s=>selectTournamentField(s,'exhibitions');
+/** `state.teamDivisions`. @param {RootState} s */
+export const selectTeamDivisions=s=>selectTournamentField(s,'teamDivisions');
+/** `state.pools`. @param {RootState} s */
+export const selectPools=s=>selectTournamentField(s,'pools');
+/** `state.teamPools`. @param {RootState} s */
+export const selectTeamPools=s=>selectTournamentField(s,'teamPools');
+/** `state.singleElimComps`. @param {RootState} s */
+export const selectSingleElimComps=s=>selectTournamentField(s,'singleElimComps');
+/** `state.byeWinners`. @param {RootState} s */
+export const selectByeWinners=s=>selectTournamentField(s,'byeWinners');
+/** `state.generated`. @param {RootState} s */
+export const selectGenerated=s=>selectTournamentField(s,'generated');
+/** `state.managementRevision`. @param {RootState} s */
+export const selectManagementRevision=s=>selectTournamentField(s,'managementRevision');
+/** `state.championshipNodes`. @param {RootState} s */
+export const selectChampionshipNodes=s=>selectTournamentField(s,'championshipNodes');
+/** `state.teamElimTeams`. @param {RootState} s */
+export const selectTeamElimTeams=s=>selectTournamentField(s,'teamElimTeams');
+/** `state.currentByDivision`. @param {RootState} s */
+export const selectCurrentByDivision=s=>selectTournamentField(s,'currentByDivision');

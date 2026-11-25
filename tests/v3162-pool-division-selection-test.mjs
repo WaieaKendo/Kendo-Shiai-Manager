@@ -5,7 +5,7 @@ const checks=[
   ['independent pool selection state', html.includes("poolViewDivision:'Women’s Open'")],
   ['selector updates pool selection state', html.includes('onchange="ksmSetPoolViewDivision(this.value);renderPools()"')],
   ['renderDivisions preserves pool selector', html.includes('let selected=(poolDiv.value&&all.includes(poolDiv.value))?poolDiv.value')],
-  ['renderPools uses independent selection', html.includes('poolDiv?.value||state.poolViewDivision||state.currentDivision')],
+  ['renderPools uses independent selection', html.includes('poolDiv?.value||selectPoolViewDivision(getState())||selectCurrentDivision(getState())')],
 ];
 let failed=false;
 for(const [name,ok] of checks){console.log(`${ok?'PASS':'FAIL'}: ${name}`);if(!ok)failed=true;}

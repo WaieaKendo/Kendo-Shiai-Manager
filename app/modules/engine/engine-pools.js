@@ -1,5 +1,6 @@
 // @ts-check
-import {state} from '../app-state.js';
+import {getState} from '../../store/index.ts';
+import {selectCompetitors,selectDivisionCourts,selectDivisionTypes,selectPools,selectTeamDivisions,selectTeams} from '../selectors.js';
 import {ksmTeamDivision} from '../registration/team-divisions.js';
 import {ksmDrawHolds,ksmEditedPools,ksmSetDraw} from './structure-store.js';
 import * as KSMEngine from '../../engine/index.ts';
@@ -25,14 +26,14 @@ function shuffleDeterministic(arr){
  * @returns {Competitor[]}
  */
 export function eligibleIndividuals(div){
-  return KSMEngine.eligibleIndividuals(state.competitors,div);
+  return KSMEngine.eligibleIndividuals(selectCompetitors(getState()),div);
 }
 /**
  * @param {string} div
  * @returns {Team[]}
  */
 export function eligibleTeams(div){
-  return KSMEngine.eligibleTeams(state.teams.filter(t=>!state.teamDivisions||(t.teamDivisionId||'Team Tournament')===div));
+  return KSMEngine.eligibleTeams(selectTeams(getState()).filter(t=>!selectTeamDivisions(getState())||(t.teamDivisionId||'Team Tournament')===div));
 }
 /**
  * Pool sizes for n entrants (frozen template library). Delegates to app/engine/pools.ts.
@@ -77,14 +78,14 @@ function buildPools(comps){
  * @param {string} div
  * @returns {CourtMode}
  */
-export function divisionCourtMode(div){return state.divisionCourts[div]||'A'}
+export function divisionCourtMode(div){return selectDivisionCourts(getState())[div]||'A'}
 /**
  * @param {string} div
  * @param {string} poolLabel
  * @param {Pool[]} [pools]
  * @returns {Court}
  */
-export function poolCourtFor(div,poolLabel,pools=state.pools[div]||[]){let mode=divisionCourtMode(div);let pool=pools.find(p=>p.label===poolLabel);if(pool&&pool.court)return pool.court;if(mode!=='split')return /** @type {Court} */(mode);let idx=pools.findIndex(p=>p.label===poolLabel),aCount=Math.floor(pools.length/2);let court=/** @type {Court} */(idx>=0&&idx<aCount?'A':'B');if(pool)ksmKeepPoolCourt(div,pool,court);return court}
+export function poolCourtFor(div,poolLabel,pools=selectPools(getState())[div]||[]){let mode=divisionCourtMode(div);let pool=pools.find(p=>p.label===poolLabel);if(pool&&pool.court)return pool.court;if(mode!=='split')return /** @type {Court} */(mode);let idx=pools.findIndex(p=>p.label===poolLabel),aCount=Math.floor(pools.length/2);let court=/** @type {Court} */(idx>=0&&idx<aCount?'A':'B');if(pool)ksmKeepPoolCourt(div,pool,court);return court}
 /**
  * The split court a pool was given is kept on the pool (poolCourtFor() reads it first next time; the snapshot carries it).
  * A pool of the draw is store data (#15 PR 12a): a new pool row in one tournament/drawEntriesUpdated (in both maps when
@@ -131,4 +132,4 @@ export function buildPoolMatches(div,pools){
  * @param {string} div
  * @returns {boolean}
  */
-export function isTeamDivision(div){return !!ksmTeamDivision(div)||div==='Team Tournament'||/team|kachinuki/i.test(state.divisionTypes[div]||'')}
+export function isTeamDivision(div){return !!ksmTeamDivision(div)||div==='Team Tournament'||/team|kachinuki/i.test(selectDivisionTypes(getState())[div]||'')}

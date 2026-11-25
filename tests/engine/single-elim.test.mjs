@@ -13,6 +13,7 @@ import { individualPlacements } from '../../app/engine/championship.ts';
 import { teamBracketNodesForCount } from '../../app/engine/teams.ts';
 import { html, engine, extractFunction, matchWritesSource, withDependencies } from '../lib/ksm-source.mjs';
 import { vmStore } from '../lib/vm-store.mjs';
+import { plainSelectors } from '../lib/plain-selectors.mjs';
 import { gitShow } from '../lib/git-show.mjs';
 import { drawHelpers } from '../lib/draw-helpers.mjs';
 
@@ -150,7 +151,7 @@ test('placement, build and advancement equal the pre-move legacy code on golden 
   // The pre-move code writes a plain `state` in place; the current code runs on a real store (tests/lib/vm-store.mjs).
   const load = (src, inStore) => {
     const raw = { console: { error() {} } };
-    if (inStore) raw.vs = vmStore(raw); else raw.state = null;
+    if (inStore) raw.vs = vmStore(raw); else { raw.state = null; plainSelectors(raw); }
     const ctx = vm.createContext(raw);
     const tplConst = src === oldSrc ? oldSrc.slice(oldSrc.indexOf('const BRACKET_SLOT_TEMPLATES'), oldSrc.indexOf('};') + 2) : '';
     const code = `${engine}\n${drawHelpers}\n${matchWritesSource}\n${tplConst}\n${SHARED.map(n => extractFunction(html, n)).join('\n')}\n${MOVED.map(n => extractFunction(src, n)).join('\n')}`;
