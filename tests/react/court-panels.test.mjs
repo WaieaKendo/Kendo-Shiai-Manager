@@ -202,3 +202,30 @@ test('courtQueueView: the court\'s running order (Now header, later divisions as
   assert.deepEqual(courtQueueView({ kind: 'empty', order: { current: null, later: [] } }), { kind: 'empty' });
   assert.deepEqual(courtQueueView({ kind: 'empty', order: { current: { name: 'X' } } }), { kind: 'empty' });
 });
+
+test('courtQueueView: a waiting court says what it waits for, then lists the next division once with its bouts', () => {
+  const order = { current: { name: 'Kids' }, later: [{ name: 'Women', matches: 3, alsoOn: null }, { name: 'Teams', matches: 4, alsoOn: 'B' }] };
+  const waitingFor = ['Semifinal 1 (Court A)', 'Semifinal 2 (Court B)'];
+  const placeholder = { kind: 'aligned', white: 'Winner SF2', red: 'Winner SF1', wp: [], rp: [], status: 'awaiting', current: false, compact: true };
+  const view = courtQueueView({ kind: 'groups', groups: [{ label: 'Final', rows: [placeholder] }], upNext, order, waitingFor });
+  assert.equal(view.kind, 'groups');
+  assert.equal(view.waiting, 'Waiting for: Semifinal 1 (Court A), Semifinal 2 (Court B)');
+  assert.equal(view.next.title, 'Up next: Junior Semifinal — not started');
+  assert.equal(view.next.rows.length, 2);
+  assert.deepEqual(view.order.later.map(d => d.upNext), [false, false], 'no line claims the Up next badge while the group is shown');
+  const named = courtQueueView({ kind: 'groups', groups: [{ label: 'Final', rows: [placeholder] }], upNext: { ...upNext, division: 'Women' }, order, waitingFor });
+  assert.deepEqual(named.order.later, [{ name: 'Teams', upNext: false, meta: '4 matches · also on Court B' }], 'Women is listed once, with its bouts');
+  assert.ok(!('next' in courtQueueView({ kind: 'groups', groups: [{ label: 'Final', rows: [placeholder] }], upNext, order })), 'a court that is not waiting keeps its rounds only');
+  // Nothing of its own: the existing up-next group, with the waiting line over it.
+  const bare = courtQueueView({ kind: 'empty', upNext: { ...upNext, division: 'Women' }, order, waitingFor });
+  assert.equal(bare.kind, 'up-next');
+  assert.equal(bare.waiting, 'Waiting for: Semifinal 1 (Court A), Semifinal 2 (Court B)');
+  assert.deepEqual(bare.order.later.map(d => d.name), ['Teams']);
+});
+
+test('courtQueueView: a long waiting list is shortened and a malformed one is ignored', () => {
+  const many = Array.from({ length: 9 }, (_, i) => `Pool A bout ${i + 1}`);
+  assert.equal(courtQueueView({ kind: 'empty', waitingFor: many }).waiting, `Waiting for: ${many.slice(0, 6).join(', ')} and 3 more`);
+  assert.ok(!('waiting' in courtQueueView({ kind: 'empty', waitingFor: [] })));
+  assert.ok(!('waiting' in courtQueueView({ kind: 'empty', waitingFor: 'Final' })));
+});

@@ -367,15 +367,72 @@ function ksmQueuePanelBase(): CourtQueueInput {
 /**
  * The Court Queue: the queue above, plus the court's running order (display only; Continue and
  * findNextForCourt() still decide what comes next). Built in a try/catch: a failure only drops
- * the running order, never the queue or the court screen.
+ * the running order or the waiting line, never the queue or the court screen.
  */
 export function ksmQueuePanelInput(): CourtQueueInput {
   const queue = ksmQueuePanelBase();
   try {
     const state = legacy('ksmLegacyState')();
-    const order = ksmCourtRunningOrder(state.currentCourt || 'A', state.currentDivision);
-    return order ? { ...queue, order } : queue;
+    const court = state.currentCourt || 'A', div = state.currentDivision;
+    let out: CourtQueueInput = queue;
+    try {
+      const order = ksmCourtRunningOrder(court, div);
+      if (order) out = { ...out, order };
+    } catch { /* the running order is dropped */ }
+    // A waiting court says what it waits for and shows the next division with its bouts, once.
+    try {
+      const waitingFor = div ? ksmWaitingFor(court, div) : null;
+      if (waitingFor) out = { ...out, waitingFor, upNext: out.upNext ?? legacy('ksmUpNext')(court, div) };
+    } catch { /* the extra is dropped, the queue and the running order stay */ }
+    return out;
   } catch { return queue; }
+}
+
+/** At most this many names in the waiting line's data (the view shortens it further). */
+const MAX_WAITING_NAMES = 12;
+
+/**
+ * What the court's division waits for: it has no bout on, none ready on this court, and is not
+ * complete, so its next bouts need bouts played on the other court (a final waits for both
+ * semifinals; a bracket round for a pool). Those are the division's ready, unfinished bouts that
+ * belong to the other court (findNextForCourt() and individualMatchReady() decide readiness).
+ * null: the court is not waiting, or nothing can be named. Names: 'Semifinal 1 (Court B)'.
+ */
+function ksmWaitingFor(court: 'A' | 'B', div: string): string[] | null {
+  const state = legacy('ksmLegacyState')();
+  const valid = legacy('isValidMatchObject'), ready = legacy('individualMatchReady'), here = legacy('matchBelongsToCourt');
+  if (legacy('divisionComplete')(div)) return null;
+  const all = (state.allMatches?.[div] || []).filter(m => valid(m));
+  const current = state.matches?.[state.current] || null;
+  if (current && !current.done) return null;
+  if (all.some(m => ready(m) && here(m, court))) return null;
+  const other = court === 'A' ? 'B' : 'A', isTeam = legacy('isTeamMatch');
+  const bracket = (m: Match): boolean => !!(m.championship || m.singleElim || m.pool === 'Championship');
+  const stage = (m: Match): string => String(m.position || 'Championship');
+  const seen = new Set<string>(), names: string[] = [];
+  // Bracket bouts in bracket order (the round where the list first has it, then the slot).
+  const rank = (m: Match): number => all.findIndex(x => stage(x) === stage(m));
+  const ordered = [...all].sort((a, b) => (bracket(a) && bracket(b) ? rank(a) - rank(b) || Number(a.bracketSlot ?? 9999) - Number(b.bracketSlot ?? 9999) : 0));
+  for (const m of ordered) {
+    if (!ready(m) || here(m, court)) continue;
+    let name: string;
+    if (isTeam(m)) {
+      const key = String(m.teamPair || m.teamNodeId || `${m.teamWhite}|${m.teamRed}`);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      name = `${text(m.teamWhite || 'TBD')} vs ${text(m.teamRed || 'TBD')}`;
+    } else if (bracket(m)) {
+      // Numbered when the round has several bouts, in bracket order.
+      const round = all.filter(x => bracket(x) && !isTeam(x) && stage(x) === stage(m))
+        .sort((a, b) => Number(a.bracketSlot ?? 9999) - Number(b.bracketSlot ?? 9999));
+      name = round.length > 1 ? `${text(stage(m))} ${round.indexOf(m) + 1}` : text(stage(m));
+    } else {
+      name = `${m.pool ? `Pool ${text(m.pool)}: ` : ''}${text(m.white || 'TBD')} vs ${text(m.red || 'TBD')}`;
+    }
+    names.push(`${name} (Court ${other})`);
+    if (names.length >= MAX_WAITING_NAMES) break;
+  }
+  return names.length ? names : null;
 }
 
 /**

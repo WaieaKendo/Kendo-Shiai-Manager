@@ -48,6 +48,7 @@ function fake({ state = {}, legacy = {}, elements = {}, names = {} } = {}) {
     }),
     matchBelongsToCourt: (m, court) => (m.court ?? 'A') === court,
     isValidMatchObject: m => !!m,
+    individualMatchReady: m => !!m && !m.done && !(m.templateNode && !m.ready) && !!(m.white && m.red),
     isTeamDivision: div => div === 'Teams',
     isTeamMatch: m => m.type === 'teamPosition' || m.type === 'teamPlayoff' || m.type === 'kachinuki',
     divisionComplete: div => div === 'Done',
@@ -338,6 +339,35 @@ test('queue: a finished queue is a message, and the up next fallback adds the ne
   assert.deepEqual(log.calls, ['ksmUpNext A Open']);
   fake({ state: { currentDivision: 'Open', current: 0, matches: [a], allMatches: { Open: [a] } }, legacy: { upNext: null } });
   assert.equal(ksmQueuePanelInput().upNext, null);
+});
+
+test('queue: a waiting court names every bout it waits for (on the other court), and attaches the next division', () => {
+  const sf1 = match({ division: 'Kids', championship: true, position: 'Semifinal', bracketSlot: 0, court: 'B' });
+  const sf2 = match({ division: 'Kids', championship: true, position: 'Semifinal', bracketSlot: 1, court: 'B', white: 'C', red: 'D' });
+  const fin = match({ division: 'Kids', championship: true, position: 'Final', court: 'A', white: '', red: '', templateNode: true, ready: false });
+  const { log } = fake({ state: { currentDivision: 'Kids', current: 9, matches: [], allMatches: { Kids: [fin, sf2, sf1] } } });
+  const input = ksmQueuePanelInput();
+  assert.deepEqual(input.waitingFor, ['Semifinal 1 (Court B)', 'Semifinal 2 (Court B)']);
+  assert.deepEqual(input.upNext, { division: 'Women', matches: [{ white: 'W', red: 'R' }] });
+  assert.ok(log.calls.includes('ksmUpNext A Kids'));
+  // One bout left: it keeps its bracket number.
+  fake({ state: { currentDivision: 'Kids', current: 9, matches: [], allMatches: { Kids: [fin, { ...sf1, done: true }, sf2] } } });
+  assert.deepEqual(ksmQueuePanelInput().waitingFor, ['Semifinal 2 (Court B)']);
+  // A pool bout names its players.
+  const pool = match({ division: 'Kids', pool: 'A', court: 'B' });
+  fake({ state: { currentDivision: 'Kids', current: 9, matches: [], allMatches: { Kids: [fin, pool] } } });
+  assert.deepEqual(ksmQueuePanelInput().waitingFor, ['Pool A: Ann vs Bo (Court B)']);
+});
+
+test('queue: a court that is playing, or has a bout ready, or nothing to name, does not wait', () => {
+  const sf = match({ division: 'Kids', championship: true, position: 'Semifinal', court: 'B' });
+  const mine = match({ division: 'Kids', court: 'A', pool: 'A' });
+  fake({ state: { currentDivision: 'Kids', current: 0, matches: [mine], allMatches: { Kids: [mine, sf] } } });
+  assert.equal(ksmQueuePanelInput().waitingFor, undefined, 'a bout is on');
+  fake({ state: { currentDivision: 'Kids', current: 9, matches: [], allMatches: { Kids: [mine, sf] } } });
+  assert.equal(ksmQueuePanelInput().waitingFor, undefined, 'a bout is ready on this court');
+  fake({ state: { currentDivision: 'Kids', current: 9, matches: [], allMatches: { Kids: [{ ...mine, done: true }] } } });
+  assert.equal(ksmQueuePanelInput().waitingFor, undefined, 'nothing is waiting on the other court');
 });
 
 test('queue: results of a finished bracket come from ksmFinalResults()', () => {

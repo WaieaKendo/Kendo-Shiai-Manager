@@ -65,7 +65,12 @@ export interface CourtRunningOrderInput {
   later: Array<{ name: string; matches: number; alsoOn: string | null }>;
 }
 
-export type CourtQueueInput = CourtOwnQueueInput & { upNext?: QueueUpNext | null; order?: CourtRunningOrderInput };
+export type CourtQueueInput = CourtOwnQueueInput & {
+  upNext?: QueueUpNext | null;
+  order?: CourtRunningOrderInput;
+  /** The matches the waiting court's division is waiting for (ksmQueuePanelInput()): display only, never tappable. */
+  waitingFor?: string[];
+};
 
 type CourtOwnQueueInput =
   /** Nothing (no division, a completed division, a single-elimination match on one court). */
@@ -98,7 +103,13 @@ export type CourtQueueView = (
   | { kind: 'empty' }
   | { kind: 'message'; text: string }
   | { kind: 'results'; results: FinalResultsInput | null }
-  | { kind: 'groups'; groups: QueueGroupView[] }) & { order?: CourtRunningOrderView };
+  | { kind: 'groups'; groups: QueueGroupView[] }) & {
+  order?: CourtRunningOrderView;
+  /** 'Waiting for: Semifinal 1 (Court A), Final': why the court is not playing. */
+  waiting?: string;
+  /** The next division's bouts after the rounds (when the rounds have rows of their own). */
+  next?: { title: string; rows: QueueRowItemView[] };
+};
 
 export const NOW_LABEL = 'Now';
 export const UP_NEXT_LABEL = 'Up next';
@@ -109,12 +120,17 @@ export interface CourtRunningOrderView {
   later: Array<{ name: string; upNext: boolean; meta: string }>;
 }
 
-export function runningOrderView(order: CourtRunningOrderInput): CourtRunningOrderView {
+/**
+ * `nextShown`: the next division is listed above with its bouts, so it is left out here (once)
+ * and no remaining line claims the Up next badge.
+ */
+export function runningOrderView(order: CourtRunningOrderInput, nextShown?: string): CourtRunningOrderView {
+  const later = nextShown ? order.later.filter(d => d.name !== nextShown) : order.later;
   return {
     current: order.current ? order.current.name : null,
-    later: order.later.map((d, i) => ({
+    later: later.map((d, i) => ({
       name: d.name,
-      upNext: i === 0,
+      upNext: i === 0 && !nextShown,
       meta: [`${d.matches} ${d.matches === 1 ? 'match' : 'matches'}`, ...(d.alsoOn ? [`also on Court ${d.alsoOn}`] : [])].join(' · '),
     })),
   };
@@ -147,28 +163,51 @@ function rowView(row: QueueRow): QueueRowItemView {
   return { kind: 'queue', className: queueRowClass(row), white: row.white, red: row.red, center: row.center, round: row.round };
 }
 
+const MAX_WAITING_SHOWN = 6;
+
+/** 'Waiting for: Semifinal 1 (Court A), Semifinal 2 (Court B)'; null when nothing is named. */
+export function waitingText(waitingFor: unknown): string | null {
+  if (!Array.isArray(waitingFor)) return null;
+  const names = waitingFor.filter((w): w is string => typeof w === 'string' && !!w);
+  if (!names.length) return null;
+  const shown = names.slice(0, MAX_WAITING_SHOWN).join(', ');
+  return `Waiting for: ${shown}${names.length > MAX_WAITING_SHOWN ? ` and ${names.length - MAX_WAITING_SHOWN} more` : ''}`;
+}
+
+/** The next division's first two bouts as the group shows them. */
+function nextRows(upNext: QueueUpNext): QueueRowItemView[] {
+  return upNext.matches.slice(0, 2).map(m => rowView({
+    kind: 'queue', team: false, placeholder: false, tiebreak: false,
+    white: { name: m.white, detail: null }, red: { name: m.red, detail: null },
+    center: 'vs', round: '',
+  }));
+}
+
 export function courtQueueView(input: CourtQueueInput): CourtQueueView {
-  const { order, ...rest } = input;
+  const { order, waitingFor, ...rest } = input;
+  const waiting = waitingText(waitingFor);
+  const hasOwnRows = rest.kind === 'groups' && rest.groups.some(g => g.rows.length);
+  const upNext = rest.upNext?.matches.length ? rest.upNext : null;
+  // The next division is shown with its bouts when the court has no rounds of its own to show,
+  // or when it is waiting (its own rounds are then bracket places that cannot be played yet).
+  const nextShown = upNext && (!hasOwnRows || !!waiting) ? upNext : null;
   // Display only: malformed data drops the running order, never the queue.
   const ok = !!order && Array.isArray(order.later) && (!!order.current || order.later.length > 0);
-  const extra = ok ? { order: runningOrderView(order) } : {};
-  const hasOwnRows = rest.kind === 'groups' && rest.groups.some(g => g.rows.length);
-  if (!hasOwnRows && rest.upNext?.matches.length) {
+  const extra = { ...(ok ? { order: runningOrderView(order, nextShown?.division) } : {}), ...(waiting ? { waiting } : {}) };
+  const title = nextShown ? `Up next: ${nextShown.division} — not started` : '';
+  if (nextShown && !hasOwnRows) {
     return {
       ...extra,
-      kind: 'up-next', title: `Up next: ${rest.upNext.division} — not started`,
+      kind: 'up-next', title,
       results: rest.kind === 'results' ? rest.results : undefined,
-      rows: rest.upNext.matches.slice(0, 2).map(m => rowView({
-        kind: 'queue', team: false, placeholder: false, tiebreak: false,
-        white: { name: m.white, detail: null }, red: { name: m.red, detail: null },
-        center: 'vs', round: '',
-      })),
+      rows: nextRows(nextShown),
     };
   }
   const { upNext: _upNext, ...base } = rest;
   if (base.kind !== 'groups') return { ...base, ...extra };
   return {
     ...extra,
+    ...(nextShown ? { next: { title, rows: nextRows(nextShown) } } : {}),
     kind: 'groups',
     groups: base.groups.filter(g => g.rows.length).map(g => ({ title: normalizeQueueGroupLabel(g.label), rows: g.rows.map(rowView) })),
   };

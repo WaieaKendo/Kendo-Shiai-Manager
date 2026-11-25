@@ -55,8 +55,30 @@ export function FinalResults({ results }: { results: FinalResultsInput | null })
   );
 }
 
+/** The next division, labelled as such, with its bouts: display only (not buttons). */
+function NextDivision({ title, rows }: { title: string; rows: QueueRowItemView[] }) {
+  return (
+    <section className="queue-group queue-up-next" data-testid="queue-up-next" aria-disabled="true">
+      <div className="queue-group-title">{title}</div>
+      <div className="queue-group-body">{rows.map((row, i) => (
+        <div key={i} aria-disabled="true"><Row row={row} /></div>
+      ))}</div>
+    </section>
+  );
+}
+
 /** The queue's rounds (or its message / results) for the division being played. */
 function QueueBody({ view }: { view: CourtQueueView }) {
+  return (
+    <>
+      {view.waiting && <div className="queue-waiting" data-testid="queue-waiting">{view.waiting}</div>}
+      <QueueContent view={view} />
+      {view.next && <NextDivision title={view.next.title} rows={view.next.rows} />}
+    </>
+  );
+}
+
+function QueueContent({ view }: { view: CourtQueueView }) {
   switch (view.kind) {
     case 'empty': return null;
     case 'message': return <div className="muted-card">{view.text}</div>;
@@ -65,12 +87,7 @@ function QueueBody({ view }: { view: CourtQueueView }) {
       return (
         <>
           {view.results !== undefined && <FinalResults results={view.results} />}
-          <section className="queue-group queue-up-next" data-testid="queue-up-next" aria-disabled="true">
-            <div className="queue-group-title">{view.title}</div>
-            <div className="queue-group-body">{view.rows.map((row, i) => (
-              <div key={i} aria-disabled="true"><Row row={row} /></div>
-            ))}</div>
-          </section>
+          <NextDivision title={view.title} rows={view.rows} />
         </>
       );
     case 'groups':
