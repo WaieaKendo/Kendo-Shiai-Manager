@@ -22,9 +22,9 @@ with sync_playwright() as p:
 
     # Championship structure is complete at generation and never grows during sync.
     page.evaluate("""
-      KSMTest.app.state.divisions=['Test'];KSMTest.app.state.divisionTypes={Test:'Round Robin'};KSMTest.app.state.divisionCourts={Test:'split'};
-      KSMTest.app.state.competitors=Array.from({length:8},(_,i)=>({name:'P'+(i+1),dojo:'D',division:'Test',seed:'',status:'Checked'}));
-      KSMTest.app.state.pools={};KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={};KSMTest.app.state.singleElimComps={};KSMTest.app.state.brackets={};KSMTest.app.state.championshipNodes={};KSMTest.app.state.byeWinners={};KSMTest.app.state.currentByDivision={};
+      KSMTest.app.setDivisionLists({divisions:['Test'],divisionTypes:{Test:'Round Robin'},divisionCourts:{Test:'split'}});
+      KSMTest.app.setPeople({competitors: Array.from({length:8},(_,i)=>({name:'P'+(i+1),dojo:'D',division:'Test',seed:'',status:'Checked'}))});
+      KSMTest.app.setDraw({pools:{}});KSMTest.app.setAllMatches({});KSMTest.app.setDraw({singleElimNodes:{}});KSMTest.app.setDraw({singleElimComps:{}});KSMTest.app.setDraw({brackets:{}});KSMTest.app.setDraw({championshipNodes:{}});KSMTest.app.setDraw({byeWinners:{}});KSMTest.app.setCourtPointers({currentByDivision:{}});
       KSMTest.app.generateDivisionState('Test');
       window.__standardCount=KSMTest.app.state.allMatches.Test.filter(m=>m.championship).length;
       window.__totalCount=KSMTest.app.state.allMatches.Test.length;
@@ -42,9 +42,9 @@ with sync_playwright() as p:
     # Individual pool tiebreak is approved and marked with an explicit origin/type.
     page.evaluate("""
       const pool={label:'Z',size:2,players:[{name:'ZA',dojo:'D'},{name:'ZB',dojo:'D'}]};
-      KSMTest.app.state.pools.Test.push(pool);
+      KSMTest.app.setDraw({pools:{...KSMTest.app.state.pools,Test:[...KSMTest.app.state.pools.Test,pool]}});
       const anchor={division:'Test',pool:'Z',white:'ZA',red:'ZB',wdojo:'D',rdojo:'D',done:true,wp:[],rp:[],type:'individual',court:'B'};
-      KSMTest.app.state.allMatches.Test.push(anchor);
+      KSMTest.app.setDivisionMatches('Test',[...KSMTest.app.state.allMatches.Test,anchor]);
       const tb=KSMTest.app.makeTiebreakMatch('Test','Z',{name:'ZA',dojo:'D'},{name:'ZB',dojo:'D'},true,1,0);
       KSMTest.app.appendApprovedDynamicMatches('Test',anchor,tb,'INDIVIDUAL_POOL_TIEBREAK');
     """)
@@ -52,7 +52,10 @@ with sync_playwright() as p:
 
     # Static source contract: championship synchronizer contains no array insertion.
     source=app_source()
-    section=source[source.index('function recomputeChampionshipAdvancement'):source.index('function firstRoundName',source.index('function recomputeChampionshipAdvancement'))]
+    # recomputeChampionshipAdvancement(), maybeAdvanceChampionship() and maybeCreateChampionship(), which end where the next
+    # function begins (firstRoundName() used to follow them; step 3d of #136 moved it to app/modules).
+    start=source.index('function recomputeChampionshipAdvancement')
+    section=source[start:source.index('\nfunction ',source.index('function maybeCreateChampionship',start))]
     assert '.push(' not in section and '.splice(' not in section, section
 
     assert not errors,errors

@@ -43,7 +43,7 @@ are clicked with a dispatched click (no mouse move, so no :hover lift); transiti
   library-cached-phone  boot on a phone with tournaments cached: the cards at once while
                      discover is pending, then the cloud's list; landscape.
 
-Since M.13 the library is drawn only by React (app/react/library/: one island, the contents of
+Since M.13 the library is drawn only by React (app/react/features/library/: one island, the contents of
 #home .home-shell; app/js/40-react-library.js publishes its data), and this test pins the island
 against the snapshots recorded from the legacy renderer. React must render every element of the
 island (and .home-shell must be its root), every kind of library content must be covered, and
@@ -122,7 +122,7 @@ def request_body(key, body):
                        'staffPassword': data.get('staffPassword')})
 
 
-# The library island (app/react/library/main.tsx): React renders every element of the home page's
+# The library island (app/react/features/library/main.tsx): React renders every element of the home page's
 # shell, which is the island's root.
 ISLAND = '#home .home-shell'
 ROOT_JS = f"() => Object.keys(document.querySelector('{ISLAND}')).some(k => k.startsWith('__reactContainer'))"
@@ -357,7 +357,7 @@ def without_screens_module():
 
 
 # The library as if nothing had been published (the island before the first publish).
-UNPUBLISHED_JS = "() => { delete window.ksmLibraryInput; window.dispatchEvent(new CustomEvent('ksm:library')); }"
+UNPUBLISHED_JS = "() => { delete window.ksmLibraryRequested; delete window.ksmLibraryInput; window.dispatchEvent(new CustomEvent('ksm:library')); }"
 
 
 def library_static_markup(browser, errors):
@@ -393,6 +393,8 @@ def library_module_missing(browser, errors):
     page = context.new_page()
     page.on('pageerror', lambda e: errors.append(f'library module missing: {e}'))
     page.add_init_script(SECURE_CONTEXT_INIT)
+    # Count the classic signal (ksm:library); without the module nothing answers it.
+    page.add_init_script("window.ksmLibrarySignals = 0; window.addEventListener('ksm:library', () => { window.ksmLibrarySignals++; });")
     api = Api()
     load_app(page, html=without_screens_module(), session=None, api=api)
     api.answer(page, SEVERAL)
@@ -401,7 +403,12 @@ def library_module_missing(browser, errors):
     assert 'Tournament Library could not load' in notice.inner_text(), notice.inner_text()
     assert not page.locator('#homeTournamentLibrary').is_visible(), 'the empty library grid is shown without the React module'
     assert page.locator(sel('home-new-tournament')).is_visible(), 'the static ＋ New Tournament is hidden without the React module'
-    assert page.evaluate('window.ksmLibraryInput.cards.length') == len(SEVERAL), 'the library was not published without the island'
+    # The input is computed by the module (publish.ts): without it classic only signals.
+    assert page.evaluate('window.ksmLibraryInput === undefined'), 'the library input was computed without the React module'
+    signals = page.evaluate('window.ksmLibrarySignals')
+    assert signals >= 2, f'the library was not signalled for the boot cache and the cloud list ({signals} signals)'
+    assert page.evaluate('window.ksmLibraryRequested.list.length') == len(SEVERAL), 'the last request is not the cloud list'
+    assert page.evaluate('window.ksmLibraryError') is None, 'a library error was left behind'
     context.close()
 
 

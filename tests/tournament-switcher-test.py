@@ -17,7 +17,7 @@ def main():
         a.wait_for(lambda: 'Switch A' in page.locator(sel('tournament-chip')).inner_text(), message='A chip')
         page.locator(sel('setup-tournament-name')).fill('Switch A Renamed')
         a.wait_for(lambda: 'Switch A Renamed' in page.locator(sel('tournament-chip')).inner_text(), message='chip follows name editing')
-        page.evaluate("KSMTest.app.state.divisions=['Only A'];KSMTest.app.state.competitors=[{name:'A only'}];KSMTest.app.pinCourtLocally('B');KSMTest.app.criticalAutoSave('A fixture')")
+        page.evaluate("KSMTest.app.setDivisionLists({divisions:['Only A']});KSMTest.app.setPeople({competitors: [{name:'A only'}]});KSMTest.app.pinCourtLocally('B');KSMTest.app.criticalAutoSave('A fixture')")
         a.wait_idle()
         page.evaluate("(id)=>localStorage.setItem('ksm:match-timer:'+JSON.stringify([id,'B','fixture']),JSON.stringify({runningSince:Date.now()}))",aid)
         page.locator('.nav-brand').click()
@@ -48,7 +48,7 @@ def main():
         a.wait_for(lambda: a.tournament_id() == aid, message='reload A')
         a.staff_login()
         page.context.set_offline(True)
-        page.evaluate("KSMTest.app.state.awards=[{name:'Unsaved award'}];KSMTest.app.criticalAutoSave('Offline award')")
+        page.evaluate("KSMTest.app.setAwards([{name:'Unsaved award'}]);KSMTest.app.criticalAutoSave('Offline award')")
         return_address,return_view=a.address(),a.visible_view()
         page.evaluate('KSMTest.app.showHomePage()')
         a.wait_for_library()
@@ -66,7 +66,7 @@ def main():
         a.wait_for(lambda: a.visible_view() == ['home'], message='saved exit')
         a.answers['Tournament Name'] = 'Deleted Cup'
         deleted = a.create_tournament();a.wait_idle()
-        page.evaluate("KSMTest.app.state.divisions=['Deleted division'];KSMTest.app.criticalAutoSave('Deleted fixture')")
+        page.evaluate("KSMTest.app.setDivisionLists({divisions:['Deleted division']});KSMTest.app.criticalAutoSave('Deleted fixture')")
         a.wait_idle()
         a.delete_tournament('Deleted Cup')
         assert page.evaluate("!KSMTest.app.state.divisions.includes('Deleted division') && !KSMTest.app.state.competitors.length && !KSMTest.app.v316StaffPassword()")
@@ -76,7 +76,7 @@ def main():
         # An imported/local draft can have neither mutation counters nor an outbox/session.
         draft = KsmApp.local(browser.new_page(), 'Local draft', problems=problems)
         dp = draft.page
-        dp.evaluate("tName.value='Local only';KSMTest.app.state.competitors=[{name:'Local competitor'}];KSMTest.app.markLocalSave('Imported draft');sessionStorage.removeItem(KSMTest.app.KSM_V316_STAFF_SESSION)")
+        dp.evaluate("KSMTest.app.ksmSetSetting('tName','Local only');KSMTest.app.setPeople({competitors: [{name:'Local competitor'}]});KSMTest.app.markLocalSave('Imported draft');sessionStorage.removeItem(KSMTest.app.KSM_V316_STAFF_SESSION)")
         raw = dp.evaluate('localStorage.getItem(KSMTest.app.KSM_SAVE_KEY)')
         assert dp.evaluate('!KSMTest.app.cloudSession.tournamentId && !KSMTest.app.readOutbox() && !KSMTest.app.localChangesPending() && !KSMTest.app.v316StaffPassword()')
         draft.expect_dialog('This tournament is only saved on this device')

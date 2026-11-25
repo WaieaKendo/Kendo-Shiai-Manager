@@ -11,8 +11,10 @@ import {
 } from '../../app/engine/single-elim.ts';
 import { individualPlacements } from '../../app/engine/championship.ts';
 import { teamBracketNodesForCount } from '../../app/engine/teams.ts';
-import { html, engine, extractFunction } from '../lib/ksm-source.mjs';
+import { html, engine, extractFunction, matchWritesSource, withDependencies } from '../lib/ksm-source.mjs';
+import { vmStore } from '../lib/vm-store.mjs';
 import { gitShow } from '../lib/git-show.mjs';
+import { drawHelpers } from '../lib/draw-helpers.mjs';
 
 // The frozen templates moved with the team bracket into app/engine/teams.ts (2.6).
 const nodesFor = n => teamBracketNodesForCount(n);
@@ -144,14 +146,18 @@ test('placement, build and advancement equal the pre-move legacy code on golden 
   const MOVED = ['placeIndividualsForSingleElim', 'singleElimSlotInfo', 'chooseBestSeedSlot', 'protectedSeedQuadrant', 'singleElimBracketSize',
     'buildIndividualSingleElimMatches', 'indivSide', 'syncIndividualSingleElim', 'maybeAdvanceIndividualSingleElim', 'sideLabelGeneric',
     'specificMatchSideLabel', 'singleElimOrderMap', 'sortIndividualSingleElimMatches'];
-  const SHARED = ['T', 'W', 'N', 'teamBracketNodesForCount', 'clubGroup', 'winnerOf', 'individualLogicalMatchKey', 'enforceUniqueIndividualMatches'];
-  const load = src => {
-    const ctx = vm.createContext({ state: null, console: { error() {} } });
+  const SHARED = ['T', 'W', 'N', 'teamBracketNodesForCount', 'clubGroup', 'winnerOf', 'individualLogicalMatchKey', 'enforceUniqueIndividualMatches', 'singleElimMatchCompare'];
+  // The pre-move code writes a plain `state` in place; the current code runs on a real store (tests/lib/vm-store.mjs).
+  const load = (src, inStore) => {
+    const raw = { console: { error() {} } };
+    if (inStore) raw.vs = vmStore(raw); else raw.state = null;
+    const ctx = vm.createContext(raw);
     const tplConst = src === oldSrc ? oldSrc.slice(oldSrc.indexOf('const BRACKET_SLOT_TEMPLATES'), oldSrc.indexOf('};') + 2) : '';
-    vm.runInContext(`${engine}\n${tplConst}\n${SHARED.map(n => extractFunction(html, n)).join('\n')}\n${MOVED.map(n => extractFunction(src, n)).join('\n')}`, ctx);
+    const code = `${engine}\n${drawHelpers}\n${matchWritesSource}\n${tplConst}\n${SHARED.map(n => extractFunction(html, n)).join('\n')}\n${MOVED.map(n => extractFunction(src, n)).join('\n')}`;
+    vm.runInContext(inStore ? withDependencies(html, code, { exclude: Object.keys(raw) }) : code, ctx);
     return ctx;
   };
-  const legacy = load(oldSrc), current = load(html);
+  const legacy = load(oldSrc, false), current = load(html, true);
   assert.ok(!/KSMEngine/.test(extractFunction(oldSrc, 'syncIndividualSingleElim')), 'old code is pre-move');
   assert.ok(/KSMEngine\.syncIndividualSingleElim/.test(extractFunction(html, 'syncIndividualSingleElim')), 'current code delegates');
   const dir = new URL('../golden/engine/', import.meta.url);
@@ -162,24 +168,31 @@ test('placement, build and advancement equal the pre-move legacy code on golden 
       const played = (g.final?.[d.name]?.matches || []).filter(m => m.singleElim && m.done);
       for (const court of new Set([d.court || 'A', 'split', 'B'])) {
         const run = ctx => {
-          ctx.state = { singleElimNodes: {}, singleElimComps: {}, allMatches: {}, divisionCourts: { [d.name]: court }, currentDivision: d.name };
-          const st = ctx.state, div = d.name, res = [];
+          const init = { singleElimNodes: {}, singleElimComps: {}, allMatches: {}, divisionCourts: { [d.name]: court }, currentDivision: d.name };
+          if (ctx.vs) ctx.vs.load(init); else ctx.state = init;
+          const mut = fn => (ctx.vs ? ctx.vs.edit(fn) : fn(ctx.state)); // a copy edited and loaded on the store, in place on the plain state
+          const div = d.name, res = [];
+          // The current builder puts the nodes in a draft for the caller's action (#15 PR 12b); the old one wrote them.
+          const build = list => { if (ctx.buildIndividualSingleElimMatches.length < 3) return ctx.buildIndividualSingleElimMatches(div, list);
+            const draft = {}, out = ctx.buildIndividualSingleElimMatches(div, list, draft); mut(st => { st.singleElimNodes[div] = draft.singleElimNodes; }); return out; };
           const comps = d.entrants.filter(e => e.status !== 'No-show').map(e => ({ ...e, division: div }));
           const ordered = ctx.placeIndividualsForSingleElim(comps);
-          st.singleElimComps[div] = ordered;
-          st.allMatches[div] = ctx.buildIndividualSingleElimMatches(div, ordered);
-          const snap = () => res.push(JSON.stringify(st.allMatches[div]), JSON.stringify(st.singleElimNodes[div]),
+          mut(st => { st.singleElimComps[div] = ordered; });
+          const first = build(ordered);
+          mut(st => { st.allMatches[div] = first; });
+          const snap = () => { const st = ctx.state; res.push(JSON.stringify(st.allMatches[div]), JSON.stringify(st.singleElimNodes[div]),
             JSON.stringify(st.allMatches[div].map(m => [ctx.specificMatchSideLabel(m, 'white'), ctx.specificMatchSideLabel(m, 'red')])),
-            JSON.stringify(Object.values(ctx.singleElimSlotInfo(ordered.length))));
+            JSON.stringify(Object.values(ctx.singleElimSlotInfo(ordered.length)))); };
           snap();
           for (const p of played) {
-            const m = st.allMatches[div].find(x => x.elimNodeId === p.node);
-            if (!m) continue;
-            Object.assign(m, { wp: p.wp || [], rp: p.rp || [], done: true });
-            ctx.maybeAdvanceIndividualSingleElim(m); snap();
+            const at = ctx.state.allMatches[div].findIndex(x => x.elimNodeId === p.node);
+            if (at < 0) continue;
+            mut(st => { Object.assign(st.allMatches[div][at], { wp: p.wp || [], rp: p.rp || [], done: true }); });
+            ctx.maybeAdvanceIndividualSingleElim(ctx.state.allMatches[div][at]); snap();
           }
           // A no-show after the draw rebuilds with an empty slot.
-          st.allMatches[div] = ctx.buildIndividualSingleElimMatches(div, ordered.map((c, i) => (i === ordered.length - 1 ? null : c))); snap();
+          const rebuilt = build(ordered.map((c, i) => (i === ordered.length - 1 ? null : c)));
+          mut(st => { st.allMatches[div] = rebuilt; }); snap();
           return res;
         };
         const a = run(legacy), b = run(current);

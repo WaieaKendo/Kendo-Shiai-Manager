@@ -1,0 +1,89 @@
+// The store in app.js (#15, docs/STORE.md section 5): storeBundle() in scripts/app-sources.mjs bundles app/store/index.ts
+// and its packages on their own, tree-shaken and minified with NODE_ENV "production", and appBundle() puts that script
+// into app.js as it is. A package upgrade or a new import that breaks this, brings back the development-only checks or
+// makes it much bigger must fail here, by name.
+import fs from 'node:fs';
+import path from 'node:path';
+import vm from 'node:vm';
+import zlib from 'node:zlib';
+import { ROOT, STORE_ENTRY, STORE_GLOBAL, appBundle, storeBundle } from '../scripts/app-sources.mjs';
+
+const problems = [];
+const check = (ok, what) => { if (!ok) problems.push(what); };
+const rel = f => path.relative(ROOT, f);
+
+// --- package.json: Redux Toolkit pinned, one Immer (app/store/legacy.ts switches the auto-freeze of RTK's Immer) ---
+const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+check(/^\d+\.\d+\.\d+$/.test(pkg.dependencies?.['@reduxjs/toolkit'] || ''), '@reduxjs/toolkit must be pinned to an exact version in package.json');
+check(Boolean(pkg.dependencies?.immer), 'immer must be a dependency (app/store/legacy.ts imports setAutoFreeze)');
+check(!fs.existsSync(path.join(ROOT, 'node_modules/@reduxjs/toolkit/node_modules/immer')), 'Redux Toolkit has its own copy of immer: setAutoFreeze() would switch the wrong one (align the immer range in package.json)');
+
+// --- the store bundle: self-contained, production, small ---
+const store = await storeBundle();
+const gzip = zlib.gzipSync(store).length;
+const GZIP_BUDGET = 9975; // 7.9 kB with Redux Toolkit 2.13 (2026-11-11); 9,000 until #15 PR 10 (the people's 17 actions: 9,206), 9,300 until #15 PR 12a (the draw's 7 actions on the shared reducer: 9,346), 9,400 until #15 PR 13a (the court pointers' three court/… actions, their reducer and initial maps: 9,553), 9,600 until #15 PR 13b (the court history's five court/… actions and two initial maps, and applyStoreWrites() as a path copy instead of an Immer update, so a point, an Undo and a load do not walk the whole history: 9,736), 9,750 until #15 PR 13c-2 (the bouts' eight match actions, +87, and the store's notification hold for a court action, an Undo/Redo and a structural step, +105: 9,928; 9,950 until #207's review made the hold throw the held step's own error before a listener's, +31: 9,959. the hold is #15 item 14's contract; item 14a, tournament/loaded in place of the two legacy whole-object actions: 9,937); raise it only on purpose, old TVs pay for it
+check(gzip <= GZIP_BUDGET, `the store bundle is ${gzip} bytes gzip, over the ${GZIP_BUDGET} budget`);
+check(!/process\.env/.test(store), 'the store bundle still reads process.env (NODE_ENV was not defined)');
+check(!/state mutation/i.test(store), 'the store bundle has Redux Toolkit\'s immutability check (a development build)');
+check(!/sortComparer|selectId/.test(store), 'the store bundle has the entity adapter (tree-shaking failed)');
+
+// Run it as app.js does: in production mode (not strict, Immer's auto-freeze off), every export of index.ts present.
+const context = vm.createContext({ console });
+vm.runInContext(`${store}\n;globalThis.out=${STORE_GLOBAL};`, context);
+const mod = context.out;
+const indexSource = fs.readFileSync(STORE_ENTRY, 'utf8');
+const exported = [...indexSource.matchAll(/^export\s*\{([^}]*)\}\s*from/gm)].flatMap(m => m[1].split(',')).map(n => n.trim()).filter(Boolean);
+check(exported.length > 10, `could not read the exports of ${rel(STORE_ENTRY)}`);
+for (const name of exported) check(name in mod, `the store bundle does not export ${name}`);
+if (!problems.length) {
+  check(mod.PRODUCTION_BUILD === true, 'the store bundle is not the production build (PRODUCTION_BUILD)');
+  check(mod.storeIsStrict() === false, 'the production store must not be strict');
+  const s = mod.createKsmStore();
+  s.dispatch(mod.tournamentLoaded({ writes: [{ path: ['tournament', 'probe'], value: { n: 1 } }] }));
+  check(s.getState().tournament.probe?.n === 1, 'a legacy write does not reach the store in the bundle');
+  check(!Object.isFrozen(s.getState().tournament), 'production must not freeze store state (docs/STORE.md point 8)');
+  // A stray nested write into store data on the real bundle (docs/STORE.md point 8, production; the Node source test is
+  // tests/store/legacy.test.mjs): applied in place without throwing, no subscriber runs, the next snapshot carries it,
+  // the next dispatch keeps it.
+  const p = mod.createKsmStore();
+  p.dispatch(mod.tournamentLoaded({ writes: [{ path: ['tournament', 'awards'], value: [{ place: 1, name: 'A' }] }] }));
+  let heard = 0;
+  p.subscribe(() => { heard++; });
+  const older = p.getState();
+  let threw = null;
+  try { older.tournament.awards[0].name = 'B'; } catch (e) { threw = e; }
+  check(!threw, `production: a nested write into store data threw in the bundle (${threw})`);
+  check(heard === 0 && p.getState() === older, 'production: a nested write must not dispatch or replace the store state');
+  check(/"name":"B"/.test(JSON.stringify(p.getState())), 'production: the next snapshot does not carry a nested write');
+  p.dispatch(mod.tournamentLoaded({ writes: [{ path: ['tournament', 'probe'], value: 3 }] }));
+  check(heard === 1 && p.getState().tournament.awards[0].name === 'B', 'production: the next dispatch lost a nested write or did not notify');
+  mod.setStoreStrict(true);
+  s.dispatch(mod.tournamentLoaded({ writes: [{ path: ['tournament', 'probe'], value: { n: 2 } }] }));
+  check(Object.isFrozen(s.getState().tournament), 'setStoreStrict(true) does not turn the freeze on in the bundle');
+}
+
+// --- app.js: the store script once, as it is; app code imports only app/store/index.ts ---
+const app = await appBundle();
+check(app.includes(store.trim()), 'app.js does not hold the store bundle as it is (re-printed or changed)');
+check(app.split(`var ${STORE_GLOBAL}=`).length === 2, `app.js must define ${STORE_GLOBAL} once`);
+check(!app.includes('"ksm:store"'), 'app.js still imports the store module');
+const appFiles = [path.join(ROOT, 'app/main.js'), ...fs.readdirSync(path.join(ROOT, 'app/modules'), { recursive: true }).filter(f => f.endsWith('.js')).map(f => path.join(ROOT, 'app/modules', f))];
+for (const file of appFiles) {
+  for (const m of fs.readFileSync(file, 'utf8').matchAll(/from\s*'([^']+)'/g)) {
+    const target = path.resolve(path.dirname(file), m[1]);
+    if (target.startsWith(path.join(ROOT, 'app/store') + path.sep) && target !== STORE_ENTRY) problems.push(`${rel(file)} imports ${m[1]}: app code imports only app/store/index.ts`);
+    if (/^(@reduxjs|redux|immer|reselect)\b/.test(m[1])) problems.push(`${rel(file)} imports ${m[1]}: only app/store may`);
+  }
+}
+
+// --- every browser test runs strict: Chromium is started only by launch_chromium() (tests/ksm_browser.py), which sets
+// window.KSM_STRICT_STORE on every context and page (docs/STORE.md section 2 point 8) ---
+const testsDir = path.join(ROOT, 'tests');
+for (const f of fs.readdirSync(testsDir).filter(f => f.endsWith('.py') && f !== 'ksm_browser.py')) {
+  if (/\b(?:chromium|firefox|webkit)\.(?:launch|launch_persistent_context|connect)\s*\(/.test(fs.readFileSync(path.join(testsDir, f), 'utf8')))
+    problems.push(`tests/${f} starts a browser itself: use launch_chromium() (tests/ksm_browser.py) so the store runs strict`);
+}
+check(/STRICT_STORE_JS/.test(fs.readFileSync(path.join(testsDir, 'ksm_browser.py'), 'utf8')), 'launch_chromium() no longer makes every browser page strict');
+
+if (problems.length) { console.log(`FAIL store bundle:\n  ${problems.join('\n  ')}`); process.exit(1); }
+console.log(`PASS store bundle: ${store.length} bytes, ${gzip} gzip, inlined in app.js (${app.length} bytes)`);

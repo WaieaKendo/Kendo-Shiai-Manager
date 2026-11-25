@@ -55,7 +55,7 @@ transitions are off.
                    division has started).
 
 Since M.13 React draws the players table and the status card's contents
-(app/react/registration/: two islands, #regTable and #tournamentStatusCard; the card's class
+(app/react/features/registration/: two islands, #regTable and #tournamentStatusCard; the card's class
 stays legacy; app/js/43-react-registration.js publishes their data). React must render every
 element of both islands (and both elements must be the islands' roots), and every kind of
 content must be covered. The tab bar, the toolbars and the filter stay legacy markup.
@@ -135,7 +135,7 @@ STATE_JS = """() => {
 }"""
 
 
-# The Registration islands (app/react/registration/main.tsx): React renders every element of the
+# The Registration islands (app/react/features/registration/main.tsx): React renders every element of the
 # players table (#regTable, the island's root) and of the status card (#tournamentStatusCard).
 ISLANDS = ['#indReg #regTable', '#registration #tournamentStatusCard']
 ROOT_JS = "s => Object.keys(document.querySelector(s)).some(k => k.startsWith('__reactContainer'))"
@@ -492,7 +492,7 @@ def reg_live(browser, react_check):
     g.do('generated: a player to No Show (taken out of the division)', lambda a: (
         click(a.page, field('reg-status', 0)), click(a.page, field('reg-status', 0)), click(a.page, field('reg-status', 0))))
     g.do('a match of Open & <Co> done (the division has started)', lambda a: a.page.evaluate(
-        "() => { KSMTest.app.state.allMatches['Open & <Co>'][0].done = true; KSMTest.app.renderReg(); }"))
+        "() => { KSMTest.app.updateMatch('Open & <Co>', 0, {done: true}); KSMTest.app.renderReg(); }"))
     g.do('started: a player to No Show (the alert, nothing changed)', lambda a: (
         click(a.page, field('reg-status', 4)), click(a.page, field('reg-status', 4)), click(a.page, field('reg-status', 4))))
     g.finish()
@@ -548,8 +548,21 @@ def reg_module_missing(browser):
     assert not page.locator('#tournamentStatusCard').is_visible(), 'the empty status card is shown without the React module'
     page.locator(tid('reg-add-row')).dispatch_event('click')
     assert page.locator('#regTable *').count() == 0, 'something drew the players table without the React module'
-    assert page.evaluate('window.ksmRegistrationPlayersInput.rows.length') == 1, 'renderReg() did not publish without the island'
-    assert page.evaluate('window.ksmRegistrationStatusInput') is not None, 'renderTournamentStatus() did not publish without the island'
+    # The inputs are computed by the module (pull): without it nothing computes them, but renderReg()
+    # and renderTournamentStatus() still signal (once each per call) and record the request, which is
+    # safe before the module loads.
+    assert page.evaluate('window.ksmRegistrationPlayersInput === undefined && window.ksmRegistrationStatusInput === undefined'), \
+        'a Registration input exists without the React module'
+    assert page.evaluate('''() => {
+        const counts = { players: 0, status: 0 };
+        window.addEventListener('ksm:registration-players', () => { counts.players++; });
+        window.addEventListener('ksm:registration-status', () => { counts.status++; });
+        KSMTest.app.renderReg();
+        const reg = counts.players === 1 && counts.status === 1 && window.ksmRegistrationPlayersRequested === true;
+        KSMTest.app.renderTournamentStatus();
+        return reg && counts.players === 1 && counts.status === 2 && typeof window.ksmRegistrationStatusRequested.valid === 'boolean'
+            && window.ksmRegistrationPlayersInput === undefined && window.ksmRegistrationStatusInput === undefined;
+    }'''), 'renderReg() / renderTournamentStatus() without the module must signal once each and compute nothing'
     assert page.locator(tid('reg-tab-team')).is_visible(), 'the tab bar is gone without the React module'
     assert not errors, errors
     page.close()

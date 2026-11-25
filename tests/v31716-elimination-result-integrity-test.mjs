@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { extractFunction, withDependencies, html as appSource, sw as appServiceWorker } from './lib/ksm-source.mjs';
+import { vmStore } from './lib/vm-store.mjs';
 
 const html=appSource;
 const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));
@@ -11,7 +12,8 @@ const worker=fs.readFileSync(new URL('../src-worker.js',import.meta.url),'utf8')
 let failed=false;
 function check(ok,name){console.log(`${ok?'PASS':'FAIL'} ${name}`);if(!ok)failed=true}
 
-check(html.includes('m.completedResult=completedResultSnapshot(m);'),'match completion writes atomic result snapshot');
+// #15 PR 13c-1: the result in one write through match-writes.js, the snapshot taken before `done`.
+check(html.includes('completedResult:completedResultSnapshot(/** @type {Match} */({...m,...result})),done:true}'),'match completion writes atomic result snapshot');
 check(html.includes('repairLoadedEliminationAdvancement(options.source||\'tournament load\')'),'loads repair elimination advancement before render');
 check(html.includes('patch.matchIdentity||matchSyncIdentity(localArr[path[2]])'),'rebase prefers action-time match identity');
 
@@ -41,7 +43,8 @@ const snippets=[
   extractFunction(html,'sourceLabelForRound')
 ].join('\n');
 
-const context={console,URL,URLSearchParams,location:{search:'',hash:'',href:'http://ksm.test/',host:'ksm.test',protocol:'http:'},state:{allMatches:{},championshipNodes:{}}};
+const context={console,URL,URLSearchParams,location:{search:'',hash:'',href:'http://ksm.test/',host:'ksm.test',protocol:'http:'},};
+const { load } = vmStore(context,{allMatches:{},championshipNodes:{}}); // a real store (tests/lib/vm-store.mjs)
 vm.createContext(context);vm.runInContext(withDependencies(html,snippets,{exclude:Object.keys(context)}),context);
 
 // Regression 1: completion must carry score + winner even if prior point patches never reached the server.
@@ -85,15 +88,15 @@ const repaired=context.repairCompletedMatchResults(dirty,'legacy test');
 check(repaired.reopened===1&&dirty.allMatches.Test[0].done===false,'invalid completed QF is reopened for scoring');
 
 // Regression 4: source labels never turn an invalid feeder into the literal competitor name Hikiwake.
-context.state={
+load({
   allMatches:{Test:[{division:'Test',type:'individual',championship:true,champNodeId:'QF1',position:'Quarterfinal',bracketSlot:0,white:'Alice',red:'Rika',wp:[],rp:[],done:true}]},
   championshipNodes:{Test:[{id:'QF1',round:'Quarterfinal',slot:0}]}
-};
+});
 const safeLabel=context.sourceLabelForRound('Test','Quarterfinal',0);
 check(safeLabel.name==='Winner of Quarterfinal Match 1'&&safeLabel.done===false,'invalid feeder renders as awaiting winner, not Hikiwake');
 
 // Regression 5: two completed QFs deterministically populate the semifinal from authoritative result snapshots.
-context.state={
+load({
   allMatches:{Test:[
     {division:'Test',type:'individual',championship:true,champNodeId:'QF1',position:'Quarterfinal',bracketSlot:0,white:'Alice',red:'Rika',wp:[],rp:[],done:true,completedResult:{winner:'Alice',wp:['M'],rp:[],wt:0,rt:0}},
     {division:'Test',type:'individual',championship:true,champNodeId:'QF2',position:'Quarterfinal',bracketSlot:1,white:'Ben',red:'Kai',wp:[],rp:[],done:true,completedResult:{winner:'Kai',wp:[],rp:['K'],wt:0,rt:0}},
@@ -104,7 +107,7 @@ context.state={
     {id:'QF2',round:'Quarterfinal',slot:1,left:null,right:null,court:'A'},
     {id:'SF1',round:'Semifinal',slot:0,left:{ref:'QF1'},right:{ref:'QF2'},court:'A'}
   ]}
-};
+});
 context.repairCompletedMatchResults(context.state,'advancement test');
 context.syncChampionshipTemplate('Test');
 const sf=context.state.allMatches.Test.find(m=>m.champNodeId==='SF1');

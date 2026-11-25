@@ -26,7 +26,7 @@ def main():
                 elif route.request.method == 'PUT': route.abort()
                 else: route.continue_()
             a.page.route(endpoint, blocked)
-            a.page.evaluate("KSMTest.app.state.awards=[{name:'Keep this work'}];KSMTest.app.criticalAutoSave('Queue recovery')")
+            a.page.evaluate("KSMTest.app.setAwards([{name:'Keep this work'}]);KSMTest.app.criticalAutoSave('Queue recovery')")
             a.wait_for(a.outbox, message='work queued')
             queued = a.page.evaluate('KSMTest.app.readOutbox().payload.state')
             if not cached:

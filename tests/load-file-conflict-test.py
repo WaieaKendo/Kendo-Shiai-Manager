@@ -95,13 +95,13 @@ def main():
         seen = raced('K')
         # An edit while asked (an award) is saved on top of the file once it is replaced.
         # (an input event: the ordinary autosave, whose 2 s timer runs while the question is open)
-        director.page.evaluate("KSMTest.app.state.awards=[{name:'While asked'}];document.body.dispatchEvent(new Event('input',{bubbles:true}))")
+        director.page.evaluate("KSMTest.app.setAwards([{name:'While asked'}]);document.body.dispatchEvent(new Event('input',{bubbles:true}))")
         director.wait_for(lambda: not director.page.evaluate('KSMTest.app.ksmSaveTimer'), message='2a: the autosave timer to run while asked')
         director.click('replace-conflict-anyway')
         races.settle()
         server_copy = on_server()
         assert [x.get('name') for x in server_copy['state'].get('awards') or []] == ['While asked'], f'2a: the edit made while asked was not saved: {server_copy["state"].get("awards")}'
-        director.page.evaluate("KSMTest.app.state.awards=[];KSMTest.saveNow('Clear award')")
+        director.page.evaluate("KSMTest.app.setAwards([]);KSMTest.saveNow('Clear award')")
         races.settle()
         assert played(server_copy, 'Open A') == [] and played(server_copy, 'Open B') == [], \
             f'2a: the file did not win: {played(server_copy, "Open A")} {played(server_copy, "Open B")}'
@@ -164,7 +164,7 @@ def main():
         #    is sent, not the merged result that save applies meanwhile.
         settled = replaced('4')
         director.hold_next_save()
-        director.page.evaluate("KSMTest.app.state.awards=[{name:'In flight'}];KSMTest.saveNow('Director edit')")
+        director.page.evaluate("KSMTest.app.setAwards([{name:'In flight'}]);KSMTest.saveNow('Director edit')")
         director.wait_held_save()
         a.score_point('W', 'M')
         a.blur(); races.flush_edit(a); a.wait_idle()

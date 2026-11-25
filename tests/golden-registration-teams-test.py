@@ -55,7 +55,7 @@ off.
                     Show taken out of the bracket; the alert once the division has started).
 
 Since M.13 React draws the team cards, the exhibition table and the tab bar
-(app/react/registration/RegistrationTeams.tsx: three islands, the wrapper of #teamTable,
+(app/react/features/registration/RegistrationTeams.tsx: three islands, the wrapper of #teamTable,
 #exhibitionTable and the toolbar card's first row; app/js/43-react-registration.js publishes their
 data). React must render every element of the three islands (and they must be the islands'
 roots), and every kind of content must be covered. The toolbars, the team filter and the cards'
@@ -427,12 +427,12 @@ def teams_live(browser, react_check):
     g.do('generated: a team to No Show (taken out of the bracket)', lambda a: click(a.page, team_field('team-status', 0)))
     g.do('generated: on to Registered (not added again)', lambda a: click(a.page, team_field('team-status', 0)))
     g.do('a team match done (the division has started)', lambda a: a.page.evaluate(
-        "() => { KSMTest.app.state.allMatches['Team Tournament'][0].done = true; KSMTest.app.renderTeams(); }"))
+        "() => { KSMTest.app.updateMatch('Team Tournament', 0, {done: true}); KSMTest.app.renderTeams(); }"))
     g.do('started: a team to No Show (the alert, nothing changed)', lambda a: click(a.page, team_field('team-status', 1)))
     g.finish()
 
 
-# The Registration part 2 islands (app/react/registration/main.tsx): React renders every element of
+# The Registration part 2 islands (app/react/features/registration/main.tsx): React renders every element of
 # the team cards (the wrapper of #teamTable, the island's root), the exhibition table
 # (#exhibitionTable) and the tab bar (the toolbar card's first row).
 ISLANDS = ['#teamReg div:has(> #teamTable)', '#exhibitionReg #exhibitionTable', '#registration > .card:first-child > .toolbar > .row:first-child']
@@ -503,11 +503,26 @@ def teams_module_missing(browser):
     page.locator(tid('team-add')).dispatch_event('click')
     page.locator(tid('exhibition-add')).dispatch_event('click')
     assert page.locator('#teamReg [data-testid="team-card"], #exhibitionTable *').count() == 0, 'something drew the cards without the React module'
-    assert page.evaluate('window.ksmRegistrationTeamsInput.cards.length') == 1, 'renderTeams() did not publish without the island'
-    assert page.evaluate('window.ksmRegistrationExhibitionsInput.rows.length') == 1, 'renderExhibitions() did not publish without the island'
+    # The inputs are computed by the module (pull): without it nothing computes them, but the
+    # render functions and regTab() still signal (once per call) and record the request.
+    assert page.evaluate('''() => window.ksmRegistrationTeamsInput === undefined && window.ksmRegistrationExhibitionsInput === undefined
+        && window.ksmRegistrationTabInput === undefined'''), 'a Registration part 2 input exists without the React module'
     page.locator(tid('reg-tab-pools')).click()
     assert page.locator('#poolsReg').is_visible() and page.evaluate('KSMTest.app.state.regMode') == 'pools', 'the tabs do not switch without the React module'
-    assert page.evaluate('window.ksmRegistrationTabInput.mode') == 'pools', 'regTab() did not publish without the island'
+    assert page.evaluate('''() => {
+        const counts = { teams: 0, exhibitions: 0, tab: 0 };
+        window.addEventListener('ksm:registration-teams', () => { counts.teams++; });
+        window.addEventListener('ksm:registration-exhibitions', () => { counts.exhibitions++; });
+        window.addEventListener('ksm:registration-tab', () => { counts.tab++; });
+        KSMTest.app.renderTeams();
+        const teams = counts.teams === 1 && window.ksmRegistrationTeamsRequested === true;
+        KSMTest.app.renderExhibitions();
+        const exhibitions = counts.exhibitions === 1 && window.ksmRegistrationExhibitionsRequested === true;
+        KSMTest.app.regTab('pools');
+        const tab = counts.tab >= 1 && window.ksmRegistrationTabRequested.mode === 'pools';
+        return teams && exhibitions && tab && window.ksmRegistrationTeamsInput === undefined
+            && window.ksmRegistrationExhibitionsInput === undefined && window.ksmRegistrationTabInput === undefined;
+    }'''), 'renderTeams() / renderExhibitions() / regTab() without the module must signal and compute nothing'
     assert not errors, errors
     page.close()
 

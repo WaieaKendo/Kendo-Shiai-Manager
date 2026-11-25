@@ -52,7 +52,7 @@ def cloud_origin(browser, base, problems):
     a.page.evaluate('''() => {
       KSMTest.app.cloudSession.tournamentId=null;KSMTest.app.persistCloudSession();
       document.body.classList.add('ksm-home');
-      tName.value='Genuine local draft';KSMTest.app.markLocalSave('Local draft');
+      KSMTest.app.ksmSetSetting('tName','Genuine local draft');KSMTest.app.markLocalSave('Local draft');
     }''')
     a.reload()
     assert 'Genuine local draft' in a.page.get_by_test_id('local-draft').inner_text()

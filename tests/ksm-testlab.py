@@ -57,18 +57,18 @@ class Lab:
 def reset_individual(page, n: int, fmt: str, court: str, division: str = "Test") -> None:
     page.evaluate(
         """({n,fmt,court,division})=>{
-          KSMTest.app.state.generated=false;
-          KSMTest.app.state.divisions=[division];
-          KSMTest.app.state.divisionTypes={[division]:fmt};
-          KSMTest.app.state.divisionCourts={[division]:court};
-          KSMTest.app.state.competitors=Array.from({length:n},(_,i)=>({
+          KSMTest.app.setDraw({generated:false});
+          KSMTest.app.setDivisionLists({divisions:[division]});
+          KSMTest.app.setDivisionLists({divisionTypes:{[division]:fmt}});
+          KSMTest.app.setDivisionLists({divisionCourts:{[division]:court}});
+          KSMTest.app.setPeople({competitors: Array.from({length:n},(_,i)=>({
             name:`P${i+1}`,dojo:`D${i+1}`,division,seed:i<4?String(i+1):'',status:'Checked'
-          }));
-          KSMTest.app.state.teams=[];KSMTest.app.state.pools={};KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={};
-          KSMTest.app.state.singleElimComps={};KSMTest.app.state.teamBracketNodes={};KSMTest.app.state.teamPools={};
-          KSMTest.app.state.brackets={};KSMTest.app.state.championshipNodes={};KSMTest.app.state.byeWinners={};KSMTest.app.state.currentByDivision={};KSMTest.app.state.courtState={};
-          KSMTest.app.state.courtActiveDivision={};KSMTest.app.state.currentDivision=division;KSMTest.app.state.currentCourt='A';
-          KSMTest.app.generateDivisionState(division);KSMTest.app.state.generated=true;KSMTest.app.initCourtStates();
+          }))});
+          KSMTest.app.setPeople({teams: []});KSMTest.app.setDraw({pools:{}});KSMTest.app.setAllMatches({});KSMTest.app.setDraw({singleElimNodes:{}});
+          KSMTest.app.setDraw({singleElimComps:{}});KSMTest.app.setDraw({teamBracketNodes:{}});KSMTest.app.setDraw({teamPools:{}});
+          KSMTest.app.setDraw({brackets:{}});KSMTest.app.setDraw({championshipNodes:{}});KSMTest.app.setDraw({byeWinners:{}});KSMTest.app.setCourtPointers({currentByDivision:{}});KSMTest.app.setCourtPointers({courtState:{}});
+          KSMTest.app.setCourtPointers({courtActiveDivision:{}});KSMTest.app.showDivision(division);KSMTest.app.setCurrentCourt('A');
+          KSMTest.app.generateDivisionState(division);KSMTest.app.setDraw({generated:true});KSMTest.app.initCourtStates();
         }""",
         {"n": n, "fmt": fmt, "court": court, "division": division},
     )
@@ -84,7 +84,7 @@ def scenario_single_elim_exhaustion(page, n: int, court: str) -> int:
             KSMTest.app.syncIndividualSingleElim('Test',KSMTest.app.state.allMatches.Test,KSMTest.app.state.singleElimComps.Test||[]);
             const ready=KSMTest.app.state.allMatches.Test.filter(m=>m.singleElim&&!m.done&&m.ready);
             if(!ready.length)break;
-            ready.forEach(m=>{m.done=true;m.wp=['M'];m.rp=[];});
+            ready.forEach(m=>KSMTest.app.updateBout(m,{done:true,wp:['M'],rp:[]}));
           }
           KSMTest.app.syncIndividualSingleElim('Test',KSMTest.app.state.allMatches.Test,KSMTest.app.state.singleElimComps.Test||[]);
         }"""
@@ -119,9 +119,8 @@ def scenario_pool_clean_exhaustion(page, n: int, court: str) -> int:
             pending.forEach(m=>{
               const wi=Number(String(m.white||'').replace(/\\D/g,''))||9999;
               const ri=Number(String(m.red||'').replace(/\\D/g,''))||9999;
-              m.done=true;
-              if(wi<ri){m.wp=['M'];m.rp=[];}else{m.wp=[];m.rp=['M'];}
-              KSMTest.app.maybeCreateChampionship(m);
+              const done=KSMTest.app.updateBout(m,{done:true,...(wi<ri?{wp:['M'],rp:[]}:{wp:[],rp:['M']})});
+              KSMTest.app.maybeCreateChampionship(done);
             });
           }
           KSMTest.app.syncChampionshipTemplate('Test');
@@ -133,9 +132,8 @@ def scenario_pool_clean_exhaustion(page, n: int, court: str) -> int:
             ready.forEach(m=>{
               const wi=Number(String(m.white||'').replace(/\\D/g,''))||9999;
               const ri=Number(String(m.red||'').replace(/\\D/g,''))||9999;
-              m.done=true;
-              if(wi<ri){m.wp=['M'];m.rp=[];}else{m.wp=[];m.rp=['M'];}
-              KSMTest.app.maybeAdvanceChampionship(m);
+              const done=KSMTest.app.updateBout(m,{done:true,...(wi<ri?{wp:['M'],rp:[]}:{wp:[],rp:['M']})});
+              KSMTest.app.maybeAdvanceChampionship(done);
             });
           }
           KSMTest.app.syncChampionshipTemplate('Test');
@@ -215,7 +213,7 @@ def scenario_tiebreak_seed_contract(page) -> int:
           const A={name:'A',dojo:'X',wins:2,pts:3},B={name:'B',dojo:'Y',wins:2,pts:3},C={name:'C',dojo:'Z',wins:0,pts:0};
           const oldInitial=KSMTest.app.initialPoolStandings,oldResolve=KSMTest.app.resolveTiebreakBaseGroup,oldFinished=KSMTest.app.poolFinished,oldPending=KSMTest.app.pendingTiebreak;
           try{
-            KSMTest.app.state.currentDivision='TB';KSMTest.app.state.brackets={TB:[['A1','A2']]};KSMTest.app.state.pools={TB:[{label:'A',players:[A,B,C]}]};KSMTest.app.state.allMatches={TB:[]};
+            KSMTest.app.showDivision('TB');KSMTest.app.setDraw({brackets:{TB:[['A1','A2']]}});KSMTest.app.setDraw({pools:{TB:[{label:'A',players:[A,B,C]}]}});KSMTest.app.setAllMatches({TB:[]});
             KSMTest.app.poolFinished=()=>true;KSMTest.app.pendingTiebreak=()=>false;KSMTest.app.initialPoolStandings=()=>[A,B,C];
             KSMTest.app.resolveTiebreakBaseGroup=()=>({locked:[A,B],unresolved:[],ordered:[A,B]});
             let r=KSMTest.app.poolSeedResolution('A','TB');
@@ -233,7 +231,7 @@ def scenario_save_load_roundtrip(page) -> int:
     reset_individual(page, 8, "Single Elimination", "split")
     payload = page.evaluate("KSMTest.app.tournamentPayload()")
     # Mutate then restore through the actual payload loader.
-    page.evaluate("KSMTest.app.state.competitors=[];KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={}")
+    page.evaluate("KSMTest.app.setPeople({competitors: []});KSMTest.app.setAllMatches({});KSMTest.app.setDraw({singleElimNodes:{}})")
     page.evaluate("p=>KSMTest.app.applyTournamentPayload(p,false)", payload)
     data = page.evaluate("()=>({n:KSMTest.app.state.competitors.length,m:KSMTest.app.state.allMatches.Test.length,nodes:KSMTest.app.state.singleElimNodes.Test.length,mode:KSMTest.app.state.divisionCourts.Test})")
     assert data["n"] == 8, data

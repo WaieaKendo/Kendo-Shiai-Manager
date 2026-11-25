@@ -66,12 +66,12 @@ pressed with the keyboard; transitions are off.
 
 The steps where a dialog is drawn afresh while one of its buttons has the focus (the generation
 check, Regenerate's Continue by keyboard, Developer Tools opened again) were added with step B and
-recorded from the legacy shell too (the build without app/react/shell/, whose legacy code still
+recorded from the legacy shell too (the build without app/react/features/shell/, whose legacy code still
 drew then; the other steps' snapshots came out unchanged).
 
-Since M.13 React draws the shell (app/react/shell/: the navigation bar, the status row, the three
+Since M.13 React draws the shell (app/react/features/shell/: the navigation bar, the status row, the three
 dialogs as islands with their roots, the cloud modal as a portal into <body>;
-app/js/44-react-shell.js publishes their data). React must render every element of the islands
+app/react/features/shell/publish.ts computes their data when app/js/44-react-shell.js signals). React must render every element of the islands
 (and they must be the islands' roots) and of the cloud modal, and every kind of content must be
 covered. The brand, the banner and the toast stay legacy. The legacy shell renderer is removed,
 so this test pins the React-only shell; last, the app without the React module script must show
@@ -432,10 +432,10 @@ def dialogs(browser, react_check):
     g.do('Generate again', lambda a: click(a.page, tid('generate-button')))
     g.do('the check: Close again', lambda a: click(a.page, tid('validation-close')))
     g.do('registration with issues (code)', lambda a: a.page.evaluate("""() => {
-      KSMTest.app.state.competitors = [
+      KSMTest.app.setPeople({competitors: [
         {name: 'Ann <A>', dojo: 'Hilo & Co', division: KSMTest.app.state.divisions[0], seed: 'x', status: 'Checked'},
         {name: 'Ann <A>', dojo: 'Hilo & Co', division: KSMTest.app.state.divisions[0], seed: '', status: 'Checked'},
-        {name: '', dojo: 'Kona', division: KSMTest.app.state.divisions[0], seed: '', status: 'Registered'}];
+        {name: '', dojo: 'Kona', division: KSMTest.app.state.divisions[0], seed: '', status: 'Registered'}]});
       KSMTest.app.renderReg(); KSMTest.app.renderTournamentStatus();
     }"""))
     g.do('Generate with issues', lambda a: click(a.page, tid('generate-button')))
@@ -451,7 +451,8 @@ def dialogs(browser, react_check):
         {'name': 'Open <A>', 'format': 'Round Robin', 'court': 'A', 'entrants': people('O', 4)},
         {'name': 'Women & "B"', 'format': 'Round Robin', 'court': 'B', 'entrants': people('W', 3)},
         {'name': 'Kids', 'format': 'Round Robin', 'court': 'A', 'entrants': []}]))
-    g.do('Generate (the check passes)', lambda a: click(a.page, tid('generate-button')))
+    # #129: once drawn the toolbar has no Generate button; the same check opens from Setup's Danger zone (by code here).
+    g.do('Generate (the check passes)', lambda a: a.page.evaluate('() => KSMTest.app.requestTournamentGeneration()'))
     g.do('the check: Generate', lambda a: click(a.page, tid('generate-confirm')))
     nav(g, 'courts', 'Courts menu opened')
     nav(g, 'court-a', 'Court A')
@@ -465,7 +466,7 @@ def dialogs(browser, react_check):
     g.do('Fusen-gachi opened (Red forfeits)', lambda a: click(a.page, tid('fusen-gachi')))
     g.do('Fusen-gachi: White won (Red forfeits)', lambda a: click(a.page, tid('fusen-white')))
     g.do('Fusen-gachi opened from the code with no match (nothing)', lambda a: a.page.evaluate(
-        "() => { const c = KSMTest.app.state.current; KSMTest.app.state.current = 999; KSMTest.app.openFusenDialog(); KSMTest.app.state.current = c; }"))
+        "() => { const c = KSMTest.app.state.current; KSMTest.app.showMatch(999); KSMTest.app.openFusenDialog(); KSMTest.app.showMatch(c); }"))
     nav(g, 'registration')
     g.do('Regenerate Single Division opened', lambda a: click(a.page, tid('regenerate-division-button')))
     g.do('Regenerate: x', lambda a: click(a.page, tid('regenerate-modal-close')))
@@ -481,13 +482,13 @@ def dialogs(browser, react_check):
     g.do('Regenerate: Cancel with the keyboard', lambda a: (
         a.page.locator('#regenerateModalActions button:text-is("Cancel")').focus(), a.page.keyboard.press('Enter'), leave(a.page)))
     g.do('Women down to one player (code)', lambda a: a.page.evaluate(
-        "() => { KSMTest.app.state.competitors = KSMTest.app.state.competitors.filter(c => !c.division.startsWith('Women') || c.name === 'W 1'); }"))
+        "() => { KSMTest.app.setPeople({competitors: KSMTest.app.state.competitors.filter(c => !c.division.startsWith('Women') || c.name === 'W 1')}); }"))
     g.do('Regenerate opened (Women fails the check)', lambda a: click(a.page, tid('regenerate-division-button')))
     g.do('Regenerate: Continue (Women)', lambda a: click(a.page, tid('regenerate-continue')))
     g.do('Regenerate: Regenerate (the check fails)', lambda a: click(a.page, tid('regenerate-confirm')))
     g.do('the check: Close (after Regenerate)', lambda a: click(a.page, tid('validation-close')))
     g.do('every division started (code)', lambda a: a.page.evaluate(
-        "() => Object.values(KSMTest.app.state.allMatches).forEach(ms => { if (ms[0]) ms[0].done = true; })"))
+        "() => Object.entries(KSMTest.app.state.allMatches).forEach(([d, ms]) => { if (ms[0]) KSMTest.app.updateMatch(d, 0, {done: true}); })"))
     g.do('Regenerate opened (no division ready)', lambda a: click(a.page, tid('regenerate-division-button')))
     g.do('Regenerate: Continue (nothing chosen: the alert)', lambda a: click(a.page, tid('regenerate-continue')))
     g.do('Regenerate: x (end)', lambda a: click(a.page, tid('regenerate-modal-close')))
@@ -562,7 +563,7 @@ def cloud_modals(browser, react_check):
     g.finish()
 
 
-# The shell islands (app/react/shell/main.tsx): React renders every element of the navigation
+# The shell islands (app/react/features/shell/main.tsx): React renders every element of the navigation
 # (nav.minimal-nav, the island's root), the status row (.cloud-status-wrap) and the dialogs' cards.
 ISLANDS = ['#tournamentNavigation', 'header.ksm-topbar .cloud-status-wrap', '#fusenDialog', '#validationModal', '#regenerateModal']
 ROOT_JS = "s => Object.keys(document.querySelector(s)).some(k => k.startsWith('__reactContainer'))"
@@ -616,27 +617,46 @@ def without_screens_module():
 def shell_module_missing(browser):
     """Without the React module nothing opens the menus, shows the dialogs or updates the status
     line: the header says so; the bar's plain tiles and Staff Login (static markup with their inline
-    handlers) still work, and the legacy code still publishes."""
+    handlers) still work. The classic code still changes its own state and signals, but nothing
+    computes the inputs (publish.ts is in the module): they stay undefined."""
     page = browser.new_page(viewport=DESKTOP)
     errors = []
     page.on('pageerror', lambda e: errors.append(f'shell module missing: {e}'))
     page.on('dialog', lambda d: d.dismiss())
     load_app(page, html=without_screens_module())
+    page.evaluate("""() => {
+      window.__shellSignals = {nav: 0, header: 0, dialogs: 0};
+      window.addEventListener('ksm:shell-nav', () => window.__shellSignals.nav++);
+      window.addEventListener('ksm:shell-header', () => window.__shellSignals.header++);
+      window.addEventListener('ksm:shell-dialogs', () => window.__shellSignals.dialogs++);
+    }""")
     notice = page.locator(f'header.ksm-topbar {tid("shell-module-missing")}')
     assert notice.is_visible(), 'no "Menus and dialogs could not load" notice without the React module'
     assert 'Menus and dialogs could not load' in notice.inner_text(), notice.inner_text()
+    signals = lambda: page.evaluate('window.__shellSignals')
     page.locator(tid('nav-results')).dispatch_event('click')
     assert page.evaluate(VIEW_JS) == ['results'], 'a plain tile does not work without the React module'
-    assert page.evaluate('window.ksmShellNavInput.active') == 'Brackets', 'setActiveNavForView() did not publish without the island'
+    assert page.evaluate('KSMTest.app.ksmNavActive') == 'Brackets', 'setActiveNavForView() did not change the classic state without the island'
+    assert signals()['nav'] >= 1, 'setActiveNavForView() did not signal ksm:shell-nav'
+    before = signals()['nav']
     page.locator(tid('nav-courts')).dispatch_event('click')
-    assert page.evaluate('window.ksmShellNavInput.open') == 'courtsMenu', 'toggleNavMenu() did not publish without the island'
+    assert page.evaluate('KSMTest.app.ksmNavOpenMenu') == 'courtsMenu', 'toggleNavMenu() did not change the classic state without the island'
+    assert signals()['nav'] > before, 'toggleNavMenu() did not signal ksm:shell-nav'
     assert page.locator('#courtsMenu').is_hidden(), 'something opened the menu without the React module'
+    before = signals()['dialogs']
     page.evaluate('() => KSMTest.app.requestTournamentGeneration()')
-    assert page.evaluate('window.ksmShellDialogsInput.validation.open') and page.locator('#validationModal').is_hidden(), \
-        'showValidationDialog() did not publish, or something showed the dialog, without the React module'
+    assert page.evaluate('KSMTest.app.ksmShellDialogsState().validation.open') and page.locator('#validationModal').is_hidden(), \
+        'showValidationDialog() did not change the classic state, or something showed the dialog, without the React module'
+    assert signals()['dialogs'] > before, 'showValidationDialog() did not signal ksm:shell-dialogs'
+    before = signals()['dialogs']
     page.evaluate('() => KSMTest.app.cloudDiagnostics()')
-    assert page.locator('#ksmCloudModal').count() == 0 and page.evaluate('window.ksmShellDialogsInput.cloud.title') == 'Developer Tools', \
-        'cloudDiagnostics() did not publish, or something drew the modal, without the React module'
+    assert page.locator('#ksmCloudModal').count() == 0 and page.evaluate('KSMTest.app.ksmShellDialogsState().cloud.title') == 'Developer Tools', \
+        'cloudDiagnostics() did not change the classic state, or something drew the modal, without the React module'
+    assert signals()['dialogs'] > before, 'cloudDiagnostics() did not signal ksm:shell-dialogs'
+    page.evaluate("() => KSMTest.app.setConnectionStatus('Online', 'online')")
+    assert signals()['header'] >= 1, 'the header writers did not signal ksm:shell-header'
+    undefined = page.evaluate('[typeof window.ksmShellNavInput, typeof window.ksmShellHeaderInput, typeof window.ksmShellDialogsInput]')
+    assert undefined == ['undefined'] * 3, f'something computed a shell input without the React module: {undefined}'
     assert not errors, errors
     page.close()
 

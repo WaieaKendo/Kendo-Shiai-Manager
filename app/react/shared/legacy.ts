@@ -1,0 +1,292 @@
+// The one module that reads app.js globals (the classic scripts in app/js). app.js is a classic
+// script that runs before the React module, and its top-level `function` declarations are
+// `window` properties; top-level `let`/`const` (e.g. `state`) are not, so they are reached through
+// a function (ksmLegacyState, app/js/00-react-bridge.js).
+//
+// LegacyGlobals is the inventory of what React features still call in app.js: every name here
+// must be a top-level `function` in app/js. When a legacy function moves into app/react or
+// app/engine, its entry is replaced by an import and removed here.
+
+import type { TournamentSettings } from '../../engine/settings.ts';
+import { teamSlots } from '../../engine/index.ts';
+// A Match Object found again in a list by sync identity, not object identity (#15, before 13c).
+export { matchIndexIn, findMatchAgain } from '../../engine/index.ts';
+import type { ResultPoolInput } from '../features/results/results-model.ts';
+import type { HansokuCounts, UpNextInput } from '../features/live-scores/live-scores-model.ts';
+import type { CourtCompleteInput } from './ui/complete-model.ts';
+import type { BracketInput, CourtContextInput, KachinukiSheetInput, TeamSheetInput } from './ui/context-model.ts';
+import type { AlignedRowInput, BracketCardInput } from './ui/rows-model.ts';
+import type { FinalResultsInput, QueueUpNext } from '../features/court/queue-model.ts';
+import type { DialogsInput } from '../features/shell/dialogs-model.ts';
+import type { HeaderInput } from '../features/shell/header-model.ts';
+import type { NavMenuStyle } from '../features/shell/nav-model.ts';
+import type { LibraryInput } from '../features/library/library-model.ts';
+
+/** courtSummaryFor(court) (app/js/30-setup-header-and-director.js). */
+export interface LegacyCourtSummary {
+  court: string;
+  division: string | null;
+  round: string;
+  completed: number;
+  total: number | null;
+  remaining: number | null;
+  variable: boolean;
+  current: Match | null;
+  onDeck: Match | null;
+  following: Match | null;
+}
+
+/** tournamentSummary() (app/js/30-setup-header-and-director.js). */
+export interface LegacyTournamentSummary {
+  completed: number;
+  total: number;
+  remaining: number;
+  variable: boolean;
+}
+
+/** buildTV3ViewModel(court) (app/js/26-tv-display.js): what the TV court shows, before it is turned into data. */
+export interface LegacyTvViewModel {
+  court: Court;
+  empty: boolean;
+  division: string | null;
+  /** Absent when the court is empty. */
+  format?: 'results' | 'individual' | 'team' | 'kachinuki';
+  match?: Match;
+  meta?: { division: string; line: string };
+  /** Up to two cards, null for an empty one (left/right: the sides' names, the subs: dojos or the round). */
+  upcoming: Array<{ left: string; right: string; leftSub: string; rightSub: string; round: string } | null>;
+}
+
+/**
+ * The route ksmLinkUrl() (00-path-urls.js) builds an address from; publish.ts (features/shell) asks for
+ * the court screen.
+ */
+export interface LegacyLinkRoute {
+  screen: string;
+  id: string;
+  court?: string;
+}
+
+export interface LegacyGlobals {
+  /** 00-react-bridge.js: the legacy `state` (a top-level `let`, so not on window itself). */
+  ksmLegacyState: () => TournamentState;
+  /** 35-react-court.js: String(s || ''). */
+  ksmText: (s: unknown) => string;
+  /** 01-team-divisions.js: a division id's display name. */
+  ksmDivisionName: (id: string) => string;
+  /** 30-setup-header-and-director.js. */
+  tournamentSummary: () => LegacyTournamentSummary;
+  courtSummaryFor: (court: string) => LegacyCourtSummary;
+  /** 27-results-screen.js: a completed division's places (the engine's rule); [] while it is running. */
+  resultPlacements: (div: string) => Array<{ place: string; name: string; tier: string }>;
+  /** 13-engine-standings-and-tiebreaks.js. */
+  isTeamRoundRobinDivision: (div: string) => boolean;
+  teamRoundRobinProgress: (div?: string) => { complete: number; total: number };
+  /** 01-grand-champion.js: a grand champion row by id, or null. */
+  ksmGrandChampion: (id: string) => GrandChampion | null;
+  ksmGrandChampions: () => GrandChampion[];
+  /** 09-results-and-awards.js. */
+  divisionComplete: (div: string) => boolean;
+  /** 01-team-divisions.js. */
+  ksmTeamDivisions: () => TeamDivision[];
+  /** 04-engine-pools.js. */
+  eligibleTeams: (div: string) => Team[];
+  eligibleIndividuals: (div: string) => Competitor[];
+  isTeamDivision: (div: string) => boolean;
+  /** app/modules/sync/cloud-session-and-autosave.js (isReadOnlySession: app/modules/session/staff-session-and-library.js). */
+  tournamentSettings: () => TournamentSettings;
+  isReadOnlySession: () => boolean;
+  /** 35-react-court.js: the court screen's bracket data, reused by the Results modal. */
+  ksmBracket: (div: string) => BracketInput;
+  ksmTeamResults: (div: string) => BracketInput;
+  ksmPoolStandingRows: (div: string, poolLabel: string) => { note: string; rows: ResultPoolInput['standings'] };
+  /** 11-court-queue-and-views.js: the court's current match (moving the court on, as before) and the next one on it. */
+  courtCurrentMatch: (court: Court) => { division: string; match: Match; next: Match | undefined } | null;
+  /** 11-court-queue-and-views.js: a match's points, live for the match this device is scoring. */
+  activeScoreArrays: (m: Match) => { W: PointLetter[]; R: PointLetter[] };
+  /** 25-live-scores.js (the TV shares audienceMeta()). */
+  audienceMeta: (m: Match | null | undefined) => { division: string; line: string };
+  /** 25-live-scores.js: up to two upcoming matches (in team mode also bracket nodes not drawn yet). */
+  tvUpcomingMatches: (court: Court, current: Match, teamMode?: boolean) => Array<Partial<Match>>;
+  tvAssignedCourt: () => Court;
+  tvIndividualSideLabel: (match: Match, side: 'white' | 'red') => string;
+  /** 26-tv-display.js. */
+  buildTV3ViewModel: (court: Court) => LegacyTvViewModel;
+  renderTvDisplay: () => void;
+  /** 36-react-live-scores.js (stays classic: classic 35-react-court.js calls ksmUpNext()). */
+  ksmBetweenMatches: (court: Court, own: string | null | undefined) => { reason: string | null; upNext: UpNextInput | null };
+  /** 42-react-setup.js (stay classic: classic ksmRemoveSetupDivision() calls them). */
+  ksmDivisionPresetNames: () => string[];
+  ksmDivisionRemoveBlocked: (division: string) => string | null;
+  /** 04-engine-pools.js: a pool player's slot (the letter, or the seed number). */
+  poolPlayerSlot: (player: PoolPlayer, index: number) => string;
+  poolPlayerSlotLetter: (index: number) => string;
+  /** 41-react-pools.js (stays classic: the F12 edit copy is read and written synchronously by classic code). */
+  ksmPoolEditPools: (div: string) => Pool[];
+  /** 43-react-registration.js (stay classic: classic actions read the rows' competitors and the stale flags synchronously, F17/F20; 21- and 44- call ksmHtmlText). */
+  ksmHtmlText: (s: unknown) => string;
+  ksmBindRegistrationRow: <R extends object>(competitor: Competitor, row: R) => R;
+  ksmBindRegistrationEntry: <R extends object>(entry: Team | Exhibition, row: R) => R;
+  ksmBlurRedrawn: (island: Element | null | undefined) => void;
+  ksmExhibitionsEnabled: () => boolean;
+  ksmTournamentGenerated: () => boolean;
+  /** 01-team-divisions.js: the settings of a team division (the first one without an id). */
+  ksmTeamSettings: (id?: string) => TournamentSettings;
+  /**
+   * The court screen's data builders that publish.ts (features/court) reads. 35-react-court.js keeps
+   * these, because other classic code calls them (ksmBracket()/ksmTeamResults() call the row and card
+   * builders), or because they read a top-level `const` the module cannot reach
+   * (ksmSingleElimContext(): SINGLE_ELIM_CONTEXT_LAYOUTS; ksmFinalResults(): KSM_TEAM_PLACE_TIED).
+   */
+  ksmAlignedRow: (match: Match | null, options?: Record<string, unknown>) => AlignedRowInput;
+  ksmPlaceholderRow: (white: string, red: string, status?: string, compact?: boolean) => AlignedRowInput;
+  ksmSingleElimRoundCard: (div: string, round: string) => BracketCardInput | null;
+  ksmSingleElimContext: (div: string) => CourtContextInput;
+  ksmFinalResults: (div: string) => { kind: 'results'; results: FinalResultsInput | null } | null;
+  /** 02-court-match-order.js, 06-, 08-, 09-, 11-, 14-: the engine bridges the queue and context builders read. */
+  isTeamMatch: (m: Match | null | undefined) => boolean;
+  sortTeamMatches: (div: string) => Match[];
+  matchRequiresWinner: (m: Match) => boolean;
+  teamRoster: (team: string | undefined, div?: string) => string[];
+  canModifyRepresentative: (m: Match | undefined) => boolean;
+  divisionCourtMode: (div: string) => CourtMode;
+  poolDisplayComplete: (div: string, poolLabel: string) => boolean;
+  enforceUniqueIndividualMatches: (div: string) => Match[];
+  dedupeSingleElimMatches: (div: string) => Match[];
+  sideLabelGeneric: (side: unknown, div: string) => string;
+  specificMatchSideLabel: (match: Match, side: 'white' | 'red') => string;
+  eliminationFinalDone: (div: string) => boolean;
+  championshipLabels: (div: string) => string[][];
+  firstRoundName: (count: number) => string;
+  roundSequenceFromFirst: (first: string) => string[];
+  expectedRoundCount: (div: string, round: string) => number;
+  championshipCourtFor: (div: string, round: string, slot: number, total: number) => Court;
+  champMatchBySlot: (div: string, round: string, slot: number) => Match | undefined;
+  seedNameForLabel: (div: string, label: string | undefined, onlyFinalized?: boolean) => { name: string } | null;
+  previousRoundName: (round: string) => string;
+  sourceLabelForRound: (div: string, previousRound: string, slot: number) => { name: string };
+  nodePairId: (node: TeamBracketNode) => string;
+  teamSideLabel: (side: unknown, div: string) => string;
+  normalizeQueueGroupLabel: (label: string) => string;
+  /** 24-court-queue-and-context.js: sets the layout classes around the queue and context panels (writes the DOM). */
+  setCourtSupportMode: (mode: 'standard' | 'singleElim') => void;
+  /** 32-split-court-templates.js. */
+  contextDivisionForCourt: () => string | null;
+  /** 18-sync-state-and-rebase.js, 20-, 35-match-timer.js: the court header's timer fields. */
+  normalizeCourt: (value: unknown) => Court;
+  getSetupSnapshot: () => Record<string, unknown>;
+  ksmNormalizeTimerSettings: (data: Record<string, unknown>) => Record<string, string>;
+  /** 36-react-live-scores.js (stays classic): the court's next division and its first matches. */
+  ksmUpNext: (court: Court, own: string | null | undefined) => QueueUpNext | null;
+  /** 35-react-court.js. */
+  ksmTeamSheet: (div: string, pair: string | undefined, current: Match) => TeamSheetInput;
+  ksmKachinukiSheet: (m: Match) => KachinukiSheetInput;
+  ksmHansokuCounts: (m: Match | null | undefined) => HansokuCounts;
+  ksmDivisionCompleteInput: (div: string, complete: boolean) => CourtCompleteInput;
+  ksmIsRoundRobinDaihyosen: (m: Match | null | undefined) => boolean;
+  ksmDaihyosenLabel: () => string;
+  ksmNextCourtDivision: (court: Court, current: string | null) => string | null;
+  ksmCourtDivisionList: (court: Court) => string[];
+  /** 18-sync-state-and-rebase.js. */
+  isValidMatchObject: (m: unknown) => boolean;
+  /** 08-engine-generation.js. */
+  matchBelongsToCourt: (m: Match | null | undefined, court: Court) => boolean;
+  /** 02-court-match-order.js: open, both sides known, template node ready. */
+  individualMatchReady: (m: Match | null | undefined) => boolean;
+  /**
+   * The shell's header and dialogs inputs are copies of classic state that classic writers patch and
+   * read back synchronously (44-react-shell.js stays classic for them): publish.ts (features/shell) copies it.
+   */
+  ksmShellHeaderState: () => HeaderInput;
+  ksmShellDialogsState: () => DialogsInput;
+  /** 00-path-urls.js, 21-cloud-realtime-save-and-load.js: the nav items' page addresses. */
+  ksmLinkUrl: (route: LegacyLinkRoute, query?: Array<[string, string | undefined]>) => string;
+  tvLink: (court: string) => string;
+  /** 00-react-bridge.js: the legacy `cloudSession` (a top-level `const`, so not on window itself). */
+  ksmLegacyCloudSession: () => { tournamentId?: string | null };
+  /**
+   * The library's data builder (features/library/publish.ts) reads these. 40-react-library.js keeps
+   * ksmReadLocalDraft() (other classic code reads the draft synchronously) and defines
+   * ksmDecorateLibraryInput(), the hook 54-auth0-access.js reassigns to add the account fields (looked up on
+   * every call, never kept). app/modules/session/staff-session-and-library.js: the staff session and outbox.
+   */
+  ksmKeepStaffOutbox: () => boolean;
+  v316StaffPassword: () => string | null | undefined;
+  ksmReadLocalDraft: () => { setup?: { tName?: string }; savedAt?: string | number } | null;
+  ksmDecorateLibraryInput: (input: LibraryInput) => LibraryInput;
+  /** 40-react-library.js: the IDs of the Library rows this device holds a Staff token for (ksmLibraryStaffTokens, a top-level const). */
+  ksmLibraryAuthorizedIds: () => string[];
+  /** 13-engine-standings-and-tiebreaks.js. */
+  teamPairSummary: (div: string, pair: string) => { wWins: number; wPts: number; rWins: number; rPts: number };
+}
+
+/** A legacy function, read from `window` at call time; throws when app.js does not define it. */
+export function legacy<K extends keyof LegacyGlobals>(name: K): LegacyGlobals[K] {
+  const fn = (window as unknown as Partial<LegacyGlobals>)[name];
+  if (typeof fn !== 'function') throw new Error(`KSM: the legacy function ${name}() is not defined on window`);
+  return fn as LegacyGlobals[K];
+}
+
+/**
+ * One Setup value (the Setup form's field `key`, e.g. 'tName'): the store's tournament.settings (#15 PR 8), read
+ * through window.KSMStore (set by app.js; never an import of the store, docs/STORE.md section 4). undefined without a
+ * store.
+ */
+export function setupSetting(key: string): string | undefined {
+  const store = (window as unknown as { KSMStore?: { getState(): { tournament: { settings: Record<string, string> } } } }).KSMStore;
+  return store?.getState().tournament.settings[key];
+}
+
+/** The Live Scores element (#publicLive, reached as window.publicLive by element id), if any. */
+export function legacyPublicLive(): Element | null {
+  return (window as unknown as { publicLive?: Element }).publicLive ?? null;
+}
+
+/** The TV display element (#tvLive, reached as window.tvLive by element id), if any. */
+export function legacyTvLive(): Element | null {
+  return (window as unknown as { tvLive?: Element }).tvLive ?? null;
+}
+
+/** An input element reached by its id as a window property (the Registration filters). */
+export type LegacyInputName = 'regFilter' | 'teamFilter' | 'teamDivisionFilter';
+
+/** One of the Registration filter inputs (#regFilter, #teamFilter, #teamDivisionFilter), if any. */
+export function legacyInput(name: LegacyInputName): { value: string } | null {
+  return (window as unknown as Partial<Record<LegacyInputName, { value: string }>>)[name] ?? null;
+}
+
+/** The individual players table (#regTable, reached as window.regTable by element id), if any. */
+export function legacyRegTable(): Element | null {
+  return (window as unknown as { regTable?: Element }).regTable ?? null;
+}
+
+/** The exhibition table (#exhibitionTable, reached as window.exhibitionTable by element id), if any. */
+export function legacyExhibitionTable(): Element | null {
+  return (window as unknown as { exhibitionTable?: Element }).exhibitionTable ?? null;
+}
+
+/** The team positions of a team format (the engine's teamSlots, imported). */
+export function legacyTeamSlots(teamFormat: string | null | undefined): string[] {
+  return teamSlots(teamFormat);
+}
+
+/**
+ * The classic stale flags of Registration (F17/F20): top-level `var`s of app/js/43-react-registration.js,
+ * so window properties. A redraw's blur sets one when it committed an edit into a competitor, team or
+ * exhibition of the new list.
+ */
+export type LegacyStaleFlag = 'ksmRegistrationRowsStale' | 'ksmTeamsStale' | 'ksmExhibitionsStale';
+export const legacyStale = {
+  get: (name: LegacyStaleFlag): boolean => !!(window as unknown as Partial<Record<LegacyStaleFlag, boolean>>)[name],
+  set: (name: LegacyStaleFlag, value: boolean): void => { (window as unknown as Record<LegacyStaleFlag, boolean>)[name] = value; },
+};
+
+/**
+ * The navigation bar's classic state (top-level `var`s of app/js/44-react-shell.js, so window
+ * properties): the open menu's id, its placement on a phone or tablet, the label of the screen shown.
+ * Declared without a value, so any of them may be undefined.
+ */
+export function legacyNavState(): { open: string | null; style: NavMenuStyle | null; active: string | null } {
+  const w = window as unknown as { ksmNavOpenMenu?: string | null; ksmNavMenuStyle?: NavMenuStyle | null; ksmNavActive?: string | null };
+  return { open: w.ksmNavOpenMenu || null, style: w.ksmNavMenuStyle || null, active: w.ksmNavActive || null };
+}

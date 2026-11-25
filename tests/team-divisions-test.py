@@ -21,7 +21,7 @@ def local_cases(browser):
     fixture=json.loads((Path(__file__).parent/'golden/engine/team3-se-2.json').read_text())
     fixture['setup'][0]['court']='A'
     app.configure(fixture['setup'])
-    page.evaluate("KSMTest.app.state.awards=[{award:'Fighting spirit',name:'TA1',dojo:'Dojo'}]")
+    page.evaluate("KSMTest.app.setAwards([{award:'Fighting spirit',name:'TA1',dojo:'Dojo'}])")
     legacy = app.payload()
     for _ in range(3):
         page.evaluate("()=>{KSMTest.prepareCourt('A');KSMTest.play([['W','M']]);}")
@@ -52,7 +52,7 @@ def local_cases(browser):
     assert page.evaluate('KSMTest.teamDivisions()[0].teamFormat')=='3-Person Team', 'legacy adapter overwrote the persisted division format'
     assert page.evaluate('KSMTest.teamDivisions()[0].awardMode')=='top2', 'legacy adapter overwrote the persisted division awards'
     # First division's existing generated structure is discarded for this new draw.
-    page.evaluate("""() => {KSMTest.app.state.generated=false;KSMTest.app.state.allMatches={};} """)
+    page.evaluate("""() => {KSMTest.app.setDraw({generated:false});KSMTest.app.setAllMatches({});} """)
     first = page.evaluate('KSMTest.teamDivisions()[0].id')
     app.expect_dialog('Add another team division before removing one with teams.')
     assert page.evaluate('id=>KSMTest.removeTeamDivision(id)',first) is False
@@ -81,7 +81,7 @@ def local_cases(browser):
     page.evaluate("([id])=>KSMTest.updateTeamDivision(id,{name:'Kids',court:'A',awardMode:'top1'})",[first])
     page.evaluate("""([id])=>{
       const st=KSMTest.app.state;
-      st.teams.push(...['C','D'].map((n,i)=>({id:'new:'+n,team:'Team '+n,teamDivisionId:id,status:'Checked',senpo:n+'1',jiho:n+'2',chuken:n+'3',fukusho:n+'4',taisho:n+'5'})));
+      KSMTest.app.setPeople({teams:[...st.teams,...['C','D'].map((n,i)=>({id:'new:'+n,team:'Team '+n,teamDivisionId:id,status:'Checked',senpo:n+'1',jiho:n+'2',chuken:n+'3',fukusho:n+'4',taisho:n+'5'}))]});
       KSMTest.app.generatePools({validated:true});
     }""",[second])
     state = app.payload()['state']
@@ -98,7 +98,7 @@ def local_cases(browser):
     app.nav('overview')
     page.wait_for_function("document.getElementById('directorCourtGrid').textContent.includes('Adults')")
     assert 'Kids' in page.locator('#directorCourtGrid').inner_text()
-    page.evaluate("()=>{KSMTest.app.state.publicCourt='B';KSMTest.renderTv();}")
+    page.evaluate("()=>{KSMTest.app.setPublicCourt('B');KSMTest.renderTv();}")
     page.wait_for_function("document.querySelector('[data-testid=tv-division]').textContent==='Adults'")
     app.nav('setup');app.click('setup-export-brackets')
     assert 'Kids' in page.locator('#printBody').inner_text() and 'Adults' in page.locator('#printBody').inner_text()
@@ -130,7 +130,7 @@ def local_cases(browser):
     assert app.final_state()==final
     # A second-division kachinuki reaches the last opposing player and only then ends.
     # (a drawn team division is fixed: its draw is discarded first, as a regenerate would)
-    page.evaluate("""id=>{KSMTest.app.state.generated=false;delete KSMTest.app.state.allMatches[id];KSMTest.updateTeamDivision(id,{teamFormat:'Kachinuki'});KSMTest.app.generatePools({validated:true});}""",second)
+    page.evaluate("""id=>{KSMTest.app.setDraw({generated:false});KSMTest.app.setAllMatches(Object.fromEntries(Object.entries(KSMTest.app.state.allMatches).filter(([d])=>d!==id)));KSMTest.updateTeamDivision(id,{teamFormat:'Kachinuki'});KSMTest.app.generatePools({validated:true});}""",second)
     for _ in range(20):
         progressed=page.evaluate("""()=>{const m=KSMTest.prepareCourt('B');if(!m)return false;KSMTest.play([['W','M']]);return true;}""")
         if not progressed:
@@ -139,7 +139,7 @@ def local_cases(browser):
     assert len(bouts)==3 and all(m['done'] for m in bouts), bouts
     assert any(m.get('rIndex')==2 for m in bouts), 'last player never lost'
     # Continue and Up next display names while their actions keep persisted IDs.
-    page.evaluate("""id=>{KSMTest.app.state.generated=false;delete KSMTest.app.state.allMatches[id];KSMTest.updateTeamDivision(id,{court:'A'});KSMTest.moveTeamDivision(id,'down');KSMTest.app.generatePools({validated:true});}""",second)
+    page.evaluate("""id=>{KSMTest.app.setDraw({generated:false});KSMTest.app.setAllMatches(Object.fromEntries(Object.entries(KSMTest.app.state.allMatches).filter(([d])=>d!==id)));KSMTest.updateTeamDivision(id,{court:'A'});KSMTest.moveTeamDivision(id,'down');KSMTest.app.generatePools({validated:true});}""",second)
     app.open_court('A')
     assert page.evaluate('id=>KSMTest.app.ksmUpNext("A",id).division',first)=='Adult Open'
     for _ in range(3):
@@ -158,7 +158,7 @@ def merge_cases(browser, base):
     tid=a.create_tournament();a.wait_idle()
     first=a.page.evaluate('KSMTest.teamDivisions()[0].id')
     second=a.page.evaluate("KSMTest.addTeamDivision('Adults')")
-    a.page.evaluate("id=>KSMTest.app.state.teams=[{id:'team-1',team:'One',teamDivisionId:id,status:'Checked'},{id:'team-2',team:'Two',teamDivisionId:id,status:'Checked'}]",first)
+    a.page.evaluate("id=>KSMTest.app.setPeople({teams: [{id:'team-1',team:'One',teamDivisionId:id,status:'Checked'},{id:'team-2',team:'Two',teamDivisionId:id,status:'Checked'}]})",first)
     a.save_now();a.wait_idle()
     b=KsmApp.open_device(browser,base,'B',problems,f'?tournament={tid}')
     b.staff_login();b.wait_idle();b.watch_conflicts()

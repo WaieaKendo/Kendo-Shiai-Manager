@@ -10,7 +10,8 @@ import {
   poolSeedResolution, seedNameForLabel, championshipNodeSource, syncChampionshipTemplate, sourceLabelForRound,
   individualPlacements, firstRoundName, roundMatchCount,
 } from '../../app/engine/championship.ts';
-import { html, engine, extractFunction } from '../lib/ksm-source.mjs';
+import { html, engine, extractFunction, matchWritesSource, withDependencies } from '../lib/ksm-source.mjs';
+import { vmStore } from '../lib/vm-store.mjs';
 import { gitShow } from '../lib/git-show.mjs';
 
 const pool = (label, ...names) => ({ label, players: names.map(n => ({ name: n, dojo: `${n}-dojo` })) });
@@ -242,12 +243,17 @@ test('championship build, advancement, seeds and placements equal the pre-move l
     '14-engine-championship.js', '15-engine-pool-standings.js', '27-results-screen.js'].map(f => gitShow(OLD, `app/js/${f}`));
   if (oldFiles.includes(null)) return t.skip(`${OLD} not in this clone`);
   const oldSrc = oldFiles.join('\n');
-  const load = src => {
-    const ctx = vm.createContext({ state: null, console: { warn() {} } });
-    vm.runInContext(`${engine}\n${STUBS}\n${FUNCS.map(n => extractFunction(src, n)).join('\n')}`, ctx);
+  // The pre-move code writes a plain `state` in place; the current code runs on a real store (tests/lib/vm-store.mjs).
+  const load = (src, inStore) => {
+    const raw = { console: { warn() {} } };
+    if (inStore) raw.vs = vmStore(raw);
+    else raw.state = null;
+    const ctx = vm.createContext(raw);
+    const code = `${engine}\n${matchWritesSource}\n${STUBS}\n${FUNCS.map(n => extractFunction(src, n)).join('\n')}`;
+    vm.runInContext(inStore ? withDependencies(src, code, { exclude: Object.keys(raw) }) : code, ctx);
     return ctx;
   };
-  const legacy = load(oldSrc), current = load(html);
+  const legacy = load(oldSrc, false), current = load(html, true);
   assert.ok(!/KSMEngine/.test(extractFunction(oldSrc, 'syncChampionshipTemplate')), 'old code is pre-move');
   assert.ok(/KSMEngine\.syncChampionshipTemplate/.test(extractFunction(html, 'syncChampionshipTemplate')), 'current code delegates');
   const states = statesFromGoldens();
@@ -256,27 +262,32 @@ test('championship build, advancement, seeds and placements equal the pre-move l
     // 10 entrants: the four-person bracket replaced the old eight-person one on purpose (tested above).
     if (s.pools[div].reduce((n, p) => n + p.players.length, 0) === 10) continue;
     const run = ctx => {
-      ctx.state = structuredClone(s);
-      const st = ctx.state, res = [];
+      if (ctx.vs) ctx.vs.load(structuredClone(s)); else ctx.state = structuredClone(s);
+      const res = [];
+      // A write to the state: on the store a copy is edited and loaded, on the plain state it is in place.
+      const mut = fn => (ctx.vs ? ctx.vs.edit(fn) : fn(ctx.state));
       const snap = () => {
-        const labels = ctx.championshipLabels(div);
+        const st = ctx.state, labels = ctx.championshipLabels(div);
         res.push(JSON.stringify(st.allMatches[div]), JSON.stringify(st.championshipNodes[div] || null), JSON.stringify(ctx.resultPlacements(div)),
           JSON.stringify(labels.flat().map(l => [ctx.seedNameForLabel(div, l, true), ctx.seedNameForLabel(div, l, false)])),
           JSON.stringify(['Round of 16', 'Quarterfinal', 'Semifinal'].flatMap(r => [0, 1, 2, 3].map(i => ctx.sourceLabelForRound(div, r, i)))));
       };
       const labels = ctx.championshipLabels(div);
-      st.brackets[div] = labels;
-      res.push(JSON.stringify(labels), ctx.championshipTemplateForTotal(st.pools[div].reduce((n, p) => n + p.players.length, 0)).length);
-      st.allMatches[div].push(...ctx.buildChampionshipTemplateMatches(div, labels));
+      mut(st => { st.brackets[div] = labels; });
+      res.push(JSON.stringify(labels), ctx.championshipTemplateForTotal(ctx.state.pools[div].reduce((n, p) => n + p.players.length, 0)).length);
+      // Since #15 PR 12b the current code puts the nodes in a draft for the caller's action (Edit Pool's poolsEdited).
+      const draft = {};
+      const built = ctx.buildChampionshipTemplateMatches(div, labels, draft);
+      mut(st => { st.allMatches[div].push(...built); if (draft.championshipNodes) (st.championshipNodes ||= {})[div] = draft.championshipNodes; });
       ctx.syncChampionshipTemplate(div); snap();
       for (const c of champ) {
-        const m = st.allMatches[div].find(x => x.championship && x.champNodeId === c.node);
-        if (!m) continue;
-        Object.assign(m, { wp: c.wp, rp: c.rp, done: true });
-        ctx.maybeAdvanceChampionship(m); snap(); steps++;
+        const at = ctx.state.allMatches[div].findIndex(x => x.championship && x.champNodeId === c.node);
+        if (at < 0) continue;
+        mut(st => { Object.assign(st.allMatches[div][at], { wp: c.wp, rp: c.rp, done: true }); });
+        ctx.maybeAdvanceChampionship(ctx.state.allMatches[div][at]); snap(); steps++;
       }
       // Self-heal path: drop the Final's Match Object and resync.
-      st.allMatches[div] = st.allMatches[div].filter(x => !(x.championship && x.position === 'Final'));
+      mut(st => { st.allMatches[div] = st.allMatches[div].filter(x => !(x.championship && x.position === 'Final')); });
       ctx.syncChampionshipTemplate(div); snap();
       return res;
     };

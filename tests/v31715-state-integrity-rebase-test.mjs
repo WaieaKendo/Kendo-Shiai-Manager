@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { extractFunction, withDependencies, html as appSource, sw as appServiceWorker } from './lib/ksm-source.mjs';
+import { vmStore } from './lib/vm-store.mjs';
 
 const html=appSource;
 const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));
@@ -11,8 +12,8 @@ const worker=fs.readFileSync(new URL('../src-worker.js',import.meta.url),'utf8')
 let failed=false;
 function check(ok,name){console.log(`${ok?'PASS':'FAIL'} ${name}`);if(!ok)failed=true}
 
-check(html.includes('sanitizeLoadedTournamentState(state'),'load-time state sanitizer');
-check(html.includes('resolveRebasePatch(localState,rebased.state,patch)'),'identity-safe rebase path');
+check(html.includes("sanitizeLoadedTournamentState(loaded,options.source||'tournament load')"),'load-time state sanitizer');
+check(html.includes('resolveRebasePatch(localState,rebasedState,patch)'),'identity-safe rebase path');
 check(worker.includes("return json({ error: 'Invalid tournament state', integrityError }, 422)"),'Worker malformed-state rejection');
 check(html.includes("matches=(state.allMatches[div]||[]).filter(isValidMatchObject)"),'division completion null safety');
 
@@ -25,7 +26,7 @@ const snippets=[
   extractFunction(html,'resolveRebasePatch'),
   extractFunction(html,'sanitizeLoadedTournamentState')
 ].join('\n');
-const context={console};vm.createContext(context);vm.runInContext(withDependencies(html,snippets,{exclude:Object.keys(context)}),context);
+const context={console};vmStore(context);vm.createContext(context);vm.runInContext(withDependencies(html,snippets,{exclude:Object.keys(context)}),context);
 
 // Regression 1: a stale deep numeric patch must never create a sparse array.
 const target={allMatches:{Test:[{division:'Test',type:'individual',pool:'A',poolOrder:0,white:'A',red:'B',wp:[]}]}};

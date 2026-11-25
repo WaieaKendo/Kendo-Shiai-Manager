@@ -35,7 +35,7 @@ def main():
         assert 'Needs Attention' in card(page), f'+ Add Row: the card is stale: {card(page)!r}'
         app.click('reg-load-samples')
         assert 'Ready to Generate' in card(page) and '11 competitors' in card(page), f'Load Sample Players: {card(page)!r}'
-        app.expect_dialog('Clear all individual', accept=True)
+        app.expect_dialog('Clear ', accept=True)
         app.click('reg-clear')
         app.wait_for_dialogs(1)
         assert '0 competitors' in card(page), f'Clear Registration: {card(page)!r}'
@@ -43,7 +43,7 @@ def main():
         app.click('reg-tab-team')
         app.click('team-load-samples')
         assert '1 division' in card(page) and '0 competitors' in card(page), f'Load Sample Teams: {card(page)!r}'
-        app.expect_dialog('Clear all teams', accept=True)
+        app.expect_dialog('Clear ', accept=True)
         app.click('team-clear')
         app.wait_for_dialogs(2)
         assert '0 divisions' in card(page), f'Clear Teams: {card(page)!r}'

@@ -41,7 +41,7 @@ off in the test page.
                       variable overall total); phone portrait and landscape at the end; a
                       spectator's view.
 
-Since M.13 the Overview is drawn only by React (app/react/overview/: one island, the contents
+Since M.13 the Overview is drawn only by React (app/react/features/overview/: one island, the contents
 of #director .director-dashboard; app/js/39-react-overview.js publishes its data); the legacy
 renderer is removed, so this test pins the React-only screen. React must render every element
 of the island (and .director-dashboard must be its root), every kind of Overview content must
@@ -94,7 +94,7 @@ TICK_JS = '() => window.__ksmOverviewTick()'
 SUMMARY_JS = '() => KSMTest.app.tournamentSummary()'
 SCROLL_JS = '() => [document.documentElement.scrollWidth, innerWidth]'
 
-# The Overview island (app/react/overview/main.tsx): React renders every element of the
+# The Overview island (app/react/features/overview/main.tsx): React renders every element of the
 # dashboard, which is the island's root.
 ISLAND = '#director .director-dashboard'
 ROOT_JS = f"() => Object.keys(document.querySelector('{ISLAND}')).some(k => k.startsWith('__reactContainer'))"
@@ -204,7 +204,7 @@ def overview_rr_4(browser, errors):
     g.do('no tournament yet', lambda a: a.nav('overview'))
     g.do('5 s later (no tournament)', lambda a: a.page.evaluate(TICK_JS))
     phone_views(g, 'no tournament')
-    g.do('tournament name', lambda a: a.page.evaluate("() => { tName.value = 'Aiea <Taikai> & Co'; KSMTest.show('director'); }"))
+    g.do('tournament name', lambda a: a.page.evaluate("() => { KSMTest.app.ksmSetSetting('tName', 'Aiea <Taikai> & Co'); KSMTest.show('director'); }"))
     g.app.configure([{'name': 'Open', 'format': 'Round Robin', 'court': 'A', 'entrants': people('P', 4)}])
     g.do('generated (Overview hidden by Generate)', lambda a: None)
     g.do('generated: Overview opened', lambda a: a.nav('overview'))
@@ -283,7 +283,7 @@ def without_screens_module():
 
 # The Overview shown without drawing it (no renderDirector()): what the page has before the
 # first publish.
-UNDRAWN_JS = "() => { document.querySelectorAll('.view').forEach(v => v.classList.add('hidden')); document.getElementById('director').classList.remove('hidden'); }"
+UNDRAWN_JS = "() => { document.documentElement.classList.add('ksm-ui-ready'); document.querySelectorAll('.view').forEach(v => v.classList.add('hidden')); document.getElementById('director').classList.remove('hidden'); }"
 
 
 def overview_static_markup(browser, errors):
@@ -328,7 +328,15 @@ def overview_module_missing(browser, errors):
     assert notice.is_visible(), 'no "Overview could not load" notice without the React module'
     assert 'Overview could not load' in notice.inner_text(), notice.inner_text()
     assert not page.locator('#director .director-dashboard').is_visible(), 'the empty Overview dashboard is shown without the React module'
-    assert page.evaluate('window.ksmOverviewInput.kind') == 'overview', 'renderDirector() did not publish without the island'
+    # The input is computed by the island (pull): without the module nothing computes it, but
+    # renderDirector() still signals (ksm:overview), which is safe before the module loads.
+    assert page.evaluate('window.ksmOverviewInput === undefined'), 'the Overview input exists without the React module'
+    assert page.evaluate("""() => {
+        let n = 0;
+        window.addEventListener('ksm:overview', () => { n++; });
+        KSMTest.app.renderDirector();
+        return n === 1 && window.ksmOverviewInput === undefined;
+    }"""), 'renderDirector() without the module must dispatch ksm:overview once and compute nothing'
     page.close()
 
 

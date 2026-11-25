@@ -182,26 +182,28 @@ def main():
         # --- Clear Registration / Teams / Exhibitions ask first (F8) --------------------------------------
         app.nav('registration')
         app.click('reg-tab-individual')
-        app.expect_dialog('Clear all individual competitors?', accept=False)
+        app.expect_dialog('Clear ', accept=False)
         app.seen_dialogs.clear()
         app.click('reg-clear')
-        assert app.wait_for_dialogs() == ['Clear all individual competitors?'] and count('reg-row') == REGISTERED
-        app.expect_dialog('Clear all individual competitors?', accept=True)
+        seen = app.wait_for_dialogs()
+        assert len(seen) == 1 and seen[0].startswith(f'Clear all {REGISTERED} individual competitors?') and count('reg-row') == REGISTERED, seen
+        app.expect_dialog('Clear ', accept=True)
         app.seen_dialogs.clear()
         app.click('reg-clear')
         app.wait_for_dialogs()
         assert count('reg-row') == 0, 'Clear Registration kept players'
         # F8 (docs/ROADMAP.md, fixed): Clear Teams and Clear Exhibitions ask first, like Clear Registration.
-        for tab, button, row, question in (('reg-tab-team', 'team-clear', 'team-card', 'Clear all teams?'),
-                                           ('reg-tab-exhibition', 'exhibition-clear', 'exhibition-row', 'Clear all exhibition matches?')):
+        for tab, button, row, question in (('reg-tab-team', 'team-clear', 'team-card', 'teams?'),
+                                           ('reg-tab-exhibition', 'exhibition-clear', 'exhibition-row', 'exhibition matches?')):
             app.click(tab)
             before = count(row)
             assert before > 0, f'{row}: nothing to clear'
-            app.expect_dialog(question, accept=False)
+            app.expect_dialog('Clear ', accept=False)
             app.seen_dialogs.clear()
             app.click(button)
-            assert app.wait_for_dialogs() == [question] and count(row) == before, f'{button}: Cancel changed the list'
-            app.expect_dialog(question, accept=True)
+            seen = app.wait_for_dialogs()
+            assert len(seen) == 1 and seen[0].startswith(f'Clear all {before} ') and f' {question}' in seen[0] and count(row) == before, f'{button}: {seen}'
+            app.expect_dialog('Clear ', accept=True)
             app.seen_dialogs.clear()
             app.click(button)
             app.wait_for_dialogs()

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { gcSwapLabel, grandChampionBracket, grandChampionControls, grandChampionSourceOptions, grandChampionStatus } from '../../app/react/setup/grand-champion-model.ts';
+import { gcSwapLabel, grandChampionBracket, grandChampionControls, grandChampionSourceOptions, grandChampionStatus } from '../../app/react/features/setup/grand-champion-model.ts';
 
 const row = (over = {}) => ({
   id: 'gc:1', name: 'Grand Champion', sources: ['Open', 'Women'], format: 'Single Elimination', court: 'B', awardMode: 'top1',

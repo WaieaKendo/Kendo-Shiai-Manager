@@ -3,11 +3,11 @@ import fs from 'node:fs';
 const html = appSource;
 const sw = appServiceWorker;
 const worker = fs.readFileSync('src-worker.js','utf8');
-// Since M.13 the library's markup is drawn by React (app/react/library/: Library.tsx,
+// Since M.13 the library's markup is drawn by React (app/react/features/library/: Library.tsx,
 // library-model.ts; tests/golden/library pins it), so checks of the cards and buttons read that code
 // as well as the static markup of app/index.html.
-const libraryReact = readRepoFile('app/react/library/Library.tsx') + readRepoFile('app/react/library/library-model.ts');
-const shellReact = readRepoFile('app/react/shell/Shell.tsx');
+const libraryReact = readRepoFile('app/react/features/library/Library.tsx') + readRepoFile('app/react/features/library/library-model.ts');
+const shellReact = readRepoFile('app/react/features/shell/Shell.tsx');
 const checks = [
   ['dedicated home view', html.includes('id="home"') && html.includes('id="homeTournamentLibrary"') && libraryReact.includes('id="homeTournamentLibrary"')],
   ['new tournament available on home', html.includes('onclick="createNewTournament()">＋ New Tournament') && libraryReact.includes('data-testid="home-new-tournament" onClick={() => { libraryWindow().createNewTournament?.(); }}>{NEW_TOURNAMENT_TEXT}') && libraryReact.includes("NEW_TOURNAMENT_TEXT = '＋ New Tournament'")],

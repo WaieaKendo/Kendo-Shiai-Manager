@@ -1,20 +1,33 @@
 // Shared helpers for tests that inspect or execute pieces of the app's source.
 //
-// `html` is the app as ONE text, as public/index.html was before the Vite split:
-// app/index.html with app/styles/*.css and app/js/*.js inlined in file-name order
-// (scripts/app-sources.mjs). The code is the same text, in the same order, so grep
-// checks, extractFunction (last declaration wins) and withDependencies still apply.
+// `html` is the app's source as ONE plain text (appSourceText() in scripts/app-sources.mjs): app/index.html,
+// app/styles/*.css, app/modules/**/*.js and app/main.js exactly as they are on disk, no transform. The
+// name is historic (it was index.html with everything inlined). Grep-style checks read it directly;
+// extractFunction cuts one function declaration out of it (names are unique, see
+// tests/no-duplicate-declarations-test.mjs) and withDependencies adds what that code calls, for tests
+// that run the function in a vm with their own stubs (module-internal calls cannot be stubbed on an import).
 //
-// `engine` is the built engine script (app/engine/*.ts as a classic IIFE defining
-// `var KSMEngine`), which the app loads before app.js. It is not part of `html`. Code
-// that references KSMEngine gets it from withDependencies; tests that assemble vm code
-// from extractFunction by hand prepend `engine`.
+// `engine` is app/engine as a classic IIFE, for those vm tests (see engineIife below). It is not part of `html`.
 import fs from 'node:fs';
-import { singleFileSource, serviceWorker, engineScript } from '../../scripts/app-sources.mjs';
+import path from 'node:path';
+import { rolldown } from 'rolldown';
+import { appSourceText, serviceWorker, ENGINE_DIR } from '../../scripts/app-sources.mjs';
 
 export const readRepoFile = rel => fs.readFileSync(new URL(`../../${rel}`, import.meta.url), 'utf8');
-export const html = singleFileSource();
-export const engine = await engineScript();
+export const html = appSourceText();
+
+// The engine as a classic IIFE (`var KSMEngine = ...`) for the few tests that run code in a vm next to the
+// engine (the pre-move parity tests in tests/engine and withDependencies below): a vm context cannot import,
+// and handing it the engine namespace instead would mix realms (arrays/objects of two contexts in deepEqual).
+// Only tests use it; the app imports the engine and the build bundles it.
+async function engineIife() {
+  const bundle = await rolldown({ input: path.join(ENGINE_DIR, 'index.ts'), logLevel: 'silent' });
+  try {
+    const { output } = await bundle.generate({ format: 'iife', name: 'KSMEngine', minify: false });
+    return output[0].code;
+  } finally { await bundle.close(); }
+}
+export const engine = await engineIife();
 export const worker = readRepoFile('src-worker.js');
 export const sw = serviceWorker();
 export const pkg = JSON.parse(readRepoFile('package.json'));
@@ -87,8 +100,13 @@ function definitionStarts(source, name) {
 // Extracts a named function declaration's source. The app redefines many
 // functions later in the file to override earlier versions; the browser runs the
 // LAST definition, so that is the default. Pass { occurrence: 'first' } for the original.
+// A replaceable function (step 4d of #136, app/modules/replaceable.js) keeps its code in `function NAMEImpl(...)`
+// and exports `const NAME = replaceable('NAME', NAMEImpl)`: when `function NAME(` is not found, the Impl is cut out
+// and renamed to NAME, so a test runs the real code under the name it always used.
 export function extractFunction(source, name, { occurrence = 'last' } = {}) {
-  const starts = definitionStarts(source, name);
+  let starts = definitionStarts(source, name);
+  if (!starts.length && definitionStarts(source, `${name}Impl`).length)
+    return extractFunction(source, `${name}Impl`, { occurrence }).replace(`function ${name}Impl(`, `function ${name}(`);
   if (!starts.length) throw new Error(`Missing function ${name}`);
   const start = occurrence === 'first' ? starts[0] : starts[starts.length - 1];
   // Skip the parameter list (it may contain default values with braces/strings).
@@ -119,9 +137,10 @@ export function countDefinitions(source, name) { return definitionStarts(source,
 // `exclude` (e.g. functions the test stubs on its vm context) are never pulled in.
 // A reference to KSMEngine pulls in the engine script (`engine`, above).
 
+// (Also the module-private helpers of match-writes.js and court-history-store.js, which the real match-write and history functions call.)
 function topLevelConstants(source) {
   const map = new Map();
-  for (const m of source.matchAll(/(?:^|[;\n}])\s*(const|let)\s+([A-Z][A-Z0-9_]+)\s*=/g)) {
+  for (const m of source.matchAll(/(?:^|[;\n}])\s*(?:export\s+)?(const|let)\s+([A-Z][A-Z0-9_]+|ksm[A-Za-z0-9_]*(?=\s*=\s*(?:\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>)|meta|listOf|courtList|pushed)\s*=/g)) {
     const start = m.index + m[0].indexOf(m[1]);
     let i = start + m[0].length - m[0].indexOf(m[1]), depth = 0;
     for (; i < source.length;) {
@@ -140,6 +159,8 @@ let cachedIndex = null;
 function definitionIndex(source) {
   if (cachedIndex?.source === source) return cachedIndex;
   const functions = new Set([...source.matchAll(/function\s+([A-Za-z_$][\w$]*)\s*\(/g)].map(m => m[1]));
+  // A replaceable function (replaceable('NAME', NAMEImpl)) is cut out as `function NAME(` by extractFunction().
+  for (const m of source.matchAll(/replaceable\('([A-Za-z_$][\w$]*)',/g)) functions.add(m[1]);
   cachedIndex = { source, functions, constants: topLevelConstants(source) };
   return cachedIndex;
 }
@@ -151,14 +172,17 @@ function definedIn(code) {
   return names;
 }
 
+// What tests/lib/vm-store.mjs puts on a context itself: the store's own functions and the app-state helpers bound to the context's `state`.
+// withDependencies() never cuts these out of the source: a test that has no vmStore() on its context stubs what it needs.
+export const VM_STORE_NAMES = ['dispatch', 'getState', 'holdNotifications', 'subscribe', 'storeFieldPath', 'stateFieldIsDerived', 'storeWrites', 'ksmLoadTournamentState', 'assignStoreKeys', 'settingsMeta'];
 export function withDependencies(source, code, { exclude = [] } = {}) {
   const { functions, constants } = definitionIndex(source);
-  const skipNames = new Set([...exclude, ...definedIn(code)]);
+  const skipNames = new Set([...exclude, ...VM_STORE_NAMES, ...definedIn(code)]);
   const added = [];
   const queue = [code];
   while (queue.length) {
     const text = queue.shift();
-    for (const [, name] of text.matchAll(/(?<![\w$.])([A-Za-z_$][\w$]*)\b/g)) {
+    for (const [, name] of text.replaceAll('...', ' ').matchAll(/(?<![\w$.])([A-Za-z_$][\w$]*)\b/g)) {
       if (skipNames.has(name)) continue;
       let def = null;
       if (name === 'KSMEngine') def = engine;
@@ -166,10 +190,24 @@ export function withDependencies(source, code, { exclude = [] } = {}) {
       else if (constants.has(name)) def = constants.get(name);
       if (!def) continue;
       skipNames.add(name);
-      added.push(def);
+      added.push({ def, isConstant: def !== engine && constants.get(name) === def });
       // The engine is self-contained; its own function names are not app dependencies.
       if (def !== engine) queue.push(def);
     }
   }
-  return [code, ...added].join('\n');
+  // Top-level constants go in the order the source declares them (one may be built from another, e.g.
+  // KSM_AUTOSAVE_CLOUD_ID from KSM_SAVE_KEY): the engine first, then the constants, then the hoisted functions.
+  const position = def => { const at = source.indexOf(def.slice(0, -1)); return at < 0 ? Infinity : at; };
+  const constantDefs = added.filter(a => a.isConstant).map(a => a.def).sort((a, b) => position(a) - position(b));
+  const engineDefs = added.filter(a => a.def === engine).map(a => a.def);
+  const otherDefs = added.filter(a => !a.isConstant && a.def !== engine).map(a => a.def);
+  return [code, ...engineDefs, ...constantDefs, ...otherDefs].join('\n');
 }
+
+// #15 PR 13c-1 / 13c-2: every write to `allMatches` goes through app/modules/court/match-writes.js. A vm test that runs app
+// functions over the helper's real store (tests/lib/vm-store.mjs) adds these (withDependencies() finds them on its own too).
+export const MATCH_WRITE_FUNCTIONS = ['ksmInStore', 'ksmMatchWrite', 'ksmOwnMap', 'ksmMatchList', 'ksmSameEntries', 'ksmSetAllMatches', 'ksmSetDivisionMatches', 'ksmDeleteDivisionMatches',
+  'ksmUpdateMatches', 'ksmWriteUpdates', 'ksmUpdateChanges', 'ksmUpdateMatch', 'ksmInsertMatches', 'ksmAppendMatches', 'ksmRemoveMatches', 'ksmSortDivisionMatches', 'ksmWriteMatchPath',
+  'ksmWalkMatchPath', 'ksmIndexByIdentity', 'ksmWriteMatchPaths', 'ksmApplyMatchPaths', 'ksmPlanMatchPaths', 'ksmCopyOnWrite'];
+export const matchWritesSource = [...MATCH_WRITE_FUNCTIONS.map(name => extractFunction(html, name)),
+  ...['ksmInPlace', 'ksmChanged'].map(name => html.match(new RegExp(`^const ${name}=[^\n]*`, 'm'))[0])].join('\n');

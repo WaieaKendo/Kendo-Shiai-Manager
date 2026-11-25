@@ -1,7 +1,7 @@
 """Golden (snapshot) test of the Live Scores screen (#public, nav "Live Scores"; roadmap M.13).
 
 Spectators land on Live Scores. Since M.13 the screen is drawn only by React (the LiveScores
-island, app/react/live-scores/; app/js/36-react-live-scores.js publishes its data). The approved
+island, app/react/features/live-scores/; publish.ts computes its data when app/js/36-react-live-scores.js signals). The approved
 snapshots in tests/golden/live-scores/*.json were recorded from the LEGACY renderer
 (renderPublic() and liveScoresCourtCard() in app/js/25-live-scores.js, the division-complete
 wrapper in 32-split-court-templates.js) before it was removed, so they pin exactly what the
@@ -15,7 +15,7 @@ the whole #public view is serialized (golden_screen.PANEL_JS: elements, ids, cla
 every attribute, text, visibility, innerText, and each element's page box per platform) and
 compared with the approved snapshot, together with the Live Scores read-out of both courts
 (KsmApp.live_court()) and the dialogs shown. React must render every element in #publicLive
-(the LiveScores island, app/react/live-scores/), and every kind of Live Scores content must be
+(the LiveScores island, app/react/features/live-scores/), and every kind of Live Scores content must be
 covered. Last, the app without the React module script must show the "Live Scores could not
 load" notice instead of an empty screen (and a working page never shows it).
 
@@ -64,7 +64,7 @@ NEXT_JS = "() => KSMTest.app.nextMatch()"
 SHOW_LIVE_JS = "() => KSMTest.show('public')"
 # A Court B device keeps its court as the Live Scores court after a live update
 # (applyRemoteCloudRecord() in 21-: state.publicCourt from the local court).
-PUBLIC_COURT_B_JS = "() => { KSMTest.app.state.publicCourt = 'B'; KSMTest.show('public'); }"
+PUBLIC_COURT_B_JS = "() => { KSMTest.app.setPublicCourt('B'); KSMTest.show('public'); }"
 VIEW_JS = f"() => !document.querySelector('{ROOT}').classList.contains('hidden')"
 LIVE = '#public #publicLive'
 # Which kinds of Live Scores content the React island was given.
@@ -139,7 +139,15 @@ def live_scores_module_missing(browser, errors):
     assert notice.is_visible(), 'no "Live Scores could not load" notice without the React module'
     assert 'Live Scores could not load' in notice.inner_text(), notice.inner_text()
     assert not page.locator('#publicLive').is_visible(), 'the empty Live Scores markup is shown without the React module'
-    assert page.evaluate('window.ksmLiveScoresInput.kind') == 'courts', 'renderPublic() did not publish without the island'
+    # The input is computed by the module (pull): without it nothing computes it, but renderPublic()
+    # still signals (ksm:live-scores), which is safe before the module loads.
+    assert page.evaluate('window.ksmLiveScoresInput === undefined'), 'the Live Scores input exists without the React module'
+    assert page.evaluate("""() => {
+        let n = 0;
+        window.addEventListener('ksm:live-scores', () => { n++; });
+        KSMTest.app.renderPublic();
+        return n === 1 && window.ksmLiveScoresInput === undefined;
+    }"""), 'renderPublic() without the module must dispatch ksm:live-scores once and compute nothing'
     page.close()
 
 

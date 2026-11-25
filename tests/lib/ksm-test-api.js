@@ -9,6 +9,9 @@
 // Use it only for what the app has no UI for (bulk setup, engine snapshots,
 // sync status). When index.html is split into modules / React, update this file
 // (and ksm_app.py) instead of the tests.
+// The store runs strict in the browser tests, as in the Node tests: a write to a store field that misses the
+// conversion throws instead of being applied as in production (app/main.js, docs/STORE.md section 2 point 8).
+window.KSM_STRICT_STORE = true;
 window.KSMTest = {
   // Instrument browser capabilities without replacing the timer or its epoch clock.
   installTimerProbes() {
@@ -192,6 +195,8 @@ window.KSMTest = {
   seedDetachedDraft(payload) { localStorage.setItem(KSM_DETACHED_DRAFT_KEY,JSON.stringify(payload)); },
   shortName() { return {slug:cloudSession.slug||'',pending:ksmPendingSlug}; },
   app: {
+    flushCloudOutbox: (...a) => flushCloudOutbox(...a),
+    ksmFetchTournament: (...a) => ksmFetchTournament(...a),
     ksmRenameTournamentSlug: (...a) => ksmRenameTournamentSlug(...a),
     mergeLocalEditsThreeWay: (...a) => mergeLocalEditsThreeWay(...a),
     rebaseLocalPayloadOnRecord: (...a) => rebaseLocalPayloadOnRecord(...a),
@@ -201,6 +206,65 @@ window.KSMTest = {
 
     // Tournament data and settings (objects: read, and change their fields)
     get state() { return state; },
+    // The division lists (divisions, divisionTypes, divisionCourts) are store data (#15 PR 9): a test sets them here,
+    // one action; a list it leaves out keeps its value. The team court's entry stays the Setup's (setSetting / teamCourt).
+    setDivisionLists: lists => ksmReplaceDivisions(lists.divisions ?? state.divisions, lists.divisionTypes ?? state.divisionTypes, lists.divisionCourts ?? state.divisionCourts),
+    // The people (competitors, teams, exhibitions, teamDivisions) are store data too (#15 PR 10): a test sets whole lists
+    // here, one tournament/peopleLoaded; a list it leaves out keeps its value, `teamDivisions: undefined` clears it (the
+    // app builds it again on its next read). A row is never edited in place: set the list again with the row changed.
+    setPeople: lists => ksmLoadPeople(lists),
+    // The bouts (allMatches) are store data too (#15 PR 13c-2): a test writes them through the app's write module, one
+    // action per call; a bout or a list is never edited in place (frozen in the tests). `set`: the fields to set, in their
+    // order; `remove`: the fields to delete. A division's list is stored as given; `setAllMatches` replaces the whole map.
+    setAllMatches: map => ksmSetAllMatches(map),
+    setDivisionMatches: (div, list) => ksmSetDivisionMatches(div, list),
+    updateMatch: (div, index, set, remove = []) => ksmUpdateMatch(div, index, set, remove),
+    updateMatches: (div, updates) => ksmUpdateMatches(div, updates),
+    // A bout the test holds (read from the list just before, no write between): its fields set through updateMatch(),
+    // the bout as it is after returned (the one held keeps its old values).
+    updateBout: (m, set, remove = []) => {
+      // (by identity; else the bout found again, as the app does: a sync may have given it a new object since)
+      const div = m.division, list = state.allMatches?.[div] || [], i = list.includes(m) ? list.indexOf(m) : KSMEngine.matchIndexIn(list, m);
+      if (i < 0) throw new Error(`KSMTest.app.updateBout: the bout is not in allMatches[${div}] (read it again)`);
+      return ksmUpdateMatch(div, i, set, remove);
+    },
+    // Results' awards editor and Setup's grand champion rows, as their islands call them (tests/awards-store-test.py).
+    // Awards are store data (#15 PR 11): a test sets the list or a row's fields here, one action each; a row is never edited in place.
+    setAwards: awards => ksmLoadAwards(awards),
+    // The draw (pools, teamPools, brackets, singleElimComps, byeWinners, generated, managementRevision) is store data too
+    // (#15 PR 12a): a test sets whole maps here, one action; a key it leaves out keeps its value. An entry is never edited
+    // in place: set the map again with the entry changed.
+    setDraw: lists => ksmSetDraw('drawEntriesUpdated', lists),
+    // The court pointers (courtState, courtActiveDivision, currentByDivision) are store data too (#15 PR 13a): a test sets
+    // whole maps here, one action; a map it leaves out keeps its value. A pointer is never edited in place: set the map again.
+    setCourtPointers: lists => ksmSetDraw('drawEntriesUpdated', lists),
+    setAward: (index, changes) => ksmSetAward(index, changes),
+    addResultAward: (...a) => addResultAward(...a),
+    removeResultAward: (...a) => removeResultAward(...a),
+    ksmSetResultAward: (...a) => ksmSetResultAward(...a),
+    ksmMoveGrandChampion: (...a) => ksmMoveGrandChampion(...a),
+    ksmToggleGrandChampionSource: (...a) => ksmToggleGrandChampionSource(...a),
+    // Registration's operations, as its islands and buttons call them (tests/people-store-test.py).
+    addRow: (...a) => addRow(...a),
+    addTeamRow: (...a) => addTeamRow(...a),
+    addAutoTeam: (...a) => addAutoTeam(...a),
+    addExhibitionRow: (...a) => addExhibitionRow(...a),
+    cycleCompetitorStatus: (...a) => cycleCompetitorStatus(...a),
+    cycleTeamStatus: (...a) => cycleTeamStatus(...a),
+    ksmCycleExhibitionStatus: (...a) => ksmCycleExhibitionStatus(...a),
+    ksmUpdateCompetitor: (...a) => ksmUpdateCompetitor(...a),
+    ksmSetTeamField: (...a) => ksmSetTeamField(...a),
+    ksmSetExhibitionField: (...a) => ksmSetExhibitionField(...a),
+    ksmRemoveCompetitor: (...a) => ksmRemoveCompetitor(...a),
+    ksmRemoveTeam: (...a) => ksmRemoveTeam(...a),
+    ksmRemoveExhibition: (...a) => ksmRemoveExhibition(...a),
+    ksmImportCSVFile: (...a) => ksmImportCSVFile(...a),
+    loadSamples: (...a) => loadSamples(...a),
+    loadTeamSamples: (...a) => loadTeamSamples(...a),
+    clearCompetitors: (...a) => clearCompetitors(...a),
+    clearTeams: (...a) => clearTeams(...a),
+    clearExhibitions: (...a) => clearExhibitions(...a),
+    get registrationInputs() { return {players: window.ksmRegistrationPlayersInput, teams: window.ksmRegistrationTeamsInput, exhibitions: window.ksmRegistrationExhibitionsInput}; },
     get cloudSession() { return cloudSession; },
     get APPROVED_DYNAMIC_MATCH_TYPES() { return APPROVED_DYNAMIC_MATCH_TYPES; },
     get KSM_MERGE_LABELS() { return KSM_MERGE_LABELS; },
@@ -223,6 +287,8 @@ window.KSMTest = {
     get ksmDeferredSyncRecord() { return ksmDeferredSyncRecord; }, set ksmDeferredSyncRecord(v) { ksmDeferredSyncRecord = v; },
     get ksmLastSuccessfulSaveAt() { return ksmLastSuccessfulSaveAt; }, set ksmLastSuccessfulSaveAt(v) { ksmLastSuccessfulSaveAt = v; },
     get ksmLocalMutationVersion() { return ksmLocalMutationVersion; }, set ksmLocalMutationVersion(v) { ksmLocalMutationVersion = v; },
+    get ksmNavActive() { return ksmNavActive; },
+    get ksmNavOpenMenu() { return ksmNavOpenMenu; },
     get ksmPendingTournamentFile() { return ksmPendingTournamentFile; }, set ksmPendingTournamentFile(v) { ksmPendingTournamentFile = v; },
     get ksmSaveStatusMode() { return ksmSaveStatusMode; }, set ksmSaveStatusMode(v) { ksmSaveStatusMode = v; },
     get ksmSaveTimer() { return ksmSaveTimer; }, set ksmSaveTimer(v) { ksmSaveTimer = v; },
@@ -234,19 +300,35 @@ window.KSMTest = {
     buildPoolMatches: (...a) => buildPoolMatches(...a),
     championshipTemplateForTotal: (...a) => championshipTemplateForTotal(...a),
     matchRequiresWinner: (...a) => matchRequiresWinner(...a),
+    matchSyncIdentity: (...a) => matchSyncIdentity(...a),
     addCustomDivision: (...a) => addCustomDivision(...a),
+    // Setup's divisions table: what its rows' controls call (#15 PR 9, tests/divisions-store-test.py).
+    ksmRenameSetupDivision: (...a) => ksmRenameSetupDivision(...a),
+    ksmMoveSetupDivision: (...a) => ksmMoveSetupDivision(...a),
+    ksmRemoveSetupDivision: (...a) => ksmRemoveSetupDivision(...a),
+    ksmRestoreStandardDivisions: (...a) => ksmRestoreStandardDivisions(...a),
+    setDivisionFormat: (...a) => setDivisionFormat(...a),
+    setDivisionCourtNow: (...a) => setDivisionCourt(...a),
+    loadFullTournament: (...a) => loadFullTournament(...a),
     appendApprovedDynamicMatches: (...a) => appendApprovedDynamicMatches(...a),
     applyIndividualNoShow: (...a) => applyIndividualNoShow(...a),
     applyRemoteCloudRecord: (...a) => applyRemoteCloudRecord(...a),
     applySetupSnapshot: (...a) => applySetupSnapshot(...a),
+    ksmSetSetting: (...a) => ksmSetSetting(...a),
+    ksmNormalizeTimerSettings: (...a) => ksmNormalizeTimerSettings(...a),
+    ksmExhibitionsEnabled: (...a) => ksmExhibitionsEnabled(...a),
+    ksmSetting: (...a) => ksmSetting(...a),
     applyTournamentPayload: (...a) => applyTournamentPayload(...a),
-    buildChampionshipTemplateMatches: (...a) => buildChampionshipTemplateMatches(...a),
+    // Since #15 PR 12b the app's builder gives the nodes to its caller's action; here they go into the store as before.
+    buildChampionshipTemplateMatches: (div, pairs) => { const draft = {}, out = buildChampionshipTemplateMatches(div, pairs, draft);
+      if (draft.championshipNodes) ksmSetDraw('drawEntriesUpdated', ksmDrawWith(div, {championshipNodes: draft.championshipNodes})); return out; },
     buildTV3ViewModel: (...a) => buildTV3ViewModel(...a),
     chooseCourt: (...a) => chooseCourt(...a),
     clearOutbox: (...a) => clearOutbox(...a),
     cloudDiagnostics: (...a) => cloudDiagnostics(...a),
     confirmTournamentFileLoad: (...a) => confirmTournamentFileLoad(...a),
     connectCloudSocket: (...a) => connectCloudSocket(...a),
+    courtSummaryFor: (...a) => courtSummaryFor(...a),
     createNewTournament: (...a) => createNewTournament(...a),
     criticalAutoSave: (...a) => criticalAutoSave(...a),
     directorDivisionProgress: (...a) => directorDivisionProgress(...a),
@@ -262,7 +344,6 @@ window.KSMTest = {
     initializeCloudRoleFromUrl: (...a) => initializeCloudRoleFromUrl(...a),
     installRoleBanner: (...a) => installRoleBanner(...a),
     jsArg: (...a) => jsArg(...a),
-    ksmChampionshipQueueGroups: (...a) => ksmChampionshipQueueGroups(...a),
     ksmDeleteLibraryTournament: (...a) => ksmDeleteLibraryTournament(...a),
     ksmExportLibraryTournament: (...a) => ksmExportLibraryTournament(...a),
     ksmOpenDeleteTournament: (...a) => ksmOpenDeleteTournament(...a),
@@ -270,6 +351,7 @@ window.KSMTest = {
     ksmReplaceUrl: (...a) => ksmReplaceUrl(...a),
     ksmSaveShortUrl: (...a) => ksmSaveShortUrl(...a),
     ksmSetActiveNav: (...a) => ksmSetActiveNav(...a),
+    ksmShellDialogsState: (...a) => ksmShellDialogsState(...a),
     ksmShowLibrary: (...a) => ksmShowLibrary(...a),
     localChangesPending: (...a) => localChangesPending(...a),
     makeTiebreakMatch: (...a) => makeTiebreakMatch(...a),
@@ -280,6 +362,8 @@ window.KSMTest = {
     maybeCreateTiebreaks: (...a) => maybeCreateTiebreaks(...a),
     navigateTo: (...a) => navigateTo(...a),
     nextMatch: (...a) => nextMatch(...a),
+    undo: (...a) => undo(...a),
+    redo: (...a) => redo(...a),
     get noteLocalMutation() { return noteLocalMutation; }, set noteLocalMutation(v) { noteLocalMutation = v; },
     openFusenDialog: (...a) => openFusenDialog(...a),
     openRegistrationTab: (...a) => openRegistrationTab(...a),
@@ -287,6 +371,7 @@ window.KSMTest = {
     openTournamentFromHome: (...a) => openTournamentFromHome(...a),
     get pendingTiebreak() { return pendingTiebreak; }, set pendingTiebreak(v) { pendingTiebreak = v; },
     persistCloudSession: (...a) => persistCloudSession(...a),
+    get compactCourtActionEntry() { return compactCourtActionEntry; }, set compactCourtActionEntry(v) { compactCourtActionEntry = v; },
     pinCourtLocally: (...a) => pinCourtLocally(...a),
     point: (...a) => point(...a),
     get poolFinished() { return poolFinished; }, set poolFinished(v) { poolFinished = v; },
@@ -296,6 +381,8 @@ window.KSMTest = {
     get poolStandings() { return poolStandings; }, set poolStandings(v) { poolStandings = v; },
     printDivisionSheet: (...a) => printDivisionSheet(...a),
     readOutbox: (...a) => readOutbox(...a),
+    ksmKeepRestoreRecovery: (...a) => ksmKeepRestoreRecovery(...a),
+    ksmRestoreRecoveries: (...a) => ksmRestoreRecoveries(...a),
     recomputeChampionshipAdvancement: (...a) => recomputeChampionshipAdvancement(...a),
     regTab: (...a) => regTab(...a),
     regenerateSingleDivision: (...a) => regenerateSingleDivision(...a),
@@ -304,12 +391,23 @@ window.KSMTest = {
     renderCloudPresence: (...a) => renderCloudPresence(...a),
     renderDirector: (...a) => renderDirector(...a),
     renderDivisionSetup: (...a) => renderDivisionSetup(...a),
+    renderPools: (...a) => renderPools(...a),
+    toggleEditPools: (...a) => toggleEditPools(...a),
     renderHomeTournamentLibrary: (...a) => renderHomeTournamentLibrary(...a),
     renderPersistentSaveStatus: (...a) => renderPersistentSaveStatus(...a),
+    renderPublic: (...a) => renderPublic(...a),
+    renderContext: (...a) => renderContext(...a),
+    renderDivisions: (...a) => renderDivisions(...a),
     renderQueue: (...a) => renderQueue(...a),
+    renderScore: (...a) => renderScore(...a),
+    setCourtCompletePresentation: (...a) => setCourtCompletePresentation(...a),
+    updateScoreTournamentName: (...a) => updateScoreTournamentName(...a),
+    updateUndoButton: (...a) => updateUndoButton(...a),
     renderReg: (...a) => renderReg(...a),
     renderResultsDashboard: (...a) => renderResultsDashboard(...a),
+    openResultsBracket: (...a) => openResultsBracket(...a),
     renderTeams: (...a) => renderTeams(...a),
+    renderExhibitions: (...a) => renderExhibitions(...a),
     renderTournamentStatus: (...a) => renderTournamentStatus(...a),
     renderTvDisplay: (...a) => renderTvDisplay(...a),
     replaceTournamentFromFile: (...a) => replaceTournamentFromFile(...a),
@@ -319,9 +417,19 @@ window.KSMTest = {
     saveNow: (...a) => saveNow(...a),
     saveTournamentToCloudWithReason: (...a) => saveTournamentToCloudWithReason(...a),
     selectScorekeeperDivision: (...a) => selectScorekeeperDivision(...a),
+    // The court view is in the store (#15 PR 6): set it through the app's helpers, never `state.currentCourt = …`.
+    setCurrentCourt: (...a) => ksmSetCurrentCourt(...a),
+    setPublicCourt: (...a) => ksmSetPublicCourt(...a),
+    showDivision: (...a) => ksmShowDivision(...a),
+    // PR 7: state.matches is derived from the shown division; the shown match and the score pad have their helpers.
+    showMatch: (...a) => ksmShowMatch(...a),
+    setScore: (...a) => ksmSetScore(...a),
     setConnectionStatus: (...a) => setConnectionStatus(...a),
     setCourtSupportMode: (...a) => setCourtSupportMode(...a),
     setSessionRole: (...a) => setSessionRole(...a),
+    // Staff Login's role change (with its court pointer catch-up, #15 PR 6) and closing the tournament (tests/court-pointers-store-test.py).
+    ksmAccountSetRole: (...a) => ksmAccountSetRole(...a),
+    ksmResetTournament: (...a) => ksmResetTournament(...a),
     show: (...a) => show(...a),
     showHomePage: (...a) => showHomePage(...a),
     sortIndividualDivisionMatches: (...a) => sortIndividualDivisionMatches(...a),
@@ -334,6 +442,8 @@ window.KSMTest = {
     tournamentFilePayload: (...a) => tournamentFilePayload(...a),
     tournamentPayload: (...a) => tournamentPayload(...a),
     tournamentSettings: (...a) => tournamentSettings(...a),
+    setRepresentative: (...a) => setRepresentative(...a),
+    teamRoster: (...a) => teamRoster(...a),
     tournamentSummary: (...a) => tournamentSummary(...a),
     tvAssignedCourt: (...a) => tvAssignedCourt(...a),
     tvIndividualSideLabel: (...a) => tvIndividualSideLabel(...a),
@@ -355,8 +465,8 @@ window.KSMTest = {
   // Mirrors what Setup + Registration + Generate do; used by the golden engine test.
   // Court actions recorded as an older version did (index patches kept): compactCourtActionEntry() off, or back on.
   historyCompaction(on) {
-    if (!on && !KSMTest._compact) { KSMTest._compact = compactCourtActionEntry; compactCourtActionEntry = entry => entry; }
-    if (on && KSMTest._compact) { compactCourtActionEntry = KSMTest._compact; KSMTest._compact = null; }
+    if (!on && !KSMTest._compact) { KSMTest._compact = KSMTest.app.compactCourtActionEntry; KSMTest.app.compactCourtActionEntry = entry => { const { matchOps, ...older } = entry; return older; }; } // off: an older version's entry (index patches, no match ops)
+    if (on && KSMTest._compact) { KSMTest.app.compactCourtActionEntry = KSMTest._compact; KSMTest._compact = null; }
   },
   teamDivisions() { return JSON.parse(JSON.stringify(ksmTeamDivisions())); },
   addTeamDivision(name) { return ksmAddTeamDivision(name); },
@@ -365,10 +475,11 @@ window.KSMTest = {
   removeTeamDivision(id) { return ksmRemoveTeamDivision(id); },
   assignTeamDivision(index, id) { return ksmAssignTeamDivision(state.teams[index], id); },
   // New registrations (after generation they go to a team division without a draw) and the Regenerate dialog.
-  addTeams(rows) { state.teams.push(...ksmNewTeamRows(rows)); renderTeams(); return state.teams.slice(-rows.length).map(t => t.teamDivisionId); },
+  addTeams(rows) { ksmLoadPeople({teams: [...state.teams, ...ksmNewTeamRows(rows)]}); renderTeams(); return state.teams.slice(-rows.length).map(t => t.teamDivisionId); },
   addIndividualDivision(name, format, court, entrants) {
-    state.divisions.push(name); state.divisionTypes[name] = format; state.divisionCourts[name] = court;
-    state.competitors.push(...entrants.map(e => ({...e, division: name}))); renderDivisionSetup(); renderDivisions();
+    // The division lists are the store's (#15 PR 9): set through the app's action, as its own code does.
+    ksmReplaceDivisions([...state.divisions, name], {...state.divisionTypes, [name]: format}, {...state.divisionCourts, [name]: court});
+    ksmLoadPeople({competitors: [...state.competitors, ...entrants.map(e => ({...e, division: name}))]}); renderDivisionSetup(); renderDivisions();
   },
   openRegenerate() { openRegenerateDivisionDialog(); },
   // #86: grand champion rows (Setup's island calls the same actions).
@@ -380,30 +491,28 @@ window.KSMTest = {
   grandChampionQuestion() { const c = ksmShellDialogs?.cloud; return c?.body?.kind === 'grand-champion' ? {title: c.title, message: c.body.message, choices: c.body.choices.map(x => x.id)} : null; },
   configure(entries) {
     const divs = entries.filter(d => !d.team), team = entries.find(d => d.team);
-    state.divisions = divs.map(d => d.name);
-    state.divisionTypes = Object.fromEntries(divs.map(d => [d.name, d.format]));
-    state.divisionCourts = Object.fromEntries(divs.map(d => [d.name, d.court]));
-    state.competitors = divs.flatMap(d => d.entrants.map(e => ({...e, division: d.name})));
-    state.teams = []; state.exhibitions = [];
-    teamEnabled.value = team ? 'Enabled' : 'Disabled';
+    ksmReplaceDivisions(divs.map(d => d.name), Object.fromEntries(divs.map(d => [d.name, d.format])), Object.fromEntries(divs.map(d => [d.name, d.court])));
+    ksmLoadPeople({competitors: divs.flatMap(d => d.entrants.map(e => ({...e, division: d.name}))), teams: [], exhibitions: []});
+    // The Setup fields are the store's (tournament.settings, #15 PR 8): set through the app, as its own code does.
+    ksmSetSetting('teamEnabled', team ? 'Enabled' : 'Disabled');
     if (team) {
-      teamFormat.value = team.format; teamTournamentFormat.value = team.tournament;
-      // The Setup select too: saveSetup() and synced setup snapshots read the team court from it.
-      teamCourt.value = team.court; state.divisionCourts['Team Tournament'] = team.court;
+      ksmSetSetting('teamFormat', team.format); ksmSetSetting('teamTournamentFormat', team.tournament);
+      // The Setup field and its divisionCourts entry together, as the app's own writers do (#15 PR 8b).
+      ksmSetTeamCourt(team.court);
       const slots = team.format === '5-Person Team' ? ['senpo','jiho','chuken','fukusho','taisho'] : ['senpo','chuken','taisho'];
-      state.teams = Array.from({length: team.teams}, (_, i) => {
+      ksmLoadPeople({teams: Array.from({length: team.teams}, (_, i) => {
         const code = String.fromCharCode(65 + i);
         return {team: `Team ${code}`, type: team.format, status: 'Checked', ...Object.fromEntries(slots.map((s, j) => [s, `T${code}${j + 1}`]))};
-      });
+      })});
     }
     // `teams` may also be the team rows themselves ({team, senpo, chuken, taisho, ...}).
-    if (team && Array.isArray(team.teams)) state.teams = team.teams.map(t => ({type: team.format, status: 'Checked', ...t}));
-    delete state.teamDivisions;Object.assign(state,KSMEngine.migrateTeamDivisions(state,getSetupSnapshot()));
+    if (team && Array.isArray(team.teams)) ksmLoadPeople({teams: team.teams.map(t => ({type: team.format, status: 'Checked', ...t}))});
+    ksmLoadPeople({teamDivisions: undefined});ksmTeamDivisions(); // the app's own migration (tournament/peopleLoaded)
     // More team divisions: each further {team:true, name, format, tournament, court, teams: [rows]} entry.
     entries.filter(d => d.team).slice(1).forEach(d => {
       const id = ksmAddTeamDivision(d.name || 'Team division');
       ksmUpdateTeamDivision(id, {teamFormat: d.format, teamTournamentFormat: d.tournament, court: d.court});
-      state.teams.push(...d.teams.map(t => ({type: d.format, status: 'Checked', ...t, teamDivisionId: id})));
+      ksmLoadPeople({teams: [...JSON.parse(JSON.stringify(state.teams)), ...d.teams.map(t => ({type: d.format, status: 'Checked', ...t, teamDivisionId: id}))]});
     });
     generatePools({validated: true});
   },

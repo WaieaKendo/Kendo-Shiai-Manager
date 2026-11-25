@@ -3,7 +3,7 @@ import fs from 'node:fs';
 const html=appSource;
 const checks=[
   ['independent pool selection state', html.includes("poolViewDivision:'Women’s Open'")],
-  ['selector updates pool selection state', html.includes('onchange="state.poolViewDivision=this.value;renderPools()"')],
+  ['selector updates pool selection state', html.includes('onchange="ksmSetPoolViewDivision(this.value);renderPools()"')],
   ['renderDivisions preserves pool selector', html.includes('let selected=(poolDiv.value&&all.includes(poolDiv.value))?poolDiv.value')],
   ['renderPools uses independent selection', html.includes('poolDiv?.value||state.poolViewDivision||state.currentDivision')],
 ];

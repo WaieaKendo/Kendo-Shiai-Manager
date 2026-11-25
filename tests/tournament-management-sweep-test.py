@@ -15,9 +15,9 @@ with sync_playwright() as p:
     # Direct-elimination split sweep 4-32.
     for n in range(4,33):
         page.evaluate("""n=>{
-          KSMTest.app.state.divisions=['Sweep'];KSMTest.app.state.divisionTypes={Sweep:'Single Elimination'};KSMTest.app.state.divisionCourts={Sweep:'split'};
-          KSMTest.app.state.competitors=Array.from({length:n},(_,i)=>({name:'P'+(i+1),dojo:'D'+i,division:'Sweep',seed:i<4?String(i+1):'',status:'Checked'}));
-          KSMTest.app.state.pools={};KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={};KSMTest.app.state.singleElimComps={};KSMTest.app.state.teamBracketNodes={};KSMTest.app.state.teamPools={};KSMTest.app.state.brackets={};KSMTest.app.state.byeWinners={};KSMTest.app.state.currentByDivision={};
+          KSMTest.app.setDivisionLists({divisions:['Sweep'],divisionTypes:{Sweep:'Single Elimination'},divisionCourts:{Sweep:'split'}});
+          KSMTest.app.setPeople({competitors: Array.from({length:n},(_,i)=>({name:'P'+(i+1),dojo:'D'+i,division:'Sweep',seed:i<4?String(i+1):'',status:'Checked'}))});
+          KSMTest.app.setDraw({pools:{}});KSMTest.app.setAllMatches({});KSMTest.app.setDraw({singleElimNodes:{}});KSMTest.app.setDraw({singleElimComps:{}});KSMTest.app.setDraw({teamBracketNodes:{}});KSMTest.app.setDraw({teamPools:{}});KSMTest.app.setDraw({brackets:{}});KSMTest.app.setDraw({byeWinners:{}});KSMTest.app.setCourtPointers({currentByDivision:{}});
           KSMTest.app.generateDivisionState('Sweep');
         }""",n)
         nodes=page.evaluate("KSMTest.app.state.singleElimNodes.Sweep")
@@ -33,9 +33,9 @@ with sync_playwright() as p:
     # Pool split sweep 6-32; pools intact and B receives odd extra.
     for n in range(6,33):
         page.evaluate("""n=>{
-          KSMTest.app.state.divisions=['Sweep'];KSMTest.app.state.divisionTypes={Sweep:'Round Robin'};KSMTest.app.state.divisionCourts={Sweep:'split'};
-          KSMTest.app.state.competitors=Array.from({length:n},(_,i)=>({name:'P'+(i+1),dojo:'D'+i,division:'Sweep',seed:i<4?String(i+1):'',status:'Checked'}));
-          KSMTest.app.state.pools={};KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={};KSMTest.app.state.singleElimComps={};KSMTest.app.state.teamBracketNodes={};KSMTest.app.state.teamPools={};KSMTest.app.state.brackets={};KSMTest.app.state.byeWinners={};KSMTest.app.state.currentByDivision={};
+          KSMTest.app.setDivisionLists({divisions:['Sweep'],divisionTypes:{Sweep:'Round Robin'},divisionCourts:{Sweep:'split'}});
+          KSMTest.app.setPeople({competitors: Array.from({length:n},(_,i)=>({name:'P'+(i+1),dojo:'D'+i,division:'Sweep',seed:i<4?String(i+1):'',status:'Checked'}))});
+          KSMTest.app.setDraw({pools:{}});KSMTest.app.setAllMatches({});KSMTest.app.setDraw({singleElimNodes:{}});KSMTest.app.setDraw({singleElimComps:{}});KSMTest.app.setDraw({teamBracketNodes:{}});KSMTest.app.setDraw({teamPools:{}});KSMTest.app.setDraw({brackets:{}});KSMTest.app.setDraw({byeWinners:{}});KSMTest.app.setCourtPointers({currentByDivision:{}});
           KSMTest.app.generateDivisionState('Sweep');
         }""",n)
         data=page.evaluate("KSMTest.app.state.pools.Sweep.map(p=>({label:p.label,court:p.court,matchCourts:[...new Set(KSMTest.app.state.allMatches.Sweep.filter(m=>m.pool===p.label).map(m=>m.court))]}))")

@@ -80,9 +80,11 @@ if (files.length) {
 
 function run(file) {
   const cmd = file.endsWith('.py') ? python : process.execPath;
+  // Node tests may import the engine's .ts files directly (no build step): strip the types on load.
+  const flags = file.endsWith('.py') ? [] : ['--experimental-strip-types', '--disable-warning=ExperimentalWarning'];
   const started = Date.now();
   return new Promise(resolve => {
-    const child = spawn(cmd, [path.join('tests', file)], { cwd: root, env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' } });
+    const child = spawn(cmd, [...flags, path.join('tests', file)], { cwd: root, env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' } });
     let output = '';
     child.stdout.on('data', d => { output += d; });
     child.stderr.on('data', d => { output += d; });

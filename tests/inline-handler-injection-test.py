@@ -26,7 +26,7 @@ with sync_playwright() as p:
     # Custom divisions with hostile names, shown in the Setup division table.
     page.evaluate("""names => {
       window.__pwned = 0; window.__calls = [];
-      names.forEach(n => { KSMTest.app.state.divisions.push(n); KSMTest.app.state.divisionTypes[n] = 'Round Robin'; KSMTest.app.state.divisionCourts[n] = 'A'; });
+      const st = KSMTest.app.state; KSMTest.app.setDivisionLists({divisions: [...st.divisions, ...names], divisionTypes: {...st.divisionTypes, ...Object.fromEntries(names.map(n => [n, 'Round Robin']))}, divisionCourts: {...st.divisionCourts, ...Object.fromEntries(names.map(n => [n, 'A']))}});
       const orig = window.setDivisionCourt;
       window.setDivisionCourt = (d, v) => { window.__calls.push(d); return orig(d, v); };
       KSMTest.app.navigateTo('setup'); KSMTest.app.renderDivisionSetup();
@@ -34,7 +34,7 @@ with sync_playwright() as p:
     page.wait_for_timeout(200)
 
     # Fire every court <select> handler for the hostile rows and confirm the exact name arrives.
-    # (Since M.13 the Setup rows are drawn by React, app/react/setup/: the court select's change
+    # (Since M.13 the Setup rows are drawn by React, app/react/features/setup/: the court select's change
     # listener calls setDivisionCourt() with the division as published, no inline handler.)
     fired = page.evaluate("""names => {
       const out = [];

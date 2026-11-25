@@ -79,13 +79,26 @@ class Scorekeeper:
         side, other = ('W', 'R') if winner == white else ('R', 'W')
         if m['meta'].startswith('Final'):
             return winner, [(side, 'M'), (other, 'K'), (side, 'K')]  # 2-1 final
-        return winner, [(side, 'M' if len(self.log) % 2 else 'K')]
+        # Letter depends only on the pair, not on how the two courts interleave.
+        return winner, [(side, 'M' if (RANK[white] + RANK[red]) % 2 else 'K')]
+
+    def already_scored(self, m):
+        return any(e['court'] == self.court and (e['division'], e['meta'], e['white'], e['red']) ==
+                   (m['division'], m['meta'], m['white'], m['red']) for e in self.log)
 
     def step(self):
         """Score one match, or move to the next division. Returns True if anything happened."""
         if self.done:
             return False
         m = self.app.current_match()
+        if m and self.already_scored(m):
+            # The court screen can still show the match just finished (CI once logged
+            # Semifinal 12 twice). Give it time to move on rather than scoring it again.
+            print(f'WARNING: Court {self.court} still shows finished {m["division"]} {m["meta"]} '
+                  f'({m["white"]} vs {m["red"]}); waiting for it to move on', flush=True)
+            self.app.wait_for(lambda: not (lambda n: n and self.already_scored(n))(self.app.current_match()),
+                              timeout=15, message=f'Court {self.court} to move on from {m["meta"]}')
+            return True
         if m and m['division'] == self.division:
             winner, pts = self.outcome(m)
             for side, letter in pts:

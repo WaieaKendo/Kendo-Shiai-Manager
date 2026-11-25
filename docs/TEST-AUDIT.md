@@ -166,7 +166,7 @@ Review follow-ups: N3 statuses run in five independent processes, each with its 
 
 Mutation checks (each temporary source change restored): disabling pending action replay fails N5/N10; removing stale-revision rejection fails N7; preserving the shared outbox makes the F36 pin fail; disabling legacy origin migration, the autosave origin writer or creation-time tagging each fails the startup origin test; disabling outbox writing fails all five isolated N3 cases. Creation tagging is checked with debounce timers paused so a later autosave cannot mask its absence.
 
-Validation: all ten new files passed five consecutive runs (50/50 file runs), with additional passes after tightening exact status text and duplicate-history assertions. `npx tsc --noEmit`, `node scripts/verify-split.mjs` and the isolated full `node tests/run-all.mjs` pass (**191/191**). No golden files changed. Run-all processes rebuild the shared `dist/`; run the full suite separately from other run-all invocations to avoid transient missing assets during browser startup.
+Validation: all ten new files passed five consecutive runs (50/50 file runs), with additional passes after tightening exact status text and duplicate-history assertions. `npx tsc --noEmit` and the isolated full `node tests/run-all.mjs` pass (**191/191**). No golden files changed. Run-all processes rebuild the shared `dist/`; run the full suite separately from other run-all invocations to avoid transient missing assets during browser startup.
 
 ### Harness notes
 

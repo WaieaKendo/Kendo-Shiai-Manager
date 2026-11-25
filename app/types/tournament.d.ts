@@ -109,6 +109,8 @@ interface Match {
   pool?: string;
   /** Round name for championship/elimination bouts, position name ('Senpo', ...) for team bouts. */
   position?: string;
+  /** Round name of a bout (the timer reads it for team bouts). */
+  round?: string;
   poolOrder?: number;
   poolTemplateOrder?: number;
   whitePoolSlot?: string;
@@ -230,8 +232,12 @@ interface TournamentState {
   /** #86: grand champion rows; each row's draw is the division keyed by its id ('gc:<hex>'). */
   grandChampions?: GrandChampion[];
   divisions: string[];
+  /** Owner request (4.0): preset divisions removed for this tournament (Setup's "Restore standard divisions" brings them back). */
+  hiddenPresets?: string[];
   divisionTypes: ByDivision<DivisionFormat>;
   divisionCourts: ByDivision<CourtMode>;
+  /** #25: the division rename log ({id, from, to}) the save-conflict replay uses; absent until a rename (#15 PR 9 types it). */
+  divisionRenames?: import('../engine/division-lists.ts').DivisionRename[];
   competitors: Competitor[];
   teams: Team[];
   exhibitions: Exhibition[];
@@ -259,6 +265,8 @@ interface TournamentState {
   currentByDivision: ByDivision<number>;
   courtActionHistory: ByCourt<CourtAction[]>;
   courtRedoHistory: ByCourt<CourtAction[]>;
+  /** Undo/Redo log the save rebase replays (courtUndoLogEntry()). */
+  courtUndoLog?: ByCourt<unknown[]>;
 
   // View state of this device (not merged from other devices)
   currentCourt: Court;

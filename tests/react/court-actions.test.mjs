@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { FUSEN_LABEL, STATIC_ACTIONS, courtActionsView, fusenButtonView, scoreButtons } from '../../app/react/court/actions-model.ts';
-import { DEFAULT_COURT_ACTION_ICONS } from '../../app/react/court/branding.ts';
+import { FUSEN_LABEL, STATIC_ACTIONS, courtActionsView, fusenButtonView, scoreButtons } from '../../app/react/features/court/actions-model.ts';
+import { DEFAULT_COURT_ACTION_ICONS } from '../../app/react/shared/ui/branding.ts';
 
 test('scoreButtons: each panel in the legacy order, test IDs and labels', () => {
   assert.deepEqual(scoreButtons('W'), [

@@ -8,9 +8,9 @@ from playwright.sync_api import sync_playwright
 from ksm_browser import launch_chromium, load_app
 
 SETUP = """() => {
-  KSMTest.app.state.divisions = ['Open']; KSMTest.app.state.divisionTypes = {Open: 'Single Elimination'}; KSMTest.app.state.divisionCourts = {Open: 'split'};
-  KSMTest.app.state.competitors = Array.from({length: 8}, (_, i) => ({name: 'P' + (i + 1), dojo: 'D' + (i % 3), division: 'Open', seed: '', status: 'Checked'}));
-  KSMTest.app.state.teams = []; KSMTest.app.state.exhibitions = []; teamEnabled.value = 'Disabled';
+  KSMTest.app.setDivisionLists({divisions:['Open'],divisionTypes:{Open: 'Single Elimination'},divisionCourts:{Open: 'split'}});
+  KSMTest.app.setPeople({competitors: Array.from({length: 8}, (_, i) => ({name: 'P' + (i + 1), dojo: 'D' + (i % 3), division: 'Open', seed: '', status: 'Checked'}))});
+  KSMTest.app.setPeople({teams: []}); KSMTest.app.setPeople({exhibitions: []}); KSMTest.app.ksmSetSetting('teamEnabled', 'Disabled');
   KSMTest.app.generatePools({validated: true});
 }"""
 

@@ -17,17 +17,16 @@ with sync_playwright() as p:
       for n in range(4,33):
         result=page.evaluate("""({n,split})=>{
           const div='Sim';
-          KSMTest.app.state.divisions=[div];KSMTest.app.state.divisionTypes={[div]:'Single Elimination'};KSMTest.app.state.divisionCourts={[div]:split?'split':'A'};
-          KSMTest.app.state.competitors=Array.from({length:n},(_,i)=>({name:'P'+(i+1),dojo:'D'+i,division:div,seed:i<4?String(i+1):'',status:'Checked'}));
-          KSMTest.app.state.pools={};KSMTest.app.state.allMatches={};KSMTest.app.state.singleElimNodes={};KSMTest.app.state.singleElimComps={};KSMTest.app.state.teamBracketNodes={};KSMTest.app.state.teamPools={};KSMTest.app.state.brackets={};KSMTest.app.state.byeWinners={};KSMTest.app.state.currentByDivision={};
+          KSMTest.app.setDivisionLists({divisions:[div],divisionTypes:{[div]:'Single Elimination'},divisionCourts:{[div]:split?'split':'A'}});
+          KSMTest.app.setPeople({competitors: Array.from({length:n},(_,i)=>({name:'P'+(i+1),dojo:'D'+i,division:div,seed:i<4?String(i+1):'',status:'Checked'}))});
+          KSMTest.app.setDraw({pools:{}});KSMTest.app.setAllMatches({});KSMTest.app.setDraw({singleElimNodes:{}});KSMTest.app.setDraw({singleElimComps:{}});KSMTest.app.setDraw({teamBracketNodes:{}});KSMTest.app.setDraw({teamPools:{}});KSMTest.app.setDraw({brackets:{}});KSMTest.app.setDraw({byeWinners:{}});KSMTest.app.setCourtPointers({currentByDivision:{}});
           KSMTest.app.generateDivisionState(div);
           const initial=KSMTest.app.state.allMatches[div].length;
           let guard=0;
           while(guard++<200){
             const ready=KSMTest.app.state.allMatches[div].find(m=>m.singleElim&&!m.done&&m.ready);
             if(!ready)break;
-            ready.wp=['M'];ready.rp=[];ready.done=true;
-            KSMTest.app.maybeAdvanceIndividualSingleElim(ready);
+            KSMTest.app.maybeAdvanceIndividualSingleElim(KSMTest.app.updateBout(ready,{wp:['M'],rp:[],done:true}));
           }
           const beforeRepeat=KSMTest.app.state.allMatches[div].length;
           for(let i=0;i<10;i++)KSMTest.app.syncIndividualSingleElim(div,KSMTest.app.state.allMatches[div],KSMTest.app.state.singleElimComps[div]);
@@ -59,17 +58,17 @@ with sync_playwright() as p:
     # A fully tied three-person series creates another complete three-person series.
     tb=page.evaluate("""()=>{
       const div='Tie';
-      KSMTest.app.state.divisionCourts={[div]:'A'};
-      KSMTest.app.state.pools={[div]:[{label:'A',players:[{name:'A',dojo:'D'},{name:'B',dojo:'D'},{name:'C',dojo:'D'}]}]};
-      KSMTest.app.state.brackets={[div]:[['A1','B2'],['B1','A2']]};
-      KSMTest.app.state.allMatches={[div]:[
+      KSMTest.app.setDivisionLists({divisionCourts:{[div]:'A'}});
+      KSMTest.app.setDraw({pools:{[div]:[{label:'A',players:[{name:'A',dojo:'D'},{name:'B',dojo:'D'},{name:'C',dojo:'D'}]}]}});
+      KSMTest.app.setDraw({brackets:{[div]:[['A1','B2'],['B1','A2']]}});
+      KSMTest.app.setAllMatches({[div]:[
         {division:div,pool:'A',white:'A',red:'B',wdojo:'D',rdojo:'D',done:true,wp:['M'],rp:[],type:'individual',court:'A'},
         {division:div,pool:'A',white:'C',red:'B',wdojo:'D',rdojo:'D',done:true,wp:[],rp:['M'],type:'individual',court:'A'},
         {division:div,pool:'A',white:'C',red:'A',wdojo:'D',rdojo:'D',done:true,wp:['M'],rp:[],type:'individual',court:'A'}
-      ]};
+      ]});
       KSMTest.app.maybeCreateTiebreaks(KSMTest.app.state.allMatches[div][2]);
       let first=KSMTest.app.state.allMatches[div].filter(m=>m.tiebreak);
-      first.forEach(m=>{m.done=true;m.wp=[];m.rp=[];});
+      first=first.map(m=>KSMTest.app.updateBout(m,{done:true,wp:[],rp:[]}));
       KSMTest.app.maybeCreateTiebreaks(first[first.length-1]);
       const all=KSMTest.app.state.allMatches[div].filter(m=>m.tiebreak);
       return {count:all.length,series:[...new Set(all.map(m=>m.tiebreakSeries))],winnerFlags:all.map(m=>m.requiresWinner)};
@@ -82,10 +81,10 @@ with sync_playwright() as p:
     # Four-person series allows ties and can repeat when all required seeds remain unresolved.
     four=page.evaluate("""()=>{
       const div='Four';
-      KSMTest.app.state.divisionCourts={[div]:'A'};KSMTest.app.state.allMatches={[div]:[]};
+      KSMTest.app.setDivisionLists({divisionCourts:{[div]:'A'}});KSMTest.app.setAllMatches({[div]:[]});
       const players=['A','B','C','D'].map(name=>({name,dojo:'D',wins:0,pts:0}));
-      const one=KSMTest.app.tiebreakMatchesForGroup(div,'A',players);KSMTest.app.state.allMatches[div].push(...one);
-      one.forEach(m=>{m.done=true;m.wp=[];m.rp=[];});
+      const one=KSMTest.app.tiebreakMatchesForGroup(div,'A',players);KSMTest.app.setDivisionMatches(div,[...KSMTest.app.state.allMatches[div],...one]);
+      one.forEach(m=>KSMTest.app.updateBout(m,{done:true,wp:[],rp:[]}));
       const two=KSMTest.app.tiebreakMatchesForGroup(div,'A',players);
       return {one:one.length,two:two.length,series:[one[0].tiebreakSeries,two[0].tiebreakSeries],hard:two.some(m=>m.requiresWinner)};
     }""")
@@ -93,12 +92,12 @@ with sync_playwright() as p:
 
     # Championship order is canonical after filtering, regardless of creation order.
     order=page.evaluate("""()=>{
-      const div='Order';KSMTest.app.state.brackets={[div]:[['A1','B2'],['C1','A3'],['B1','C2'],['A2','B3']]};
-      KSMTest.app.state.allMatches={[div]:[
+      const div='Order';KSMTest.app.setDraw({brackets:{[div]:[['A1','B2'],['C1','A3'],['B1','C2'],['A2','B3']]}});
+      KSMTest.app.setAllMatches({[div]:[
         {division:div,type:'individual',championship:true,position:'Quarterfinal',bracketSlot:3,court:'B',white:'W4',red:'R4',done:false},
         {division:div,type:'individual',championship:true,position:'Quarterfinal',bracketSlot:2,court:'B',white:'W3',red:'R3',done:false},
         {division:div,type:'individual',championship:true,position:'Quarterfinal',bracketSlot:0,court:'A',white:'W1',red:'R1',done:false}
-      ]};
+      ]});
       KSMTest.app.sortIndividualDivisionMatches(div,KSMTest.app.state.allMatches[div]);
       return KSMTest.app.state.allMatches[div].filter(m=>m.court==='B').map(m=>m.bracketSlot);
     }""")

@@ -1,0 +1,391 @@
+// @ts-check
+import {ksmShowMatch,state} from '../app-state.js';
+import {individualMatchReady} from '../court/court-match-order.js';
+import {ksmMoveCourtPointers} from '../court/court-pointers-store.js';
+import {ksmAppendMatches,ksmInsertMatches,ksmSetDivisionMatches} from '../court/match-writes.js';
+import {poolPositionsResolved,requiredSeedPlaces} from './engine-championship.js';
+import {eligibleTeams,isTeamDivision,poolCourtFor} from './engine-pools.js';
+import {replaceable} from '../replaceable.js';
+import {ksmTeamSettings} from '../registration/team-divisions.js';
+import {divisionComplete} from '../results/results-and-awards.js';
+import {isReadOnlySession} from '../session/staff-session-and-library.js';
+import {matchBelongsToCourtInState,matchHasSyncIdentity,matchSyncIdentity,nextReadyIndexInState} from '../sync/sync-state-and-rebase.js';
+import * as KSMEngine from '../../engine/index.ts';
+// Replaceable by tests (KSMTest.app.NAME = ...): see app/modules/replaceable.js. Callers use the exported const.
+/**
+ * All regular bouts of the pool are done (tiebreaks aside); 0 when the pool has no bouts.
+ * @param {string} poolLabel
+ * @param {string} [div]
+ * @returns {boolean|number}
+ */
+function poolFinishedImpl(poolLabel,div=state.currentDivision){
+  return KSMEngine.poolFinished(state.allMatches[div]||[],poolLabel);
+}
+export const poolFinished=replaceable('poolFinished',poolFinishedImpl);
+/**
+ * @param {string} poolLabel
+ * @param {string} div
+ * @returns {boolean}
+ */
+function pendingTiebreakImpl(poolLabel,div){
+  return KSMEngine.pendingTiebreak(state.allMatches[div]||[],poolLabel);
+}
+export const pendingTiebreak=replaceable('pendingTiebreak',pendingTiebreakImpl);
+/**
+ * Pool record only (wins, then points, then name).
+ * @param {string} poolLabel
+ * @param {string} [div]
+ * @returns {PoolStandingRow[]}
+ */
+function initialPoolStandingsImpl(poolLabel,div=state.currentDivision){
+  return KSMEngine.initialPoolStandings((state.pools[div]||[]).find(p=>p.label===poolLabel),state.allMatches[div]||[]);
+}
+export const initialPoolStandings=replaceable('initialPoolStandings',initialPoolStandingsImpl);
+/**
+ * Orders a tied group by its tiebreak series, one series after another.
+ * @param {string} poolLabel
+ * @param {string} div
+ * @param {TiedGroup} target
+ * @returns {{locked: TiebreakStatsRow[], unresolved: PoolStandingRow[], ordered: (PoolStandingRow|TiebreakStatsRow)[], lastStats: TiebreakStatsRow[]}}
+ */
+function resolveTiebreakBaseGroupImpl(poolLabel,div,target){
+  return KSMEngine.resolveTiebreakBaseGroup(state.allMatches[div]||[],poolLabel,target);
+}
+export const resolveTiebreakBaseGroup=replaceable('resolveTiebreakBaseGroup',resolveTiebreakBaseGroupImpl);
+/**
+ * Pool standings; tied groups are ordered by their tiebreaks (their pool record is kept in wins/pts).
+ * @param {string} poolLabel
+ * @param {string} [div]
+ * @returns {PoolStandingRow[]}
+ */
+function poolStandingsImpl(poolLabel,div=state.currentDivision){
+  const pool=(state.pools[div]||[]).find(p=>p.label===poolLabel);return pool?KSMEngine.poolStandings(pool,state.allMatches[div]||[],requiredSeedPlaces(div)[poolLabel]||2):[];
+}
+export const poolStandings=replaceable('poolStandings',poolStandingsImpl);
+/**
+ * @param {string} poolLabel
+ * @param {string} div
+ * @param {PoolStandingRow[]} players
+ * @returns {{stats: TiebreakStatsRow[], done: Match[]}}
+ */
+function tiebreakStatsForPlayers(poolLabel,div,players){
+  return KSMEngine.tiebreakStatsForPlayers(state.allMatches[div]||[],poolLabel,players);
+}
+/**
+ * @param {string} poolLabel
+ * @param {string} div
+ * @param {PoolStandingRow[]} players
+ * @param {number} series
+ * @returns {{stats: TiebreakStatsRow[], matches: Match[]}}
+ */
+function tiebreakSeriesStats(poolLabel,div,players,series){
+  return KSMEngine.tiebreakSeriesStats(state.allMatches[div]||[],poolLabel,players,series);
+}
+/**
+ * Players still tied for a place that matters (up to reqSeed), or null.
+ * @param {string} poolLabel
+ * @param {string} div
+ * @param {TiedGroup} target
+ * @param {number} reqSeed
+ * @returns {PoolStandingRow[]|null}
+ */
+export function unresolvedRequiredTiebreakGroup(poolLabel,div,target,reqSeed){
+  return KSMEngine.unresolvedRequiredTiebreakGroup(state.allMatches[div]||[],poolLabel,target,reqSeed);
+}
+/**
+ * @param {string} div
+ * @param {string} pool
+ * @param {PoolStandingRow[]} players
+ * @returns {Match[]}
+ */
+export function tiebreakMatchesForGroup(div,pool,players){
+  return KSMEngine.tiebreakMatchesForGroup(state.allMatches?.[div]||[],div,pool,players,poolCourtFor(div,pool));
+}
+export const APPROVED_DYNAMIC_MATCH_TYPES=Object.freeze(new Set([
+  'INDIVIDUAL_POOL_TIEBREAK',
+  'TEAM_3_PERSON_REPRESENTATIVE',
+  'TEAM_5_PERSON_REPRESENTATIVE',
+  'KACHINUKI_REPRESENTATIVE',
+  'TEAM_3_PERSON_ROUND_ROBIN_TIEBREAK',
+  'TEAM_5_PERSON_ROUND_ROBIN_TIEBREAK',
+  'KACHINUKI_ROUND_ROBIN_TIEBREAK'
+]));
+/**
+ * @param {Match} match
+ * @returns {boolean}
+ */
+export function isIndividualPoolTiebreakMatch(match){return KSMEngine.isIndividualPoolTiebreakMatch(match);// moved to app/engine/match-helpers.ts
+  }
+/**
+ * @param {string} division
+ * @param {string} pool
+ * @param {{name: string, dojo: string}} a
+ * @param {{name: string, dojo: string}} b
+ * @param {boolean} [requiresWinner]
+ * @param {number} [tiebreakSeries]
+ * @param {number} [tiebreakIndex]
+ * @returns {Match}
+ */
+export function makeTiebreakMatch(division,pool,a,b,requiresWinner=false,tiebreakSeries=1,tiebreakIndex=0){
+  return KSMEngine.makeTiebreakMatch(division,pool,a,b,requiresWinner,tiebreakSeries,tiebreakIndex,poolCourtFor(division,pool));
+}
+/**
+ * @param {string} div
+ * @param {string} pair
+ * @returns {Match[]}
+ */
+export function teamPairMatches(div,pair){
+  return KSMEngine.teamPairMatches(state.allMatches[div]||[],pair);
+}
+/**
+ * @param {string} div
+ * @param {string} pair
+ * @returns {Match[]}
+ */
+function teamPositionMatches(div,pair){
+  return KSMEngine.teamPositionMatches(state.allMatches[div]||[],pair);
+}
+/**
+ * @param {string} div
+ * @param {string} pair
+ * @returns {TeamPairSummary}
+ */
+export function teamPairSummary(div,pair){
+  return KSMEngine.teamPairSummary(state.allMatches[div]||[],pair);
+}
+/**
+ * @param {string} [div]
+ * @returns {string[]}
+ */
+export function teamPairIds(div='Team Tournament'){
+  return KSMEngine.teamPairIds(state.allMatches[div]||[]);
+}
+/**
+ * @param {string} div
+ * @param {string} pair
+ * @returns {boolean}
+ */
+export function teamRoundRobinPairResolved(div,pair){
+  return KSMEngine.teamRoundRobinPairResolved(state.allMatches[div]||[],pair);
+}
+/**
+ * @param {string} [div]
+ * @returns {{complete: number, total: number}}
+ */
+export function teamRoundRobinProgress(div='Team Tournament'){
+  return KSMEngine.teamRoundRobinProgress(state.allMatches[div]||[]);
+}
+/**
+ * @param {string} div
+ */
+function allPoolMatchesComplete(div){let arr=state.allMatches[div]||[];let poolMs=arr.filter(m=>m&&m.type==='individual' && !m.championship);return poolMs.length && poolMs.every(m=>m.done)}
+/**
+ * @param {string} div
+ * @returns {boolean}
+ */
+function hasPendingIndividualTiebreak(div){return (state.allMatches[div]||[]).some(m=>m&&m.type==='individual'&&m.tiebreak&&!m.done)}
+/**
+ * @param {string} [div]
+ * @returns {boolean}
+ */
+export function isTeamRoundRobinDivision(div='Team Tournament'){
+  if(!isTeamDivision(div))return false;
+  if((state.teamBracketNodes?.[div]||[]).length)return false;
+  const matches=state.allMatches?.[div]||[];
+  return matches.some(match=>match.teamPair&&(match.type==='teamPosition'||match.type==='teamPlayoff'||match.type==='kachinuki'));
+}
+/**
+ * @param {string} [div]
+ * @returns {TeamStandingRow[]}
+ */
+export function teamStandings(div='Team Tournament'){
+  return KSMEngine.teamStandings(state.allMatches[div]||[],eligibleTeams(div)||[],KSMEngine.teamRoundRobinCountedPlaces(ksmTeamSettings(div).teamAwardMode));
+}
+/**
+ * After a team bout: a representative playoff when the pairing is level.
+ * @param {Match} m
+ */
+export function maybeCreateTeamTiebreak(m){
+  const plan=KSMEngine.maybeCreateTeamTiebreak(m,state.allMatches[m?.division]||[],ksmTeamSettings(m?.division).teamFormat);
+  if(plan)appendApprovedDynamicMatches(m.division,plan.anchor,/** @type {Match} */(plan.playoff),plan.dynamicType);
+  // F27: once every pairing of a team round robin is decided, teams still level on team wins,
+  // bout wins and points for a place with an award (D2: Setup's team award mode) get a one-point
+  // daihyosen (KSMEngine.teamRoundRobinTiebreakPlan).
+  const rr=m&&isTeamRoundRobinDivision(m.division)?KSMEngine.teamRoundRobinTiebreakPlan(m,state.allMatches[m.division]||[],eligibleTeams(m.division)||[],ksmTeamSettings(m.division).teamFormat,KSMEngine.teamRoundRobinCountedPlaces(ksmTeamSettings(m.division).teamAwardMode)):null;
+  if(rr)appendApprovedDynamicMatches(m.division,rr.anchor,/** @type {Match[]} */(rr.bouts),rr.dynamicType);
+}
+/**
+ * @param {string} poolLabel
+ * @param {string} [div]
+ * @returns {boolean}
+ */
+function topSeedsResolved(poolLabel,div=state.currentDivision){return poolPositionsResolved(poolLabel,div);}
+/**
+ * @param {TournamentState} targetState
+ * @param {string} div
+ * @param {Match[]} beforeArr
+ * @param {Match[]} afterArr
+ */
+function reindexPointersAfterMatchReorder(targetState,div,beforeArr,afterArr){
+  if(!targetState||!Array.isArray(beforeArr)||!Array.isArray(afterArr))return;
+  const findMovedIndex=(oldIndex,court)=>{
+    const n=Number(oldIndex);
+    const oldMatch=Number.isFinite(n)&&n>=0&&n<beforeArr.length?beforeArr[n]:null;
+    const identity=matchSyncIdentity(oldMatch);
+    let idx=identity?afterArr.findIndex(match=>matchHasSyncIdentity(match,identity)):-1;
+    if(idx<0||!individualMatchReady(afterArr[idx])||!matchBelongsToCourtInState(targetState,afterArr[idx],court))idx=nextReadyIndexInState(targetState,div,court);
+    return idx;
+  };
+  // On the live `state` the court pointers are store data (#15 PR 13a): the new pointers (a new object per court, the
+  // same keys) go in one court/pointersResolved at the end; a payload copy is a plain object, written in place.
+  const live=targetState===state;
+  /** @type {any} */ const moved={courtState:{},courtActiveDivision:{}};
+  if(!live){
+    targetState.courtState=targetState.courtState||/** @type {ByCourt<CourtState>} */({});
+    targetState.courtActiveDivision=targetState.courtActiveDivision||/** @type {ByCourt<string|null>} */({});
+  }
+  for(const court of ['A','B']){
+    const cs=targetState.courtState?.[court];
+    if(cs?.division!==div)continue;
+    const index=findMovedIndex(cs.index,court);
+    if(live)moved.courtState[court]={...cs,index};else cs.index=index;
+  }
+  if(targetState.currentDivision===div){
+    const court=String(targetState.currentCourt||'A').toUpperCase()==='B'?'B':'A';
+    const currentIndex=findMovedIndex(targetState.current,court);
+    // On the live `state`, current is a store getter (#15 PR 7): its helper; a payload copy is a plain object.
+    if(live){ksmShowMatch(currentIndex);moved.currentByDivision={[div]:currentIndex}}
+    else{
+      targetState.current=currentIndex;
+      targetState.currentByDivision=targetState.currentByDivision||{};
+      targetState.currentByDivision[div]=currentIndex;
+    }
+  }
+  if(live)ksmMoveCourtPointers('pointersResolved',moved);
+}
+/**
+ * @param {TournamentState} targetState
+ * @param {string} div
+ * @param {string} [source]
+ */
+export function normalizeIndividualPoolTiebreakOrderInState(targetState,div,source='tiebreak order repair'){
+  const arr=targetState?.allMatches?.[div];
+  if(!Array.isArray(arr)||!arr.some(isIndividualPoolTiebreakMatch))return false;
+  const before=[...arr];
+  const decorated=before.map((match,index)=>({match,index}));
+  const tiebreaks=decorated.filter(item=>isIndividualPoolTiebreakMatch(item.match));
+  const rebuilt=decorated.filter(item=>!isIndividualPoolTiebreakMatch(item.match)).map(item=>item.match);
+  const labels=[];
+  (targetState?.pools?.[div]||[]).forEach(pool=>{if(pool?.label&&!labels.includes(pool.label))labels.push(pool.label)});
+  tiebreaks.forEach(item=>{const label=item.match.pool;if(label&&!labels.includes(label))labels.push(label)});
+  labels.forEach(pool=>{
+    const group=tiebreaks.filter(item=>item.match.pool===pool).sort((a,b)=>{
+      const seriesDiff=Number(a.match.tiebreakSeries||1)-Number(b.match.tiebreakSeries||1);
+      if(seriesDiff)return seriesDiff;
+      const indexDiff=Number(a.match.tiebreakIndex??0)-Number(b.match.tiebreakIndex??0);
+      return indexDiff||a.index-b.index;
+    }).map(item=>item.match);
+    if(!group.length)return;
+    let anchor=-1;
+    rebuilt.forEach((match,index)=>{if(match&&match.type==='individual'&&!match.championship&&!match.tiebreak&&match.pool===pool)anchor=index});
+    if(anchor<0){
+      const firstChamp=rebuilt.findIndex(match=>match?.championship);
+      anchor=firstChamp>=0?firstChamp-1:rebuilt.length-1;
+    }
+    rebuilt.splice(anchor+1,0,...group);
+  });
+  const changed=rebuilt.length!==before.length||rebuilt.some((match,index)=>match!==before[index]);
+  if(!changed)return false;
+  ksmSetDivisionMatches(div,rebuilt,targetState);
+  reindexPointersAfterMatchReorder(targetState,div,before,rebuilt);
+  console.info('[KSM Tiebreak Order] Repaired pool-local tiebreak placement',{source,division:div});
+  return true;
+}
+/**
+ * @param {TournamentState} targetState
+ * @param {string} [source]
+ */
+export function normalizeAllIndividualPoolTiebreakOrder(targetState,source='tiebreak order repair'){
+  let repaired=0;
+  Object.keys(targetState?.allMatches||{}).forEach(div=>{if(normalizeIndividualPoolTiebreakOrderInState(targetState,div,source))repaired++});
+  return repaired;
+}
+/**
+ * Inserts tiebreak/representative matches after `afterMatch`; only APPROVED_DYNAMIC_MATCH_TYPES.
+ * @param {string} div
+ * @param {Match} afterMatch
+ * @param {Match|Match[]} matches
+ * @param {DynamicMatchType} dynamicType
+ */
+export function appendApprovedDynamicMatches(div,afterMatch,matches,dynamicType){
+  if(!APPROVED_DYNAMIC_MATCH_TYPES.has(dynamicType))throw new Error('Unauthorized dynamic Match Object type: '+dynamicType);
+  const arr=state.allMatches[div]||[];
+  const list=(Array.isArray(matches)?matches:[matches]).filter(Boolean);
+  list.forEach(m=>{m.origin='TIEBREAK';m.dynamicType=dynamicType;});
+  if(dynamicType==='INDIVIDUAL_POOL_TIEBREAK'){
+    // Pool tiebreaks are part of that pool's timeline, not generic appended matches.
+    // Add them safely, then canonicalize by pool so object-identity changes or a
+    // cloud rebase can never strand Pool A's playoff after Pool D.
+    ksmAppendMatches(div,list);
+    normalizeIndividualPoolTiebreakOrderInState(state,div,'dynamic tiebreak creation');
+    return list;
+  }
+  // The anchor by KSMEngine.matchIndexIn() (#15, before 13c): the object, else its sync identity (a kachinuki pairing's
+  // bouts share one: the entry equal in every field), else a pre-2.x tiebreak identity as before.
+  const afterIdentity=matchSyncIdentity(afterMatch);
+  let idx=afterMatch?KSMEngine.matchIndexIn(arr,afterMatch):-1;
+  if(idx<0&&afterMatch)idx=arr.findIndex(match=>afterIdentity&&matchHasSyncIdentity(match,afterIdentity));
+  ksmInsertMatches(div,idx>=0?idx+1:arr.length,list);
+  return list;
+}
+/**
+ * After a pool bout: creates tiebreak matches for ties that decide a needed place.
+ * @param {Match} m
+ */
+export function maybeCreateTiebreaks(m){
+  if(!m || m.type!=='individual') return;
+  let div=m.division, arr=state.allMatches[div]||state.matches;
+  let originalDone=(arr.filter(x=>x.pool===m.pool&&x.type==='individual'&&!x.tiebreak&&!x.championship).every(x=>x.done));
+  if(!originalDone) return;
+  if(pendingTiebreak(m.pool,div)) return;
+  let base=initialPoolStandings(m.pool,div);
+  let reqSeed=(requiredSeedPlaces(div)[m.pool]||2);
+  let groups=[];
+  for(let i=0;i<base.length;){let j=i+1;while(j<base.length&&base[j].wins===base[i].wins&&base[j].pts===base[i].pts)j++;groups.push({start:i+1,end:j,players:base.slice(i,j)});i=j;}
+  for(let target of groups){
+    if(target.players.length<=1 || target.start>reqSeed) continue;
+    let unresolved=unresolvedRequiredTiebreakGroup(m.pool,div,target,reqSeed);
+    if(!unresolved || unresolved.length<=1) continue;
+    let newMatches=tiebreakMatchesForGroup(div,m.pool,unresolved);
+    if(newMatches.length){appendApprovedDynamicMatches(div,m,newMatches,'INDIVIDUAL_POOL_TIEBREAK');return;}
+  }
+}
+/**
+ * @param {string} [div]
+ */
+export function teamRoundRobinPlacements(div='Team Tournament'){
+  return KSMEngine.teamRoundRobinPlacements(!!divisionComplete(div),state.allMatches[div]||[],eligibleTeams(div)||[],KSMEngine.teamRoundRobinCountedPlaces(ksmTeamSettings(div).teamAwardMode));
+}
+// Found in external PR review (#35): the places a daihyosen decides follow Setup's team award mode
+// (D2), and the mode can change after a team round robin has ended. Changing it to more places
+// (e.g. "Champion only" -> "Champion + Runner-up" with three teams level for 2nd) adds the
+// daihyosen the newly awarded places need, judged from the whole division; until it is played
+// the place stays undecided (KSMEngine.teamRoundRobinPlacements(), never the alphabetical first).
+// Run on the Setup change and after any tournament load or live/rebased update on a device that
+// saves (a merge that kept the new mode but not the bouts, or a mode changed on an older
+// version). Idempotent: none while a daihyosen is unplayed, and the bouts are the same on every
+// device (a rebase keeps the server's). Changing to fewer places keeps a daihyosen already
+// created: it is played as scheduled and only no longer changes an award.
+/** Adds the daihyosen the team award mode now needs; returns the divisions that got one. */
+export function ksmAddDaihyosenForTeamAwards(){
+  if(typeof isReadOnlySession==='function'&&isReadOnlySession())return [];
+  const added=[];
+  Object.keys(state.allMatches||{}).forEach(div=>{
+    if(!isTeamRoundRobinDivision(div))return;
+    const rr=KSMEngine.teamRoundRobinMissingDaihyosen(state.allMatches[div]||[],eligibleTeams(div)||[],ksmTeamSettings(div).teamFormat,KSMEngine.teamRoundRobinCountedPlaces(ksmTeamSettings(div).teamAwardMode));
+    if(!rr)return;
+    appendApprovedDynamicMatches(div,rr.anchor,/** @type {Match[]} */(rr.bouts),rr.dynamicType);
+    added.push(div);
+  });
+  return added;
+}

@@ -1,13 +1,29 @@
-// The engine's public surface. The build turns this into the classic script that
-// defines `window.KSMEngine` (loaded before app.js); app/react/ imports the modules
-// directly. Add each moved module's exports here.
+// The engine's public surface. app/modules import it as `import * as KSMEngine from '.../engine/index.ts'`
+// (the build bundles it into app.js; app/js/99-window-exports.js also sets window.KSMEngine from it);
+// app/react/ imports the modules directly. Add each moved module's exports here.
 export {
   poolSizes, clubGroup, shuffleDeterministic, poolPlayerSlotLetter, poolPlayerSlot,
   assignPoolPlayerSlots, buildPools, poolMatchPairs, buildPoolMatches, poolNoShowPlan,
 } from './pools.ts';
 export type { PoolEntrant, SlottedPlayer, BuiltPool, PoolMatch, PoolNoShowMatch } from './pools.ts';
-export { readSettings, DEFAULT_SETTINGS } from './settings.ts';
-export type { TournamentSettings } from './settings.ts';
+export { readSettings, DEFAULT_SETTINGS, SETUP_KEYS, SETUP_SELECT_OPTIONS, isSetupKey, normalizeSetup, normalizeSetupValue } from './settings.ts';
+export { statusCycle, validationIssue } from './registration.ts';
+export {
+  isTeamMatch, teamPositionOrder, individualMatchReady, isIndividualPoolTiebreakMatch, directorMatchLabel,
+  matchBelongsToCourtInState,
+} from './match-helpers.ts';
+export type { HelperMatch } from './match-helpers.ts';
+export { formatSnapshotBytes, snapshotValueSummary, normalizeQueueGroupLabel } from './labels.ts';
+export {
+  normalizeCourt, historyValuesEqual, historyEntryIdentity,
+  cloneJson, mergeHistoryEntries, stampHistoryPatchMatchIdentity, nextReadyIndexInState,
+} from './sync-helpers.ts';
+export { esc, jsArg, printSheet, printNameBlock } from './html-text.ts';
+export {
+  bracketPairsFromSeeds, poolRowsStillTied, indivNodeHasMatch, canonicalSingleElimMatch, pointsFor,
+} from './bracket-helpers.ts';
+export type { EntryStatus } from './registration.ts';
+export type { SetupKey, TournamentSettings } from './settings.ts';
 export {
   matchRequiresWinner, completedResultWinnerValid, completedResultSnapshotValid, scoreWinnerOf, winnerOf,
   pendingTiebreak, initialPoolStandings, tiebreakStatsForPlayers, tiebreakSeriesStats, resolveTiebreakBaseGroup,
@@ -17,7 +33,8 @@ export type {
   StandingsMatch, CompletedResultLike, StandingRow, TiebreakStatsRow, TiedGroup, StandingsPool, TiebreakMatch, TiebreakBlock,
 } from './standings.ts';
 export {
-  championshipTemplateForTotal, championshipLabels, firstRoundName, nextRoundFromName, roundMatchCount,
+  championshipTemplateForTotal, championshipLabels, firstRoundName, nextRoundFromName, previousRoundName, nextChampRoundName,
+  champRoundOrder, roundSequenceFromFirst, roundMatchCount,
   championshipCourtFor, championshipNodesForCourtMode, championshipMatchObjectForNode, buildChampionshipTemplateMatches, poolFinished,
   poolSeedResolution, parseSeedLabel, seedNameForLabel, champWinnerObj, championshipNodeSource,
   syncChampionshipTemplate, sourceLabelForRound, individualPlacements,
@@ -50,7 +67,7 @@ export { kachinukiTransitionState, kachinukiPairWinner, maybeCreateKachinukiNext
 export type { KachinukiMatchLike, KachinukiBoutLike, KachinukiTransition, KachinukiPlayoff, KachinukiContinuation, KachinukiNext } from './kachinuki.ts';
 export {
   completedResultSnapshot, planCompletedResultRepairs, loadedEliminationRepairPlan, isValidMatchObject,
-  individualLogicalMatchKey, uniqueIndividualMatches, legacyTiebreakSyncIdentity, matchSyncIdentity, matchHasSyncIdentity,
+  individualLogicalMatchKey, uniqueIndividualMatches, legacyTiebreakSyncIdentity, matchSyncIdentity, matchHasSyncIdentity, matchIndexIn, findMatchAgain,
 } from './integrity.ts';
 export type { CompletedResult, CompletedResultRepair, IdentityMatch } from './integrity.ts';
 export { eligibleIndividuals, eligibleTeams, generateDivision, TEAM_DIVISION, EXHIBITION_DIVISION } from './generation.ts';
@@ -62,8 +79,10 @@ export type { Route, RouteCourt, ResolvedUrl } from './routes.ts';
 export {
   RENAME_AFTER_DRAW_MESSAGE, RENAME_EMPTY_MESSAGE, DIVISION_STRUCTURE_KEYS, drawMade, presetNames, divisionNamesInUse, isDivision,
   divisionRenameError, renamedDivisionState, rebaseDivisionRenames, orphanedDivisionStructure, withoutDivisionStructure,
+  DIVISION_PRESETS, divisionAddError, loadedDivisionCourts, TEAM_COURT_KEY, addedDivision, defaultedDivisionCourts, movedDivision,
+  removedDivision, withDivisionCourts,
 } from './divisions.ts';
-export type { DivisionRename, RenameState, RefusedRename, RenameRebase } from './divisions.ts';
+export type { DivisionRename, DivisionCourtsState, DivisionListsState, RenameState, RefusedRename, RenameRebase } from './divisions.ts';
 
 export { isValidSlug, suggestSlug, RESERVED_SLUGS } from './routes.ts';
 
@@ -79,3 +98,5 @@ export type {
   GrandChampion, GrandChampionStandIn, GrandChampionFormat, GrandChampionAwardMode, SourceResult, GrandChampionEntrant,
   GrandChampionEntrants, GrandChampionStructure, GrandChampionAction,
 } from './grand-champion.ts';
+
+export { finishedMatchSummary } from './finished-matches.ts';

@@ -1,4 +1,3 @@
-/* ksm:post-split-begin match-timer */
 #score .score-controls-grid:has(.match-timer){grid-template-columns:minmax(0,1fr) minmax(220px,.8fr) minmax(0,1fr)!important;gap:12px!important;align-items:center;min-height:0!important}
 #score .score-controls-grid:has(.match-timer) .control-panel{min-width:0;padding:8px}
 #score .score-controls-grid:has(.match-timer) .sk-score-buttons{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important}
@@ -108,4 +107,3 @@ body.ksm-tv.ksm-clock-stopped::after{content:'';position:fixed;inset:0;border:ma
   #score .match-timer:not(.match-timer--off) [data-testid=timer-adjust-10]{order:7}
   #score .match-timer:not(.match-timer--off) [data-testid=timer-reset]{order:8}
 }
-/* ksm:post-split-end */

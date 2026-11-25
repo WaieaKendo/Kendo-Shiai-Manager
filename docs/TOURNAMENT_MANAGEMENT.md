@@ -70,6 +70,22 @@ Only whole-team no-shows are structurally handled. Elimination keeps the frozen 
 
 After a division has started, marking an entrant No Show does not alter generated structure.
 
+## Regenerate Tournament (Setup → Advanced → Danger zone)
+
+Registration shows **Generate Tournament** until the first draw. After that the button is gone from the toolbar: **Regenerate Single Division** covers divisions that changed or are new, and a court change needs no redraw. Redrawing everything (for example, starting over after a rehearsal) lives in **Setup → Advanced → Danger zone → Regenerate Tournament**, shown to staff only and available once the tournament has been generated. It runs the same check as Generate; when matches have been played it shows how many finished matches will be erased, downloads a backup file, and asks for the word REGENERATE to be typed. **Delete tournament** is in the same Danger zone (it also stays in Developer Tools / Cloud Diagnostics).
+
+### Undo regenerate
+
+For a cloud tournament the server keeps the tournament as it was just before the last Regenerate Tournament for **24 hours** (one copy: a later regenerate replaces it; Regenerate Single Division keeps none). While it is there, a director or admin (in the staff-password mode: staff) sees **Undo regenerate** in the same Danger zone, with when the regenerate was made, until when it can be undone and how many finished matches it brings back. Pressing it asks first and says that everything done since the regenerate (with the finished matches it now has) is replaced on every device. The undo is saved as a new revision and reaches every device like any save; a court device that had a change on its way when it happened keeps that change in its recovery file (Setup → Advanced → Download Recovery File; each undo's dropped work is kept separately, so a later offline queue does not overwrite it) instead of putting it on the restored tournament (so does work a closed tab of that browser left queued from before the undo). If another regenerate was made after the director confirmed, the undo is refused and the button shows the newer one, and shows the restored tournament's court position. The button needs a connection (it is disabled offline) and is never queued. Spectators never see it. A local-only tournament (not in the cloud) has no undo: its regenerate warning says nothing about one, and the downloaded backup file is the way back.
+
+## Clear Registration, Clear Teams, Clear Exhibitions
+
+Each asks first and states how many entries it removes ("Clear all 42 individual competitors? This cannot be undone."). After the draw the question adds that drawn divisions keep their matches and results: matches, pools and Results keep the names they were drawn with, so nothing already drawn changes. To redraw a division afterwards its entries must be registered again.
+
+## Load Tournament File: Replace
+
+When a file is a copy of the open tournament, the Replace question gives both finished-match counts ("The open tournament has 37 finished matches; the file has 12.") so the loss is visible before confirming.
+
 ## Regenerate Single Division
 
 Registration includes a Regenerate Single Division workflow:
@@ -231,17 +247,17 @@ fields remain serialized for compatibility; division records now supply each com
 | `app/js/05-engine-team-matches.js` | Supplies division-specific match format to slots, bracket creation and advancement. |
 | `app/js/07-engine-team-bracket.js` | Uses the scored match's division tournament format for winner requirements. |
 | `app/js/08-engine-generation.js` | Runs the pure engine once per enabled team division. |
-| `app/js/09-results-and-awards.js` | Builds representative rosters with the team's division format and division identity. |
+| `app/modules/results/results-and-awards.js` | Builds representative rosters with the team's division format and division identity. |
 | `app/js/13-engine-standings-and-tiebreaks.js` | Division-specific standings, representative playoffs, round-robin daihyosen and award places. |
-| `app/js/17-print.js` | Snapshot-only migration and division settings for independent rosters, standings, brackets and awards. |
-| `app/js/18-sync-state-and-rebase.js` | Includes division records in the merge base, merges by ID, and labels assignment conflicts. |
-| `app/js/20-cloud-session-and-autosave.js` | Serializes legacy Setup fields; loads division courts from the migrated records; returns save success. |
-| `app/js/27-results-screen.js` | Uses each division's award mode. |
+| `app/modules/results/print.js` | Snapshot-only migration and division settings for independent rosters, standings, brackets and awards. |
+| `app/modules/sync/sync-state-and-rebase.js` | Includes division records in the merge base, merges by ID, and labels assignment conflicts. |
+| `app/modules/sync/cloud-session-and-autosave.js` | Serializes legacy Setup fields; loads division courts from the migrated records; returns save success. |
+| `app/modules/results/results-screen.js` | Uses each division's award mode. |
 | `app/js/30-setup-header-and-director.js` | Uses each division's team format in Overview progress estimates. |
-| `app/js/35-react-court.js` | Uses each division's award mode for completion panels and its scoped representative roster. |
+| `app/modules/react-bridges/court.js` | Uses each division's award mode for completion panels and its scoped representative roster. |
 | `app/js/43-react-registration.js` | Publishes a division selector and per-team format/slots; preserves both filters. |
-| `app/react/registration/RegistrationTeams.tsx` | Draws the selector and each team's own roster slots. |
-| `app/react/registration/teams-model.ts` | Typed registration input with per-card division, slots and format. |
+| `app/react/features/registration/RegistrationTeams.tsx` | Draws the selector and each team's own roster slots. |
+| `app/react/features/registration/teams-model.ts` | Typed registration input with per-card division, slots and format. |
 | `app/types/globals.d.ts` | Legacy select declarations remain for compatibility controls. |
 | `app/types/tournament.d.ts` | Persisted division records and team assignment IDs, alongside old Setup fields. |
 

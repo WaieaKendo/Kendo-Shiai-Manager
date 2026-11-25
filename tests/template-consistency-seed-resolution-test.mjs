@@ -1,17 +1,10 @@
-import { html as appSource, engine } from './lib/ksm-source.mjs';
+import { html as appSource, engine, extractFunction, matchWritesSource, withDependencies } from './lib/ksm-source.mjs';
+import { vmStore } from './lib/vm-store.mjs';
 import fs from 'node:fs';
+import { drawHelpers } from './lib/draw-helpers.mjs';
 import vm from 'node:vm';
 const html=appSource;
-function extract(name){
-  const start=html.indexOf(`function ${name}(`);
-  if(start<0)throw new Error(`Missing ${name}`);
-  const brace=html.indexOf('{',start);let depth=0;
-  for(let i=brace;i<html.length;i++){
-    if(html[i]==='{')depth++;
-    else if(html[i]==='}'&&--depth===0)return html.slice(start,i+1);
-  }
-  throw new Error(`Unclosed ${name}`);
-}
+const extract=name=>extractFunction(html,name);
 let passed=0;
 function ok(cond,msg){if(!cond)throw new Error(msg);passed++;}
 
@@ -59,11 +52,12 @@ function ok(cond,msg){if(!cond)throw new Error(msg);passed++;}
     {pool:'Championship',championship:true,id:'C1'}
   ];
   const context={
-    state:{generated:true,divisionTypes:{D:'Round Robin'},pools:{D:[{label:'A',size:3,players:[{name:'A'},{name:'B'},{name:'C'}]},{label:'B',size:2,players:[{name:'D'},{name:'E'}]}]},allMatches:{D:matches},managementRevision:0},
     structuralNoShowAllowed:()=>true,syncChampionshipTemplate:()=>{},initCourtStates:()=>{},
     buildIndividualSingleElimMatches:()=>[]
   };
-  vm.createContext(context);vm.runInContext(engine,context);vm.runInContext(extract('applyIndividualNoShow'),context);
+  // A real store (tests/lib/vm-store.mjs): the no-show's writes are the app's own actions.
+  vmStore(context,{generated:true,divisionTypes:{D:'Round Robin'},pools:{D:[{label:'A',size:3,players:[{name:'A'},{name:'B'},{name:'C'}]},{label:'B',size:2,players:[{name:'D'},{name:'E'}]}]},allMatches:{D:matches},managementRevision:0});
+  vm.createContext(context);vm.runInContext(withDependencies(html,`${engine}\n${drawHelpers}\n${matchWritesSource}\n${extract('applyIndividualNoShow')}`,{exclude:Object.keys(context)}),context);
   ok(context.applyIndividualNoShow('D','B')===true,'no-show should apply');
   const arr=context.state.allMatches.D;
   // #24: pool A (A, B, C) without B is a pool of 2: its one bout A-C (slots A and C kept) in the

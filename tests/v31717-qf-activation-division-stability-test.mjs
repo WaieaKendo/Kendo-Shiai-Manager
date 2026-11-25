@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { extractFunction, html as appSource, sw as appServiceWorker } from './lib/ksm-source.mjs';
+import { extractFunction, engine, html as appSource, sw as appServiceWorker } from './lib/ksm-source.mjs';
+import { plainSelectors } from './lib/plain-selectors.mjs';
 
 const html=appSource;
 const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));
@@ -11,7 +12,7 @@ const worker=fs.readFileSync(new URL('../src-worker.js',import.meta.url),'utf8')
 let failed=false;
 function check(ok,name){console.log(`${ok?'PASS':'FAIL'} ${name}`);if(!ok)failed=true}
 
-check(html.includes('const ksmLocalCourtDivision={A:null,B:null};'),'device-local division preference exists');
+check(html.includes('localCourtDivisionChosen(state, action')||/ksmLocalCourtDivision=Object\.freeze\(\{get A\(\)\{return getState\(\)\.device\.localCourtDivision\.A\}/.test(html),'device-local division preference exists (the store\'s device.localCourtDivision)');
 check(html.includes('if(state.currentCourt)rememberLocalCourtDivision(state.currentCourt,div);'),'manual division selection becomes local court preference');
 check(html.includes("preserveOwnedCourtRuntimeState(rebased.state,localState,court);"),'concurrent rebase preserves owner court navigation');
 check(html.includes("preserveLocalDivision:preserveLocalDivisionForRemoteSync(),source:'live sync'"),'live remote snapshots preserve local scorekeeper division');
@@ -21,8 +22,9 @@ check(html.includes('let m=ensureScorableCurrentMatch();'),'score renderer self-
 // Regression 1: owner-scoped court state must survive a Court B/cloud rebase without
 // copying a stale numeric index. The QF is now at index 2 and must be rediscovered.
 const pureContext={console};
-vm.createContext(pureContext);
+vm.createContext(plainSelectors(pureContext));
 vm.runInContext([
+  engine,
   extractFunction(html,'normalizeCourt'),
   extractFunction(html,'individualMatchReady'),
   extractFunction(html,'matchBelongsToCourtInState'),
@@ -99,7 +101,7 @@ localDivisionContext.findNextForCourt=(court,div)=>{
 localDivisionContext.applyCourtState=(court,cs)=>{
   const st=localDivisionContext.state;st.currentCourt=court;st.courtState[court]=cs;st.courtActiveDivision[court]=cs.division;st.currentDivision=cs.division;st.matches=st.allMatches[cs.division]||[];st.current=cs.index;st.currentByDivision[cs.division]=cs.index;
 };
-vm.createContext(localDivisionContext);
+vm.createContext(plainSelectors(localDivisionContext));
 vm.runInContext(extractFunction(html,'rehydrateLoadedTournamentState'),localDivisionContext);
 localDivisionContext.rehydrateLoadedTournamentState({preserveLocalDivision:true});
 check(localDivisionContext.state.currentDivision==='Division New','live sync cannot revert manually selected division');
@@ -122,7 +124,7 @@ renderContext.individualMatchReady=(m)=>!!(m&&!m.done&&(!m.templateNode||m.ready
 renderContext.matchBelongsToCourt=(m,c)=>!!m&&m.court===c;
 renderContext.findNextForCourt=(court,div)=>({division:div,index:1});
 renderContext.applyCourtState=(court,cs)=>{const st=renderContext.state;st.currentCourt=court;st.currentDivision=cs.division;st.matches=st.allMatches[cs.division];st.current=cs.index;};
-vm.createContext(renderContext);
+vm.createContext(plainSelectors(renderContext));
 vm.runInContext(extractFunction(html,'ensureScorableCurrentMatch'),renderContext);
 const healed=renderContext.ensureScorableCurrentMatch();
 check(healed?.position==='Quarterfinal'&&renderContext.state.current===1,'score renderer repairs empty active pointer to ready QF');

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { overlayLayout, overlayView, parseOverlayParams, DEFAULT_BAND_Y } from '../../app/react/overlay/overlay-model.ts';
-import { selectCourtMatch } from '../../app/react/overlay/court-match.ts';
+import { overlayLayout, overlayView, parseOverlayParams, DEFAULT_BAND_Y } from '../../app/react/features/overlay/overlay-model.ts';
+import { selectCourtMatch } from '../../app/react/features/overlay/court-match.ts';
 
 const ind = (white, red, extra = {}) => ({ division: 'Open', type: 'individual', white, red, wdojo: `${white} Dojo`, rdojo: `${red} Dojo`, wp: [], rp: [], done: false, pool: 'A', ...extra });
 const stateWith = (matches, extra = {}) => ({

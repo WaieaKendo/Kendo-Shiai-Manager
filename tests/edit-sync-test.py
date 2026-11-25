@@ -168,7 +168,7 @@ def main():
         director.click('reg-tab-team')
         director.wait_idle()
         before = fetch_record(base, tid)
-        director.expect_dialog('Clear all teams?', accept=False)
+        director.expect_dialog('Clear ', accept=False)
         director.click('team-clear')
         director.wait_for_dialogs(1)
         director.wait_idle()  # like any button click, the click asks for an autosave (a no-op save may move the revision)
@@ -179,7 +179,7 @@ def main():
         court.wait_revision(fetch_record(base, tid)['revision'])
         assert [t['team'] for t in court.payload()['state']['teams']] == ['Team A', 'Team B'], 'Cancel on Clear Teams reached Court B'
         rev = fetch_record(base, tid)['revision']
-        director.expect_dialog('Clear all teams?', accept=True)
+        director.expect_dialog('Clear ', accept=True)
         director.click('team-clear')
         saved(lambda pl: st(pl)['teams'] == [], 'Clear Teams')
         assert fetch_record(base, tid)['revision'] > rev

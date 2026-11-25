@@ -1,8 +1,8 @@
 # app/engine — the tournament engine
 
-Strict TypeScript, no DOM, no `state`, no globals. The build turns `index.ts` into the classic
-`window.KSMEngine` script that loads before `app.js`. `app/react/` imports the modules directly.
-Import from `index.ts` only: it is the public API.
+Strict TypeScript, no DOM, no `state`, no globals. `app/modules` and `app/js` import it (`import * as KSMEngine from '…/engine/index.ts'`), so the build bundles it into
+`app.js` (step 4b of #136); `window.KSMEngine` is set from that import for tests and anything outside. `app/react/` imports the modules directly.
+Import from `index.ts` only: it is the public API. (One exception: the store imports `division-lists.ts` directly, so its bundle does not pull in the rest of the engine; the gzip budget, docs/STORE.md section 5.)
 
 ## Modules
 
@@ -14,9 +14,16 @@ Import from `index.ts` only: it is the public API.
 | `championship.ts` | Championship templates (6–40), labels and rounds, courts, nodes and Match Objects, seed resolution, the advancement plan (`syncChampionshipTemplate`) and individual placements |
 | `single-elim.ts` | Individual single elimination: seed placement, nodes and Match Objects, the advancement plan (`syncIndividualSingleElim`) and side labels |
 | `teams.ts`, `kachinuki.ts` | Team bouts (3/5-person, kachinuki), bracket templates (2–32, also used for individual SE), the bracket advancement plan, pairing winners, the representative playoff, the kachinuki next bout, round-robin standings and placements |
-| `integrity.ts` | Completed-result snapshot, the load-time repair plan (restore / re-open / create), the elimination-repair plan, duplicate individual match removal, match identity for sync (`matchSyncIdentity`, `matchHasSyncIdentity`) |
+| `integrity.ts` | Completed-result snapshot, the load-time repair plan (restore / re-open / create), the elimination-repair plan, duplicate individual match removal, match identity for sync (`matchSyncIdentity`, `matchHasSyncIdentity`), a match found again in a list by it (`matchIndexIn`, `findMatchAgain`) |
 | `generation.ts` | Eligibility (`eligibleIndividuals`, `eligibleTeams`) and `generateDivision(input)`: the pools, templates, nodes and Match Objects for one division in any format |
 | `divisions.ts` | Division renames (#25): the rules (`divisionRenameError`: trimmed, non-empty, unique ignoring case, not the team event, nothing after the draw), the rewrite (`renamedDivisionState`), presets followed through their renames (`presetNames`) and the save-conflict replay (`rebaseDivisionRenames`, with the draws a rename blocks, #36), the guard against pools/matches under a name that is no division (`orphanedDivisionStructure`, `withoutDivisionStructure`) |
+| `division-lists.ts` | The division lists the store holds (#15 PR 9), with no imports so the store bundle can use them: the standard divisions (`DIVISION_PRESETS`), a rename's list rewrite (`renamedDivisionRecords`, which `renamedDivisionState` builds on), and the edits whose results the `tournament/division…` actions set (`addedDivision`, `removedDivision`, `movedDivision`, `defaultedDivisionCourts`, `withDivisionCourts`; none ever writes the team court's entry `TEAM_COURT_KEY`). `divisions.ts` adds `divisionAddError` (the team event's and exhibitions' names refused on add, #185 L1) and `loadedDivisionCourts` (the load's `'Both'` → `'split'`). |
+| `registration.ts` | Registration helpers moved from `app/js` (#136 step 1): `statusCycle` (Registered → Checked → No Show); step 1c adds `validationIssue` |
+| `match-helpers.ts` | Match predicates and labels moved from `app/js` (#136 step 1b): `isTeamMatch`, `teamPositionOrder`, `individualMatchReady`, `isIndividualPoolTiebreakMatch`, `directorMatchLabel`, `matchBelongsToCourtInState` |
+| `labels.ts` | Text helpers moved from `app/js` (#136 step 1b): `formatSnapshotBytes`, `snapshotValueSummary`, `normalizeQueueGroupLabel` |
+| `sync-helpers.ts` | Small value helpers for sync/undo moved from `app/js` (#136 step 1b): `normalizeCourt`, `historyValuesEqual`, `historyEntryIdentity`; step 1c adds `cloneJson`, `mergeHistoryEntries`, `stampHistoryPatchMatchIdentity`, `nextReadyIndexInState` |
+| `html-text.ts` | HTML escaping and print-sheet markup moved from `app/js` (#136 step 1c): `esc`, `jsArg`, `printSheet`, `printNameBlock` |
+| `bracket-helpers.ts` | Pool, bracket and result helpers moved from `app/js` (#136 step 1c): `bracketPairsFromSeeds`, `poolRowsStillTied`, `indivNodeHasMatch`, `canonicalSingleElimMatch`, `pointsFor` |
 | `routes.ts` | Not tournament logic, but pure and shared the same way: the path URL scheme (M.9). `resolveUrl(pathname, search)` (a path's route, or an old `?tournament=…` link's path to redirect to), `routePath`/`routeUrl` (the links the app generates), `legacyQuery` (the old link parameters for the classic code that still reads them), `servesAppShell`/`servesOverlay` (which page a path gets) |
 
 ## Pure/legacy boundary
@@ -24,14 +31,16 @@ Import from `index.ts` only: it is the public API.
 Engine functions take plain data (matches, pools, nodes, settings) and **return new values or
 a plan** (`{ updates, winners, added, missing, repairs, … }`). They never change their inputs.
 The only exception is the pool objects that `generateDivision` creates itself: it sets `court`
-on them. Each moved legacy function in `app/js` keeps its name and position. Its body is a
+on them. Each moved legacy function keeps its name. Its body is a
 marked `engine-bridge` delegation that reads `state`, calls `KSMEngine.*`, and writes the result
-back. Settings come from `tournamentSettings()`.
+back. Settings come from `tournamentSettings()`. Since #136 step 3d most of these adapters live in
+`app/modules/engine/engine-*.js` (ES modules importing `state` from `app/modules/app-state.js`, importing
+the engine as `KSMEngine`); the ones that still call an `app/js` function stay in `app/js`.
 
 These parts are still in `app/js`, and why:
 
-- **Applying plans to `state`** (the `engine-bridge` wrappers): the legacy UI and sync code share one mutable `state`, and Match Object identity has to be preserved.
-- **Orchestration that combines several state reads**: `generateDivisionState` writes the plan and then runs the advancement syncs, which need standings, court modes and existing matches. The same applies to `maybeAdvance*`, `maybeCreateTiebreaks`, `appendApprovedDynamicMatches`, applying no-shows and `regenerateSingleDivision`.
+- **Applying plans to `state`** (the `engine-bridge` wrappers): the legacy UI and sync code share one mutable `state`. Match Object identity no longer has to be preserved for lookups (#15, before 13c: `matchIndexIn()` finds a match again by its sync identity), but the bouts are still written in place until 13c. Since #15 PR 12b a bracket plan's `winners` become new nodes in the store (`ksmNodesWithWinners()`, one `tournament/advancementApplied` after the plan's bout updates were written; `app/modules/engine/structure-store.js`); the bouts are still written in place until PR 13.
+- **Orchestration that combines several state reads**: `generateDivisionState` writes the plan and then runs the advancement syncs (a bracket's first sync on the plan's own nodes, a `draft`, so the nodes go in the division's one draw action), which need standings, court modes and existing matches. The same applies to `maybeAdvance*`, `maybeCreateTiebreaks`, `appendApprovedDynamicMatches`, applying no-shows and `regenerateSingleDivision`.
 - **Queue and court selection**: `sortTeamMatches`, `sortIndividualDivisionMatches`, `nextIndexForCourt`, `matchBelongsToCourt` and `setActiveDivision` read local court and view state. That state gets split out in 2.8.
 - **Scoring actions** (`point()`, `nextMatch()`, undo/history) and **sync/persistence** (rebase, autosave, load/sanitize): these are tied to local storage, the network and the device session.
 - **Validation dialogs, alerts, logging and all HTML rendering** (results, brackets, pools, TV).

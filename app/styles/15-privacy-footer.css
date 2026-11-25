@@ -1,4 +1,3 @@
-/* ksm:post-split-begin privacy-footer */
 /* The footer (Privacy, About and the version) is on every page except the TV display (the audience
    screen) and print. It follows the page's content and sits at the bottom of the window when the
    content is shorter: the page is a column at least the window's height, main takes the rest. */
@@ -10,4 +9,3 @@ body.ksm-home > main { min-height: 0; }
 body.ksm-tv .privacy-footer { display: none; }
 .privacy-footer a { color: var(--ink); }
 @media print { .privacy-footer { display: none; } body { display: block; } }
-/* ksm:post-split-end */

@@ -23,9 +23,9 @@ handlers used to call an undefined saveAuto(), fixed as F11 on fix/pre-event.) W
 Results is hidden its innerText is its textContent, i.e. the legacy templates' source
 formatting, so the text is compared only while Results is shown (the tree always).
 
-Since M.13 Results is drawn only by React (app/react/results/; app/js/38-react-results.js
+Since M.13 Results is drawn only by React (app/react/features/results/; app/js/38-react-results.js
 publishes its data); the legacy renderer is removed, so this test pins the React-only screen.
-React must render every element of the Results islands (app/react/results/: #resultsBody,
+React must render every element of the Results islands (app/react/features/results/: #resultsBody,
 #resultsBracketBody; #resultsTournamentName and #resultsBracketTitle are React roots), and every
 kind of Results content must be covered. awards-typing-stability (no snapshot) redraws Results
 while an award is being typed: the input keeps its focus and text, the others show state.awards.
@@ -99,7 +99,7 @@ NO_TRANSITIONS = '*, *::before, *::after { transition: none !important; animatio
 BUTTONS_JS = "() => [...document.querySelectorAll('#results [data-testid=\"result-card\"]')].filter(c => c.querySelector('.view-bracket-link')).map(c => c.querySelector('[data-testid=\"result-card-title\"]').textContent)"
 
 
-# The Results islands (app/react/results/main.tsx): React renders every element of the two
+# The Results islands (app/react/features/results/main.tsx): React renders every element of the two
 # bodies, and the two text-only islands are React roots.
 ISLANDS = ['#results #resultsBody', '#resultsBracketModal #resultsBracketBody']
 ROOTS_JS = """() => ['#resultsBody', '#resultsTournamentName', '#resultsBracketTitle', '#resultsBracketBody']
@@ -222,7 +222,7 @@ def awards_rr_4(browser, errors):
     g = open_app('awards-rr-4', browser, errors)
     page = g.app.page
     g.do('no tournament yet', lambda a: a.nav('results'))
-    g.do('tournament name', lambda a: a.page.evaluate("() => { tName.value = 'Aiea Taikai'; KSMTest.show('results'); }"))
+    g.do('tournament name', lambda a: a.page.evaluate("() => { KSMTest.app.ksmSetSetting('tName', 'Aiea Taikai'); KSMTest.show('results'); }"))
     g.app.configure([{'name': 'Open', 'format': 'Round Robin', 'court': 'A', 'entrants': people('P', 4)}])
     g.do('generated', lambda a: a.nav('results'))
     # The awards editor.
@@ -315,11 +315,11 @@ def awards_typing_stability(browser, errors):
     page.on('pageerror', lambda e: page_errors.append(str(e)))
     load_app(page)
     app.configure([{'name': 'Open', 'format': 'Round Robin', 'court': 'A', 'entrants': people('P', 3)}])
-    page.evaluate("() => { KSMTest.app.state.awards = [{award: 'Fighting Spirit', name: 'P 1', dojo: 'D 1'}, {award: 'Kantosho', name: '', dojo: ''}]; }")
+    page.evaluate("() => { KSMTest.app.setAwards([{award: 'Fighting Spirit', name: 'P 1', dojo: 'D 1'}, {award: 'Kantosho', name: '', dojo: ''}]); }")
     app.nav('results')
     award = AWARD_INPUT.format(row=1, label='Award name')
     page.fill(award, 'Best Ki')
-    page.evaluate("() => { KSMTest.app.state.awards[0].name = 'P 2'; KSMTest.app.state.awards[1].dojo = 'Other Dojo'; KSMTest.app.renderResultsDashboard(); }")
+    page.evaluate("() => { KSMTest.app.setAward(0, {name: 'P 2'}); KSMTest.app.setAward(1, {dojo: 'Other Dojo'}); KSMTest.app.renderResultsDashboard(); }")
     got = page.evaluate(EDITOR_JS)
     assert got['focus'] == 0 and got['values'][:3] == ['Best Ki', 'P 2', 'D 1'] and got['values'][5] == 'Other Dojo', \
         f'a redraw while typing: {got}'
@@ -328,7 +328,7 @@ def awards_typing_stability(browser, errors):
     got = page.evaluate(EDITOR_JS)
     assert got['awards'][0]['award'] == 'Best Kiai' and got['focus'] == 1, f'the typed award after Tab: {got}'
     # A redraw with nothing typed shows state.awards again (no stale text kept).
-    page.evaluate("() => { KSMTest.app.state.awards[0].award = 'Changed elsewhere'; document.activeElement.blur(); KSMTest.app.renderResultsDashboard(); }")
+    page.evaluate("() => { KSMTest.app.setAward(0, {award: 'Changed elsewhere'}); document.activeElement.blur(); KSMTest.app.renderResultsDashboard(); }")
     got = page.evaluate(EDITOR_JS)
     assert got['values'][0] == 'Changed elsewhere' and got['focus'] is None, f'a redraw without focus: {got}'
     assert page_errors == [], f'page errors in the awards editor (F11 fixed: saveAuto() is defined): {page_errors}'
@@ -355,7 +355,15 @@ def results_module_missing(browser, errors):
     assert notice.is_visible(), 'no "Results could not load" notice without the React module'
     assert 'Results could not load' in notice.inner_text(), notice.inner_text()
     assert not page.locator('#resultsBody').is_visible(), 'the empty Results body is shown without the React module'
-    assert page.evaluate('window.ksmResultsInput.kind') == 'results', 'renderResultsDashboard() did not publish without the islands'
+    # The input is computed by the module (pull): without it nothing computes it, but
+    # renderResultsDashboard() still signals (ksm:results), which is safe before the module loads.
+    assert page.evaluate('window.ksmResultsInput === undefined'), 'the Results input exists without the React module'
+    assert page.evaluate("""() => {
+        let n = 0;
+        window.addEventListener('ksm:results', () => { n++; });
+        KSMTest.app.renderResultsDashboard();
+        return n === 1 && window.ksmResultsInput === undefined;
+    }"""), 'renderResultsDashboard() without the module must dispatch ksm:results once and compute nothing'
     page.close()
 
 

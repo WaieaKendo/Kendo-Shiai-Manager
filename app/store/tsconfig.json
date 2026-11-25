@@ -1,0 +1,22 @@
+{
+  // The Redux Toolkit store (#15 step 2.8): strict TypeScript like app/engine. Only erasable syntax and .ts import
+  // extensions, so Node runs the unit tests directly (tests/store/*.test.mjs) and rolldown bundles it into app.js.
+  // react.ts is the only file that imports React (the islands' hook); the rest has no DOM and no React.
+  "compilerOptions": {
+    "target": "es2022",
+    "lib": ["es2023"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "types": []
+  },
+  "include": ["./**/*.ts"]
+}

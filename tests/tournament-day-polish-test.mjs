@@ -8,7 +8,7 @@ const checks=[
  ['no second save age', !html.includes(' sec ago')],
  ['minute save age', html.includes(' min ago')],
  ['clock time after hour', html.includes("'✓ Saved at '")],
- ['save toast present', html.includes("showKsmToast('Saving…',0)") && html.includes("showKsmToast('✓ Tournament saved',2000)")],
+ ['save toast present', html.includes("showKsmToast('Saving…',0)") && html.includes("showKsmToast(saved?'✓ Tournament saved':'Not saved · Changes waiting',saved?2000:3500,!saved)")],
  ['raw access urls hidden', !html.includes("esc(link.replace(/key=[^&]+/,'key=PRIVATE'))")],
  ['copy closes access modal', html.includes("closeAfter=false") && html.includes("setTimeout(closeCloudModal,850)")],
  // 'qr remains open with back' (html.includes('onclick="openTournamentAccess()">Back')) was removed in

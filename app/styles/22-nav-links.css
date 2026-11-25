@@ -1,4 +1,3 @@
-/* ksm:post-split-begin nav-links */
 /* The Courts and TV menus' items are links (app/react/shell/Shell.tsx, MenuItem) so they open in a
    new tab; they look exactly like the menu's buttons (04-navigation.css, 19- on the phone drawer). */
 .nav-dropdown a.nav-menu-link{
@@ -13,4 +12,3 @@
 @media(max-width:900px){.nav-dropdown a.nav-menu-link{min-height:48px}}
 .mobile-nav-drawer .nav-dropdown a.nav-menu-link{color:var(--ksm-paper) !important;min-height:48px;text-align:left}
 .mobile-nav-drawer .nav-dropdown a.nav-menu-link:hover{background:rgba(255,253,248,.12) !important}
-/* ksm:post-split-end */

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   EMPTY_PLAYERS, EMPTY_STATUS, PLAYER_HEADERS, REMOVE_TEXT, STATUS_TITLE,
   statusClass, statusText, statusView,
-} from '../../app/react/registration/registration-model.ts';
+} from '../../app/react/features/registration/registration-model.ts';
 
 const row = (over = {}) => ({ index: 0, name: 'Ann', dojo: 'Aiea', seed: '', status: 'Registered', checked: false, noShow: false, selected: [0], ...over });
 const status = (over = {}) => ({ valid: true, competitors: 0, divisions: 0, courts: '2', errors: 0, ...over });
@@ -40,6 +40,6 @@ test('the status card: verdict, counts (singular for 1) and the issue line', () 
 });
 
 test('owner decision 15: a division no longer offered is an extra "(not offered)" option', async () => {
-  const { notOfferedLabel } = await import('../../app/react/registration/registration-model.ts');
+  const { notOfferedLabel } = await import('../../app/react/features/registration/registration-model.ts');
   assert.equal(notOfferedLabel('Women’s Open'), 'Women’s Open (not offered)');
 });
