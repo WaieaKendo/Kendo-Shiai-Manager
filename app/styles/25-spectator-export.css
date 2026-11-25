@@ -1,0 +1,5 @@
+/* ksm:post-split-begin spectator-export */
+/* Export Results is staff-only for now: a spectator's print screen is empty. Revisit with user
+   accounts (docs/ROADMAP.md, "Login and permissions"). */
+body.ksm-spectator .results-export-button{display:none !important}
+/* ksm:post-split-end */

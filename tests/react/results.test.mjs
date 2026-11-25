@@ -1,0 +1,123 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {
+  DEFAULT_BRACKET_TITLE, DEFAULT_TOURNAMENT_NAME, EMPTY_RESULTS, EMPTY_RESULTS_BRACKET, NO_AWARDS_TEXT, NO_DIVISIONS_TEXT,
+  courtTag, ordinal, resultCardView, resultDetailView, resultsBracketView, resultsView, tournamentNameText,
+} from '../../app/react/results/results-model.ts';
+
+const placements = [
+  { place: '1st', name: 'P 2', tier: 'gold' },
+  { place: '2nd', name: 'P 3', tier: 'silver' },
+  { place: '3rd', name: 'P 1', tier: 'bronze' },
+];
+
+test('legacy texts: the static markup and the messages', () => {
+  assert.equal(DEFAULT_TOURNAMENT_NAME, 'Kendo Tournament');
+  assert.equal(DEFAULT_BRACKET_TITLE, 'Completed Bracket');
+  assert.equal(NO_DIVISIONS_TEXT, 'Generate tournament matches to display results.');
+  assert.equal(NO_AWARDS_TEXT, 'No special awards entered yet.');
+});
+
+test('nothing published yet: the static markup (empty body, default name and modal title)', () => {
+  assert.deepEqual(resultsView(EMPTY_RESULTS), { kind: 'empty' });
+  assert.equal(tournamentNameText(EMPTY_RESULTS), 'Kendo Tournament');
+  assert.deepEqual(resultsBracketView(EMPTY_RESULTS_BRACKET), { kind: 'empty', title: 'Completed Bracket' });
+});
+
+test('resultCardView: an individual division in progress opens its bracket', () => {
+  assert.deepEqual(resultCardView({ division: 'Open', roundRobin: false, placements: null, progress: null }),
+    { kind: 'progress', division: 'Open', message: 'Tournament in progress', button: 'View Bracket →' });
+});
+
+test('resultCardView: a team round robin in progress counts its pairings and offers the standings', () => {
+  assert.deepEqual(resultCardView({ division: 'Team Tournament', roundRobin: true, placements: null, progress: { complete: 0, total: 3 } }),
+    { kind: 'progress', division: 'Team Tournament', message: 'Round robin in progress • 0/3 pairings complete', button: 'View Standings →' });
+});
+
+test('resultCardView: placements, the champion row, the ribbon classes as the legacy template printed them', () => {
+  const view = resultCardView({ division: 'Open', roundRobin: false, placements, progress: null });
+  assert.equal(view.kind, 'award');
+  assert.equal(view.button, 'View Bracket →');
+  assert.deepEqual(view.kind === 'award' && view.rows.map(r => [r.className, r.ribbonClass, r.place, r.name]), [
+    ['placement-row champion', 'placement-ribbon gold', '1st', 'P 2'],
+    // The trailing space of `placement-row ${''}` is kept: the markup is compared as is.
+    ['placement-row ', 'placement-ribbon silver', '2nd', 'P 3'],
+    ['placement-row ', 'placement-ribbon bronze', '3rd', 'P 1'],
+  ]);
+  const rr = resultCardView({ division: 'Team Tournament', roundRobin: true, placements: placements.slice(0, 1), progress: null });
+  assert.equal(rr.kind === 'award' && rr.button, 'View Standings →');
+});
+
+test('resultsView: Completed before In Progress, only sections with cards; the awards as published', () => {
+  const card = { division: 'A', roundRobin: false, placements, progress: null };
+  const pending = { division: 'B', roundRobin: false, placements: null, progress: null };
+  const awards = [{ award: 'Fighting Spirit', name: '', dojo: '' }];
+  const view = resultsView({ kind: 'results', tournamentName: 'Taikai', completed: [card], pending: [pending], noDivisions: false, awards });
+  assert.equal(view.kind, 'results');
+  if (view.kind !== 'results') return;
+  assert.deepEqual(view.sections.map(s => [s.heading, s.cards.map(c => c.division)]), [['Completed', ['A']], ['In Progress', ['B']]]);
+  assert.deepEqual(view.awards, awards);
+  assert.equal(view.noDivisions, false);
+  const onlyPending = resultsView({ kind: 'results', tournamentName: 'Taikai', completed: [], pending: [pending], noDivisions: false, awards: [] });
+  assert.deepEqual(onlyPending.kind === 'results' && onlyPending.sections.map(s => s.heading), ['In Progress']);
+  const none = resultsView({ kind: 'results', tournamentName: 'Kendo Tournament', completed: [], pending: [], noDivisions: true, awards: [] });
+  assert.deepEqual(none.kind === 'results' && [none.sections, none.noDivisions], [[], true]);
+});
+
+test('tournamentNameText: the published name', () => {
+  assert.equal(tournamentNameText({ kind: 'results', tournamentName: 'Aiea Taikai', completed: [], pending: [], noDivisions: true, awards: [] }), 'Aiea Taikai');
+});
+
+test('resultDetailView: pools with ranks and "Pool X" titles next to the bracket', () => {
+  const view = resultDetailView({
+    kind: 'pools',
+    pools: [{ label: 'A', standings: [{ name: 'P 1', dojo: 'D', wins: '2', pts: '4' }, { name: 'P 2', dojo: '', wins: '0', pts: '0' }] }],
+    bracket: { kind: 'message', text: 'Championship bracket will appear after pools are generated.' },
+  });
+  assert.deepEqual(view, {
+    kind: 'pools',
+    pools: [{ title: 'Pool A', standings: [
+      { rank: '1', name: 'P 1', dojo: 'D', wins: '2', pts: '4' },
+      { rank: '2', name: 'P 2', dojo: '', wins: '0', pts: '0' },
+    ], tiebreakNote: '' }],
+    bracket: { kind: 'message', text: 'Championship bracket will appear after pools are generated.' },
+  });
+  // Players placed by a tiebreak keep their pool record; the mark and the note come as published.
+  const note = '* Wins and points include the tiebreak. P 2 and P 3 were tied after the pool at 0 wins, 0 pts; the tiebreak only decides their order.';
+  const tied = resultDetailView({
+    kind: 'pools',
+    pools: [{ label: 'A', tiebreakNote: note, standings: [{ name: 'P 2', dojo: '', wins: '1', pts: '1', tiebreak: true }] }],
+    bracket: { kind: 'message', text: '' },
+  });
+  assert.equal(tied.kind === 'pools' && tied.pools[0].tiebreakNote, note);
+  assert.deepEqual(tied.kind === 'pools' && tied.pools[0].standings[0], { rank: '1', name: 'P 2', dojo: '', wins: '1', pts: '1', tiebreak: true });
+});
+
+test('resultsBracketView: the title and the court screen\'s bracket view', () => {
+  const view = resultsBracketView({ kind: 'bracket', title: 'Team Tournament', detail: { kind: 'bracket', bracket: { kind: 'results-empty', text: 'No team bracket is available.' } } });
+  assert.deepEqual(view, { kind: 'bracket', title: 'Team Tournament', detail: { kind: 'bracket', bracket: { kind: 'results-empty', text: 'No team bracket is available.' } } });
+  const standings = resultsBracketView({ kind: 'bracket', title: 'T', detail: { kind: 'bracket', bracket: { kind: 'team-standings', standings: {
+    complete: false, progress: { complete: 1, total: 3 }, compact: false, rows: [], pairs: [],
+  } } } });
+  assert.equal(standings.kind === 'bracket' && standings.detail.bracket.kind === 'team-standings' && standings.detail.bracket.standings.status,
+    'Current standings • 1 of 3 team pairings complete');
+});
+
+test('owner decision 8: a spectator\'s results are read-only (only then marked)', () => {
+  const input = { kind: 'results', tournamentName: 'Cup', completed: [], pending: [], noDivisions: true, awards: [{ award: 'Fighting Spirit', name: 'Aki', dojo: '' }] };
+  assert.equal(resultsView(input).readOnly, undefined, 'staff: the editor');
+  assert.equal('readOnly' in resultsView({ ...input, readOnly: false }), false);
+  assert.equal(resultsView({ ...input, readOnly: true }).readOnly, true);
+  assert.deepEqual(resultsView({ ...input, readOnly: true }).awards, input.awards);
+});
+
+test('courtTag: each court\'s place in its running order; "Now on" while it is played', () => {
+  assert.deepEqual(['1st', '2nd', '3rd', '4th', '11th', '12th', '13th', '21st', '22nd', '103rd'],
+    [1, 2, 3, 4, 11, 12, 13, 21, 22, 103].map(ordinal));
+  assert.deepEqual(courtTag({ courts: ['A'], nowOn: [], places: { A: 2 } }), { text: 'Court A · 2nd', live: false });
+  assert.deepEqual(courtTag({ courts: ['A', 'B'], nowOn: [], places: { A: 4, B: 3 } }), { text: 'Court A · 4th · Court B · 3rd', live: false });
+  assert.deepEqual(courtTag({ courts: ['A', 'B'], nowOn: [], places: { B: 1 } }), { text: 'Court A · Court B · 1st', live: false });
+  assert.deepEqual(courtTag({ courts: ['A', 'B'], nowOn: [] }), { text: 'Courts A & B', live: false });
+  assert.deepEqual(courtTag({ courts: ['A'], nowOn: ['A'], places: { A: 2 } }), { text: 'Now on Court A', live: true });
+  assert.equal(courtTag({ courts: [], nowOn: [] }), null);
+});

@@ -4,5 +4,5 @@ KSM now opens to a dedicated Tournament Library home page when no public tournam
 
 - **New Tournament** prompts for the tournament name and Staff password, then opens Setup in Staff mode.
 - Existing tournament cards open the selected tournament in Spectator mode.
-- The KSM brand and Save / Load > Tournament Library return to Home.
+- The KSM brand returns to the Tournament Library. Back to tournament restores the previous screen and reconnects live updates when needed.
 - Direct public links continue to open the specified tournament in Spectator mode.

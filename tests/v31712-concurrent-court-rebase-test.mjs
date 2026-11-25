@@ -1,39 +1,15 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { extractFunction, withDependencies, html as appSource, sw as appServiceWorker } from './lib/ksm-source.mjs';
 
-const html=fs.readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+const html=appSource;
 const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));
-const sw=fs.readFileSync(new URL('../public/service-worker.js',import.meta.url),'utf8');
+const sw=appServiceWorker;
 const worker=fs.readFileSync(new URL('../src-worker.js',import.meta.url),'utf8');
 
 function count(haystack,needle){return haystack.split(needle).length-1}
-function extractFunction(source,name){
-  const markers=[`async function ${name}(`,`function ${name}(`];
-  let start=-1;
-  for(const marker of markers){start=source.indexOf(marker);if(start>=0)break}
-  if(start<0)throw new Error(`Missing function ${name}`);
-  const brace=source.indexOf('{',start);
-  let depth=0,quote=null,escaped=false;
-  for(let i=brace;i<source.length;i++){
-    const ch=source[i];
-    if(escaped){escaped=false;continue}
-    if(quote){
-      if(ch==='\\'){escaped=true;continue}
-      if(ch===quote)quote=null;
-      continue;
-    }
-    if(ch==='\''||ch==='"'||ch==='`'){quote=ch;continue}
-    if(ch==='{')depth++;
-    if(ch==='}'&&--depth===0)return source.slice(start,i+1);
-  }
-  throw new Error(`Unbalanced function ${name}`);
-}
 
 const checks=[
-  [pkg.version==='3.17.12-test','package version'],
-  [html.includes('v3.17.12-test'),'HTML version'],
-  [sw.includes('ksm-shell-v3.17.12-test'),'service worker cache version'],
-  [worker.includes("version: '3.17.12-test'"),'worker version'],
   [count(html,'async function performCloudSave(')===1,'single authoritative performCloudSave definition'],
   [html.includes('KSM_CLOUD_REBASE_MAX_ATTEMPTS=4'),'bounded automatic conflict retries'],
   [html.includes('pendingLocalCourtActionsForRebase'),'local action replay helper'],
@@ -85,9 +61,9 @@ const context={
   writeCloudDiagnosticsState:()=>({}),
   v316StaffPassword:()=> 'staffpass',
   promptNewStaffPassword:()=> 'staffpass',
-  sessionStorage:{setItem(){}},
+  sessionStorage:{setItem(){},removeItem(){}},
   setSessionRole(){},persistCloudSession(){},rememberTournament(){},clearOutbox(){},
-  setConnectionStatus(){},renderPersistentSaveStatus(){},connectCloudSocket(){},
+  setConnectionStatus(){},renderPersistentSaveStatus(){},connectCloudSocket(){},showKsmToast(){},
   ksmCloudAttemptCounter:0,ksmLastSuccessfulSaveAt:null,ksmSaveStatusMode:'idle',ksmCloudSocket:{},
   fetch:async (_url,opts)=>{
     const sent=JSON.parse(opts.body);requestRevisions.push(sent.revision);call++;
@@ -97,8 +73,9 @@ const context={
     return {status:200,ok:true,text:async()=>JSON.stringify(record)};
   }
 };
+Object.assign(context,{ksmTournamentEpoch:0,ksmPendingSlug:''});
 vm.createContext(context);
-vm.runInContext(snippets,context);
+vm.runInContext(withDependencies(html,snippets,{exclude:Object.keys(context)}),context);
 const saved=await context.performCloudSave(localPayload,48);
 
 const dynamicChecks=[

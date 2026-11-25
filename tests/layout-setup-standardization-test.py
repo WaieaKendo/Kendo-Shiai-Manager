@@ -1,20 +1,21 @@
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from ksm_browser import launch_chromium, load_app
+from ksm_source import app_html
 
-ROOT=Path(__file__).resolve().parents[1]/'public'
-HTML=(ROOT/'index.html').read_text(encoding='utf-8')
+HTML=app_html()
 
 with sync_playwright() as p:
-    browser=p.chromium.launch(headless=True, executable_path='/usr/bin/chromium', args=['--no-sandbox'])
+    browser=launch_chromium(p)
     checks=0
     for width,height,mobile in [(390,844,True),(1440,1000,False)]:
         page=browser.new_page(viewport={'width':width,'height':height}, is_mobile=mobile, has_touch=mobile)
         errors=[]
         page.on('pageerror',lambda exc:errors.append(str(exc)))
-        page.set_content(HTML,wait_until='domcontentloaded')
+        load_app(page, HTML)
         page.wait_for_timeout(200)
         viewport=page.evaluate('({w:innerWidth,h:innerHeight})')
-        ids=['setup','registration','score','director','public','search','results','print']
+        ids=['setup','registration','score','director','public','results','print']  # Search view removed in v3.15.x
         lefts=[]; widths=[]; tops=[]
         for id_ in ids:
             page.evaluate("id=>{document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));document.getElementById(id).classList.remove('hidden')}",id_)
@@ -27,7 +28,7 @@ with sync_playwright() as p:
         assert max(widths)-min(widths)<=1.0,(width,widths); checks+=1
         assert max(tops)-min(tops)<=1.0,(width,tops); checks+=1
         if mobile:
-            page.evaluate("document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));setup.classList.remove('hidden');renderDivisionSetup()")
+            page.evaluate("document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));setup.classList.remove('hidden');KSMTest.app.renderDivisionSetup()")
             page.wait_for_timeout(100)
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth') is True; checks+=1
             hero=page.locator('.setup-hero').bounding_box(); panel=page.locator('.setup-panel').first.bounding_box()

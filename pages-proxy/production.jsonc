@@ -1,0 +1,11 @@
+{
+  // The Pages project that gives the production site its custom domain (tournament.hawaiikendofederation.org).
+  // It serves nothing itself: _worker.js hands every request to the production Worker ("kendoshiaimanager-cloud-staging").
+  // Deployed by scripts/pages-proxy.mjs (npm run proxy:production); see docs/DEPLOYMENT.md, "Custom domains".
+  "name": "ksm-tournament",
+  "pages_build_output_dir": "./public",
+  "compatibility_date": "2026-07-11",
+  "services": [
+    { "binding": "KSM", "service": "kendoshiaimanager-cloud-staging" }
+  ]
+}

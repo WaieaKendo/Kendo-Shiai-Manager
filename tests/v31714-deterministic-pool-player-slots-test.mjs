@@ -1,31 +1,19 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { extractFunction, engine, html as appSource, sw as appServiceWorker } from './lib/ksm-source.mjs';
 
-const html=fs.readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+const html=appSource;
 const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));
-const sw=fs.readFileSync(new URL('../public/service-worker.js',import.meta.url),'utf8');
+const sw=appServiceWorker;
 const worker=fs.readFileSync(new URL('../src-worker.js',import.meta.url),'utf8');
+// Pool building/slots/match generation moved to app/engine/pools.ts (roadmap 2.2).
+const enginePools=fs.readFileSync(new URL('../app/engine/pools.ts',import.meta.url),'utf8');
+// Since M.13 the Pools view and the Edit Pool editor are drawn by React (app/react/pools/); the
+// legacy renderer (renderPools(), toggleEditPools() in app/js) only publishes their data.
+const poolsReact=fs.readFileSync(new URL('../app/react/pools/Pools.tsx',import.meta.url),'utf8');
+const poolsModel=fs.readFileSync(new URL('../app/react/pools/pools-model.ts',import.meta.url),'utf8');
+const poolsPublisher=fs.readFileSync(new URL('../app/js/41-react-pools.js',import.meta.url),'utf8');
 
-function extractFunction(source,name){
-  const marker=`function ${name}(`;
-  const start=source.indexOf(marker);
-  if(start<0)throw new Error(`Missing function ${name}`);
-  const brace=source.indexOf('{',start);
-  let depth=0,quote=null,escaped=false;
-  for(let i=brace;i<source.length;i++){
-    const ch=source[i];
-    if(escaped){escaped=false;continue}
-    if(quote){
-      if(ch==='\\'){escaped=true;continue}
-      if(ch===quote)quote=null;
-      continue;
-    }
-    if(ch==='\''||ch==='"'||ch==='`'){quote=ch;continue}
-    if(ch==='{')depth++;
-    if(ch==='}'&&--depth===0)return source.slice(start,i+1);
-  }
-  throw new Error(`Unbalanced function ${name}`);
-}
 function extractConstStatement(source,name){
   const start=source.indexOf(`const ${name}=`);
   if(start<0)throw new Error(`Missing const ${name}`);
@@ -35,23 +23,21 @@ function extractConstStatement(source,name){
 }
 
 const staticChecks=[
-  [pkg.version==='3.17.14-test','package version'],
-  [html.includes('v3.17.14-test'),'HTML version'],
-  [sw.includes('ksm-shell-v3.17.14-test'),'service worker cache version'],
-  [worker.includes("version: '3.17.14-test'"),'worker version'],
   [html.includes('function poolPlayerSlotLetter(index)'),'canonical pool-slot helper'],
-  [html.includes('poolSlot:poolPlayerSlotLetter(index),poolSlotIndex:index'),'pool entries store explicit slot metadata'],
-  [html.includes('whitePoolSlot:poolPlayerSlot(players[whiteIndex],whiteIndex)'),'white Match Object slot metadata'],
-  [html.includes('redPoolSlot:poolPlayerSlot(players[redIndex],redIndex)'),'red Match Object slot metadata'],
-  [html.includes('state.pools[div]=assignPoolPlayerSlots(state.pools[div]||[])'),'edited pools are re-slotted before match rebuild'],
-  [html.includes('Top-to-bottom order is always A, B, C, D.'),'edit UI explains slot order'],
-  [html.includes('pool-slot-badge'),'generated pool UI shows slot badge'],
+  [enginePools.includes('poolSlot: poolPlayerSlotLetter(index), poolSlotIndex: index'),'pool entries store explicit slot metadata'],
+  [enginePools.includes('whitePoolSlot: poolPlayerSlot(w, whiteIndex)'),'white Match Object slot metadata'],
+  [enginePools.includes('redPoolSlot: poolPlayerSlot(r, redIndex)'),'red Match Object slot metadata'],
+  [/const pools=assignPoolPlayerSlots\(edited\);\/\* ksm:post-split-end \*\/\s*state\.pools\[div\]=pools;/.test(html),'edited pools are re-slotted before match rebuild'], // F12: the editor's copy (edited)
+  [poolsModel.includes("EDITOR_HELP = 'Drag players between pools or drop between names to insert into that position. Top-to-bottom order is always A, B, C, D.'")&&poolsReact.includes('<p className="sub">{EDITOR_HELP}</p>'),'edit UI explains slot order'],
+  [poolsReact.includes('<span className="pool-slot-badge" data-testid="pool-slot">{x.slot}</span>')&&poolsPublisher.includes('slot:ksmText(poolPlayerSlot(x,idx))'),'generated pool UI shows slot badge'],
+  [poolsReact.includes('<span className="pool-slot-badge">{row.player.slot}</span>')&&poolsPublisher.includes('slot:ksmText(poolPlayerSlotLetter(idx))'),'edit UI shows slot letters by position'],
   [html.includes('${esc(poolPlayerSlot(x,i))}</div>${printNameBlock(x.name,x.dojo)}'),'print pools show slot letters']
 ];
 let failed=false;
 for(const [ok,name] of staticChecks){console.log(`${ok?'PASS':'FAIL'} ${name}`);if(!ok)failed=true}
 
 const snippets=[
+  engine, // KSMEngine: poolSizes delegates to app/engine/pools.ts
   extractConstStatement(html,'POOL_MATCH_TEMPLATES'),
   extractFunction(html,'poolSizes'),
   extractFunction(html,'clubGroup'),

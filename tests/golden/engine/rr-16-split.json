@@ -1,0 +1,1461 @@
+{
+ "setup": [
+  {
+   "name": "Open",
+   "format": "Round Robin",
+   "court": "split",
+   "entrants": [
+    {
+     "name": "P01",
+     "dojo": "Dojo A",
+     "seed": "",
+     "status": "Checked"
+    },
+    {
+     "name": "P02",
+     "dojo": "Dojo B",
+     "seed": "",
+     "status": "Checked"
+    },
+    {
+     "name": "P03",
+     "dojo": "Dojo C",
+     "seed": "",
+     "status": "Checked"
+    },
+    {
+     "name": "P04",
+     "dojo": "Dojo A",
+     "seed": "",
+     "status": "Checked"
+    },
+    {
+     "name": "P05",
+     "dojo": "Dojo B",
+     "seed": "",
+     "status": "Checked"
+    },
+    {
+     "name": "P06",
+     "dojo": "Dojo C",
+     "seed": "",
+     "status": "Checked"
+    },
+    {
+     "name": "P07",
+     "dojo": "Dojo A",
+     "seed": "",
+     "status": "Checked"
+    },
+    {
+     "name": "P08",
+     "dojo": "Dojo B",
+     "seed": "",
+     "status": "Checked"
+    },
+    {
+     "name": "P09",
+     "dojo": "Dojo C",
+     "seed": "",
+     "status": "Checked"
+    },
+    {
+     "name": "P10",
+     "dojo": "Dojo A",
+     "seed": "",
+     "status": "Checked"
+    },
+    {
+     "name": "P11",
+     "dojo": "Dojo B",
+     "seed": "",
+     "status": "Checked"
+    },
+    {
+     "name": "P12",
+     "dojo": "Dojo C",
+     "seed": "",
+     "status": "Checked"
+    },
+    {
+     "name": "P13",
+     "dojo": "Dojo A",
+     "seed": "",
+     "status": "Checked"
+    },
+    {
+     "name": "P14",
+     "dojo": "Dojo B",
+     "seed": "",
+     "status": "Checked"
+    },
+    {
+     "name": "P15",
+     "dojo": "Dojo C",
+     "seed": "",
+     "status": "Checked"
+    },
+    {
+     "name": "P16",
+     "dojo": "Dojo A",
+     "seed": "",
+     "status": "Checked"
+    }
+   ]
+  }
+ ],
+ "generated": {
+  "Open": {
+   "pools": [
+    {
+     "label": "A",
+     "players": [
+      "P01",
+      "P13",
+      "P08",
+      "P06"
+     ]
+    },
+    {
+     "label": "B",
+     "players": [
+      "P04",
+      "P16",
+      "P11",
+      "P09"
+     ]
+    },
+    {
+     "label": "C",
+     "players": [
+      "P07",
+      "P02",
+      "P14",
+      "P12"
+     ]
+    },
+    {
+     "label": "D",
+     "players": [
+      "P10",
+      "P05",
+      "P03",
+      "P15"
+     ]
+    }
+   ],
+   "matches": [
+    {
+     "pool": "A",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P01",
+     "red": "P13",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P08",
+     "red": "P06",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P08",
+     "red": "P01",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P13",
+     "red": "P06",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P13",
+     "red": "P08",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "A",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P06",
+     "red": "P01",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "B",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P04",
+     "red": "P16",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "B",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P11",
+     "red": "P09",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "B",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P11",
+     "red": "P04",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "B",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P16",
+     "red": "P09",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "B",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P16",
+     "red": "P11",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "B",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P09",
+     "red": "P04",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "C",
+     "position": null,
+     "node": null,
+     "court": "B",
+     "white": "P07",
+     "red": "P02",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "C",
+     "position": null,
+     "node": null,
+     "court": "B",
+     "white": "P14",
+     "red": "P12",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "C",
+     "position": null,
+     "node": null,
+     "court": "B",
+     "white": "P14",
+     "red": "P07",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "C",
+     "position": null,
+     "node": null,
+     "court": "B",
+     "white": "P02",
+     "red": "P12",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "C",
+     "position": null,
+     "node": null,
+     "court": "B",
+     "white": "P02",
+     "red": "P14",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "C",
+     "position": null,
+     "node": null,
+     "court": "B",
+     "white": "P12",
+     "red": "P07",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "D",
+     "position": null,
+     "node": null,
+     "court": "B",
+     "white": "P10",
+     "red": "P05",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "D",
+     "position": null,
+     "node": null,
+     "court": "B",
+     "white": "P03",
+     "red": "P15",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "D",
+     "position": null,
+     "node": null,
+     "court": "B",
+     "white": "P03",
+     "red": "P10",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "D",
+     "position": null,
+     "node": null,
+     "court": "B",
+     "white": "P05",
+     "red": "P15",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "D",
+     "position": null,
+     "node": null,
+     "court": "B",
+     "white": "P05",
+     "red": "P03",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "D",
+     "position": null,
+     "node": null,
+     "court": "B",
+     "white": "P15",
+     "red": "P10",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "Championship",
+     "position": "Quarterfinal",
+     "node": "C-Quarterfinal-0",
+     "court": "A",
+     "white": "",
+     "red": "",
+     "teams": null,
+     "type": "individual",
+     "championship": true,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "Championship",
+     "position": "Quarterfinal",
+     "node": "C-Quarterfinal-1",
+     "court": "A",
+     "white": "",
+     "red": "",
+     "teams": null,
+     "type": "individual",
+     "championship": true,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "Championship",
+     "position": "Quarterfinal",
+     "node": "C-Quarterfinal-2",
+     "court": "B",
+     "white": "",
+     "red": "",
+     "teams": null,
+     "type": "individual",
+     "championship": true,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "Championship",
+     "position": "Quarterfinal",
+     "node": "C-Quarterfinal-3",
+     "court": "B",
+     "white": "",
+     "red": "",
+     "teams": null,
+     "type": "individual",
+     "championship": true,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "Championship",
+     "position": "Semifinal",
+     "node": "C-Semifinal-0",
+     "court": "A",
+     "white": "",
+     "red": "",
+     "teams": null,
+     "type": "individual",
+     "championship": true,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "Championship",
+     "position": "Semifinal",
+     "node": "C-Semifinal-1",
+     "court": "B",
+     "white": "",
+     "red": "",
+     "teams": null,
+     "type": "individual",
+     "championship": true,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "Championship",
+     "position": "Final",
+     "node": "C-Final-0",
+     "court": "A",
+     "white": "",
+     "red": "",
+     "teams": null,
+     "type": "individual",
+     "championship": true,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    }
+   ]
+  }
+ },
+ "play_order": [
+  "A | Open | A | P01 v P13 | white WM",
+  "B | Open | C | P07 v P02 | white WM",
+  "A | Open | A | P08 v P06 | white WM",
+  "B | Open | C | P14 v P12 | tie WM RK",
+  "A | Open | A | P08 v P01 | white WM",
+  "B | Open | C | P14 v P07 | red RK",
+  "A | Open | A | P13 v P06 | white WM RD WK",
+  "B | Open | C | P02 v P12 | white WM",
+  "A | Open | A | P13 v P08 | red RK",
+  "B | Open | C | P02 v P14 | red RD RM",
+  "A | Open | A | P06 v P01 | red RD RM",
+  "B | Open | C | P12 v P07 | white WM RD WK",
+  "A | Open | B | P04 v P16 | red RK",
+  "B | Open | C TB | P12 v P14 | white WM",
+  "A | Open | B | P11 v P09 | red RK",
+  "B | Open | D | P10 v P05 | red RK",
+  "A | Open | B | P11 v P04 | red RK",
+  "B | Open | D | P03 v P15 | white WM",
+  "A | Open | B | P16 v P09 | red RD RM",
+  "B | Open | D | P03 v P10 | white WM RD WK",
+  "A | Open | B | P16 v P11 | white WM",
+  "B | Open | D | P05 v P15 | red RK",
+  "A | Open | B | P09 v P04 | tie WM RK",
+  "B | Open | D | P05 v P03 | tie WM RK",
+  "A | Open | Quarterfinal | P16 v P08 | white WM",
+  "B | Open | D | P15 v P10 | red RD RM",
+  "A | Open | Quarterfinal | P10 v P07 | white WM",
+  "B | Open | Quarterfinal | P12 v P09 | red RK",
+  "A | Open | Semifinal | P10 v P16 | white WM",
+  "B | Open | Quarterfinal | P01 v P03 | white WM RD WK",
+  "B | Open | Semifinal | P01 v P09 | white WM RD WK",
+  "A | Open | Final | P01 v P10 | red RK"
+ ],
+ "final": {
+  "Open": {
+   "complete": true,
+   "matches": [
+    {
+     "pool": "A",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P01",
+     "red": "P13",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [],
+     "winner": "P01"
+    },
+    {
+     "pool": "A",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P08",
+     "red": "P06",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [],
+     "winner": "P08"
+    },
+    {
+     "pool": "A",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P08",
+     "red": "P01",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [],
+     "winner": "P08"
+    },
+    {
+     "pool": "A",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P13",
+     "red": "P06",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M",
+      "K"
+     ],
+     "rp": [
+      "D"
+     ],
+     "winner": "P13"
+    },
+    {
+     "pool": "A",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P13",
+     "red": "P08",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "K"
+     ],
+     "winner": "P08"
+    },
+    {
+     "pool": "A",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P06",
+     "red": "P01",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "D",
+      "M"
+     ],
+     "winner": "P01"
+    },
+    {
+     "pool": "B",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P04",
+     "red": "P16",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "K"
+     ],
+     "winner": "P16"
+    },
+    {
+     "pool": "B",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P11",
+     "red": "P09",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "K"
+     ],
+     "winner": "P09"
+    },
+    {
+     "pool": "B",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P11",
+     "red": "P04",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "K"
+     ],
+     "winner": "P04"
+    },
+    {
+     "pool": "B",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P16",
+     "red": "P09",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "D",
+      "M"
+     ],
+     "winner": "P09"
+    },
+    {
+     "pool": "B",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P16",
+     "red": "P11",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [],
+     "winner": "P16"
+    },
+    {
+     "pool": "B",
+     "position": null,
+     "node": null,
+     "court": "A",
+     "white": "P09",
+     "red": "P04",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [
+      "K"
+     ],
+     "winner": "Hikiwake"
+    },
+    {
+     "pool": "C",
+     "position": null,
+     "node": null,
+     "court": "B",
+     "white": "P07",
+     "red": "P02",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [],
+     "winner": "P07"
+    },
+    {
+     "pool": "C",
+     "position": null,
+     "node": null,
+     "court": "B",
+     "white": "P14",
+     "red": "P12",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [
+      "K"
+     ],
+     "winner": "Hikiwake"
+    },
+    {
+     "pool": "C",
+     "position": null,
+     "node": null,
+     "court": "B",
+     "white": "P14",
+     "red": "P07",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "K"
+     ],
+     "winner": "P07"
+    },
+    {
+     "pool": "C",
+     "position": null,
+     "node": null,
+     "court": "B",
+     "white": "P02",
+     "red": "P12",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [],
+     "winner": "P02"
+    },
+    {
+     "pool": "C",
+     "position": null,
+     "node": null,
+     "court": "B",
+     "white": "P02",
+     "red": "P14",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "D",
+      "M"
+     ],
+     "winner": "P14"
+    },
+    {
+     "pool": "C",
+     "position": null,
+     "node": null,
+     "court": "B",
+     "white": "P12",
+     "red": "P07",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M",
+      "K"
+     ],
+     "rp": [
+      "D"
+     ],
+     "winner": "P12"
+    },
+    {
+     "pool": "C",
+     "position": null,
+     "node": null,
+     "court": "B",
+     "white": "P12",
+     "red": "P14",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": true,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [],
+     "winner": "P12"
+    },
+    {
+     "pool": "D",
+     "position": null,
+     "node": null,
+     "court": "B",
+     "white": "P10",
+     "red": "P05",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "K"
+     ],
+     "winner": "P05"
+    },
+    {
+     "pool": "D",
+     "position": null,
+     "node": null,
+     "court": "B",
+     "white": "P03",
+     "red": "P15",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [],
+     "winner": "P03"
+    },
+    {
+     "pool": "D",
+     "position": null,
+     "node": null,
+     "court": "B",
+     "white": "P03",
+     "red": "P10",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M",
+      "K"
+     ],
+     "rp": [
+      "D"
+     ],
+     "winner": "P03"
+    },
+    {
+     "pool": "D",
+     "position": null,
+     "node": null,
+     "court": "B",
+     "white": "P05",
+     "red": "P15",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "K"
+     ],
+     "winner": "P15"
+    },
+    {
+     "pool": "D",
+     "position": null,
+     "node": null,
+     "court": "B",
+     "white": "P05",
+     "red": "P03",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [
+      "K"
+     ],
+     "winner": "Hikiwake"
+    },
+    {
+     "pool": "D",
+     "position": null,
+     "node": null,
+     "court": "B",
+     "white": "P15",
+     "red": "P10",
+     "teams": null,
+     "type": "individual",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "D",
+      "M"
+     ],
+     "winner": "P10"
+    },
+    {
+     "pool": "Championship",
+     "position": "Quarterfinal",
+     "node": "C-Quarterfinal-0",
+     "court": "A",
+     "white": "P16",
+     "red": "P08",
+     "teams": null,
+     "type": "individual",
+     "championship": true,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [],
+     "winner": "P16"
+    },
+    {
+     "pool": "Championship",
+     "position": "Quarterfinal",
+     "node": "C-Quarterfinal-1",
+     "court": "A",
+     "white": "P10",
+     "red": "P07",
+     "teams": null,
+     "type": "individual",
+     "championship": true,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [],
+     "winner": "P10"
+    },
+    {
+     "pool": "Championship",
+     "position": "Quarterfinal",
+     "node": "C-Quarterfinal-2",
+     "court": "B",
+     "white": "P12",
+     "red": "P09",
+     "teams": null,
+     "type": "individual",
+     "championship": true,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "K"
+     ],
+     "winner": "P09"
+    },
+    {
+     "pool": "Championship",
+     "position": "Quarterfinal",
+     "node": "C-Quarterfinal-3",
+     "court": "B",
+     "white": "P01",
+     "red": "P03",
+     "teams": null,
+     "type": "individual",
+     "championship": true,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M",
+      "K"
+     ],
+     "rp": [
+      "D"
+     ],
+     "winner": "P01"
+    },
+    {
+     "pool": "Championship",
+     "position": "Semifinal",
+     "node": "C-Semifinal-0",
+     "court": "A",
+     "white": "P10",
+     "red": "P16",
+     "teams": null,
+     "type": "individual",
+     "championship": true,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [],
+     "winner": "P10"
+    },
+    {
+     "pool": "Championship",
+     "position": "Semifinal",
+     "node": "C-Semifinal-1",
+     "court": "B",
+     "white": "P01",
+     "red": "P09",
+     "teams": null,
+     "type": "individual",
+     "championship": true,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M",
+      "K"
+     ],
+     "rp": [
+      "D"
+     ],
+     "winner": "P01"
+    },
+    {
+     "pool": "Championship",
+     "position": "Final",
+     "node": "C-Final-0",
+     "court": "A",
+     "white": "P01",
+     "red": "P10",
+     "teams": null,
+     "type": "individual",
+     "championship": true,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "K"
+     ],
+     "winner": "P10"
+    }
+   ],
+   "standings": {
+    "A": [
+     {
+      "name": "P08",
+      "wins": 3,
+      "pts": 3
+     },
+     {
+      "name": "P01",
+      "wins": 2,
+      "pts": 3
+     },
+     {
+      "name": "P13",
+      "wins": 1,
+      "pts": 2
+     },
+     {
+      "name": "P06",
+      "wins": 0,
+      "pts": 1
+     }
+    ],
+    "B": [
+     {
+      "name": "P09",
+      "wins": 2,
+      "pts": 4
+     },
+     {
+      "name": "P16",
+      "wins": 2,
+      "pts": 2
+     },
+     {
+      "name": "P04",
+      "wins": 1,
+      "pts": 2
+     },
+     {
+      "name": "P11",
+      "wins": 0,
+      "pts": 0
+     }
+    ],
+    "C": [
+     {
+      "name": "P07",
+      "wins": 2,
+      "pts": 3
+     },
+     {
+      "name": "P12",
+      "wins": 1,
+      "pts": 3
+     },
+     {
+      "name": "P14",
+      "wins": 1,
+      "pts": 3
+     },
+     {
+      "name": "P02",
+      "wins": 1,
+      "pts": 1
+     }
+    ],
+    "D": [
+     {
+      "name": "P03",
+      "wins": 2,
+      "pts": 4
+     },
+     {
+      "name": "P10",
+      "wins": 1,
+      "pts": 3
+     },
+     {
+      "name": "P05",
+      "wins": 1,
+      "pts": 2
+     },
+     {
+      "name": "P15",
+      "wins": 1,
+      "pts": 1
+     }
+    ]
+   },
+   "placements": [
+    {
+     "place": "1st",
+     "name": "P10"
+    },
+    {
+     "place": "2nd",
+     "name": "P01"
+    },
+    {
+     "place": "3rd",
+     "name": "P16"
+    },
+    {
+     "place": "3rd",
+     "name": "P09"
+    }
+   ]
+  }
+ },
+ "events": []
+}

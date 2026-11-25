@@ -1,18 +1,20 @@
 from pathlib import Path
 from playwright.sync_api import sync_playwright
-HTML=(Path(__file__).resolve().parents[1]/'public'/'index.html').read_text()
+from ksm_browser import launch_chromium, load_app
+from ksm_source import app_html
+HTML=app_html()
 with sync_playwright() as p:
- b=p.chromium.launch(headless=True, executable_path='/usr/bin/chromium', args=['--no-sandbox'])
+ b=launch_chromium(p)
  page=b.new_page(viewport={'width':390,'height':844},is_mobile=True,has_touch=True)
  errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
- page.set_content(HTML,wait_until='domcontentloaded')
+ load_app(page, HTML)
  page.evaluate("""
- state.allMatches={Test:[
+ KSMTest.app.state.allMatches={Test:[
  {division:'Test',pool:'A',white:'W1',red:'R1',done:true,wp:['M'],rp:[]},
  {division:'Test',pool:'A',white:'W2',red:'R2',done:false,wp:[],rp:[]},
  {division:'Test',pool:'A',white:'W3',red:'R3',done:false,wp:[],rp:[]},
  {division:'Test',pool:'A',white:'W4',red:'R4',done:false,wp:[],rp:[]}
- ]};state.divisionCourts={Test:'A'};state.courtState.A={division:'Test',index:1};state.courtState.B={division:null,index:0};renderDirector();document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));document.querySelector('#director').classList.remove('hidden');
+ ]};KSMTest.app.state.divisionCourts={Test:'A'};KSMTest.app.state.courtState.A={division:'Test',index:1};KSMTest.app.state.courtState.B={division:null,index:0};KSMTest.app.renderDirector();document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));document.querySelector('#director').classList.remove('hidden');
  """)
  assert page.locator('#directorOverallCount').inner_text()=='1 / 4 Matches'
  assert page.locator('.director-court-card').first.locator('.director-division').inner_text()=='Test'

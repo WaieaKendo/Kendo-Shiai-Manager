@@ -1,0 +1,111 @@
+/* ksm:post-split-begin match-timer */
+#score .score-controls-grid:has(.match-timer){grid-template-columns:minmax(0,1fr) minmax(220px,.8fr) minmax(0,1fr)!important;gap:12px!important;align-items:center;min-height:0!important}
+#score .score-controls-grid:has(.match-timer) .control-panel{min-width:0;padding:8px}
+#score .score-controls-grid:has(.match-timer) .sk-score-buttons{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important}
+.match-timer{min-width:0;overflow:hidden;border-radius:18px;background:var(--ksm-ink);color:var(--ksm-paper);direction:ltr;text-align:center;box-shadow:var(--ksm-shadow-lift)}
+.match-timer-meta{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:10px 12px 0;font-size:10px;line-height:1.2;color:var(--ksm-mist)}
+.match-timer output{display:block;padding:2px 4px 6px;font-family:Impact,'Arial Narrow',ui-monospace,monospace;font-size:clamp(60px,7vw,100px);font-weight:400;font-variant-numeric:tabular-nums;letter-spacing:.01em;line-height:1.1;color:var(--ksm-mist)}
+.match-timer--running output{color:var(--ksm-paper)}
+#score .match-timer button{min-width:0;min-height:44px;border:0;border-radius:0;padding:4px;background:transparent;color:inherit;box-shadow:none;transform:none;cursor:pointer}
+#score .match-timer button:hover{background:var(--ksm-navy-3)}
+#score .match-timer button:focus-visible{outline:2px solid var(--ksm-gold);outline-offset:-3px}
+#score .match-timer button:disabled{opacity:.4;cursor:default}
+.match-timer-transport{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));background:var(--ksm-navy)}
+.match-timer-transport svg{display:block;width:28px;height:28px;margin:auto;fill:currentColor}
+#score .match-timer .match-timer-toggle{min-height:52px}
+.match-timer--time output,.match-timer--time [role=status]{color:var(--ksm-tie-flash-bg)}
+.match-timer--time [role=status]{font-weight:900}
+.match-timer p{padding:8px;font-size:12px}
+body.ksm-spectator .match-timer,.division-complete .match-timer{display:none!important}
+@media (orientation:landscape) and (max-height:600px){
+  #score .score-controls-grid:has(.match-timer){grid-template-columns:minmax(0,1fr) 220px minmax(0,1fr)!important;gap:6px!important;padding-top:0!important}
+  #score .score-controls-grid:has(.match-timer) .control-panel{padding:4px!important}
+  #score .score-controls-grid:has(.match-timer) .sk-score-buttons{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:3px!important}
+  #score .score-controls-grid:has(.match-timer) .sk-score-buttons button{min-height:44px!important;height:44px!important}
+  #score .bottom-action-row{margin-top:0!important;padding-top:0!important}
+  .match-timer{border-radius:12px;position:relative}
+  .match-timer-meta{padding:4px 8px 0;font-size:9px}
+  .match-timer output{font-size:48px;padding:0;line-height:1}
+  #score .match-timer .match-timer-toggle{min-height:44px}
+}
+@media (max-width:600px){
+  #score .score-controls-grid:has(.match-timer){grid-template-columns:minmax(0,1fr) 180px minmax(0,1fr)!important;gap:6px!important;padding-top:6px!important}
+  #score .score-controls-grid:has(.match-timer) .control-panel{padding:4px!important}
+  #score .score-controls-grid:has(.match-timer) .sk-score-buttons{grid-template-columns:1fr!important;gap:4px!important}
+  #score .score-controls-grid:has(.match-timer) .sk-score-buttons button{padding:4px 1px!important;min-height:44px!important;height:44px!important}
+  #score .score-controls-grid:has(.match-timer) .point-letter{font-size:21px!important}
+  #score .score-controls-grid:has(.match-timer) .point-name{font-size:8px!important}
+  .match-timer output{font-size:64px}
+  .match-timer-transport svg{width:24px;height:24px}
+}
+@media (orientation:landscape) and (max-width:600px){
+  #score .score-controls-grid:has(.match-timer){grid-template-columns:minmax(0,1fr) 220px minmax(0,1fr)!important}
+  #score .score-controls-grid:has(.match-timer) .sk-score-buttons{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .match-timer output{font-size:48px}
+}
+@keyframes match-timer-alert{0%,100%{opacity:1}50%{opacity:.4}}
+.match-timer--paused output,.match-timer--time output{color:var(--ksm-tie-flash-bg);animation:match-timer-alert 1.4s ease-in-out infinite}
+.match-timer--encho .match-timer-phase{color:var(--ksm-tie-flash-bg);font-weight:900;text-transform:uppercase;letter-spacing:.06em}
+.court-config-sound{display:grid;gap:6px;margin:12px 0;font-size:13px;font-weight:700}
+.court-config-sound select{width:100%;min-height:44px}
+@media (prefers-reduced-motion:reduce){.match-timer output{animation:none}}
+#score .match-timer-adjust{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums}
+.match-timer-replay-row{display:flex;justify-content:center;background:var(--ksm-navy)}
+#score .match-timer-replay-row button{width:44px;display:grid;place-items:center}
+#score .scoreboard-card:not(.division-complete) .bottom-action-row{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+/* Rule badge above the readout; matches the scoreboard's tied-bout Encho note. */
+.match-timer .match-timer-rule{color:var(--red);align-self:center;justify-self:center;margin:6px auto 0;padding:4px 14px;border:2px solid var(--red);border-radius:999px;background:var(--ivory,#fff8e8);color:var(--red);font-weight:800;font-size:13px;line-height:1.1;white-space:nowrap}
+.match-timer-replay-row{gap:8px;align-items:center}
+#score .match-timer-replay-row .match-timer-reset{margin-left:16px}
+#score .match-timer .match-timer-toggle .match-timer-encho-label{color:var(--ksm-gold-soft);font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;line-height:1}
+#score .match-timer .match-timer-toggle:disabled .match-timer-encho-label{opacity:1}
+#score .match-timer .match-timer-toggle:has(.match-timer-encho-label){display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;color:var(--ksm-gold-soft)}
+#score .match-timer .match-timer-toggle:has(.match-timer-encho-label) svg{flex:none;margin:0;width:20px;height:20px}
+/* TV: a yellow border on the screen edge while the court clock is not running (also at 0:00, where the banner shows too). */
+body.ksm-tv.ksm-clock-stopped::after{content:'';position:fixed;inset:0;border:max(6px,.8vmin) solid var(--ksm-tie-flash-bg);pointer-events:none;z-index:2147483000}
+/* Phone portrait: names split in half, each side's buttons under its name, the timer full width below. */
+@media (max-width:600px) and (orientation:portrait){
+  body #score .scoreboard-match{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;column-gap:8px}
+  body #score .scoreboard-match .scoreboard-white{order:1}
+  body #score .scoreboard-match .scoreboard-red{order:2}
+  body #score .scoreboard-match .scoreboard-score-row{order:3;grid-column:1/-1}
+  body #score .scoreboard-match .scoreboard-side{min-width:0;text-align:center!important}
+  body #score .scoreboard-match .scoreboard-side .competitor-head{flex-direction:column!important;align-items:center!important;justify-content:flex-start!important;gap:2px!important;text-align:center!important}
+  body #score .scoreboard-match .scoreboard-side .red-identity{margin:0!important;text-align:center!important}
+  body #score .scoreboard-match .scoreboard-side h2{font-size:clamp(16px,5vw,22px)!important;line-height:1.15!important;text-align:center!important;overflow-wrap:anywhere}
+  body #score .scoreboard-match .scoreboard-side .sk-dojo{font-size:11px!important;text-align:center!important}
+  body #score .scoreboard-match .scoreboard-side .side-dot{width:12px;height:12px}
+  body #score .score-controls-grid:has(.match-timer){grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:8px!important}
+  body #score .score-controls-grid:has(.match-timer) .white-control-panel{order:1}
+  body #score .score-controls-grid:has(.match-timer) .red-control-panel{order:2}
+  body #score .score-controls-grid:has(.match-timer) .match-timer{order:3;grid-column:1/-1}
+  body #score .score-controls-grid:has(.match-timer) .sk-score-buttons{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  body #score .score-controls-grid:has(.match-timer) .sk-score-buttons button{min-height:52px!important;height:52px!important}
+  body #score .scoreboard-match .scoreboard-side h2{font-size:clamp(14px,4.2vw,20px)!important}
+  body #score .scoreboard-score-row{min-height:0!important}
+  body #score .score-stack{min-height:0!important;grid-template-rows:auto auto!important}
+  body #score .scoreboard-score-row .points{font-size:clamp(34px,11vw,52px)!important;min-height:0!important;height:auto!important;line-height:1}
+  body #score .scoreboard-score-row .tri{min-height:0!important;height:auto!important;font-size:14px!important}
+  body #score .scoreboard-match{min-height:0!important}
+}
+/* Timer switched Off: the card is just the badge and the whistle / TV icons. */
+.match-timer--off .match-timer-rule{margin:8px auto 0}
+.match-timer--off .match-timer-replay-row{padding:4px 0}
+/* Landscape phone, wide enough (>= 700px): one row of eight controls under the readout instead of two rows, so the
+   timer card is about as tall as the scoring panels and the court needs little extra scrolling. */
+@media (orientation:landscape) and (max-height:600px) and (min-width:700px){
+  #score .score-controls-grid:has(.match-timer){grid-template-columns:minmax(0,1fr) 360px minmax(0,1fr)!important}
+  .match-timer:not(.match-timer--off){display:flex;flex-wrap:wrap;align-items:stretch}
+  .match-timer:not(.match-timer--off) :is(.match-timer-meta,output,.match-timer-rule,p){flex:0 0 100%}
+  .match-timer:not(.match-timer--off) :is(.match-timer-transport,.match-timer-replay-row){display:contents}
+  #score .match-timer:not(.match-timer--off) button{flex:1 1 0;min-width:0;height:44px;min-height:44px;background:var(--ksm-navy);margin:0}
+  #score .match-timer:not(.match-timer--off) [data-testid=timer-replay]{order:1}
+  #score .match-timer:not(.match-timer--off) [data-testid=timer-show-tv]{order:2}
+  #score .match-timer:not(.match-timer--off) [data-testid=timer-adjust--10]{order:3}
+  #score .match-timer:not(.match-timer--off) [data-testid=timer-adjust--1]{order:4}
+  #score .match-timer:not(.match-timer--off) :is([data-testid=timer-toggle],[data-testid=timer-encho]){order:5;min-height:44px}
+  #score .match-timer:not(.match-timer--off) [data-testid=timer-adjust-1]{order:6}
+  #score .match-timer:not(.match-timer--off) [data-testid=timer-adjust-10]{order:7}
+  #score .match-timer:not(.match-timer--off) [data-testid=timer-reset]{order:8}
+}
+/* ksm:post-split-end */

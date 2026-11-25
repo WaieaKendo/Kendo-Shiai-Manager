@@ -1,0 +1,11 @@
+{
+  // The Pages project that gives the dev site its custom domain (dev.tournament.hawaiikendofederation.org).
+  // It serves nothing itself: _worker.js hands every request to the dev Worker ("kendoshiaimanager-dev").
+  // Deployed by scripts/pages-proxy.mjs (npm run proxy:dev); see docs/DEPLOYMENT.md, "Custom domains".
+  "name": "ksm-tournament-dev",
+  "pages_build_output_dir": "./public",
+  "compatibility_date": "2026-07-11",
+  "services": [
+    { "binding": "KSM", "service": "kendoshiaimanager-dev" }
+  ]
+}

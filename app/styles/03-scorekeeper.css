@@ -1,0 +1,1053 @@
+/* KSM v3.9.1 — scorekeeper screen redesign */
+.scorekeeper-shell{
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
+.scorekeeper-main{
+  padding:26px;
+}
+.sk-header{
+  display:flex;
+  justify-content:space-between;
+  gap:18px;
+  align-items:flex-start;
+  margin-bottom:18px;
+}
+.sk-header h1{
+  margin-bottom:6px;
+  font-size:38px;
+}
+.sk-division-row{
+  margin:6px 0 10px;
+}
+.sk-division-title{
+  font-size:22px;
+  font-weight:950;
+  color:var(--ksm-navy, var(--ink));
+  margin-top:4px;
+}
+.sk-match-line{
+  color:var(--muted);
+  font-size:15px;
+  font-weight:800;
+  margin-top:2px;
+}
+.match-status{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:92px;
+  border-radius:999px;
+  padding:10px 16px;
+  font-size:13px;
+  font-weight:950;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  border:1px solid transparent;
+}
+.match-status.live{
+  background:#ca3535;
+  color:white;
+  box-shadow:0 10px 22px rgba(202,53,53,.18);
+}
+.match-status.completed{
+  background:#fff4d8;
+  color:#8b6500;
+  border-color:#e7c666;
+}
+.sk-scorebox{
+  gap:18px;
+}
+.sk-fighter{
+  min-height:310px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  border-radius:22px;
+  padding:22px;
+}
+.white-card{
+  border-left:5px solid #d8d5ce;
+}
+.red-card{
+  border-right:5px solid #ca3535;
+}
+.side-label{
+  font-size:12px;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  font-weight:950;
+}
+.sk-fighter h2{
+  font-size:30px;
+  line-height:1.05;
+  margin:0;
+}
+.sk-dojo{
+  min-height:20px;
+  color:var(--muted);
+  font-size:14px;
+  font-weight:800;
+}
+.sk-fighter .points{
+  font-size:30px;
+  min-height:42px;
+  margin:8px 0 0;
+}
+.sk-fighter .tri{
+  min-height:22px;
+  color:#545b64;
+}
+.sk-score-buttons{
+  margin-top:auto;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+}
+.sk-score-buttons button{
+  min-height:58px;
+  border-radius:16px;
+  font-size:14px;
+}
+.sk-action-row{
+  margin-top:18px;
+  justify-content:center;
+  gap:14px;
+}
+.sk-action-row button{
+  min-width:150px;
+  min-height:52px;
+  border-radius:16px;
+}
+.sk-action-row .primary{
+  min-width:190px;
+}
+.sk-support-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(360px,.85fr);
+  gap:18px;
+  align-items:start;
+}
+.sk-context-card,.sk-queue-card{
+  min-height:260px;
+}
+.queue-section-label{
+  margin:14px 0 8px;
+  padding:9px 12px;
+  border-left:4px solid #ca3535;
+  background:#fff5df;
+  border-radius:12px;
+  font-size:12px;
+  font-weight:950;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:var(--ksm-navy, var(--ink));
+}
+.queue-section-label.following{
+  border-left-color:#c5a34e;
+}
+.queue-section-label.remaining{
+  border-left-color:#d8d0c3;
+}
+#queue .queue-row:first-of-type{
+  border-top:0;
+}
+.ksm-modal{
+  position:fixed;
+  inset:0;
+  z-index:1000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(7,31,51,.32);
+  backdrop-filter:blur(4px);
+  padding:24px;
+}
+.ksm-modal.hidden{display:none!important;}
+.ksm-modal-card{
+  width:min(420px,100%);
+  background:#fffdf8;
+  border:1px solid var(--line);
+  border-radius:24px;
+  box-shadow:0 24px 70px rgba(7,31,51,.20);
+  padding:26px;
+  text-align:center;
+}
+.ksm-modal-card h2{
+  margin-bottom:8px;
+}
+.modal-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:10px;
+  margin-top:20px;
+}
+.modal-actions button{
+  min-height:52px;
+  border-radius:16px;
+}
+@media(max-width:900px){
+  .sk-header{flex-direction:column;}
+  .scorebox.sk-scorebox{flex-direction:column;}
+  .sk-support-grid{grid-template-columns:1fr;}
+  .sk-action-row button{min-width:0;flex:1;}
+}
+
+
+/* KSM v3.9.1 — scorekeeper contrast and readability refinement */
+.scorekeeper-main{
+  background:
+    radial-gradient(circle at 18% 0%, rgba(202,53,53,.16), transparent 34%),
+    linear-gradient(145deg,#071f33 0%,#102a43 58%,#13224f 100%) !important;
+  border-color:rgba(255,255,255,.12) !important;
+  color:#fffdf8 !important;
+  box-shadow:0 24px 70px rgba(7,31,51,.20) !important;
+}
+.scorekeeper-main .sk-header h1,
+.scorekeeper-main .sk-division-title{color:#fffdf8 !important;}
+.scorekeeper-main .sk-match-line{color:rgba(255,253,248,.72) !important;}
+.scorekeeper-main .sk-division-row select{
+  background:rgba(255,253,248,.96) !important;
+  color:#071f33 !important;
+  border-color:rgba(255,255,255,.22) !important;
+}
+.scorekeeper-main .side-label{display:none !important;}
+.sk-scorebox{align-items:stretch !important;}
+.sk-fighter{
+  background:rgba(255,253,248,.965) !important;
+  color:#071f33 !important;
+  border-color:rgba(255,255,255,.20) !important;
+  box-shadow:0 16px 36px rgba(0,0,0,.16) !important;
+}
+.sk-fighter h2{font-size:32px !important;margin-top:2px !important;}
+.sk-fighter .sk-dojo{color:#6f7480 !important;}
+.sk-fighter .points{
+  font-size:68px !important;
+  line-height:1 !important;
+  min-height:78px !important;
+  margin:16px 0 0 !important;
+  letter-spacing:.08em !important;
+  font-weight:950 !important;
+  color:#071f33 !important;
+}
+.white-card .points,.white-card .tri{text-align:right !important;padding-right:8px !important;}
+.red-card .points,.red-card .tri{text-align:left !important;padding-left:8px !important;}
+.white-card h2,.white-card .sk-dojo{text-align:left !important;}
+.red-card h2,.red-card .sk-dojo{text-align:right !important;}
+.sk-fighter .tri{font-size:20px !important;min-height:30px !important;color:#555d66 !important;}
+.sk-score-buttons button{background:#fffdf8 !important;}
+.sk-action-row button{
+  background:rgba(255,253,248,.96) !important;
+  border-color:rgba(255,255,255,.24) !important;
+}
+.sk-action-row .primary{background:#fffdf8 !important;color:#071f33 !important;}
+.sk-action-row #undoBtn{background:rgba(255,253,248,.88) !important;}
+.match-status.completed{
+  background:#fff4d8 !important;
+  color:#8b6500 !important;
+  border-color:#e7c666 !important;
+}
+@media(max-width:900px){
+  .sk-fighter .points{font-size:56px !important;min-height:64px !important;}
+}
+
+
+/* KSM v3.9.1 — scoreboard-style active match aesthetic */
+.scoreboard-card{
+  position:relative;
+  overflow:hidden;
+  padding:30px 34px 28px !important;
+  border-radius:22px !important;
+  background:
+    radial-gradient(circle at 92% 86%, rgba(255,255,255,.09), transparent 24%),
+    radial-gradient(circle at 18% 2%, rgba(202,53,53,.13), transparent 30%),
+    linear-gradient(145deg,#061d31 0%,#09283f 48%,#071f33 100%) !important;
+  color:#fffdf8 !important;
+  border:1px solid rgba(255,255,255,.14) !important;
+  box-shadow:0 24px 70px rgba(7,31,51,.24) !important;
+}
+.scoreboard-card::after{
+  content:"";
+  position:absolute;
+  right:24px;
+  bottom:18px;
+  width:260px;
+  height:100px;
+  opacity:.12;
+  pointer-events:none;
+  background:
+    url("/assets/ksm-fuji-logo.svg") right bottom / contain no-repeat;
+  filter:brightness(0) invert(1);
+}
+.scoreboard-card > *{
+  position:relative;
+  z-index:1;
+}
+.scoreboard-header{
+  margin-bottom:18px !important;
+}
+.scoreboard-header h1{
+  font-size:34px !important;
+  margin:0 0 6px !important;
+  color:#fffdf8 !important;
+}
+.scoreboard-header .sk-division-row{
+  max-width:330px;
+  margin:8px 0 12px !important;
+}
+.scoreboard-header .sk-division-title{
+  font-size:20px !important;
+  color:#fffdf8 !important;
+  letter-spacing:.01em;
+}
+.scoreboard-header .sk-match-line{
+  color:rgba(255,253,248,.70) !important;
+  font-weight:850 !important;
+}
+.scoreboard-match{
+  display:grid;
+  grid-template-columns:minmax(220px,1fr) minmax(260px,.85fr) minmax(220px,1fr);
+  gap:22px;
+  align-items:center;
+  padding:14px 0 20px;
+  border-bottom:1px solid rgba(255,255,255,.18);
+}
+.scoreboard-side{
+  min-width:0;
+}
+.competitor-head{
+  display:flex;
+  align-items:flex-start;
+  gap:14px;
+}
+.competitor-head.red-head{
+  justify-content:flex-end;
+  text-align:right;
+}
+.side-dot{
+  width:24px;
+  height:24px;
+  flex:0 0 auto;
+  border-radius:50%;
+  margin-top:7px;
+}
+.white-dot{
+  border:3px solid rgba(255,255,255,.92);
+  background:transparent;
+}
+.red-dot{
+  background:#ca3535;
+  box-shadow:0 0 0 3px rgba(202,53,53,.18);
+}
+.scoreboard-side h2{
+  font-size:34px !important;
+  line-height:1.08 !important;
+  margin:0 !important;
+  color:#fffdf8 !important;
+  letter-spacing:-.02em;
+}
+.scoreboard-side .sk-dojo{
+  color:rgba(255,253,248,.72) !important;
+  font-size:15px !important;
+  font-weight:800 !important;
+  margin-top:8px;
+}
+.scoreboard-side .tri{
+  margin-top:16px;
+  min-height:26px;
+  font-size:20px !important;
+  color:rgba(255,253,248,.72) !important;
+}
+.scoreboard-red .tri{
+  text-align:right;
+}
+.scoreboard-score-row{
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  align-items:center;
+  gap:20px;
+}
+.scoreboard-score-row .points{
+  margin:0 !important;
+  min-height:0 !important;
+  line-height:.95 !important;
+  font-size:86px !important;
+  font-weight:950 !important;
+  letter-spacing:.01em !important;
+  text-shadow:0 10px 24px rgba(0,0,0,.24);
+}
+.scoreboard-score-row .white-score{
+  color:#fffdf8 !important;
+  text-align:right !important;
+  padding:0 !important;
+}
+.scoreboard-score-row .red-score{
+  color:#ca3535 !important;
+  text-align:left !important;
+  padding:0 !important;
+}
+.score-vs{
+  color:rgba(255,253,248,.82);
+  font-size:26px;
+  font-weight:900;
+  letter-spacing:.04em;
+  text-transform:lowercase;
+}
+.score-controls-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:18px;
+  padding-top:20px;
+}
+.score-controls-grid .sk-score-buttons{
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:8px;
+}
+.score-controls-grid .sk-score-buttons button{
+  min-height:54px !important;
+  border-radius:14px !important;
+  background:rgba(255,253,248,.94) !important;
+  color:#071f33 !important;
+  border-color:rgba(255,255,255,.18) !important;
+}
+.score-controls-grid .sk-score-buttons button:hover{
+  background:#fffdf8 !important;
+}
+.scoreboard-card .sk-action-row{
+  margin-top:18px !important;
+  justify-content:center !important;
+  gap:14px !important;
+}
+.scoreboard-card .sk-action-row button{
+  min-height:52px !important;
+  min-width:150px !important;
+  border-radius:16px !important;
+  background:rgba(255,253,248,.94) !important;
+  color:#071f33 !important;
+  border-color:rgba(255,255,255,.20) !important;
+}
+.scoreboard-card .sk-action-row .primary{
+  min-width:190px !important;
+  background:#fffdf8 !important;
+  color:#071f33 !important;
+}
+.scoreboard-support-card{
+  border-radius:22px !important;
+  border-top:4px solid #071f33 !important;
+  background:linear-gradient(180deg,#fffdf8,#fbf7ef) !important;
+  box-shadow:0 16px 36px rgba(7,31,51,.08) !important;
+}
+.scoreboard-support-card h1{
+  color:#071f33 !important;
+}
+.scoreboard-support-card .toolbar{
+  margin-bottom:4px;
+}
+.scoreboard-support-card .context-box{
+  border-radius:18px !important;
+}
+.scoreboard-support-card .queue-section-label{
+  border-left-color:#ca3535 !important;
+  background:#fff4dc !important;
+}
+.scoreboard-support-card .queue-section-label.following{
+  border-left-color:#c5a34e !important;
+}
+.scoreboard-support-card .queue-row{
+  border-top-color:#ece4d7 !important;
+}
+@media(max-width:980px){
+  .scoreboard-match{
+    grid-template-columns:1fr;
+  }
+  .scoreboard-score-row{
+    order:2;
+  }
+  .scoreboard-red{
+    order:3;
+  }
+  .score-controls-grid{
+    grid-template-columns:1fr;
+  }
+  .scoreboard-score-row .points{
+    font-size:72px !important;
+  }
+}
+
+
+/* KSM v3.9.1 — finalized scoreboard controls and score layout */
+.scoreboard-match{
+  grid-template-columns:minmax(260px,1fr) minmax(300px,.95fr) minmax(260px,1fr) !important;
+}
+.scoreboard-red{
+  text-align:right !important;
+}
+.scoreboard-red .red-head{
+  justify-content:flex-end !important;
+  text-align:right !important;
+}
+.scoreboard-red .red-identity{
+  text-align:right !important;
+  margin-left:auto !important;
+}
+.scoreboard-red h2,
+.scoreboard-red .sk-dojo{
+  text-align:right !important;
+}
+.score-stack{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  min-width:0;
+}
+.scoreboard-score-row .points{
+  display:flex !important;
+  flex-direction:row !important;
+  flex-wrap:nowrap !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:.20em !important;
+  white-space:nowrap !important;
+  width:100% !important;
+}
+.scoreboard-score-row .tri{
+  margin-top:10px !important;
+  min-height:28px !important;
+  font-size:22px !important;
+  line-height:1 !important;
+  text-align:center !important;
+}
+.white-score-stack .tri{
+  color:rgba(255,253,248,.88) !important;
+}
+.red-score-stack .tri{
+  color:#ca3535 !important;
+}
+.score-controls-grid{
+  gap:34px !important;
+  padding-top:22px !important;
+}
+.control-panel{
+  border-radius:18px;
+  padding:16px;
+}
+.white-control-panel{
+  background:rgba(255,253,248,.96);
+  border:1px solid rgba(255,255,255,.28);
+  box-shadow:0 12px 28px rgba(0,0,0,.12);
+}
+.red-control-panel{
+  background:rgba(255,244,242,.96);
+  border:1px solid rgba(202,53,53,.80);
+  box-shadow:0 12px 28px rgba(0,0,0,.12);
+}
+.control-panel .sk-score-buttons{
+  gap:10px !important;
+}
+.control-panel .sk-score-buttons button{
+  min-width:0 !important;
+  min-height:72px !important;
+  padding:9px 7px !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:2px !important;
+  border-radius:13px !important;
+}
+.white-control-panel .sk-score-buttons button{
+  background:#fffdf8 !important;
+  color:#071f33 !important;
+  border:1px solid #9caabd !important;
+}
+.red-control-panel .sk-score-buttons button{
+  background:#fff1ef !important;
+  color:#ca3535 !important;
+  border:1px solid rgba(202,53,53,.55) !important;
+}
+.point-letter{
+  display:block;
+  font-size:30px;
+  line-height:1;
+  font-weight:950;
+}
+.point-name{
+  display:block;
+  font-size:12px;
+  line-height:1.1;
+  font-weight:800;
+  opacity:.92;
+}
+.bottom-action-row{
+  margin-top:18px !important;
+  padding-top:18px !important;
+  border-top:1px solid rgba(255,255,255,.17);
+}
+@media(max-width:980px){
+  .scoreboard-match{
+    grid-template-columns:1fr !important;
+  }
+  .score-controls-grid{
+    grid-template-columns:1fr !important;
+    gap:14px !important;
+  }
+}
+
+
+/* KSM v3.9.1 — centered match heading and finalized action controls */
+.scoreboard-header{
+  display:grid !important;
+  grid-template-columns:minmax(220px,1fr) minmax(360px,1.25fr) minmax(220px,1fr) !important;
+  align-items:start !important;
+  gap:20px !important;
+}
+.scoreboard-tournament{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  color:#fffdf8;
+  font-size:17px;
+  line-height:1.18;
+  font-weight:950;
+  letter-spacing:.035em;
+  text-transform:uppercase;
+  max-width:300px;
+}
+.scoreboard-tournament img{
+  width:54px;
+  height:54px;
+  object-fit:contain;
+  filter:brightness(0) invert(1);
+  flex:0 0 auto;
+}
+.scoreboard-heading-center{
+  text-align:center;
+}
+.scoreboard-heading-center h1{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:18px;
+  font-size:38px !important;
+  line-height:1 !important;
+}
+.scoreboard-heading-center h1::before,
+.scoreboard-heading-center h1::after{
+  content:"";
+  width:82px;
+  height:1px;
+  background:#c99a36;
+  opacity:.8;
+}
+.scoreboard-heading-center .sk-division-row{
+  max-width:none !important;
+  margin:12px auto 5px !important;
+}
+.scoreboard-heading-center #scoreDiv{
+  width:auto !important;
+  min-width:280px !important;
+  max-width:100% !important;
+  appearance:none;
+  border:0 !important;
+  background:transparent !important;
+  box-shadow:none !important;
+  color:#e0a43c !important;
+  padding:0 22px !important;
+  text-align:center;
+  text-align-last:center;
+  font-size:28px !important;
+  line-height:1.1 !important;
+  font-weight:950 !important;
+  cursor:pointer;
+}
+.scoreboard-heading-center #scoreDiv option{
+  color:#071f33;
+  background:#fffdf8;
+}
+.scoreboard-heading-center .sk-division-title{
+  display:none !important;
+}
+.scoreboard-heading-center .sk-match-line{
+  margin-top:7px !important;
+  text-align:center;
+  color:rgba(255,253,248,.88) !important;
+  font-size:17px !important;
+}
+.scoreboard-heading-spacer{
+  min-height:1px;
+}
+.white-control-panel,
+.red-control-panel{
+  background:#fffdf8 !important;
+}
+.white-control-panel{
+  border-color:rgba(255,255,255,.36) !important;
+}
+.red-control-panel{
+  border-color:rgba(202,53,53,.72) !important;
+}
+.red-control-panel .sk-score-buttons button{
+  background:#fffdf8 !important;
+  color:#ca3535 !important;
+  border-color:rgba(202,53,53,.55) !important;
+}
+.bottom-action-row button{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:12px !important;
+}
+.bottom-action-row .action-icon{
+  display:inline-block;
+  font-size:32px;
+  line-height:1;
+  font-weight:800;
+}
+.bottom-action-row .flag-icon{
+  font-size:27px;
+}
+.bottom-action-row .next-match-btn{
+  background:linear-gradient(180deg,#f1bd58,#dfa13a) !important;
+  color:#071f33 !important;
+  border-color:#e3ae49 !important;
+  box-shadow:0 12px 24px rgba(210,148,42,.22) !important;
+}
+.bottom-action-row .next-match-btn:hover{
+  background:linear-gradient(180deg,#f4c66a,#e5aa42) !important;
+}
+@media(max-width:980px){
+  .scoreboard-header{
+    grid-template-columns:1fr !important;
+  }
+  .scoreboard-tournament{
+    justify-self:center;
+    text-align:left;
+  }
+  .scoreboard-heading-spacer{
+    display:none;
+  }
+  .scoreboard-heading-center h1::before,
+  .scoreboard-heading-center h1::after{
+    width:48px;
+  }
+}
+
+
+/* KSM v3.9.1 — scoreboard stability and action-row refinement */
+.scoreboard-heading-center{
+  width:100%;
+  justify-self:center;
+}
+.scoreboard-heading-center h1{
+  position:relative;
+  width:min(560px,100%);
+  margin-left:auto !important;
+  margin-right:auto !important;
+  text-align:center !important;
+}
+.scoreboard-heading-center h1::before,
+.scoreboard-heading-center h1::after{
+  flex:1 1 auto !important;
+  width:auto !important;
+  max-width:150px;
+  height:2px !important;
+  background:linear-gradient(90deg,transparent,#d6a03d) !important;
+}
+.scoreboard-heading-center h1::after{
+  background:linear-gradient(90deg,#d6a03d,transparent) !important;
+}
+.scoreboard-score-row{
+  min-height:156px !important;
+  align-items:center !important;
+}
+.score-stack{
+  min-height:150px !important;
+  display:grid !important;
+  grid-template-rows:104px 32px !important;
+  align-items:center !important;
+  justify-items:center !important;
+}
+.scoreboard-score-row .points{
+  min-height:104px !important;
+  height:104px !important;
+  align-content:center !important;
+}
+.scoreboard-score-row .tri{
+  min-height:32px !important;
+  height:32px !important;
+  margin-top:0 !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+}
+.scoreboard-match{
+  min-height:210px !important;
+}
+.score-controls-grid{
+  min-height:112px !important;
+}
+.bottom-action-row{
+  display:grid !important;
+  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+  width:100% !important;
+  gap:14px !important;
+}
+.bottom-action-row button{
+  width:100% !important;
+  min-width:0 !important;
+  min-height:74px !important;
+  margin:0 !important;
+}
+.bottom-action-row .undo-action,
+.bottom-action-row .fusen-action{
+  background:#fffdf8 !important;
+  color:#071f33 !important;
+  border-color:rgba(255,255,255,.4) !important;
+  box-shadow:none !important;
+}
+.action-btn{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:14px !important;
+}
+.action-svg{
+  width:34px;
+  height:34px;
+  display:block;
+  flex:0 0 auto;
+}
+.next-arrows{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  font-size:42px !important;
+  line-height:1 !important;
+  height:1em !important;
+  transform:translateY(-1px);
+}
+.next-match-btn span{
+  display:inline-flex !important;
+  align-items:center !important;
+}
+@media(max-width:760px){
+  .bottom-action-row{
+    grid-template-columns:1fr !important;
+  }
+}
+
+
+/* KSM v3.9.1 — centered title, balanced actions, and compact score spacing */
+.scoreboard-header{
+  position:relative !important;
+  display:block !important;
+  min-height:132px !important;
+}
+.scoreboard-tournament{
+  position:absolute !important;
+  left:0 !important;
+  top:0 !important;
+  z-index:2;
+}
+.scoreboard-heading-center{
+  position:absolute !important;
+  top:0 !important;
+  left:50% !important;
+  transform:translateX(-50%) !important;
+  width:min(620px,62%) !important;
+  text-align:center !important;
+  z-index:3;
+}
+.scoreboard-heading-spacer{
+  display:none !important;
+}
+.scoreboard-heading-center h1{
+  width:100% !important;
+  margin:0 auto !important;
+  display:grid !important;
+  grid-template-columns:minmax(48px,1fr) auto minmax(48px,1fr) !important;
+  align-items:center !important;
+  column-gap:18px !important;
+  justify-content:center !important;
+  text-align:center !important;
+}
+.scoreboard-heading-center h1::before,
+.scoreboard-heading-center h1::after{
+  content:"" !important;
+  display:block !important;
+  width:100% !important;
+  max-width:none !important;
+  height:2px !important;
+  opacity:1 !important;
+}
+.scoreboard-heading-center h1::before{
+  background:linear-gradient(90deg,transparent 0%,#d5a03d 78%,#d5a03d 100%) !important;
+}
+.scoreboard-heading-center h1::after{
+  background:linear-gradient(90deg,#d5a03d 0%,#d5a03d 22%,transparent 100%) !important;
+}
+.scoreboard-match{
+  min-height:166px !important;
+  padding-top:4px !important;
+  padding-bottom:12px !important;
+}
+.scoreboard-score-row{
+  min-height:118px !important;
+}
+.score-stack{
+  min-height:112px !important;
+  grid-template-rows:78px 26px !important;
+}
+.scoreboard-score-row .points{
+  min-height:78px !important;
+  height:78px !important;
+  font-size:76px !important;
+}
+.scoreboard-score-row .tri{
+  min-height:26px !important;
+  height:26px !important;
+  font-size:19px !important;
+}
+.bottom-action-row{
+  display:grid !important;
+  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+  gap:14px !important;
+  width:100% !important;
+}
+.bottom-action-row button,
+.bottom-action-row .primary,
+.bottom-action-row .next-match-btn{
+  width:100% !important;
+  min-width:0 !important;
+  max-width:none !important;
+  min-height:72px !important;
+  height:72px !important;
+  padding:0 18px !important;
+  margin:0 !important;
+  box-sizing:border-box !important;
+}
+.bottom-action-row .next-match-btn{
+  background:linear-gradient(180deg,#f2bf5b 0%,#dfa13a 100%) !important;
+  color:#071f33 !important;
+  border-color:#e0a640 !important;
+  box-shadow:0 10px 22px rgba(214,151,42,.22) !important;
+}
+.bottom-action-row .next-match-btn:hover{
+  background:linear-gradient(180deg,#f5c96d 0%,#e5aa43 100%) !important;
+}
+.undo-svg{
+  width:36px !important;
+  height:36px !important;
+  aspect-ratio:1 / 1 !important;
+  flex:0 0 36px !important;
+  overflow:visible !important;
+}
+@media(max-width:980px){
+  .scoreboard-header{
+    min-height:196px !important;
+  }
+  .scoreboard-tournament{
+    position:static !important;
+    justify-content:center !important;
+    margin-bottom:14px;
+  }
+  .scoreboard-heading-center{
+    position:static !important;
+    transform:none !important;
+    width:100% !important;
+  }
+}
+@media(max-width:760px){
+  .bottom-action-row{
+    grid-template-columns:1fr !important;
+  }
+}
+
+
+/* KSM v3.9.1 — finalized action buttons and compact score reserve */
+.scoreboard-match{
+  min-height:148px !important;
+  padding-top:0 !important;
+  padding-bottom:8px !important;
+}
+.scoreboard-score-row{
+  min-height:102px !important;
+}
+.score-stack{
+  min-height:98px !important;
+  grid-template-rows:70px 24px !important;
+}
+.scoreboard-score-row .points{
+  min-height:70px !important;
+  height:70px !important;
+  font-size:70px !important;
+}
+.scoreboard-score-row .tri{
+  min-height:24px !important;
+  height:24px !important;
+  font-size:18px !important;
+}
+.bottom-action-row{
+  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+  gap:14px !important;
+}
+.bottom-action-row button,
+.bottom-action-row .primary,
+.bottom-action-row .next-match-btn{
+  min-height:72px !important;
+  height:72px !important;
+  width:100% !important;
+  min-width:0 !important;
+  max-width:none !important;
+  padding:0 20px !important;
+}
+.action-btn{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:16px !important;
+}
+.action-svg,
+.action-symbol{
+  width:24px !important;
+  height:24px !important;
+  flex:0 0 24px !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  line-height:1 !important;
+}
+.undo-svg{
+  overflow:visible !important;
+}
+.flag-symbol{
+  font-size:24px !important;
+  transform:translateY(-1px);
+}
+.next-symbol{
+  font-size:34px !important;
+  width:24px !important;
+  height:24px !important;
+  line-height:.7 !important;
+  transform:translateY(-1px);
+}
+.bottom-action-row .undo-action,
+.bottom-action-row .fusen-action{
+  background:#fffdf8 !important;
+  color:#071f33 !important;
+  border-color:rgba(255,255,255,.42) !important;
+  box-shadow:none !important;
+}
+.bottom-action-row .next-match-btn{
+  background:linear-gradient(180deg,#f1bd58 0%,#dfa13a 100%) !important;
+  color:#071f33 !important;
+  border-color:#e0a640 !important;
+  box-shadow:0 10px 22px rgba(214,151,42,.22) !important;
+}
+.bottom-action-row .next-match-btn:hover{
+  background:linear-gradient(180deg,#f1bd58 0%,#dfa13a 100%) !important;
+  color:#071f33 !important;
+}
+
+

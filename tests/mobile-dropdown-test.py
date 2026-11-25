@@ -1,27 +1,34 @@
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from ksm_browser import launch_chromium, load_app
+from ksm_source import app_html
 
-ROOT = Path(__file__).resolve().parents[1] / "public"
-HTML = (ROOT / "index.html").read_text(encoding="utf-8")
+HTML=app_html()
 
 with sync_playwright() as p:
-    browser = p.chromium.launch(headless=True, executable_path="/usr/bin/chromium", args=["--no-sandbox"])
+    browser = launch_chromium(p)
     page = browser.new_page(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True)
     errors = []
     page.on("pageerror", lambda exc: errors.append(str(exc)))
-    page.set_content(HTML, wait_until="domcontentloaded")
-    page.wait_for_timeout(300)
+    load_app(page, HTML)
+    page.get_by_test_id('nav-toggle').wait_for(state='visible')
+
+    def tap_trigger(trigger):
+        toggle = page.get_by_test_id('nav-toggle')
+        if toggle.get_attribute('aria-expanded') == 'false':
+            toggle.tap()
+        trigger.tap()
+        # The drawer slides in: measure only once its animation has finished.
+        page.wait_for_function("(document.querySelector('.mobile-nav-drawer')?.getAnimations() || []).every(a => a.playState !== 'running')")
 
     contracts = [
         ("Courts", "#courtsMenu", "Court A"),
-        ("Live Scores", "#liveScoresMenu", "Court A"),
-        ("Export", "#exportMenu", "Tournament Brackets"),
-        ("Save or Load", "#saveLoadMenu", "Save Now"),
+        ("TV Display", "#tvMenu", "Court A TV"),  # Live Scores became a direct link; TV Display is the dropdown
     ]
     checks = 0
     for title, menu, item in contracts:
         trigger = page.get_by_title(title)
-        trigger.tap()
+        tap_trigger(trigger)
         locator = page.locator(menu)
         locator.wait_for(state="visible")
         assert trigger.get_attribute("aria-expanded") == "true"
@@ -30,20 +37,25 @@ with sync_playwright() as p:
         assert box is not None
         viewport = page.evaluate("({w:innerWidth,h:innerHeight})")
         assert box["x"] >= 0 and box["x"] + box["width"] <= viewport["w"]
-        assert box["y"] >= 0 and box["y"] + min(box["height"], 1) <= viewport["h"]
+        item_control = locator.get_by_role("button", name=item)
+        item_control.scroll_into_view_if_needed()
+        item_box = item_control.bounding_box()
+        assert item_box["y"] >= 0 and item_box["y"] + item_box["height"] <= viewport["h"]
         checks += 6
+        page.get_by_role('button',name='Close navigation ×').tap()
+        page.get_by_test_id('nav-toggle').tap()
         page.get_by_title("Setup").tap()
         assert locator.is_hidden()
         assert trigger.get_attribute("aria-expanded") == "false"
         checks += 2
 
     trigger = page.get_by_title("Courts")
-    trigger.tap(); assert page.locator("#courtsMenu").is_visible()
-    trigger.tap(); assert page.locator("#courtsMenu").is_hidden()
+    tap_trigger(trigger); assert page.locator("#courtsMenu").is_visible()
+    tap_trigger(trigger); assert page.locator("#courtsMenu").is_hidden()
     checks += 2
 
-    trigger.tap(); assert page.locator("#courtsMenu").is_visible()
-    page.locator("main").tap(position={"x": 10, "y": 10})
+    tap_trigger(trigger); assert page.locator("#courtsMenu").is_visible()
+    page.locator(".mobile-nav-backdrop").tap(position={"x": 380, "y": 200})
     assert page.locator("#courtsMenu").is_hidden()
     checks += 2
 

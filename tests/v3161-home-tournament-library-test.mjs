@@ -1,17 +1,22 @@
+import { html as appSource, sw as appServiceWorker, readRepoFile } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
-const html = fs.readFileSync('public/index.html','utf8');
-const sw = fs.readFileSync('public/service-worker.js','utf8');
+const html = appSource;
+const sw = appServiceWorker;
 const worker = fs.readFileSync('src-worker.js','utf8');
+// Since M.13 the library's markup is drawn by React (app/react/library/: Library.tsx,
+// library-model.ts; tests/golden/library pins it), so checks of the cards and buttons read that code
+// as well as the static markup of app/index.html.
+const libraryReact = readRepoFile('app/react/library/Library.tsx') + readRepoFile('app/react/library/library-model.ts');
+const shellReact = readRepoFile('app/react/shell/Shell.tsx');
 const checks = [
-  ['version', html.includes('v3.16.2') && sw.includes('ksm-shell-v3.16.2') && worker.includes("version: '3.16.2'")],
-  ['dedicated home view', html.includes('id="home"') && html.includes('id="homeTournamentLibrary"')],
-  ['new tournament available on home', html.includes('onclick="createNewTournament()">＋ New Tournament')],
-  ['existing tournaments open spectator', html.includes('openTournamentFromHome') && html.includes("setSessionRole('spectator')")],
+  ['dedicated home view', html.includes('id="home"') && html.includes('id="homeTournamentLibrary"') && libraryReact.includes('id="homeTournamentLibrary"')],
+  ['new tournament available on home', html.includes('onclick="createNewTournament()">＋ New Tournament') && libraryReact.includes('data-testid="home-new-tournament" onClick={() => { libraryWindow().createNewTournament?.(); }}>{NEW_TOURNAMENT_TEXT}') && libraryReact.includes("NEW_TOURNAMENT_TEXT = '＋ New Tournament'")],
+  ['existing tournaments open spectator', html.includes("return ksmOpenTournament(id)") && html.includes("await initializeCloudRoleFromUrl()") && libraryReact.includes('libraryWindow().openTournamentFromHome?.(card.id)')],
   ['startup opens home', html.includes('showHomePage();return true')],
-  ['public link bypasses home', html.includes("document.body.classList.remove('ksm-home');navigateTo('public')")],
-  ['home return paths', html.includes('title="Tournament Library" onclick="showHomePage()"') && html.includes('>Tournament Library</button>')],
+  ['public link bypasses home', /classList\.remove\('ksm-home'\);if\(requestedView==='tv'\).{0,400}ksmShowRequestedScreen\(\)/.test(html)],
+  ['home return paths', html.includes('title="Tournament Library" onclick="ksmHeaderLogo()"') && libraryReact.includes('data-testid="library-return"')],
   ['staff login and logout preserved', html.includes('Staff Login') && html.includes("?'Logout':'Staff Login'")],
-  ['save now preserved', html.includes('>Save Now</button>')],
+  ['save now preserved', shellReact.includes('h.retry && <button') && shellReact.includes('data-testid="header-save-now"')],
   ['recovery file preserved', html.includes('downloadRecoveryFile()') && html.includes('triggerLoadRecoveryFile()')],
 ];
 let failed=false;

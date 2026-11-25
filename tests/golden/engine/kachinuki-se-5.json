@@ -1,0 +1,487 @@
+{
+ "setup": [
+  {
+   "team": true,
+   "format": "Kachinuki",
+   "tournament": "Single Elimination",
+   "teams": 5,
+   "court": "Both"
+  }
+ ],
+ "generated": {
+  "Team Tournament": {
+   "pools": [],
+   "matches": [
+    {
+     "pool": "Quarterfinal",
+     "position": "Kachinuki",
+     "node": null,
+     "court": "A",
+     "white": "TB1",
+     "red": "TA1",
+     "teams": "Team B v Team A",
+     "type": "kachinuki",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    },
+    {
+     "pool": "Quarterfinal",
+     "position": "Kachinuki",
+     "node": null,
+     "court": "B",
+     "white": "TD1",
+     "red": "TC1",
+     "teams": "Team D v Team C",
+     "type": "kachinuki",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": false,
+     "wp": [],
+     "rp": [],
+     "winner": null
+    }
+   ]
+  }
+ },
+ "play_order": [
+  "A | Team Tournament | Kachinuki | TB1 v TA1 | white WM",
+  "B | Team Tournament | Kachinuki | TD1 v TC1 | tie WM RK",
+  "A | Team Tournament | Kachinuki | TB1 v TA2 | white WM",
+  "B | Team Tournament | Kachinuki | TD2 v TC2 | white WM",
+  "A | Team Tournament | Kachinuki | TB1 v TA3 | red RD RM",
+  "B | Team Tournament | Kachinuki | TD2 v TC3 | red RK",
+  "A | Team Tournament | Kachinuki | TB2 v TA3 | red RK",
+  "B | Team Tournament | Kachinuki | TD3 v TC3 | red RD RM",
+  "A | Team Tournament | Kachinuki | TB3 v TA3 | tie WM RK",
+  "B | Team Tournament | Kachinuki | TE1 v TC1 | white WM RD WK",
+  "A | Team Tournament | Kachinuki Playoff TB | Team B Representative v Team A Representative | red RK",
+  "B | Team Tournament | Kachinuki | TE1 v TC2 | white WM",
+  "B | Team Tournament | Kachinuki | TE1 v TC3 | red RK",
+  "B | Team Tournament | Kachinuki | TE2 v TC3 | red RD RM",
+  "B | Team Tournament | Kachinuki | TE3 v TC3 | tie WM RK",
+  "B | Team Tournament | Kachinuki Playoff TB | Team E Representative v Team C Representative | white WM",
+  "A | Team Tournament | Kachinuki | TE1 v TA1 | red RK",
+  "A | Team Tournament | Kachinuki | TE2 v TA1 | tie WM RK",
+  "A | Team Tournament | Kachinuki | TE3 v TA2 | white WM",
+  "A | Team Tournament | Kachinuki | TE3 v TA3 | red RK"
+ ],
+ "final": {
+  "Team Tournament": {
+   "complete": true,
+   "matches": [
+    {
+     "pool": "Quarterfinal",
+     "position": "Kachinuki",
+     "node": null,
+     "court": "A",
+     "white": "TB1",
+     "red": "TA1",
+     "teams": "Team B v Team A",
+     "type": "kachinuki",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [],
+     "winner": "TB1"
+    },
+    {
+     "pool": "Quarterfinal",
+     "position": "Kachinuki",
+     "node": null,
+     "court": "A",
+     "white": "TB1",
+     "red": "TA2",
+     "teams": "Team B v Team A",
+     "type": "kachinuki",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [],
+     "winner": "TB1"
+    },
+    {
+     "pool": "Quarterfinal",
+     "position": "Kachinuki",
+     "node": null,
+     "court": "A",
+     "white": "TB1",
+     "red": "TA3",
+     "teams": "Team B v Team A",
+     "type": "kachinuki",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "D",
+      "M"
+     ],
+     "winner": "TA3"
+    },
+    {
+     "pool": "Quarterfinal",
+     "position": "Kachinuki",
+     "node": null,
+     "court": "A",
+     "white": "TB2",
+     "red": "TA3",
+     "teams": "Team B v Team A",
+     "type": "kachinuki",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "K"
+     ],
+     "winner": "TA3"
+    },
+    {
+     "pool": "Quarterfinal",
+     "position": "Kachinuki",
+     "node": null,
+     "court": "A",
+     "white": "TB3",
+     "red": "TA3",
+     "teams": "Team B v Team A",
+     "type": "kachinuki",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [
+      "K"
+     ],
+     "winner": "Hikiwake"
+    },
+    {
+     "pool": "Quarterfinal",
+     "position": "Kachinuki Playoff",
+     "node": null,
+     "court": "A",
+     "white": "Team B Representative",
+     "red": "Team A Representative",
+     "teams": "Team B v Team A",
+     "type": "teamPlayoff",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": true,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "K"
+     ],
+     "winner": "Team A Representative"
+    },
+    {
+     "pool": "Quarterfinal",
+     "position": "Kachinuki",
+     "node": null,
+     "court": "B",
+     "white": "TD1",
+     "red": "TC1",
+     "teams": "Team D v Team C",
+     "type": "kachinuki",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [
+      "K"
+     ],
+     "winner": "Hikiwake"
+    },
+    {
+     "pool": "Quarterfinal",
+     "position": "Kachinuki",
+     "node": null,
+     "court": "B",
+     "white": "TD2",
+     "red": "TC2",
+     "teams": "Team D v Team C",
+     "type": "kachinuki",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [],
+     "winner": "TD2"
+    },
+    {
+     "pool": "Quarterfinal",
+     "position": "Kachinuki",
+     "node": null,
+     "court": "B",
+     "white": "TD2",
+     "red": "TC3",
+     "teams": "Team D v Team C",
+     "type": "kachinuki",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "K"
+     ],
+     "winner": "TC3"
+    },
+    {
+     "pool": "Quarterfinal",
+     "position": "Kachinuki",
+     "node": null,
+     "court": "B",
+     "white": "TD3",
+     "red": "TC3",
+     "teams": "Team D v Team C",
+     "type": "kachinuki",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "D",
+      "M"
+     ],
+     "winner": "TC3"
+    },
+    {
+     "pool": "Semifinal",
+     "position": "Kachinuki",
+     "node": null,
+     "court": "B",
+     "white": "TE1",
+     "red": "TC1",
+     "teams": "Team E v Team C",
+     "type": "kachinuki",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M",
+      "K"
+     ],
+     "rp": [
+      "D"
+     ],
+     "winner": "TE1"
+    },
+    {
+     "pool": "Semifinal",
+     "position": "Kachinuki",
+     "node": null,
+     "court": "B",
+     "white": "TE1",
+     "red": "TC2",
+     "teams": "Team E v Team C",
+     "type": "kachinuki",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [],
+     "winner": "TE1"
+    },
+    {
+     "pool": "Semifinal",
+     "position": "Kachinuki",
+     "node": null,
+     "court": "B",
+     "white": "TE1",
+     "red": "TC3",
+     "teams": "Team E v Team C",
+     "type": "kachinuki",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "K"
+     ],
+     "winner": "TC3"
+    },
+    {
+     "pool": "Semifinal",
+     "position": "Kachinuki",
+     "node": null,
+     "court": "B",
+     "white": "TE2",
+     "red": "TC3",
+     "teams": "Team E v Team C",
+     "type": "kachinuki",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "D",
+      "M"
+     ],
+     "winner": "TC3"
+    },
+    {
+     "pool": "Semifinal",
+     "position": "Kachinuki",
+     "node": null,
+     "court": "B",
+     "white": "TE3",
+     "red": "TC3",
+     "teams": "Team E v Team C",
+     "type": "kachinuki",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [
+      "K"
+     ],
+     "winner": "Hikiwake"
+    },
+    {
+     "pool": "Semifinal",
+     "position": "Kachinuki Playoff",
+     "node": null,
+     "court": "B",
+     "white": "Team E Representative",
+     "red": "Team C Representative",
+     "teams": "Team E v Team C",
+     "type": "teamPlayoff",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": true,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [],
+     "winner": "Team E Representative"
+    },
+    {
+     "pool": "Final",
+     "position": "Kachinuki",
+     "node": null,
+     "court": "A",
+     "white": "TE1",
+     "red": "TA1",
+     "teams": "Team E v Team A",
+     "type": "kachinuki",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "K"
+     ],
+     "winner": "TA1"
+    },
+    {
+     "pool": "Final",
+     "position": "Kachinuki",
+     "node": null,
+     "court": "A",
+     "white": "TE2",
+     "red": "TA1",
+     "teams": "Team E v Team A",
+     "type": "kachinuki",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [
+      "K"
+     ],
+     "winner": "Hikiwake"
+    },
+    {
+     "pool": "Final",
+     "position": "Kachinuki",
+     "node": null,
+     "court": "A",
+     "white": "TE3",
+     "red": "TA2",
+     "teams": "Team E v Team A",
+     "type": "kachinuki",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [
+      "M"
+     ],
+     "rp": [],
+     "winner": "TE3"
+    },
+    {
+     "pool": "Final",
+     "position": "Kachinuki",
+     "node": null,
+     "court": "A",
+     "white": "TE3",
+     "red": "TA3",
+     "teams": "Team E v Team A",
+     "type": "kachinuki",
+     "championship": false,
+     "singleElim": false,
+     "tiebreak": false,
+     "done": true,
+     "wp": [],
+     "rp": [
+      "K"
+     ],
+     "winner": "TA3"
+    }
+   ],
+   "standings": {},
+   "placements": [
+    {
+     "place": "1st",
+     "name": "Team A"
+    },
+    {
+     "place": "2nd",
+     "name": "Team E"
+    }
+   ]
+  }
+ },
+ "events": []
+}

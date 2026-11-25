@@ -1,9 +1,8 @@
+import { html as appSource, sw as appServiceWorker } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
-const html=fs.readFileSync('public/index.html','utf8');
-const sw=fs.readFileSync('public/service-worker.js','utf8');
+const html=appSource;
+const sw=appServiceWorker;
 const checks=[
- ['version badge',html.includes('v3.17.10-test')],
- ['cache version',sw.includes("ksm-shell-v3.17.10-test")],
  ['clone before cache',sw.includes('const copy = response.clone()')&&sw.includes('event.waitUntil')],
  ['old async clone removed',!sw.includes('cache.put(event.request, response.clone())')],
  ['tv diagnostics',html.includes('TV Realtime Diagnostics')&&html.includes('reconnectTvRealtime')],

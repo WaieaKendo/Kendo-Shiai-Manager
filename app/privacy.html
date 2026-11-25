@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy · Kendo Shiai Manager</title>
+  <link rel="stylesheet" href="/styles/02-branding.css">
+  <style>
+    body { margin: 0; background: var(--ksm-paper); color: var(--ksm-ink); font: 1rem/1.6 system-ui, sans-serif; }
+    body::before { content: none; }
+    main { max-width: 40rem; margin: 0 auto; padding: 2rem 1.25rem; }
+    h1 { line-height: 1.2; }
+    h2 { font-size: 1.125rem; margin: 1.5rem 0 0; }
+    p { margin: .5rem 0; }
+    a { color: var(--ksm-navy); text-underline-offset: .2em; }
+  </style>
+</head>
+<body>
+  <main>
+    <a href="/">Kendo Shiai Manager</a>
+    <h1>Privacy</h1>
+    <p>Last updated: <time datetime="2026-10-12">October 12, 2026</time></p>
+    <h2>What KSM stores</h2>
+    <p>KSM stores tournament details; competitor and team member names and dojos; match scores, results, placements and special awards; exhibition matches; and referee names entered in Setup. There are no user accounts yet.</p>
+    <p>KSM also stores technical device labels and IDs for synchronisation. Staff passwords are stored as hashes; new passwords use salted hashes, and older hashes are upgraded after a successful login.</p>
+    <p>Some competitors are minors. Organisers should enter only the name and dojo needed to run the event.</p>
+    <h2>Who can see it</h2>
+    <p>Tournaments are listed publicly on this site's home page. Anyone can open them and view tournament information, including competitors' names, dojos and results. Staff need the tournament's password to make changes.</p>
+    <h2>Where it is stored</h2>
+    <p>Shared tournament data is stored on Cloudflare. KSM also saves tournament data in your browser for local use and recovery.</p>
+    <h2>Request deletion</h2>
+    <p>Use the <a href="https://hawaiikendofederation.org/contact-us">Hawaii Kendo Federation (HKF) contact page</a> to ask for deletion. Include the tournament name or link so HKF can identify the data.</p>
+    <h2>Planned sign-in</h2>
+    <p>Sign-in via Auth0 and Google is planned but is not available yet. This notice will be updated when sign-in is introduced.</p>
+  </main>
+</body>
+</html>

@@ -1,7 +1,7 @@
+import { html as appSource } from './lib/ksm-source.mjs';
 import fs from 'node:fs';
-const html=fs.readFileSync('public/index.html','utf8');
+const html=appSource;
 const checks=[
- ['version 3.15.4',html.includes('v3.15.4')],
  ['validation header removed',!html.includes('<div class="results-modal-head"><h2 id="validationModalTitle"')],
  ['validation actions inset',html.includes('.validation-modal-actions')&&html.includes('justify-content:flex-end')],
  ['consistent results title size',html.includes('#results .summary-like > b')&&html.includes('font-size:16px')],

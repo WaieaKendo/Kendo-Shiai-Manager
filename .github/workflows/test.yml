@@ -1,0 +1,110 @@
+name: Tests
+
+# Runs the full regression suite (npm test: builds dist/ first) once per change. The suite is split
+# into 4 shards (tests/run-all.mjs --shard i/4, balanced by tests/test-durations.json) that run in
+# parallel; the final "test" job is the single required check and the one deploy.yml waits for.
+#   - on every pull request (each push to a PR branch; docs-only changes are skipped); a newer
+#     push cancels the older run;
+#   - when deploy.yml calls it (workflow_call): every push to develop and every production deploy,
+#     so nothing deploys without a green suite.
+# Plain pushes to branches without a PR don't run it (they used to run it a second time next to
+# the pull_request run). Run it by hand with "Run workflow" if needed.
+on:
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+  workflow_call:
+  workflow_dispatch:
+
+concurrency:
+  # One run per PR / branch: a newer push cancels the older run. Calls from deploy.yml use their
+  # own group (deploy-…), so a deploy's tests are never cancelled by a PR run.
+  group: tests-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('{0}-{1}', github.workflow, github.ref) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # Release version rules (scripts/version-rules.mjs, docs/DEPLOYMENT.md): a PR into main must carry
+  # a new, non-rc version; a PR into develop in its rc phase must move rc.N to rc.N+1 (or to the
+  # final version). Other bases are not checked. Only on pull requests.
+  version:
+    name: version rules
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check package.json version against ${{ github.base_ref }}
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git fetch -q --depth=1 origin "refs/heads/$BASE_REF"
+          if ! git cat-file -e FETCH_HEAD:package.json 2>/dev/null; then echo "$BASE_REF has no package.json: no version rule to check"; exit 0; fi
+          base_version=$(git show FETCH_HEAD:package.json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).version||""))')
+          head_version=$(node -p 'require("./package.json").version')
+          node scripts/version-rules.mjs "$BASE_REF" "$base_version" "$head_version"
+
+  shard:
+    name: shard ${{ matrix.shard }}/4
+    # Pinned to 24.04 until after the 11/21 tournament (ubuntu-latest moves to Ubuntu 26 from Oct 19, 2026).
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history: verify-split and the engine legacy-equivalence tests read old commits.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Node dependencies (wrangler, vite, typescript)
+        run: npm ci
+
+      - name: Install Playwright
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -q playwright
+          echo "PLAYWRIGHT_VERSION=$(.venv/bin/pip show playwright | sed -n 's/^Version: //p')" >> "$GITHUB_ENV"
+
+      - name: Cache the Chromium download
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ env.PLAYWRIGHT_VERSION }}
+
+      # With a warm cache this only fetches the system libraries (the browser itself is reused).
+      - name: Install Chromium system dependencies
+        run: .venv/bin/python -m playwright install --with-deps chromium
+
+      - name: Run test shard ${{ matrix.shard }}/4
+        run: node tests/run-all.mjs --shard ${{ matrix.shard }}/4
+        env:
+          # GitHub's runners are slower than a laptop; the snapshot tests replay whole
+          # tournaments, so give each test up to 7 minutes here (180 s locally).
+          KSM_TEST_TIMEOUT_MS: '420000'
+
+  # The one check to require: green only when every shard and the version rules passed (also when a shard was cancelled or skipped).
+  test:
+    name: test
+    needs: [shard, version]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: All shards passed
+        run: |
+          echo "shards: ${{ needs.shard.result }}, version rules: ${{ needs.version.result }}"
+          test "${{ needs.shard.result }}" = "success"
+          # Skipped outside pull requests (deploy.yml's calls, Run workflow).
+          case "${{ needs.version.result }}" in success|skipped) ;; *) echo "::error::the version rules failed (see the 'version rules' job)"; exit 1 ;; esac

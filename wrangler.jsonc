@@ -1,13 +1,23 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
+  // PRODUCTION (the top level). This Worker holds the real tournaments in its TournamentState
+  // Durable Objects. Its name still says "staging" for historical reasons; renaming it moves the
+  // Durable Objects and is a separate, supervised step (docs/DEPLOYMENT.md, "Renaming production").
+  // Deployed only by the "Deploy production" workflow (.github/workflows/deploy.yml).
   "name": "kendoshiaimanager-cloud-staging",
   "main": "src-worker.js",
   "compatibility_date": "2026-07-11",
   "assets": {
-    "directory": "./public",
+    "directory": "./dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": [
+      "/*",
+      "!/assets/*", "!/icons/*", "!/react/*", "!/styles/*", "!/js/*", "!/public/*",
+      "!/index.html", "!/app.js", "!/app.css", "!/engine.js",
+      "!/service-worker.js", "!/manifest.webmanifest", "!/favicon.ico", "!/robots.txt",
+      "!/privacy", "!/privacy.html", "!/privacy/*", "!/overlay", "!/overlay.html", "!/overlay/*"
+    ]
   },
   "durable_objects": {
     "bindings": [
@@ -16,5 +26,24 @@
   },
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["TournamentState"] }
-  ]
+  ],
+  "env": {
+    // DEV: `wrangler deploy --env dev`, a separate Worker with its OWN Durable Objects (its own
+    // tournaments, never production's). Deployed by the "Deploy dev" workflow on every push to
+    // `develop`. It inherits main, compatibility_date and assets (dist/). Durable Object bindings
+    // are not inherited by environments, so the binding is repeated; the migration is repeated too
+    // (an environment would inherit it) so this file states the dev namespace in full. Same
+    // TournamentState class; wrangler provisions a separate namespace per Worker.
+    "dev": {
+      "name": "kendoshiaimanager-dev",
+      "durable_objects": {
+        "bindings": [
+          { "name": "TOURNAMENTS", "class_name": "TournamentState" }
+        ]
+      },
+      "migrations": [
+        { "tag": "v1", "new_sqlite_classes": ["TournamentState"] }
+      ]
+    }
+  }
 }

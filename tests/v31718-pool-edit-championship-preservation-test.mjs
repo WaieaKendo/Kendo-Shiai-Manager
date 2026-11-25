@@ -1,35 +1,16 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { extractFunction, engine, html as appSource, sw as appServiceWorker } from './lib/ksm-source.mjs';
 
-const html=fs.readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+const html=appSource;
 const pkg=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url),'utf8'));
-const sw=fs.readFileSync(new URL('../public/service-worker.js',import.meta.url),'utf8');
+const sw=appServiceWorker;
 const worker=fs.readFileSync(new URL('../src-worker.js',import.meta.url),'utf8');
 
-function extractFunction(source,name){
-  const markers=[`async function ${name}(`,`function ${name}(`];
-  let start=-1;
-  for(const marker of markers){start=source.indexOf(marker);if(start>=0)break}
-  if(start<0)throw new Error(`Missing function ${name}`);
-  const brace=source.indexOf('{',start);let depth=0,quote=null,escaped=false;
-  for(let i=brace;i<source.length;i++){
-    const ch=source[i];
-    if(escaped){escaped=false;continue}
-    if(quote){if(ch==='\\'){escaped=true;continue}if(ch===quote)quote=null;continue}
-    if(ch==='\''||ch==='"'||ch==='`'){quote=ch;continue}
-    if(ch==='{')depth++;
-    if(ch==='}'&&--depth===0)return source.slice(start,i+1);
-  }
-  throw new Error(`Unbalanced function ${name}`);
-}
 
 let failed=false;
 function check(ok,name){console.log(`${ok?'PASS':'FAIL'} ${name}`);if(!ok)failed=true}
 
-check(pkg.version==='3.17.18-test','package version');
-check(html.includes('v3.17.18-test'),'HTML version');
-check(sw.includes('ksm-shell-v3.17.18-test'),'service worker version');
-check(worker.includes("version: '3.17.18-test'"),'worker version');
 
 const saveSource=extractFunction(html,'saveEditedPools');
 check(saveSource.includes('buildPoolMatches(div,pools)'),'pool edit rebuilds preliminary matches');
@@ -45,9 +26,11 @@ context.renderPools=()=>{};
 context.scheduleAutoSave=()=>{};
 context.setActiveDivision=()=>{};
 context.findNextForCourt=(court,div)=>({division:div,index:0});
-context.championshipNodeSource=()=>null;
+context.seedNameForLabel=()=>null;
+// F12: Save Pool Changes applies the editor's copy (ksmPoolEditToSave(), 41-); here the pools as given.
+context.ksmPoolEditToSave=div=>context.state.pools[div];
 vm.createContext(context);
-vm.runInContext(`
+vm.runInContext(`${engine}
 const POOL_MATCH_TEMPLATES=Object.freeze({
   2:Object.freeze([[0,1]]),
   3:Object.freeze([[0,1],[2,1],[2,0]]),
@@ -99,7 +82,7 @@ function resetDivision(div,sizes,mode,total){
     managementRevision:0
   };
   context.poolDiv.value=div;
-  context.championshipNodeSource=()=>null;
+  context.seedNameForLabel=()=>null;
   context.saveEditedPools();
 }
 
@@ -112,10 +95,10 @@ check(d14.filter(m=>m.championship).length===7,'14-person edited pools retain 7 
 check(d14.filter(m=>m.championship&&m.position==='Quarterfinal').length===4,'14-person edited division has four actual QF Match Objects');
 check(context.state.championshipNodes.D14.length===7,'14-person edit rebuilds canonical championship nodes');
 
-// Simulate completed pool standings. QF seed sources now resolve and must make
+// Simulate completed pool standings (seed labels resolve via seedNameForLabel). QF seed sources now resolve and must make
 // the actual QF Match Objects scorable.
 const d14Seeds={A1:{name:'A1 Winner',dojo:'A'},A2:{name:'A2 Runner',dojo:'A'},B1:{name:'B1 Winner',dojo:'B'},B2:{name:'B2 Runner',dojo:'B'},C1:{name:'C1 Winner',dojo:'C'},C2:{name:'C2 Runner',dojo:'C'},D1:{name:'D1 Winner',dojo:'D'},D2:{name:'D2 Runner',dojo:'D'}};
-context.championshipNodeSource=(div,side)=>side?.seed?d14Seeds[side.seed]||null:null;
+context.seedNameForLabel=(div,label)=>d14Seeds[label]||null;
 context.syncChampionshipTemplate('D14');
 let d14qf=context.state.allMatches.D14.filter(m=>m.championship&&m.position==='Quarterfinal');
 check(d14qf.every(m=>m.ready&&m.white&&m.red),'14-person edited division QFs become scorable after pool completion');
@@ -127,7 +110,7 @@ let d12=context.state.allMatches.D12;
 check(d12.filter(m=>!m.championship).length===18,'12-person edited pools retain all 18 pool Match Objects');
 check(d12.filter(m=>m.championship).length===7,'12-person edited pools retain 7 championship Match Objects');
 const d12Seeds={A1:{name:'A1',dojo:'A'},A2:{name:'A2',dojo:'A'},A3:{name:'A3',dojo:'A'},B1:{name:'B1',dojo:'B'},B2:{name:'B2',dojo:'B'},B3:{name:'B3',dojo:'B'},C1:{name:'C1',dojo:'C'},C2:{name:'C2',dojo:'C'}};
-context.championshipNodeSource=(div,side)=>side?.seed?d12Seeds[side.seed]||null:null;
+context.seedNameForLabel=(div,label)=>d12Seeds[label]||null;
 context.syncChampionshipTemplate('D12');
 let d12qf=context.state.allMatches.D12.filter(m=>m.championship&&m.position==='Quarterfinal');
 check(d12qf.length===4&&d12qf.every(m=>m.ready),'12-person split edited division has four ready QFs');
