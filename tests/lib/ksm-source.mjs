@@ -159,6 +159,8 @@ let cachedIndex = null;
 function definitionIndex(source) {
   if (cachedIndex?.source === source) return cachedIndex;
   const functions = new Set([...source.matchAll(/function\s+([A-Za-z_$][\w$]*)\s*\(/g)].map(m => m[1]));
+  // A replaceable function (replaceable('NAME', NAMEImpl)) is cut out as `function NAME(` by extractFunction().
+  for (const m of source.matchAll(/replaceable\('([A-Za-z_$][\w$]*)',/g)) functions.add(m[1]);
   cachedIndex = { source, functions, constants: topLevelConstants(source) };
   return cachedIndex;
 }

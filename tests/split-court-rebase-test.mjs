@@ -31,7 +31,7 @@ const code = [engine, constant('KSM_LOCAL_VIEW_STATE_KEYS'), constant('KSM_UNDO_
     'historyPathParent', 'applyHistoryPatch', 'cloneHistoryValue', 'historyComparableState', 'historyValuesEqual', 'buildHistoryPatches',
     'currentHistoryCourt', 'stampHistoryPatchMatchIdentity', 'ensureCourtHistory', 'performCourtAction', 'withCourtHistoryIdentity',
     'historyIndexDivision', 'historyIndexRef', 'withCourtMatchOps', 'courtUndoMatchesBefore', 'courtUndoMatchOps', 'compactCourtActionEntry',
-    'applyHistoryValues', 'recordCourtUndoLog', 'undo', 'redo', 'resolveHistoryIndexRef', 'invertCourtMatchOps', 'applyCourtHistoryEntry',
+    'applyHistoryValues', 'courtUndoLogEntry', 'moveCourtHistory', 'rebuildCourtViewAfterHistory', 'writeHistoryValue', 'undo', 'redo', 'resolveHistoryIndexRef', 'invertCourtMatchOps', 'applyCourtHistoryEntry',
     'courtHistoryAppliedEntry', 'courtHistorySkippedNote'].map(n => extractFunction(html, n))].join('\n')
   + ['KSM_HISTORY_LIMIT', 'KSM_HISTORY_KEYS', 'KSM_HISTORY_MISSING', 'KSM_GC_STRUCTURE_KEYS', 'KSM_UNCONFIRMED_MUTATIONS'].map(constant).join('\n');
 const context = {
