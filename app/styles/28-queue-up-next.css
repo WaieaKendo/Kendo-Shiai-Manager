@@ -5,3 +5,4 @@
 #queue .queue-up-next .queue-row .red,
 #queue .queue-up-next .queue-row .vs{color:var(--muted);cursor:default}
 #queue .queue-up-next .queue-group-title{text-transform:none}
+#queue .queue-waiting{margin:6px 0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--text);font-weight:800}

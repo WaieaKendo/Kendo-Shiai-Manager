@@ -191,6 +191,8 @@ export interface LegacyGlobals {
   isValidMatchObject: (m: unknown) => boolean;
   /** 08-engine-generation.js. */
   matchBelongsToCourt: (m: Match | null | undefined, court: Court) => boolean;
+  /** 02-court-match-order.js: open, both sides known, template node ready. */
+  individualMatchReady: (m: Match | null | undefined) => boolean;
   /**
    * The shell's header and dialogs inputs are copies of classic state that classic writers patch and
    * read back synchronously (44-react-shell.js stays classic for them): publish.ts (features/shell) copies it.
