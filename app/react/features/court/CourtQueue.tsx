@@ -6,8 +6,8 @@
 import { useSyncExternalStore } from 'react';
 import { AlignedRow } from '../../shared/ui/MatchRows.tsx';
 import {
-  EMPTY_QUEUE, QUEUE_EVENT, courtQueueView,
-  type CourtQueueInput, type FinalResultsInput, type QueueRowItemView, type QueueSideInput,
+  EMPTY_QUEUE, NOW_LABEL, QUEUE_EVENT, UP_NEXT_LABEL, courtQueueView,
+  type CourtQueueInput, type CourtQueueView, type CourtRunningOrderView, type FinalResultsInput, type QueueRowItemView, type QueueSideInput,
 } from './queue-model.ts';
 
 export { QUEUE_EVENT };
@@ -55,9 +55,8 @@ export function FinalResults({ results }: { results: FinalResultsInput | null })
   );
 }
 
-/** The contents of #queue. */
-export function CourtQueue() {
-  const view = courtQueueView(useSyncExternalStore(subscribe, snapshot, () => EMPTY_QUEUE));
+/** The queue's rounds (or its message / results) for the division being played. */
+function QueueBody({ view }: { view: CourtQueueView }) {
   switch (view.kind) {
     case 'empty': return null;
     case 'message': return <div className="muted-card">{view.text}</div>;
@@ -86,4 +85,44 @@ export function CourtQueue() {
         </>
       );
   }
+}
+
+/** The court's remaining divisions, one collapsed line each: display only (not buttons). */
+function LaterDivisions({ order }: { order: CourtRunningOrderView }) {
+  if (!order.later.length) return null;
+  return (
+    <div className="queue-later" data-testid="queue-later">
+      {order.later.map((d, i) => (
+        <div key={i} className="queue-division-line">
+          <span className="queue-division-name">{d.name}</span>
+          {d.upNext && <span className="queue-division-badge">{UP_NEXT_LABEL}</span>}
+          <span className="queue-division-meta">{d.meta}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** The contents of #queue: the division being played (header + its rounds), then the court's
+ *  later divisions in running order. */
+export function CourtQueue() {
+  const view = courtQueueView(useSyncExternalStore(subscribe, snapshot, () => EMPTY_QUEUE));
+  const order = view.order;
+  if (!order) return <QueueBody view={view} />;
+  return (
+    <>
+      {order.current
+        ? (
+          <section className="queue-division-now" data-testid="queue-division-now">
+            <div className="queue-division-head">
+              <span className="queue-division-name">{order.current}</span>
+              <span className="queue-division-badge now">{NOW_LABEL}</span>
+            </div>
+            <QueueBody view={view} />
+          </section>
+        )
+        : <QueueBody view={view} />}
+      <LaterDivisions order={order} />
+    </>
+  );
 }

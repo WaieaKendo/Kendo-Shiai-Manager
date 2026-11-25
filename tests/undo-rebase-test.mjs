@@ -35,7 +35,7 @@ const constant = name => html.match(new RegExp(`const ${name}=[^\\n]*`))[0];
 const code = [engine, constant('KSM_LOCAL_VIEW_STATE_KEYS'), constant('KSM_UNDO_LOG_LIMIT'), constant('KSM_TAB_ID'),
   ...['normalizeCourt', 'cloneJson', 'isValidMatchObject', 'matchSyncIdentity', 'legacyTiebreakSyncIdentity', 'matchHasSyncIdentity',
     'individualMatchReady', 'matchBelongsToCourtInState', 'nextReadyIndexInState', 'preserveOwnedCourtRuntimeState', 'applyPatchToStateObject',
-    'resolveRebasePatch', 'mergeHistoryEntries', 'historyEntryIdentity', 'pendingLocalCourtActionsForRebase', 'undoLogEntryIdentity',
+    'resolveRebasePatch', 'mergeHistoryEntries', 'historyEntryIdentity', 'pendingLocalCourtActionsForRebase', 'ksmRebaseCutoff', 'ksmPendingMutationRevisions', 'undoLogEntryIdentity',
     'pendingLocalUndoLogForRebase', 'replayPendingCourtHistory', 'replayCourtMatchOps', 'courtMatchOpsWrites', 'mergeCourtHistoryStacks', 'ksmTeamDivisionPayload', 'rebaseLocalPayloadOnRecord',
     // #86: a grand champion draw this device has and the server copy lacks comes along
     'ksmCarryGrandChampionDraws',
@@ -44,12 +44,13 @@ const code = [engine, constant('KSM_LOCAL_VIEW_STATE_KEYS'), constant('KSM_UNDO_
     'isIndividualPoolTiebreakMatch', 'reindexPointersAfterMatchReorder', 'normalizeIndividualPoolTiebreakOrderInState', 'normalizeAllIndividualPoolTiebreakOrder',
     // the court's own actions and Undo/Redo (10-), to press them on the device's copy and the rebased copy
     'historyPathParent', 'applyHistoryPatch', 'cloneHistoryValue', 'historyComparableState', 'historyValuesEqual', 'buildHistoryPatches',
-    'currentHistoryCourt', 'stampHistoryPatchMatchIdentity', 'ensureCourtHistory', 'performCourtAction', 'applyHistoryValues',
+    'currentHistoryCourt', 'stampHistoryPatchMatchIdentity', 'ensureCourtHistory', 'performCourtAction', 'applyHistoryValues', 'compactCourtActionEntryImpl',
     'courtUndoMatchesBefore', 'courtUndoMatchOps', 'withCourtMatchOps', 'courtUndoLogEntry', 'moveCourtHistory', 'rebuildCourtViewAfterHistory', 'writeHistoryValue', 'undo', 'redo',
     // ordinary Undo/Redo by match identity (10-)
     'withCourtHistoryIdentity', 'historyIndexDivision', 'historyIndexRef', 'resolveHistoryIndexRef', 'invertCourtMatchOps', 'applyCourtHistoryEntry',
     'courtHistoryAppliedEntry', 'courtHistorySkippedNote'].map(n => extractFunction(html, n))].join('\n')
-  + ['KSM_HISTORY_KEYS', 'KSM_HISTORY_MISSING', 'KSM_GC_STRUCTURE_KEYS'].map(constant).join('\n')
+  + ['KSM_HISTORY_KEYS', 'KSM_HISTORY_MISSING', 'KSM_GC_STRUCTURE_KEYS', 'KSM_UNCONFIRMED_MUTATIONS'].map(constant).join('\n')
+  + '\nconst compactCourtActionEntry=compactCourtActionEntryImpl;'
   + '\nlet ksmLastHistoryOutcome=null,ksmLastHistorySkipped=0,ksmHistoryStoreValues=null;'
   // #15 PR 13b / 13c: the history and the bouts are written through court-history-store.js and match-writes.js, on this context's real store.
   + '\n' + matchWritesSource;

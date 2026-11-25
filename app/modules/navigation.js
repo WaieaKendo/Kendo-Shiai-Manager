@@ -63,6 +63,7 @@ export function exportTournamentBrackets(){
   previewAllDivisionSheets();
 }
 export function exportResultsAwards(){
+  if(document.body.classList.contains('ksm-spectator'))return;
   closeNavMenus();
   show('print');
   previewResultsSheet();

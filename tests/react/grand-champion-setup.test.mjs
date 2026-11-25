@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { grandChampionControls, grandChampionSourceOptions, grandChampionStatus } from '../../app/react/features/setup/grand-champion-model.ts';
+import { gcSwapLabel, grandChampionBracket, grandChampionControls, grandChampionSourceOptions, grandChampionStatus } from '../../app/react/features/setup/grand-champion-model.ts';
 
 const row = (over = {}) => ({
   id: 'gc:1', name: 'Grand Champion', sources: ['Open', 'Women'], format: 'Single Elimination', court: 'B', awardMode: 'top1',
@@ -17,13 +17,15 @@ test('controls: a drawn row locks its structure, name and awards stay; one not d
   assert.ok(Object.values(grandChampionControls({ locked: false, readOnly: true }, row())).every(v => v === false));
 });
 
-test('source options: the divisions in use, then a chosen one no longer in use (flagged)', () => {
-  const options = grandChampionSourceOptions({ divisions: [{ key: 'Open', name: 'Open' }, { key: 'Masters', name: 'Masters' }] }, row());
-  assert.deepEqual(options, [
+test('source options: the chosen sources in bracket order (one no longer in use flagged), then the other divisions in use', () => {
+  const divisions = [{ key: 'Open', name: 'Open' }, { key: 'Masters', name: 'Masters' }, { key: 'Women', name: 'Women' }];
+  assert.deepEqual(grandChampionSourceOptions({ divisions: divisions.slice(0, 2) }, row()), [
     { key: 'Open', name: 'Open', checked: true, missing: false },
-    { key: 'Masters', name: 'Masters', checked: false, missing: false },
     { key: 'Women', name: 'Women', checked: true, missing: true },
+    { key: 'Masters', name: 'Masters', checked: false, missing: false },
   ]);
+  // Reordered by the director: the chips follow the sources, not the running order.
+  assert.deepEqual(grandChampionSourceOptions({ divisions }, row({ sources: ['Women', 'Open'] })).map(o => [o.key, o.checked]), [['Women', true], ['Open', true], ['Masters', false]]);
 });
 
 test('status: error, decision, champion, duplicate, playing, waiting', () => {
@@ -34,4 +36,27 @@ test('status: error, decision, champion, duplicate, playing, waiting', () => {
   const entrants = [{ name: 'Ben', via: 'runner-up', source: 'Open' }, { name: 'Cora', via: 'fusen-sho', source: 'Women' }];
   assert.equal(grandChampionStatus(row({ drawn: true, started: true, entrants })).text, 'Playing on Court B: Ben (for Open, runner-up) vs Cora (withdrew: Fusen-sho)');
   assert.equal(grandChampionStatus(row({ waiting: ['Women'], entrants: [{ name: 'Aki', via: 'winner', source: 'Open' }, null] })).text, 'Waiting for Women (so far: Aki from Open)');
+});
+
+test('bracket: the draw\'s template filled with the divisions in order (7: the 7th waits for QF3), who plays once known; none for a pool or under three', () => {
+  const keys = ['Yonenbu', 'Shonenbu', 'Masters', '1-3 Dan', '4-Dan', 'Seinenbu', 'Womens'];
+  const divisions = keys.map(k => ({ key: k, name: k === 'Womens' ? "Women's" : k }));
+  const entrants = keys.map((k, i) => i === 0 ? { name: 'Aki', via: 'winner', source: k } : null);
+  const rounds = grandChampionBracket({ divisions }, row({ sources: keys, entrants }));
+  assert.deepEqual(rounds.map(r => [r.round, r.matches.map(m => m.id)]), [['Quarterfinal', ['QF1', 'QF2', 'QF3']], ['Semifinal', ['SF1', 'SF2']], ['Final', ['F']]]);
+  const label = s => s.kind === 'source' ? `${s.index + 1}:${s.name}${s.player ? `(${s.player})` : ''}` : s.kind === 'winner' ? `W ${s.ref}` : 'bye';
+  assert.deepEqual(rounds.flatMap(r => r.matches.map(m => m.sides.map(label).join(' vs '))), [
+    '1:Yonenbu(Aki) vs 2:Shonenbu', '3:Masters vs 4:1-3 Dan', '5:4-Dan vs 6:Seinenbu', 'W QF1 vs W QF2', "W QF3 vs 7:Women's", 'W SF1 vs W SF2',
+  ]);
+  // Five: the template's bye shows.
+  const five = grandChampionBracket({ divisions }, row({ sources: keys.slice(0, 5), entrants: [] }));
+  assert.deepEqual(five[1].matches.map(m => m.sides.map(label).join(' vs ')), ['W QF1 vs bye', 'W QF2 vs 5:4-Dan']);
+  assert.equal(grandChampionBracket({ divisions }, row({ sources: keys, format: 'Round Robin' })), null, 'a pool of winners has no bracket');
+  assert.equal(grandChampionBracket({ divisions }, row()), null, 'two divisions: one match, nothing to arrange');
+});
+
+test('swap labels: the slot (number, division, player, match), then pick / swap with the picked one / cancel', () => {
+  assert.equal(gcSwapLabel({ number: 3, match: 'QF2', division: 'Masters' }, null), '3. Masters, QF2: pick to swap its place');
+  assert.equal(gcSwapLabel({ number: 7, match: 'SF2', division: 'Womens', player: 'Mei' }, 'Masters'), '7. Womens (Mei), SF2: swap with Masters');
+  assert.equal(gcSwapLabel({ number: 3, match: 'QF2', division: 'Masters' }, 'Masters'), '3. Masters, QF2: picked: tap again to cancel');
 });

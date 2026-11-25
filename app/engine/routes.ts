@@ -53,7 +53,9 @@ export function routePath(route: Route): string {
   const base = route.slug && isValidSlug(route.slug) ? `/${route.slug}` : `/t/${encodeURIComponent(route.id)}`;
   switch (route.screen) {
     case 'tournament': return base;
-    case 'live': case 'overview': case 'results': case 'setup': case 'registration': case 'pools': return `${base}/${route.screen}`;
+    // Results is the Brackets screen: its address is /brackets (/results still opens it).
+    case 'results': return `${base}/brackets`;
+    case 'live': case 'overview': case 'setup': case 'registration': case 'pools': return `${base}/${route.screen}`;
     default: return `${base}/${route.screen}/${courtLetter(route.court)}`;
   }
 }
@@ -107,7 +109,7 @@ export function parseRoutePath(pathname: string): Route {
   const [, kind, letter, ...extra] = segments;
   if (extra.length) return { screen: 'invalid' };
   if (kind === undefined) return letter === undefined ? { screen: 'tournament', id } : { screen: 'invalid' };
-  const lower = kind.toLowerCase();
+  const lower = kind.toLowerCase() === 'brackets' ? 'results' : kind.toLowerCase();
   if (['live','overview','results','setup','registration','pools'].includes(lower)) return letter === undefined ? { screen: lower as 'live' | 'overview' | 'results' | 'setup' | 'registration' | 'pools', id } : { screen: 'invalid' };
   if (lower === 'court' && letter === undefined) return { screen: 'tournament', id };
   if (lower !== 'court' && lower !== 'tv' && lower !== 'overlay') return { screen: 'invalid' };

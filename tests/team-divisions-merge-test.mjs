@@ -3,9 +3,9 @@
 //   * mergeRegistrationListSplit(): a structural edit (Generate) replays division X with this device's
 //     teams; meanwhile the other device moved a team into or out of X. The team must be neither lost
 //     nor kept twice (teams are split by id across server, local and base, not by their division).
-//   * ksmKeepDrawnTeamAssignments(): a move into or out of a team division the other device has
-//     already drawn keeps the server's assignment, with a conflict notice (the draw's matches refer to
-//     teams by position).
+//   * ksmKeepDrawnTeamAssignments(): a team in a draw moved out of it, or a team moved into a division
+//     that has started, keeps the server's assignment, with a conflict notice (the draw's matches refer
+//     to teams by position). A team not in any draw may join a drawn division that has not started.
 import vm from 'node:vm';
 import { extractFunction, withDependencies, html } from './lib/ksm-source.mjs';
 
@@ -46,13 +46,35 @@ const ids = list => list.map(t => `${t.id}@${t.teamDivisionId}`).sort();
   const out = context.split(server, local, base, ['X'], 'Teams', [], 'teams');
   check(ids(out).join() === ['a1@X', 'y1@Y', 'y2@Y'].join(), `the other device's new team outside the draw is kept (${ids(out)})`);
 }
-// Drawn on the server: this device moved t into X (not drawn here); X keeps the server's teams.
+// Drawn on the server, not started: this device moved t (in no draw) into X; the move stands, so a
+// Regenerate Single Division of X can draw it in (a team added after the draw).
 {
-  const st = { teams: [team('a1', 'X'), team('t', 'X')], allMatches: { X: [{ type: 'teamPlayoff' }] } };
+  const st = { teams: [team('a1', 'X'), team('t', 'X')], allMatches: { X: [{ type: 'teamPlayoff' }] }, teamElimTeams: { X: [team('a1', 'X')] } };
   const conflicts = [];
   context.keepDrawn(st, [team('a1', 'X'), team('t', 'Y')], [], conflicts);
-  check(st.teams.find(t => t.id === 't').teamDivisionId === 'Y', 'a move into a division drawn on the server is undone');
+  check(st.teams.find(t => t.id === 't').teamDivisionId === 'X' && !conflicts.length, 'a team in no draw joins a drawn division that has not started');
+}
+// ...but not one that has started (a finished match): X keeps the server's teams.
+{
+  const st = { teams: [team('a1', 'X'), team('t', 'X')], allMatches: { X: [{ type: 'teamPlayoff', done: true }] }, teamElimTeams: { X: [team('a1', 'X')] } };
+  const conflicts = [];
+  context.keepDrawn(st, [team('a1', 'X'), team('t', 'Y')], [], conflicts);
+  check(st.teams.find(t => t.id === 't').teamDivisionId === 'Y', 'a move into a division that has started is undone');
   check(conflicts.length === 1, 'with a conflict notice');
+}
+// A drawn team (object entry, as the app stores it) cannot leave its draw, even into a division not drawn.
+{
+  const st = { teams: [team('t', 'Y')], allMatches: { X: [{}] }, teamElimTeams: { X: [team('t', 'X')] } };
+  const conflicts = [];
+  context.keepDrawn(st, [team('t', 'X')], [], conflicts);
+  check(st.teams[0].teamDivisionId === 'X' && conflicts.length === 1, 'a drawn team moved out of its draw is undone');
+}
+// A team in a pool draw (round robin) is matched by name too.
+{
+  const st = { teams: [team('t', 'Y')], allMatches: { X: [{}] }, teamPools: { X: [{ label: 'A', players: [{ name: 't', team: true }] }] } };
+  const conflicts = [];
+  context.keepDrawn(st, [team('t', 'X')], [], conflicts);
+  check(st.teams[0].teamDivisionId === 'X', 'a team in a drawn pool moved out is undone');
 }
 // ...and out of one (teamElimTeams snapshot only).
 {

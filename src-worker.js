@@ -159,6 +159,19 @@ function finishedMatchCount(payload) {
 function tournamentGone(deletedAt, extra = {}) {
   return json({ error: 'Tournament deleted', code: 'tournament-deleted', deletedAt, ...extra }, 410);
 }
+// The Worker in front of the Durable Object runs on the Workers Free plan's 10 ms CPU budget, and
+// a big tournament record (ATKT Final, about 490 KB) takes most of that to parse once: during the
+// ATKT run on 2026-11-13, 38% of requests were stopped (exceededResources) and the courts showed
+// "Cloud save failed (500)". So the Worker never parses a record: it streams request and response
+// bodies through, tells the DO the route's tournament (x-ksm-route-tournament) and reads the
+// library row from this header.
+// JSON.stringify escapes lone surrogates, so encodeURIComponent gets plain ASCII here; the name is
+// capped like the library's (160) to keep the header small, and a failure only skips the library update.
+function libraryEntryHeader(record) {
+  if (!record?.tournamentId) return {};
+  const entry = { id: record.tournamentId, name: String(record.payload?.setup?.tName || 'Kendo Tournament').slice(0, 160), updatedAt: record.updatedAt };
+  try { return { 'x-ksm-library-entry': encodeURIComponent(JSON.stringify(entry)) }; } catch (_) { return {}; }
+}
 function publicRecord(record) {
   if (!record) return null;
   const { credentials, ...safe } = record;
@@ -275,7 +288,7 @@ export class TournamentState {
   }
   // Staff access for a save, a delete or the staff live connection. An empty key is no attempt.
   // The key is a staff session token or, during the rollout (devices still on the previous app),
-  // the password itself: that fallback is removed one release after 4.0.0 (docs/DEPLOYMENT.md).
+  // the password itself: that fallback is removed one release after the 4.0 release (docs/DEPLOYMENT.md).
   async staffAccess(suppliedKey, error = 'Session authorization required') {
     if (!suppliedKey) return { ok: false, status: 403, body: { error } };
     if (suppliedKey.startsWith(STAFF_TOKEN_PREFIX)) {
@@ -446,7 +459,7 @@ export class TournamentState {
       const privateDenied = await this.readAccess(request);
       if (privateDenied) return privateDenied;
       const record = publicRecord(await this.state.storage.get('record'));
-      return record ? json({ ...record, ...(auth0Enabled(this.env) ? { isPublic: await this.isPublic() } : {}) }) : json({ error: 'Tournament not found' }, 404);
+      return record ? json({ ...record, ...(auth0Enabled(this.env) ? { isPublic: await this.isPublic() } : {}) }, 200, libraryEntryHeader(record)) : json({ error: 'Tournament not found' }, 404);
     }
 
     if (request.method === 'GET' && url.pathname === '/status') {
@@ -465,6 +478,9 @@ export class TournamentState {
 
     if (request.method === 'PUT' && url.pathname === '/snapshot') {
       const incoming = await request.json();
+      const routeTournament = request.headers.get('x-ksm-route-tournament') || '';
+      if (routeTournament && incoming.tournamentId && incoming.tournamentId !== routeTournament) return json({ error: 'Tournament ID mismatch' }, 409);
+      if (routeTournament) incoming.tournamentId = routeTournament;
       const role = safeRole(request.headers.get('x-ksm-role') || 'director');
       const suppliedKey = request.headers.get('x-ksm-session-key') || request.headers.get('x-ksm-director-key') || '';
       if (role !== 'staff' && !(auth0Enabled(this.env) && bearerToken(request))) return json({ error: 'Write authorization required' }, 403);
@@ -509,7 +525,7 @@ export class TournamentState {
       }
       const safe = publicRecord(record);
       await this.broadcast({ type: 'snapshot', record: safe });
-      return json(safe);
+      return json(safe, 200, libraryEntryHeader(record));
     }
 
     // #129 Undo regenerate: the restore point becomes a new revision (with the caller's current
@@ -552,7 +568,7 @@ export class TournamentState {
       await this.state.storage.deleteAlarm();
       const safe = publicRecord(record);
       await this.broadcast({ type: 'snapshot', record: safe });
-      return json(safe);
+      return json(safe, 200, libraryEntryHeader(record));
     }
 
     if (request.method === 'POST' && url.pathname === '/slug') {
@@ -569,6 +585,7 @@ export class TournamentState {
       const access = await this.accountAccess(request, { create: true });
       if (access && !access.ok) return denied(access);
       const incoming = await request.json();
+      if (request.headers.get('x-ksm-route-tournament')) incoming.tournamentId = request.headers.get('x-ksm-route-tournament');
       if (!auth0Enabled(this.env) && (!incoming.staffPassword || String(incoming.staffPassword).length < 4)) return json({ error: 'Staff password required' }, 400);
       const integrityError = validateTournamentPayload(incoming.payload);
       if (integrityError) return json({ error: 'Invalid tournament state', integrityError }, 422);
@@ -608,7 +625,7 @@ export class TournamentState {
         await this.ensureAccessMigrated();
       }
       // The creator token is sent only in a header, never in the record.
-      return json(publicRecord(record), 200, session ? { 'x-ksm-session-token': session.token, 'x-ksm-session-expires': session.expiresAt } : {});
+      return json(publicRecord(record), 200, { ...(session ? { 'x-ksm-session-token': session.token, 'x-ksm-session-expires': session.expiresAt } : {}), ...libraryEntryHeader(record) });
     }
 
     if (url.pathname === '/internal/close-user' && request.method === 'POST') {
@@ -866,19 +883,28 @@ export default {
       }
       return json({ok:true,...(result.removed !== undefined ? {removed:result.removed}: {}),...(result.soleOwnerTournaments ? {soleOwnerTournaments:result.soleOwnerTournaments.map(id=>({id,name:tournaments.find(row=>row.id===id)?.name || 'Tournament'}))} : {})});
     }
-    const withSlug = async response => {
-      if (!response.ok) return response;
-      const record = await response.clone().json();
-      if (!record?.tournamentId) return response;
+    // Adds the friendly-link slug to a record response by splicing it into the JSON text: parsing
+    // and re-serializing a big record costs more CPU than the Free plan allows (libraryEntryHeader()).
+    const withSlug = async (response, tournamentId) => {
+      if (!response.ok || !tournamentId) return response;
+      let slug;
       try {
-        const identity = await libraryStub().fetch(`https://durable-object/library/identity/${encodeURIComponent(record.tournamentId)}`);
+        const identity = await libraryStub().fetch(`https://durable-object/library/identity/${encodeURIComponent(tournamentId)}`);
         if (!identity.ok) return identity.status === 410 ? identity : response;
-        const {slug} = await identity.json();
-        const headers = new Headers(response.headers);
-        headers.delete('content-length');
-        headers.delete('content-encoding');
-        return json({...record,slug},response.status,Object.fromEntries(headers));
+        ({slug} = await identity.json());
       } catch (_) { return response; }
+      // Bytes, not text: decoding and re-encoding 500 KB is itself a noticeable share of the budget.
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      let end = bytes.length - 1;
+      while (end >= 0 && bytes[end] !== 0x7d) end--;  // the record's closing '}'
+      let last = end - 1;
+      while (last >= 0 && (bytes[last] === 0x20 || bytes[last] === 0x0a || bytes[last] === 0x0d || bytes[last] === 0x09)) last--;
+      const headers = new Headers(response.headers);
+      headers.delete('content-length');
+      headers.delete('content-encoding');
+      if (end <= 0) return new Response(bytes, { status: response.status, headers });
+      const insert = new TextEncoder().encode(`${bytes[last] === 0x7b ? '' : ','}"slug":${JSON.stringify(slug ?? null)}`);
+      return new Response(new Blob([bytes.subarray(0, end), insert, bytes.subarray(end)]), { status: response.status, headers });
     };
     const visibleLibrary = async () => {
       const response = await libraryStub().fetch('https://durable-object/library');
@@ -907,11 +933,18 @@ export default {
       listed.sort((a,b) => Number(b.canManage)-Number(a.canManage));
       return json(listed,200,invalid ? {'x-ksm-auth':'invalid'} : {});
     };
-    const updateLibrary = async (record) => {
-      if (!record?.tournamentId) return;
-      const setup = record.payload?.setup || {};
+    const routedHeaders = (headers, tournamentId) => {
+      const routed = new Headers(headers);
+      routed.set('x-ksm-route-tournament', tournamentId);
+      return routed;
+    };
+    // From the DO's x-ksm-library-entry header, so the record itself is never parsed here.
+    const updateLibrary = async (recordResponse) => {
+      let entry = null;
+      try { entry = JSON.parse(decodeURIComponent(recordResponse.headers.get('x-ksm-library-entry') || '')); } catch (_) { return; }
+      if (!entry?.id) return;
       try {
-        const response = await libraryStub().fetch(new Request('https://durable-object/library', { method:'PUT', headers:{'content-type':'application/json'}, body:JSON.stringify({ id:record.tournamentId, name:setup.tName||'Kendo Tournament', updatedAt:record.updatedAt }) }));
+        const response = await libraryStub().fetch(new Request('https://durable-object/library', { method:'PUT', headers:{'content-type':'application/json'}, body:JSON.stringify(entry) }));
         if (!response.ok) console.error('Tournament library update rejected', response.status, await response.text());
       } catch (error) {
         console.error('Tournament library update failed', error);
@@ -949,7 +982,7 @@ export default {
       await Promise.all(ids.map(async id => {
         const stub = env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName(id));
         const response = await stub.fetch(new Request('https://durable-object/snapshot', { headers: request.headers }));
-        if (response.ok) await updateLibrary(await response.json());
+        if (response.ok) await updateLibrary(response);
       }));
       return visibleLibrary();
     }
@@ -958,10 +991,9 @@ export default {
       if (outdated) return outdated;
       const id = crypto.randomUUID();
       const stub = env.TOURNAMENTS.get(env.TOURNAMENTS.idFromName(id));
-      const body = await request.json();
-      const response = await stub.fetch(new Request('https://durable-object/bootstrap', { method: 'POST', headers: request.headers, body: JSON.stringify({ ...body, tournamentId: id, revision: 0 }) }));
-      if (response.ok) await updateLibrary(await response.clone().json());
-      return withSlug(response);
+      const response = await stub.fetch(new Request('https://durable-object/bootstrap', { method: 'POST', headers: routedHeaders(request.headers, id), body: request.body }));
+      if (response.ok) await updateLibrary(response);
+      return withSlug(response, id);
     }
 
     const route = url.pathname.match(/^\/api\/tournaments\/([0-9a-f-]+)(?:\/(live|status|auth|slug|access|directors|visibility|restore-point))?$/i);
@@ -978,27 +1010,26 @@ export default {
         const outdated = outdatedClient(request);
         if (outdated) return outdated;
         const response = await stub.fetch(new Request('https://durable-object/restore-point', { method: 'POST', headers: request.headers, body: request.body }));
-        if (response.ok) await updateLibrary(await response.clone().json());
-        return withSlug(response);
+        if (response.ok) await updateLibrary(response);
+        return withSlug(response, id);
       }
       if (action === 'slug' && request.method === 'POST') return stub.fetch(new Request('https://durable-object/slug', {method:'POST',headers:request.headers,body:request.body}));
       if (action === 'auth' && request.method === 'POST') return stub.fetch(new Request('https://durable-object/auth', { method: 'POST', headers: request.headers, body: request.body }));
-      if (!action && request.method === 'GET') return withSlug(await stub.fetch(new Request('https://durable-object/snapshot', { headers: request.headers })));
+      if (!action && request.method === 'GET') return withSlug(await stub.fetch(new Request('https://durable-object/snapshot', { headers: request.headers })), id);
       if (!action && request.method === 'PUT') {
         const outdated = outdatedClient(request);
         if (outdated) return outdated;
-        const body = await request.json();
-        if (body.tournamentId && body.tournamentId !== id) return json({ error: 'Tournament ID mismatch' }, 409);
-        const response = await stub.fetch(new Request('https://durable-object/snapshot', { method: 'PUT', headers: request.headers, body: JSON.stringify({ ...body, tournamentId: id }) }));
-        if (response.ok) await updateLibrary(await response.clone().json());
-        return withSlug(response);
+        // The DO checks the body's tournamentId against the route (x-ksm-route-tournament).
+        const response = await stub.fetch(new Request('https://durable-object/snapshot', { method: 'PUT', headers: routedHeaders(request.headers, id), body: request.body }));
+        if (response.ok) await updateLibrary(response);
+        return withSlug(response, id);
       }
       if (!action && request.method === 'DELETE') {
         const response = await stub.fetch(new Request('https://durable-object/snapshot', { method: 'DELETE', headers: request.headers }));
         // A 410 (already deleted) also clears the library entry, in case an earlier delete was cut short.
         if ((response.ok || response.status === 410) && auth0Enabled(env)) await accessCall(env, 'removeTournament', {id});
         if (response.ok || response.status === 410) await libraryStub().fetch(new Request(`https://durable-object/library/${encodeURIComponent(id)}`, { method:'DELETE' }));
-        return withSlug(response);
+        return response;
       }
       return json({ error: 'Method not allowed' }, 405);
     }
@@ -1008,7 +1039,7 @@ export default {
       assetUrl.pathname = '/' + printPage.replace(/\.html$/, '');
       return env.ASSETS.fetch(new Request(assetUrl, request));
     }
-    const friendly = url.pathname.match(/^\/([a-z0-9-]+)(\/(?:live|overview|results|setup|registration|pools|court(?:\/[ab])?|tv(?:\/[ab])?|overlay(?:\/[ab])?))?\/?$/i);
+    const friendly = url.pathname.match(/^\/([a-z0-9-]+)(\/(?:live|overview|results|brackets|setup|registration|pools|court(?:\/[ab])?|tv(?:\/[ab])?|overlay(?:\/[ab])?))?\/?$/i);
     if (friendly && isValidSlug(friendly[1])) {
       const pageRoute={slug:friendly[1],screen:(friendly[2]||'').split('/')[1]?.toLowerCase()};
       const identity = await libraryStub().fetch(`https://durable-object/library/resolve/${pageRoute.slug}`);
@@ -1021,7 +1052,7 @@ export default {
       if (pageRoute.slug !== info.slug) return new Response(null,{status:308,headers:{location:`/${info.slug}${friendly[2]||''}`+url.search,'cache-control':'no-store'}});
       return env.ASSETS.fetch(new Request(new URL(pageRoute.screen === 'overlay' && status.status !== 403?'/overlay':'/',url),request));
     }
-    if (/^\/t\/[^/]+\/(?:overview|results|setup|registration|pools)\/?$/i.test(url.pathname)) return env.ASSETS.fetch(new Request(new URL('/',url),request));
+    if (/^\/t\/[^/]+\/(?:overview|results|brackets|setup|registration|pools)\/?$/i.test(url.pathname)) return env.ASSETS.fetch(new Request(new URL('/',url),request));
     if (isOverlayPath(url.pathname)) {
       if (auth0Enabled(env)) {
         const id = decodeURIComponent(OVERLAY_PATH.exec(url.pathname)[1]);

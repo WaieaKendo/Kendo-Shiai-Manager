@@ -4,7 +4,7 @@
 // every test apply unchanged; tests/golden/setup pins them. renderDivisionSetup() and
 // syncSetupHeader() (app/js) publish what to show (ksm:setup-divisions, ksm:setup-header).
 //
-// The rows' controls run the inline handlers' code on the same native event: Use's and the
+// The rows' controls run the inline handlers' code on the same native event: Enabled's and the
 // selects' change event (not React's onChange, which for a checkbox runs on click, before the
 // document's input/change listeners and before the browser fires change) calls
 // toggleDivision(d, checked), setDivisionFormat(d, value), setDivisionCourt(d, value); × calls
@@ -206,7 +206,7 @@ function DivisionRow({ row }: { row: SetupDivisionRowView }) {
   const court = useChange<HTMLSelectElement>(el => setupWindow().setDivisionCourt?.(row.division, el.value));
   return (
     <tr data-testid="setup-division-row">
-      <td><input ref={use} type="checkbox" defaultChecked={row.enabled} data-testid="setup-division-enabled" /></td>
+      <td><input ref={use} type="checkbox" defaultChecked={row.enabled} aria-label={`Enabled — ${row.name}`} data-testid="setup-division-enabled" /></td>
       <td><MoveButtons row={row} /><DivisionName row={row} /></td>
       <td>
         <select ref={format} disabled={!row.enabled} defaultValue={row.formatSelected ?? undefined} data-testid="setup-division-format">

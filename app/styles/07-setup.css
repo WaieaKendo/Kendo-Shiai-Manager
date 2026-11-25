@@ -119,7 +119,7 @@
 .setup-panel .field{
   margin:0;
 }
-.setup-panel .field label{
+.setup-panel .field label,.setup-panel .field .setup-gc-bracket-title{
   display:block;
   margin-bottom:7px;
   color:#344052;

@@ -114,13 +114,13 @@ export function ksmDivisionCompleteInput(div,complete){
 // Issue #31: a court's division list in Setup's running order, filtered to the court: the court
 // dropdown's options (renderDivisions(), 02-: state.divisions, then any other generated division
 // such as the team event; the divisions on this court, split ones and a team event on both).
-function ksmCourtDivisionList(court){
+export function ksmCourtDivisionList(court){
   const all=[...new Set([...state.divisions,...ksmTeamDivisions().filter(d=>state.allMatches?.[d.id]).map(d=>d.id),...Object.keys(state.allMatches||{})])].filter(Boolean);
   return all.filter(d=>{const c=state.divisionCourts[d]||'A';return c===court||c==='split'||(isTeamDivision(d)&&(state.divisionCourts[d]||'Both')==='Both')});
 }
 // A division has a match ready to play on the court (as findNextForCourt() picks one): generated,
 // not finished, and not waiting for the other court.
-function ksmDivisionReadyOnCourt(d,court){
+export function ksmDivisionReadyOnCourt(d,court){
   return (state.allMatches?.[d]||[]).some(m=>isValidMatchObject(m)&&individualMatchReady(m)&&matchBelongsToCourt(m,court));
 }
 // Owner decision 7 / #31: the division a court continues to after `current`: the next one in the

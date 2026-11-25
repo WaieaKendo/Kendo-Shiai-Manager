@@ -190,3 +190,15 @@ test('courtQueueView: adding up-next preserves Final Results title and placement
   assert.deepEqual(preview.results, own.results);
   assert.deepEqual(results, before);
 });
+
+test('courtQueueView: the court\'s running order (Now header, later divisions as lines)', () => {
+  const order = { current: { name: 'Mudansha' }, later: [{ name: 'Women', matches: 1, alsoOn: null }, { name: 'Teams', matches: 4, alsoOn: 'B' }] };
+  const view = courtQueueView({ kind: 'message', text: 'Queue complete.', order });
+  assert.deepEqual(view, { kind: 'message', text: 'Queue complete.', order: { current: 'Mudansha', later: [
+    { name: 'Women', upNext: true, meta: '1 match' },
+    { name: 'Teams', upNext: false, meta: '4 matches · also on Court B' },
+  ] } });
+  assert.equal(courtQueueView({ kind: 'groups', groups: [], order }).order.later.length, 2);
+  assert.deepEqual(courtQueueView({ kind: 'empty', order: { current: null, later: [] } }), { kind: 'empty' });
+  assert.deepEqual(courtQueueView({ kind: 'empty', order: { current: { name: 'X' } } }), { kind: 'empty' });
+});
