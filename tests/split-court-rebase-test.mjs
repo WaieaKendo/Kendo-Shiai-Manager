@@ -14,7 +14,8 @@
 // are recorded through the app's own performCourtAction(). e2e-split-court-teams-test.py plays the
 // same through the real app and server.
 import vm from 'node:vm';
-import { extractFunction, html, engine } from './lib/ksm-source.mjs';
+import { extractFunction, html, engine, matchWritesSource, withDependencies } from './lib/ksm-source.mjs';
+import { vmStore } from './lib/vm-store.mjs';
 
 let failed = false, count = 0;
 const check = (ok, name) => { count++; if (!ok) { console.log(`FAIL ${name}`); failed = true; } };
@@ -30,14 +31,16 @@ const code = [engine, constant('KSM_LOCAL_VIEW_STATE_KEYS'), constant('KSM_UNDO_
     'isIndividualPoolTiebreakMatch', 'reindexPointersAfterMatchReorder', 'normalizeIndividualPoolTiebreakOrderInState', 'normalizeAllIndividualPoolTiebreakOrder',
     'historyPathParent', 'applyHistoryPatch', 'cloneHistoryValue', 'historyComparableState', 'historyValuesEqual', 'buildHistoryPatches',
     'currentHistoryCourt', 'stampHistoryPatchMatchIdentity', 'ensureCourtHistory', 'performCourtAction', 'withCourtHistoryIdentity',
-    'historyIndexDivision', 'historyIndexRef', 'withCourtMatchOps', 'courtUndoMatchesBefore', 'courtUndoMatchOps', 'compactCourtActionEntry',
+    'historyIndexDivision', 'historyIndexRef', 'withCourtMatchOps', 'courtUndoMatchesBefore', 'courtUndoMatchOps', 'compactCourtActionEntryImpl',
     'applyHistoryValues', 'courtUndoLogEntry', 'moveCourtHistory', 'rebuildCourtViewAfterHistory', 'writeHistoryValue', 'undo', 'redo', 'resolveHistoryIndexRef', 'invertCourtMatchOps', 'applyCourtHistoryEntry',
     'courtHistoryAppliedEntry', 'courtHistorySkippedNote'].map(n => extractFunction(html, n))].join('\n')
-  + ['KSM_HISTORY_LIMIT', 'KSM_HISTORY_KEYS', 'KSM_HISTORY_MISSING', 'KSM_GC_STRUCTURE_KEYS', 'KSM_UNCONFIRMED_MUTATIONS'].map(constant).join('\n');
+  + ['KSM_HISTORY_LIMIT', 'KSM_HISTORY_KEYS', 'KSM_HISTORY_MISSING', 'KSM_GC_STRUCTURE_KEYS', 'KSM_UNCONFIRMED_MUTATIONS'].map(constant).join('\n')
+  + '\nconst compactCourtActionEntry=compactCourtActionEntryImpl;'
+  + '\nlet ksmLastHistoryOutcome=null,ksmLastHistorySkipped=0,ksmHistoryStoreValues=null;'
+  + '\n' + matchWritesSource;
 const context = {
   console,
   cloudSession: { clientId: 'court-b', court: 'B', revision: 10 },
-  state: { currentCourt: 'B' },
   pinnedCourt: () => 'B',
   sanitizeLoadedTournamentState() {}, repairCompletedMatchResults() {},
   applyCourtState() {}, renderAll() {}, updateUndoButton() {}, updateSaveStatus() {}, criticalAutoSave() {},
@@ -45,8 +48,11 @@ const context = {
   rebaseDivisionRenamesForMerge: (rebased, local, base, server) => ({ local, base, server, refused: [], blocked: [] }), noteDivisionRenamesRefused() {},
   noteStructuralEditBlockedByRename() {}, dropOrphanedDivisionStructure() {},
 };
+const { load } = vmStore(context, { currentCourt: 'B' }); // a real store (tests/lib/vm-store.mjs)
 vm.createContext(context);
-vm.runInContext(code, context);
+vm.runInContext(withDependencies(html, code, { exclude: Object.keys(context) }), context);
+/** Loads the tournament `s` into the device's store; returns the live `state` (getters over the store). */
+const reset = s => { load(s); return context.state; };
 
 // A kachinuki pairing's bout, as teamPairMatchObjects() and the continuation (app/engine/kachinuki.ts) make them.
 const lineups = {
@@ -75,12 +81,10 @@ const names = arr => arr.map(m => `${m.teamWhite}:${m.white}(${m.wIndex}) v ${m.
 // Court B (Kids) scores Kids A's first bout and presses Next Match: the bout is done and the next
 // bout (Kids A's second member on) is added after it, as maybeCreateKachinukiNext() does.
 const courtBNextBout = device => {
-  context.state = device;
   context.performCourtAction('White M', () => {
-    const arr = device.allMatches.Kids, first = arr[0];
-    first.wp.push('M'); first.wp.push('M'); first.done = true;
-    arr.splice(1, 0, bout('Kids', 'QF3', 'Kids B', 'Kids A', 0, 1));
-    device.current = 1; device.courtState.B.index = 1; device.currentByDivision.Kids = 1;
+    context.ksmUpdateMatch('Kids', 0, { wp: ['M', 'M'], done: true });
+    context.ksmInsertMatches('Kids', 1, [bout('Kids', 'QF3', 'Kids B', 'Kids A', 0, 1)]);
+    context.ksmMoveCourtPointers('pointerMoved', { courtState: { B: { division: 'Kids', index: 1 } }, currentByDivision: { Kids: 1 } }, 'B');
   });
 };
 
@@ -90,7 +94,7 @@ const courtBNextBout = device => {
 {
   const kids = () => [bout('Kids', 'QF3', 'Kids B', 'Kids A'), bout('Kids', 'QF4', 'Women', 'Lihue')];
   const adult = () => [bout('Adult', 'P6', 'Men', 'Kenshikan B', 0, 0, 'A')];
-  const device = tournament({ open: 'Kids', kids: kids(), adult: adult() });
+  const device = reset(tournament({ open: 'Kids', kids: kids(), adult: adult() }));
   courtBNextBout(device);
   const server = tournament({ open: 'Adult', kids: kids(), adult: adult() });
   server.allMatches.Adult[0].rp = ['K'];
@@ -105,9 +109,9 @@ const courtBNextBout = device => {
 {
   const kids = () => [bout('Kids', 'QF3', 'Kids B', 'Kids A')];
   const adult = () => [bout('Adult', 'P6', 'Men', 'Kenshikan B', 0, 0, 'A')];
-  const device = tournament({ open: 'Kids', kids: kids(), adult: adult() });
+  const device = reset(tournament({ open: 'Kids', kids: kids(), adult: adult() }));
   courtBNextBout(device);
-  context.performCourtAction('Red K', () => { device.allMatches.Kids[1].rp.push('K'); });
+  context.performCourtAction('Red K', () => { context.ksmUpdateMatch('Kids', 1, { rp: ['K'] }); });
   const r = rebase(device, tournament({ open: 'Adult', kids: kids(), adult: adult() }));
   check(names(r.allMatches.Kids) === 'Kids B:Jack(0) v Kids A:Lucas(0) done MM- | Kids B:Jack(0) v Kids A:Carter(1) -K',
     `2: each bout keeps its own score (${names(r.allMatches.Kids)})`);
@@ -119,7 +123,7 @@ const courtBNextBout = device => {
 {
   const kids = () => [bout('Kids', 'QF3', 'Kids B', 'Kids A'), bout('Kids', 'QF4', 'Women', 'Lihue')];
   const adult = () => [bout('Adult', 'P5', 'Women', 'Lihue', 0, 0, 'A'), bout('Adult', 'P6', 'Men', 'Kenshikan B', 0, 0, 'A')];
-  const device = tournament({ open: 'Kids', kids: kids(), adult: adult() });
+  const device = reset(tournament({ open: 'Kids', kids: kids(), adult: adult() }));
   courtBNextBout(device);
   const server = tournament({ open: 'Adult', kids: kids(), adult: adult() });
   const r = rebase(device, server);
@@ -136,7 +140,7 @@ const courtBNextBout = device => {
 // the tournament too big to save.
 {
   const later = Array.from({ length: 30 }, (_, i) => bout('Kids', `R${i}`, i % 2 ? 'Women' : 'Kids B', i % 2 ? 'Lihue' : 'Kids A', i % 3, (i + 1) % 3));
-  const device = tournament({ open: 'Kids', kids: [bout('Kids', 'QF3', 'Kids B', 'Kids A'), ...later], adult: [] });
+  const device = reset(tournament({ open: 'Kids', kids: [bout('Kids', 'QF3', 'Kids B', 'Kids A'), ...later], adult: [] }));
   courtBNextBout(device);
   const entry = device.courtActionHistory.B.at(-1);
   check(!entry.patches.some(p => p.path[0] === 'matches' || (p.path[0] === 'allMatches' && p.path[1] === 'Kids')),
@@ -158,10 +162,11 @@ const courtBNextBout = device => {
 // :wIndex-rIndex). Replayed after the upgrade it must land on its bout, not add a copy at the end.
 {
   const kids = () => [bout('Kids', 'QF3', 'Kids B', 'Kids A'), bout('Kids', 'QF4', 'Women', 'Lihue')];
-  const device = tournament({ open: 'Kids', kids: kids(), adult: [] });
-  device.allMatches.Kids[0].wp = ['M'];
-  device.courtActionHistory.B.push({ format: 'patch-v1', label: 'White M', court: 'B', when: '2026-11-10T06:00:00.000Z', clientId: 'court-b', revision: 10,
+  const start = tournament({ open: 'Kids', kids: kids(), adult: [] });
+  start.allMatches.Kids[0].wp = ['M'];
+  start.courtActionHistory.B.push({ format: 'patch-v1', label: 'White M', court: 'B', when: '2026-11-10T06:00:00.000Z', clientId: 'court-b', revision: 10,
     patches: [{ path: ['allMatches', 'Kids', 0, 'wp', 0], before: { __ksmMissing: true }, after: 'M', matchIdentity: 'team-node:Kids:QF3:node-QF3:Kachinuki' }] });
+  const device = reset(start);
   const r = rebase(device, tournament({ open: 'Adult', kids: kids(), adult: [] }));
   check(names(r.allMatches.Kids) === 'Kids B:Jack(0) v Kids A:Lucas(0) M- | Women:Nicole(0) v Lihue:Joshua(0)',
     `5: an old-identity point lands on its bout, no copy added (${names(r.allMatches.Kids)})`);

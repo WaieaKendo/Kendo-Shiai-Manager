@@ -35,13 +35,10 @@ const snippets = [
   extractFunction(html, 'noteLocalMutation'),
   extractFunction(html, 'pendingLocalCourtActionsForRebase'),
   extractFunction(html, 'rebaseLocalPayloadOnRecord'),
-  extractFunction(html, 'performCloudSave')
+  extractFunction(html, 'performCloudSave'),
+  extractFunction(html, 'ksmPerformCloudSaveOnce')
 ];
-// The wrapper that follows performCloudSave (33-staff-session-and-library.js, conflict-base).
-const wrapStart = html.indexOf('const ksmPerformCloudSaveOnce=performCloudSave;');
-const wrapEnd = html.indexOf('\n};', wrapStart);
-check(wrapStart >= 0 && wrapEnd > wrapStart, 'performCloudSave is wrapped to restore the base revision');
-const wrapper = html.slice(wrapStart, wrapEnd + 3).replace('const ksmPerformCloudSaveOnce', 'var ksmPerformCloudSaveOnce');
+check(snippets.every(Boolean), 'performCloudSave and the single attempt it wraps (ksmPerformCloudSaveOnce) are found in the session module');
 
 function makeContext(fetchImpl, revision) {
   const outboxBases = [];
@@ -66,7 +63,6 @@ function makeContext(fetchImpl, revision) {
   };
   vm.createContext(context);
   vm.runInContext(withDependencies(html, snippets.join('\n'), { exclude: Object.keys(context) }), context);
-  vm.runInContext(wrapper, context);
   return { context, outboxBases };
 }
 const conflict = record => ({ status: 409, ok: false, text: async () => JSON.stringify({ error: 'Revision conflict', record }) });
