@@ -1,5 +1,6 @@
 // @ts-check
-import {state} from '../app-state.js';
+import {getState} from '../../store/index.ts';
+import {selectCourtActiveDivision,selectCourtState} from '../selectors.js';
 import {isTeamMatch} from '../court/court-match-order.js';
 import {courtCurrentMatch,teamSideLabel} from '../court/court-queue-and-views.js';
 import {ksmRenderTv} from '../react-bridges/tv.js';
@@ -24,7 +25,7 @@ function tv3UpcomingModel(court,current,teamMode){
 }
 export function buildTV3ViewModel(court){
   const data=courtCurrentMatch(court);
-  const division=state.courtActiveDivision?.[court]||state.courtState?.[court]?.division||null;
+  const division=selectCourtActiveDivision(getState())?.[court]||selectCourtState(getState())?.[court]?.division||null;
   if(!data){
     if(division&&divisionComplete(division)&&resultPlacements(division).length){
       return {court,empty:false,division,format:'results',meta:{division,line:'Final Results'},upcoming:[null,null]};

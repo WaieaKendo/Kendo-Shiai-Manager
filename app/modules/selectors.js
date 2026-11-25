@@ -71,3 +71,9 @@ export const selectChampionshipNodes=s=>selectTournamentField(s,'championshipNod
 export const selectTeamElimTeams=s=>selectTournamentField(s,'teamElimTeams');
 /** `state.currentByDivision`. @param {RootState} s */
 export const selectCurrentByDivision=s=>selectTournamentField(s,'currentByDivision');
+/** `state.grandChampions`. @param {RootState} s */
+export const selectGrandChampions=s=>selectTournamentField(s,'grandChampions');
+/** `state.awards`. @param {RootState} s */
+export const selectAwards=s=>selectTournamentField(s,'awards');
+/** `state.teamAwardMode` (the Setup field settings.teamAwardMode). @param {RootState} s */
+export const selectTeamAwardMode=s=>/** @type {any} */ (selectTournament(s)).settings.teamAwardMode;

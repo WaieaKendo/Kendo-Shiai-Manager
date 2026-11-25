@@ -1,6 +1,7 @@
 // @ts-check
-import {holdNotifications} from '../../store/index.ts';
-import {ksmEmptyScore,ksmSetScore,ksmShowMatch,state} from '../app-state.js';
+import {selectAllMatches,selectCompetitors,selectCourtActiveDivision,selectCourtState,selectCurrentDivision,selectDivisions,selectGenerated,selectGrandChampions,selectPools,selectScore,selectSingleElimComps,selectSingleElimNodes,selectTeamDivisions,selectTournamentField} from '../selectors.js';
+import {getState,holdNotifications} from '../../store/index.ts';
+import {ksmEmptyScore,ksmSetScore,ksmShowMatch,ksmClearHistory} from '../app-state.js';
 import {ksmSetDivisionCourt} from '../setup/divisions-store.js';
 import {renderAll} from '../court/court-context-and-pool-editing.js';
 import {findNextForCourt,renderDivisions} from '../court/court-match-order.js';
@@ -42,9 +43,9 @@ import * as KSMEngine from '../../engine/index.ts';
 // decision is saved in the row (keep / rebuild), so every device then does the same.
 // ==========================================================
 function ksmNewGrandChampionId(){return KSMEngine.GRAND_CHAMPION_PREFIX+Array.from(crypto.getRandomValues(new Uint8Array(12)),n=>n.toString(16).padStart(2,'0')).join('')}
-export function ksmGrandChampions(){return KSMEngine.sortGrandChampions(state.grandChampions||[])}
-export function ksmGrandChampion(id){return KSMEngine.isGrandChampionId(id)?(state.grandChampions||[]).find(g=>g.id===id)||null:null}
-export function ksmGrandChampionError(gc){return KSMEngine.grandChampionSetupError(gc,state.divisions||[],(state.teamDivisions||[]).map(d=>d.id))}
+export function ksmGrandChampions(){return KSMEngine.sortGrandChampions(selectGrandChampions(getState())||[])}
+export function ksmGrandChampion(id){return KSMEngine.isGrandChampionId(id)?(selectGrandChampions(getState())||[]).find(g=>g.id===id)||null:null}
+export function ksmGrandChampionError(gc){return KSMEngine.grandChampionSetupError(gc,selectDivisions(getState())||[],(selectTeamDivisions(getState())||[]).map(d=>d.id))}
 function ksmGrandChampionChanged(reason='Grand champion'){
   renderDivisionSetup();renderDivisions();renderTournamentStatus();scheduleAutoSave(reason);
 }
@@ -52,7 +53,7 @@ function ksmGrandChampionChanged(reason='Grand champion'){
 // Like team divisions: a grand champion match is fixed once it is drawn (divisions, format, court,
 // removal); one not drawn yet can be added, changed and removed after generation, and fills in when its
 // divisions finish.
-function ksmGrandChampionDrawn(id){return (state.allMatches?.[id]||[]).length>0}
+function ksmGrandChampionDrawn(id){return (selectAllMatches(getState())?.[id]||[]).length>0}
 export function ksmAddGrandChampion(){
   if(isReadOnlySession())return null;
   const rows=ksmGrandChampions(),gc=KSMEngine.newGrandChampion(ksmNewGrandChampionId(),Math.max(-1,...rows.map(r=>r.order))+1);
@@ -66,7 +67,7 @@ const KSM_GC_EDITABLE_AFTER_DRAW=['name','awardMode'];
  */
 function ksmReplaceGrandChampion(gc,changes){
   const next={...gc,...changes};
-  ksmSetGrandChampions('grandChampionUpdated',(state.grandChampions||[]).map(r=>r===gc?next:r));
+  ksmSetGrandChampions('grandChampionUpdated',(selectGrandChampions(getState())||[]).map(r=>r===gc?next:r));
   return next;
 }
 /** Changes fields of a row; why not (nothing changed), or null. */
@@ -85,7 +86,7 @@ export function ksmToggleGrandChampionSource(id,div,on){
   if(gc.sources.includes(div))return null;
   // The sources are the bracket order (1st plays 2nd, ...). A new one goes in at its place in Setup's running
   // order (before the first source that runs after it), so the director's reordering of the others stays.
-  const run=state.divisions||[],at=run.indexOf(div),sources=[...gc.sources];
+  const run=selectDivisions(getState())||[],at=run.indexOf(div),sources=[...gc.sources];
   const before=at<0?-1:sources.findIndex(s=>run.indexOf(s)>at);
   sources.splice(before<0?sources.length:before,0,div);
   return ksmUpdateGrandChampion(id,{sources});
@@ -110,14 +111,14 @@ export function ksmRemoveGrandChampion(id){
 }
 // ---------------------------------------------------------- the sources
 function ksmGrandChampionEntrantOf(div,name){
-  const c=(state.competitors||[]).find(c=>c&&c.division===div&&c.name===name);
+  const c=(selectCompetitors(getState())||[]).find(c=>c&&c.division===div&&c.name===name);
   if(c)return {name,dojo:c.dojo||''};
-  const m=(state.allMatches?.[div]||[]).find(m=>m&&(m.white===name||m.red===name));
+  const m=(selectAllMatches(getState())?.[div]||[]).find(m=>m&&(m.white===name||m.red===name));
   return {name,dojo:m?((m.white===name?m.wdojo:m.rdojo)||''):''};
 }
 /** A source division's result: complete, its winner and runner-up (Results' placements). */
 function ksmGrandChampionSourceResult(div){
-  if(!(state.allMatches?.[div]||[]).length||!divisionComplete(div))return {complete:false};
+  if(!(selectAllMatches(getState())?.[div]||[]).length||!divisionComplete(div))return {complete:false};
   const p=resultPlacements(div),first=p.find(r=>r.place==='1st'),second=p.find(r=>r.place==='2nd');
   if(!first?.name)return {complete:false};
   return {complete:true,winner:ksmGrandChampionEntrantOf(div,first.name),runnerUp:second?.name?ksmGrandChampionEntrantOf(div,second.name):null};
@@ -131,11 +132,11 @@ export function ksmGrandChampionCompetitors(id){
   return KSMEngine.grandChampionCompetitors(id,ksmGrandChampionNow(gc).entrants.filter(Boolean));
 }
 function ksmGrandChampionStructure(id){
-  let matches=state.allMatches?.[id];
+  let matches=selectAllMatches(getState())?.[id];
   // Points on this court's screen for the grand champion count as started, also before they reach the match.
-  const live=state.currentDivision===id&&state.score&&((state.score.W||[]).length||(state.score.R||[]).length||state.score.WT||state.score.RT);
-  if(live&&Array.isArray(matches))matches=[...matches,/** @type {any} */({done:false,wp:state.score.W||[],rp:state.score.R||[],wt:state.score.WT,rt:state.score.RT})];
-  return {matches,singleElimComps:state.singleElimComps?.[id],pools:state.pools?.[id]};
+  const live=selectCurrentDivision(getState())===id&&selectScore(getState())&&((selectScore(getState()).W||[]).length||(selectScore(getState()).R||[]).length||selectScore(getState()).WT||selectScore(getState()).RT);
+  if(live&&Array.isArray(matches))matches=[...matches,/** @type {any} */({done:false,wp:selectScore(getState()).W||[],rp:selectScore(getState()).R||[],wt:selectScore(getState()).WT,rt:selectScore(getState()).RT})];
+  return {matches,singleElimComps:selectSingleElimComps(getState())?.[id],pools:selectPools(getState())?.[id]};
 }
 // ---------------------------------------------------------- the draw
 const KSM_GC_STRUCTURE_KEYS=['pools','teamPools','allMatches','singleElimNodes','singleElimComps','teamBracketNodes','teamElimTeams','brackets','championshipNodes','byeWinners','currentByDivision'];
@@ -145,11 +146,11 @@ const KSM_GC_STRUCTURE_KEYS=['pools','teamPools','allMatches','singleElimNodes',
 function ksmForgetGrandChampionHistory(id){
   /** @type {any} */ const out={};
   ['courtActionHistory','courtRedoHistory'].forEach(key=>['A','B'].forEach(c=>{
-    const stack=state[key]?.[c];if(!Array.isArray(stack))return;
+    const stack=selectTournamentField(getState(),/** @type {any} */(key))?.[c];if(!Array.isArray(stack))return;
     const next=stack.map(a=>a&&Array.isArray(a.patches)&&(a.patches.some(p=>p?.path?.[0]==='allMatches'&&p.path[1]===id)||a.matchOps?.[id])
       ?{...a,patches:a.patches.filter(p=>!(p?.path?.[0]==='allMatches'&&p.path[1]===id)),...(a.matchOps?.[id]?{matchOps:Object.fromEntries(Object.entries(a.matchOps).filter(([d])=>d!==id))}:{})}:a)
       .filter(a=>!a||!Array.isArray(a.patches)||a.patches.length||Object.keys(a.matchOps||{}).length);
-    if(next.length!==stack.length||next.some((a,i)=>a!==stack[i]))(out[key]||={...state[key]})[c]=next;
+    if(next.length!==stack.length||next.some((a,i)=>a!==stack[i]))(out[key]||={...selectTournamentField(getState(),/** @type {any} */(key))})[c]=next;
   }));
   ksmSetCourtHistories('historyForgotten',out);
 }
@@ -158,32 +159,32 @@ function ksmClearGrandChampionStructure(id,keepCourts=false){return holdNotifica
   let had=false;
   // The plain parts are deleted, then the draw's own entries go in one tournament/divisionCleared (#15 PR 12a).
   // (`currentByDivision`, the court pointers' map since #15 PR 13a, goes with the draw's entries.)
-  KSM_GC_STRUCTURE_KEYS.forEach(k=>{if(state[k]&&Object.hasOwn(state[k],id)){if(k==='allMatches')ksmDeleteDivisionMatches(id);had=true}});
+  KSM_GC_STRUCTURE_KEYS.forEach(k=>{if(selectTournamentField(getState(),/** @type {any} */(k))&&Object.hasOwn(selectTournamentField(getState(),/** @type {any} */(k)),id)){if(k==='allMatches')ksmDeleteDivisionMatches(id);had=true}});
   // A court on the draw is re-resolved in the same tournament/divisionCleared (#15 PR 13b, #201 review L2): no store
   // notification shows it on the deleted list. Its next bout is found on the lists without this draw (allMatches, deleted
   // above), as the court/pointersResolved after the clear found it; a draw already gone keeps that separate action.
-  const draw=ksmDrawWith(id,{},[...KSM_DRAW_KEYS,'currentByDivision']),courts=keepCourts?[]:['A','B'].filter(c=>state.courtState?.[c]?.division===id);
+  const draw=ksmDrawWith(id,{},[...KSM_DRAW_KEYS,'currentByDivision']),courts=keepCourts?[]:['A','B'].filter(c=>selectCourtState(getState())?.[c]?.division===id);
   if(courts.length&&Object.keys(draw).length){
-    const courtState={...state.courtState},courtActiveDivision={...state.courtActiveDivision};
+    const courtState={...selectCourtState(getState())},courtActiveDivision={...selectCourtActiveDivision(getState())};
     for(const c of courts){const cs=findNextForCourt(c,null,0);courtState[c]=cs;courtActiveDivision[c]=cs.division}
     Object.assign(draw,{courtState,courtActiveDivision});courts.length=0;
   }
   ksmSetDraw('divisionCleared',draw);
   if(had)ksmForgetGrandChampionHistory(id);
   if(courts.length)ksmResolveCourts(courts,c=>findNextForCourt(c,null,0));
-  if(state.currentDivision===id&&had){ksmSetScore(ksmEmptyScore());state.history=[]}
+  if(selectCurrentDivision(getState())===id&&had){ksmSetScore(ksmEmptyScore());ksmClearHistory()}
   // state.matches follows allMatches[currentDivision] (derived, #15 PR 7): [] once the draw is gone.
-  if(state.currentDivision===id&&!state.allMatches?.[id])ksmShowMatch(0);
+  if(selectCurrentDivision(getState())===id&&!selectAllMatches(getState())?.[id])ksmShowMatch(0);
   return had;
 })}
 function ksmDrawGrandChampion(gc){
-  const courts=['A','B'].filter(c=>state.courtState?.[c]?.division===gc.id);
+  const courts=['A','B'].filter(c=>selectCourtState(getState())?.[c]?.division===gc.id);
   ksmClearGrandChampionStructure(gc.id,true);
   ksmSetDivisionCourt(gc.id,gc.court);
   const drawn=generateDivisionState(gc.id);// its queue position starts at 0 with its draw (#15 PR 13a)
   // A court that was on the grand champion stays on it (its new first match); none moves elsewhere.
   ksmResolveCourts(courts,c=>findNextForCourt(c,drawn?gc.id:null,0));
-  if(state.currentDivision===gc.id)ksmShowMatch(0);
+  if(selectCurrentDivision(getState())===gc.id)ksmShowMatch(0);
   return drawn;
 }
 // A runner-up standing in for a winner who has played nothing yet, in a draw already under way:
@@ -193,16 +194,16 @@ function ksmSubstituteGrandChampion(gc,swaps){
   // The unplayed bouts' names in one write (#15 PR 13c-1: match-writes.js), each bout's keys in the old order.
   /** @type {import('../court/match-writes.js').MatchUpdate[]} */ const updates=[];
   const swap=(o,set,nameKey,dojoKey)=>{const s=o&&swaps.find(x=>same(o[nameKey],o[dojoKey],x.from));if(s){set[nameKey]=s.to.name;set[dojoKey]=s.to.dojo}};
-  (state.allMatches?.[gc.id]||[]).forEach((m,index)=>{if(m&&!KSMEngine.grandChampionStarted([m])){const set={};swap(m,set,'white','wdojo');swap(m,set,'red','rdojo');if(Object.keys(set).length)updates.push({index,set})}});
+  (selectAllMatches(getState())?.[gc.id]||[]).forEach((m,index)=>{if(m&&!KSMEngine.grandChampionStarted([m])){const set={};swap(m,set,'white','wdojo');swap(m,set,'red','rdojo');if(Object.keys(set).length)updates.push({index,set})}});
   ksmUpdateMatches(gc.id,updates);
   // The draw's rows are store data (#15 PR 12a): the stand-in is a new row in the entrants and the pools. A bracket node
   // whose winner is the entrant's row itself follows to the new row, as the old in-place swap reached it; the nodes are
   // store data too (PR 12b): new nodes, in the same action.
   /** @type {Map<object,object>} */ const replaced=new Map();
   const swapped=o=>{if(replaced.has(o))return replaced.get(o);const s=o&&swaps.find(x=>same(o.name,o.dojo,x.from));if(!s)return o;const to={...o,name:s.to.name,dojo:s.to.dojo};replaced.set(o,to);return to};
-  const comps=state.singleElimComps?.[gc.id],nextComps=Array.isArray(comps)?comps.map(swapped):null;
+  const comps=selectSingleElimComps(getState())?.[gc.id],nextComps=Array.isArray(comps)?comps.map(swapped):null;
   const pools=ksmEditedPools(gc.id,p=>{const players=(p.players||[]).map(swapped);return players.some((x,i)=>x!==p.players[i])?{...p,players}:p});
-  const nodes=state.singleElimNodes?.[gc.id]||[],nextNodes=nodes.map(n=>{const to=n&&replaced.get(n.winner);return to?{...n,winner:to}:n});
+  const nodes=selectSingleElimNodes(getState())?.[gc.id]||[],nextNodes=nodes.map(n=>{const to=n&&replaced.get(n.winner);return to?{...n,winner:to}:n});
   ksmSetDraw('drawEntriesUpdated',{...(nextComps&&nextComps.some((c,i)=>c!==comps[i])?ksmDrawWith(gc.id,{singleElimComps:nextComps}):{}),...pools,
     ...(nextNodes.some((n,i)=>n!==nodes[i])?ksmDrawWith(gc.id,{singleElimNodes:nextNodes}):{})});
   ksmForgetGrandChampionHistory(gc.id);
@@ -214,7 +215,7 @@ function ksmApplyGrandChampionWithdrawals(gc,now){
   const withdrawn=now.entrants.filter(e=>e&&e.via==='fusen-sho');if(!withdrawn.length)return false;
   let changed=false;
   for(let guard=0;guard<40;guard++){
-    const arr=state.allMatches?.[gc.id]||[],bout=KSMEngine.grandChampionFusenBouts(arr,withdrawn)[0];
+    const arr=selectAllMatches(getState())?.[gc.id]||[],bout=KSMEngine.grandChampionFusenBouts(arr,withdrawn)[0];
     if(!bout)break;
     // The bout's result in one write (#15 PR 13c-1), as Next Match writes it: the snapshot taken before `done`.
     const result={wp:bout.winner==='W'?['F','F']:[],rp:bout.winner==='R'?['F','F']:[],wt:0,rt:0};
@@ -233,7 +234,7 @@ let ksmGrandChampionSyncing=false;
  * device that saves, once the tournament is generated. Returns whether `state` changed.
  */
 export function ksmSyncGrandChampions(source='sync'){
-  if(ksmGrandChampionSyncing||!state.generated||!(state.grandChampions||[]).length)return false;
+  if(ksmGrandChampionSyncing||!selectGenerated(getState())||!(selectGrandChampions(getState())||[]).length)return false;
   if(typeof isReadOnlySession==='function'&&isReadOnlySession())return false;
   ksmGrandChampionSyncing=true;let changed=false;
   try{
@@ -241,14 +242,14 @@ export function ksmSyncGrandChampions(source='sync'){
       delete ksmGrandChampionAsks[gc.id];
       // A row that can no longer be drawn (a source switched off after generation) loses an unplayed
       // draw; a started one is kept as played (never deleted without the director).
-      if(ksmGrandChampionError(gc)){if(!KSMEngine.grandChampionStarted(state.allMatches?.[gc.id])&&ksmClearGrandChampionStructure(gc.id))changed=true;continue}
+      if(ksmGrandChampionError(gc)){if(!KSMEngine.grandChampionStarted(selectAllMatches(getState())?.[gc.id])&&ksmClearGrandChampionStructure(gc.id))changed=true;continue}
       const now=ksmGrandChampionNow(gc),swaps=KSMEngine.grandChampionSubstitutions(now,ksmGrandChampionStructure(gc.id));
       if(swaps&&ksmSubstituteGrandChampion(gc,swaps))changed=true;
       const plan=KSMEngine.grandChampionPlan(gc,now,ksmGrandChampionStructure(gc.id));
       if(plan.kind==='draw'){if(ksmDrawGrandChampion(gc))changed=true}
       else if(plan.kind==='clear'){if(ksmClearGrandChampionStructure(gc.id))changed=true}
       else if(plan.kind==='ask'){ksmGrandChampionAsks[gc.id]=plan;ksmAskGrandChampion(gc,plan);continue}
-      if(state.allMatches?.[gc.id]&&ksmApplyGrandChampionWithdrawals(gc,now))changed=true;
+      if(selectAllMatches(getState())?.[gc.id]&&ksmApplyGrandChampionWithdrawals(gc,now))changed=true;
     }
     if(changed){
       writeCloudDiagnosticsState({stage:'Grand champion draw updated',source});
@@ -320,7 +321,7 @@ function ksmAskGrandChampion(gc,plan,force=false){
 }
 // Setup's "Withdraw…": first who, then how.
 function ksmGrandChampionWithdrawChoices(gc){
-  const now=ksmGrandChampionNow(gc),arr=state.allMatches?.[gc.id]||[];
+  const now=ksmGrandChampionNow(gc),arr=selectAllMatches(getState())?.[gc.id]||[];
   return gc.sources.map((s,i)=>({source:s,entrant:now.entrants[i]})).filter(({entrant})=>{
     // A runner-up already standing in who cannot play either loses at the court (its Fusen-sho).
     if(!entrant||entrant.via!=='winner')return false;
@@ -373,7 +374,7 @@ export function ksmDecideGrandChampion(id){
 }
 // ---------------------------------------------------------- Setup's island (React)
 function ksmGrandChampionRowData(gc,i,rows){
-  const error=ksmGrandChampionError(gc),now=ksmGrandChampionNow(gc),arr=state.allMatches?.[gc.id]||[];
+  const error=ksmGrandChampionError(gc),now=ksmGrandChampionNow(gc),arr=selectAllMatches(getState())?.[gc.id]||[];
   const drawn=arr.length>0,complete=drawn&&divisionComplete(gc.id),placements=complete?resultPlacements(gc.id):[];
   return {
     id:gc.id,name:gc.name,sources:[...gc.sources],format:gc.format,court:gc.court,awardMode:gc.awardMode,
@@ -386,14 +387,14 @@ function ksmGrandChampionRowData(gc,i,rows){
     drawn,started:drawn&&KSMEngine.grandChampionStarted(arr),complete,
     champion:placements[0]?.name||null,
     decide:!!ksmGrandChampionAsks[gc.id],
-    canWithdraw:!!state.generated&&!complete&&(now.duplicates.length>0||now.unavailable.length>0||ksmGrandChampionWithdrawChoices(gc).length>0),
+    canWithdraw:!!selectGenerated(getState())&&!complete&&(now.duplicates.length>0||now.unavailable.length>0||ksmGrandChampionWithdrawChoices(gc).length>0),
   };
 }
 function ksmGrandChampionSetupData(){
   const rows=ksmGrandChampions();
   return {
     locked:rows.some(gc=>ksmGrandChampionDrawn(gc.id)),readOnly:isReadOnlySession(),
-    divisions:(state.divisions||[]).map(d=>({key:String(d),name:String(d)})),
+    divisions:(selectDivisions(getState())||[]).map(d=>({key:String(d),name:String(d)})),
     rows:rows.map((gc,i)=>ksmGrandChampionRowData(gc,i,rows)),
   };
 }
