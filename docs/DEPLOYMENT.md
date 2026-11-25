@@ -16,22 +16,15 @@ Both go through `.github/workflows/deploy.yml`: the full test suite (`test.yml`,
 
 Merging a pull request into `develop` (or pushing to it) starts **Deploy dev**. When it is green, the dev site runs exactly that commit. The first dev deploy creates the `kendoshiaimanager-dev` Worker and its empty Durable Object namespace (migration `v1` in `env.dev`). Use dev for trying a change on phones and TVs before it goes to production; its tournaments are throwaway.
 
-## Branches until 4.0.0 ships
+## Branches
 
-From 2026-10-20 until 4.0.0 is released, `develop` holds **only 4.0**: the dev site keeps showing the
-4.0 candidate, and the release path (#90) is unchanged.
+4.0.0 was released on 2026-11-24 (tag `v4.0.0` on `main`), and `next/4.1` was merged into `develop` (#228). Since then:
 
-- **Fixes for 4.0:** PRs to `develop`, as before. After each one, `develop` is merged into `next/4.1`.
-- **New work (4.1):** PRs to **`next/4.1`** (pick it as the base). It is not deployed anywhere; CI still
-  tests every PR. A change that raises `KSM_CLIENT_SCHEMA` / `MIN_CLIENT_SCHEMA` belongs here, never in
-  `develop` before 4.0.0.
-- **Every PR into `develop` while it is an rc** bumps the rc number: `npm run release -- rc`
-  (4.0.0-rc.N → rc.N+1) as the PR's last commit. CI's `version rules` job enforces it.
-- **Release:** when the candidate is approved, `npm run release -- final` (4.0.0-rc.N → 4.0.0) in a PR
-  into `develop`, then PR `develop` → `main` (deploys production). `main` never gets an rc version;
-  CI refuses one. No merges to `main` from about 11/7 until after 11/21 except emergency fixes.
-- **After 4.0.0:** merge `next/4.1` into `develop` (a merge commit) and delete `next/4.1`; work goes to
-  `develop` again.
+- **`develop`** is the next version (`4.1.0-dev`). Every push deploys the dev site. PRs go to `develop`; they do not change the version.
+- **`main`** is production, deployed only by a release: `npm run release -- X.Y.Z` in a PR into `develop`, then a PR `develop` → `main`, then the tag `v<version>` on `main`. `develop` holds unreleased work, so merging it into `main` ships all of it.
+- **Hotfix for the released version** while `develop` is not releasable: branch from the latest tag (`git switch -c release/4.0.x v4.0.0`), fix there, release it with `npm run release -- 4.0.1` into `main` and tag it, then merge `main` back into `develop`. No standing release branch is kept.
+- **Release candidates and `next/<version>`:** only when a tournament is close and `develop` must freeze, start the rc phase with `npm run release -- X.Y.Z-rc.1`. While `develop` is an rc, every PR into it bumps the rc number (`npm run release -- rc`; CI's `version rules` job enforces it), new work goes to a `next/<version>` branch, and after the release `next/<version>` is merged into `develop` and deleted (this is how 4.0 and 4.1 were run from 2026-10-20). `main` never gets an rc version.
+- A change that raises `KSM_CLIENT_SCHEMA` / `MIN_CLIENT_SCHEMA` belongs in a release that is planned for it, never in a hotfix.
 
 ## Paths the site answers
 
