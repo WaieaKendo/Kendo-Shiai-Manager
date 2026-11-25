@@ -6,7 +6,7 @@ The details and the reasons are in `docs/DEPLOYMENT.md`; this file lists the rul
 ## Branches
 
 - `main` is production. A push to `main` with a new `package.json` version deploys production.
-- `develop` is the version being worked on; every push deploys the dev site.
+- `develop` is the version being worked on (`4.1.0-dev` after the 4.0.0 release); every push deploys the dev site. There is no `next/` branch now: PRs go to `develop`.
 - When a tournament gets close, `develop` becomes a release candidate (`X.Y.Z-rc.N`). From then on,
   `develop` takes only fixes for that release. New work goes to `next/<version>` (for example
   `next/4.1`) until the release is in `main`; then `next/<version>` is merged into `develop`.
