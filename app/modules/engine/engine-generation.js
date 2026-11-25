@@ -154,7 +154,7 @@ export function eliminationFinalDone(div){let arr=selectAllMatches(getState())[d
 function nextIndexForCourt(div,c,start=0){let arr=selectAllMatches(getState())[div]||[];if(eliminationFinalDone(div))return arr.length;if(arr.some(isTeamMatch)){arr=sortTeamMatches(div);start=0;}else{arr=sortIndividualDivisionMatches(div,arr);start=0;}let idx=arr.findIndex((m,i)=>i>=start && individualMatchReady(m) && matchBelongsToCourt(m,c));return idx<0?arr.length:idx}
 export function setActiveDivision(div,keepScore=false){
   if(selectCurrentCourt(getState()))rememberLocalCourtDivision(selectCurrentCourt(getState()),div);
-  ksmShowDivision(div); // selectMatches(getState()) is now allMatches[div] (derived, #15 PR 7)
+  ksmShowDivision(div); // state.matches is now allMatches[div] (derived, #15 PR 7)
   let idx=nextIndexForCourt(div,selectCurrentCourt(getState())||'A',selectCurrentByDivision(getState())[div]||0);
   ksmShowMatch(idx);
   // The court's shared pointer moves only on the court's own scorekeeper (isCourtScorekeeper(), docs/STORE.md 1.2):

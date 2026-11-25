@@ -91,7 +91,7 @@ export function individualLogicalMatchKey(m){
  */
 export function enforceUniqueIndividualMatches(div){
   const out=KSMEngine.uniqueIndividualMatches(selectAllMatches(getState())?.[div]||[]);
-  ksmSetDivisionMatches(div,out); // selectMatches(getState()) follows (it is allMatches[currentDivision], #15 PR 7)
+  ksmSetDivisionMatches(div,out); // state.matches follows (it is allMatches[currentDivision], #15 PR 7)
   return selectAllMatches(getState())[div];
 }
 /**

@@ -80,7 +80,7 @@ export function ksmNodesWithWinners(nodes,winners){
 /**
  * A bracket sync's result (PR 12b): `div`'s node list under `key` when the sync gave it new winners, one
  * tournament/advancementApplied; none when nothing changed. A map that is missing is created empty, as the old
- * `selectTournamentField(getState(),key)=selectTournamentField(getState(),key)||{}` at the top of each sync did.
+ * `state[key]=state[key]||{}` at the top of each sync did.
  * @param {string} div
  * @param {'singleElimNodes'|'teamBracketNodes'} key
  * @param {readonly unknown[]} before the list the sync read
