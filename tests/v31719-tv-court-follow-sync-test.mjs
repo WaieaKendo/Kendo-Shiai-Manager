@@ -12,7 +12,7 @@ let failed=false;
 function check(ok,name){console.log(`${ok?'PASS':'FAIL'} ${name}`);if(!ok)failed=true}
 
 check(html.includes('onchange="selectScorekeeperDivision(this.value)"'),'scorekeeper division selector uses publishing handler');
-check(html.includes("criticalAutoSave(`Court ${state.currentCourt||'A'} division changed: ${div}`)"),'court division selection publishes immediately');
+check(html.includes("criticalAutoSave(`Court ${selectCurrentCourt(getState())||'A'} division changed: ${div}`)"),'court division selection publishes immediately');
 check(html.includes('preserveLocalDivision:preserveLocalDivisionForRemoteSync()'),'remote sync uses role-aware local-division preservation');
 check(html.includes('const tvCourt=isTvSession()?tvAssignedCourt()'),'TV diagnostics/render sync uses URL-assigned court');
 

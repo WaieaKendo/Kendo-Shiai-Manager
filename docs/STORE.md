@@ -1154,6 +1154,14 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
     test whose context stubs `state` with a plain object gets the selectors over it from `tests/lib/plain-selectors.mjs`;
     `vmStore()` gives its store's context the selectors.
 
+    **Done in item 14c-2**: engine/'s `state.x` reads are `selectX(getState())` (12 more selectors in `app/modules/selectors.js`:
+    `pools`, `teamPools`, `divisionTypes`, `exhibitions`, `teamDivisions`, `singleElimComps`, `byeWinners`, `generated`,
+    `managementRevision`, `championshipNodes`, `teamElimTeams`, `currentByDivision`; structure-store.js reads its keys through
+    `selectTournamentField`). The one write, `state.history=[]`, is `ksmClearHistory()`. **Left in engine/** because they use `state`
+    as an object: engine-result-integrity.js (`targetState=state` default) and engine-standings-and-tiebreaks.js
+    (`targetState===state` tells the live state from a payload copy). Vm tests that run engine code over a plain `state`
+    get the selectors from `plainSelectors()`; four source-text checks follow the new wording.
+
     **The reads (item 14c), module by module.** `state.x` reads in `app/modules` and `app/main.js` (next/4.1, counted
     as `state.` / `state?.` / `state[` followed by a name; lines that have one in brackets): court 190 (135 lines),
     engine 156 (117), registration 111 (86), react-bridges 82 (75), results 74 (52), setup 54 (44), sync 48 (43),
@@ -1166,6 +1174,7 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
        **Done in item 14c-1** (below), except what keeps `state` as an object.
     2. **engine/** (engine-generation, standings and tiebreaks, championship, single-elim, pools, team-*, structure-store;
        ~120 lines). The engine helpers already take values; most reads become one `getState().tournament` per function.
+       **Done in item 14c-2** (above), except what keeps `state` as an object.
     3. **registration/ + results/** (~140 lines; grand-champion.js is the largest).
     4. **setup/ + sync/ + session/ + links/ + navigation + main.js** (~100 lines). `tournamentPayload()` (sync) reads
        `JSON.stringify(state)`: it keeps reading `state` until 6.

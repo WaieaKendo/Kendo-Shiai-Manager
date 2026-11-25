@@ -1,5 +1,6 @@
 // @ts-check
-import {state} from '../app-state.js';
+import {getState} from '../../store/index.ts';
+import {selectAllMatches,selectTeamBracketNodes} from '../selectors.js';
 import {sortTeamMatches} from '../court/court-match-order.js';
 import {ksmAppendMatches,ksmSetDivisionMatches} from '../court/match-writes.js';
 import {ksmTeamSettings} from '../registration/team-divisions.js';
@@ -19,7 +20,7 @@ export function slotLabel(k){
  * @returns {Team|null}
  */
 function teamSideTeam(side,teams,div){
-  return /** @type {Team|null} */(KSMEngine.teamSideTeam(side,teams,state.teamBracketNodes?.[div]||[]));
+  return /** @type {Team|null} */(KSMEngine.teamSideTeam(side,teams,selectTeamBracketNodes(getState())?.[div]||[]));
 }
 function nodeHasMatch(arr,node){
   return KSMEngine.nodeHasMatch(arr,node);
@@ -51,11 +52,11 @@ export function teamSlots(div){
  * @param {{teamBracketNodes?:any[]}} [draft]
  */
 export function syncTeamBracket(div,arr,teams,draft){
-  const nodes=(draft?draft.teamBracketNodes:state.teamBracketNodes?.[div])||[],current=state.allMatches[div];
+  const nodes=(draft?draft.teamBracketNodes:selectTeamBracketNodes(getState())?.[div])||[],current=selectAllMatches(getState())[div];
   const plan=KSMEngine.syncTeamBracket(div,nodes,arr,teams,ksmTeamSettings(div).teamFormat,current===arr?undefined:(current||[]));
   const next=ksmNodesWithWinners(nodes,plan.winners);
   if(current!==arr)ksmSetDivisionMatches(div,arr);
   ksmAppendMatches(div,/** @type {Match[]} */(plan.added));sortTeamMatches(div,next);
   if(draft)draft.teamBracketNodes=next;else ksmAdvanceBracket(div,'teamBracketNodes',nodes,next);
-  return state.allMatches[div];
+  return selectAllMatches(getState())[div];
 }

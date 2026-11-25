@@ -1,4 +1,6 @@
 // @ts-check
+import {getState} from '../../store/index.ts';
+import {selectAllMatches,selectCurrentDivision,selectMatches,selectPools,selectTeamBracketNodes} from '../selectors.js';
 import {ksmShowMatch,state} from '../app-state.js';
 import {individualMatchReady} from '../court/court-match-order.js';
 import {ksmMoveCourtPointers} from '../court/court-pointers-store.js';
@@ -18,8 +20,8 @@ import * as KSMEngine from '../../engine/index.ts';
  * @param {string} [div]
  * @returns {boolean|number}
  */
-function poolFinishedImpl(poolLabel,div=state.currentDivision){
-  return KSMEngine.poolFinished(state.allMatches[div]||[],poolLabel);
+function poolFinishedImpl(poolLabel,div=selectCurrentDivision(getState())){
+  return KSMEngine.poolFinished(selectAllMatches(getState())[div]||[],poolLabel);
 }
 export const poolFinished=replaceable('poolFinished',poolFinishedImpl);
 /**
@@ -28,7 +30,7 @@ export const poolFinished=replaceable('poolFinished',poolFinishedImpl);
  * @returns {boolean}
  */
 function pendingTiebreakImpl(poolLabel,div){
-  return KSMEngine.pendingTiebreak(state.allMatches[div]||[],poolLabel);
+  return KSMEngine.pendingTiebreak(selectAllMatches(getState())[div]||[],poolLabel);
 }
 export const pendingTiebreak=replaceable('pendingTiebreak',pendingTiebreakImpl);
 /**
@@ -37,8 +39,8 @@ export const pendingTiebreak=replaceable('pendingTiebreak',pendingTiebreakImpl);
  * @param {string} [div]
  * @returns {PoolStandingRow[]}
  */
-function initialPoolStandingsImpl(poolLabel,div=state.currentDivision){
-  return KSMEngine.initialPoolStandings((state.pools[div]||[]).find(p=>p.label===poolLabel),state.allMatches[div]||[]);
+function initialPoolStandingsImpl(poolLabel,div=selectCurrentDivision(getState())){
+  return KSMEngine.initialPoolStandings((selectPools(getState())[div]||[]).find(p=>p.label===poolLabel),selectAllMatches(getState())[div]||[]);
 }
 export const initialPoolStandings=replaceable('initialPoolStandings',initialPoolStandingsImpl);
 /**
@@ -49,7 +51,7 @@ export const initialPoolStandings=replaceable('initialPoolStandings',initialPool
  * @returns {{locked: TiebreakStatsRow[], unresolved: PoolStandingRow[], ordered: (PoolStandingRow|TiebreakStatsRow)[], lastStats: TiebreakStatsRow[]}}
  */
 function resolveTiebreakBaseGroupImpl(poolLabel,div,target){
-  return KSMEngine.resolveTiebreakBaseGroup(state.allMatches[div]||[],poolLabel,target);
+  return KSMEngine.resolveTiebreakBaseGroup(selectAllMatches(getState())[div]||[],poolLabel,target);
 }
 export const resolveTiebreakBaseGroup=replaceable('resolveTiebreakBaseGroup',resolveTiebreakBaseGroupImpl);
 /**
@@ -58,8 +60,8 @@ export const resolveTiebreakBaseGroup=replaceable('resolveTiebreakBaseGroup',res
  * @param {string} [div]
  * @returns {PoolStandingRow[]}
  */
-function poolStandingsImpl(poolLabel,div=state.currentDivision){
-  const pool=(state.pools[div]||[]).find(p=>p.label===poolLabel);return pool?KSMEngine.poolStandings(pool,state.allMatches[div]||[],requiredSeedPlaces(div)[poolLabel]||2):[];
+function poolStandingsImpl(poolLabel,div=selectCurrentDivision(getState())){
+  const pool=(selectPools(getState())[div]||[]).find(p=>p.label===poolLabel);return pool?KSMEngine.poolStandings(pool,selectAllMatches(getState())[div]||[],requiredSeedPlaces(div)[poolLabel]||2):[];
 }
 export const poolStandings=replaceable('poolStandings',poolStandingsImpl);
 /**
@@ -69,7 +71,7 @@ export const poolStandings=replaceable('poolStandings',poolStandingsImpl);
  * @returns {{stats: TiebreakStatsRow[], done: Match[]}}
  */
 function tiebreakStatsForPlayers(poolLabel,div,players){
-  return KSMEngine.tiebreakStatsForPlayers(state.allMatches[div]||[],poolLabel,players);
+  return KSMEngine.tiebreakStatsForPlayers(selectAllMatches(getState())[div]||[],poolLabel,players);
 }
 /**
  * @param {string} poolLabel
@@ -79,7 +81,7 @@ function tiebreakStatsForPlayers(poolLabel,div,players){
  * @returns {{stats: TiebreakStatsRow[], matches: Match[]}}
  */
 function tiebreakSeriesStats(poolLabel,div,players,series){
-  return KSMEngine.tiebreakSeriesStats(state.allMatches[div]||[],poolLabel,players,series);
+  return KSMEngine.tiebreakSeriesStats(selectAllMatches(getState())[div]||[],poolLabel,players,series);
 }
 /**
  * Players still tied for a place that matters (up to reqSeed), or null.
@@ -90,7 +92,7 @@ function tiebreakSeriesStats(poolLabel,div,players,series){
  * @returns {PoolStandingRow[]|null}
  */
 export function unresolvedRequiredTiebreakGroup(poolLabel,div,target,reqSeed){
-  return KSMEngine.unresolvedRequiredTiebreakGroup(state.allMatches[div]||[],poolLabel,target,reqSeed);
+  return KSMEngine.unresolvedRequiredTiebreakGroup(selectAllMatches(getState())[div]||[],poolLabel,target,reqSeed);
 }
 /**
  * @param {string} div
@@ -99,7 +101,7 @@ export function unresolvedRequiredTiebreakGroup(poolLabel,div,target,reqSeed){
  * @returns {Match[]}
  */
 export function tiebreakMatchesForGroup(div,pool,players){
-  return KSMEngine.tiebreakMatchesForGroup(state.allMatches?.[div]||[],div,pool,players,poolCourtFor(div,pool));
+  return KSMEngine.tiebreakMatchesForGroup(selectAllMatches(getState())?.[div]||[],div,pool,players,poolCourtFor(div,pool));
 }
 export const APPROVED_DYNAMIC_MATCH_TYPES=Object.freeze(new Set([
   'INDIVIDUAL_POOL_TIEBREAK',
@@ -135,7 +137,7 @@ export function makeTiebreakMatch(division,pool,a,b,requiresWinner=false,tiebrea
  * @returns {Match[]}
  */
 export function teamPairMatches(div,pair){
-  return KSMEngine.teamPairMatches(state.allMatches[div]||[],pair);
+  return KSMEngine.teamPairMatches(selectAllMatches(getState())[div]||[],pair);
 }
 /**
  * @param {string} div
@@ -143,7 +145,7 @@ export function teamPairMatches(div,pair){
  * @returns {Match[]}
  */
 function teamPositionMatches(div,pair){
-  return KSMEngine.teamPositionMatches(state.allMatches[div]||[],pair);
+  return KSMEngine.teamPositionMatches(selectAllMatches(getState())[div]||[],pair);
 }
 /**
  * @param {string} div
@@ -151,14 +153,14 @@ function teamPositionMatches(div,pair){
  * @returns {TeamPairSummary}
  */
 export function teamPairSummary(div,pair){
-  return KSMEngine.teamPairSummary(state.allMatches[div]||[],pair);
+  return KSMEngine.teamPairSummary(selectAllMatches(getState())[div]||[],pair);
 }
 /**
  * @param {string} [div]
  * @returns {string[]}
  */
 export function teamPairIds(div='Team Tournament'){
-  return KSMEngine.teamPairIds(state.allMatches[div]||[]);
+  return KSMEngine.teamPairIds(selectAllMatches(getState())[div]||[]);
 }
 /**
  * @param {string} div
@@ -166,32 +168,32 @@ export function teamPairIds(div='Team Tournament'){
  * @returns {boolean}
  */
 export function teamRoundRobinPairResolved(div,pair){
-  return KSMEngine.teamRoundRobinPairResolved(state.allMatches[div]||[],pair);
+  return KSMEngine.teamRoundRobinPairResolved(selectAllMatches(getState())[div]||[],pair);
 }
 /**
  * @param {string} [div]
  * @returns {{complete: number, total: number}}
  */
 export function teamRoundRobinProgress(div='Team Tournament'){
-  return KSMEngine.teamRoundRobinProgress(state.allMatches[div]||[]);
+  return KSMEngine.teamRoundRobinProgress(selectAllMatches(getState())[div]||[]);
 }
 /**
  * @param {string} div
  */
-function allPoolMatchesComplete(div){let arr=state.allMatches[div]||[];let poolMs=arr.filter(m=>m&&m.type==='individual' && !m.championship);return poolMs.length && poolMs.every(m=>m.done)}
+function allPoolMatchesComplete(div){let arr=selectAllMatches(getState())[div]||[];let poolMs=arr.filter(m=>m&&m.type==='individual' && !m.championship);return poolMs.length && poolMs.every(m=>m.done)}
 /**
  * @param {string} div
  * @returns {boolean}
  */
-function hasPendingIndividualTiebreak(div){return (state.allMatches[div]||[]).some(m=>m&&m.type==='individual'&&m.tiebreak&&!m.done)}
+function hasPendingIndividualTiebreak(div){return (selectAllMatches(getState())[div]||[]).some(m=>m&&m.type==='individual'&&m.tiebreak&&!m.done)}
 /**
  * @param {string} [div]
  * @returns {boolean}
  */
 export function isTeamRoundRobinDivision(div='Team Tournament'){
   if(!isTeamDivision(div))return false;
-  if((state.teamBracketNodes?.[div]||[]).length)return false;
-  const matches=state.allMatches?.[div]||[];
+  if((selectTeamBracketNodes(getState())?.[div]||[]).length)return false;
+  const matches=selectAllMatches(getState())?.[div]||[];
   return matches.some(match=>match.teamPair&&(match.type==='teamPosition'||match.type==='teamPlayoff'||match.type==='kachinuki'));
 }
 /**
@@ -199,19 +201,19 @@ export function isTeamRoundRobinDivision(div='Team Tournament'){
  * @returns {TeamStandingRow[]}
  */
 export function teamStandings(div='Team Tournament'){
-  return KSMEngine.teamStandings(state.allMatches[div]||[],eligibleTeams(div)||[],KSMEngine.teamRoundRobinCountedPlaces(ksmTeamSettings(div).teamAwardMode));
+  return KSMEngine.teamStandings(selectAllMatches(getState())[div]||[],eligibleTeams(div)||[],KSMEngine.teamRoundRobinCountedPlaces(ksmTeamSettings(div).teamAwardMode));
 }
 /**
  * After a team bout: a representative playoff when the pairing is level.
  * @param {Match} m
  */
 export function maybeCreateTeamTiebreak(m){
-  const plan=KSMEngine.maybeCreateTeamTiebreak(m,state.allMatches[m?.division]||[],ksmTeamSettings(m?.division).teamFormat);
+  const plan=KSMEngine.maybeCreateTeamTiebreak(m,selectAllMatches(getState())[m?.division]||[],ksmTeamSettings(m?.division).teamFormat);
   if(plan)appendApprovedDynamicMatches(m.division,plan.anchor,/** @type {Match} */(plan.playoff),plan.dynamicType);
   // F27: once every pairing of a team round robin is decided, teams still level on team wins,
   // bout wins and points for a place with an award (D2: Setup's team award mode) get a one-point
   // daihyosen (KSMEngine.teamRoundRobinTiebreakPlan).
-  const rr=m&&isTeamRoundRobinDivision(m.division)?KSMEngine.teamRoundRobinTiebreakPlan(m,state.allMatches[m.division]||[],eligibleTeams(m.division)||[],ksmTeamSettings(m.division).teamFormat,KSMEngine.teamRoundRobinCountedPlaces(ksmTeamSettings(m.division).teamAwardMode)):null;
+  const rr=m&&isTeamRoundRobinDivision(m.division)?KSMEngine.teamRoundRobinTiebreakPlan(m,selectAllMatches(getState())[m.division]||[],eligibleTeams(m.division)||[],ksmTeamSettings(m.division).teamFormat,KSMEngine.teamRoundRobinCountedPlaces(ksmTeamSettings(m.division).teamAwardMode)):null;
   if(rr)appendApprovedDynamicMatches(m.division,rr.anchor,/** @type {Match[]} */(rr.bouts),rr.dynamicType);
 }
 /**
@@ -219,7 +221,7 @@ export function maybeCreateTeamTiebreak(m){
  * @param {string} [div]
  * @returns {boolean}
  */
-function topSeedsResolved(poolLabel,div=state.currentDivision){return poolPositionsResolved(poolLabel,div);}
+function topSeedsResolved(poolLabel,div=selectCurrentDivision(getState())){return poolPositionsResolved(poolLabel,div);}
 /**
  * @param {TournamentState} targetState
  * @param {string} div
@@ -319,7 +321,7 @@ export function normalizeAllIndividualPoolTiebreakOrder(targetState,source='tieb
  */
 export function appendApprovedDynamicMatches(div,afterMatch,matches,dynamicType){
   if(!APPROVED_DYNAMIC_MATCH_TYPES.has(dynamicType))throw new Error('Unauthorized dynamic Match Object type: '+dynamicType);
-  const arr=state.allMatches[div]||[];
+  const arr=selectAllMatches(getState())[div]||[];
   const list=(Array.isArray(matches)?matches:[matches]).filter(Boolean);
   list.forEach(m=>{m.origin='TIEBREAK';m.dynamicType=dynamicType;});
   if(dynamicType==='INDIVIDUAL_POOL_TIEBREAK'){
@@ -344,7 +346,7 @@ export function appendApprovedDynamicMatches(div,afterMatch,matches,dynamicType)
  */
 export function maybeCreateTiebreaks(m){
   if(!m || m.type!=='individual') return;
-  let div=m.division, arr=state.allMatches[div]||state.matches;
+  let div=m.division, arr=selectAllMatches(getState())[div]||selectMatches(getState());
   let originalDone=(arr.filter(x=>x.pool===m.pool&&x.type==='individual'&&!x.tiebreak&&!x.championship).every(x=>x.done));
   if(!originalDone) return;
   if(pendingTiebreak(m.pool,div)) return;
@@ -364,7 +366,7 @@ export function maybeCreateTiebreaks(m){
  * @param {string} [div]
  */
 export function teamRoundRobinPlacements(div='Team Tournament'){
-  return KSMEngine.teamRoundRobinPlacements(!!divisionComplete(div),state.allMatches[div]||[],eligibleTeams(div)||[],KSMEngine.teamRoundRobinCountedPlaces(ksmTeamSettings(div).teamAwardMode));
+  return KSMEngine.teamRoundRobinPlacements(!!divisionComplete(div),selectAllMatches(getState())[div]||[],eligibleTeams(div)||[],KSMEngine.teamRoundRobinCountedPlaces(ksmTeamSettings(div).teamAwardMode));
 }
 // Found in external PR review (#35): the places a daihyosen decides follow Setup's team award mode
 // (D2), and the mode can change after a team round robin has ended. Changing it to more places
@@ -380,9 +382,9 @@ export function teamRoundRobinPlacements(div='Team Tournament'){
 export function ksmAddDaihyosenForTeamAwards(){
   if(typeof isReadOnlySession==='function'&&isReadOnlySession())return [];
   const added=[];
-  Object.keys(state.allMatches||{}).forEach(div=>{
+  Object.keys(selectAllMatches(getState())||{}).forEach(div=>{
     if(!isTeamRoundRobinDivision(div))return;
-    const rr=KSMEngine.teamRoundRobinMissingDaihyosen(state.allMatches[div]||[],eligibleTeams(div)||[],ksmTeamSettings(div).teamFormat,KSMEngine.teamRoundRobinCountedPlaces(ksmTeamSettings(div).teamAwardMode));
+    const rr=KSMEngine.teamRoundRobinMissingDaihyosen(selectAllMatches(getState())[div]||[],eligibleTeams(div)||[],ksmTeamSettings(div).teamFormat,KSMEngine.teamRoundRobinCountedPlaces(ksmTeamSettings(div).teamAwardMode));
     if(!rr)return;
     appendApprovedDynamicMatches(div,rr.anchor,/** @type {Match[]} */(rr.bouts),rr.dynamicType);
     added.push(div);

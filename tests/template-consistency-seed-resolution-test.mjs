@@ -3,6 +3,7 @@ import { vmStore } from './lib/vm-store.mjs';
 import fs from 'node:fs';
 import { drawHelpers } from './lib/draw-helpers.mjs';
 import vm from 'node:vm';
+import { plainSelectors } from './lib/plain-selectors.mjs';
 const html=appSource;
 const extract=name=>extractFunction(html,name);
 let passed=0;
@@ -11,7 +12,7 @@ function ok(cond,msg){if(!cond)throw new Error(msg);passed++;}
 // Frozen championship mapping remains authoritative after a native 6-player no-show.
 {
   const context={state:{generated:true,brackets:{D:[['A1','B2'],['B1','A2']]},pools:{D:[{players:[1,2]},{players:[3,4,5]}]}},championshipTemplateForTotal:()=>[]};
-  vm.createContext(context);vm.runInContext(engine,context);vm.runInContext(extract('championshipLabels'),context);
+  vm.createContext(plainSelectors(context));vm.runInContext(engine,context);vm.runInContext(extract('championshipLabels'),context);
   const labels=context.championshipLabels('D');
   ok(labels.length===2,'native six-player championship template must remain frozen after no-show');
   ok(labels[0][0]==='A1'&&labels[1][0]==='B1','frozen seed mapping must be preserved');
@@ -28,7 +29,7 @@ function ok(cond,msg){if(!cond)throw new Error(msg);passed++;}
         bout('A','B',['M'],[],{tiebreak:true,tiebreakSeries:1,requiresWinner:true})]}},
     requiredSeedPlaces:()=>({A:2})
   };
-  vm.createContext(context);
+  vm.createContext(plainSelectors(context));
   vm.runInContext(engine,context);
   vm.runInContext(extract('poolSeedResolution'),context);
   vm.runInContext(extract('poolPositionsResolved'),context);

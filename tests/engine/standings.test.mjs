@@ -12,6 +12,7 @@ import {
 } from '../../app/engine/standings.ts';
 import { html, engine, extractFunction } from '../lib/ksm-source.mjs';
 import { gitShow } from '../lib/git-show.mjs';
+import { plainSelectors } from '../lib/plain-selectors.mjs';
 
 const pool = (label, ...names) => ({ label, players: names.map(n => ({ name: n, dojo: `${n}-dojo` })) });
 const bout = (white, red, wp, rp, extra = {}) => ({ pool: 'A', type: 'individual', white, red, wp, rp, done: true, ...extra });
@@ -203,7 +204,7 @@ test('standings, required places and tiebreak matches equal the pre-move legacy 
   if (oldFiles.includes(null)) return t.skip(`${OLD} not in this clone`);
   const oldSrc = oldFiles.join('\n');
   const load = src => {
-    const ctx = vm.createContext({ state: null });
+    const ctx = vm.createContext(plainSelectors({ state: null }));
     vm.runInContext(`${engine}\n${STUBS}\n${MOVED.map(n => extractFunction(src, n)).join('\n')}`, ctx);
     return ctx;
   };

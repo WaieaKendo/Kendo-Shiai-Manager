@@ -1,5 +1,6 @@
 // @ts-check
-import {state} from '../app-state.js';
+import {getState} from '../../store/index.ts';
+import {selectAllMatches,selectBrackets,selectByeWinners,selectChampionshipNodes,selectCurrentDivision,selectDivisionCourts,selectGenerated,selectMatches,selectPools} from '../selectors.js';
 import {ksmAppendMatches,ksmSetDivisionMatches,ksmUpdateMatches} from '../court/match-writes.js';
 import {championshipCourtFor} from './engine-pools.js';
 import {ksmDrawWith,ksmSetDraw} from './structure-store.js';
@@ -20,7 +21,7 @@ export function championshipTemplateForTotal(total){
  * @returns {string[][]}
  */
 export function championshipLabels(div){
-  return KSMEngine.championshipLabels(state.generated,state.brackets?.[div],state.pools[div]||[]);
+  return KSMEngine.championshipLabels(selectGenerated(getState()),selectBrackets(getState())?.[div],selectPools(getState())[div]||[]);
 }
 /**
  * @param {PoolStandingRow} a
@@ -66,17 +67,17 @@ export function champWinnerObj(m){
 function nextChampRoundName(current,count){return KSMEngine.nextChampRoundName(current,count);// moved to app/engine/championship.ts
   }
 function champSourceWinner(div,round,slot){
-  let arr=state.allMatches[div]||[];
+  let arr=selectAllMatches(getState())[div]||[];
   let m=arr.find(x=>x.championship&&x.position===round&&x.bracketSlot===slot);
   if(m&&m.done)return champWinnerObj(m);
-  if(round===firstRoundName((state.brackets[div]||[]).length)){
-    let b=((state.byeWinners&&state.byeWinners[div])||[]).find(x=>x.slot===slot);
+  if(round===firstRoundName((selectBrackets(getState())[div]||[]).length)){
+    let b=((selectByeWinners(getState())&&selectByeWinners(getState())[div])||[]).find(x=>x.slot===slot);
     if(b)return b.obj;
   }
   return null;
 }
 function roundMatchCountForDivision(div,round){
-  return KSMEngine.roundMatchCount((state.brackets[div]||championshipLabels(div)||[]).length,round);
+  return KSMEngine.roundMatchCount((selectBrackets(getState())[div]||championshipLabels(div)||[]).length,round);
 }
 /**
  * @param {Match} m
@@ -89,9 +90,9 @@ export function individualLogicalMatchKey(m){
  * @param {string} div
  */
 export function enforceUniqueIndividualMatches(div){
-  const out=KSMEngine.uniqueIndividualMatches(state.allMatches?.[div]||[]);
+  const out=KSMEngine.uniqueIndividualMatches(selectAllMatches(getState())?.[div]||[]);
   ksmSetDivisionMatches(div,out); // state.matches follows (it is allMatches[currentDivision], #15 PR 7)
-  return state.allMatches[div];
+  return selectAllMatches(getState())[div];
 }
 /**
  * @param {number} n number of first-round matches
@@ -132,9 +133,9 @@ export function roundSequenceFromFirst(first){return KSMEngine.roundSequenceFrom
  * @param {number} slot
  * @returns {Match|undefined}
  */
-export function champMatchBySlot(div,round,slot){return (state.allMatches[div]||[]).find(x=>x.championship&&x.position===round&&x.bracketSlot===slot)}
+export function champMatchBySlot(div,round,slot){return (selectAllMatches(getState())[div]||[]).find(x=>x.championship&&x.position===round&&x.bracketSlot===slot)}
 export function sourceLabelForRound(div,prevRound,slot){
-  return KSMEngine.sourceLabelForRound(state.allMatches[div]||[],prevRound,slot);
+  return KSMEngine.sourceLabelForRound(selectAllMatches(getState())[div]||[],prevRound,slot);
 }
 /**
  * How many places of each pool feed the championship (pool label -> places).
@@ -142,15 +143,15 @@ export function sourceLabelForRound(div,prevRound,slot){
  * @returns {Record<string, number>}
  */
 export function requiredSeedPlaces(div){
-  const poolOnly=isPoolOnlyDivision(div);return KSMEngine.requiredSeedPlaces(poolOnly?state.pools[div][0]:null,poolOnly?[]:championshipLabels(div));
+  const poolOnly=isPoolOnlyDivision(div);return KSMEngine.requiredSeedPlaces(poolOnly?selectPools(getState())[div][0]:null,poolOnly?[]:championshipLabels(div));
 }
 /**
  * @param {string} poolLabel
  * @param {string} [div]
  * @returns {SeedResolution}
  */
-export function poolSeedResolution(poolLabel,div=state.currentDivision){
-  return /** @type {SeedResolution} */(KSMEngine.poolSeedResolution((state.pools[div]||[]).find(p=>p.label===poolLabel),poolLabel,state.allMatches[div]||[],requiredSeedPlaces(div)[poolLabel]||2));
+export function poolSeedResolution(poolLabel,div=selectCurrentDivision(getState())){
+  return /** @type {SeedResolution} */(KSMEngine.poolSeedResolution((selectPools(getState())[div]||[]).find(p=>p.label===poolLabel),poolLabel,selectAllMatches(getState())[div]||[],requiredSeedPlaces(div)[poolLabel]||2));
 }
 /**
  * The standings row for a seed label ('A1'), or null while undecided.
@@ -168,7 +169,7 @@ export function seedNameForLabel(div,label,onlyFinalized=true){
  * @returns {{name: string, dojo: string}|null}
  */
 function championshipNodeSource(div,side){
-  return KSMEngine.championshipNodeSource(side,label=>seedNameForLabel(div,label,true),state.allMatches?.[div]||[]);
+  return KSMEngine.championshipNodeSource(side,label=>seedNameForLabel(div,label,true),selectAllMatches(getState())?.[div]||[]);
 }
 /**
  * Fills championship matches from pool seeds and earlier winners.
@@ -176,23 +177,23 @@ function championshipNodeSource(div,side){
  * @returns {Match[]}
  */
 export function syncChampionshipTemplate(div){
-  const arr=state.allMatches?.[div]||[];
-  if(!(state.championshipNodes?.[div]||[]).length)return arr;
+  const arr=selectAllMatches(getState())?.[div]||[];
+  if(!(selectChampionshipNodes(getState())?.[div]||[]).length)return arr;
   // The nodes' courts follow the division's court setting now, not the one at the draw: a division
   // split between the courts after the draw would otherwise have every bout go back to its old court.
   // Written to the store only when a court really changed.
-  const drawn=state.championshipNodes[div];
-  const nodes=/** @type {any[]} */(KSMEngine.championshipNodesForCourtMode(drawn,state.divisionCourts?.[div]||'A'));
+  const drawn=selectChampionshipNodes(getState())[div];
+  const nodes=/** @type {any[]} */(KSMEngine.championshipNodesForCourtMode(drawn,selectDivisionCourts(getState())?.[div]||'A'));
   if(nodes.some((n,i)=>n.court!==drawn[i].court))ksmSetDraw('drawEntriesUpdated',ksmDrawWith(div,{championshipNodes:nodes}));
   const plan=KSMEngine.syncChampionshipTemplate(div,nodes,arr,label=>seedNameForLabel(div,label,true));
   // Written through match-writes.js (#15 PR 13c-1): a division without a list gets one, the missing bouts are appended
   // (their indexes are the plan's), then the plan's values in one write; the list is read again for the caller.
-  if(!Array.isArray(state.allMatches?.[div]))ksmSetDivisionMatches(div,[]);
+  if(!Array.isArray(selectAllMatches(getState())?.[div]))ksmSetDivisionMatches(div,[]);
   // Self-heal: a generated championship node must always have a Match Object.
   plan.missing.forEach(m=>console.warn('KSM repaired missing championship Match Object',div,m.champNodeId));
   ksmAppendMatches(div,/** @type {Match[]} */(plan.missing));
   ksmUpdateMatches(div,plan.updates);
-  return state.allMatches[div];
+  return selectAllMatches(getState())[div];
 }
 function championshipSeeds(div){
   return championshipLabels(div).map(([r,w])=>[r==='BYE'?{name:'BYE',dojo:''}:seedNameForLabel(div,r,true),w==='BYE'?{name:'BYE',dojo:''}:seedNameForLabel(div,w,true),r,w]);
@@ -215,5 +216,5 @@ export function maybeCreateChampionship(m){if(!m||m.type!=='individual'||m.champ
  * @param {string} [div]
  * @returns {boolean}
  */
-function poolPositionsResolvedImpl(poolLabel,div=state.currentDivision){return poolSeedResolution(poolLabel,div).complete;}
+function poolPositionsResolvedImpl(poolLabel,div=selectCurrentDivision(getState())){return poolSeedResolution(poolLabel,div).complete;}
 export const poolPositionsResolved=replaceable('poolPositionsResolved',poolPositionsResolvedImpl);

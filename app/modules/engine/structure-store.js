@@ -9,8 +9,8 @@
 // map since #15 PR 13a) in its draw action. What is not in the store yet (`allMatches`: PR 13c) the caller writes as before,
 // in the same synchronous step, before the dispatch.
 // Like the old in-place writes, none of these schedules a save or renders: the caller does what it did before.
-import {state} from '../app-state.js';
-import {dispatch,tournamentSlice} from '../../store/index.ts';
+import {selectManagementRevision,selectTournamentField} from '../selectors.js';
+import {dispatch,getState,tournamentSlice} from '../../store/index.ts';
 import {settingsMeta} from '../sync/cloud-session-and-autosave.js';
 /** @typedef {'pools'|'teamPools'|'brackets'|'singleElimComps'|'byeWinners'|'championshipNodes'|'singleElimNodes'|'teamBracketNodes'|'teamElimTeams'|'currentByDivision'} DrawKey */
 /** @typedef {import('../../store/index.ts').DrawLists} DrawLists */
@@ -34,7 +34,7 @@ export function ksmSetDraw(type,lists){
  */
 export function ksmDrawWith(div,set,remove=[]){
   /** @type {Record<string,Record<string,unknown>>} */ const out={};
-  const now=(/** @type {DrawKey} */ key)=>/** @type {Record<string,unknown>|undefined} */ (out[key]||state[key]);
+  const now=(/** @type {DrawKey} */ key)=>/** @type {Record<string,unknown>|undefined} */ (out[key]||selectTournamentField(getState(),key));
   for(const key of remove){const map=now(key);if(map&&Object.hasOwn(map,div)){const next={...map};delete next[div];out[key]=next}}
   for(const [key,value] of Object.entries(set))out[key]={...(now(/** @type {DrawKey} */ (key))||{}),[div]:value};
   return /** @type {DrawLists} */ (out);
@@ -52,7 +52,7 @@ export function ksmEditedPools(div,edit){
   const once=(/** @type {unknown} */ p)=>{if(!pools.has(p))pools.set(p,p&&typeof p==='object'?edit(p):p);return pools.get(p)};
   /** @type {DrawLists} */ let out={};
   for(const key of /** @type {const} */ (['pools','teamPools'])){
-    const list=state[key]?.[div];if(!Array.isArray(list))continue;
+    const list=selectTournamentField(getState(),key)?.[div];if(!Array.isArray(list))continue;
     if(!lists.has(list)){const mapped=list.map(once);lists.set(list,mapped.some((p,i)=>p!==list[i])?mapped:list)}
     const next=lists.get(list);
     if(next!==list)out={...out,...ksmDrawWith(div,{[key]:next})};
@@ -60,9 +60,9 @@ export function ksmEditedPools(div,edit){
   return out;
 }
 /** Whether `pool` is one of the draw's pools of `div` now (store data), in `pools` or `teamPools`. @param {string} div @param {unknown} pool */
-export function ksmDrawHolds(div,pool){return (/** @type {const} */ (['pools','teamPools'])).some(k=>Array.isArray(state[k]?.[div])&&/** @type {unknown[]} */ (state[k][div]).includes(pool))}
+export function ksmDrawHolds(div,pool){return (/** @type {const} */ (['pools','teamPools'])).some(k=>Array.isArray(selectTournamentField(getState(),k)?.[div])&&/** @type {unknown[]} */ (selectTournamentField(getState(),k)[div]).includes(pool))}
 /** The managementRevision a structural edit saves: the current one plus one (F10: the rebase compares it). */
-export function ksmNextManagementRevision(){return (state.managementRevision||0)+1}
+export function ksmNextManagementRevision(){return (selectManagementRevision(getState())||0)+1}
 /**
  * `nodes` with each winner of a bracket sync's plan ({index, winner}) set: a new node for each (the same key order an
  * assignment left), the other nodes and the winner values themselves kept; the list itself when there is none.
@@ -88,5 +88,5 @@ export function ksmNodesWithWinners(nodes,winners){
  */
 export function ksmAdvanceBracket(div,key,before,after){
   if(after!==before)ksmSetDraw('advancementApplied',ksmDrawWith(div,{[key]:after}));
-  else if(!state[key])ksmSetDraw('advancementApplied',{[key]:{}});
+  else if(!selectTournamentField(getState(),key))ksmSetDraw('advancementApplied',{[key]:{}});
 }
