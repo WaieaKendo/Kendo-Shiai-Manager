@@ -127,6 +127,7 @@ export function cloneJson(value){return KSMEngine.cloneJson(value);// moved to a
   }
 export function isValidMatchObject(match){
   return KSMEngine.isValidMatchObject(match);
+}
 // The cloud revision this device was on when each still-unconfirmed change was made ([version, revision]).
 // A court action is stamped with that revision, but the save that carries it can go out on a newer base:
 // pressed while the previous save was in flight, it is queued and sent once that save's revision is known.
@@ -135,9 +136,8 @@ export function isValidMatchObject(match){
 // The cutoff is the oldest unconfirmed change's revision instead; the server-history check still keeps
 // anything already saved from being applied twice.
 export const KSM_UNCONFIRMED_MUTATIONS=[];
-function ksmPendingMutationRevisions(){if(!KSM_UNCONFIRMED_MUTATIONS.length)return KSM_UNCONFIRMED_MUTATIONS;const keep=KSM_UNCONFIRMED_MUTATIONS.filter(([v])=>v>ksmConfirmedMutationVersion&&v<=ksmLocalMutationVersion);KSM_UNCONFIRMED_MUTATIONS.splice(0,KSM_UNCONFIRMED_MUTATIONS.length,...keep);return KSM_UNCONFIRMED_MUTATIONS}
+export function ksmPendingMutationRevisions(){if(!KSM_UNCONFIRMED_MUTATIONS.length)return KSM_UNCONFIRMED_MUTATIONS;const keep=KSM_UNCONFIRMED_MUTATIONS.filter(([v])=>v>ksmConfirmedMutationVersion&&v<=ksmLocalMutationVersion);KSM_UNCONFIRMED_MUTATIONS.splice(0,KSM_UNCONFIRMED_MUTATIONS.length,...keep);return KSM_UNCONFIRMED_MUTATIONS}
 export function ksmRebaseCutoff(originalBaseRevision){const base=Number(originalBaseRevision||0);return ksmPendingMutationRevisions().reduce((low,[,rev])=>Math.min(low,rev),base)}
-}
 function legacyTiebreakSyncIdentity(match){
   return KSMEngine.legacyTiebreakSyncIdentity(match);
 }

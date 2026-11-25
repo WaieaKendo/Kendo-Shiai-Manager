@@ -371,6 +371,7 @@ window.KSMTest = {
     openTournamentFromHome: (...a) => openTournamentFromHome(...a),
     get pendingTiebreak() { return pendingTiebreak; }, set pendingTiebreak(v) { pendingTiebreak = v; },
     persistCloudSession: (...a) => persistCloudSession(...a),
+    get compactCourtActionEntry() { return compactCourtActionEntry; }, set compactCourtActionEntry(v) { compactCourtActionEntry = v; },
     pinCourtLocally: (...a) => pinCourtLocally(...a),
     point: (...a) => point(...a),
     get poolFinished() { return poolFinished; }, set poolFinished(v) { poolFinished = v; },
@@ -464,8 +465,8 @@ window.KSMTest = {
   // Mirrors what Setup + Registration + Generate do; used by the golden engine test.
   // Court actions recorded as an older version did (index patches kept): compactCourtActionEntry() off, or back on.
   historyCompaction(on) {
-    if (!on && !KSMTest._compact) { KSMTest._compact = compactCourtActionEntry; compactCourtActionEntry = entry => entry; }
-    if (on && KSMTest._compact) { compactCourtActionEntry = KSMTest._compact; KSMTest._compact = null; }
+    if (!on && !KSMTest._compact) { KSMTest._compact = KSMTest.app.compactCourtActionEntry; KSMTest.app.compactCourtActionEntry = entry => entry; }
+    if (on && KSMTest._compact) { KSMTest.app.compactCourtActionEntry = KSMTest._compact; KSMTest._compact = null; }
   },
   teamDivisions() { return JSON.parse(JSON.stringify(ksmTeamDivisions())); },
   addTeamDivision(name) { return ksmAddTeamDivision(name); },

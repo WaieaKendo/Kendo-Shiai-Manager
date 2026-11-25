@@ -5,7 +5,7 @@ import {ksmSetDivisionCourt} from '../setup/divisions-store.js';
 import {renderDivisions} from '../court/court-match-order.js';
 import {ksmAddDaihyosenForTeamAwards} from '../engine/engine-standings-and-tiebreaks.js';
 import {scheduleAutoSave} from '../sync/cloud-session-and-autosave.js';
-import {renderTeams} from './registration.js';
+import {divisionHasCompletedMatches,renderTeams} from './registration.js';
 import {renderTournamentStatus} from './validation.js';
 import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {writeCloudDiagnosticsState} from '../sync/cloud-diagnostics.js';
@@ -140,10 +140,11 @@ export function ksmAssignTeamDivision(team,id){
   return true;
 }
 /** Tell the director once per division that a team added after the draw needs a redraw to play. */
+const ksmRedrawTold=new Set();
 function ksmTeamNeedsRedraw(d){
   if(typeof isReadOnlySession==='function'&&isReadOnlySession())return;
-  ksmTeamNeedsRedraw.told=ksmTeamNeedsRedraw.told||new Set();if(ksmTeamNeedsRedraw.told.has(d.id))return;
-  ksmTeamNeedsRedraw.told.add(d.id);
+  if(ksmRedrawTold.has(d.id))return;
+  ksmRedrawTold.add(d.id);
   alert(`${d.name} is already drawn. To add this team to its bracket, use Regenerate Single Division on ${d.name} (before any of its matches are played).`);
 }
 function ksmTeamDivisionChanged(){

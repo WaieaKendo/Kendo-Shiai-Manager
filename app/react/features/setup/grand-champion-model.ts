@@ -3,7 +3,7 @@
 // renderDivisionSetup()) as a GrandChampionSetupInput (ksm:setup-grand-champions). The legacy code
 // decides everything (the rows, what is locked, who plays); this module turns it into what a row
 // shows. Rules: app/engine/grand-champion.ts.
-import { teamBracketNodesForCount } from '../../engine/teams.ts';
+import { teamBracketNodesForCount } from '../../../engine/teams.ts';
 
 export interface GrandChampionEntrantView {
   name: string;

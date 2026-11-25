@@ -24,7 +24,7 @@ import { findMatchAgain, legacy, matchIndexIn, setupSetting } from '../../shared
 import { ACTIONS_EVENT, type CourtActionsInput } from './actions-model.ts';
 import { HEADER_EVENT, type CourtHeaderInput } from './header-model.ts';
 import {
-  QUEUE_EVENT, type CourtQueueInput, type QueueGroupInput, type QueueRow, type QueueRowInput,
+  QUEUE_EVENT, type CourtQueueInput, type CourtRunningOrderInput, type QueueGroupInput, type QueueRow, type QueueRowInput,
 } from './queue-model.ts';
 import { COMPLETE_EVENT, type CourtCompleteInput } from '../../shared/ui/complete-model.ts';
 import {

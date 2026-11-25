@@ -1,3 +1,7 @@
+## v4.1.0-dev — In development
+
+The next version, built on `next/4.1` (the JavaScript-to-TypeScript migration and the central store). Nothing here is released yet: the release notes for this version are written when its release candidate starts (`npm run release -- 4.1.0-rc.1`).
+
 ## v4.0.0 — Rebuilt for tournament day
 
 
