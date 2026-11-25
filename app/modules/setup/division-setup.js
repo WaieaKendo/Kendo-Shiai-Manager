@@ -1,5 +1,5 @@
 // @ts-check
-import {DIVISION_PRESETS,state} from '../app-state.js';
+import {DIVISION_PRESETS,ksmShowDivision,ksmShowMatch,state} from '../app-state.js';
 import {findNextForCourt,individualMatchReady,isTeamMatch,renderDivisions} from '../court/court-match-order.js';
 import {ksmDivisionReadyOnCourt} from '../react-bridges/court.js';
 import {ksmResolveCourts} from '../court/court-pointers-store.js';
@@ -56,7 +56,14 @@ export function ksmReassignDivisionCourt(d,moved=true){
   // A court on this division goes to its first ready bout (one court/pointersResolved, #15 PR 13a).
   ksmResolveCourts(['A','B'].filter(c=>state.courtState?.[c]?.division===d),c=>findNextForCourt(c,null,0));
   // A court with nothing of its own to play picks the division up, when the court setting really changed.
-  if(moved)ksmResolveCourts(['A','B'].filter(c=>state.courtState?.[c]?.division!==d&&ksmCourtIdle(c,state.courtState?.[c])&&ksmDivisionReadyOnCourt(d,c)),c=>findNextForCourt(c,d,0));
+  if(moved){
+    const idle=['A','B'].filter(c=>state.courtState?.[c]?.division!==d&&ksmCourtIdle(c,state.courtState?.[c])&&ksmDivisionReadyOnCourt(d,c));
+    ksmResolveCourts(idle,c=>findNextForCourt(c,d,0));
+    // This device's own court view follows its court (a view left behind would push the old division back onto the court at
+    // the next Staff Login or role change: syncOwnCourtPointer()); another court's view catches up when that device loads.
+    const own=idle.find(c=>c===state.currentCourt);
+    if(own){ksmShowDivision(state.courtState[own].division);ksmShowMatch(state.courtState[own].index||0)}
+  }
 }
 export function setDivisionFormat(d,v){ksmSetDivisionFormat(d,v);renderReg()}
 export function renderDivisionSetup(){

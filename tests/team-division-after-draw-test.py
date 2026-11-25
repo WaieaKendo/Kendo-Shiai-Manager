@@ -83,11 +83,11 @@ def main():
         a.page.keyboard.press('Escape')
         assert sorted(set(teams_in(new))) == ['Late X', 'Late Y', 'Late Z', 'Walk-in'], teams_in(new)
         assert a.structure()[first] == after[first], 'the first team division changed'
-        a.page.evaluate(f"KSMTest.app.state.allMatches['{new}'][0].done = true")
+        a.page.evaluate(f"KSMTest.app.updateMatch('{new}', 0, {{done: true}})")
         assert a.page.evaluate('rows => KSMTest.addTeams(rows)', [{'team': 'Too Late', **slots}]) == [first]
         a.expect_dialog('Late Teams has started')
         assert a.page.evaluate(f"KSMTest.assignTeamDivision({late_index + 1}, '{new}')") is False
-        a.page.evaluate(f"KSMTest.app.state.allMatches['{new}'][0].done = false")
+        a.page.evaluate(f"KSMTest.app.updateMatch('{new}', 0, {{done: false}})")
         after = a.structure()
         # The same for an individual division added after generation.
         a.page.evaluate("KSMTest.addIndividualDivision('Late Open', 'Round Robin', 'A', %s)" % people('L', 3))

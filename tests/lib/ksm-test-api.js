@@ -465,7 +465,7 @@ window.KSMTest = {
   // Mirrors what Setup + Registration + Generate do; used by the golden engine test.
   // Court actions recorded as an older version did (index patches kept): compactCourtActionEntry() off, or back on.
   historyCompaction(on) {
-    if (!on && !KSMTest._compact) { KSMTest._compact = KSMTest.app.compactCourtActionEntry; KSMTest.app.compactCourtActionEntry = entry => entry; }
+    if (!on && !KSMTest._compact) { KSMTest._compact = KSMTest.app.compactCourtActionEntry; KSMTest.app.compactCourtActionEntry = entry => { const { matchOps, ...older } = entry; return older; }; } // off: an older version's entry (index patches, no match ops)
     if (on && KSMTest._compact) { KSMTest.app.compactCourtActionEntry = KSMTest._compact; KSMTest._compact = null; }
   },
   teamDivisions() { return JSON.parse(JSON.stringify(ksmTeamDivisions())); },

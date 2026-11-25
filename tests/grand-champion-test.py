@@ -402,7 +402,6 @@ def merge_cases(browser, base):
             b.page.evaluate(play_pool, tie)
         finally:
             b.page.evaluate("KSMTest.historyCompaction(true)")
-        b.page.evaluate("()=>{const h=KSMTest.app.state.courtActionHistory.B;delete h[h.length-1].matchOps}")
     st = race(last_bout_on_b, lambda: a.page.evaluate("id=>KSMTest.updateGrandChampion(id,{awardMode:'top2'})", tie))
     bouts = st['allMatches'][tie]
     assert sum(1 for m in bouts if m.get('tiebreak')) >= 1 and sum(1 for m in bouts if m['done'] and not m.get('tiebreak')) == 3, f'the tiebreak or the last bout was dropped: {bouts}'
@@ -418,7 +417,7 @@ def bracket_cases(browser):
     app = KsmApp.local(page, problems=problems)
     app.expect_dialog('Create Staff password')
     app.configure(DIVISIONS)
-    page.evaluate('KSMTest.app.state.generated=false;KSMTest.app.renderAll()')
+    page.evaluate('KSMTest.app.setDraw({generated:false});KSMTest.app.renderAll()')
     app.nav('setup')
     page.select_option(sel('grand-champion-enabled'), 'Enabled')
     page.wait_for_selector(sel('grand-champion-row'))
