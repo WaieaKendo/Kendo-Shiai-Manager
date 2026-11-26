@@ -1169,7 +1169,7 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
     `ksmTeamInDrawOf(state, …)`); results/print.js has its own local `state` (a payload copy) and never imported the app's.
 
     **Done in item 14c-4**: setup/, sync/, session/ and links/'s `state.x` reads are `selectX(getState())` (new selectors:
-    `publicCourt`, `hiddenPresets`, `divisionRenames`; a dynamic `state[k]` is `selectTournamentField`). main.js and navigation.js
+    `publicCourt`, `hiddenPresets`, `divisionRenames`). main.js and navigation.js
     had no code reads (main.js exports `state` for the test API). **Left** because they use `state` as an object:
     `cloud-session-and-autosave.js` (`JSON.parse(JSON.stringify(state))`, the snapshot), `cloud-realtime-save-and-load.js`
     (`repairCompletedMatchResults(state, …)`) and `tournament-switcher.js` (`JSON.stringify(state)`): they go with item 6 (the
