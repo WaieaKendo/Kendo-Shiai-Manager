@@ -1162,6 +1162,12 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
     (`targetState===state` tells the live state from a payload copy). Vm tests that run engine code over a plain `state`
     get the selectors from `plainSelectors()`; four source-text checks follow the new wording.
 
+    **Done in item 14c-3**: registration/ and results/'s `state.x` reads are `selectX(getState())` (new selectors in
+    `app/modules/selectors.js`: `grandChampions`, `awards`, `teamAwardMode`; the dynamic `state[key]` / `state[LIST[kind]]` reads in
+    grand-champion.js and people-store.js are `selectTournamentField`). `state.history=[]` is `ksmClearHistory()`.
+    **Left** because they use `state` as an object: team-divisions.js (`migrateTeamDivisions(state, …)` and
+    `ksmTeamInDrawOf(state, …)`); results/print.js has its own local `state` (a payload copy) and never imported the app's.
+
     **The reads (item 14c), module by module.** `state.x` reads in `app/modules` and `app/main.js` (next/4.1, counted
     as `state.` / `state?.` / `state[` followed by a name; lines that have one in brackets): court 190 (135 lines),
     engine 156 (117), registration 111 (86), react-bridges 82 (75), results 74 (52), setup 54 (44), sync 48 (43),
@@ -1176,6 +1182,7 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
        ~120 lines). The engine helpers already take values; most reads become one `getState().tournament` per function.
        **Done in item 14c-2** (above), except what keeps `state` as an object.
     3. **registration/ + results/** (~140 lines; grand-champion.js is the largest).
+       **Done in item 14c-3** (above), except what keeps `state` as an object.
     4. **setup/ + sync/ + session/ + links/ + navigation + main.js** (~100 lines). `tournamentPayload()` (sync) reads
        `JSON.stringify(state)`: it keeps reading `state` until 6.
     5. **react-bridges/ + the publishers** (~175 lines): the islands' inputs become selectors and `useStoreSelector()`,

@@ -1,5 +1,7 @@
 // @ts-check
-import {DIVISION_PRESETS,ksmShowDivision,state} from '../app-state.js';
+import {getState} from '../../store/index.ts';
+import {selectAllMatches,selectCompetitors,selectDivisions,selectExhibitions,selectGenerated,selectTeams} from '../selectors.js';
+import {DIVISION_PRESETS,ksmShowDivision} from '../app-state.js';
 import {renderAll} from '../court/court-context-and-pool-editing.js';
 import {renderDivisions} from '../court/court-match-order.js';
 import {applyIndividualNoShow,applyWholeTeamNoShow} from '../engine/engine-generation.js';
@@ -13,36 +15,36 @@ import {ksmOfferDivision,ksmReplaceDivisions} from '../setup/divisions-store.js'
 import {ksmAddPeople,ksmCyclePersonStatus,ksmLoadPeople,ksmUpdatePerson} from './people-store.js';
 import * as KSMEngine from '../../engine/index.ts';
 // #15 PR 10: the people are store data (app/modules/registration/people-store.js): each write below is one action.
-export function addRow(n=1){ksmAddPeople('competitor',Array.from({length:Math.max(0,n)},()=>({name:'',dojo:'',division:state.divisions[0]||'',seed:'',status:'Registered'})));if(window.regFilter)regFilter.value='';renderReg()}
+export function addRow(n=1){ksmAddPeople('competitor',Array.from({length:Math.max(0,n)},()=>({name:'',dojo:'',division:selectDivisions(getState())[0]||'',seed:'',status:'Registered'})));if(window.regFilter)regFilter.value='';renderReg()}
 // A new team's row is built as before (its team division may run the load-time migration first), then added.
 const newTeamRow=(/** @type {Record<string,unknown>} */ fields)=>({team:'',division:'Team Tournament',id:ksmNewTeamIdentity(),teamDivisionId:ksmDefaultTeamDivisionId(),type:ksmTeamSettings().teamFormat,...fields});
 export function addTeamRow(n=1){ksmAddPeople('team',Array.from({length:Math.max(0,n)},()=>newTeamRow({senpo:'',jiho:'',chuken:'',fukusho:'',taisho:'',status:'Registered'})));if(window.teamFilter)teamFilter.value='';renderTeams()}
-export function addAutoTeam(){let n=(state.teams||[]).length+1;let team='Auto Team '+n;ksmAddPeople('team',[newTeamRow({team,senpo:team,jiho:team,chuken:team,fukusho:team,taisho:team,status:'Checked'})]);renderTeams()}
+export function addAutoTeam(){let n=(selectTeams(getState())||[]).length+1;let team='Auto Team '+n;ksmAddPeople('team',[newTeamRow({team,senpo:team,jiho:team,chuken:team,fukusho:team,taisho:team,status:'Checked'})]);renderTeams()}
 export function statusCycle(s){return KSMEngine.statusCycle(s);// moved to app/engine/registration.ts
   }
-export function divisionHasCompletedMatches(div){return (state.allMatches?.[div]||[]).some(m=>m&&m.done)}
+export function divisionHasCompletedMatches(div){return (selectAllMatches(getState())?.[div]||[]).some(m=>m&&m.done)}
 export function closeManagementModal(id){if(!ksmCloseShellDialog(id))document.getElementById(id)?.classList.add('hidden');}
-export function structuralNoShowAllowed(div){return !!state.generated && !!(state.allMatches?.[div]) && !divisionHasCompletedMatches(div)}
+export function structuralNoShowAllowed(div){return !!selectGenerated(getState()) && !!(selectAllMatches(getState())?.[div]) && !divisionHasCompletedMatches(div)}
 export function cycleCompetitorStatus(i){
-  let c=state.competitors[i];if(!c)return;let next=statusCycle(c.status);
-  if(next==='NoShow'&&state.generated&&structuralNoShowAllowed(c.division)&&!ksmConfirmNoShow(c.name||'this player',c.division))return;
+  let c=selectCompetitors(getState())[i];if(!c)return;let next=statusCycle(c.status);
+  if(next==='NoShow'&&selectGenerated(getState())&&structuralNoShowAllowed(c.division)&&!ksmConfirmNoShow(c.name||'this player',c.division))return;
   ksmCyclePersonStatus('competitor',i);
-  if(next==='NoShow'&&state.generated){
+  if(next==='NoShow'&&selectGenerated(getState())){
     if(structuralNoShowAllowed(c.division))applyIndividualNoShow(c.division,c.name);
-    else if(state.allMatches?.[c.division])alert('This division has already started. The bracket or pools were not changed; handle the absence with Fusen-sho.');
+    else if(selectAllMatches(getState())?.[c.division])alert('This division has already started. The bracket or pools were not changed; handle the absence with Fusen-sho.');
   }
   renderAll();scheduleAutoSave();
 }
 export function cycleTeamStatus(i){
-  let t=state.teams[i];if(!t)return;let next=statusCycle(t.status);if(next==='NoShow'&&state.generated&&structuralNoShowAllowed(t.teamDivisionId||'Team Tournament')&&!ksmConfirmNoShow(t.team||'this team',t.teamDivisionId||'Team Tournament'))return;ksmCyclePersonStatus('team',i);
-  if(next==='NoShow'&&state.generated){
+  let t=selectTeams(getState())[i];if(!t)return;let next=statusCycle(t.status);if(next==='NoShow'&&selectGenerated(getState())&&structuralNoShowAllowed(t.teamDivisionId||'Team Tournament')&&!ksmConfirmNoShow(t.team||'this team',t.teamDivisionId||'Team Tournament'))return;ksmCyclePersonStatus('team',i);
+  if(next==='NoShow'&&selectGenerated(getState())){
     let div=t.teamDivisionId||'Team Tournament';
     if(structuralNoShowAllowed(div))applyWholeTeamNoShow(div,t.team);
-    else if(state.allMatches?.[div])alert('This team division has already started. The bracket was not changed; handle remaining absences through normal match procedures.');
+    else if(selectAllMatches(getState())?.[div])alert('This team division has already started. The bracket was not changed; handle remaining absences through normal match procedures.');
   }
   renderAll();scheduleAutoSave();
 }
-export function divisionRegenerationStatus(div){if(!state.allMatches?.[div])return state.generated&&((ksmTeamDivision(div)?eligibleTeams(div):eligibleIndividuals(div))||[]).length?'new':'not-generated';return divisionHasCompletedMatches(div)?'started':'ready'}
+export function divisionRegenerationStatus(div){if(!selectAllMatches(getState())?.[div])return selectGenerated(getState())&&((ksmTeamDivision(div)?eligibleTeams(div):eligibleIndividuals(div))||[]).length?'new':'not-generated';return divisionHasCompletedMatches(div)?'started':'ready'}
 export function openRegenerateDivisionDialog(){
   ksmOpenRegenerateDialog();
 }
@@ -54,13 +56,13 @@ export function renderExhibitions(){ksmRenderExhibitions();renderTournamentStatu
 // A row's division not offered any more (its select keeps it as an extra option) is offered again when chosen; the team
 // event's and the exhibitions' names never are (KSMEngine.divisionAddError(), #15 PR 9). Only the running order: the
 // format and court stay as they were (#15 PR 9 keeps this).
-export function updateComp(i,k,v){ksmUpdatePerson('competitor',i,{[k]:v});if(k==='division'&&v&&!state.divisions.includes(v)&&!KSMEngine.divisionAddError(v)){ksmOfferDivision(v);renderDivisions()}renderTournamentStatus()}
-export function loadSamples(){if(state.competitors.length&&!confirm('Replace all individual competitors with the sample players?'))return;ksmLoadPeople({competitors:[{name:'Riku Tanaka',dojo:'Aiea Taiheiji',division:'Women’s Open',seed:'1',status:'Checked'},{name:'Hana Sato',dojo:'Waipahu Seibukan',division:'Women’s Open',seed:'2',status:'Checked'},{name:'Mika Ito',dojo:'Honolulu Myohoji',division:'Women’s Open',seed:'',status:'Checked'},{name:'Emi Nakamura',dojo:'Mililani',division:'Women’s Open',seed:'',status:'Checked'},{name:'Yui Watanabe',dojo:'Maui',division:'Women’s Open',seed:'',status:'Checked'},{name:'Aiko Kimura',dojo:'Kailua',division:'Women’s Open',seed:'',status:'Checked'},{name:'Mai Kobayashi',dojo:'Honolulu Myohoji',division:'Women’s Open',seed:'',status:'Checked'},{name:'Sora Yamamoto',dojo:'Aiea Taiheiji',division:'Women’s Open',seed:'',status:'Checked'},{name:'Ken Suzuki',dojo:'Aiea Taiheiji',division:'Yudansha 1–3 Dan',seed:'1',status:'Checked'},{name:'Daichi Mori',dojo:'Waipahu Seibukan',division:'Yudansha 1–3 Dan',seed:'2',status:'Checked'},{name:'Ren Watanabe',dojo:'Maui',division:'Yudansha 1–3 Dan',seed:'',status:'Checked'}]});renderReg()}
-export function loadTeamSamples(){if(state.teams.length&&!confirm('Replace all teams with the sample teams?'))return;const teams=[{team:'Aiea Team A',senpo:'Tanaka',jiho:'Ito',chuken:'Suzuki',fukusho:'Nakamura',taisho:'Kato',status:'Checked'},{team:'Waipahu Team A',senpo:'Sato',jiho:'Kimura',chuken:'Yamamoto',fukusho:'Lee',taisho:'Chen',status:'Checked'},{team:'Maui Team A',senpo:'Mori',jiho:'Miura',chuken:'Maeda',fukusho:'Goto',taisho:'Higa',status:'Checked'},{team:'University of Hawaii',senpo:'Arai',jiho:'Ono',chuken:'Kondo',fukusho:'Shima',taisho:'Ueda',status:'Checked'}];
+export function updateComp(i,k,v){ksmUpdatePerson('competitor',i,{[k]:v});if(k==='division'&&v&&!selectDivisions(getState()).includes(v)&&!KSMEngine.divisionAddError(v)){ksmOfferDivision(v);renderDivisions()}renderTournamentStatus()}
+export function loadSamples(){if(selectCompetitors(getState()).length&&!confirm('Replace all individual competitors with the sample players?'))return;ksmLoadPeople({competitors:[{name:'Riku Tanaka',dojo:'Aiea Taiheiji',division:'Women’s Open',seed:'1',status:'Checked'},{name:'Hana Sato',dojo:'Waipahu Seibukan',division:'Women’s Open',seed:'2',status:'Checked'},{name:'Mika Ito',dojo:'Honolulu Myohoji',division:'Women’s Open',seed:'',status:'Checked'},{name:'Emi Nakamura',dojo:'Mililani',division:'Women’s Open',seed:'',status:'Checked'},{name:'Yui Watanabe',dojo:'Maui',division:'Women’s Open',seed:'',status:'Checked'},{name:'Aiko Kimura',dojo:'Kailua',division:'Women’s Open',seed:'',status:'Checked'},{name:'Mai Kobayashi',dojo:'Honolulu Myohoji',division:'Women’s Open',seed:'',status:'Checked'},{name:'Sora Yamamoto',dojo:'Aiea Taiheiji',division:'Women’s Open',seed:'',status:'Checked'},{name:'Ken Suzuki',dojo:'Aiea Taiheiji',division:'Yudansha 1–3 Dan',seed:'1',status:'Checked'},{name:'Daichi Mori',dojo:'Waipahu Seibukan',division:'Yudansha 1–3 Dan',seed:'2',status:'Checked'},{name:'Ren Watanabe',dojo:'Maui',division:'Yudansha 1–3 Dan',seed:'',status:'Checked'}]});renderReg()}
+export function loadTeamSamples(){if(selectTeams(getState()).length&&!confirm('Replace all teams with the sample teams?'))return;const teams=[{team:'Aiea Team A',senpo:'Tanaka',jiho:'Ito',chuken:'Suzuki',fukusho:'Nakamura',taisho:'Kato',status:'Checked'},{team:'Waipahu Team A',senpo:'Sato',jiho:'Kimura',chuken:'Yamamoto',fukusho:'Lee',taisho:'Chen',status:'Checked'},{team:'Maui Team A',senpo:'Mori',jiho:'Miura',chuken:'Maeda',fukusho:'Goto',taisho:'Higa',status:'Checked'},{team:'University of Hawaii',senpo:'Arai',jiho:'Ono',chuken:'Kondo',fukusho:'Shima',taisho:'Ueda',status:'Checked'}];
   // As before: the samples first, then each given an id and the default team division (which may run the migration on them).
   ksmLoadPeople({teams});ksmLoadPeople({teams:ksmNewTeamRows(teams)});renderTeams()}
 export function loadFullTournament(){
-  if((state.competitors.length||state.teams.length)&&!confirm('Replace the divisions, competitors and teams with the sample tournament?'))return;
+  if((selectCompetitors(getState()).length||selectTeams(getState()).length)&&!confirm('Replace the divisions, competitors and teams with the sample tournament?'))return;
   // The standard divisions with their formats and courts (one action); the team court's entry stays the Setup's.
   ksmReplaceDivisions(DIVISION_PRESETS.map(x=>x[0]),Object.fromEntries(DIVISION_PRESETS.map(([d,f])=>[d,f])),Object.fromEntries(DIVISION_PRESETS.map(([d,,c])=>[d,c])));ksmSetTeamCourt(ksmSetting('teamCourt'));
   const dojos=['Aiea Taiheiji','Waipahu Seibukan','Honolulu Myohoji','Mililani','Maui','Kailua','Hilo','Kauai','Manoa','Palolo'];
@@ -91,9 +93,9 @@ export function loadFullTournament(){
 // confirm says so.
 function ksmClearQuestion(count,one,many){
   const n=count===1?`the 1 ${one}`:`all ${count} ${many}`;
-  return `Clear ${n}? This cannot be undone.`+(state.generated?'\n\nDrawn divisions keep their matches and results. To redraw a division later you will need to register its entries again.':'');
+  return `Clear ${n}? This cannot be undone.`+(selectGenerated(getState())?'\n\nDrawn divisions keep their matches and results. To redraw a division later you will need to register its entries again.':'');
 }
-export function clearCompetitors(){if(confirm(ksmClearQuestion(state.competitors.length,'individual competitor','individual competitors'))){ksmLoadPeople({competitors:[]});renderReg()}}
+export function clearCompetitors(){if(confirm(ksmClearQuestion(selectCompetitors(getState()).length,'individual competitor','individual competitors'))){ksmLoadPeople({competitors:[]});renderReg()}}
 // F8: Clear Teams and Clear Exhibitions ask first, like Clear Registration (clearCompetitors).
-export function clearTeams(){if(confirm(ksmClearQuestion(state.teams.length,'team','teams'))){ksmLoadPeople({teams:[]});renderTeams()}}
-export function clearExhibitions(){if(confirm(ksmClearQuestion(state.exhibitions.length,'exhibition match','exhibition matches'))){ksmLoadPeople({exhibitions:[]});renderExhibitions()}}
+export function clearTeams(){if(confirm(ksmClearQuestion(selectTeams(getState()).length,'team','teams'))){ksmLoadPeople({teams:[]});renderTeams()}}
+export function clearExhibitions(){if(confirm(ksmClearQuestion(selectExhibitions(getState()).length,'exhibition match','exhibition matches'))){ksmLoadPeople({exhibitions:[]});renderExhibitions()}}

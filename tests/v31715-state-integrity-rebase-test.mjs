@@ -15,7 +15,7 @@ function check(ok,name){console.log(`${ok?'PASS':'FAIL'} ${name}`);if(!ok)failed
 check(html.includes("sanitizeLoadedTournamentState(loaded,options.source||'tournament load')"),'load-time state sanitizer');
 check(html.includes('resolveRebasePatch(localState,rebasedState,patch)'),'identity-safe rebase path');
 check(worker.includes("return json({ error: 'Invalid tournament state', integrityError }, 422)"),'Worker malformed-state rejection');
-check(html.includes("matches=(state.allMatches[div]||[]).filter(isValidMatchObject)"),'division completion null safety');
+check(html.includes("matches=(selectAllMatches(getState())[div]||[]).filter(isValidMatchObject)"),'division completion null safety');
 
 const snippets=[
   "const KSM_LOCAL_VIEW_STATE_KEYS=new Set(['currentCourt','publicCourt','currentDivision','matches','current','score']);",

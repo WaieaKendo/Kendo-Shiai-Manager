@@ -1,5 +1,6 @@
 // @ts-check
-import {state} from '../app-state.js';
+import {getState} from '../../store/index.ts';
+import {selectAllMatches,selectPools} from '../selectors.js';
 import {isTeamDivision} from '../engine/engine-pools.js';
 import {poolStandings} from '../engine/engine-standings-and-tiebreaks.js';
 import {saveAuto} from '../sync/cloud-session-and-autosave.js';
@@ -30,8 +31,8 @@ export function resultPlacements(div){
     return rows;
   }
 
-  const matches=state.allMatches[div]||[];
-  const placements=KSMEngine.individualPlacements(matches,isPoolOnlyDivision(div)?()=>poolStandings(state.pools[div][0].label,div):null);
+  const matches=selectAllMatches(getState())[div]||[];
+  const placements=KSMEngine.individualPlacements(matches,isPoolOnlyDivision(div)?()=>poolStandings(selectPools(getState())[div][0].label,div):null);
   // #86: a grand champion's places are its awards (Grand Champion, and Runner-up when the row gives it).
   const gc=ksmGrandChampion(div);
   return gc?KSMEngine.grandChampionPlacements(placements,gc.awardMode,KSMEngine.grandChampionWithdrawn(gc)):placements;

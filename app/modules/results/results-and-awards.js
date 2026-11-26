@@ -1,5 +1,6 @@
 // @ts-check
-import {state} from '../app-state.js';
+import {getState} from '../../store/index.ts';
+import {selectAllMatches,selectCompetitors,selectCurrentCourt,selectCurrentDivision,selectCurrentIndex,selectDivisionTypes,selectMatches,selectPools,selectTeamBracketNodes,selectTeams} from '../selectors.js';
 import {performCourtAction} from '../court/court-scoring-and-history.js';
 import {ksmUpdateMatch} from '../court/match-writes.js';
 import {renderScore} from '../court/scorekeeper-screen.js';
@@ -13,36 +14,36 @@ import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {cloudSession,ksmSessionRole,updateSaveStatus} from '../sync/cloud-session-and-autosave.js';
 import {isValidMatchObject} from '../sync/sync-state-and-rebase.js';
 import * as KSMEngine from '../../engine/index.ts';
-export function divisionComplete(div){const matches=(state.allMatches[div]||[]).filter(isValidMatchObject);return matches.some(m=>m.championship&&m.position==='Final'&&m.done) || ((isTeamDivision(div)||isPoolOnlyDivision(div))&&matches.length && matches.every(m=>m.done));}
+export function divisionComplete(div){const matches=(selectAllMatches(getState())[div]||[]).filter(isValidMatchObject);return matches.some(m=>m.championship&&m.position==='Final'&&m.done) || ((isTeamDivision(div)||isPoolOnlyDivision(div))&&matches.length && matches.every(m=>m.done));}
 // Individual round robins too small for a championship bracket (3–5 entrants: a single pool
 // and no frozen template) have no Final; they are decided by the final pool standings.
 export function isPoolOnlyDivision(div){
-  if(isTeamDivision(div)||(state.divisionTypes?.[div]||'Round Robin')!=='Round Robin')return false;
-  const pools=state.pools?.[div]||[];
+  if(isTeamDivision(div)||(selectDivisionTypes(getState())?.[div]||'Round Robin')!=='Round Robin')return false;
+  const pools=selectPools(getState())?.[div]||[];
   return pools.length===1&&!championshipLabels(div).length;
 }
 
 function teamNodeSideName(side,div){
-  return KSMEngine.teamNodeSideName(side,eligibleTeams(div),state.teamBracketNodes?.[div]||[]);
+  return KSMEngine.teamNodeSideName(side,eligibleTeams(div),selectTeamBracketNodes(getState())?.[div]||[]);
 }
 export function teamFinalPlacements(div){
   if(isTeamRoundRobinDivision(div))return teamRoundRobinPlacements(div);
-  return KSMEngine.teamFinalPlacements(state.teamBracketNodes?.[div]||[],eligibleTeams(div));
+  return KSMEngine.teamFinalPlacements(selectTeamBracketNodes(getState())?.[div]||[],eligibleTeams(div));
 }
 
-export function exportCSV(){let rows=[['Name','Dojo','Division','Seed','Status'],...state.competitors.map(c=>[c.name,c.dojo,c.division,c.seed,c.status])];let csv=rows.map(r=>r.map(x=>`"${String(x||'').replace(/"/g,'""')}"`).join(',')).join('\n');let blob=new Blob([csv],{type:'text/csv'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='ksm-registration.csv';a.click();URL.revokeObjectURL(url)}
-export function teamRoster(team,div){let t=(state.teams||[]).find(x=>String(x.team).trim()===String(team).trim()&&(!div||(x.teamDivisionId||'Team Tournament')===div));if(!t)return [];let fmt=ksmTeamSettings(t.teamDivisionId).teamFormat||t.type||'5-Person Team';let keys=(fmt==='3-Person Team'||fmt==='Kachinuki')?['senpo','chuken','taisho']:['senpo','jiho','chuken','fukusho','taisho'];return keys.map(k=>t[k]).filter(n=>n&&String(n).trim());}
+export function exportCSV(){let rows=[['Name','Dojo','Division','Seed','Status'],...selectCompetitors(getState()).map(c=>[c.name,c.dojo,c.division,c.seed,c.status])];let csv=rows.map(r=>r.map(x=>`"${String(x||'').replace(/"/g,'""')}"`).join(',')).join('\n');let blob=new Blob([csv],{type:'text/csv'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='ksm-registration.csv';a.click();URL.revokeObjectURL(url)}
+export function teamRoster(team,div){let t=(selectTeams(getState())||[]).find(x=>String(x.team).trim()===String(team).trim()&&(!div||(x.teamDivisionId||'Team Tournament')===div));if(!t)return [];let fmt=ksmTeamSettings(t.teamDivisionId).teamFormat||t.type||'5-Person Team';let keys=(fmt==='3-Person Team'||fmt==='Kachinuki')?['senpo','chuken','taisho']:['senpo','jiho','chuken','fukusho','taisho'];return keys.map(k=>t[k]).filter(n=>n&&String(n).trim());}
 export function canModifyRepresentative(m){
   if(!m||m.type!=='teamPlayoff'||isReadOnlySession())return false;
   if(['local','admin','director','staff'].includes(ksmSessionRole))return true;
   if(ksmSessionRole==='scorekeeper'){
-    const assigned=(cloudSession.court||state.currentCourt||'').toUpperCase();
+    const assigned=(cloudSession.court||selectCurrentCourt(getState())||'').toUpperCase();
     return !!assigned&&matchBelongsToCourt(m,assigned);
   }
   return false;
 }
 function repSelect(side,team,current){
-  let m=state.matches[state.current];
+  let m=selectMatches(getState())[selectCurrentIndex(getState())];
   let roster=(m&&m.type==='teamPlayoff')?(side==='W'?teamRoster(m.teamWhite,m.division):teamRoster(m.teamRed,m.division)):teamRoster(team,m?.division);
   let placeholder=!current||/Representative/.test(current);
   if(!canModifyRepresentative(m))return `<span class="representative-readonly" data-testid="representative-readonly">${esc(placeholder?`${team||'Dojo'} Representative`:current)}</span>`;
@@ -50,10 +51,10 @@ function repSelect(side,team,current){
   return `<select onchange="setRepresentative('${side}',this.value)" data-testid="representative-select">${opts}</select>`;
 }
 export function setRepresentative(side,val){
-  let m=state.matches[state.current];
+  let m=selectMatches(getState())[selectCurrentIndex(getState())];
   if(!m||!val||!canModifyRepresentative(m)){if(m&&!canModifyRepresentative(m))updateSaveStatus('Representative selection is read only');return;}
   // Looked up again inside the action (by sync identity, the held index on a tie or a renamed bout), not written through the held object (#15).
-  const div=state.currentDivision,index=state.current;
+  const div=selectCurrentDivision(getState()),index=selectCurrentIndex(getState());
   // One write through match-writes.js (#15 PR 13c-1); a bout no longer in its list (none is: nothing writes in between) is left as it is.
-  performCourtAction(`${side==='W'?'White':'Red'} Representative`,()=>{const at=KSMEngine.matchIndexIn(state.allMatches?.[div],m,index);if(at>=0)ksmUpdateMatch(div,at,side==='W'?{white:val}:{red:val});renderScore()});
+  performCourtAction(`${side==='W'?'White':'Red'} Representative`,()=>{const at=KSMEngine.matchIndexIn(selectAllMatches(getState())?.[div],m,index);if(at>=0)ksmUpdateMatch(div,at,side==='W'?{white:val}:{red:val});renderScore()});
 }

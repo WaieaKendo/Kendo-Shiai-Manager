@@ -1,5 +1,6 @@
 // @ts-check
-import {state} from '../app-state.js';
+import {getState} from '../../store/index.ts';
+import {selectAllMatches,selectChampionshipNodes,selectCurrentDivision,selectSingleElimNodes,selectTeamBracketNodes} from '../selectors.js';
 import {isTeamMatch,sortIndividualDivisionMatches,sortTeamMatches} from '../court/court-match-order.js';
 import {teamSideLabel} from '../court/court-queue-and-views.js';
 import {championshipLabels,firstRoundName,previousRoundName,sourceLabelForRound} from '../engine/engine-championship.js';
@@ -24,7 +25,7 @@ export function audienceMeta(m){
   }else{
     line=`Pool ${m.pool||'A'}`;
   }
-  return {division:m.division||state.currentDivision||'—',line};
+  return {division:m.division||selectCurrentDivision(getState())||'—',line};
 }
 export function renderPublic(){
   // Live Scores is React (app/react/features/live-scores/, 36-react-live-scores.js): this only
@@ -34,15 +35,15 @@ export function renderPublic(){
 export function tvIndividualSideLabel(match,side){
   const direct=side==='white'?match?.white:match?.red;if(direct)return direct;
   if(match?.championship){
-    const node=(state.championshipNodes?.[match.division]||[]).find(n=>n.id===match.champNodeId);
-    if(node){const source=side==='white'?node.right:node.left;if(source?.seed)return source.seed;if(source?.ref){const prev=(state.championshipNodes?.[match.division]||[]).find(n=>n.id===source.ref);return `Winner of ${prev?.round||'Previous Round'} Match ${(prev?.slot??0)+1}`}}
+    const node=(selectChampionshipNodes(getState())?.[match.division]||[]).find(n=>n.id===match.champNodeId);
+    if(node){const source=side==='white'?node.right:node.left;if(source?.seed)return source.seed;if(source?.ref){const prev=(selectChampionshipNodes(getState())?.[match.division]||[]).find(n=>n.id===source.ref);return `Winner of ${prev?.round||'Previous Round'} Match ${(prev?.slot??0)+1}`}}
     if(match.position&&match.position!==firstRoundName(championshipLabels(match.division).length)){const prev=previousRoundName(match.position);const slot=(match.bracketSlot||0)*2+(side==='white'?1:0);return sourceLabelForRound(match.division,prev,slot).name}
   }
-  if(match?.singleElim&&match.elimNodeId){const node=(state.singleElimNodes?.[match.division]||[]).find(n=>n.id===match.elimNodeId);if(node)return sideLabelGeneric(side==='white'?node.right:node.left,match.division)}
+  if(match?.singleElim&&match.elimNodeId){const node=(selectSingleElimNodes(getState())?.[match.division]||[]).find(n=>n.id===match.elimNodeId);if(node)return sideLabelGeneric(side==='white'?node.right:node.left,match.division)}
   return 'TBD';
 }
 function tvTeamNodeEntries(court,current){
-  const div=current.division,nodes=state.teamBracketNodes?.[div]||[],all=state.allMatches?.[div]||[],entries=[],seen=new Set();
+  const div=current.division,nodes=selectTeamBracketNodes(getState())?.[div]||[],all=selectAllMatches(getState())?.[div]||[],entries=[],seen=new Set();
   let currentNodeIndex=nodes.findIndex(n=>n.id===current.teamNodeId);
   if(currentNodeIndex<0&&current.teamPair){
     const sibling=all.find(x=>x.teamPair===current.teamPair&&x.teamNodeId);
@@ -64,7 +65,7 @@ function tvTeamNodeEntries(court,current){
   return entries;
 }
 export function tvUpcomingMatches(court,current,teamMode=false){
-  let all=state.allMatches[current.division]||[];
+  let all=selectAllMatches(getState())[current.division]||[];
   if(all.some(isTeamMatch))all=sortTeamMatches(current.division);else all=sortIndividualDivisionMatches(current.division,all);
   const idx=KSMEngine.matchIndexIn(all,current); // by sync identity, not Match Object identity (#15, before 13c)
   let candidates=all.slice(Math.max(0,idx+1)).filter(x=>!x.done&&matchBelongsToCourt(x,court));
@@ -95,6 +96,6 @@ export function tvAssignedCourt(){return KSM_TV_ASSIGNED_COURT}
 // KSM v3.10.9 — spectator presentation refinements (was app/js/31-spectator-refinements.js)
 // ==========================================================
 export function poolDisplayComplete(div,label){
-  const matches=(state.allMatches?.[div]||[]).filter(match=>match.pool===label&&!match.championship);
+  const matches=(selectAllMatches(getState())?.[div]||[]).filter(match=>match.pool===label&&!match.championship);
   return matches.length>0&&matches.every(match=>match.done);
 }

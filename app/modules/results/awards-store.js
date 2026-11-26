@@ -8,8 +8,8 @@
 // (app/engine/grand-champion.ts). Either way the caller computes the new list from the current rows, like a team division
 // edit, and the action sets it, so an edit is one action. Like the old in-place writes, none of them schedules a save or renders:
 // the caller does what it did before.
-import {state} from '../app-state.js';
-import {dispatch,tournamentSlice} from '../../store/index.ts';
+import {selectAwards} from '../selectors.js';
+import {dispatch,getState,tournamentSlice} from '../../store/index.ts';
 import {settingsMeta} from '../sync/cloud-session-and-autosave.js';
 /** @typedef {Award} AwardRow */
 /** @typedef {Partial<Award>&Record<string,unknown>} AwardChanges */
@@ -19,11 +19,11 @@ import {settingsMeta} from '../sync/cloud-session-and-autosave.js';
 /** @param {AwardAction|GrandChampionAction} type @param {{awards:AwardRow[]}|{grandChampions:GrandChampionRow[]}} lists */
 function setLists(type,lists){dispatch(/** @type {any} */ (tournamentSlice.actions)[type](lists,settingsMeta()))}
 /** An award row added at the end (Results' Add award; a list that was never set is created). @param {AwardRow} row */
-export function ksmAddAward(row){setLists('awardAdded',{awards:[...(state.awards||[]),row]})}
+export function ksmAddAward(row){setLists('awardAdded',{awards:[...(selectAwards(getState())||[]),row]})}
 /** The award at `index` with these fields (an input's change); a row that is not there changes nothing. @param {number} index @param {AwardChanges} changes */
-export function ksmSetAward(index,changes){if(state.awards?.[index])setLists('awardSet',{awards:state.awards.map((r,i)=>i===index?{...r,...changes}:r)})}
+export function ksmSetAward(index,changes){if(selectAwards(getState())?.[index])setLists('awardSet',{awards:selectAwards(getState()).map((r,i)=>i===index?{...r,...changes}:r)})}
 /** The award at `index` removed (×). @param {number} index */
-export function ksmRemoveAward(index){if(state.awards?.[index])setLists('awardRemoved',{awards:state.awards.filter((_,i)=>i!==index)})}
+export function ksmRemoveAward(index){if(selectAwards(getState())?.[index])setLists('awardRemoved',{awards:selectAwards(getState()).filter((_,i)=>i!==index)})}
 /** The whole award list at once (the test API). @param {AwardRow[]} awards */
 export function ksmLoadAwards(awards){setLists('awardsLoaded',{awards})}
 /** One grand champion action with the rows the edit computed (the whole list, in its order). @param {GrandChampionAction} type @param {GrandChampionRow[]} grandChampions */
