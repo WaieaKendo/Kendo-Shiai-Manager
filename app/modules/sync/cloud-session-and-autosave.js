@@ -1,4 +1,5 @@
 // @ts-check
+import {selectCurrentCourt,selectTeamDivisions} from '../selectors.js';
 import {state} from '../app-state.js';
 import {toggleStaffSession} from '../auth/auth0-access.js';
 import {ksmNormalizeTimerSettings} from '../court/match-timer.js';
@@ -37,7 +38,7 @@ export function readOutbox(){
   ksmAdoptOrphanOutbox();  // a staff tab claims it; taken over (and sent) a moment later
   return ksmPeekOrphanOutbox();
 }
-export function writeOutbox(payload,reason='Local change'){if(ksmKeepStaffOutbox())return;const queued={schemaVersion:'1.0',tournamentId:cloudSession.tournamentId,assignedCourt:cloudSession.court||state.currentCourt||'',role:ksmSessionRole,baseRevision:cloudSession.revision||0,basePayload:cloudBaseFor(cloudSession.revision||0),payload,actions:[{type:'snapshot',reason,createdAt:new Date().toISOString()}],queuedAt:new Date().toISOString()};queued.writer=KSM_TAB_ID;
+export function writeOutbox(payload,reason='Local change'){if(ksmKeepStaffOutbox())return;const queued={schemaVersion:'1.0',tournamentId:cloudSession.tournamentId,assignedCourt:cloudSession.court||selectCurrentCourt(getState())||'',role:ksmSessionRole,baseRevision:cloudSession.revision||0,basePayload:cloudBaseFor(cloudSession.revision||0),payload,actions:[{type:'snapshot',reason,createdAt:new Date().toISOString()}],queuedAt:new Date().toISOString()};queued.writer=KSM_TAB_ID;
   // #129 part 3: a queued regenerate keeps its mark (sent with the queued snapshot, or by the tab that takes it over).
   const restoreMark=ksmPendingRestoreMark(cloudSession.tournamentId,payload);if(restoreMark){queued.restorePoint='regenerate';queued.restorePointId=restoreMark.restorePointId;queued.restorePointRevision=restoreMark.managementRevision}
 ksmReleaseAdoptedOutbox();localStorage.setItem(ksmOutboxKey(),JSON.stringify(queued));
@@ -51,7 +52,7 @@ export function clearOutbox(){
 }
 export function preserveRecovery(outbox,serverRecord){localStorage.setItem(KSM_CLOUD_RECOVERY_KEY,JSON.stringify({savedAt:new Date().toISOString(),outbox,serverRevision:serverRecord?.revision||0}));setKsmSaveStatusMode('error');renderPersistentSaveStatus()}
 export function downloadJson(value,name){const blob=new Blob([JSON.stringify(value,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
-function recoveryPackage(){const outbox=readOutbox();let stored=null;try{stored=JSON.parse(localStorage.getItem(KSM_CLOUD_RECOVERY_KEY)||'null')}catch(_){}return {fileType:'KSM_RECOVERY',schemaVersion:'1.0',appVersion:'3.17.3-test',engineVersion:'3.12.9',createdAt:new Date().toISOString(),tournamentId:cloudSession.tournamentId||outbox?.tournamentId||null,assignedCourt:cloudSession.court||state.currentCourt||'',role:ksmSessionRole,lastConfirmedCloudRevision:cloudSession.revision||0,latestLocalSnapshot:tournamentPayload(),queuedActions:outbox?.actions||[],outbox:outbox||null,conflictRecovery:stored||null,restoreRecovery:ksmRestoreRecoveries(cloudSession.tournamentId||outbox?.tournamentId||''),parkedBeforeRestore:ksmParkedWork(cloudSession.tournamentId||outbox?.tournamentId||'')}}
+function recoveryPackage(){const outbox=readOutbox();let stored=null;try{stored=JSON.parse(localStorage.getItem(KSM_CLOUD_RECOVERY_KEY)||'null')}catch(_){}return {fileType:'KSM_RECOVERY',schemaVersion:'1.0',appVersion:'3.17.3-test',engineVersion:'3.12.9',createdAt:new Date().toISOString(),tournamentId:cloudSession.tournamentId||outbox?.tournamentId||null,assignedCourt:cloudSession.court||selectCurrentCourt(getState())||'',role:ksmSessionRole,lastConfirmedCloudRevision:cloudSession.revision||0,latestLocalSnapshot:tournamentPayload(),queuedActions:outbox?.actions||[],outbox:outbox||null,conflictRecovery:stored||null,restoreRecovery:ksmRestoreRecoveries(cloudSession.tournamentId||outbox?.tournamentId||''),parkedBeforeRestore:ksmParkedWork(cloudSession.tournamentId||outbox?.tournamentId||'')}}
 export function downloadRecoveryFile(){try{const pack=recoveryPackage();const court=pack.assignedCourt?`_Court-${pack.assignedCourt}`:'';const stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);downloadJson(pack,`KSM_Recovery${court}_${stamp}.ksm`);updateSaveStatus('Recovery file downloaded')}catch(err){console.error(err);alert('Unable to create recovery file.')}}
 function downloadCloudRecovery(){downloadRecoveryFile()}
 // The Setup form is tournament data in the store (tournament.settings, #15 PR 8); the Setup inputs show it. Readers
@@ -128,12 +129,12 @@ export function applySetupSnapshot(data){
   applyCourtSides();
   // The load's own rule for a state without team divisions (the reset's empty state), kept; the next line gives the same
   // value now that the entry follows the field.
-  if(!state.teamDivisions&&data.teamCourt)ksmSetTeamCourt(data.teamCourt);
+  if(!selectTeamDivisions(getState())&&data.teamCourt)ksmSetTeamCourt(data.teamCourt);
   // An empty Setup value is shown as the default, as saveSetup() / renderDivisionSetup() did on the load's render.
   ksmSetTeamCourt(ksmSetting('teamCourt')||'Both');
   if(!ksmSetting('teamAwardMode'))ksmSetSetting('teamAwardMode','top2');
   // Each team division's own court is its divisionCourts entry (one action; the legacy one's is the Setup's, set just above).
-  ksmSetDivisionCourts(Object.fromEntries((state.teamDivisions||[]).filter(d=>d.id!==KSMEngine.LEGACY_TEAM_DIVISION_ID).map(d=>[d.id,/** @type {string} */ (d.court)])));
+  ksmSetDivisionCourts(Object.fromEntries((selectTeamDivisions(getState())||[]).filter(d=>d.id!==KSMEngine.LEGACY_TEAM_DIVISION_ID).map(d=>[d.id,/** @type {string} */ (d.court)])));
   ksmSyncLegacyTeamDivision();
 }
 export function tournamentPayload(){

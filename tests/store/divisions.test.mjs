@@ -154,7 +154,7 @@ test('L1 (#185 review): "Team Tournament" (and "Exhibition Matches") cannot be a
   // The app's add paths ask the engine first: Add division (a toast, nothing added) and a Registration row's division.
   const setup = fs.readFileSync(new URL('../../app/modules/setup/division-setup.js', import.meta.url), 'utf8');
   assert.match(setup, /const refused=KSMEngine\.divisionAddError\(v\);if\(refused\)\{showKsmToast\(refused\);return false\}/);
-  assert.match(setup, /function toggleDivision\(d,on\)\{if\(on&&!state\.divisions\.includes\(d\)\)\{const refused=KSMEngine\.divisionAddError\(d\);if\(refused\)\{showKsmToast\(refused\);renderDivisionSetup\(\);return\}/, 'toggleDivision(d, true) asks too');
+  assert.match(setup, /function toggleDivision\(d,on\)\{if\(on&&!selectDivisions\(getState\(\)\)\.includes\(d\)\)\{const refused=KSMEngine\.divisionAddError\(d\);if\(refused\)\{showKsmToast\(refused\);renderDivisionSetup\(\);return\}/, 'toggleDivision(d, true) asks too');
   const reg = fs.readFileSync(new URL('../../app/modules/registration/registration.js', import.meta.url), 'utf8');
   assert.match(reg, /!KSMEngine\.divisionAddError\(v\)\)\{ksmOfferDivision\(v\)/);
 });

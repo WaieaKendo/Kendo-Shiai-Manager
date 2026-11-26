@@ -1,5 +1,7 @@
 // @ts-check
-import {DIVISION_PRESETS,ksmShowDivision,ksmShowMatch,state} from '../app-state.js';
+import {getState} from '../../store/index.ts';
+import {selectAllMatches,selectCourtState,selectCurrentCourt,selectDivisionCourts,selectDivisionTypes,selectDivisions,selectSingleElimNodes} from '../selectors.js';
+import {DIVISION_PRESETS,ksmShowDivision,ksmShowMatch} from '../app-state.js';
 import {findNextForCourt,individualMatchReady,isTeamMatch,renderDivisions} from '../court/court-match-order.js';
 import {ksmDivisionReadyOnCourt} from '../react-bridges/court.js';
 import {ksmResolveCourts} from '../court/court-pointers-store.js';
@@ -20,10 +22,10 @@ import * as KSMEngine from '../../engine/index.ts';
 // #15 PR 9: the division lists are the store's; each edit is one action (./divisions-store.js).
 // A name the add path refuses (KSMEngine.divisionAddError(): the team event's or the exhibitions' name, the #185 review's
 // L1) is not added: the custom division field says why in a toast and keeps the text.
-function addDivision(v){v=v||customDivName?.value?.trim()||window.newDiv?.value?.trim();if(!v)return true;const refused=KSMEngine.divisionAddError(v);if(refused){showKsmToast(refused);return false}if(!state.divisions.includes(v))ksmAddDivision(v,customDivFormat?.value||window.newDivType?.value||'Round Robin',customDivCourt?.value||'A');if(window.customDivName)customDivName.value='';renderDivisionSetup();renderDivisions();renderReg();return true}
-export function addCustomDivision(){const name=customDivName.value.trim();const added=name&&!state.divisions.includes(name);if(!addDivision())return;/** @type {HTMLButtonElement} */(document.querySelector('[data-testid="custom-division-add"]')).disabled=true;if(added)ksmAnnounceAddedDivision(name);}
-export function removeDivision(i){ksmRemoveDivision(state.divisions[i],{index:i});renderDivisionSetup();renderDivisions();renderReg()}
-export function toggleDivision(d,on){if(on&&!state.divisions.includes(d)){const refused=KSMEngine.divisionAddError(d);if(refused){showKsmToast(refused);renderDivisionSetup();return}let p=DIVISION_PRESETS.find(x=>x[0]===d);ksmAddDivision(d,state.divisionTypes[d]||(p?p[1]:'Round Robin'),state.divisionCourts[d]||(p?p[2]:'A'))}if(!on&&state.divisions.includes(d)){ksmRemoveDivision(d,{keepSettings:true})}renderDivisionSetup();renderDivisions();renderReg()}
+function addDivision(v){v=v||customDivName?.value?.trim()||window.newDiv?.value?.trim();if(!v)return true;const refused=KSMEngine.divisionAddError(v);if(refused){showKsmToast(refused);return false}if(!selectDivisions(getState()).includes(v))ksmAddDivision(v,customDivFormat?.value||window.newDivType?.value||'Round Robin',customDivCourt?.value||'A');if(window.customDivName)customDivName.value='';renderDivisionSetup();renderDivisions();renderReg();return true}
+export function addCustomDivision(){const name=customDivName.value.trim();const added=name&&!selectDivisions(getState()).includes(name);if(!addDivision())return;/** @type {HTMLButtonElement} */(document.querySelector('[data-testid="custom-division-add"]')).disabled=true;if(added)ksmAnnounceAddedDivision(name);}
+export function removeDivision(i){ksmRemoveDivision(selectDivisions(getState())[i],{index:i});renderDivisionSetup();renderDivisions();renderReg()}
+export function toggleDivision(d,on){if(on&&!selectDivisions(getState()).includes(d)){const refused=KSMEngine.divisionAddError(d);if(refused){showKsmToast(refused);renderDivisionSetup();return}let p=DIVISION_PRESETS.find(x=>x[0]===d);ksmAddDivision(d,selectDivisionTypes(getState())[d]||(p?p[1]:'Round Robin'),selectDivisionCourts(getState())[d]||(p?p[2]:'A'))}if(!on&&selectDivisions(getState()).includes(d)){ksmRemoveDivision(d,{keepSettings:true})}renderDivisionSetup();renderDivisions();renderReg()}
 // A division's court changed after the draw: its unplayed matches move with it (before, every
 // match kept the court it was drawn with, so the court screens and Overview still showed the old
 // court). Pools, pool championships and single elimination get the court the draw would have given
@@ -31,17 +33,17 @@ export function toggleDivision(d,on){if(on&&!state.divisions.includes(d)){const 
 // division, or one now holding the division's next match while idle, picks its next match again.
 // A court with nothing of its own to play: no match picked, or its division finished or waiting.
 function ksmCourtIdle(c,cs){
-  const m=cs?(state.allMatches?.[cs.division]||[])[cs.index]:null;
+  const m=cs?(selectAllMatches(getState())?.[cs.division]||[])[cs.index]:null;
   return !m||m.done||!individualMatchReady(m)||!matchBelongsToCourt(m,c);
 }
 // moved: the court setting really changed (an idle court only picks the division up then).
 export function ksmReassignDivisionCourt(d,moved=true){
-  const all=state.allMatches?.[d];if(!all)return;
+  const all=selectAllMatches(getState())?.[d];if(!all)return;
   const mode=divisionCourtMode(d);
   // The pools lose their split-court letter (new pool rows: the draw is store data, #15 PR 12a).
   if(mode!=='split')ksmSetDraw('drawEntriesUpdated',ksmEditedPools(d,p=>{if(!Object.hasOwn(p,'court'))return p;const {court,...rest}=p;return rest}));
   const roundSize={};all.forEach(m=>{if(m&&m.championship&&!m.singleElim)roundSize[m.position]=(roundSize[m.position]||0)+1});
-  const elimNodes=state.singleElimNodes?.[d]||[];
+  const elimNodes=selectSingleElimNodes(getState())?.[d]||[];
   // Every unplayed bout's court in one write (#15 PR 13c-1: match-writes.js).
   /** @type {import('../court/match-writes.js').MatchUpdate[]} */ const updates=[];
   all.forEach((m,index)=>{
@@ -54,15 +56,15 @@ export function ksmReassignDivisionCourt(d,moved=true){
   });
   ksmUpdateMatches(d,updates);
   // A court on this division goes to its first ready bout (one court/pointersResolved, #15 PR 13a).
-  ksmResolveCourts(['A','B'].filter(c=>state.courtState?.[c]?.division===d),c=>findNextForCourt(c,null,0));
+  ksmResolveCourts(['A','B'].filter(c=>selectCourtState(getState())?.[c]?.division===d),c=>findNextForCourt(c,null,0));
   // A court with nothing of its own to play picks the division up, when the court setting really changed.
   if(moved){
-    const idle=['A','B'].filter(c=>state.courtState?.[c]?.division!==d&&ksmCourtIdle(c,state.courtState?.[c])&&ksmDivisionReadyOnCourt(d,c));
+    const idle=['A','B'].filter(c=>selectCourtState(getState())?.[c]?.division!==d&&ksmCourtIdle(c,selectCourtState(getState())?.[c])&&ksmDivisionReadyOnCourt(d,c));
     ksmResolveCourts(idle,c=>findNextForCourt(c,d,0));
     // This device's own court view follows its court (a view left behind would push the old division back onto the court at
     // the next Staff Login or role change: syncOwnCourtPointer()); another court's view catches up when that device loads.
-    const own=idle.find(c=>c===state.currentCourt);
-    if(own){ksmShowDivision(state.courtState[own].division);ksmShowMatch(state.courtState[own].index||0)}
+    const own=idle.find(c=>c===selectCurrentCourt(getState()));
+    if(own){ksmShowDivision(selectCourtState(getState())[own].division);ksmShowMatch(selectCourtState(getState())[own].index||0)}
   }
 }
 export function setDivisionFormat(d,v){ksmSetDivisionFormat(d,v);renderReg()}
@@ -71,9 +73,9 @@ export function renderDivisionSetup(){
   // to it instead of written (M.13). The team court and awards fields stay legacy markup.
   if(!window.divisionSetupRows)return;ksmRenderSetupDivisions();ksmRenderTeamDivisions();ksmRenderGrandChampionSetup()}
 function courtEligibleDivisions(court){
-  let all=[...new Set([...Object.keys(state.allMatches||{}),...state.divisions])];
+  let all=[...new Set([...Object.keys(selectAllMatches(getState())||{}),...selectDivisions(getState())])];
   return all.filter(d=>{
-    let arr=state.allMatches[d]||[];
+    let arr=selectAllMatches(getState())[d]||[];
     if(!arr.length)return false;
     return arr.some(m=>!m.done && matchBelongsToCourt(m,court));
   });
@@ -104,7 +106,7 @@ export function saveSetup(){
   syncSetupHeader();
 }
 // A `let`: tests replace window.setDivisionCourt (a spy under an inline onclick), so its window accessor writes through setSetDivisionCourt().
-export let setDivisionCourt=function setDivisionCourt(d,v){const before=state.divisionCourts[d];ksmSetDivisionCourt(d,v);ksmReassignDivisionCourt(d,before!==v);renderDivisions();renderTournamentStatus()};
+export let setDivisionCourt=function setDivisionCourt(d,v){const before=selectDivisionCourts(getState())[d];ksmSetDivisionCourt(d,v);ksmReassignDivisionCourt(d,before!==v);renderDivisions();renderTournamentStatus()};
 export function setSetDivisionCourt(value){setDivisionCourt=value}
 // The tournament-name listener (app/js, where 30- used to load).
 export function initSetupHeader(){

@@ -1,5 +1,6 @@
 // @ts-check
-import {state} from '../app-state.js';
+import {getState} from '../../store/index.ts';
+import {selectAllMatches,selectCourtActiveDivision,selectCourtState,selectDivisionCourts,selectPools,selectSingleElimComps,selectSingleElimNodes,selectTeamBracketNodes,selectTeams} from '../selectors.js';
 import {isTeamMatch,sortTeamMatches} from '../court/court-match-order.js';
 import {championshipLabels,firstRoundName,nextRoundFromName} from '../engine/engine-championship.js';
 import {matchBelongsToCourt} from '../engine/engine-generation.js';
@@ -16,18 +17,18 @@ function directorMatchLabel(m){return KSMEngine.directorMatchLabel(m);// moved t
 // - 3/5-person teams: team pairings x roster size (+ any created representative playoff)
 // - kachinuki: completed bouts only; no fixed total is displayed
 function directorTeamFormat(div){
-  const matches=state.allMatches?.[div]||[];
-  const teamDivision=matches.some(isTeamMatch)||(state.teamBracketNodes?.[div]||[]).length>0||isTeamDivision(div);
+  const matches=selectAllMatches(getState())?.[div]||[];
+  const teamDivision=matches.some(isTeamMatch)||(selectTeamBracketNodes(getState())?.[div]||[]).length>0||isTeamDivision(div);
   if(!teamDivision)return null;
   if(matches.some(m=>m.type==='kachinuki'))return 'Kachinuki';
-  const registered=(state.teams||[]).find(t=>t.teamDivisionId===div||(!t.teamDivisionId&&div==='Team Tournament'));
+  const registered=(selectTeams(getState())||[]).find(t=>t.teamDivisionId===div||(!t.teamDivisionId&&div==='Team Tournament'));
   return (registered?.teamDivisionId?ksmTeamSettings(div).teamFormat:registered?.type)||ksmTeamSettings(div).teamFormat||'5-Person Team';
 }
 function directorTeamSize(div){
   return directorTeamFormat(div)==='3-Person Team'?3:5;
 }
 function directorPoolTotal(div,court=null){
-  const all=state.allMatches?.[div]||[];
+  const all=selectAllMatches(getState())?.[div]||[];
   const belongs=m=>!court||matchBelongsToCourt(m,court);
   const poolBouts=all.filter(m=>belongs(m)&&m.type==='individual'&&!m.championship).length;
   const firstRound=championshipLabels(div).length;
@@ -36,14 +37,14 @@ function directorPoolTotal(div,court=null){
   return poolBouts+championshipBouts;
 }
 export function directorSingleElimTotal(div,court=null){
-  const nodes=state.singleElimNodes?.[div]||[];
-  if(nodes.length){return nodes.filter(node=>node.left&&node.right&&(!court||(state.divisionCourts?.[div]==='split'?(node.round==='Final'?'A':node.court):(state.divisionCourts?.[div]||'A'))===court)).length}
-  const entrants=(state.singleElimComps?.[div]||[]).filter(Boolean).length;
-  if(!court||court===(state.divisionCourts?.[div]||'A'))return Math.max(0,entrants-1);
+  const nodes=selectSingleElimNodes(getState())?.[div]||[];
+  if(nodes.length){return nodes.filter(node=>node.left&&node.right&&(!court||(selectDivisionCourts(getState())?.[div]==='split'?(node.round==='Final'?'A':node.court):(selectDivisionCourts(getState())?.[div]||'A'))===court)).length}
+  const entrants=(selectSingleElimComps(getState())?.[div]||[]).filter(Boolean).length;
+  if(!court||court===(selectDivisionCourts(getState())?.[div]||'A'))return Math.max(0,entrants-1);
   return 0;
 }
 function directorTeamPairCount(div,court=null){
-  const nodes=state.teamBracketNodes?.[div]||[];
+  const nodes=selectTeamBracketNodes(getState())?.[div]||[];
   if(nodes.length){
     return nodes.filter(node=>{
       if(!node.left||!node.right)return false;
@@ -51,14 +52,14 @@ function directorTeamPairCount(div,court=null){
       return (node.court||'A')===court;
     }).length;
   }
-  const pairs=new Set((state.allMatches?.[div]||[])
+  const pairs=new Set((selectAllMatches(getState())?.[div]||[])
     .filter(m=>m.teamPair&&(!court||matchBelongsToCourt(m,court)))
     .map(m=>m.teamPair));
   return pairs.size;
 }
 export function directorDivisionProgress(div,court=null){
-  const all=(state.allMatches?.[div]||[]).filter(m=>!court||matchBelongsToCourt(m,court));
-  const isTeam=all.some(isTeamMatch)||(state.teamBracketNodes?.[div]||[]).length>0||isTeamDivision(div);
+  const all=(selectAllMatches(getState())?.[div]||[]).filter(m=>!court||matchBelongsToCourt(m,court));
+  const isTeam=all.some(isTeamMatch)||(selectTeamBracketNodes(getState())?.[div]||[]).length>0||isTeamDivision(div);
   const isKachinuki=isTeam&&(directorTeamFormat(div)==='Kachinuki'||all.some(m=>m.type==='kachinuki'));
   if(isKachinuki){
     const completed=all.filter(m=>m.done&&(m.type==='kachinuki'||m.type==='teamPlayoff')).length;
@@ -71,13 +72,13 @@ export function directorDivisionProgress(div,court=null){
     const total=base+playoffs;
     return {completed,total,remaining:Math.max(0,total-completed),variable:false};
   }
-  const isSingle=(state.singleElimNodes?.[div]||[]).length>0||all.some(m=>m.singleElim);
+  const isSingle=(selectSingleElimNodes(getState())?.[div]||[]).length>0||all.some(m=>m.singleElim);
   if(isSingle){
     const total=directorSingleElimTotal(div,court);
     const completed=all.filter(m=>m.done&&m.singleElim).length;
     return {completed,total,remaining:Math.max(0,total-completed),variable:false};
   }
-  const hasPools=(state.pools?.[div]||[]).length>0;
+  const hasPools=(selectPools(getState())?.[div]||[]).length>0;
   if(hasPools){
     const total=directorPoolTotal(div,court);
     const completed=all.filter(m=>m.done&&m.type==='individual').length;
@@ -87,9 +88,9 @@ export function directorDivisionProgress(div,court=null){
   return {completed,total,remaining:Math.max(0,total-completed),variable:false};
 }
 export function courtSummaryFor(court){
-  const cs=state.courtState?.[court]||{};
-  const div=cs.division||state.courtActiveDivision?.[court]||null;
-  const all=div?(state.allMatches?.[div]||[]):[];
+  const cs=selectCourtState(getState())?.[court]||{};
+  const div=cs.division||selectCourtActiveDivision(getState())?.[court]||null;
+  const all=div?(selectAllMatches(getState())?.[div]||[]):[];
   const relevant=all.filter(m=>matchBelongsToCourt(m,court));
   const pending=relevant.filter(m=>!m.done);
   let current=null;
@@ -102,14 +103,14 @@ export function courtSummaryFor(court){
   return {court,division:div,round:directorMatchLabel(current),...progress,current,onDeck:later[0]||null,following:later[1]||null};
 }
 export function tournamentSummary(){
-  const divisions=Object.keys(state.allMatches||{});
+  const divisions=Object.keys(selectAllMatches(getState())||{});
   return divisions.reduce((sum,div)=>{
     const x=directorDivisionProgress(div,null);
     sum.completed+=x.completed||0;
     if(x.total==null){sum.variable=true;
       // F15: a kachinuki division adds the bouts known so far (played and created) to the total, the
       // same bouts its completed count is taken from, so the overall bar never passes 100%.
-      const known=(state.allMatches?.[div]||[]).filter(m=>m.type==='kachinuki'||m.type==='teamPlayoff').length;
+      const known=(selectAllMatches(getState())?.[div]||[]).filter(m=>m.type==='kachinuki'||m.type==='teamPlayoff').length;
       sum.total+=Math.max(known,x.completed||0);sum.remaining+=Math.max(0,known-(x.completed||0));
       return sum;}
     sum.total+=x.total;

@@ -1,5 +1,6 @@
 // @ts-check
-import {state} from '../app-state.js';
+import {getState} from '../../store/index.ts';
+import {selectCurrentCourt,selectCurrentDivision} from '../selectors.js';
 import {syncOwnCourtPointer} from '../court/court-match-order.js';
 import {cloudHeaders,connectCloudSocket,ksmCacheTournament,ksmCreateTournament,ksmExpireStaffSession,ksmFetchTournament,ksmUsesAccountAuth,loadTournamentFromCloud,readTournamentLibrary,renderHomeTournamentLibrary,setSessionRole,writeTournamentLibrary} from '../auth/auth0-access.js';
 import {ksmPendingSlug,setKsmPendingSlug} from '../links/friendly-links.js';
@@ -68,7 +69,7 @@ export function ksmStaffToken(value){return typeof value==='string'&&value.start
 export function ksmKeepStaffOutbox(){if(!isReadOnlySession()||!cloudSession.tournamentId)return false;const queued=readOutbox();return queued?.role==='staff'&&queued.tournamentId===cloudSession.tournamentId}
 export function ksmAccountSetRole(role){setKsmSessionRole(role==='staff'?'staff':'spectator');document.body.classList.toggle('ksm-spectator',ksmSessionRole==='spectator');document.body.classList.toggle('ksm-staff',ksmSessionRole==='staff');document.body.classList.remove('ksm-scorekeeper','ksm-admin');ksmRenderSessionRole();
   // This device may now run its court: a division it picked before Staff Login becomes the court's (#15 PR 6), saved once.
-  if(ksmSessionRole==='staff'&&syncOwnCourtPointer())scheduleAutoSave(`Court ${state.currentCourt} division: ${state.currentDivision}`);}
+  if(ksmSessionRole==='staff'&&syncOwnCourtPointer())scheduleAutoSave(`Court ${selectCurrentCourt(getState())} division: ${selectCurrentDivision(getState())}`);}
 export function isReadOnlySession(){return ksmSessionRole!=='staff'}
 export function isSpectatorSession(){return isReadOnlySession()}
 export function canCloudWrite(){return ksmSessionRole==='staff'||!cloudSession.tournamentId}

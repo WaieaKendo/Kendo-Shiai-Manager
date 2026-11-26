@@ -1,5 +1,6 @@
 // @ts-check
-import {state} from '../app-state.js';
+import {getState} from '../../store/index.ts';
+import {selectAllMatches,selectManagementRevision} from '../selectors.js';
 import {cloudHeaders,ksmCacheTournament} from '../auth/auth0-access.js';
 import {isReadOnlySession} from '../session/staff-session-and-library.js';
 import {writeCloudDiagnosticsState} from './cloud-diagnostics.js';
@@ -40,7 +41,7 @@ export function ksmPendingRestoreMark(id=cloudSession.tournamentId,payload=null)
 export function ksmClearRestoreMark(id=cloudSession.tournamentId,markId){
   try{const key=ksmRestoreMarkKey(id),mark=JSON.parse(sessionStorage.getItem(key)||'null');if(!markId||mark?.id===markId)sessionStorage.removeItem(key)}catch(_){}
 }
-export function ksmMarkRegenerateSave(){if(ksmUndoRegenerateOffered())ksmSetRestoreMark(cloudSession.tournamentId,'',state.managementRevision)}
+export function ksmMarkRegenerateSave(){if(ksmUndoRegenerateOffered())ksmSetRestoreMark(cloudSession.tournamentId,'',selectManagementRevision(getState()))}
 // Asks the server whether there is a live restore point this session may restore (GET /status).
 export async function ksmRefreshRestorePoint(){
   const id=cloudSession.tournamentId;
@@ -76,7 +77,7 @@ async function ksmUndoRegenerate(){
   const point=ksmLiveRestorePoint();
   if(!point||ksmRestorePointBusy)return;
   if(!navigator.onLine){alert('Undo regenerate needs a connection.');return}
-  const now=KSMEngine.finishedMatchSummary(state.allMatches).total;
+  const now=KSMEngine.finishedMatchSummary(selectAllMatches(getState())).total;
   if(!confirm(`Undo regenerate? The tournament goes back to how it was before the regenerate at ${ksmRestoreTime(point.takenAt)} (${ksmMatchWord(point.finishedMatches)}). Everything done since the regenerate (${ksmMatchWord(now)} now) is replaced on every device.`))return;
   ksmRestorePointBusy=true;ksmRenderUndoRegenerate();
   try{

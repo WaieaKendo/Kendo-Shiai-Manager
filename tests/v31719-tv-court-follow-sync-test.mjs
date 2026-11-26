@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { plainSelectors } from './lib/plain-selectors.mjs';
 import { extractFunction, html as appSource, sw as appServiceWorker } from './lib/ksm-source.mjs';
 
 const html=appSource;
@@ -21,7 +22,7 @@ check(html.includes('const tvCourt=isTvSession()?tvAssignedCourt()'),'TV diagnos
 const policyContext={canWrite:true,tv:false};
 policyContext.canCloudWrite=()=>policyContext.canWrite;
 policyContext.isTvSession=()=>policyContext.tv;
-vm.createContext(policyContext);
+vm.createContext(plainSelectors(policyContext));
 vm.runInContext(extractFunction(html,'preserveLocalDivisionForRemoteSync'),policyContext);
 check(policyContext.preserveLocalDivisionForRemoteSync()===true,'writable scorekeeper preserves local division against remote snapshots');
 policyContext.tv=true;
@@ -58,7 +59,7 @@ tvContext.findNextForCourt=(court,div)=>{
 tvContext.applyCourtState=(court,cs)=>{
   const st=tvContext.state;st.currentCourt=court;st.courtState[court]=cs;st.courtActiveDivision[court]=cs.division;st.currentDivision=cs.division;st.matches=st.allMatches[cs.division]||[];st.current=cs.index;st.currentByDivision[cs.division]=cs.index;
 };
-vm.createContext(tvContext);
+vm.createContext(plainSelectors(tvContext));
 vm.runInContext(extractFunction(html,'rehydrateLoadedTournamentState'),tvContext);
 tvContext.rehydrateLoadedTournamentState({preserveLocalDivision:false});
 check(tvContext.state.currentDivision==='Division New','Court B TV follows newly published Court B division');
@@ -87,7 +88,7 @@ scoreContext.findNextForCourt=(court,div)=>{
 scoreContext.applyCourtState=(court,cs)=>{
   const st=scoreContext.state;st.currentCourt=court;st.courtState[court]=cs;st.courtActiveDivision[court]=cs.division;st.currentDivision=cs.division;st.matches=st.allMatches[cs.division]||[];st.current=cs.index;st.currentByDivision[cs.division]=cs.index;
 };
-vm.createContext(scoreContext);
+vm.createContext(plainSelectors(scoreContext));
 vm.runInContext(extractFunction(html,'rehydrateLoadedTournamentState'),scoreContext);
 scoreContext.rehydrateLoadedTournamentState({preserveLocalDivision:true});
 check(scoreContext.state.currentDivision==='Division Local','Court B scorekeeper retains its own local division');

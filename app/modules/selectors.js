@@ -77,3 +77,9 @@ export const selectGrandChampions=s=>selectTournamentField(s,'grandChampions');
 export const selectAwards=s=>selectTournamentField(s,'awards');
 /** `state.teamAwardMode` (the Setup field settings.teamAwardMode). @param {RootState} s */
 export const selectTeamAwardMode=s=>/** @type {any} */ (selectTournament(s)).settings.teamAwardMode;
+/** `state.publicCourt` (the court Live Scores / the TV follows). @param {RootState} s @returns {T['publicCourt']} */
+export const selectPublicCourt=s=>/** @type {any} */ (selectDevice(s).publicCourt);
+/** `state.hiddenPresets`. @param {RootState} s */
+export const selectHiddenPresets=s=>selectTournamentField(s,'hiddenPresets');
+/** `state.divisionRenames`. @param {RootState} s */
+export const selectDivisionRenames=s=>selectTournamentField(s,'divisionRenames');
