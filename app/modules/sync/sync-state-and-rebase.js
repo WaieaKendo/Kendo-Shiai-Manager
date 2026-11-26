@@ -1,5 +1,6 @@
 // @ts-check
-import {DIVISION_PRESETS,ksmSetCurrentCourt,ksmSetPublicCourt,state} from '../app-state.js';
+import {selectCurrentCourt} from '../selectors.js';
+import {DIVISION_PRESETS,ksmSetCurrentCourt,ksmSetPublicCourt} from '../app-state.js';
 import {deviceSlice,dispatch,getState} from '../../store/index.ts';
 import {KSM_UNDO_LOG_LIMIT} from '../court/court-scoring-and-history.js';
 import {ksmAppendMatches,ksmDeleteDivisionMatches,ksmSetDivisionMatches,ksmWriteMatchPaths} from '../court/match-writes.js';
@@ -107,7 +108,7 @@ export function normalizeCourt(value){return KSMEngine.normalizeCourt(value);// 
   }
 // Red/White sides are mirrored per court to match the scoring table's view (Setup → Referees).
 export function redOnLeftForCourt(court){return getState().tournament.settings[normalizeCourt(court)==='B'?'court2RedSide':'court1RedSide']==='left'}
-export function applyCourtSides(){document.body.classList.toggle('ksm-red-left',redOnLeftForCourt(state.currentCourt))}
+export function applyCourtSides(){document.body.classList.toggle('ksm-red-left',redOnLeftForCourt(selectCurrentCourt(getState())))}
 /** Sets this device's division for a court (null clears it). */
 export function setLocalCourtDivision(court,division){const c=normalizeCourt(court);if(ksmLocalCourtDivision[c]!==division)dispatch(deviceSlice.actions.localCourtDivisionChosen({court:c,division}))}
 export function rememberLocalCourtDivision(court,division){const c=normalizeCourt(court);if(division&&typeof division==='string')setLocalCourtDivision(c,division);return ksmLocalCourtDivision[c]}
@@ -256,7 +257,7 @@ function mergeHistoryEntries(remoteEntries=[],localEntries=[]){return KSMEngine.
 export const KSM_CLOUD_REBASE_MAX_ATTEMPTS=4;
 export function historyEntryIdentity(entry){return KSMEngine.historyEntryIdentity(entry);// moved to app/engine/sync-helpers.ts
   }
-export function pendingLocalCourtActionsForRebase(localPayload,serverRecord,originalBaseRevision,court=pinnedCourt()||normalizeCourt(cloudSession.court||state.currentCourt)){
+export function pendingLocalCourtActionsForRebase(localPayload,serverRecord,originalBaseRevision,court=pinnedCourt()||normalizeCourt(cloudSession.court||selectCurrentCourt(getState()))){
   
   const localEntries=localPayload?.state?.courtActionHistory?.[court]||[];
   const remoteEntries=serverRecord?.payload?.state?.courtActionHistory?.[court]||[];
@@ -631,7 +632,7 @@ function replayStructuralEdit(rebased,localPayload,basePayload,serverPayload){
 export function rebaseLocalPayloadOnRecord(localPayload,serverRecord,originalBaseRevision,basePayload=null){
   localPayload=ksmTeamDivisionPayload(localPayload);basePayload=ksmTeamDivisionPayload(basePayload);
   serverRecord={...serverRecord,payload:ksmTeamDivisionPayload(serverRecord.payload)};
-  const rebased=cloneJson(serverRecord.payload),court=pinnedCourt()||normalizeCourt(cloudSession.court||state.currentCourt);
+  const rebased=cloneJson(serverRecord.payload),court=pinnedCourt()||normalizeCourt(cloudSession.court||selectCurrentCourt(getState()));
   rebased.state=rebased.state||{};
   const localState=localPayload?.state||{};
   ksmCarryGrandChampionDraws(rebased.state,localState);

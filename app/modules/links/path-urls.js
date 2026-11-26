@@ -14,7 +14,8 @@
 // ==========================================================
 // Preserve an explicit read-only query before the path migration removes legacy keys.
 // Set by initPathUrls() (a module's top level only declares), before the address is rewritten.
-import {state} from '../app-state.js';
+import {getState} from '../../store/index.ts';
+import {selectCurrentCourt,selectRegMode} from '../selectors.js';
 import {readTournamentLibrary} from '../auth/auth0-access.js';
 import {openCourt} from '../court/court-match-order.js';
 import {navigateTo,openRegistrationTab} from '../navigation.js';
@@ -56,11 +57,11 @@ export async function ksmResolveSlug(){
 export function ksmRecordScreenPath(view){
   if(ksmRouteLoading||!window.ksmBootstrapReady||!cloudSession.tournamentId||ksmApplyingRemoteSnapshot||document.body.classList.contains('ksm-home'))return;
   if(view!=='tv')document.body.classList.remove('ksm-tv');
-  const screens={setup:'setup',registration:state.regMode==='pools'?'pools':'registration',score:'court',public:'live',director:'overview',results:'results',tv:'tv'};
+  const screens={setup:'setup',registration:selectRegMode(getState())==='pools'?'pools':'registration',score:'court',public:'live',director:'overview',results:'results',tv:'tv'};
   const screen=screens[view];if(!screen)return;
   const current=ksmResolvedUrl().route;
   const slug=current.slug||(current.id?undefined:cloudSession.slug);
-  const route={screen,id:cloudSession.tournamentId,slug,court:normalizeCourt(view==='tv'?cloudSession.court:state.currentCourt)};
+  const route={screen,id:cloudSession.tournamentId,slug,court:normalizeCourt(view==='tv'?cloudSession.court:selectCurrentCourt(getState()))};
   ksmReplaceUrl(KSMEngine.routePath(route)+location.search+location.hash);
   setKsmTournamentAddress(location.pathname+location.search+location.hash);
 }

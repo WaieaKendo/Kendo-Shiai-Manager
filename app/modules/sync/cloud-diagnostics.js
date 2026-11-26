@@ -1,5 +1,6 @@
 // @ts-check
-import {state} from '../app-state.js';
+import {getState} from '../../store/index.ts';
+import {selectCourtActionHistory} from '../selectors.js';
 import {ensureCourtHistory} from '../court/court-scoring-and-history.js';
 import {cloudSession,downloadJson,tournamentPayload} from './cloud-session-and-autosave.js';
 import {KSM_CLOUD_DIAGNOSTICS_KEY,KSM_CLOUD_OUTBOX_KEY,KSM_CLOUD_RECOVERY_KEY,KSM_CLOUD_SESSION_KEY,KSM_SAVE_KEY} from './sync-state-and-rebase.js';
@@ -34,7 +35,7 @@ export function analyzeCourtActionHistory(){
   ensureCourtHistory();
   const courts={};
   ['A','B'].forEach(court=>{
-    const entries=state.courtActionHistory?.[court]||[];
+    const entries=selectCourtActionHistory(getState())?.[court]||[];
     const analyzed=entries.map((entry,index)=>analyzeHistoryEntry(entry,index));
     const sorted=[...analyzed].sort((a,b)=>b.totalBytes-a.totalBytes);
     const totalBytes=analyzed.reduce((sum,item)=>sum+item.totalBytes,0);
@@ -45,7 +46,7 @@ export function analyzeCourtActionHistory(){
 function historySampleEntry(entry,index){if(!entry)return null;return {analysis:analyzeHistoryEntry(entry,index),rawEntry:entry}}
 export function downloadActionHistorySample(){
   ensureCourtHistory();const courts={};
-  ['A','B'].forEach(court=>{const entries=state.courtActionHistory?.[court]||[],sizes=entries.map((entry,index)=>({entry,index,bytes:payloadByteSize(entry)})),largest=sizes.sort((a,b)=>b.bytes-a.bytes)[0]||null;courts[court]={entryCount:entries.length,first:historySampleEntry(entries[0],0),latest:historySampleEntry(entries[entries.length-1],entries.length-1),largest:largest?historySampleEntry(largest.entry,largest.index):null}});
+  ['A','B'].forEach(court=>{const entries=selectCourtActionHistory(getState())?.[court]||[],sizes=entries.map((entry,index)=>({entry,index,bytes:payloadByteSize(entry)})),largest=sizes.sort((a,b)=>b.bytes-a.bytes)[0]||null;courts[court]={entryCount:entries.length,first:historySampleEntry(entries[0],0),latest:historySampleEntry(entries[entries.length-1],entries.length-1),largest:largest?historySampleEntry(largest.entry,largest.index):null}});
   downloadJson({appVersion:'__KSM_VERSION__',tournamentId:cloudSession.tournamentId||null,cloudRevision:cloudSession.revision||0,analyzedAt:new Date().toISOString(),courts},`KSM_Action_History_Sample_${new Date().toISOString().replace(/[:.]/g,'-')}.json`)
 }
 const KSM_V3173_RESET_MARKER='ksm.local.reset.v3_17_3';

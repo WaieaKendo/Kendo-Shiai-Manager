@@ -1,5 +1,6 @@
 // @ts-check
-import {holdNotifications} from '../../store/index.ts';
+import {selectAllMatches,selectChampionshipNodes,selectCourtActiveDivision,selectCourtState,selectCurrentByDivision,selectCurrentCourt,selectCurrentDivision,selectDivisions,selectMatches,selectPublicCourt,selectSingleElimComps,selectSingleElimNodes} from '../selectors.js';
+import {getState,holdNotifications} from '../../store/index.ts';
 import {ksmEmptyScore,ksmSetCurrentCourt,ksmSetPublicCourt,ksmSetScore,ksmLoadTournamentState,ksmShowDivision,ksmShowMatch,state} from '../app-state.js';
 import {cloudSocketUrl,connectCloudSocket,ksmCacheTournament,ksmReadHeaders,ksmUsesAccountAuth,loadTournamentFromCloud,setSessionRole} from '../auth/auth0-access.js';
 import {renderAll} from '../court/court-context-and-pool-editing.js';
@@ -210,8 +211,8 @@ function applyDeferredRemoteRecord(){
   const record=ksmDeferredRemoteRecord;ksmDeferredRemoteRecord=null;applyRemoteCloudRecord(record,true);
 }
 export function applyRemoteCloudRecord(record,allowWhileEditing=false,forceApply=false){
-  const tvCourt=isTvSession()?tvAssignedCourt():normalizeCourt(cloudSession.court||state.publicCourt||'A');
-  const priorTvDivision=state.courtActiveDivision?.[tvCourt]||state.courtState?.[tvCourt]?.division||null;
+  const tvCourt=isTvSession()?tvAssignedCourt():normalizeCourt(cloudSession.court||selectPublicCourt(getState())||'A');
+  const priorTvDivision=selectCourtActiveDivision(getState())?.[tvCourt]||selectCourtState(getState())?.[tvCourt]?.division||null;
   if(!record||record.tournamentId!==cloudSession.tournamentId){updateTvRealtimeDiagnostics({ignored:ksmTvRealtimeDiagnostics.ignored+1,lastReason:'Ignored wrong tournament'});return false}
   if(Number(record.revision||0)>=Number(cloudSession.revision||0))ksmCacheTournament(record);
   const incomingRevision=Number(record.revision||0);
@@ -220,7 +221,7 @@ export function applyRemoteCloudRecord(record,allowWhileEditing=false,forceApply
   // on its way is answered 409 and handled the same way in its catch.
   const restoredHere=ksmRestoredSince(record);
   if(restoredHere&&canCloudWrite()&&!ksmCloudSaveInFlight&&localChangesPending())ksmDropWorkBeforeRestore(record);
-  if(!forceApply&&canCloudWrite()&&localChangesPending())return deferRemoteRecord(record,`Revision ${incomingRevision} arrived while local Court ${pinnedCourt()||state.currentCourt||'—'} changes were pending`);
+  if(!forceApply&&canCloudWrite()&&localChangesPending())return deferRemoteRecord(record,`Revision ${incomingRevision} arrived while local Court ${pinnedCourt()||selectCurrentCourt(getState())||'—'} changes were pending`);
   if(!forceApply&&incomingRevision<=Number(cloudSession.revision||0)){updateTvRealtimeDiagnostics({ignored:ksmTvRealtimeDiagnostics.ignored+1,lastReason:`Ignored old revision ${incomingRevision}`});return false}
   // Staff pages ignore their own echoed save. Spectator/TV pages must apply it even when
   // they share the same browser-level client ID with the Staff tab.
@@ -243,7 +244,7 @@ export function applyRemoteCloudRecord(record,allowWhileEditing=false,forceApply
   if(restoredHere){clearLocalCourtDivisions();setKsmRestorePoint(null);ksmClearRestoreMark()}
   ksmApplyingRemoteSnapshot=true;
   try{
-    applyTournamentPayload(record.payload,false,{pinnedCourt:pinnedCourt(),preserveLocalDivision:preserveLocalDivisionForRemoteSync(),source:'live sync'});restorePinnedCourt();ksmStoreAutosave(record.payload);cloudSession.revision=Math.max(Number(cloudSession.revision||0),incomingRevision);cloudSession.updatedAt=record.updatedAt;persistCloudSession();rememberCloudBase(record);const by=record.updatedBy?.name||record.updatedBy?.role;updateSaveStatus((by?`Updated by ${by} • `:'Live update • ')+new Date(record.updatedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}));setConnectionStatus('Live sync','online');const nextTvDivision=state.courtActiveDivision?.[tvCourt]||state.courtState?.[tvCourt]?.division||null;if(isTvSession()){renderTvDisplay();if(priorTvDivision!==nextTvDivision)console.info('[TV Realtime] Active division changed',tvCourt,priorTvDivision,'→',nextTvDivision)}console.info('[TV Realtime] Applied revision',incomingRevision);updateTvRealtimeDiagnostics({lastAppliedRevision:incomingRevision,lastReason:priorTvDivision!==nextTvDivision?`Applied ${incomingRevision}; Court ${tvCourt} division refreshed`:`Applied revision ${incomingRevision}`});return true
+    applyTournamentPayload(record.payload,false,{pinnedCourt:pinnedCourt(),preserveLocalDivision:preserveLocalDivisionForRemoteSync(),source:'live sync'});restorePinnedCourt();ksmStoreAutosave(record.payload);cloudSession.revision=Math.max(Number(cloudSession.revision||0),incomingRevision);cloudSession.updatedAt=record.updatedAt;persistCloudSession();rememberCloudBase(record);const by=record.updatedBy?.name||record.updatedBy?.role;updateSaveStatus((by?`Updated by ${by} • `:'Live update • ')+new Date(record.updatedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}));setConnectionStatus('Live sync','online');const nextTvDivision=selectCourtActiveDivision(getState())?.[tvCourt]||selectCourtState(getState())?.[tvCourt]?.division||null;if(isTvSession()){renderTvDisplay();if(priorTvDivision!==nextTvDivision)console.info('[TV Realtime] Active division changed',tvCourt,priorTvDivision,'→',nextTvDivision)}console.info('[TV Realtime] Applied revision',incomingRevision);updateTvRealtimeDiagnostics({lastAppliedRevision:incomingRevision,lastReason:priorTvDivision!==nextTvDivision?`Applied ${incomingRevision}; Court ${tvCourt} division refreshed`:`Applied revision ${incomingRevision}`});return true
   }finally{ksmApplyingRemoteSnapshot=false}
 }
 function saveTournamentToCloud(){return saveTournamentToCloudWithReason('Manual cloud save',true)}
@@ -401,7 +402,7 @@ async function copyDirectorLink(){const link=directorLink();if(!link||!cloudSess
 async function copyScorekeeperLink(court){const link=roleLink('scorekeeper',court);if(!link||!cloudSession.credentials?.scorekeeper){alert('This device does not have the scorekeeper credential.');return}await copyTextValue(link,`Court ${court} scorekeeper link copied`)}
 async function copyAdminLink(){const link=roleLink('admin');if(!link||!cloudSession.credentials?.admin){alert('This device does not have admin access.');return}await copyTextValue(link,'Admin link copied')}
 export function closeCloudModal(){if(ksmFileReplace?.record)return ksmCancelReplace();ksmCloseCloudModal();}
-export function cloudDiagnostics(){const outbox=readOutbox(),presence=cloudSession.presence||[],diag=readCloudDiagnosticsState(),currentAnalysis=analyzeTournamentSnapshot(),analysis=diag.snapshotAnalysis||currentAnalysis,historyAnalysis=analyzeCourtActionHistory();const details=[['Connection',navigator.onLine?'Online':'Offline'],['Realtime',ksmCloudSocket?.readyState===1?'Connected':'Not connected'],['Last successful save',ksmLastSuccessfulSaveAt?new Date(ksmLastSuccessfulSaveAt).toLocaleString():'None'],['Pending offline changes',outbox?'1 queued snapshot':'None'],['Tournament ID',cloudSession.tournamentId||'None'],['Role',ksmSessionRole],['Pinned court',pinnedCourt()||'—'],['Displayed court',state.currentCourt||'—'],['Local changes pending',localChangesPending()?'Yes':'No'],['Court',cloudSession.court||state.currentCourt||'—'],['Connected devices',String(presence.length)],['Cloud revision',String(cloudSession.revision||0)],['Last save stage',diag.stage||'No diagnostic attempt recorded'],['Last attempt',formatDiagnosticTime(diag.lastAttemptAt)],['HTTP status',diag.httpStatus==null?'None':String(diag.httpStatus)],['Last error',diag.errorMessage||'None'],['Server response',diag.errorBody||'None'],['Retry count',String(diag.retryCount||0)],['Queued base revision',outbox?String(outbox.baseRevision||0):'None'],['Queued since',outbox?formatDiagnosticTime(outbox.queuedAt):'None'],['Snapshot size',formatSnapshotBytes(outbox?payloadByteSize(outbox.payload):(diag.snapshotBytes||currentAnalysis.totalBytes))]];ksmOpenDiagnostics(details,analysis,historyAnalysis,outbox&&!isReadOnlySession());}
+export function cloudDiagnostics(){const outbox=readOutbox(),presence=cloudSession.presence||[],diag=readCloudDiagnosticsState(),currentAnalysis=analyzeTournamentSnapshot(),analysis=diag.snapshotAnalysis||currentAnalysis,historyAnalysis=analyzeCourtActionHistory();const details=[['Connection',navigator.onLine?'Online':'Offline'],['Realtime',ksmCloudSocket?.readyState===1?'Connected':'Not connected'],['Last successful save',ksmLastSuccessfulSaveAt?new Date(ksmLastSuccessfulSaveAt).toLocaleString():'None'],['Pending offline changes',outbox?'1 queued snapshot':'None'],['Tournament ID',cloudSession.tournamentId||'None'],['Role',ksmSessionRole],['Pinned court',pinnedCourt()||'—'],['Displayed court',selectCurrentCourt(getState())||'—'],['Local changes pending',localChangesPending()?'Yes':'No'],['Court',cloudSession.court||selectCurrentCourt(getState())||'—'],['Connected devices',String(presence.length)],['Cloud revision',String(cloudSession.revision||0)],['Last save stage',diag.stage||'No diagnostic attempt recorded'],['Last attempt',formatDiagnosticTime(diag.lastAttemptAt)],['HTTP status',diag.httpStatus==null?'None':String(diag.httpStatus)],['Last error',diag.errorMessage||'None'],['Server response',diag.errorBody||'None'],['Retry count',String(diag.retryCount||0)],['Queued base revision',outbox?String(outbox.baseRevision||0):'None'],['Queued since',outbox?formatDiagnosticTime(outbox.queuedAt):'None'],['Snapshot size',formatSnapshotBytes(outbox?payloadByteSize(outbox.payload):(diag.snapshotBytes||currentAnalysis.totalBytes))]];ksmOpenDiagnostics(details,analysis,historyAnalysis,outbox&&!isReadOnlySession());}
 function promptDeviceName(role,current){if(role==='spectator')return current||'Spectator';const suggested=current&&current!=='KSM Device'?current:(role==='scorekeeper'?`Court Device`:'Director Device');return prompt('Name this device for live session status',suggested)||suggested}
 export function triggerLoadRecoveryFile(){document.getElementById('ksmRecoveryFile')?.click()}
 // F7: Load Recovery File always makes a new tournament from the file's snapshot. Ask first when a
@@ -473,7 +474,7 @@ function tournamentFileDetails(payload){
 }
 // #129: what Replace trades, in finished matches: the open tournament's and the file's.
 function ksmReplaceCounts(payload){
-  const open=KSMEngine.finishedMatchSummary(state.allMatches).total,file=KSMEngine.finishedMatchSummary(payload.state?.allMatches).total;
+  const open=KSMEngine.finishedMatchSummary(selectAllMatches(getState())).total,file=KSMEngine.finishedMatchSummary(payload.state?.allMatches).total;
   const n=count=>`${count} finished ${count===1?'match':'matches'}`;
   return `The open tournament has ${n(open)}; the file has ${file}.`;
 }
@@ -496,7 +497,7 @@ export function applyTournamentFilePayload(payload,saveAfter){
   const before=tournamentPayload();
   // This device's view before the file (#177 review): a load that throws after ksmLoadTournamentState() may already have moved
   // it to the file's court entry, so the restore is given this view, not the one the failed load left.
-  const view={division:state.currentDivision,local:{A:localCourtDivision('A'),B:localCourtDivision('B')}};
+  const view={division:selectCurrentDivision(getState()),local:{A:localCourtDivision('A'),B:localCourtDivision('B')}};
   // The load and, when it throws, the restore are one held step (one store notification); the alert is outside it.
   const ok=holdNotifications(()=>{
     try{applyTournamentPayload(payload,saveAfter);return true}
@@ -650,13 +651,13 @@ export async function ksmAccountFileAsNew(){
 }
 function repairLoadedEliminationAdvancement(source='tournament load'){
   repairCompletedMatchResults(state,source);
-  KSMEngine.loadedEliminationRepairPlan(Object.keys(state.allMatches||{}),state.championshipNodes,state.singleElimNodes).forEach(({division:div,championship,singleElim})=>{
+  KSMEngine.loadedEliminationRepairPlan(Object.keys(selectAllMatches(getState())||{}),selectChampionshipNodes(getState()),selectSingleElimNodes(getState())).forEach(({division:div,championship,singleElim})=>{
     if(championship)syncChampionshipTemplate(div);
     if(singleElim){
       // Every winner found again from the bouts: on new nodes (store data, #15 PR 12b), one action when it differs.
-      const nodes=state.singleElimNodes[div]||[],draft={singleElimNodes:nodes.map(node=>({...node,winner:null}))};
-      const comps=(state.singleElimComps?.[div]||eligibleIndividuals(div).filter(c=>c.name));
-      syncIndividualSingleElim(div,state.allMatches[div]||[],comps,draft);
+      const nodes=selectSingleElimNodes(getState())[div]||[],draft={singleElimNodes:nodes.map(node=>({...node,winner:null}))};
+      const comps=(selectSingleElimComps(getState())?.[div]||eligibleIndividuals(div).filter(c=>c.name));
+      syncIndividualSingleElim(div,selectAllMatches(getState())[div]||[],comps,draft);
       if(JSON.stringify(draft.singleElimNodes)!==JSON.stringify(nodes))ksmSetDraw('advancementApplied',ksmDrawWith(div,{singleElimNodes:draft.singleElimNodes}));
     }
   });
@@ -669,21 +670,21 @@ function repairLoadedEliminationAdvancement(source='tournament load'){
 // the load (applyTournamentPayload); its division is kept when the court has nothing to show.
 function rehydrateLoadedTournamentState(options){
   options=options||{};
-  const court=state.currentCourt||'A';
+  const court=selectCurrentCourt(getState())||'A';
   const own=options.deviceView||{};
-  const hasMatches=d=>Boolean(d)&&Array.isArray(state.allMatches?.[d]);
+  const hasMatches=d=>Boolean(d)&&Array.isArray(selectAllMatches(getState())?.[d]);
   const preserveLocalDivision=options.preserveLocalDivision===true;
   const preferred=preserveLocalDivision?localCourtDivision(court):null;
-  let cs=hasMatches(preferred)?{division:preferred,index:0}:state.courtState?.[court];
+  let cs=hasMatches(preferred)?{division:preferred,index:0}:selectCourtState(getState())?.[court];
   if(!cs||!cs.division){
     // No shared entry: the court's active division first (#177 review), else the first division with a ready match.
-    const ready=next=>hasMatches(next.division)&&next.index<state.allMatches[next.division].length?next:null;
-    const active=state.courtActiveDivision?.[court];
+    const ready=next=>hasMatches(next.division)&&next.index<selectAllMatches(getState())[next.division].length?next:null;
+    const active=selectCourtActiveDivision(getState())?.[court];
     cs=(hasMatches(active)?ready(findNextForCourt(court,active,0)):null)||ready(findNextForCourt(court,null,0));
   }
   if(cs&&cs.division){
-    const arr=state.allMatches?.[cs.division]||[];
-    let index=Number.isInteger(cs.index)?cs.index:(state.currentByDivision?.[cs.division]||0);
+    const arr=selectAllMatches(getState())?.[cs.division]||[];
+    let index=Number.isInteger(cs.index)?cs.index:(selectCurrentByDivision(getState())?.[cs.division]||0);
     index=Math.max(0,Math.min(index,arr.length));
     let normalized={division:cs.division,index};
     const active=arr[index];
@@ -699,12 +700,12 @@ function rehydrateLoadedTournamentState(options){
     applyCourtState(court,normalized,true);
     if(normalized.division)rememberLocalCourtDivision(court,normalized.division);
   }else{
-    const known=d=>Boolean(d)&&(hasMatches(d)||(state.divisions||[]).includes(d));
-    ksmShowDivision(known(own.division)?own.division:((state.divisions||[])[0]||null));
+    const known=d=>Boolean(d)&&(hasMatches(d)||(selectDivisions(getState())||[]).includes(d));
+    ksmShowDivision(known(own.division)?own.division:((selectDivisions(getState())||[])[0]||null));
     // Nothing to show: state.matches is that division's list (derived, #15 PR 7), so the shown index is past its end and
     // the shown match is undefined, as when this branch set matches=[] and current=0 (#181 review). Index 0
     // would be a real bout: possibly the other court's, or one that is not ready.
-    ksmShowMatch(state.matches.length);
+    ksmShowMatch(selectMatches(getState()).length);
     ksmSetScore(ksmEmptyScore());
   }
 }
@@ -715,11 +716,11 @@ function rehydrateLoadedTournamentState(options){
  */
 export function applyTournamentPayload(payload,saveAfter,options={}){return holdNotifications(()=>{
   if(!payload || !payload.state) throw new Error('Invalid KSM file');
-  const localCourt=options.pinnedCourt||pinnedCourt()||cloudSession.court||state.currentCourt||null;
-  const localPublicCourt=state.publicCourt||localCourt||'A';
+  const localCourt=options.pinnedCourt||pinnedCourt()||cloudSession.court||selectCurrentCourt(getState())||null;
+  const localPublicCourt=selectPublicCourt(getState())||localCourt||'A';
   // This device's view before the load: the payload's own currentDivision / current / score are not this device's.
   // A restore after a failed load passes the view from before that load (applyTournamentFilePayload()).
-  const deviceView=options.deviceView||{division:state.currentDivision};
+  const deviceView=options.deviceView||{division:selectCurrentDivision(getState())};
   const loaded=KSMEngine.migrateGrandChampions(KSMEngine.migrateTeamDivisions(JSON.parse(JSON.stringify(payload.state)),payload.setup||{}));ksmNoteTeamsReassigned(payload.state,loaded,options.source);
   // The load repairs run on the loaded copy, before it replaces `state` (docs/STORE.md section 2, point 4): the same
   // result as running them on `state` after the assign (tests/store/load-order.test.mjs).

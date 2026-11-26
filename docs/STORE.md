@@ -1168,6 +1168,13 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
     **Left** because they use `state` as an object: team-divisions.js (`migrateTeamDivisions(state, …)` and
     `ksmTeamInDrawOf(state, …)`); results/print.js has its own local `state` (a payload copy) and never imported the app's.
 
+    **Done in item 14c-4**: setup/, sync/, session/ and links/'s `state.x` reads are `selectX(getState())` (new selectors:
+    `publicCourt`, `hiddenPresets`, `divisionRenames`). main.js and navigation.js
+    had no code reads (main.js exports `state` for the test API). **Left** because they use `state` as an object:
+    `cloud-session-and-autosave.js` (`JSON.parse(JSON.stringify(state))`, the snapshot), `cloud-realtime-save-and-load.js`
+    (`repairCompletedMatchResults(state, …)`) and `tournament-switcher.js` (`JSON.stringify(state)`): they go with item 6 (the
+    snapshot built from the store). `tournamentPayload()` keeps reading `state` until then, as planned.
+
     **The reads (item 14c), module by module.** `state.x` reads in `app/modules` and `app/main.js` (next/4.1, counted
     as `state.` / `state?.` / `state[` followed by a name; lines that have one in brackets): court 190 (135 lines),
     engine 156 (117), registration 111 (86), react-bridges 82 (75), results 74 (52), setup 54 (44), sync 48 (43),
@@ -1185,6 +1192,7 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
        **Done in item 14c-3** (above), except what keeps `state` as an object.
     4. **setup/ + sync/ + session/ + links/ + navigation + main.js** (~100 lines). `tournamentPayload()` (sync) reads
        `JSON.stringify(state)`: it keeps reading `state` until 6.
+       **Done in item 14c-4** (above), except what keeps `state` as an object.
     5. **react-bridges/ + the publishers** (~175 lines): the islands' inputs become selectors and `useStoreSelector()`,
        and each screen's `ksm:*` event, publisher and `ksmXRequested` flag go (section 4), one screen per PR if large.
     6. **`app-state.js` goes**: the snapshot is built from the store in `state`'s key order (one list of the keys, the
