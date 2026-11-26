@@ -1,5 +1,6 @@
 // @ts-check
-import {state} from '../app-state.js';
+import {getState} from '../../store/index.ts';
+import {selectAllMatches,selectCompetitors,selectDivisions,selectExhibitions,selectGenerated,selectPools,selectRegMode,selectTeams} from '../selectors.js';
 import {renderDivisions} from '../court/court-match-order.js';
 import {ksmSetting,scheduleAutoSave} from '../sync/cloud-session-and-autosave.js';
 import {regTab} from '../navigation.js';
@@ -70,9 +71,9 @@ function ksmSameCompetitor(a,b){return ['name','dojo','division','seed','status'
 export function ksmUpdateCompetitor(row,key,value){
   // #15 PR 10: the row object it showed, or the one an edit since made of it (people-store.js, as identity did).
   const competitor=ksmCurrentPerson(ksmRegistrationRowCompetitors?.get(row));
-  let index=competitor?state.competitors.indexOf(competitor):row.index;
+  let index=competitor?selectCompetitors(getState()).indexOf(competitor):row.index;
   if(index<0){
-    const same=state.competitors.map((c,i)=>ksmSameCompetitor(c,competitor)?i:-1).filter(i=>i>=0);
+    const same=selectCompetitors(getState()).map((c,i)=>ksmSameCompetitor(c,competitor)?i:-1).filter(i=>i>=0);
     if(same.length!==1){
       showKsmToast(`Your change to ${competitor.name||'a player'} was not saved: the player list was updated from another device while you were typing. Enter it again.`,10000,true);
       return;
@@ -101,7 +102,7 @@ export function ksmRenderTournamentStatus(valid,competitors,divisions,errors){
 // × of a row: what its inline handler ran.
 export function ksmRemoveCompetitor(i){
   // Owner decision 18 (#29): × on a player of a generated division asks first.
-  const c=state.competitors[i];if(c&&c.name&&ksmInGeneratedDivision(c.name,c.division,false)&&!ksmConfirmRemove(c.name,c.division))return;
+  const c=selectCompetitors(getState())[i];if(c&&c.name&&ksmInGeneratedDivision(c.name,c.division,false)&&!ksmConfirmRemove(c.name,c.division))return;
   ksmRemovePerson('competitor',i);renderReg();renderTournamentStatus();
 }
 // Owner decision 18 (#29): after generation, a No Show takes the entry out of its division's pools
@@ -112,9 +113,9 @@ export function ksmConfirmNoShow(name,division){
   return confirm(`Mark ${name} as No Show? ${ksmDivisionName(division)} is already generated: ${name} is taken out of its pools or bracket.`);
 }
 function ksmInGeneratedDivision(name,division,team){
-  if(!state.generated||!name)return false;
-  return (state.allMatches?.[division]||[]).some(m=>m&&(team?(m.teamWhite===name||m.teamRed===name):(m.white===name||m.red===name)))
-    ||(state.pools?.[division]||[]).some(p=>(p.players||[]).some(x=>x&&x.name===name));
+  if(!selectGenerated(getState())||!name)return false;
+  return (selectAllMatches(getState())?.[division]||[]).some(m=>m&&(team?(m.teamWhite===name||m.teamRed===name):(m.white===name||m.red===name)))
+    ||(selectPools(getState())?.[division]||[]).some(p=>(p.players||[]).some(x=>x&&x.name===name));
 }
 function ksmConfirmRemove(name,division){
   return confirm(`Remove ${name}? ${ksmDivisionName(division)} is already generated: removing the entry does not change its pools, bracket or matches (regenerate the division for that).`);
@@ -164,15 +165,15 @@ const KSM_PASTE_STATUSES={'':'Registered','registered':'Registered','checked in'
 // '' when none matches.
 function ksmOfferedDivision(division){
   const key=d=>String(d).toLowerCase().replace(/[‐-―−]/g,'-').replace(/[‘’ʼ′]/g,"'").replace(/\s+/g,' ').trim();
-  return state.divisions.find(d=>key(d)===key(division))||'';
+  return selectDivisions(getState()).find(d=>key(d)===key(division))||'';
 }
 export function ksmPasteRow(name,dojo,division,seed,status){
   const st=KSM_PASTE_STATUSES[String(status||'').trim().toLowerCase()],why=[];
   if(division)division=ksmOfferedDivision(division)||division;
-  if(division&&!state.divisions.includes(division))why.push(`division "${division}" is not offered`);
+  if(division&&!selectDivisions(getState()).includes(division))why.push(`division "${division}" is not offered`);
   if(st===undefined)why.push(`status "${status}" is not Registered, Checked In or No Show`);
   if(why.length){ksmPasteRefused.push(`${name}: ${why.join('; ')}`);return}
-  ksmAddPeople('competitor',[{name,dojo:dojo||'',division:division||state.divisions[0],seed:seed||'',status:st}]);
+  ksmAddPeople('competitor',[{name,dojo:dojo||'',division:division||selectDivisions(getState())[0],seed:seed||'',status:st}]);
 }
 export function ksmPasteNotice(){
   if(!ksmPasteRefused.length)return;
@@ -220,7 +221,7 @@ function ksmImportCSVText(text,fileName){
     return;
   }
   const get=(r,key)=>key in cols?String(r[cols[key]]??'').trim():'';
-  const known=new Set(state.competitors.map(c=>`${String(c.name).trim().toLowerCase()}\n${c.division}`));
+  const known=new Set(selectCompetitors(getState()).map(c=>`${String(c.name).trim().toLowerCase()}\n${c.division}`));
   let added=0,skipped=0;ksmPasteRefused=[];
   const missing=new Map();// a division not in Setup: its rows' names, listed once per division
   rows.slice(1).forEach(r=>{
@@ -228,11 +229,11 @@ function ksmImportCSVText(text,fileName){
     if(!name)return;
     const typed=get(r,'division'),division=typed&&ksmOfferedDivision(typed);
     if(typed&&!division){missing.set(typed,[...(missing.get(typed)||[]),name]);return}
-    const key=`${name.toLowerCase()}\n${division||state.divisions[0]}`;
+    const key=`${name.toLowerCase()}\n${division||selectDivisions(getState())[0]}`;
     if(known.has(key)){skipped++;return}
-    const before=state.competitors.length;
+    const before=selectCompetitors(getState()).length;
     ksmPasteRow(name,get(r,'dojo'),division,get(r,'seed'),get(r,'status'));
-    if(state.competitors.length>before){added++;known.add(key)}
+    if(selectCompetitors(getState()).length>before){added++;known.add(key)}
   });
   const refused=ksmPasteRefused;ksmPasteRefused=[];
   let message=`Imported ${added} ${added===1?'player':'players'}${fileName?` from ${fileName}`:''}.`;
@@ -241,7 +242,7 @@ function ksmImportCSVText(text,fileName){
     const count=[...missing.values()].reduce((n,names)=>n+names.length,0);
     message+=`\n\nNot added (${count} ${count===1?'row':'rows'}): ${missing.size===1?'this division is':'these divisions are'} not in Setup.\n`
       +[...missing].map(([d,names])=>`"${d}": ${names.length} ${names.length===1?'player':'players'} (${names.slice(0,3).join(', ')}${names.length>3?`, +${names.length-3} more`:''})`).join('\n')
-      +`\n\nSetup offers: ${state.divisions.join(', ')}.\nAdd ${missing.size===1?'it':'them'} in Setup (Add custom division, same name) or change the Division column, then import the file again.`;
+      +`\n\nSetup offers: ${selectDivisions(getState()).join(', ')}.\nAdd ${missing.size===1?'it':'them'} in Setup (Add custom division, same name) or change the Division column, then import the file again.`;
   }
   if(refused.length)message+=`\n\nNot added (${refused.length} ${refused.length===1?'row':'rows'}):\n${refused.join('\n')}\n\nUse a division offered in Setup and the status Registered, Checked In or No Show, then import those rows again.`;
   if(added){renderDivisions();renderReg();scheduleAutoSave('Import CSV')}
@@ -251,14 +252,14 @@ function ksmImportCSVText(text,fileName){
 // shows (only while Setup's Exhibition Matches is Enabled).
 export function ksmExhibitionsEnabled(){return ksmSetting('exhibitionEnabled')==='Enabled'}
 // #129: the tournament is drawn: the tab bar drops Generate Tournament (Regenerate Tournament lives in Setup's Danger zone).
-export function ksmTournamentGenerated(){return !!state.generated}
+export function ksmTournamentGenerated(){return !!selectGenerated(getState())}
 export function ksmRenderRegistrationTab(mode){
   window.ksmRegistrationTabRequested={mode};
   window.dispatchEvent(new CustomEvent('ksm:registration-tab'));
 }
 // The Exhibition tab hidden while its card is shown: back to Individual Players.
 function ksmSyncExhibitionTab(){
-  const mode=state.regMode||'individual';
+  const mode=selectRegMode(getState())||'individual';
   if(mode==='exhibition'&&!ksmExhibitionsEnabled()){regTab('individual');return}
   const current=window.ksmRegistrationTabInput;
   if(!current||current.mode!==String(mode)||current.exhibitions!==ksmExhibitionsEnabled()||!!current.generated!==ksmTournamentGenerated())ksmRenderRegistrationTab(mode);
@@ -299,21 +300,21 @@ function ksmEditDropped(what,list){
 // What the cards' and rows' inline handlers ran (`state` is not a window property), for the
 // entry the card or row showed (F20).
 export function ksmSetTeamField(card,key,value){
-  const index=ksmRegistrationEntryIndex(state.teams,card,KSM_TEAM_FIELDS);
+  const index=ksmRegistrationEntryIndex(selectTeams(getState()),card,KSM_TEAM_FIELDS);
   if(index<0){ksmEditDropped(ksmCurrentPerson(ksmRegistrationEntries.get(card)).team||'a team','team list');return}
-  if(state.teams[index]!==ksmCurrentPerson(ksmRegistrationEntries?.get(card)))ksmTeamsStale=true;
-  if(key==='teamDivisionId'){ksmAssignTeamDivision(state.teams[index],value);return}
+  if(selectTeams(getState())[index]!==ksmCurrentPerson(ksmRegistrationEntries?.get(card)))ksmTeamsStale=true;
+  if(key==='teamDivisionId'){ksmAssignTeamDivision(selectTeams(getState())[index],value);return}
   ksmUpdatePerson('team',index,{[key]:value});
 }
 export function ksmRemoveTeam(i){
   // Owner decision 18 (#29): × on a team of the generated team division asks first.
-  const t=state.teams[i];if(t&&t.team&&ksmInGeneratedDivision(t.team,t.teamDivisionId||'Team Tournament',true)&&!ksmConfirmRemove(t.team,t.teamDivisionId||'Team Tournament'))return;
+  const t=selectTeams(getState())[i];if(t&&t.team&&ksmInGeneratedDivision(t.team,t.teamDivisionId||'Team Tournament',true)&&!ksmConfirmRemove(t.team,t.teamDivisionId||'Team Tournament'))return;
   ksmRemovePerson('team',i);renderTeams();renderTournamentStatus();
 }
 export function ksmSetExhibitionField(row,key,value){
-  const index=ksmRegistrationEntryIndex(state.exhibitions||[],row,KSM_EXHIBITION_FIELDS);
+  const index=ksmRegistrationEntryIndex(selectExhibitions(getState())||[],row,KSM_EXHIBITION_FIELDS);
   if(index<0){const x=ksmCurrentPerson(ksmRegistrationEntries.get(row));ksmEditDropped(x.white||x.red?`the exhibition match ${x.white||'?'} vs ${x.red||'?'}`:'an exhibition match','exhibition list');return}
-  if(state.exhibitions[index]!==ksmCurrentPerson(ksmRegistrationEntries?.get(row)))ksmExhibitionsStale=true;
+  if(selectExhibitions(getState())[index]!==ksmCurrentPerson(ksmRegistrationEntries?.get(row)))ksmExhibitionsStale=true;
   ksmUpdatePerson('exhibition',index,{[key]:value});
 }
 export function ksmCycleExhibitionStatus(i){ksmCyclePersonStatus('exhibition',i);renderExhibitions()}

@@ -1,5 +1,4 @@
 // @ts-check
-import {state} from '../app-state.js';
 import {saveAuto} from '../sync/cloud-session-and-autosave.js';
 import {ksmSetAward} from '../results/awards-store.js';
 // ==========================================================

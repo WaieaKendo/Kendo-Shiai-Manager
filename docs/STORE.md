@@ -1175,6 +1175,13 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
     (`repairCompletedMatchResults(state, …)`) and `tournament-switcher.js` (`JSON.stringify(state)`): they go with item 6 (the
     snapshot built from the store). `tournamentPayload()` keeps reading `state` until then, as planned.
 
+    **Done in item 14c-5 (first half: the bridges' reads)**: react-bridges/'s `state.x` reads (court, live-scores, pools, registration,
+    setup, shell) are `selectX(getState())`; no new selectors. **Left**: `ksmLegacyState()` in state-bridge.js (returns the `state`
+    object the publishers read, `app/react/features/*/publish.ts`), and setup.js's `divisionRenameError(state, …)` /
+    `renamedDivisionState(state, …)` (they take the state as an object). The second half of 14c-5, the publishers (~100
+    `legacy('ksmLegacyState')()` reads) and each screen's `ksm:*` event, publisher and `ksmXRequested` flag going (section 4), is
+    still to do, one screen per PR.
+
     **The reads (item 14c), module by module.** `state.x` reads in `app/modules` and `app/main.js` (next/4.1, counted
     as `state.` / `state?.` / `state[` followed by a name; lines that have one in brackets): court 190 (135 lines),
     engine 156 (117), registration 111 (86), react-bridges 82 (75), results 74 (52), setup 54 (44), sync 48 (43),
@@ -1195,6 +1202,7 @@ Each line: fields → actions; risk; tests to add. Every PR keeps every golden u
        **Done in item 14c-4** (above), except what keeps `state` as an object.
     5. **react-bridges/ + the publishers** (~175 lines): the islands' inputs become selectors and `useStoreSelector()`,
        and each screen's `ksm:*` event, publisher and `ksmXRequested` flag go (section 4), one screen per PR if large.
+       **Bridges' reads done in item 14c-5** (above); the publishers and the `ksm:*` events remain.
     6. **`app-state.js` goes**: the snapshot is built from the store in `state`'s key order (one list of the keys, the
        getters' order, then the plain keys in their load order: the dead three move into the store as opaque values,
        `tournament.legacyKeys`, a map whose key order is kept, so the snapshot stays byte-identical); `historyKeyOrder()`

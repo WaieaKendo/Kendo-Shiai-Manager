@@ -1,5 +1,6 @@
 // @ts-check
-import {state} from '../app-state.js';
+import {getState} from '../../store/index.ts';
+import {selectAllMatches,selectPools} from '../selectors.js';
 import {renderPools} from '../engine/engine-generation.js';
 import {cloneJson} from '../sync/sync-state-and-rebase.js';
 // ==========================================================
@@ -42,7 +43,7 @@ export function ksmRenderPools(div){
 /** @type {{div:string,pools:any[]}|null} */
 let ksmPoolEdit=null;
 export function ksmPoolEditPools(div){
-  if(!ksmPoolEdit||ksmPoolEdit.div!==div)ksmPoolEdit={div,pools:cloneJson(state.pools[div]||[])};
+  if(!ksmPoolEdit||ksmPoolEdit.div!==div)ksmPoolEdit={div,pools:cloneJson(selectPools(getState())[div]||[])};
   return ksmPoolEdit.pools;
 }
 export function ksmPoolEditorClick(target){return !!ksmPoolEdit&&!!target?.closest?.('#poolOutput')}
@@ -51,8 +52,8 @@ export function ksmPoolEditorClick(target){return !!ksmPoolEdit&&!!target?.close
 // the division's matches deletes their results; Cancel keeps them and the editor (nothing saved).
 export function ksmPoolEditToSave(div){
   const pools=ksmPoolEdit&&ksmPoolEdit.div===div?ksmPoolEdit.pools:null;
-  if(!pools||JSON.stringify(pools)===JSON.stringify(state.pools[div]||[])){renderPools();return null}
-  const played=(state.allMatches?.[div]||[]).filter(m=>m&&m.done).length;
+  if(!pools||JSON.stringify(pools)===JSON.stringify(selectPools(getState())[div]||[])){renderPools();return null}
+  const played=(selectAllMatches(getState())?.[div]||[]).filter(m=>m&&m.done).length;
   if(played&&!confirm(`Delete the results of ${played} played ${played===1?'match':'matches'} in ${div}?\n\nSaving the new pools rebuilds the division's matches, so the results played so far are deleted. Cancel keeps the results and the editor open (nothing is saved).`))return null;
   ksmPoolEdit=null;
   return pools;
