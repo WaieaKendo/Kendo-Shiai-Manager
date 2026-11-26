@@ -1,6 +1,7 @@
 // @ts-check
+import {selectAllMatches,selectCompetitors,selectDivisionRenames,selectDivisions} from '../selectors.js';
 import {DIVISION_PRESETS,ksmShowDivision,state} from '../app-state.js';
-import {deviceSlice,dispatch} from '../../store/index.ts';
+import {deviceSlice,dispatch,getState} from '../../store/index.ts';
 import {renderDivisions} from '../court/court-match-order.js';
 import {ksmSetAllMatches} from '../court/match-writes.js';
 import {scheduleAutoSave} from '../sync/cloud-session-and-autosave.js';
@@ -48,8 +49,8 @@ export function ksmPublishSetup(event,key,input){
 // order (state.divisions), saved and synced like every Setup edit (the button's click asks for the
 // autosave, the document-wide listener in 21-).
 export function ksmMoveSetupDivision(d,direction){
-  const i=state.divisions.indexOf(d),j=i+(direction==='up'?-1:1);
-  if(i<0||j<0||j>=state.divisions.length)return;
+  const i=selectDivisions(getState()).indexOf(d),j=i+(direction==='up'?-1:1);
+  if(i<0||j<0||j>=selectDivisions(getState()).length)return;
   ksmMoveDivision(d,direction);
   renderDivisionSetup();renderDivisions();renderReg();
 }
@@ -62,7 +63,7 @@ export function ksmMoveSetupDivision(d,direction){
 // state.divisionRenames, so a save conflict replays it whole (rebaseLocalPayloadOnRecord(), 18-).
 // Returns why it was refused (shown in the row; nothing changed), or null. Saved and synced like
 // every Setup edit.
-export function ksmDivisionPresetNames(){return KSMEngine.presetNames(DIVISION_PRESETS.map(p=>p[0]),/** @type {any} */ (state).divisionRenames)}
+export function ksmDivisionPresetNames(){return KSMEngine.presetNames(DIVISION_PRESETS.map(p=>p[0]),selectDivisionRenames(getState()))}
 function ksmDivisionRenameError(from,to){return KSMEngine.divisionRenameError(/** @type {any} */ (state),DIVISION_PRESETS.map(p=>p[0]),String(from??''),String(to??''))}
 // Why the row's Rename cannot open (after the draw), or null.
 export function ksmDivisionRenameBlocked(d){return ksmDivisionRenameError(d,d)}
@@ -104,14 +105,14 @@ export function ksmRenderSetupHeader(){
 // Owner request (4.0): every row has × before its draw, presets too. A removed preset is hidden for
 // this tournament (state.hiddenPresets, merged like the other Setup lists on a save conflict); its
 // registered players stay in Registration without a division, after a question.
-export function ksmDivisionRemoveBlocked(d){return (state.allMatches?.[d]||[]).length?`${d} is drawn: it can no longer be removed.`:null}
+export function ksmDivisionRemoveBlocked(d){return (selectAllMatches(getState())?.[d]||[]).length?`${d} is drawn: it can no longer be removed.`:null}
 export function ksmRemoveSetupDivision(d){
   if(isReadOnlySession())return;
   const blocked=ksmDivisionRemoveBlocked(d);if(blocked){alert(blocked);return}
-  const players=(state.competitors||[]).filter(c=>c.division===d&&c.name).length;
+  const players=(selectCompetitors(getState())||[]).filter(c=>c.division===d&&c.name).length;
   if(players&&!confirm(`Remove ${d}? Its ${players} registered ${players===1?'player stays':'players stay'} in Registration without a division.`))return;
   if(ksmDivisionPresetNames().includes(d))ksmHidePreset(d);
-  const i=state.divisions.indexOf(d);
+  const i=selectDivisions(getState()).indexOf(d);
   if(i>=0){removeDivision(i);scheduleAutoSave('Division removed');return}
   ksmRemoveDivision(d);renderDivisionSetup();renderDivisions();renderReg();scheduleAutoSave('Division removed');
 }

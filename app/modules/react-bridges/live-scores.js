@@ -1,5 +1,6 @@
 // @ts-check
-import {state} from '../app-state.js';
+import {getState} from '../../store/index.ts';
+import {selectAllMatches,selectTeamBracketNodes} from '../selectors.js';
 import {individualMatchReady,isTeamMatch,sortIndividualDivisionMatches,sortTeamMatches} from '../court/court-match-order.js';
 import {matchBelongsToCourt} from '../engine/engine-generation.js';
 import {ksmNextCourtDivision,ksmText} from './court.js';
@@ -26,7 +27,7 @@ import {isValidMatchObject} from '../sync/sync-state-and-rebase.js';
 // node's round, the pool, or the position.
 function ksmStageLabel(m){
   if(!m)return 'The next match';
-  if(isTeamMatch(m)&&m.teamNodeId){const n=(state.teamBracketNodes?.[m.division]||[]).find(x=>x.id===m.teamNodeId);if(n?.round)return String(n.round)}
+  if(isTeamMatch(m)&&m.teamNodeId){const n=(selectTeamBracketNodes(getState())?.[m.division]||[]).find(x=>x.id===m.teamNodeId);if(n?.round)return String(n.round)}
   if(m.championship||m.singleElim||m.pool==='Championship')return String(m.position||'Championship');
   if(m.pool&&!isTeamMatch(m))return `Pool ${m.pool}`;
   return String(m.position||'The next match');
@@ -34,7 +35,7 @@ function ksmStageLabel(m){
 // Why the court's division waits, when it is known: its next match on this court waits for an
 // unfinished match of the division on the other court ("Final waits for the semifinal on Court B").
 function ksmWaitingReason(court,div){
-  const other=court==='A'?'B':'A',arr=state.allMatches?.[div]||[];
+  const other=court==='A'?'B':'A',arr=selectAllMatches(getState())?.[div]||[];
   const mine=arr.find(m=>isValidMatchObject(m)&&!m.done&&matchBelongsToCourt(m,court));
   const theirs=arr.find(m=>isValidMatchObject(m)&&!m.done&&matchBelongsToCourt(m,other)&&!matchBelongsToCourt(m,court));
   if(!mine||!theirs)return null;
@@ -45,7 +46,7 @@ function ksmWaitingReason(court,div){
 // picks it) and its first two matches ready on this court (a team pairing once), or null.
 export function ksmUpNext(court,own){
   const next=ksmNextCourtDivision(court,own||null);if(!next)return null;
-  let arr=state.allMatches[next]||[];arr=arr.some(isTeamMatch)?sortTeamMatches(next):sortIndividualDivisionMatches(next,arr);
+  let arr=selectAllMatches(getState())[next]||[];arr=arr.some(isTeamMatch)?sortTeamMatches(next):sortIndividualDivisionMatches(next,arr);
   const seen=new Set(),matches=[];
   for(const m of arr){
     if(matches.length>=2)break;
